@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {t} from 'app/locale';
 
@@ -15,7 +15,7 @@ const MESSAGES = {
   ),
 };
 
-class U2fSign extends React.Component {
+class U2fSign extends Component {
   static propTypes = {
     challengeData: PropTypes.object,
     displayMode: PropTypes.string,

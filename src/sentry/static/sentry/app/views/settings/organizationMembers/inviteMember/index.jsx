@@ -1,6 +1,6 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import classNames from 'classnames';
 import * as Sentry from '@sentry/react';
 
@@ -21,7 +21,7 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 import RoleSelect from './roleSelect';
 
-class InviteMember extends React.Component {
+class InviteMember extends Component {
   static propTypes = {
     api: PropTypes.object,
     organization: SentryTypes.Organization.isRequired,

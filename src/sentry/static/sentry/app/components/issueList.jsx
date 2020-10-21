@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Fragment} from 'react';
 import createReactClass from 'create-react-class';
 
 import {Panel, PanelBody} from 'app/components/panels';
@@ -168,12 +168,12 @@ const IssueList = createReactClass({
 
   render() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderResults()}
         {this.props.pagination && this.state.pageLinks && (
           <Pagination pageLinks={this.state.pageLinks} {...this.props} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   },
 });

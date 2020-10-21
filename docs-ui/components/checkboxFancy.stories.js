@@ -1,4 +1,3 @@
-import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 import {number, boolean} from '@storybook/addon-knobs';
 import styled from '@emotion/styled';

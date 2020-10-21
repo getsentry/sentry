@@ -1,6 +1,6 @@
 import pickBy from 'lodash/pickBy';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -53,7 +53,7 @@ function getDefinedProps(propTypes, props) {
   return pickBy(props, (_prop, key) => key in propTypes);
 }
 
-class RichList extends React.PureComponent {
+class RichList extends PureComponent {
   static propTypes = {
     ...RichListProps,
 
@@ -194,7 +194,7 @@ class RichList extends React.PureComponent {
   }
 }
 
-export default class RichListField extends React.PureComponent {
+export default class RichListField extends PureComponent {
   static propTypes = {
     ...InputField.propTypes,
     ...RichListProps,

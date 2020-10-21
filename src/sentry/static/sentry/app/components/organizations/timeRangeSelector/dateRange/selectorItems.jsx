@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Fragment} from 'react';
 
 import {t} from 'app/locale';
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
@@ -13,7 +13,7 @@ const SelectorItems = ({
   relativeSelected,
   isAbsoluteSelected,
 }) => (
-  <React.Fragment>
+  <Fragment>
     {shouldShowRelative && (
       <RelativeSelector onClick={handleSelectRelative} selected={relativeSelected} />
     )}
@@ -26,7 +26,7 @@ const SelectorItems = ({
         last
       />
     )}
-  </React.Fragment>
+  </Fragment>
 );
 
 SelectorItems.propTypes = {

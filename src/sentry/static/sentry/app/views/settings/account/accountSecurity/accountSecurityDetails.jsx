@@ -5,7 +5,7 @@
  * Also displays 2fa method specific details.
  */
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -24,7 +24,7 @@ import space from 'app/styles/space';
 
 const ENDPOINT = '/users/me/authenticators/';
 
-class AuthenticatorDate extends React.Component {
+class AuthenticatorDate extends Component {
   static propTypes = {
     label: PropTypes.string,
     /**
@@ -38,10 +38,10 @@ class AuthenticatorDate extends React.Component {
     const {label, date} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <DateLabel>{label}</DateLabel>
         <div>{date ? <DateTime date={date} /> : t('never')}</div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -108,10 +108,10 @@ class AccountSecurityDetails extends AsyncView {
       <div>
         <SettingsPageHeader
           title={
-            <React.Fragment>
+            <Fragment>
               <span>{authenticator.name}</span>
               <AuthenticatorStatus enabled={authenticator.isEnrolled} />
-            </React.Fragment>
+            </Fragment>
           }
           action={
             authenticator.isEnrolled &&

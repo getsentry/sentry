@@ -2,7 +2,7 @@ import isNil from 'lodash/isNil';
 import forOwn from 'lodash/forOwn';
 import isObject from 'lodash/isObject';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
@@ -15,7 +15,7 @@ import {t} from 'app/locale';
 import {IconInfo, IconOpen} from 'app/icons';
 import {isUrl} from 'app/utils';
 
-class ExceptionMechanism extends React.Component {
+class ExceptionMechanism extends Component {
   static propTypes = {
     data: PropTypes.shape({
       type: PropTypes.string,

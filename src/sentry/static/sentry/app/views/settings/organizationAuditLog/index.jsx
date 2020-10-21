@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
 import SentryTypes from 'app/sentryTypes';

@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Fragment, Component} from 'react';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 
@@ -140,10 +140,10 @@ class OrganizationDetailsBody extends Component {
       }
     }
     return (
-      <React.Fragment>
+      <Fragment>
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';

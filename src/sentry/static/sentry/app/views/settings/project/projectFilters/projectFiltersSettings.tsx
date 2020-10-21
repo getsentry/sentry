@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment, ComponentProps, MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import {Project} from 'app/types';
@@ -68,7 +68,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
 
 const LEGACY_BROWSER_KEYS = Object.keys(LEGACY_BROWSER_SUBFILTERS);
 
-type FormFieldProps = React.ComponentProps<typeof FormField>;
+type FormFieldProps = ComponentProps<typeof FormField>;
 
 type RowProps = {
   data: {
@@ -77,7 +77,7 @@ type RowProps = {
   onToggle: (
     data: RowProps['data'],
     filters: RowState['subfilters'],
-    event: React.MouseEvent
+    event: MouseEvent
   ) => void;
   disabled?: boolean;
 };
@@ -88,7 +88,7 @@ type RowState = {
   subfilters: Set<string>;
 };
 
-class LegacyBrowserFilterRow extends React.Component<RowProps, RowState> {
+class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
   static propTypes = {
     data: PropTypes.object.isRequired,
     onToggle: PropTypes.func.isRequired,
@@ -253,7 +253,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
       }}
     >
       {({hasFeature, organization, renderDisabled, ...featureProps}) => (
-        <React.Fragment>
+        <Fragment>
           {!hasFeature &&
             typeof renderDisabled === 'function' &&
             // XXX: children is set to null as we're doing tricksy things
@@ -267,7 +267,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
               disabled={disabled || !hasFeature}
             />
           ))}
-        </React.Fragment>
+        </Fragment>
       )}
     </Feature>
   );
@@ -286,7 +286,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
     return (
       <Access access={['project:write']}>
         {({hasAccess}) => (
-          <React.Fragment>
+          <Fragment>
             <Panel>
               <PanelHeader>{t('Filters')}</PanelHeader>
               <PanelBody>
@@ -359,7 +359,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
                 renderFooter={this.renderCustomFilters(!hasAccess)}
               />
             </Form>
-          </React.Fragment>
+          </Fragment>
         )}
       </Access>
     );

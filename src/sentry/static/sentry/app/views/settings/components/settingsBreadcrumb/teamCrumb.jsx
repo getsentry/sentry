@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import IdBadge from 'app/components/idBadge';
@@ -10,7 +10,7 @@ import withTeams from 'app/utils/withTeams';
 
 import {CrumbLink} from '.';
 
-class TeamCrumb extends React.Component {
+class TeamCrumb extends Component {
   static propTypes = {
     teams: PropTypes.array,
     routes: PropTypes.array,

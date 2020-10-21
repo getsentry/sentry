@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
@@ -37,7 +37,7 @@ const formatDateDelta = (reference, observed) => {
   return results.join(', ');
 };
 
-class GroupEventToolbar extends React.Component {
+class GroupEventToolbar extends Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
@@ -66,7 +66,7 @@ class GroupEventToolbar extends React.Component {
           {dateCreated.format(format)}
         </dd>
         {dateReceived && (
-          <React.Fragment>
+          <Fragment>
             <dt>Received</dt>
             <dd>
               {dateReceived.format('ll')}
@@ -75,7 +75,7 @@ class GroupEventToolbar extends React.Component {
             </dd>
             <dt>Latency</dt>
             <dd>{formatDateDelta(dateCreated, dateReceived)}</dd>
-          </React.Fragment>
+          </Fragment>
         )}
       </dl>
     );

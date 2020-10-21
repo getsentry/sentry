@@ -1,4 +1,3 @@
-import React from 'react';
 import {select} from '@storybook/addon-knobs';
 import {withInfo} from '@storybook/addon-info';
 

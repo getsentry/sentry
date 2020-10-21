@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t, tct} from 'app/locale';
 import {Client} from 'app/api';
 

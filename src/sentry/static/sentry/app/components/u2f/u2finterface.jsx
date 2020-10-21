@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import u2f from 'u2f-api';
 import * as Sentry from '@sentry/react';
 
 import ConfigStore from 'app/stores/configStore';
 import {t, tct} from 'app/locale';
 
-class U2fInterface extends React.Component {
+class U2fInterface extends Component {
   static propTypes = {
     challengeData: PropTypes.object.isRequired,
     flowMode: PropTypes.string.isRequired,

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import PropTypes from 'prop-types';
 import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
@@ -17,7 +17,7 @@ import space from 'app/styles/space';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Version from 'app/components/version';
 
-class GroupTags extends React.Component {
+class GroupTags extends Component {
   static propTypes = {
     baseUrl: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,

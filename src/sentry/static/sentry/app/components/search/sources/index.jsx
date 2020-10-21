@@ -1,8 +1,8 @@
 import flatten from 'lodash/flatten';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
-class SearchSources extends React.Component {
+class SearchSources extends Component {
   static propTypes = {
     sources: PropTypes.array.isRequired,
     query: PropTypes.string,

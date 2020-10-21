@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {t, tct} from 'app/locale';
 import Field from 'app/views/settings/components/forms/field';
@@ -28,7 +28,7 @@ const getRateLimitValues = () => {
 // We can just generate this once
 const ACCOUNT_RATE_LIMIT_VALUES = getRateLimitValues();
 
-export default class OrganizationRateLimit extends React.Component {
+export default class OrganizationRateLimit extends Component {
   static propTypes = {
     organization: PropTypes.object.isRequired,
   };

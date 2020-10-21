@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {PureComponent, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
@@ -14,7 +14,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import recreateRoute from 'app/utils/recreateRoute';
 
-export default class OrganizationMemberRow extends React.PureComponent {
+export default class OrganizationMemberRow extends PureComponent {
   static propTypes = {
     routes: PropTypes.array,
     // XXX: Spreading this does not work :(
@@ -120,7 +120,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
 
         <div data-test-id="member-status">
           {showResendButton ? (
-            <React.Fragment>
+            <Fragment>
               {isInviting && (
                 <LoadingContainer>
                   <LoadingIndicator mini />
@@ -137,7 +137,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   {pending ? t('Resend invite') : t('Resend SSO link')}
                 </Button>
               )}
-            </React.Fragment>
+            </Fragment>
           ) : (
             <AuthStatus>
               {has2fa ? (

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody} from 'app/components/panels';
@@ -15,7 +15,7 @@ import DiscoverQuery from './discoverQuery';
 import ExploreWidget from './exploreWidget';
 import WidgetChart from './widgetChart';
 
-class Widget extends React.Component {
+class Widget extends Component {
   static propTypes = {
     releasesLoading: PropTypes.bool,
     releases: PropTypes.arrayOf(SentryTypes.Release),

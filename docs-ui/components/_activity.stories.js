@@ -1,4 +1,3 @@
-import React from 'react';
 import {boolean, color} from '@storybook/addon-knobs';
 import {withInfo} from '@storybook/addon-info';
 

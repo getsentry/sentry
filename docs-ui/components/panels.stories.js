@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import {IconTelescope} from 'app/icons';
@@ -57,7 +57,7 @@ export const PanelAlerts = withInfo({
 export const _PanelTable = withInfo({
   text: 'A Panel for "tabular" data',
 })(() => (
-  <React.Fragment>
+  <Fragment>
     <PanelTable
       // eslint-disable-next-line react/jsx-key
       headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
@@ -94,7 +94,7 @@ export const _PanelTable = withInfo({
     </PanelTable>
 
     <_BulkController />
-  </React.Fragment>
+  </Fragment>
 ));
 
 export const WithFields = withInfo({

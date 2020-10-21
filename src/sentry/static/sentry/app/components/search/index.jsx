@@ -1,7 +1,7 @@
 import debounce from 'lodash/debounce';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -21,7 +21,7 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 import space from 'app/styles/space';
 
 // "Omni" search
-class Search extends React.Component {
+class Search extends Component {
   static propTypes = {
     // For analytics
     entryPoint: PropTypes.oneOf(['settings_search', 'command_palette', 'sidebar_help'])
@@ -166,7 +166,7 @@ class Search extends React.Component {
       itemProps,
     });
 
-    return React.cloneElement(renderedItem, {key});
+    return cloneElement(renderedItem, {key});
   };
 
   render() {

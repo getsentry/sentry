@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {withInfo} from '@storybook/addon-info';
 import {number, text, boolean, color} from '@storybook/addon-knobs';
 import styled from '@emotion/styled';
@@ -6,7 +6,7 @@ import {css} from '@emotion/core';
 
 import ProgressRing from 'app/components/progressRing';
 
-class Ticker extends React.Component {
+class Ticker extends Component {
   state = {
     tickNumber: 0,
   };

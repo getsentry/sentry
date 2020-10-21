@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import Tooltip from 'app/components/tooltip';
@@ -11,7 +11,7 @@ export default {
 export const Overview = withInfo({
   text: 'An overview of all the different tags and states',
 })(() => (
-  <React.Fragment>
+  <Fragment>
     <div>
       <Tag>default</Tag>
     </div>
@@ -42,7 +42,7 @@ export const Overview = withInfo({
     <div>
       <Tag priority="alpha">alpha</Tag>
     </div>
-  </React.Fragment>
+  </Fragment>
 ));
 
 export const Default = withInfo(

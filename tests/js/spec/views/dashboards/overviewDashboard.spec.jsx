@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {mountWithTheme} from 'sentry-test/enzyme';

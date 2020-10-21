@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {select, number} from '@storybook/addon-knobs';
 import {action} from '@storybook/addon-actions';

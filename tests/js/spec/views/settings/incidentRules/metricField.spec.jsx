@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {openMenu, selectByLabel} from 'sentry-test/select-new';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';

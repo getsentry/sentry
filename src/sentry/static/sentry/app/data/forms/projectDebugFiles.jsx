@@ -1,7 +1,7 @@
 import isObject from 'lodash/isObject';
 import forEach from 'lodash/forEach';
 import set from 'lodash/set';
-import React from 'react';
+import {Fragment} from 'react';
 
 import {t} from 'app/locale';
 import {openDebugFileSourceModal} from 'app/actionCreators/modal';
@@ -131,7 +131,7 @@ export const fields = {
       title: t('Remove Repository?'),
       confirmText: t('Remove Repository'),
       message: (
-        <React.Fragment>
+        <Fragment>
           <TextBlock>
             <strong>
               {t('Removing this repository applies instantly to new events.')}
@@ -142,7 +142,7 @@ export const fields = {
               'Debug files from this repository will not be used to symbolicate future events. This may create new issues and alert members in your organization.'
             )}
           </TextBlock>
-        </React.Fragment>
+        </Fragment>
       ),
     },
   },

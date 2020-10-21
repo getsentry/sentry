@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {API_ACCESS_SCOPES} from 'app/constants';

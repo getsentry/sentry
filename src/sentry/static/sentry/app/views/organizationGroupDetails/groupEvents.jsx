@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
-import React from 'react';
+import {Component} from 'react';
 import pick from 'lodash/pick';
 
 import SentryTypes from 'app/sentryTypes';
@@ -15,7 +15,7 @@ import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import parseApiError from 'app/utils/parseApiError';
 
-class GroupEvents extends React.Component {
+class GroupEvents extends Component {
   static propTypes = {
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,

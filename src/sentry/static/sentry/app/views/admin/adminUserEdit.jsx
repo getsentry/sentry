@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -71,7 +71,7 @@ const REMOVE_BUTTON_LABEL = {
   delete: t('Permanently Delete User'),
 };
 
-class RemoveUserModal extends React.Component {
+class RemoveUserModal extends Component {
   static propTypes = {
     user: SentryTypes.User,
     onRemove: PropTypes.func,
@@ -92,7 +92,7 @@ class RemoveUserModal extends React.Component {
     const {deleteType} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <p>{tct('Removing user [user]', {user: <strong>{user.email}</strong>})}</p>
         <RadioGroup
           value={deleteType}
@@ -108,7 +108,7 @@ class RemoveUserModal extends React.Component {
           </Button>
           <Button onClick={this.props.closeModal}>{t('Nevermind')}</Button>
         </ModalFooter>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -157,7 +157,7 @@ class AdminUserEdit extends AsyncView {
       ));
 
     return (
-      <React.Fragment>
+      <Fragment>
         <h3>{t('Users')}</h3>
         <p>{t('Editing user: %s', user.email)}</p>
         <Form
@@ -184,7 +184,7 @@ class AdminUserEdit extends AsyncView {
         >
           <JsonForm forms={[userEditForm]} />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

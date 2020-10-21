@@ -1,11 +1,11 @@
 import $ from 'jquery';
-import React from 'react';
+import {Component} from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
 const ASPECT_RATIO = 16 / 9;
 
-class SessionStackContextType extends React.Component {
+class SessionStackContextType extends Component {
   propTypes = {
     data: PropTypes.object.isRequired,
   };

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mount} from 'sentry-test/enzyme';
 
 import FormSource from 'app/components/search/sources/formSource';

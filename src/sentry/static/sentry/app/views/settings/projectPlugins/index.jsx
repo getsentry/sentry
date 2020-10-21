@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 import {t} from 'app/locale';
@@ -13,7 +13,7 @@ import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 import ProjectPlugins from './projectPlugins';
 
-class ProjectPluginsContainer extends React.Component {
+class ProjectPluginsContainer extends Component {
   static propTypes = {
     plugins: SentryTypes.PluginsStore,
     organization: SentryTypes.Organization,
@@ -55,7 +55,7 @@ class ProjectPluginsContainer extends React.Component {
     const title = t('Legacy Integrations');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
         <SettingsPageHeader title={title} />
         <PermissionAlert />
@@ -68,7 +68,7 @@ class ProjectPluginsContainer extends React.Component {
           error={error}
           plugins={plugins}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

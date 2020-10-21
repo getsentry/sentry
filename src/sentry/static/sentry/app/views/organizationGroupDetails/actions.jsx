@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 
@@ -36,7 +36,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import SubscribeAction from './subscribeAction';
 
-class DeleteActions extends React.Component {
+class DeleteActions extends Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     project: SentryTypes.Project.isRequired,
@@ -61,7 +61,7 @@ class DeleteActions extends React.Component {
       renderDisabled={this.renderDiscardDisabled}
     >
       {({hasFeature, renderDisabled, ...props}) => (
-        <React.Fragment>
+        <Fragment>
           <Body>
             {!hasFeature && renderDisabled({hasFeature, ...props})}
             {t(
@@ -82,7 +82,7 @@ class DeleteActions extends React.Component {
               {t('Discard Future Events')}
             </Button>
           </div>
-        </React.Fragment>
+        </Fragment>
       )}
     </Feature>
   );

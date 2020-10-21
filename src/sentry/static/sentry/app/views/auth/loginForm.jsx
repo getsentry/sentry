@@ -1,7 +1,7 @@
 import {ClassNames} from '@emotion/core';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {formFooterClass} from 'app/views/auth/login';
@@ -60,7 +60,7 @@ LoginProviders.propTypes = {
   googleLoginLink: PropTypes.string,
 };
 
-class LoginForm extends React.Component {
+class LoginForm extends Component {
   static propTypes = {
     api: PropTypes.object,
     authConfig: SentryTypes.AuthConfig,

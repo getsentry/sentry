@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
@@ -9,7 +9,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
 
-class Dashboards extends React.Component {
+class Dashboards extends Component {
   static propTypes = {
     organization: SentryTypes.Organization,
   };

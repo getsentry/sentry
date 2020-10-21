@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 
 import AsyncView from 'app/views/asyncView';
@@ -34,7 +34,7 @@ export default class EditMonitor extends AsyncView {
   renderBody() {
     const {monitor} = this.state;
     return (
-      <React.Fragment>
+      <Fragment>
         <h1>Edit Monitor</h1>
 
         <MonitorForm
@@ -43,7 +43,7 @@ export default class EditMonitor extends AsyncView {
           apiEndpoint={`/monitors/${monitor.id}/`}
           onSubmitSuccess={this.onSubmitSuccess}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,6 +1,6 @@
 import isNil from 'lodash/isNil';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -32,7 +32,7 @@ function findBestThread(threads) {
   );
 }
 
-class Thread extends React.Component {
+class Thread extends Component {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -110,7 +110,7 @@ class Thread extends React.Component {
   }
 }
 
-class ThreadsInterface extends React.Component {
+class ThreadsInterface extends Component {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     projectId: PropTypes.string.isRequired,

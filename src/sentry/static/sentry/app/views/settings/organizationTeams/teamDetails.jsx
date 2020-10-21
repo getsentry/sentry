@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {cloneElement} from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
@@ -174,7 +174,7 @@ const TeamDetails = createReactClass({
         </NavTabs>
 
         {children &&
-          React.cloneElement(children, {
+          cloneElement(children, {
             team,
             onTeamChange: this.onTeamChange,
           })}

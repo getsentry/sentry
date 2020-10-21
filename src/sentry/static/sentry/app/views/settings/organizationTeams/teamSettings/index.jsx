@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Fragment} from 'react';
 
 import {Panel, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -68,7 +68,7 @@ export default class TeamSettings extends AsyncView {
     const access = new Set(organization.access);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Form
           model={this.model}
           apiMethod="PUT"
@@ -111,7 +111,7 @@ export default class TeamSettings extends AsyncView {
             </div>
           </Field>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

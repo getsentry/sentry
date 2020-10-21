@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -12,7 +12,7 @@ import TimeSince from 'app/components/timeSince';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
-class SessionRow extends React.Component {
+class SessionRow extends Component {
   static propTypes = {
     ipAddress: PropTypes.string.isRequired,
     countryCode: PropTypes.string,
@@ -74,7 +74,7 @@ class AccountSecuritySessionHistory extends AsyncView {
     const {ipList} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title="Security"
           tabs={
@@ -102,7 +102,7 @@ class AccountSecuritySessionHistory extends AsyncView {
             ))}
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

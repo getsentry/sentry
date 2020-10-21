@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import SentryTypes from 'app/sentryTypes';
 import EventsChart from 'app/components/charts/eventsChart';
@@ -7,7 +7,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 const Chart = withGlobalSelection(
   withApi(
-    class EventsChartWithParams extends React.Component {
+    class EventsChartWithParams extends Component {
       static propTypes = {
         selection: SentryTypes.GlobalSelection,
       };

@@ -1,4 +1,3 @@
-import React from 'react';
 import moment from 'moment';
 
 import {mountWithTheme} from 'sentry-test/enzyme';

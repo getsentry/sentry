@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -15,7 +15,7 @@ import {
 } from 'app/views/dashboards/utils/getDiscoverUrlPathFromDiscoverQuery';
 import {getEventsUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getEventsUrlPathFromDiscoverQuery';
 
-class ExploreWidget extends React.Component {
+class ExploreWidget extends Component {
   static propTypes = {
     widget: SentryTypes.Widget,
     organization: SentryTypes.Organization,

@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import React from 'react';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {

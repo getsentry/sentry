@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {IconChevron} from 'app/icons';
@@ -24,7 +24,7 @@ const StyledIconChevron = styled(IconChevron)`
   display: block;
 `;
 
-class Divider extends React.Component {
+class Divider extends Component {
   static propTypes = {
     isHover: PropTypes.bool,
     isLast: PropTypes.bool,

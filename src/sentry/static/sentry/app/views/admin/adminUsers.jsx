@@ -1,5 +1,5 @@
 /* eslint-disable react/jsx-key */
-import React from 'react';
+import {Component} from 'react';
 import moment from 'moment';
 
 import {t} from 'app/locale';
@@ -10,7 +10,7 @@ export const prettyDate = function (x) {
   return moment(x).format('ll');
 };
 
-class AdminUsers extends React.Component {
+class AdminUsers extends Component {
   getRow = row => [
     <td>
       <strong>

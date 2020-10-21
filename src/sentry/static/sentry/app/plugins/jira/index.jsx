@@ -1,5 +1,3 @@
-import React from 'react';
-
 import DefaultIssuePlugin from 'app/plugins/defaultIssuePlugin';
 
 import Settings from './components/settings';

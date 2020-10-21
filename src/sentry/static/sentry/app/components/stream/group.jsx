@@ -2,7 +2,7 @@ import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
 import {Flex, Box} from 'reflexbox';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Fragment} from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
@@ -293,13 +293,13 @@ const StreamGroup = createReactClass({
                     </span>
                     <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
                       {data.filtered && (
-                        <React.Fragment>
+                        <Fragment>
                           <StyledMenuItem to={this.getDiscoverUrl(true)}>
                             <MenuItemText>{t('Matching search filters')}</MenuItemText>
                             <MenuItemCount value={data.filtered.count} />
                           </StyledMenuItem>
                           <MenuItem divider />
-                        </React.Fragment>
+                        </Fragment>
                       )}
 
                       <StyledMenuItem to={this.getDiscoverUrl()}>
@@ -308,13 +308,13 @@ const StreamGroup = createReactClass({
                       </StyledMenuItem>
 
                       {data.lifetime && (
-                        <React.Fragment>
+                        <Fragment>
                           <MenuItem divider />
                           <StyledMenuItem>
                             <MenuItemText>{t('Since issue began')}</MenuItemText>
                             <MenuItemCount value={data.lifetime.count} />
                           </StyledMenuItem>
-                        </React.Fragment>
+                        </Fragment>
                       )}
                     </ul>
                   </span>
@@ -347,13 +347,13 @@ const StreamGroup = createReactClass({
                   </span>
                   <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
                     {data.filtered && (
-                      <React.Fragment>
+                      <Fragment>
                         <StyledMenuItem to={this.getDiscoverUrl(true)}>
                           <MenuItemText>{t('Matching search filters')}</MenuItemText>
                           <MenuItemCount value={data.filtered.userCount} />
                         </StyledMenuItem>
                         <MenuItem divider />
-                      </React.Fragment>
+                      </Fragment>
                     )}
 
                     <StyledMenuItem to={this.getDiscoverUrl()}>
@@ -362,13 +362,13 @@ const StreamGroup = createReactClass({
                     </StyledMenuItem>
 
                     {data.lifetime && (
-                      <React.Fragment>
+                      <Fragment>
                         <MenuItem divider />
                         <StyledMenuItem>
                           <MenuItemText>{t('Since issue began')}</MenuItemText>
                           <MenuItemCount value={data.lifetime.userCount} />
                         </StyledMenuItem>
-                      </React.Fragment>
+                      </Fragment>
                     )}
                   </ul>
                 </span>

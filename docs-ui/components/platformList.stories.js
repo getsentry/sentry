@@ -1,4 +1,3 @@
-import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import PlatformList from 'app/components/platformList';

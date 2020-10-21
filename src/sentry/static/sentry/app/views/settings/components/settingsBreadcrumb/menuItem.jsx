@@ -1,9 +1,9 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
-class MenuItem extends React.Component {
+class MenuItem extends Component {
   render() {
     const {children, ...props} = this.props;
     return <StyledMenuItem {...props}>{children}</StyledMenuItem>;

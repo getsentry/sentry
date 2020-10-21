@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -59,7 +59,7 @@ const avatarStyle = {
   marginRight: 8,
 };
 
-class AuditLogList extends React.Component {
+class AuditLogList extends Component {
   static propTypes = {
     entries: PropTypes.array,
     pageLinks: PropTypes.string,

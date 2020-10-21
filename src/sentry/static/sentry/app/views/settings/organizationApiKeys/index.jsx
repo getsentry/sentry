@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import React from 'react';
 
 import {Client} from 'app/api';
 import {addSuccessMessage} from 'app/actionCreators/indicator';

@@ -1,6 +1,6 @@
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Fragment} from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
@@ -274,10 +274,10 @@ const OrganizationContext = createReactClass({
 
     if (this.state.error) {
       return (
-        <React.Fragment>
+        <Fragment>
           {this.renderSidebar()}
           {this.renderError()}
-        </React.Fragment>
+        </Fragment>
       );
     }
 

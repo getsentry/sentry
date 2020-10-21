@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {createRef, Component} from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 
@@ -39,7 +39,7 @@ const StyledCopyButton = styled(Button)`
   box-shadow: none;
 `;
 
-class TextCopyInput extends React.Component {
+class TextCopyInput extends Component {
   static propTypes = {
     /**
      * Text to copy
@@ -62,7 +62,7 @@ class TextCopyInput extends React.Component {
 
   constructor(props) {
     super(props);
-    this.textRef = React.createRef();
+    this.textRef = createRef();
   }
 
   // Select text when copy button is clicked

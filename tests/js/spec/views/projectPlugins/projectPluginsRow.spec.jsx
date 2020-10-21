@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mount} from 'sentry-test/enzyme';
 
 import ProjectPluginRow from 'app/views/settings/projectPlugins/projectPluginRow';

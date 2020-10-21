@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {
   addErrorMessage,
@@ -25,7 +25,7 @@ function makeDefaultErrorJson() {
   return {detail: t('Unknown error. Please try again.')};
 }
 
-class GroupActivity extends React.Component {
+class GroupActivity extends Component {
   // TODO(dcramer): only re-render on group/activity change
   static propTypes = {
     api: PropTypes.object,

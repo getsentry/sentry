@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import UserAvatar from 'app/components/avatar/userAvatar';
@@ -10,7 +10,7 @@ import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
 
-class EventsTableRow extends React.Component {
+class EventsTableRow extends Component {
   static propTypes = {
     hasUser: PropTypes.bool,
     orgId: PropTypes.string.isRequired,

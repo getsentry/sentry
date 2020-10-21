@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';

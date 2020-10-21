@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
@@ -8,7 +8,7 @@ export default {
 };
 
 export const _RangeSlider = withInfo('Range Slider')(() => (
-  <React.Fragment>
+  <Fragment>
     <p>
       <h4>Without custom input</h4>
       <RangeSlider min={1} max={100} value={5} />
@@ -17,7 +17,7 @@ export const _RangeSlider = withInfo('Range Slider')(() => (
       <h4>With custom input</h4>
       <RangeSlider min={5} max={50} value={21} showCustomInput />
     </p>
-  </React.Fragment>
+  </Fragment>
 ));
 
 _RangeSlider.story = {

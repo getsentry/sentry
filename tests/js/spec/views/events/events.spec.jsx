@@ -1,5 +1,4 @@
 import {withRouter, browserHistory} from 'react-router';
-import React from 'react';
 
 import {chart, doZoom} from 'sentry-test/charts';
 import {initializeOrg} from 'sentry-test/initializeOrg';

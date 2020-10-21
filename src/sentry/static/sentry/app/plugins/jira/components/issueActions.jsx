@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {Form, FormState} from 'app/components/forms';
 import DefaultIssueActions from 'app/plugins/components/issueActions';
 

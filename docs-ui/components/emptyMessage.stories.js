@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import {Panel, PanelHeader} from 'app/components/panels';

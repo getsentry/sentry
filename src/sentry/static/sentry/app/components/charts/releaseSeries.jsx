@@ -1,6 +1,6 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -34,7 +34,7 @@ function getOrganizationReleases(api, organization, conditions = null) {
   });
 }
 
-class ReleaseSeries extends React.Component {
+class ReleaseSeries extends Component {
   static propTypes = {
     api: PropTypes.object,
     router: PropTypes.object,

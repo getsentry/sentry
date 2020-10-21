@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
@@ -146,14 +146,14 @@ Overview.story = {
 export const _DropdownButton = withInfo(
   'A button meant to be used with some sort of dropdown'
 )(() => (
-  <React.Fragment>
+  <Fragment>
     <Item>
       <DropdownButton isOpen={false}>Closed</DropdownButton>
     </Item>
     <Item>
       <DropdownButton isOpen>Open</DropdownButton>
     </Item>
-  </React.Fragment>
+  </Fragment>
 ));
 
 _DropdownButton.story = {

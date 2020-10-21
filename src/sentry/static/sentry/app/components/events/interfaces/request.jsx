@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -15,7 +15,7 @@ import {IconOpen} from 'app/icons';
 import space from 'app/styles/space';
 import Truncate from 'app/components/truncate';
 
-class RequestInterface extends React.Component {
+class RequestInterface extends Component {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,

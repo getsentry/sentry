@@ -1,6 +1,6 @@
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {createRef, Component, Fragment} from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons';
@@ -20,7 +20,7 @@ import {IconClose, IconSearch, IconProject} from 'app/icons';
 
 const PLATFORM_CATEGORIES = categoryList.concat({id: 'all', name: t('All')});
 
-class PlatformPicker extends React.Component {
+class PlatformPicker extends Component {
   static propTypes = {
     setPlatform: PropTypes.func.isRequired,
     platform: PropTypes.string,
@@ -71,7 +71,7 @@ class PlatformPicker extends React.Component {
     }
   }
 
-  searchInput = React.createRef();
+  searchInput = createRef();
 
   render() {
     const platformList = this.platformList;
@@ -79,7 +79,7 @@ class PlatformPicker extends React.Component {
     const {filter, category} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <NavContainer>
           <CategoryNav>
             {PLATFORM_CATEGORIES.map(({id, name}) => (
@@ -146,7 +146,7 @@ class PlatformPicker extends React.Component {
             )}
           </EmptyMessage>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

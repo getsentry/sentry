@@ -2,7 +2,7 @@ import flatten from 'lodash/flatten';
 import debounce from 'lodash/debounce';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
@@ -202,7 +202,7 @@ async function createEventIdLookupResult(eventIdLookupPromise) {
   };
 }
 
-class ApiSource extends React.Component {
+class ApiSource extends Component {
   static propTypes = {
     // search term
     query: PropTypes.string,

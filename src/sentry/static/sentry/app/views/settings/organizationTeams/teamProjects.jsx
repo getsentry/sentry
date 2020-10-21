@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
@@ -22,7 +22,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
-class TeamProjects extends React.Component {
+class TeamProjects extends Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
@@ -185,7 +185,7 @@ class TeamProjects extends React.Component {
     }));
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           <PanelHeader hasButtons>
             <div>{t('Projects')}</div>
@@ -217,7 +217,7 @@ class TeamProjects extends React.Component {
           <PanelBody>{this.projectPanelContents(linkedProjects)}</PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.pageLinks} {...this.props} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

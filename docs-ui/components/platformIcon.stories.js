@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons';
 import {withInfo} from '@storybook/addon-info';

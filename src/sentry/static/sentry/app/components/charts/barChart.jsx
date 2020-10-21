@@ -1,9 +1,9 @@
-import React from 'react';
+import {Component} from 'react';
 
 import BarSeries from './series/barSeries';
 import BaseChart from './baseChart';
 
-export default class BarChart extends React.Component {
+export default class BarChart extends Component {
   static propTypes = {
     ...BaseChart.propTypes,
   };

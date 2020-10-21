@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Fragment} from 'react';
 
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
@@ -44,7 +44,7 @@ class RecoveryOptionsModal extends AsyncComponent {
     const displaySmsPrompt = sms && !sms.isEnrolled && !skipSms;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton onHide={closeModal}>
           {t('Two-Factor Authentication Enabled')}
         </Header>
@@ -108,7 +108,7 @@ class RecoveryOptionsModal extends AsyncComponent {
             </Button>
           </div>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

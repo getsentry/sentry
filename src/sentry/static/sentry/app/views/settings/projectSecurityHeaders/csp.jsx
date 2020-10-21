@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';

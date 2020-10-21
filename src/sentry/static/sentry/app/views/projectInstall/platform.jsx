@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import 'prismjs/themes/prism-tomorrow.css';
 
@@ -18,7 +18,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
-class ProjectInstallPlatform extends React.Component {
+class ProjectInstallPlatform extends Component {
   static propTypes = {
     api: PropTypes.object,
   };
@@ -115,13 +115,13 @@ class ProjectInstallPlatform extends React.Component {
           ) : this.state.error ? (
             <LoadingError onRetry={this.fetchData} />
           ) : (
-            <React.Fragment>
+            <Fragment>
               <SentryDocumentTitle
                 title={`${t('Configure')} ${platform.name}`}
                 objSlug={projectId}
               />
               <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
-            </React.Fragment>
+            </Fragment>
           )}
 
           {this.isGettingStarted && (

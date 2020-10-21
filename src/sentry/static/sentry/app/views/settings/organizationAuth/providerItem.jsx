@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
@@ -15,7 +15,7 @@ import {IconLock} from 'app/icons';
 import Tag from 'app/components/tagDeprecated';
 import {descopeFeatureName} from 'app/utils';
 
-export default class ProviderItem extends React.PureComponent {
+export default class ProviderItem extends PureComponent {
   static propTypes = {
     provider: SentryTypes.AuthProvider.isRequired,
     onConfigure: PropTypes.func.isRequired,

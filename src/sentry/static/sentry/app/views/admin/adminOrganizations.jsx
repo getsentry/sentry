@@ -1,11 +1,11 @@
 /* eslint-disable react/jsx-key */
-import React from 'react';
+import {Component} from 'react';
 import {Link} from 'react-router';
 
 import ResultGrid from 'app/components/resultGrid';
 import {t} from 'app/locale';
 
-class AdminOrganizations extends React.Component {
+class AdminOrganizations extends Component {
   getRow = row => [
     <td>
       <strong>

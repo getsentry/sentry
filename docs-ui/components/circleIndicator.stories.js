@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 import {number, boolean} from '@storybook/addon-knobs';
 
@@ -11,7 +11,7 @@ export default {
 export const Default = withInfo('Description')(() => {
   const enabled = boolean('Enabled', true);
   return (
-    <React.Fragment>
+    <Fragment>
       <CircleIndicator
         style={{marginRight: 12}}
         size={number('Size', 14)}
@@ -25,7 +25,7 @@ export const Default = withInfo('Description')(() => {
       />
 
       <CircleIndicator size={number('Size', 14)} enabled={enabled} color="purple400" />
-    </React.Fragment>
+    </Fragment>
   );
 });
 

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import moment from 'moment';
 
 import AreaSeries from './series/areaSeries';
@@ -12,7 +12,7 @@ const FILLER_NAME = '__filler';
  *
  * See https://exceljet.net/chart-type/100-stacked-bar-chart
  */
-export default class PercentageAreaChart extends React.Component {
+export default class PercentageAreaChart extends Component {
   static get defaultProps() {
     // TODO(billyvg): Move these into BaseChart? or get rid completely
     return {

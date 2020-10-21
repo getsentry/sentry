@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -17,7 +17,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {IconCopy, IconDownload, IconPrint} from 'app/icons';
 import space from 'app/styles/space';
 
-class RecoveryCodes extends React.Component {
+class RecoveryCodes extends Component {
   static propTypes = {
     isEnrolled: PropTypes.bool,
     codes: PropTypes.arrayOf(PropTypes.string),

@@ -1,7 +1,7 @@
 import {ClassNames} from '@emotion/core';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import ChartZoom from 'app/components/charts/chartZoom';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
@@ -17,7 +17,7 @@ import {getEventsUrlFromDiscoverQueryWithConditions} from './utils/getEventsUrlF
  * Component that decides what Chart to render
  * Extracted into another component so that we can use shouldComponentUpdate
  */
-class WidgetChart extends React.Component {
+class WidgetChart extends Component {
   static propTypes = {
     router: PropTypes.object,
     results: SentryTypes.DiscoverResults,

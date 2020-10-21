@@ -1,6 +1,4 @@
-import React from 'react';
-// import {action} from '@storybook/addon-actions';
-import {withInfo} from '@storybook/addon-info';
+import { withInfo } from '@storybook/addon-info';
 
 import Badge from 'app/components/badge';
 

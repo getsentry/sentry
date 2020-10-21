@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {Client} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
-class SetupWizard extends React.Component {
+class SetupWizard extends Component {
   static propTypes = {
     hash: PropTypes.string.isRequired,
   };

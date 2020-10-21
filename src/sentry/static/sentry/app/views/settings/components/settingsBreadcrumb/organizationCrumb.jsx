@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
@@ -13,7 +13,7 @@ import withLatestContext from 'app/utils/withLatestContext';
 
 import {CrumbLink} from '.';
 
-class OrganizationCrumb extends React.Component {
+class OrganizationCrumb extends Component {
   static propTypes = {
     organizations: PropTypes.array,
     organization: SentryTypes.Organization,

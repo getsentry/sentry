@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
@@ -8,7 +8,7 @@ import SentryTypes from 'app/sentryTypes';
 import MonitorHeaderActions from './monitorHeaderActions';
 import MonitorIcon from './monitorIcon';
 
-export default class MonitorHeader extends React.Component {
+export default class MonitorHeader extends Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     monitor: SentryTypes.Monitor.isRequired,

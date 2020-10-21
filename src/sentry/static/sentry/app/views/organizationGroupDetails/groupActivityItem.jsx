@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {t, tct, tn} from 'app/locale';
 import CommitLink from 'app/components/commitLink';
@@ -9,7 +9,7 @@ import PullRequestLink from 'app/components/pullRequestLink';
 import TeamStore from 'app/stores/teamStore';
 import Version from 'app/components/version';
 
-class GroupActivityItem extends React.Component {
+class GroupActivityItem extends Component {
   static propTypes = {
     author: PropTypes.node,
     item: PropTypes.object,

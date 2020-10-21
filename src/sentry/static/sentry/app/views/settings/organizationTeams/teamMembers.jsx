@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
@@ -28,7 +28,7 @@ import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 
-class TeamMembers extends React.Component {
+class TeamMembers extends Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     config: SentryTypes.Config.isRequired,

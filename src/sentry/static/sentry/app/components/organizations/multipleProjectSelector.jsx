@@ -1,6 +1,6 @@
 import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import {Link} from 'react-router';
 
@@ -19,7 +19,7 @@ import {IconProject} from 'app/icons';
 
 import ProjectSelector from './projectSelector';
 
-export default class MultipleProjectSelector extends React.PureComponent {
+export default class MultipleProjectSelector extends PureComponent {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     value: PropTypes.array,

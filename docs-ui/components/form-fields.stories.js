@@ -1,4 +1,3 @@
-import React from 'react';
 import {action} from '@storybook/addon-actions';
 import {number, boolean} from '@storybook/addon-knobs';
 import {withInfo} from '@storybook/addon-info';

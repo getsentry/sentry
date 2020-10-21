@@ -1,6 +1,6 @@
 import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
@@ -23,7 +23,7 @@ import {IconWindow} from 'app/icons';
  *
  * Note we only fetch environments when this component is mounted
  */
-class MultipleEnvironmentSelector extends React.PureComponent {
+class MultipleEnvironmentSelector extends PureComponent {
   static propTypes = {
     // Handler whenever selector values are changed
     onChange: PropTypes.func.isRequired,
@@ -301,7 +301,7 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   min-width: 100%;
 `;
 
-class EnvironmentSelectorItem extends React.PureComponent {
+class EnvironmentSelectorItem extends PureComponent {
   static propTypes = {
     onMultiSelect: PropTypes.func.isRequired,
     environment: PropTypes.string.isRequired,

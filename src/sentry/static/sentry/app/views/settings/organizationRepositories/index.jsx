@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {sortArray} from 'app/utils';
 import AsyncView from 'app/views/asyncView';
@@ -43,7 +43,7 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         <OrganizationRepositories
           {...this.props}
           {...this.state}
@@ -54,7 +54,7 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
         {this.state.itemListPageLinks && (
           <Pagination pageLinks={this.state.itemListPageLinks} {...this.props} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

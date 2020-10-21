@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {DEFAULT_EVENT_VIEW, ALL_VIEWS} from 'app/views/eventsV2/data';

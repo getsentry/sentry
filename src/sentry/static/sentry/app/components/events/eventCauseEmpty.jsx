@@ -1,6 +1,6 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -32,7 +32,7 @@ const DUMMY_COMMIT = {
   message: t('This example commit broke something'),
 };
 
-class EventCauseEmpty extends React.Component {
+class EventCauseEmpty extends Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,

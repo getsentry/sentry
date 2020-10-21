@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'app/components/panels';
@@ -12,7 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import MergedItem from './mergedItem';
 import MergedToolbar from './mergedToolbar';
 
-class MergedList extends React.Component {
+class MergedList extends Component {
   static propTypes = {
     onUnmerge: PropTypes.func.isRequired,
     onToggleCollapse: PropTypes.func.isRequired,

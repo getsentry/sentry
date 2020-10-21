@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -199,7 +199,7 @@ function getFormFields(type) {
   }
 }
 
-class DebugFileSourceModal extends React.Component {
+class DebugFileSourceModal extends Component {
   static propTypes = {
     /**
      * Callback invoked with the updated config value.
@@ -258,13 +258,13 @@ class DebugFileSourceModal extends React.Component {
       : 'Add [name] Repository';
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton onHide={closeModal}>
           {tct(headerText, {name: getDebugSourceName(sourceType)})}
         </Header>
 
         {this.renderForm()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

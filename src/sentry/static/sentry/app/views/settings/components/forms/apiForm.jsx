@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {Client} from 'app/api';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 
-export default class ApiForm extends React.Component {
+export default class ApiForm extends Component {
   static propTypes = {
     ...Form.propTypes,
     onSubmit: PropTypes.func,

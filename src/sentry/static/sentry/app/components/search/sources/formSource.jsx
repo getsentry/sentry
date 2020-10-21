@@ -1,6 +1,6 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
@@ -9,7 +9,7 @@ import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import FormSearchStore from 'app/stores/formSearchStore';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
-class FormSource extends React.Component {
+class FormSource extends Component {
   static propTypes = {
     // search term
     query: PropTypes.string,

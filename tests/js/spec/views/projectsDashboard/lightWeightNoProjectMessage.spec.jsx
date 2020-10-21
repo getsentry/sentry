@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -29,7 +29,7 @@ describe('LightWeightNoProjectMessage', function () {
   it('does not remount when the projects store loads', async function () {
     const mount = jest.fn();
     const unmount = jest.fn();
-    class MockComponent extends React.Component {
+    class MockComponent extends Component {
       componentWillMount() {
         mount();
       }

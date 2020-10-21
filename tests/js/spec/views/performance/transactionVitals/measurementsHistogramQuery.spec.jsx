@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {mount} from 'sentry-test/enzyme';
 
@@ -13,18 +13,18 @@ function renderHistogram({isLoading, error, histograms}) {
     return 'error';
   } else {
     return (
-      <React.Fragment>
+      <Fragment>
         {Object.keys(histograms).map(name => (
-          <React.Fragment key={name}>
+          <Fragment key={name}>
             <p>{name}</p>
             <ul>
               {histograms[name].map(bin => (
                 <li key={bin.histogram}>{`${bin.histogram} - ${bin.count}`}</li>
               ))}
             </ul>
-          </React.Fragment>
+          </Fragment>
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

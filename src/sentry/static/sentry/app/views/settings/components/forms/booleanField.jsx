@@ -1,4 +1,3 @@
-import React from 'react';
 import PropTypes from 'prop-types';
 
 import InputField from 'app/views/settings/components/forms/inputField';

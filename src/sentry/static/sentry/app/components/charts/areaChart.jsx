@@ -1,10 +1,10 @@
-import React from 'react';
+import {Component} from 'react';
 import PropTypes from 'prop-types';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
 
-class AreaChart extends React.Component {
+class AreaChart extends Component {
   static propTypes = {
     ...BaseChart.propTypes,
     stacked: PropTypes.bool,

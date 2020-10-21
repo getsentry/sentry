@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
@@ -19,7 +19,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
-class CompactIssueHeader extends React.Component {
+class CompactIssueHeader extends Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     projectId: PropTypes.string,
@@ -82,7 +82,7 @@ class CompactIssueHeader extends React.Component {
         : 'currentColor';
 
     return (
-      <React.Fragment>
+      <Fragment>
         <IssueHeaderMetaWrapper>
           <StyledErrorLevel size="12px" level={data.level} title={data.level} />
           <h3 className="truncate">
@@ -107,7 +107,7 @@ class CompactIssueHeader extends React.Component {
           )}
           <span className="culprit">{this.getMessage()}</span>
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

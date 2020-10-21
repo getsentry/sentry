@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -13,7 +13,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
 
-class AuthorizationRow extends React.Component {
+class AuthorizationRow extends Component {
   static propTypes = {
     authorization: PropTypes.object.isRequired,
     onRevoke: PropTypes.func.isRequired,

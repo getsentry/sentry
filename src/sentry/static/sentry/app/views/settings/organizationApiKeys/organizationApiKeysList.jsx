@@ -1,6 +1,6 @@
 import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -15,7 +15,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
 
-class OrganizationApiKeysList extends React.Component {
+class OrganizationApiKeysList extends Component {
   static propTypes = {
     routes: PropTypes.array,
     keys: PropTypes.array,

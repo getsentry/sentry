@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
@@ -29,7 +29,7 @@ const createReleaseFieldCondition = releases => [
   ],
 ];
 
-class DiscoverQuery extends React.Component {
+class DiscoverQuery extends Component {
   static propTypes = {
     // means a parent component is still loading releases
     // and we should not perform any API requests yet (if we depend on releases)

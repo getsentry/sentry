@@ -1,10 +1,10 @@
-import React from 'react';
+import {Component} from 'react';
 import PropTypes from 'prop-types';
 
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import InputField from 'app/views/settings/components/forms/inputField';
 
-class RadioField extends React.Component {
+class RadioField extends Component {
   static propTypes = {
     id: PropTypes.string,
     value: PropTypes.string,

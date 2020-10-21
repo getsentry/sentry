@@ -1,6 +1,6 @@
 import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Fragment} from 'react';
 
 import {FormState} from 'app/components/forms';
 import {parseRepo} from 'app/utils';
@@ -229,10 +229,10 @@ class AddRepositoryLink extends PluginComponentBase {
   render() {
     const provider = this.props.provider;
     return (
-      <React.Fragment>
+      <Fragment>
         <a onClick={this.onOpen}>{provider.name}</a>
         {this.renderModal()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import isString from 'lodash/isString';
 import styled from '@emotion/styled';
 
@@ -13,7 +13,7 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
-class ProjectDetailsInner extends React.Component {
+class ProjectDetailsInner extends Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
 
@@ -92,7 +92,7 @@ class ProjectDetailsInner extends React.Component {
 const ProjectDetails = withApi(ProjectDetailsInner);
 
 const redirectDeprecatedProjectRoute = generateRedirectRoute => {
-  class RedirectDeprecatedProjectRoute extends React.Component {
+  class RedirectDeprecatedProjectRoute extends Component {
     static propTypes = {
       router: PropTypes.object.isRequired,
 

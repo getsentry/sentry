@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import SentryTypes from 'app/sentryTypes';
@@ -90,7 +90,7 @@ const organization = {
   access: ['project:releases'],
 };
 
-class OrganizationContext extends React.Component {
+class OrganizationContext extends Component {
   static childContextTypes = {
     organization: SentryTypes.Organization,
   };

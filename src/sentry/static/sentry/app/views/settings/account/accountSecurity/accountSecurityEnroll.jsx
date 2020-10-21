@@ -1,5 +1,5 @@
 import {withRouter} from 'react-router';
-import React from 'react';
+import {Fragment} from 'react';
 
 import {PanelItem} from 'app/components/panels';
 import {
@@ -329,13 +329,13 @@ class AccountSecurityEnroll extends AsyncView {
       : {};
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={
-            <React.Fragment>
+            <Fragment>
               <span>{authenticator.name}</span>
               <CircleIndicator css={{marginLeft: 6}} enabled={authenticator.isEnrolled} />
-            </React.Fragment>
+            </Fragment>
           }
           action={
             authenticator.isEnrolled &&
@@ -361,7 +361,7 @@ class AccountSecurityEnroll extends AsyncView {
             <JsonForm forms={[{title: 'Configuration', fields}]} />
           </Form>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

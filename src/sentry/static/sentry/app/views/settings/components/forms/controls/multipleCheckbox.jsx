@@ -1,6 +1,6 @@
 import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {defined} from 'app/utils';
@@ -22,7 +22,7 @@ const CheckboxLabel = styled('span')`
   margin-left: 3px;
 `;
 
-export default class MultipleCheckbox extends React.Component {
+export default class MultipleCheckbox extends Component {
   static propTypes = {
     value: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])),
     onChange: PropTypes.func,

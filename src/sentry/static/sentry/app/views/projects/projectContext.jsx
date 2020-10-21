@@ -1,7 +1,6 @@
 import {withRouter} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
-import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 

@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import InternalStatChart from 'app/components/internalStatChart';
 
-export default class AdminBuffer extends React.Component {
+export default class AdminBuffer extends Component {
   static propTypes = {
     resolution: PropTypes.string.isRequired,
   };

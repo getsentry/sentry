@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
 
@@ -80,12 +80,12 @@ export default class AdminEnvironment extends AsyncView {
 
         <dl className="vars">
           {config.map(([key, value]) => (
-            <React.Fragment key={key}>
+            <Fragment key={key}>
               <dt>{key}</dt>
               <dd>
                 <pre className="val">{value}</pre>
               </dd>
-            </React.Fragment>
+            </Fragment>
           ))}
         </dl>
       </div>

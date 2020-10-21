@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {defined, objectIsEmpty} from 'app/utils';
@@ -14,7 +14,7 @@ import space from 'app/styles/space';
 
 const selectControlShape = PropTypes.shape(SelectControl.propTypes);
 
-export default class ChoiceMapper extends React.Component {
+export default class ChoiceMapper extends Component {
   static propTypes = {
     ...InputField.propTypes,
     /**
@@ -166,7 +166,7 @@ export default class ChoiceMapper extends React.Component {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <LabelColumn>
             <HeadingItem>{mappedColumnLabel}</HeadingItem>
@@ -209,7 +209,7 @@ export default class ChoiceMapper extends React.Component {
             ))}
           </Row>
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   };
 

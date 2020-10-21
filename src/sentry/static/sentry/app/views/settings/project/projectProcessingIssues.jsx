@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {IconQuestion, IconSettings} from 'app/icons';
@@ -48,7 +48,7 @@ const HELP_LINKS = {
   native_missing_symbol: 'https://docs.sentry.io/server/dsym/',
 };
 
-class ProjectProcessingIssues extends React.Component {
+class ProjectProcessingIssues extends Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
@@ -364,14 +364,14 @@ class ProjectProcessingIssues extends React.Component {
         <PanelTable headers={[t('Problem'), t('Details'), t('Events'), t('Last seen')]}>
           {processingRow}
           {this.state.processingIssues.issues.map((item, idx) => (
-            <React.Fragment key={idx}>
+            <Fragment key={idx}>
               <div>{this.renderProblem(item)}</div>
               <div>{this.renderDetails(item)}</div>
               <div>{item.numEvents + ''}</div>
               <div>
                 <TimeSince date={item.lastSeen} />
               </div>
-            </React.Fragment>
+            </Fragment>
           ))}
         </PanelTable>
       </div>

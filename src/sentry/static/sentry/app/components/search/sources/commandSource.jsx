@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {openSudo, openHelpSearchModal} from 'app/actionCreators/modal';
@@ -43,7 +43,7 @@ const ACTIONS = [
 /**
  * This source is a hardcoded list of action creators and/or routes maybe
  */
-class CommandSource extends React.Component {
+class CommandSource extends Component {
   static propTypes = {
     // search term
     query: PropTypes.string,

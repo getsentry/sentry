@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {t} from 'app/locale';
 import CustomPropTypes from 'app/sentryTypes';
 import EventsTableRow from 'app/components/eventsTable/eventsTableRow';
 
-class EventsTable extends React.Component {
+class EventsTable extends Component {
   static propTypes = {
     events: PropTypes.arrayOf(CustomPropTypes.Event),
     tagList: PropTypes.arrayOf(CustomPropTypes.Tag),

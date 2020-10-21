@@ -1,5 +1,5 @@
 /* eslint-disable react/jsx-key */
-import React from 'react';
+import {Component} from 'react';
 import moment from 'moment';
 
 import ResultGrid from 'app/components/resultGrid';
@@ -9,7 +9,7 @@ export const prettyDate = function (x) {
   return moment(x).format('ll');
 };
 
-class AdminProjects extends React.Component {
+class AdminProjects extends Component {
   getRow = row => [
     <td>
       <strong>

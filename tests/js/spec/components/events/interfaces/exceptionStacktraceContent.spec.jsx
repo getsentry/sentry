@@ -1,4 +1,3 @@
-import React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {mountWithTheme} from 'sentry-test/enzyme';

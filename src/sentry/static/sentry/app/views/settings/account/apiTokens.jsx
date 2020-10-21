@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addErrorMessage,

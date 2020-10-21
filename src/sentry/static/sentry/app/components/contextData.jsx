@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Children, Component, isValidElement} from 'react';
 import isString from 'lodash/isString';
 import isNumber from 'lodash/isNumber';
 import isArray from 'lodash/isArray';
@@ -75,7 +75,7 @@ function analyzeStringForRepr(value) {
   return rv;
 }
 
-class ToggleWrap extends React.Component {
+class ToggleWrap extends Component {
   static propTypes = {
     highUp: PropTypes.bool,
     wrapClassName: PropTypes.string,
@@ -84,7 +84,7 @@ class ToggleWrap extends React.Component {
   state = {toggled: false};
 
   render() {
-    if (React.Children.count(this.props.children) === 0) {
+    if (Children.count(this.props.children) === 0) {
       return null;
     }
 
@@ -117,7 +117,7 @@ class ToggleWrap extends React.Component {
   }
 }
 
-class ContextData extends React.Component {
+class ContextData extends Component {
   static propTypes = {
     data: PropTypes.any,
     preserveQuotes: PropTypes.bool,
@@ -198,7 +198,7 @@ class ContextData extends React.Component {
             <span className="val-array-marker">{']'}</span>
           </span>
         );
-      } else if (React.isValidElement(value)) {
+      } else if (isValidElement(value)) {
         return value;
       } else {
         const keys = Object.keys(value);

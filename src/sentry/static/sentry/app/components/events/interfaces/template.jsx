@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import Line from 'app/components/events/interfaces/frame/line';
 import {t} from 'app/locale';
 
-class TemplateInterface extends React.Component {
+class TemplateInterface extends Component {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,

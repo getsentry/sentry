@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectControl from 'app/components/forms/selectControl';
@@ -14,7 +14,7 @@ const getChoices = props => {
   return choices;
 };
 
-export default class SelectField extends React.Component {
+export default class SelectField extends Component {
   static propTypes = {
     ...InputField.propTypes,
     choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]),

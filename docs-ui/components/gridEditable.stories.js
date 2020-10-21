@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import {withInfo} from '@storybook/addon-info';
 
@@ -55,7 +55,7 @@ const DATA = [
   },
 ];
 
-class GridParent extends React.Component {
+class GridParent extends Component {
   static propTypes = {
     withHeader: PropTypes.bool,
     title: PropTypes.string,
@@ -99,12 +99,12 @@ export default {
 };
 
 export const Default = withInfo('Render a simple resizable table')(() => (
-  <React.Fragment>
+  <Fragment>
     <div className="section">
       <h2>Basic Table</h2>
       <GridParent />
     </div>
-  </React.Fragment>
+  </Fragment>
 ));
 
 Default.story = {

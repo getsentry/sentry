@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import ConfigStore from 'app/stores/configStore';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -24,7 +24,7 @@ export function isStacktraceNewestFirst() {
   }
 }
 
-class StacktraceInterface extends React.Component {
+class StacktraceInterface extends Component {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,

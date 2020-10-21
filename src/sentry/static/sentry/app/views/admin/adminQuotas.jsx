@@ -1,5 +1,3 @@
-import React from 'react';
-
 import AsyncView from 'app/views/asyncView';
 import {TextField} from 'app/components/forms';
 import InternalStatChart from 'app/components/internalStatChart';

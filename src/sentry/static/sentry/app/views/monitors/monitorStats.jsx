@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import React from 'react';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {Panel, PanelBody} from 'app/components/panels';

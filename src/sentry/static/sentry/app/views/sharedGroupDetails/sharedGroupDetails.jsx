@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
-import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 

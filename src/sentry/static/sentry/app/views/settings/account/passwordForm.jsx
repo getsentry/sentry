@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -11,7 +11,7 @@ import accountPasswordFields from 'app/data/forms/accountPassword';
 
 const ENDPOINT = '/users/me/password/';
 
-class PasswordForm extends React.Component {
+class PasswordForm extends Component {
   handleSubmitSuccess = (_change, model) => {
     // Reset form on success
     model.resetForm();

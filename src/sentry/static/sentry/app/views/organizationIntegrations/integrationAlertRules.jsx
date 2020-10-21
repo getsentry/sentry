@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -10,7 +10,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import SentryTypes from 'app/sentryTypes';
 import withProjects from 'app/utils/withProjects';
 
-class IntegrationAlertRules extends React.Component {
+class IntegrationAlertRules extends Component {
   static propTypes = {
     projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
   };

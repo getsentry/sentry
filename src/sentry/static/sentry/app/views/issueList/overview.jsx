@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
-import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';

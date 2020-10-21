@@ -1,6 +1,6 @@
 import max from 'lodash/max';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import echarts from 'echarts';
 
 import theme from 'app/utils/theme';
@@ -9,7 +9,7 @@ import BaseChart from './baseChart';
 import MapSeries from './series/mapSeries';
 import VisualMap from './components/visualMap';
 
-export default class WorldMapChart extends React.Component {
+export default class WorldMapChart extends Component {
   static propTypes = {
     ...BaseChart.propTypes,
     seriesOptions: PropTypes.object,

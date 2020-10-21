@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import SentryTypes from 'app/sentryTypes';
@@ -20,7 +20,7 @@ const SimilarItemPropType = PropTypes.shape({
   isBelowThreshold: PropTypes.bool,
 });
 
-class List extends React.Component {
+class List extends Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     project: SentryTypes.Project.isRequired,

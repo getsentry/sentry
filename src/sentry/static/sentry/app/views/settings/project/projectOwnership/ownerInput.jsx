@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import TextareaAutosize from 'react-autosize-textarea';
 
@@ -13,7 +13,7 @@ import {t} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
 
-class OwnerInput extends React.Component {
+class OwnerInput extends Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
@@ -135,7 +135,7 @@ class OwnerInput extends React.Component {
     const {text, error, initialText} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <RuleBuilder
           urls={urls}
           paths={paths}
@@ -181,7 +181,7 @@ class OwnerInput extends React.Component {
             </SaveButton>
           </ActionBar>
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

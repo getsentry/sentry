@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import {IconBusiness, IconTelescope, IconLightning, IconSiren} from 'app/icons';
@@ -10,7 +10,7 @@ export default {
 };
 
 export const Default = withInfo('Default message goes here')(() => (
-  <React.Fragment>
+  <Fragment>
     <div className="section">
       <h4>Without Symbol</h4>
       <List>
@@ -59,5 +59,5 @@ export const Default = withInfo('Default message goes here')(() => (
         <ListItem>Item 3</ListItem>
       </List>
     </div>
-  </React.Fragment>
+  </Fragment>
 ));

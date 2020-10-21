@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import PropTypes from 'prop-types';
 
 import SentryTypes from 'app/sentryTypes';
@@ -6,7 +6,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import OrganizationRateLimits from './organizationRateLimits';
 
-class OrganizationRateLimitsContainer extends React.Component {
+class OrganizationRateLimitsContainer extends Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     routes: PropTypes.array,

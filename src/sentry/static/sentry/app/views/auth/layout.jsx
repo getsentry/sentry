@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {IconSentry} from 'app/icons';
@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 
 const BODY_CLASSES = ['narrow'];
 
-class Layout extends React.Component {
+class Layout extends Component {
   componentDidMount() {
     document.body.classList.add(...BODY_CLASSES);
   }

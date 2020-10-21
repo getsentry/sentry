@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import {browserHistory} from 'react-router';
@@ -10,7 +10,7 @@ import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import {IconSearch} from 'app/icons';
 
-class Filter extends React.Component {
+class Filter extends Component {
   static propTypes = {
     name: PropTypes.string.isRequired,
     queryKey: PropTypes.string.isRequired,
@@ -80,7 +80,7 @@ class Filter extends React.Component {
   }
 }
 
-class SortBy extends React.Component {
+class SortBy extends Component {
   static propTypes = {
     options: PropTypes.array.isRequired,
     path: PropTypes.string.isRequired,

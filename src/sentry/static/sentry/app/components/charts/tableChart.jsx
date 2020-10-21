@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelHeader, PanelItem} from 'app/components/panels';
 
 export const TableChart = styled(
-  class TableChartComponent extends React.Component {
+  class TableChartComponent extends Component {
     static get defaultProps() {
       // Default renderer for Table Header
       const defaultRenderTableHeader = ({
@@ -347,7 +347,7 @@ export const TableChart = styled(
 export default TableChart;
 
 export const TableChartRow = styled(
-  class TableChartRowComponent extends React.Component {
+  class TableChartRowComponent extends Component {
     static propTypes = {
       /**
        * Show percentage as a bar in the row

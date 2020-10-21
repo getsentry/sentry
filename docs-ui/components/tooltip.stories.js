@@ -1,11 +1,11 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 import {text, boolean, select} from '@storybook/addon-knobs';
 
 import Tooltip from 'app/components/tooltip';
 import Button from 'app/components/button';
 
-class CustomThing extends React.Component {
+class CustomThing extends Component {
   render() {
     return <span>A class component with no ref</span>;
   }
@@ -34,7 +34,7 @@ export const _Tooltip = withInfo({
   const isHoverable = boolean('isHoverable', false);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <h3>With styled component trigger</h3>
       <p>
         <Tooltip
@@ -96,6 +96,6 @@ export const _Tooltip = withInfo({
           <button>Native button</button>
         </Tooltip>
       </p>
-    </React.Fragment>
+    </Fragment>
   );
 });

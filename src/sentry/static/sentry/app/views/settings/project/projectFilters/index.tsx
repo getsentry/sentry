@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
@@ -19,7 +19,7 @@ type Props = {
   project: Project;
 } & RouteComponentProps<{projectId: string; orgId: string; filterType: string}, {}>;
 
-class ProjectFilters extends React.Component<Props> {
+class ProjectFilters extends Component<Props> {
   render() {
     const {project, params} = this.props;
     const {orgId, projectId, filterType} = params;
@@ -30,7 +30,7 @@ class ProjectFilters extends React.Component<Props> {
     const features = new Set(project.features);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={t('Inbound Filters')} objSlug={projectId} />
         <SettingsPageHeader title={t('Inbound Data Filters')} />
         <PermissionAlert />
@@ -71,7 +71,7 @@ class ProjectFilters extends React.Component<Props> {
             />
           )}
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

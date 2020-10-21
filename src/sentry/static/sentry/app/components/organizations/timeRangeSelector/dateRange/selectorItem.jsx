@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
-class SelectorItem extends React.PureComponent {
+class SelectorItem extends PureComponent {
   static propTypes = {
     onClick: PropTypes.func.isRequired,
     value: PropTypes.string,

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 
 import AsyncView from 'app/views/asyncView';
@@ -16,14 +16,14 @@ export default class CreateMonitor extends AsyncView {
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         <h1>New Monitor</h1>
         <MonitorForm
           apiMethod="POST"
           apiEndpoint={`/organizations/${this.props.params.orgId}/monitors/`}
           onSubmitSuccess={this.onSubmitSuccess}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Fragment, Component} from 'react';
 import PropTypes from 'prop-types';
 import {Observer} from 'mobx-react';
 
@@ -145,7 +145,7 @@ class MonitorForm extends Component {
                     switch (this.form.getValue('type')) {
                       case 'cron_job':
                         return (
-                          <React.Fragment>
+                          <Fragment>
                             <NumberField
                               name="config.max_runtime"
                               label={t('Max Runtime')}
@@ -162,7 +162,7 @@ class MonitorForm extends Component {
                               choices={SCHEDULE_TYPES}
                               required
                             />
-                          </React.Fragment>
+                          </Fragment>
                         );
                       default:
                         return null;
@@ -174,7 +174,7 @@ class MonitorForm extends Component {
                     switch (this.form.getValue('config.schedule_type')) {
                       case 'crontab':
                         return (
-                          <React.Fragment>
+                          <Fragment>
                             <TextField
                               name="config.schedule"
                               label={t('Schedule')}
@@ -197,11 +197,11 @@ class MonitorForm extends Component {
                               )}
                               placeholder="e.g. 30"
                             />
-                          </React.Fragment>
+                          </Fragment>
                         );
                       case 'interval':
                         return (
-                          <React.Fragment>
+                          <Fragment>
                             <NumberField
                               name="config.schedule.frequency"
                               label={t('Frequency')}
@@ -226,7 +226,7 @@ class MonitorForm extends Component {
                               )}
                               placeholder="e.g. 30"
                             />
-                          </React.Fragment>
+                          </Fragment>
                         );
                       default:
                         return null;

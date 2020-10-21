@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import uniqBy from 'lodash/uniqBy';
 import flatMap from 'lodash/flatMap';
 import styled from '@emotion/styled';
@@ -21,7 +21,7 @@ const ExpandButton = styled('button')`
   }
 `;
 
-class EventCause extends React.Component {
+class EventCause extends Component {
   static propTypes = {
     committers: PropTypes.array.isRequired,
   };
@@ -65,13 +65,13 @@ class EventCause extends React.Component {
           {commits.length > 1 && (
             <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
               {expanded ? (
-                <React.Fragment>
+                <Fragment>
                   {t('Show less')} <IconSubtract isCircled size="md" />
-                </React.Fragment>
+                </Fragment>
               ) : (
-                <React.Fragment>
+                <Fragment>
                   {t('Show more')} <IconAdd isCircled size="md" />
-                </React.Fragment>
+                </Fragment>
               )}
             </ExpandButton>
           )}

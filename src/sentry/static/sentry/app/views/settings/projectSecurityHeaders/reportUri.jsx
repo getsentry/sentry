@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import PropTypes from 'prop-types';
 import {Link} from 'react-router';
 
@@ -18,7 +18,7 @@ export const getSecurityDsn = keyList => {
   });
 };
 
-export default class ReportUri extends React.Component {
+export default class ReportUri extends Component {
   static propTypes = {
     keyList: PropTypes.array.isRequired,
   };

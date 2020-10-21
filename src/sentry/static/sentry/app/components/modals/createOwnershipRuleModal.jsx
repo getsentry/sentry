@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {css} from '@emotion/core';
 
 import {t} from 'app/locale';
@@ -7,7 +7,7 @@ import ProjectOwnershipModal from 'app/views/settings/project/projectOwnership/m
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 
-class CreateOwnershipRuleModal extends React.Component {
+class CreateOwnershipRuleModal extends Component {
   static propTypes = {
     closeModal: PropTypes.func,
     onClose: PropTypes.func,
@@ -32,14 +32,14 @@ class CreateOwnershipRuleModal extends React.Component {
     const {Body, Header, closeModal, ...props} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton onHide={closeModal}>
           {t('Create Ownership Rule')}
         </Header>
         <Body>
           <ProjectOwnershipModal {...props} onSave={this.handleSuccess} />
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

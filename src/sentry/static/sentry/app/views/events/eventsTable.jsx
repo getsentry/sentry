@@ -1,6 +1,6 @@
 import {withRouter, Link} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {PureComponent, Component} from 'react';
 import styled from '@emotion/styled';
 
 import {PanelBody, Panel, PanelHeader} from 'app/components/panels';
@@ -15,7 +15,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
 
-class EventsTableBody extends React.PureComponent {
+class EventsTableBody extends PureComponent {
   static propTypes = {
     events: PropTypes.array,
     organization: SentryTypes.Organization,
@@ -71,7 +71,7 @@ class EventsTableBody extends React.PureComponent {
   }
 }
 
-class EventsTable extends React.Component {
+class EventsTable extends Component {
   static propTypes = {
     // Initial loading state
     loading: PropTypes.bool,

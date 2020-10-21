@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 
 import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
 import EventDataSection from 'app/components/events/eventDataSection';

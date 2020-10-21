@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
@@ -62,7 +62,7 @@ export const _BulkController = withInfo({
         {renderBulkNotice()}
 
         {dummy.map(d => (
-          <React.Fragment key={d.id}>
+          <Fragment key={d.id}>
             <div>
               <StyledCheckbox
                 checked={selectedIds.includes(d.id)}
@@ -71,7 +71,7 @@ export const _BulkController = withInfo({
             </div>
             <div>{d.id}</div>
             <div>{d.text}</div>
-          </React.Fragment>
+          </Fragment>
         ))}
       </PanelTable>
     )}

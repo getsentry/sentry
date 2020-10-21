@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import ReactSelect, {components as selectComponents} from 'react-select';
 import Async from 'react-select/async';
 import Creatable from 'react-select/creatable';

@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import React from 'react';
+import {Component} from 'react';
 import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
 
@@ -8,7 +8,7 @@ import LazyLoad from 'app/components/lazyLoad';
 import withOrganization from 'app/utils/withOrganization';
 import SentryTypes from 'app/sentryTypes';
 
-class OrganizationStatsContainer extends React.Component {
+class OrganizationStatsContainer extends Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     routes: PropTypes.array.isRequired,

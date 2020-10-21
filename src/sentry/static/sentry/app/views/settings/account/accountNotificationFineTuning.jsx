@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -107,7 +107,7 @@ function groupByOrganization(projects) {
   }, {});
 }
 
-class AccountNotificationsByProject extends React.Component {
+class AccountNotificationsByProject extends Component {
   static propTypes = {
     projects: PropTypes.array,
     field: PropTypes.object,
@@ -155,7 +155,7 @@ class AccountNotificationsByProject extends React.Component {
   }
 }
 
-class AccountNotificationsByOrganization extends React.Component {
+class AccountNotificationsByOrganization extends Component {
   static propTypes = {
     organizations: PropTypes.array,
     field: PropTypes.object,
@@ -180,7 +180,7 @@ class AccountNotificationsByOrganization extends React.Component {
     const orgFields = this.getFieldData();
 
     return (
-      <React.Fragment>
+      <Fragment>
         {orgFields.map(field => (
           <PanelBodyLineItem key={field.name}>
             <SelectField
@@ -192,7 +192,7 @@ class AccountNotificationsByOrganization extends React.Component {
             />
           </PanelBodyLineItem>
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

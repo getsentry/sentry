@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
@@ -17,7 +17,7 @@ import withProjects from 'app/utils/withProjects';
 
 import {CrumbLink} from '.';
 
-class ProjectCrumb extends React.Component {
+class ProjectCrumb extends Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,

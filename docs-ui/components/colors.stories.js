@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
@@ -39,7 +39,7 @@ export const Default = withInfo('Top level colors')(() => {
   });
 
   return (
-    <React.Fragment>
+    <Fragment>
       <h2>Aliases</h2>
 
       <p>
@@ -49,10 +49,10 @@ export const Default = withInfo('Top level colors')(() => {
 
       <Aliases>
         {Object.keys(aliases).map(alias => (
-          <React.Fragment key={alias}>
+          <Fragment key={alias}>
             <Swatch color={aliases[alias]}>{alias}</Swatch>
             <div>{DESCRIPTIONS[alias] || 'No description available'}</div>
-          </React.Fragment>
+          </Fragment>
         ))}
       </Aliases>
 
@@ -64,7 +64,7 @@ export const Default = withInfo('Top level colors')(() => {
           </Swatch>
         ))}
       </Swatches>
-    </React.Fragment>
+    </Fragment>
   );
 });
 

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {PureComponent} from 'react';
 import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
@@ -58,7 +58,7 @@ const SelectorItemsHook = HookOrDefault({
   defaultComponent: SelectorItems,
 });
 
-class TimeRangeSelector extends React.PureComponent {
+class TimeRangeSelector extends PureComponent {
   static propTypes = {
     /**
      * When the default period is selected, it is visually dimmed and

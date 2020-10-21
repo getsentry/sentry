@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import React from 'react';
+import {Component} from 'react';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
@@ -12,7 +12,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'].map(e => [e, e]);
 
-export default class ServiceHookSettingsForm extends React.Component {
+export default class ServiceHookSettingsForm extends Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -80,7 +80,7 @@ const FineTuneLink = styled(Link)`
   color: inherit;
 `;
 
-class FineTuningFooter extends React.Component {
+class FineTuningFooter extends Component {
   static propTypes = {
     path: PropTypes.string.isRequired,
     text: PropTypes.string.isRequired,

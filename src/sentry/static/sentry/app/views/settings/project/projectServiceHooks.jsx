@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {
@@ -18,7 +18,7 @@ import Switch from 'app/components/switch';
 import Truncate from 'app/components/truncate';
 import {IconAdd, IconFlag} from 'app/icons';
 
-class ServiceHookRow extends React.Component {
+class ServiceHookRow extends Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -111,7 +111,7 @@ export default class ProjectServiceHooks extends AsyncView {
     const {orgId, projectId} = this.props.params;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
           <PanelAlert type="info" icon={<IconFlag size="md" />}>
@@ -129,7 +129,7 @@ export default class ProjectServiceHooks extends AsyncView {
             />
           ))}
         </PanelBody>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

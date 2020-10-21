@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {t, tct} from 'app/locale';
 import Form from 'app/components/forms/form';
@@ -13,7 +13,7 @@ const SlugExample = p => (
   </code>
 );
 
-class SsoForm extends React.Component {
+class SsoForm extends Component {
   static propTypes = {
     api: PropTypes.object,
     authConfig: SentryTypes.AuthConfig,

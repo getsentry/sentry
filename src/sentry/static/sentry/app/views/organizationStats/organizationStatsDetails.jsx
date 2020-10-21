@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {intcomma} from 'app/utils';
@@ -18,7 +18,7 @@ import {
 import {PageContent} from 'app/styles/organization';
 import PerformanceAlert from 'app/views/organizationStats/performanceAlert';
 
-class OrganizationStats extends React.Component {
+class OrganizationStats extends Component {
   static propTypes = {
     statsLoading: PropTypes.bool,
     projectsLoading: PropTypes.bool,
@@ -42,16 +42,16 @@ class OrganizationStats extends React.Component {
         <div className="value-label">
           {intcomma(accepted)} accepted
           {rejected > 0 && (
-            <React.Fragment>
+            <Fragment>
               <br />
               {intcomma(rejected)} rate limited
-            </React.Fragment>
+            </Fragment>
           )}
           {blacklisted > 0 && (
-            <React.Fragment>
+            <Fragment>
               <br />
               {intcomma(blacklisted)} filtered
-            </React.Fragment>
+            </Fragment>
           )}
         </div>
       </div>
@@ -149,9 +149,9 @@ class OrganizationStats extends React.Component {
 
   render() {
     return (
-      <React.Fragment>
+      <Fragment>
         <PageContent>{this.renderContent()}</PageContent>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

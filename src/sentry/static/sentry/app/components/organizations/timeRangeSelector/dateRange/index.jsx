@@ -3,7 +3,7 @@ import 'react-date-range/dist/theme/default.css';
 
 import {DateRangePicker} from 'react-date-range';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
 
@@ -23,7 +23,7 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-class DateRange extends React.Component {
+class DateRange extends Component {
   static getTimeStringFromDate = date => moment(date).local().format('HH:mm');
 
   static propTypes = {

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 import {text, select} from '@storybook/addon-knobs';
 
@@ -27,7 +27,7 @@ export const _QuestionTooltip = withInfo({
   const size = select('size', theme.iconSizes, theme.iconSizes.sm);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <h3>
         Some Jargon Term
         <QuestionTooltip
@@ -37,7 +37,7 @@ export const _QuestionTooltip = withInfo({
           containerDisplayMode={displayMode}
         />
       </h3>
-    </React.Fragment>
+    </Fragment>
   );
 });
 

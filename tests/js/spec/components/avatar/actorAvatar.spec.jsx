@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme, mount} from 'sentry-test/enzyme';
 
 import ActorAvatar from 'app/components/avatar/actorAvatar';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import ExternalLink from 'app/components/links/externalLink';

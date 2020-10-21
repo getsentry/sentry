@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
@@ -21,7 +21,7 @@ import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 import {getUrlRoutingName, getDisplayName} from 'app/utils/environment';
 
-class ProjectEnvironments extends React.Component {
+class ProjectEnvironments extends Component {
   static propTypes = {
     api: PropTypes.object,
     routes: PropTypes.array,
@@ -142,7 +142,7 @@ class ProjectEnvironments extends React.Component {
     const buttonText = isHidden ? t('Show') : t('Hide');
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderAllEnvironmentsSystemRow()}
         {envs.map(env => (
           <EnvironmentRow
@@ -155,7 +155,7 @@ class ProjectEnvironments extends React.Component {
             shouldShowAction
           />
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -207,7 +207,7 @@ class ProjectEnvironments extends React.Component {
   }
 }
 
-class EnvironmentRow extends React.Component {
+class EnvironmentRow extends Component {
   static propTypes = {
     environment: SentryTypes.Environment,
     isHidden: PropTypes.bool,

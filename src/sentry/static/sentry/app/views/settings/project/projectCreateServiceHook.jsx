@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';

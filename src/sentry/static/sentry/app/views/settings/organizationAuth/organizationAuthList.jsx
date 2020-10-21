@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {CSRF_COOKIE_NAME} from 'app/constants';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
@@ -25,7 +25,7 @@ const providerPopularity = {
   auth0: 7,
 };
 
-class OrganizationAuthList extends React.Component {
+class OrganizationAuthList extends Component {
   static propTypes = {
     providerList: PropTypes.arrayOf(SentryTypes.AuthProvider).isRequired,
     activeProvider: PropTypes.object,

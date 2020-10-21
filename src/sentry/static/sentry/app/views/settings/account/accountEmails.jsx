@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -19,7 +19,7 @@ import ButtonBar from 'app/components/buttonBar';
 
 const ENDPOINT = '/users/me/emails/';
 
-class EmailRow extends React.Component {
+class EmailRow extends Component {
   static propTypes = {
     email: PropTypes.string.isRequired,
     onRemove: PropTypes.func.isRequired,

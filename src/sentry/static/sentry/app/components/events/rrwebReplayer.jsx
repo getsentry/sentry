@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {createRef, Component} from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import rrwebPlayer from 'rrweb-player';
@@ -22,7 +22,7 @@ class RRWebReplayer extends Component {
     });
   }
 
-  ref = React.createRef();
+  ref = createRef();
 
   render() {
     return <div ref={this.ref} className={this.props.className} />;

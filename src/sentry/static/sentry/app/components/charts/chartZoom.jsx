@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import moment from 'moment';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -20,7 +20,7 @@ const getDate = date =>
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
  */
-class ChartZoom extends React.Component {
+class ChartZoom extends Component {
   static propTypes = {
     router: PropTypes.object,
     period: PropTypes.string,

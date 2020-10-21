@@ -1,5 +1,3 @@
-import React from 'react';
-
 import BasePlugin from 'app/plugins/basePlugin';
 
 import Settings from './components/settings';

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -57,7 +57,7 @@ describe('Incident Rules Details', function () {
     });
 
     const wrapper = mountWithTheme(
-      <React.Fragment>
+      <Fragment>
         <GlobalModal />
         <IncidentRulesDetails
           params={{
@@ -67,7 +67,7 @@ describe('Incident Rules Details', function () {
           }}
           organization={organization}
         />
-      </React.Fragment>,
+      </Fragment>,
       routerContext
     );
 

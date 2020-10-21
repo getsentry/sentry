@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {action} from '@storybook/addon-actions';
 import {text} from '@storybook/addon-knobs';
 import {withInfo} from '@storybook/addon-info';
@@ -9,7 +9,7 @@ export default {
   title: 'Features/Issues/Share Issue',
 };
 
-class ShareSimulator extends React.Component {
+class ShareSimulator extends Component {
   state = {isShared: false, loading: false};
   toggleAction = action('Toggle');
 

@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import cloneDeep from 'lodash/cloneDeep';
-import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';

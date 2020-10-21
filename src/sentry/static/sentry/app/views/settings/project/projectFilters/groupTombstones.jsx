@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -14,7 +14,7 @@ import {Panel, PanelItem} from 'app/components/panels';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import space from 'app/styles/space';
 
-class GroupTombstoneRow extends React.Component {
+class GroupTombstoneRow extends Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     onUndiscard: PropTypes.func.isRequired,

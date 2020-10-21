@@ -1,6 +1,6 @@
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import styled from '@emotion/styled';
@@ -20,7 +20,7 @@ import Button from 'app/components/button';
 import {IconAdd} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 
-class ValueComponent extends React.Component {
+class ValueComponent extends Component {
   static propTypes = {
     value: PropTypes.object,
     onRemove: PropTypes.func,
@@ -42,7 +42,7 @@ class ValueComponent extends React.Component {
 const getSearchKeyForUser = user =>
   `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
 
-export default class SelectOwners extends React.Component {
+export default class SelectOwners extends Component {
   static propTypes = {
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,

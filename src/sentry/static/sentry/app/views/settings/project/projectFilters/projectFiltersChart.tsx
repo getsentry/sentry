@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import moment from 'moment';
 
 import {intcomma} from 'app/utils';
@@ -36,7 +36,7 @@ type State = {
   blankStats: boolean;
 };
 
-class ProjectFiltersChart extends React.Component<Props, State> {
+class ProjectFiltersChart extends Component<Props, State> {
   constructor(props) {
     super(props);
 

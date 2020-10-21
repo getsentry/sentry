@@ -1,6 +1,6 @@
 import {Link, withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {PageHeader} from 'app/styles/organization';
@@ -63,7 +63,7 @@ class Monitors extends AsyncView {
     const {monitorListPageLinks} = this.state;
     const {organization} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <PageHeader>
           <HeaderTitle>
             <div>
@@ -106,7 +106,7 @@ class Monitors extends AsyncView {
         {monitorListPageLinks && (
           <Pagination pageLinks={monitorListPageLinks} {...this.props} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

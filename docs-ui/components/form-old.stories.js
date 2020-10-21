@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
 import {Form as LegacyForm, TextField as LegacyTextField} from 'app/components/forms';
 
-class UndoButton extends React.Component {
+class UndoButton extends Component {
   handleClick(e) {
     e.preventDefault();
     this.context.form.undo();

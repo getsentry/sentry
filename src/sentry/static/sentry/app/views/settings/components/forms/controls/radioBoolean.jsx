@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
-class Option extends React.Component {
+class Option extends Component {
   static propTypes = {
     name: PropTypes.string,
     label: PropTypes.node,
@@ -40,7 +40,7 @@ class Option extends React.Component {
   }
 }
 
-export default class RadioBoolean extends React.Component {
+export default class RadioBoolean extends Component {
   static propTypes = {
     disabled: PropTypes.bool,
     name: PropTypes.string,

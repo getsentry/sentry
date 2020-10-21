@@ -1,4 +1,3 @@
-import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import {Form as LegacyForm, PasswordField, BooleanField} from 'app/components/forms';

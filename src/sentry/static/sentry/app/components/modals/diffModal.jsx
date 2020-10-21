@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import {css} from '@emotion/core';
 
 import IssueDiff from 'app/components/issueDiff';
 
-class DiffModal extends React.Component {
+class DiffModal extends Component {
   static propTypes = {
     Body: PropTypes.func,
   };

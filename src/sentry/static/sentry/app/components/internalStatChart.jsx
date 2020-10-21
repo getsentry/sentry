@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import BarChart from 'app/components/barChart';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
 
-class InternalStatChart extends React.Component {
+class InternalStatChart extends Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     since: PropTypes.number.isRequired,

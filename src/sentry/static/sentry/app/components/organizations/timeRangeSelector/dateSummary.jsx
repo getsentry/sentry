@@ -2,7 +2,7 @@
  * Displays and formats absolute DateTime ranges
  */
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -10,7 +10,7 @@ import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'app/utils/dates';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-class DateSummary extends React.Component {
+class DateSummary extends Component {
   static propTypes = {
     /**
      * Start date value for absolute date selector
@@ -59,7 +59,7 @@ class DateSummary extends React.Component {
             {shouldShowTimes && <Time>{this.formatTime(start)}</Time>}
           </Date>
         </DateGroup>
-        <React.Fragment>
+        <Fragment>
           <DateRangeDivider>{t('to')}</DateRangeDivider>
 
           <DateGroup>
@@ -68,7 +68,7 @@ class DateSummary extends React.Component {
               {shouldShowTimes && <Time>{this.formatTime(end)}</Time>}
             </Date>
           </DateGroup>
-        </React.Fragment>
+        </Fragment>
       </DateGroupWrapper>
     );
   }

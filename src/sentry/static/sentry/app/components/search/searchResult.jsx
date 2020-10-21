@@ -1,6 +1,6 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import IdBadge from 'app/components/idBadge';
@@ -10,7 +10,7 @@ import SettingsSearch from 'app/views/settings/components/settingsSearch';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 import space from 'app/styles/space';
 
-class SearchResult extends React.Component {
+class SearchResult extends Component {
   static propTypes = {
     highlighted: PropTypes.bool,
     item: PropTypes.shape({
@@ -100,13 +100,13 @@ class SearchResult extends React.Component {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <div>
           <SearchTitle>{title}</SearchTitle>
         </div>
         {description && <SearchDetail>{description}</SearchDetail>}
         {extra && <ExtraDetail>{extra}</ExtraDetail>}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

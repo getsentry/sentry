@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
@@ -12,7 +12,7 @@ const Body = styled('div')`
   flex: 1;
 `;
 
-class MonitorsContainer extends React.Component {
+class MonitorsContainer extends Component {
   render() {
     const {children} = this.props;
 

@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
@@ -12,7 +12,7 @@ import IdBadge from 'app/components/idBadge';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
-class AllTeamsRow extends React.Component {
+class AllTeamsRow extends Component {
   static propTypes = {
     api: PropTypes.object,
     urlPrefix: PropTypes.string.isRequired,

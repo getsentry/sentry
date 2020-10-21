@@ -9,12 +9,12 @@
  * it is rendered should be left to the child.
  */
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
 import DropdownMenu from 'app/components/dropdownMenu';
 
-class AutoComplete extends React.Component {
+class AutoComplete extends Component {
   static propTypes = {
     /**
      * Must be a function that returns a component

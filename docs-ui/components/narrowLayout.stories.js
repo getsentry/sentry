@@ -1,4 +1,3 @@
-import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import NarrowLayout from 'app/components/narrowLayout';

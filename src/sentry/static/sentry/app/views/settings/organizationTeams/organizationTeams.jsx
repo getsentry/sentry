@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -13,7 +13,7 @@ import {IconAdd} from 'app/icons';
 
 import AllTeamsList from './allTeamsList';
 
-class OrganizationTeams extends React.Component {
+class OrganizationTeams extends Component {
   static propTypes = {
     allTeams: PropTypes.arrayOf(SentryTypes.Team),
     activeTeams: PropTypes.arrayOf(SentryTypes.Team),

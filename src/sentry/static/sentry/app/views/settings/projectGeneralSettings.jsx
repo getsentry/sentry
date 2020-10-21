@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Fragment} from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
@@ -439,16 +439,14 @@ class ProjectGeneralSettings extends AsyncView {
 
           <JsonForm
             {...jsonFormProps}
-            title={<React.Fragment>{t('Grouping Settings')}</React.Fragment>}
+            title={<Fragment>{t('Grouping Settings')}</Fragment>}
             fields={[
               fields.groupingConfig,
               fields.groupingEnhancementsBase,
               fields.groupingEnhancements,
               fields.fingerprintingRules,
             ]}
-            renderHeader={() => (
-              <React.Fragment>{this.renderUpgradeGrouping()}</React.Fragment>
-            )}
+            renderHeader={() => <Fragment>{this.renderUpgradeGrouping()}</Fragment>}
           />
 
           <JsonForm

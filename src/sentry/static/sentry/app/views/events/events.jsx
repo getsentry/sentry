@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -185,7 +185,7 @@ class Events extends AsyncView {
       !loading && !error && eventsPageLinks ? parseLinkHeader(eventsPageLinks) : {};
 
     return (
-      <React.Fragment>
+      <Fragment>
         {error &&
           super.renderError(
             new Error('Unable to load all required endpoints'),
@@ -231,7 +231,7 @@ class Events extends AsyncView {
             <PaginationNoMargin pageLinks={eventsPageLinks} />
           </PaginationWrapper>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import getDynamicText from 'app/utils/getDynamicText';
@@ -15,12 +15,12 @@ export const GetDynamicText = withInfo(
   `
 )(() => {
   return (
-    <React.Fragment>
+    <Fragment>
       {getDynamicText({
         fixed: 'Fixed Content',
         value: 'Pretend this is a dynamic value',
       })}
-    </React.Fragment>
+    </Fragment>
   );
 });
 

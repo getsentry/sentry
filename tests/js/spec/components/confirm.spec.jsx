@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import Confirm from 'app/components/confirm';

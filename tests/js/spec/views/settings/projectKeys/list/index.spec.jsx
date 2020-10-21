@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 

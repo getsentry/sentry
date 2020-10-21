@@ -1,5 +1,5 @@
 import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
-import React from 'react';
+import {Fragment} from 'react';
 
 import {t} from 'app/locale';
 import {EXPERIMENTAL_SPA} from 'app/constants';
@@ -42,7 +42,7 @@ const hook = name => HookStore.get(name).map(cb => cb());
 
 function routes() {
   const accountSettingsRoutes = (
-    <React.Fragment>
+    <Fragment>
       <IndexRedirect to="details/" />
 
       <Route
@@ -226,11 +226,11 @@ function routes() {
         }
         component={errorHandler(LazyLoad)}
       />
-    </React.Fragment>
+    </Fragment>
   );
 
   const projectSettingsRoutes = (
-    <React.Fragment>
+    <Fragment>
       <IndexRoute
         name="General"
         componentPromise={() =>
@@ -562,13 +562,13 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
       </Route>
-    </React.Fragment>
+    </Fragment>
   );
 
   // This is declared in the routes() function because some routes need the
   // hook store which is not available at import time.
   const orgSettingsRoutes = (
-    <React.Fragment>
+    <Fragment>
       <IndexRoute
         name="General"
         componentPromise={() =>
@@ -928,7 +928,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
       </Route>
-    </React.Fragment>
+    </Fragment>
   );
 
   return (

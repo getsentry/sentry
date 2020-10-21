@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -17,7 +17,7 @@ import space from 'app/styles/space';
 /**
  * List u2f devices w/ ability to remove a single device
  */
-class U2fEnrolledDetails extends React.Component {
+class U2fEnrolledDetails extends Component {
   static propTypes = {
     isEnrolled: PropTypes.bool,
     id: PropTypes.string,
@@ -62,7 +62,7 @@ class U2fEnrolledDetails extends React.Component {
                     onConfirm={() => onRemoveU2fDevice(device)}
                     disabled={isLastDevice}
                     message={
-                      <React.Fragment>
+                      <Fragment>
                         <ConfirmHeader>
                           {t('Do you want to remove U2F device?')}
                         </ConfirmHeader>
@@ -71,7 +71,7 @@ class U2fEnrolledDetails extends React.Component {
                             `Are you sure you want to remove the U2F device "${device.name}"?`
                           )}
                         </TextBlock>
-                      </React.Fragment>
+                      </Fragment>
                     }
                   >
                     <Button size="small" priority="danger">

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';

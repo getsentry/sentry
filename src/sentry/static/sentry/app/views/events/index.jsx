@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -20,7 +20,7 @@ import space from 'app/styles/space';
 
 import SearchBar from './searchBar';
 
-class EventsContainer extends React.Component {
+class EventsContainer extends Component {
   static propTypes = {
     api: PropTypes.object,
     organization: SentryTypes.Organization,

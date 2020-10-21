@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
 
 const TimePicker = styled(
-  class TimePicker extends React.Component {
+  class TimePicker extends Component {
     static propTypes = {
       onChangeStart: PropTypes.func.isRequired,
       onChangeEnd: PropTypes.func.isRequired,

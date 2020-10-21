@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -35,7 +35,7 @@ function getMatchPlaceholder(type) {
   }
 }
 
-class RuleBuilder extends React.Component {
+class RuleBuilder extends Component {
   static propTypes = {
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,
@@ -110,7 +110,7 @@ class RuleBuilder extends React.Component {
     const {type, text, tagName, owners, isValid} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {(paths || urls) && (
           <Candidates>
             {paths &&
@@ -188,7 +188,7 @@ class RuleBuilder extends React.Component {
             size="small"
           />
         </BuilderBar>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

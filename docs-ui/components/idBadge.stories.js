@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
@@ -25,7 +25,7 @@ export default {
 export const All = withInfo({
   text:
     'These are identification badges for certain models in Sentry: Organization, Project, Team, and User.',
-  propTablesExclude: [Item, Header, React.Fragment],
+  propTablesExclude: [Item, Header, Fragment],
 })(() => {
   const user = {
     name: 'Chrissy',
@@ -46,7 +46,7 @@ export const All = withInfo({
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header>User Badge</Header>
       <Item>
         <IdBadge user={user} />
@@ -67,7 +67,7 @@ export const All = withInfo({
       <Item>
         <IdBadge organization={organization} />
       </Item>
-    </React.Fragment>
+    </Fragment>
   );
 });
 

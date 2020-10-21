@@ -1,6 +1,6 @@
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 
 import {t} from 'app/locale';
 import {addErrorMessage} from 'app/actionCreators/indicator';

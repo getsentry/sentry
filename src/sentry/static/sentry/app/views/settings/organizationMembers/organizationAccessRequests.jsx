@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
@@ -10,7 +10,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
-class OrganizationAccessRequests extends React.Component {
+class OrganizationAccessRequests extends Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,

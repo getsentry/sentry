@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import PropTypes from 'prop-types';
 import uniq from 'lodash/uniq';
 
@@ -60,7 +60,7 @@ class ProjectOwnershipModal extends AsyncComponent {
     ).slice(0, 30);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <p>{t('Match against Issue Data: (globbing syntax *, ? supported)')}</p>
         <OwnerInput
           {...this.props}
@@ -69,7 +69,7 @@ class ProjectOwnershipModal extends AsyncComponent {
           paths={paths}
           onSave={this.props.onSave}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

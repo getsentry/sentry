@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -18,7 +18,7 @@ import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
 
-class MonitorHeaderActions extends React.Component {
+class MonitorHeaderActions extends Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     monitor: SentryTypes.Monitor.isRequired,

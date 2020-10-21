@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import SentryTypes from 'app/sentryTypes';
@@ -7,7 +7,7 @@ import space from 'app/styles/space';
 
 import Widget from './widget';
 
-class Dashboard extends React.Component {
+class Dashboard extends Component {
   static propTypes = {
     releasesLoading: PropTypes.bool,
     releases: PropTypes.arrayOf(SentryTypes.Release),

@@ -1,7 +1,7 @@
 import {Link} from 'react-router';
 import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
@@ -37,7 +37,7 @@ const TAB = {
   SIMILAR_ISSUES: 'similar-issues',
 };
 
-class GroupHeader extends React.Component {
+class GroupHeader extends Component {
   static propTypes = {
     currentTab: PropTypes.string.isRequired,
     baseUrl: PropTypes.string.isRequired,
@@ -121,7 +121,7 @@ class GroupHeader extends React.Component {
                 message={message}
                 level={group.level}
                 annotations={
-                  <React.Fragment>
+                  <Fragment>
                     {group.logger && (
                       <EventAnnotationWithSpace>
                         <Link
@@ -140,7 +140,7 @@ class GroupHeader extends React.Component {
                         dangerouslySetInnerHTML={{__html: annotation}}
                       />
                     ))}
-                  </React.Fragment>
+                  </Fragment>
                 }
               />
             </StyledTagAndMessageWrapper>

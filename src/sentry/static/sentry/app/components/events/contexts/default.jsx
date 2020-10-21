@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 
-class DefaultContextType extends React.Component {
+class DefaultContextType extends Component {
   static propTypes = {
     alias: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,

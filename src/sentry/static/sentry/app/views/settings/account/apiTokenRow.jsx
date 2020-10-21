@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
@@ -11,7 +11,7 @@ import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
-class ApiTokenRow extends React.Component {
+class ApiTokenRow extends Component {
   static propTypes = {
     token: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,

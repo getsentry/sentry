@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {createRef, Component} from 'react';
 
 import theme from 'app/utils/theme';
 
@@ -7,7 +7,7 @@ import BaseChart from './baseChart';
 import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
 
-class PieChart extends React.Component {
+class PieChart extends Component {
   static propTypes = {
     // We passthrough all props exception `options`
     ...BaseChart.propTypes,
@@ -18,7 +18,7 @@ class PieChart extends React.Component {
 
   constructor(props) {
     super(props);
-    this.chart = React.createRef();
+    this.chart = createRef();
     this.isInitialSelected = true;
     this.selected = 0;
   }

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -19,7 +19,7 @@ const FORM_COMPONENTS = {
   sso: SsoForm,
 };
 
-class Login extends React.Component {
+class Login extends Component {
   static propTypes = {
     api: PropTypes.object,
   };
@@ -88,7 +88,7 @@ class Login extends React.Component {
       );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <Heading>{t('Sign in to continue')}</Heading>
           <AuthNavTabs>{tabs.map(renderTab)}</AuthNavTabs>
@@ -105,7 +105,7 @@ class Login extends React.Component {
             <FormComponent {...{api, authConfig}} />
           </FormWrapper>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

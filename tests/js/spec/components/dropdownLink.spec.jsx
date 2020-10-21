@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
 

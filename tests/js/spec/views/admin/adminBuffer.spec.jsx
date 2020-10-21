@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import AdminBuffer from 'app/views/admin/adminBuffer';

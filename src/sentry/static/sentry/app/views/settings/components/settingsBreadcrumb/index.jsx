@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {Component} from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
@@ -22,7 +22,7 @@ const MENUS = {
   Team: TeamCrumb,
 };
 
-class SettingsBreadcrumb extends React.Component {
+class SettingsBreadcrumb extends Component {
   static propTypes = {
     routes: PropTypes.array,
     // pathMap maps stringifed routes to a breadcrumb title. This property is
