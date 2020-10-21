@@ -74,11 +74,13 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["config"] == {
             "id": six.text_type(self.config.id),
-            "repo": self.repo.name,
-            "project": self.project.slug,
+            "projectId": six.text_type(self.project.id),
+            "projectSlug": self.project.slug,
+            "repoId": six.text_type(self.repo.id),
+            "repoName": self.repo.name,
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "organizationIntegration": six.text_type(self.oi.id),
+            "organizationIntegrationId": six.text_type(self.oi.id),
             "defaultBranch": None,
         }
         assert not response.data["source_url"]
@@ -94,11 +96,13 @@ class ProjectStacktraceLinkTest(APITestCase):
             assert response.status_code == 200, response.content
             assert response.data["config"] == {
                 "id": six.text_type(self.config.id),
-                "repo": self.repo.name,
-                "project": self.project.slug,
+                "projectId": six.text_type(self.project.id),
+                "projectSlug": self.project.slug,
+                "repoId": six.text_type(self.repo.id),
+                "repoName": self.repo.name,
                 "sourceRoot": self.config.source_root,
                 "stackRoot": self.config.stack_root,
-                "organizationIntegration": six.text_type(self.oi.id),
+                "organizationIntegrationId": six.text_type(self.oi.id),
                 "defaultBranch": None,
             }
             assert response.data["source_url"] == "https://sourceurl.com/"
