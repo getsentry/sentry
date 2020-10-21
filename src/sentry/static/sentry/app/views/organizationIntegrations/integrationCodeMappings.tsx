@@ -48,7 +48,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   getMatchingRepo(repoProjectPathConfig: RepositoryProjectPathConfig) {
-    return this.state.repos.find(repo => repo.id === repoProjectPathConfig.repositoryId);
+    return this.state.repos.find(repo => repo.id === repoProjectPathConfig.repoId);
   }
 
   getMatchingProject(repoProjectPathConfig: RepositoryProjectPathConfig) {

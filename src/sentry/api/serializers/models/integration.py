@@ -97,12 +97,7 @@ class IntegrationProviderSerializer(Serializer):
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None
 
-        has_code_mappings = False
-        if obj.has_code_mappings:
-            feature_flag_name = "organizations:stacktrace-linking"
-            has_code_mappings = features.has(feature_flag_name, organization, actor=user)
-
-        return {
+        output = {
             "key": obj.key,
             "slug": obj.key,
             "name": obj.name,
@@ -114,8 +109,18 @@ class IntegrationProviderSerializer(Serializer):
                 url=u"/organizations/{}/integrations/{}/setup/".format(organization.slug, obj.key),
                 **obj.setup_dialog_config
             ),
-            "hasCodeMappings": has_code_mappings,
         }
+
+        # until we GA the stack trace linking feature to everyone it's easier to
+        # control whether we show the feature this way
+        if obj.has_code_mappings:
+            feature_flag_name = "organizations:integrations-stacktrace-link"
+            has_code_mappings = features.has(feature_flag_name, organization, actor=user)
+            if has_code_mappings:
+                # only putting the field in if it's true to minimize test changes
+                output["hasCodeMappings"] = True
+
+        return output
 
 
 class IntegrationIssueConfigSerializer(IntegrationSerializer):

@@ -145,11 +145,11 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           )
         )}
 
-        {provider && provider.features.includes('alert-rule') && (
+        {provider.features.includes('alert-rule') && (
           <IntegrationAlertRules integration={integration} />
         )}
 
-        {provider && provider.features.includes('commits') && (
+        {provider.features.includes('commits') && (
           <IntegrationRepos {...this.props} integration={integration} />
         )}
       </React.Fragment>

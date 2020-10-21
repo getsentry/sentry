@@ -795,8 +795,11 @@ export enum RepositoryStatus {
 
 export type RepositoryProjectPathConfig = {
   id: string;
-  repositoryId: string;
   projectId: string;
+  projectSlug: string;
+  repoId: string;
+  repoName: string;
+  organizationIntegrationId: string;
   stackRoot: string;
   sourceRoot: string;
   defaultBranch?: string;
@@ -839,7 +842,6 @@ type BaseIntegrationProvider = {
 
 export type IntegrationProvider = BaseIntegrationProvider & {
   setupDialog: {url: string; width: number; height: number};
-  hasCodeMappings?: boolean;
   metadata: {
     description: string;
     features: IntegrationFeature[];
@@ -849,6 +851,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
     aspects: IntegrationAspects;
   };
+  hasCodeMappings?: boolean; // TODO: Remove when we GA the feature
 };
 
 export type IntegrationFeature = {

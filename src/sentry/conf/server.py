@@ -862,7 +862,7 @@ SENTRY_FEATURES = {
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to install AzureDevops with limited scopes
-    "organizations:stacktrace-linking": False,
+    "organizations:integrations-stacktrace-link": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
