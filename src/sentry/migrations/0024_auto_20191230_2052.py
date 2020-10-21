@@ -95,6 +95,19 @@ def backfill_eventstream(apps, schema_editor):
                 or float(event.datetime.strftime("%s")),
                 skip_consume=True,
             )
+
+            # The node ID format was changed in Sentry 9.1.0
+            # (https://github.com/getsentry/sentry/commit/f73a4039d16a5c4f88bde37f6464cac21deb50e1)
+            # If we are migrating from older versions of Sentry (i.e. 9.0.0 and earlier)
+            # we need to resave the node using the new node ID scheme and delete the old
+            # node.
+            old_node_id = e.data.id
+            new_node_id = event.data.id
+            if old_node_id != new_node_id:
+                event.data.save()
+                nodestore.delete(old_node_id)
+
+
             processed += 1
         except Exception as error:
             print(
