@@ -18,6 +18,7 @@ class GitLabApiClientPath(object):
     commits = u"/projects/{project}/repository/commits"
     compare = u"/projects/{project}/repository/compare"
     diff = u"/projects/{project}/repository/commits/{sha}/diff"
+    file = u"/projects/{project}/repository/files/{path}"
     group = u"/groups/{group}"
     group_projects = u"/groups/{group}/projects"
     hooks = u"/hooks"
@@ -29,7 +30,6 @@ class GitLabApiClientPath(object):
     project_hooks = u"/projects/{project}/hooks"
     project_hook = u"/projects/{project}/hooks/{hook_id}"
     user = u"/user"
-    file = u"/projects/{project}/repository/files/{path}"
 
     @staticmethod
     def build_api_url(base_url, path):
@@ -76,7 +76,6 @@ class GitLabApiClient(ApiClient):
 
     def __init__(self, installation):
         self.installation = installation
-        # self.base_url = self.metadata["base_url"]
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
         super(GitLabApiClient, self).__init__(verify_ssl)
