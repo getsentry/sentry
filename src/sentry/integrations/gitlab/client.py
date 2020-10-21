@@ -251,4 +251,4 @@ class GitLabApiClient(ApiClient):
         """
         self.base_url = self.metadata["base_url"]
         request_path = GitLabApiClientPath.file.format(project=project_id, path=path)
-        return self.head_cached(request_path, params={"ref": ref}).text
+        return self.head_cached(request_path, params={"ref": ref}).status_code
