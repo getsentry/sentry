@@ -39,8 +39,15 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             "format": "user_misery_range({}, {start}, {end}, {index})",
             "alias": "user_misery_range_",
         },
+        "variance": {
+            "format": "variance_range(transaction.duration, {start}, {end}, {index})",
+            "alias": "variance_range_",
+        },
         "count_range": {"format": "count_range({start}, {end}, {index})", "alias": "count_range_"},
         "percentage": {"format": "percentage({alias}2, {alias}1)"},
+        "t_score": {
+            "format": "t_score({avg}1, {avg}2, {variance}1, {variance}2, {count}1, {count}2)"
+        },
     }
 
     def has_feature(self, organization, request):
@@ -77,9 +84,31 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         query = request.GET.get("query")
         orderby = self.get_orderby(request)
 
+        # t_score, and the columns required to calculate it
+        variance_column = self.trend_columns["variance"]
+        avg_column = self.trend_columns["avg"]
+        t_score_columns = [
+            variance_column["format"].format(start=start, end=middle, index="1"),
+            variance_column["format"].format(start=middle, end=end, index="2"),
+            self.trend_columns["t_score"]["format"].format(
+                avg=avg_column["alias"],
+                variance=variance_column["alias"],
+                count=count_column["alias"],
+            ),
+        ]
+        # Only add average when its not the baseline
+        if function != "avg":
+            t_score_columns.extend(
+                [
+                    avg_column["format"].format(start=start, end=middle, index="1"),
+                    avg_column["format"].format(start=middle, end=end, index="2"),
+                ]
+            )
+
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=selected_columns
+                + t_score_columns
                 + [
                     trend_column["format"].format(*columns, start=start, end=middle, index="1"),
                     trend_column["format"].format(*columns, start=middle, end=end, index="2"),
