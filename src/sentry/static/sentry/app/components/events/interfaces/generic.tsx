@@ -27,8 +27,7 @@ type View = 'report' | 'raw';
 
 type State = {
   view: View;
-  data: Record<string, any>;
-};
+} & Pick<Props, 'data'>
 
 export default class GenericInterface extends Component<Props, State> {
   static propTypes = {
