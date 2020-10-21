@@ -304,6 +304,6 @@ class BaseApiClient(object):
 
         result = cache.get(key)
         if result is None:
-            result = self.request("HEAD", path, *args, **kwargs)
+            result = self.head(path, *args, **kwargs)
             cache.set(key, result, self.cache_time)
         return result
