@@ -32,7 +32,13 @@ export default class JsonViewer extends AsyncComponent<Props, State> {
 
     return (
       <PreviewPanelItem>
-        <ContextData data={json} preserveQuotes style={{width: '100%'}} jsonConsts />
+        <ContextData
+          data={json}
+          maxDefaultDepth={4}
+          preserveQuotes
+          style={{width: '100%'}}
+          jsonConsts
+        />
       </PreviewPanelItem>
     );
   }

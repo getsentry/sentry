@@ -122,6 +122,7 @@ class ContextData extends React.Component {
     data: PropTypes.any,
     preserveQuotes: PropTypes.bool,
     withAnnotatedText: PropTypes.bool,
+    maxDefaultDepth: PropTypes.number,
     meta: PropTypes.any,
     jsonConsts: PropTypes.bool,
   };
@@ -132,7 +133,14 @@ class ContextData extends React.Component {
   };
 
   renderValue(value) {
-    const {preserveQuotes, meta, withAnnotatedText, jsonConsts} = this.props;
+    const {
+      preserveQuotes,
+      meta,
+      withAnnotatedText,
+      jsonConsts,
+      maxDefaultDepth,
+    } = this.props;
+    const maxDepth = maxDefaultDepth || 2;
 
     function getValueWithAnnotatedText(v, meta) {
       return <AnnotatedText value={v} meta={meta} />;
@@ -197,7 +205,7 @@ class ContextData extends React.Component {
         return (
           <span className="val-array">
             <span className="val-array-marker">{'['}</span>
-            <ToggleWrap highUp={depth <= 2} wrapClassName="val-array-items">
+            <ToggleWrap highUp={depth <= maxDepth} wrapClassName="val-array-items">
               {children}
             </ToggleWrap>
             <span className="val-array-marker">{']'}</span>
@@ -228,7 +236,7 @@ class ContextData extends React.Component {
         return (
           <span className="val-dict">
             <span className="val-dict-marker">{'{'}</span>
-            <ToggleWrap highUp={depth <= 1} wrapClassName="val-dict-items">
+            <ToggleWrap highUp={depth <= maxDepth - 1} wrapClassName="val-dict-items">
               {children}
             </ToggleWrap>
             <span className="val-dict-marker">{'}'}</span>

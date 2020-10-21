@@ -10,6 +10,7 @@ import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
 import LogFileViewer from 'app/components/events/attachmentViewers/logFileViewer';
 import JsonViewer from 'app/components/events/attachmentViewers/jsonViewer';
+import RRWebJsonViewer from 'app/components/events/attachmentViewers/rrwebJsonViewer';
 import ImageViewer from 'app/components/events/attachmentViewers/imageViewer';
 import EventDataSection from 'app/components/events/eventDataSection';
 import FileSize from 'app/components/fileSize';
@@ -108,6 +109,9 @@ class EventAttachments extends React.Component<Props, State> {
       case 'text/json':
       case 'text/x-json':
       case 'application/json':
+        if (attachment.name === 'rrweb.json') {
+          return RRWebJsonViewer;
+        }
         return JsonViewer;
       case 'image/jpeg':
       case 'image/png':
