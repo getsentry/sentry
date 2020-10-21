@@ -7,7 +7,7 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {t} from 'app/locale';
 
-function getView(view: View, data: Record<string, any>) {
+function getView(view: View, data: Pick<State, 'data'>) {
   switch (view) {
     case 'report':
       return <KeyValueList data={Object.entries(data)} isContextData />;
@@ -27,7 +27,7 @@ type View = 'report' | 'raw';
 
 type State = {
   view: View;
-} & Pick<Props, 'data'>
+} & Pick<Props, 'data'>;
 
 export default class GenericInterface extends Component<Props, State> {
   static propTypes = {
@@ -35,16 +35,10 @@ export default class GenericInterface extends Component<Props, State> {
     data: PropTypes.object.isRequired,
   };
 
-  constructor(props) {
-    super(props);
-    const {data} = props;
-    this.state = {
-      view: 'report',
-      data,
-    };
-  }
-
-  state: State;
+  state: State = {
+    view: 'report',
+    data: this.props.data,
+  };
 
   toggleView = (value: View) => {
     this.setState({
