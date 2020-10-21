@@ -411,7 +411,7 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.DEVICE_LOCALE]: 'string',
   [FieldKey.DEVICE_UUID]: 'string',
   [FieldKey.DEVICE_ARCH]: 'string',
-  [FieldKey.DEVICE_BATTERY_LEVEL]: 'number',
+  [FieldKey.DEVICE_BATTERY_LEVEL]: 'string',
   [FieldKey.DEVICE_ORIENTATION]: 'string',
   [FieldKey.DEVICE_SIMULATOR]: 'boolean',
   [FieldKey.DEVICE_ONLINE]: 'boolean',
@@ -430,9 +430,9 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.STACK_MODULE]: 'string',
   [FieldKey.STACK_FUNCTION]: 'string',
   [FieldKey.STACK_IN_APP]: 'boolean',
-  [FieldKey.STACK_COLNO]: 'number',
-  [FieldKey.STACK_LINENO]: 'number',
-  [FieldKey.STACK_STACK_LEVEL]: 'number',
+  [FieldKey.STACK_COLNO]: 'string',
+  [FieldKey.STACK_LINENO]: 'string',
+  [FieldKey.STACK_STACK_LEVEL]: 'string',
   // contexts.key and contexts.value omitted on purpose.
 
   // Transaction event fields.
