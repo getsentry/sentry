@@ -12,6 +12,7 @@ import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {callIfFunction} from 'app/utils/callIfFunction';
 
 const defaultProps = {
+  size: 'small',
   onCursor: (cursor: string, path: string, query: Query, _direction: number) => {
     browserHistory.push({
       pathname: path,
@@ -25,6 +26,7 @@ type DefaultProps = Readonly<typeof defaultProps>;
 type Props = {
   className?: string;
   pageLinks: string | null | undefined;
+  size?: 'zero' | 'xsmall' | 'small';
   to?: string;
 } & DefaultProps;
 
@@ -43,7 +45,7 @@ class Pagination extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   render() {
-    const {className, onCursor, pageLinks} = this.props;
+    const {className, onCursor, pageLinks, size} = this.props;
     if (!pageLinks) {
       return null;
     }
@@ -67,6 +69,7 @@ class Pagination extends React.Component<Props> {
               />
             }
             aria-label={t('Previous')}
+            size={size}
             disabled={previousDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.previous.cursor, path, query, -1);
@@ -81,6 +84,7 @@ class Pagination extends React.Component<Props> {
               />
             }
             aria-label={t('Next')}
+            size={size}
             disabled={nextDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.next.cursor, path, query, 1);
