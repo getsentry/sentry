@@ -67,64 +67,95 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
   ];
 
   return (
-    <div className="section">
-      <h2>Stacked MiniBarChart</h2>
+    <React.Fragment>
+      <div className="section">
+        <h2>Stacked MiniBarChart</h2>
 
-      <h3>With markers as per issue details</h3>
-      <MiniBarChart
-        width={294}
-        height={70}
-        isGroupedByDate
-        showTimeInTooltip
-        series={[
-          {
-            seriesName: 'All environments',
-            data: all.map((value, i) => ({
-              name: (startTime + interval * i) * 1000,
-              value,
-            })),
-          },
-          {
-            seriesName: 'Release abc123',
-            data: current.map((value, i) => ({
-              name: (startTime + interval * i) * 1000,
-              value,
-            })),
-          },
-        ]}
-        markers={[
-          {
-            barGap: '-100%',
-            name: 'First Seen',
-            value: (startTime + interval) * 1000,
-            color: theme.pink400,
-          },
-          {
-            name: 'Last Seen',
-            value: (startTime + interval * 23) * 1000,
-            color: theme.green400,
-          },
-        ]}
-      />
+        <h3>With markers as per issue details</h3>
+        <MiniBarChart
+          width={294}
+          height={70}
+          isGroupedByDate
+          showTimeInTooltip
+          series={[
+            {
+              seriesName: 'All environments',
+              data: all.map((value, i) => ({
+                name: (startTime + interval * i) * 1000,
+                value,
+              })),
+            },
+            {
+              seriesName: 'Release abc123',
+              data: current.map((value, i) => ({
+                name: (startTime + interval * i) * 1000,
+                value,
+              })),
+            },
+          ]}
+          markers={[
+            {
+              barGap: '-100%',
+              name: 'First Seen',
+              value: (startTime + interval) * 1000,
+              color: theme.pink400,
+            },
+            {
+              name: 'Last Seen',
+              value: (startTime + interval * 23) * 1000,
+              color: theme.green400,
+            },
+          ]}
+        />
+      </div>
 
-      <h3>No markers and emphasis colors</h3>
-      <MiniBarChart
-        width={160}
-        height={24}
-        isGroupedByDate
-        showTimeInTooltip
-        emphasisColors={[theme.purple400]}
-        series={[
-          {
-            seriesName: 'Events',
-            data: all.map((value, i) => ({
-              name: (startTime + interval * i) * 1000,
-              value,
-            })),
-          },
-        ]}
-      />
-    </div>
+      <div className="section">
+        <h3>No markers and emphasis colors</h3>
+        <MiniBarChart
+          width={160}
+          height={24}
+          isGroupedByDate
+          showTimeInTooltip
+          emphasisColors={[theme.purple400]}
+          series={[
+            {
+              seriesName: 'Events',
+              data: all.map((value, i) => ({
+                name: (startTime + interval * i) * 1000,
+                value,
+              })),
+            },
+          ]}
+        />
+      </div>
+
+      <div className="section">
+        <h3>With yAxis labels and stacked results</h3>
+        <MiniBarChart
+          height={150}
+          labelYAxisExtents
+          isGroupedByDate
+          showTimeInTooltip
+          stacked
+          series={[
+            {
+              seriesName: 'Accepted',
+              data: all.map((value, i) => ({
+                name: (startTime + interval * i) * 1000,
+                value,
+              })),
+            },
+            {
+              seriesName: 'Rejected',
+              data: current.map((value, i) => ({
+                name: (startTime + interval * i) * 1000,
+                value,
+              })),
+            },
+          ]}
+        />
+      </div>
+    </React.Fragment>
   );
 });
 

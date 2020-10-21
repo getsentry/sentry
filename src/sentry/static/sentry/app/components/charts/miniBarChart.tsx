@@ -21,6 +21,18 @@ const defaultProps = {
    * Colors to use on the chart.
    */
   colors: [theme.gray400, theme.purple400] as string[],
+  /**
+   * Show max/min values on yAxis
+   */
+  labelYAxisExtents: false,
+  /**
+   * Whether not the series should be stacked.
+   *
+   * Some of our stats endpoints return data where the 'total' series includes
+   * breakdown data (issues). For these results `stacked` should be false.
+   * Other endpoints return decomposed results that need to be stacked (outcomes).
+   */
+  stacked: false,
 };
 
 type Props = React.ComponentProps<typeof BaseChart> &
@@ -46,7 +58,15 @@ class MiniBarChart extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   render() {
-    const {markers, emphasisColors, colors, series: _series, ...props} = this.props;
+    const {
+      markers,
+      emphasisColors,
+      colors,
+      series: _series,
+      labelYAxisExtents,
+      stacked,
+      ...props
+    } = this.props;
     let series = [...this.props.series];
 
     // Ensure bars overlap and that empty values display as we're disabling the axis lines.
@@ -60,8 +80,14 @@ class MiniBarChart extends React.Component<Props> {
 
         if (i === 0) {
           updated.barMinHeight = 1;
-          updated.barGap = '-100%';
+          if (stacked === false) {
+            updated.barGap = '-100%';
+          }
         }
+        if (stacked) {
+          updated.stack = 'stack1';
+        }
+
         set(updated, 'itemStyle.opacity', 0.6);
         set(updated, 'itemStyle.emphasis.opacity', 1.0);
         if (emphasisColors && emphasisColors[i]) {
@@ -120,6 +146,17 @@ class MiniBarChart extends React.Component<Props> {
       };
       series.push(markerSeries);
     }
+    const yAxisOptions = labelYAxisExtents
+      ? {
+          showMinLabel: true,
+          showMaxLabel: true,
+          interval: Infinity,
+        }
+      : {
+          axisLabel: {
+            show: false,
+          },
+        };
 
     const chartOptions = {
       colors,
@@ -132,18 +169,16 @@ class MiniBarChart extends React.Component<Props> {
           // by having full bars for < 10 values.
           return Math.max(10, value.max);
         },
-        axisLabel: {
-          show: false,
-        },
         splitLine: {
           show: false,
         },
+        ...yAxisOptions,
       },
       grid: {
-        top: 0,
-        bottom: markers ? 4 : 0,
-        left: 0,
-        right: 0,
+        top: labelYAxisExtents ? 6 : 0,
+        bottom: markers || labelYAxisExtents ? 4 : 0,
+        left: markers ? 4 : 0,
+        right: markers ? 4 : 0,
       },
       xAxis: {
         axisLine: {
