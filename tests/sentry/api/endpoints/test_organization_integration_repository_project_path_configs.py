@@ -49,8 +49,11 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
 
         assert response.data[0] == {
             "id": six.text_type(path_config1.id),
-            "repositoryId": six.text_type(self.repo1.id),
             "projectId": six.text_type(self.project1.id),
+            "projectSlug": self.project1.slug,
+            "repoId": six.text_type(self.repo1.id),
+            "repoName": self.repo1.name,
+            "organizationIntegrationId": six.text_type(self.org_integration.id),
             "stackRoot": "stack/root",
             "sourceRoot": "source/root",
             "defaultBranch": "master",
@@ -58,8 +61,11 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
 
         assert response.data[1] == {
             "id": six.text_type(path_config2.id),
-            "repositoryId": six.text_type(self.repo1.id),
             "projectId": six.text_type(self.project2.id),
+            "projectSlug": self.project2.slug,
+            "repoId": six.text_type(self.repo1.id),
+            "repoName": self.repo1.name,
+            "organizationIntegrationId": six.text_type(self.org_integration.id),
             "stackRoot": "another/path",
             "sourceRoot": "hey/there",
             "defaultBranch": None,
