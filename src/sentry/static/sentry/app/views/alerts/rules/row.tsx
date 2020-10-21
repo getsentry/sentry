@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
@@ -31,7 +31,7 @@ type Props = {
 
 type State = {};
 
-class RuleListRow extends React.Component<Props, State> {
+class RuleListRow extends Component<Props, State> {
   /**
    * Memoized function to find a project from a list of projects
    */

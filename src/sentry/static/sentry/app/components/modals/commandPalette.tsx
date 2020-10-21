@@ -1,5 +1,5 @@
 import {ClassNames, css} from '@emotion/core';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import {ModalBody} from 'react-bootstrap';
 
@@ -14,7 +14,7 @@ type Props = {
   Body: typeof ModalBody;
 };
 
-class CommandPalette extends React.Component<Props> {
+class CommandPalette extends Component<Props> {
   componentDidMount() {
     analytics('omnisearch.open', {});
   }

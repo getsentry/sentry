@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {t} from 'app/locale';
 import ContextBlock from 'app/components/events/contexts/contextBlock';
@@ -10,7 +10,7 @@ type Props = {
   data: Record<string, any>;
 };
 
-class ReduxContextType extends React.Component<Props> {
+class ReduxContextType extends Component<Props> {
   getKnownData(): KeyValueListData[] {
     return [
       {

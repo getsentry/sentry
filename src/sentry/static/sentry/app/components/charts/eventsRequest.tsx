@@ -1,7 +1,7 @@
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 
 import {
   DateString,

@@ -1,6 +1,6 @@
 import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 
 import {t} from 'app/locale';
 import {ResolutionStatusDetails} from 'app/types';
@@ -28,7 +28,7 @@ type State = {
   window: number | null;
 };
 
-export default class CustomIgnoreCountModal extends React.Component<Props, State> {
+export default class CustomIgnoreCountModal extends Component<Props, State> {
   static propTypes = {
     onSelected: PropTypes.func,
     onCanceled: PropTypes.func,

@@ -1,11 +1,11 @@
-import React from 'react';
+import { Component } from 'react';
 
 import SentryTypes from 'app/sentryTypes';
 
 declare const TestStubs;
 
 const withOrganizationMock = WrappedComponent =>
-  class WithOrganizationMockWrapper extends React.Component {
+  (class WithOrganizationMockWrapper extends Component {
     static contextTypes = {
       organization: SentryTypes.Organization,
     };
@@ -17,7 +17,7 @@ const withOrganizationMock = WrappedComponent =>
         />
       );
     }
-  };
+  });
 
 const isLightweightOrganization = () => {};
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import {keyframes} from '@emotion/core';
 import styled from '@emotion/styled';
 

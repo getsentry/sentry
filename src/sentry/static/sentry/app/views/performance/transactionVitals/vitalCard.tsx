@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -73,7 +73,7 @@ type State = {
   refPixelRect: Rectangle | null;
 };
 
-class VitalCard extends React.Component<Props, State> {
+class VitalCard extends Component<Props, State> {
   state = {
     refDataRect: null,
     refPixelRect: null,

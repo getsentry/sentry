@@ -1,5 +1,3 @@
-import React from 'react';
-
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {ReleaseProject} from 'app/types';

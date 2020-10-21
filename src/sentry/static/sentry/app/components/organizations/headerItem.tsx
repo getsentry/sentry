@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import React from 'react';
+import * as React from 'react';
 import PropTypes from 'prop-types';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';

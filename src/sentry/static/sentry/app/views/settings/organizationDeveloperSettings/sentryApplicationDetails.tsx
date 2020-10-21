@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Observer} from 'mobx-react';
 import omit from 'lodash/omit';

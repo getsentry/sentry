@@ -1,4 +1,4 @@
-import React from 'react';
+import { createRef, Component } from 'react';
 import styled from '@emotion/styled';
 import {Value} from 'react-select-legacy';
 
@@ -21,7 +21,7 @@ type ConditionState = {
   isOpen: boolean;
 };
 
-export default class ConditionRow extends React.Component<
+export default class ConditionRow extends Component<
   ConditionProps,
   ConditionState
 > {
@@ -30,7 +30,7 @@ export default class ConditionRow extends React.Component<
     isOpen: false,
   };
 
-  selectRef = React.createRef<HTMLInputElement>();
+  selectRef = createRef<HTMLInputElement>();
 
   focus() {
     if (this.selectRef.current) {

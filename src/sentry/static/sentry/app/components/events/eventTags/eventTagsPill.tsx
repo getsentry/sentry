@@ -1,4 +1,3 @@
-import React from 'react';
 import {Link} from 'react-router';
 import {css} from '@emotion/core';
 import * as queryString from 'query-string';

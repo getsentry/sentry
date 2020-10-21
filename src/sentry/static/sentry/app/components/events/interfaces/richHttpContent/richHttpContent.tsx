@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import {defined} from 'app/utils';
@@ -11,7 +11,7 @@ import RichHttpContentClippedBoxBodySection from './richHttpContentClippedBoxBod
 import {RichHttpContentData} from './types';
 
 const RichHttpContent = ({data}: RichHttpContentData) => (
-  <React.Fragment>
+  <Fragment>
     {defined(data.query) && (
       <RichHttpContentClippedBoxKeyValueList
         title={t('Query String')}
@@ -57,6 +57,6 @@ const RichHttpContent = ({data}: RichHttpContentData) => (
         meta={getMeta(data, 'env')}
       />
     )}
-  </React.Fragment>
+  </Fragment>
 );
 export default RichHttpContent;

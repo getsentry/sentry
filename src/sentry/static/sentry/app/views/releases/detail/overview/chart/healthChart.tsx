@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 
 import LineChart from 'app/components/charts/lineChart';
@@ -19,7 +19,7 @@ type Props = {
   yAxis: YAxis;
 };
 
-class HealthChart extends React.Component<Props> {
+class HealthChart extends Component<Props> {
   shouldComponentUpdate(nextProps: Props) {
     if (nextProps.reloading || !nextProps.timeseriesData) {
       return false;

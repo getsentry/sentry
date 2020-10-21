@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
@@ -22,7 +22,7 @@ type State = {
   version: string;
 };
 
-class CustomResolutionModal extends React.Component<Props, State> {
+class CustomResolutionModal extends Component<Props, State> {
   static propTypes = {
     onSelected: PropTypes.func.isRequired,
     onCanceled: PropTypes.func.isRequired,

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
@@ -44,7 +44,7 @@ type Props = {
   event: Event;
 };
 
-class OpsBreakdown extends React.Component<Props> {
+class OpsBreakdown extends Component<Props> {
   getTransactionEvent(): SentryTransactionEvent | undefined {
     const {event} = this.props;
 

@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 import {components} from 'react-select';

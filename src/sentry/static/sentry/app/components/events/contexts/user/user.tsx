@@ -1,5 +1,3 @@
-import React from 'react';
-
 import UserAvatar from 'app/components/avatar/userAvatar';
 import {AvatarUser as UserType} from 'app/types';
 import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';

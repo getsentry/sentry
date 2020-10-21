@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -129,7 +129,7 @@ class ProjectProguard extends AsyncView<Props, State> {
     const {loading, showDetails, mappings, mappingsPageLinks} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('ProGuard Mappings')} />
 
         <TextBlock>
@@ -173,7 +173,7 @@ class ProjectProguard extends AsyncView<Props, State> {
           {this.renderMappings()}
         </StyledPanelTable>
         <Pagination pageLinks={mappingsPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

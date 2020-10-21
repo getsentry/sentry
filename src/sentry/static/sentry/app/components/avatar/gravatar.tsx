@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import * as qs from 'query-string';
 import styled from '@emotion/styled';
 
@@ -24,7 +24,7 @@ type State = {
   MD5?: any;
 };
 
-class Gravatar extends React.Component<Props, State> {
+class Gravatar extends Component<Props, State> {
   static propTypes = {
     remoteSize: PropTypes.number,
     gravatarId: PropTypes.string,

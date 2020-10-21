@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {ColumnValueType, getAggregateAlias} from 'app/utils/discover/fields';
 import {Alignments} from 'app/components/gridEditable/sortLink';

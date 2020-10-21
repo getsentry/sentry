@@ -1,5 +1,5 @@
 import {Params} from 'react-router/lib/Router';
-import React from 'react';
+import * as React from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';

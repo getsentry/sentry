@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
@@ -24,7 +24,7 @@ type Props = DefaultProps & {
   onRepositoryChange?: (data: {id: string; status: RepositoryStatus}) => void;
 };
 
-class RepositoryRow extends React.Component<Props> {
+class RepositoryRow extends Component<Props> {
   static defaultProps: DefaultProps = {
     showProvider: false,
   };

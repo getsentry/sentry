@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
@@ -32,7 +32,7 @@ type State = {
   sampleIssueId?: string;
 };
 
-class ErrorRobot extends React.Component<Props, State> {
+class ErrorRobot extends Component<Props, State> {
   state: State = {
     error: false,
     loading: false,

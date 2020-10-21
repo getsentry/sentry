@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {MemberRole} from 'app/types';
@@ -23,7 +23,7 @@ type Props = {
   setRole: (id: string) => void;
 };
 
-class RoleSelect extends React.Component<Props> {
+class RoleSelect extends Component<Props> {
   static propTypes = {
     /**
      * Whether to disable or not using `allowed` prop from API request

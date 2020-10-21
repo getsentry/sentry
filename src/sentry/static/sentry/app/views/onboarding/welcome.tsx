@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {analytics} from 'app/utils/analytics';
@@ -23,7 +23,7 @@ const OnboardingWelcome = ({organization, onComplete, config, active}: Props) =>
   const skipOnboarding = () => recordAnalyticsOnboardingSkipped({organization});
 
   return (
-    <React.Fragment>
+    <Fragment>
       <p>
         {tct("We're happy you're here, [name]!", {
           name: <strong>{user.name.split(' ')[0]}</strong>,
@@ -60,7 +60,7 @@ const OnboardingWelcome = ({organization, onComplete, config, active}: Props) =>
           })}
         </SecondaryAction>
       </ActionGroup>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

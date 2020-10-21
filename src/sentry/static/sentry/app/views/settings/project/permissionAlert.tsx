@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';

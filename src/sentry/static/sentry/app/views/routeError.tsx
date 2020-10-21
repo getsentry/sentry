@@ -1,6 +1,6 @@
 import {withRouter, WithRouterProps} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import * as Sentry from '@sentry/react';
 import styled from '@emotion/styled';
 
@@ -19,7 +19,7 @@ type Props = WithRouterProps & {
   disableReport?: boolean;
 };
 
-class RouteError extends React.Component<Props> {
+class RouteError extends Component<Props> {
   static propTypes = {
     disableLogSentry: PropTypes.bool,
     disableReport: PropTypes.bool,

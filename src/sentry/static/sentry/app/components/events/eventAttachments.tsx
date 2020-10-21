@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -30,7 +30,7 @@ type State = {
   expanded: boolean;
 };
 
-class EventAttachments extends React.Component<Props, State> {
+class EventAttachments extends Component<Props, State> {
   static propTypes: any = {
     api: PropTypes.object.isRequired,
     event: PropTypes.object.isRequired,

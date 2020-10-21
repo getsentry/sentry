@@ -1,7 +1,7 @@
 import capitalize from 'lodash/capitalize';
 import uniq from 'lodash/uniq';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Fragment } from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
@@ -64,7 +64,7 @@ const getConfirm = (
   query: string,
   queryCount: number
 ) =>
-  function (action, canBeUndone, append = '') {
+  (function(action, canBeUndone, append = '') {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
@@ -98,10 +98,10 @@ const getConfirm = (
         {!canBeUndone && <p>{message}</p>}
       </div>
     );
-  };
+  });
 
 const getLabel = (numIssues: number, allInQuerySelected: boolean) =>
-  function (action, append = '') {
+  (function(action, append = '') {
     const capitalized = capitalize(action);
     const text = allInQuerySelected
       ? t(`Bulk ${action} issues`)
@@ -112,7 +112,7 @@ const getLabel = (numIssues: number, allInQuerySelected: boolean) =>
         );
 
     return text + append;
-  };
+  });
 
 type ExtraDescriptionProps = {
   all: boolean;
@@ -621,16 +621,16 @@ const IssueListActions = createReactClass<Props, State>({
             </GraphHeader>
           </GraphHeaderWrapper>
           {hasDynamicIssueCounts ? (
-            <React.Fragment>
+            <Fragment>
               <EventsOrUsersLabel className="align-right">
                 {t('Events')}
               </EventsOrUsersLabel>
               <EventsOrUsersLabel className="align-right">
                 {t('Users')}
               </EventsOrUsersLabel>
-            </React.Fragment>
+            </Fragment>
           ) : (
-            <React.Fragment>
+            <Fragment>
               <EventsOrUsersLabel className="align-right">
                 {t('Events')}
                 <StyledQuestionTooltip
@@ -647,7 +647,7 @@ const IssueListActions = createReactClass<Props, State>({
                   position="top"
                 />
               </EventsOrUsersLabel>
-            </React.Fragment>
+            </Fragment>
           )}
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
@@ -670,7 +670,7 @@ const IssueListActions = createReactClass<Props, State>({
                 })
               )
             ) : (
-              <React.Fragment>
+              <Fragment>
                 {tn(
                   '%s issue on this page selected.',
                   '%s issues on this page selected.',
@@ -688,7 +688,7 @@ const IssueListActions = createReactClass<Props, State>({
                         count: queryCount,
                       })}
                 </SelectAllLink>
-              </React.Fragment>
+              </Fragment>
             )}
           </SelectAllNotice>
         )}

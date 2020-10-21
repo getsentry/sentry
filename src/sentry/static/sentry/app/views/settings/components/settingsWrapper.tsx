@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import PropTypes from 'prop-types';
@@ -18,7 +18,7 @@ type State = {
   lastAppContext: 'project' | 'organization' | null;
 };
 
-class SettingsWrapper extends React.Component<Props, State> {
+class SettingsWrapper extends Component<Props, State> {
   static childContextTypes = {
     lastAppContext: PropTypes.oneOf(['project', 'organization']),
   };

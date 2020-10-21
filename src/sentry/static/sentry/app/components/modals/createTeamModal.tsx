@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 
 import {Client} from 'app/api';
 import {createTeam} from 'app/actionCreators/teams';
@@ -14,7 +14,7 @@ type Props = {
   onClose?: (team: Team) => void;
 } & ModalRenderProps;
 
-class CreateTeamModal extends React.Component<Props> {
+class CreateTeamModal extends Component<Props> {
   handleSubmit = (data: {slug: string}, onSuccess: Function, onError: Function) => {
     const {organization, api} = this.props;
     createTeam(api, data, {orgId: organization.slug})
@@ -39,14 +39,14 @@ class CreateTeamModal extends React.Component<Props> {
     const {Body, Header, closeModal, ...props} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton onHide={closeModal}>
           {t('Create Team')}
         </Header>
         <Body>
           <CreateTeamForm {...props} onSubmit={this.handleSubmit} />
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

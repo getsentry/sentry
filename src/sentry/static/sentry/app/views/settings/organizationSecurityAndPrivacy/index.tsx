@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
@@ -43,7 +43,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
     const title = t('Security & Privacy');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} objSlug={organization.slug} />
         <SettingsPageHeader title={title} />
         <Form
@@ -71,7 +71,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
           organization={organization}
           onSubmitSuccess={this.handleUpdateOrganization}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

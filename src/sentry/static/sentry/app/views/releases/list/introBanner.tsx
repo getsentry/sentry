@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -15,7 +15,7 @@ type State = {
   isBannerHidden: boolean;
 };
 
-class IntroBanner extends React.Component<{}, State> {
+class IntroBanner extends Component<{}, State> {
   state = {
     isBannerHidden: localStorage.getItem(BANNER_DISMISSED_KEY) === 'true',
   };

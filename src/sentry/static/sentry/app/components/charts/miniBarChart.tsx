@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {EChartOption} from 'echarts';
 import set from 'lodash/set';
 

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component, Fragment } from 'react';
 
 import {toResourcePermissions} from 'app/utils/consolidatedScopes';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -23,7 +23,7 @@ type State = {
   events: WebhookEvent[];
 };
 
-export default class PermissionsObserver extends React.Component<Props, State> {
+export default class PermissionsObserver extends Component<Props, State> {
   static propTypes = {
     scopes: PropTypes.arrayOf(PropTypes.string).isRequired,
     events: PropTypes.arrayOf(PropTypes.string).isRequired,
@@ -74,7 +74,7 @@ export default class PermissionsObserver extends React.Component<Props, State> {
   render() {
     const {permissions, events} = this.state;
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           <PanelHeader>{t('Permissions')}</PanelHeader>
           <PanelBody>
@@ -96,7 +96,7 @@ export default class PermissionsObserver extends React.Component<Props, State> {
             />
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

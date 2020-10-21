@@ -1,4 +1,5 @@
-import React, {CSSProperties} from 'react';
+import { CSSProperties } from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 // eslint import checks can't find types in the flow code.

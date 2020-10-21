@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -16,7 +16,7 @@ type Props = {
   onDelete: (attachmentId: string) => void;
 };
 
-class EventAttachmentActions extends React.Component<Props> {
+class EventAttachmentActions extends Component<Props> {
   handleDelete = async () => {
     const {api, url, onDelete, attachmentId} = this.props;
 
@@ -37,7 +37,7 @@ class EventAttachmentActions extends React.Component<Props> {
     const {url} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <DownloadButton
           size="xsmall"
           icon={<IconDownload size="xs" />}
@@ -63,7 +63,7 @@ class EventAttachmentActions extends React.Component<Props> {
             title={!url ? t('Insufficient permissions to delete attachments') : undefined}
           />
         </Confirm>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

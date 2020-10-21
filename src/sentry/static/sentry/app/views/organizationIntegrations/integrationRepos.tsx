@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import debounce from 'lodash/debounce';
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {migrateRepository, addRepository} from 'app/actionCreators/integrations';

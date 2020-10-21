@@ -2,7 +2,6 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
 import {Calendar} from 'react-date-range';
-import React from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
 

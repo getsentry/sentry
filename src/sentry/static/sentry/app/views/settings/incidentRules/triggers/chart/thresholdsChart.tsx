@@ -1,5 +1,5 @@
 import {ECharts} from 'echarts';
-import React from 'react';
+import { PureComponent } from 'react';
 import color from 'color';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
@@ -48,7 +48,7 @@ const COLOR = {
  * This chart displays shaded regions that represent different Trigger thresholds in a
  * Metric Alert rule.
  */
-export default class ThresholdsChart extends React.PureComponent<Props, State> {
+export default class ThresholdsChart extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     data: [],
   };

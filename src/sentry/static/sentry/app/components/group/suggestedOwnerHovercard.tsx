@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
 
@@ -37,7 +37,7 @@ type State = {
   rulesExpanded: boolean;
 };
 
-class SuggestedOwnerHovercard extends React.Component<Props, State> {
+class SuggestedOwnerHovercard extends Component<Props, State> {
   state: State = {
     commitsExpanded: false,
     rulesExpanded: false,
@@ -50,7 +50,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
     return (
       <Hovercard
         header={
-          <React.Fragment>
+          <Fragment>
             <HovercardHeader>
               <HovercardActorAvatar actor={actor} />
               {actor.name || actor.email}
@@ -80,12 +80,12 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                 )}
               </EmailAlert>
             )}
-          </React.Fragment>
+          </Fragment>
         }
         body={
           <HovercardBody>
             {commits !== undefined && (
-              <React.Fragment>
+              <Fragment>
                 <div className="divider">
                   <h6>{t('Commits')}</h6>
                 </div>
@@ -104,10 +104,10 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                     onClick={() => this.setState({commitsExpanded: true})}
                   />
                 ) : null}
-              </React.Fragment>
+              </Fragment>
             )}
             {defined(rules) && (
-              <React.Fragment>
+              <Fragment>
                 <div className="divider">
                   <h6>{t('Matching Ownership Rules')}</h6>
                 </div>
@@ -124,7 +124,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                 {rules.length > 3 && !rulesExpanded ? (
                   <ViewMoreButton onClick={() => this.setState({rulesExpanded: true})} />
                 ) : null}
-              </React.Fragment>
+              </Fragment>
             )}
           </HovercardBody>
         }

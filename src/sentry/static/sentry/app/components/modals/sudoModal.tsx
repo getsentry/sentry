@@ -1,5 +1,5 @@
 import {withRouter} from 'react-router';
-import React from 'react';
+import * as React from 'react';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 

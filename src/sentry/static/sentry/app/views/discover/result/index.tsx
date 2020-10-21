@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import {browserHistory} from 'react-router';
 import throttle from 'lodash/throttle';
 
@@ -52,7 +52,7 @@ type ResultState = {
   width: number | null;
 };
 
-class Result extends React.Component<ResultProps, ResultState> {
+class Result extends Component<ResultProps, ResultState> {
   constructor(props: ResultProps) {
     super(props);
     this.state = {
@@ -183,14 +183,14 @@ class Result extends React.Component<ResultProps, ResultState> {
 
   renderSavedQueryHeader() {
     return (
-      <React.Fragment>
+      <Fragment>
         <PageHeading>
           {getDynamicText({value: this.props.savedQuery!.name, fixed: 'saved query'})}
         </PageHeading>
         <SavedQueryAction to="" onClick={this.props.onToggleEdit}>
           <IconEdit />
         </SavedQueryAction>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -41,7 +41,7 @@ const DebugFileRow = ({debugFile, showDetails, downloadUrl, onDelete}: Props) =>
   const {features} = data || {};
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Column>
         <div>
           <DebugId>{debugId || uuid}</DebugId>
@@ -87,7 +87,7 @@ const DebugFileRow = ({debugFile, showDetails, downloadUrl, onDelete}: Props) =>
         <ButtonBar gap={0.5}>
           <Access access={['project:write']}>
             {({hasAccess}) => (
-              <React.Fragment>
+              <Fragment>
                 <Tooltip
                   disabled={hasAccess}
                   title={t('You do not have permission to download debug files.')}
@@ -121,12 +121,12 @@ const DebugFileRow = ({debugFile, showDetails, downloadUrl, onDelete}: Props) =>
                     />
                   </Confirm>
                 </Tooltip>
-              </React.Fragment>
+              </Fragment>
             )}
           </Access>
         </ButtonBar>
       </RightColumn>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

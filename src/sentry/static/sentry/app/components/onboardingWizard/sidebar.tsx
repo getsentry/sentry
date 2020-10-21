@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import {motion, AnimatePresence} from 'framer-motion';
 
@@ -81,7 +81,7 @@ const completedTasksHeading = (
   </Heading>
 );
 
-class OnboardingWizardSidebar extends React.Component<Props> {
+class OnboardingWizardSidebar extends Component<Props> {
   async componentDidMount() {
     // Add a minor delay to marking tasks complete to account for the animation
     // opening of the sidebar panel

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
@@ -66,7 +66,7 @@ class ProjectTags extends AsyncView<Props, State> {
     const isEmpty = !tags || !tags.length;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('Tags')} />
         <PermissionAlert />
 
@@ -133,7 +133,7 @@ class ProjectTags extends AsyncView<Props, State> {
             )}
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

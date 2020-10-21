@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
@@ -27,7 +27,7 @@ type Props = {
   hasProjectAccess: boolean;
 };
 
-class ProjectCard extends React.Component<Props> {
+class ProjectCard extends Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     project: SentryTypes.Project.isRequired,

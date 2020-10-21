@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
@@ -190,7 +190,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 }
 
-class AlertRulesListContainer extends React.Component<Props> {
+class AlertRulesListContainer extends Component<Props> {
   componentDidMount() {
     this.trackView();
   }

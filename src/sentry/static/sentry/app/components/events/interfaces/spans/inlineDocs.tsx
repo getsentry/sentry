@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -23,7 +23,7 @@ type State = {
   link: string | undefined;
 };
 
-class InlineDocs extends React.Component<Props, State> {
+class InlineDocs extends Component<Props, State> {
   state: State = {
     loading: true,
     html: undefined,

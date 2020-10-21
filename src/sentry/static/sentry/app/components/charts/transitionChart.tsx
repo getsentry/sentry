@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 
 import LoadingPanel from 'app/components/charts/loadingPanel';
 
@@ -17,7 +17,7 @@ type State = {
   key: number;
 };
 
-class TransitionChart extends React.Component<Props, State> {
+class TransitionChart extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state = {
@@ -95,9 +95,7 @@ class TransitionChart extends React.Component<Props, State> {
 
     // We make use of the key prop to explicitly remount the children
     // https://reactjs.org/docs/lists-and-keys.html#keys
-    return (
-      <React.Fragment key={String(this.state.key)}>{this.props.children}</React.Fragment>
-    );
+    return <Fragment key={String(this.state.key)}>{this.props.children}</Fragment>;
   }
 }
 

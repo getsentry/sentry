@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {Meta} from 'app/types';
@@ -18,7 +18,7 @@ type State = {
   view: number;
 };
 
-class frameRegistersValue extends React.Component<Props, State> {
+class frameRegistersValue extends Component<Props, State> {
   state = {
     view: 0,
   };

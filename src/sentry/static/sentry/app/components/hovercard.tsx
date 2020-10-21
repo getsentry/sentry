@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
 import {Manager, Reference, Popper, PopperProps} from 'react-popper';

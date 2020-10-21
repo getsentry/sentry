@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {Organization, Event} from 'app/types';
@@ -23,7 +23,7 @@ type Props = {
   organization: Organization;
   event: Event;
 };
-class RealUserMonitoring extends React.Component<Props> {
+class RealUserMonitoring extends Component<Props> {
   hasMeasurements() {
     const {event} = this.props;
 

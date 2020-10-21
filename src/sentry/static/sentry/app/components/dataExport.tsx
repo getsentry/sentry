@@ -1,6 +1,6 @@
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
-import React from 'react';
+import * as React from 'react';
 
 import {Client} from 'app/api';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';

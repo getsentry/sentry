@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 
 import {AvatarUser, Commit} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
@@ -24,7 +24,7 @@ const unknownUser: AvatarUser = {
   ip_address: '',
 };
 
-class LastCommit extends React.Component<Props> {
+class LastCommit extends Component<Props> {
   static propTypes = {
     commit: PropTypes.object.isRequired,
     headerClass: PropTypes.string,

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import NavTabs from 'app/components/navTabs';
 
 import {SetupDescriptor} from '.';

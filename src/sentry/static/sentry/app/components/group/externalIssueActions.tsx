@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
@@ -95,7 +95,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     const {action, selectedIntegration, issue} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <IssueSyncListElement
           onOpen={this.openModal}
           externalIssueLink={issue ? issue.url : null}
@@ -152,7 +152,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
             </Modal.Body>
           </Modal>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

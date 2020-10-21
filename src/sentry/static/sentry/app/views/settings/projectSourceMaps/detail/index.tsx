@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
@@ -149,7 +149,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
     const {project} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledSettingsPageHeader
           title={
             <Title>
@@ -202,7 +202,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
           {this.renderArtifacts()}
         </StyledPanelTable>
         <Pagination pageLinks={artifactsPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

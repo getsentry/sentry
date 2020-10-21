@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import {Location} from 'history';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -42,7 +42,7 @@ type Props = {
   location: Location;
 };
 
-class OrganizationPerformance extends React.Component<Props> {
+class OrganizationPerformance extends Component<Props> {
   handleSuccess = (data: Organization) => {
     updateOrganization(data);
   };
@@ -61,7 +61,7 @@ class OrganizationPerformance extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title="Performance" />
         <PermissionAlert />
 
@@ -77,7 +77,7 @@ class OrganizationPerformance extends React.Component<Props> {
         >
           <JsonForm {...jsonFormSettings} forms={fields} />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

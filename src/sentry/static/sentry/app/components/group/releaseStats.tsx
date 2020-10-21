@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -51,7 +51,7 @@ const GroupReleaseStats = ({
         {!group || !allEnvironments ? (
           <LoadingIndicator />
         ) : (
-          <React.Fragment>
+          <Fragment>
             <GroupReleaseChart
               group={allEnvironments}
               environment={environmentLabel}
@@ -114,7 +114,7 @@ const GroupReleaseStats = ({
               release={group.firstRelease || null}
               title={t('First seen')}
             />
-          </React.Fragment>
+          </Fragment>
         )}
       </div>
     </div>
@@ -126,4 +126,4 @@ const Subheading = styled('h6')`
   margin-top: ${space(4)};
 `;
 
-export default React.memo(GroupReleaseStats);
+export default memo(GroupReleaseStats);

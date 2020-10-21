@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {Project} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {t} from 'app/locale';

@@ -1,7 +1,7 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import {urlEncode} from '@sentry/utils';
-import React, {MouseEvent} from 'react';
+import { Fragment, MouseEvent } from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
@@ -95,7 +95,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     const {inviteDetails} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {!inviteDetails.requireSso && (
           <p data-test-id="action-info-general">
             {t(
@@ -160,7 +160,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
             </ExternalLink>
           )}
         </Actions>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -168,7 +168,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     const {inviteDetails} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <p data-test-id="2fa-warning">
           {tct(
             'To continue, [orgSlug] requires all members to configure two-factor authentication.',
@@ -180,7 +180,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
             {t('Configure Two-Factor Auth')}
           </Button>
         </Actions>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

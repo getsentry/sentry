@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {browserHistory, WithRouterProps} from 'react-router';
 import DocumentTitle from 'react-document-title';
 
@@ -37,7 +37,7 @@ type State = {
   view: string;
 };
 
-class DiscoverContainer extends React.Component<Props, State> {
+class DiscoverContainer extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 

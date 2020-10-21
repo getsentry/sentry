@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {Value} from 'react-select-legacy';
 
 import {t} from 'app/locale';
@@ -24,7 +24,7 @@ const initialState = {
   isOpen: false,
 };
 
-export default class AggregationRow extends React.Component<
+export default class AggregationRow extends Component<
   AggregationProps,
   AggregationState
 > {

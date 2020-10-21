@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 import styled from '@emotion/styled';
@@ -166,7 +166,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         : null;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
             <DiscoverBreadcrumb
@@ -254,7 +254,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             </Layout.Side>
           )}
         </Layout.Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

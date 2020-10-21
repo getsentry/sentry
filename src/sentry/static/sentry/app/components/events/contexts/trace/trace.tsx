@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {Event, Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import ErrorBoundary from 'app/components/errorBoundary';

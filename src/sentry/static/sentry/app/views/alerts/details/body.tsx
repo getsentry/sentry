@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {Project} from 'app/types';
@@ -40,7 +40,7 @@ type Props = {
   stats?: IncidentStats;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
-export default class DetailsBody extends React.Component<Props> {
+export default class DetailsBody extends Component<Props> {
   get metricPreset() {
     const {incident} = this.props;
     return incident ? getIncidentMetricPreset(incident) : undefined;
@@ -92,10 +92,10 @@ export default class DetailsBody extends React.Component<Props> {
         </span>
 
         {incident.alertRule?.query && (
-          <React.Fragment>
+          <Fragment>
             <span>{t('Filter')}</span>
             <span title={incident.alertRule?.query}>{incident.alertRule?.query}</span>
-          </React.Fragment>
+          </Fragment>
         )}
 
         <span>{t('Critical Trigger')}</span>
@@ -108,7 +108,7 @@ export default class DetailsBody extends React.Component<Props> {
         </span>
 
         {defined(warningTrigger) && (
-          <React.Fragment>
+          <Fragment>
             <span>{t('Warning Trigger')}</span>
             <span>
               {this.getThresholdText(
@@ -117,11 +117,11 @@ export default class DetailsBody extends React.Component<Props> {
                 true
               )}
             </span>
-          </React.Fragment>
+          </Fragment>
         )}
 
         {defined(incident.alertRule?.resolveThreshold) && (
-          <React.Fragment>
+          <Fragment>
             <span>{t('Resolution')}</span>
             <span>
               {this.getThresholdText(
@@ -129,7 +129,7 @@ export default class DetailsBody extends React.Component<Props> {
                 incident.alertRule?.thresholdType
               )}
             </span>
-          </React.Fragment>
+          </Fragment>
         )}
       </RuleDetails>
     );

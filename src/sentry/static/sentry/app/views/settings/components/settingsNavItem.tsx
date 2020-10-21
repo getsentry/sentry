@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Badge from 'app/components/badge';

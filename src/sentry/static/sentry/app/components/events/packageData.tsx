@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {Event} from 'app/types';
 import {t} from 'app/locale';
@@ -12,7 +12,7 @@ type Props = {
   event: Event;
 };
 
-class EventPackageData extends React.Component<Props> {
+class EventPackageData extends Component<Props> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
   };

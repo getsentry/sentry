@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/react';
@@ -22,7 +22,7 @@ type Props = {
   projectIds?: string[];
 };
 
-class UserFeedbackEmpty extends React.Component<Props> {
+class UserFeedbackEmpty extends Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     projectIds: PropTypes.arrayOf(PropTypes.string.isRequired),

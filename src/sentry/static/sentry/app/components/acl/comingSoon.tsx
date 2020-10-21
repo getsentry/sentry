@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t} from 'app/locale';
 import {IconInfo} from 'app/icons';
 import Alert from 'app/components/alert';

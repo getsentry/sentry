@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
@@ -28,7 +28,7 @@ function OptionSelector({options, onChange, selected, title, menuWidth = 'auto'}
       <MenuContainer>
         <DropdownMenu alwaysRenderMenu={false}>
           {({isOpen, getMenuProps, getActorProps}) => (
-            <React.Fragment>
+            <Fragment>
               <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
                 {selectedOption.label}
               </StyledDropdownButton>
@@ -55,7 +55,7 @@ function OptionSelector({options, onChange, selected, title, menuWidth = 'auto'}
                   </DropdownItem>
                 ))}
               </StyledDropdownBubble>
-            </React.Fragment>
+            </Fragment>
           )}
         </DropdownMenu>
       </MenuContainer>

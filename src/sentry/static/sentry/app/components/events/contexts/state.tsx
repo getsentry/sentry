@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import upperFirst from 'lodash/upperFirst';
 
 import {t} from 'app/locale';
@@ -20,7 +20,7 @@ type Props = {
   };
 };
 
-class StateContextType extends React.Component<Props> {
+class StateContextType extends Component<Props> {
   getStateTitle(name: string, type?: string) {
     return `${name}${type ? ` (${upperFirst(type)})` : ''}`;
   }

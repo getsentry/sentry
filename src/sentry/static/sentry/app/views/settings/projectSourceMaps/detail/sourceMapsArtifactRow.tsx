@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -28,7 +28,7 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <NameColumn>
         <Name>{name || `(${t('empty')})`}</Name>
         <TimeAndDistWrapper>
@@ -85,7 +85,7 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
           </Access>
         </ButtonBar>
       </ActionsColumn>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

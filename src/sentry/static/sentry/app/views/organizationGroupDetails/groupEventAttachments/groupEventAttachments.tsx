@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import pick from 'lodash/pick';
 import * as ReactRouter from 'react-router';
 
@@ -102,13 +102,13 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         <GroupEventAttachmentsFilter />
         <Panel className="event-list">
           <PanelBody>{this.renderInnerBody()}</PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.eventAttachmentsPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

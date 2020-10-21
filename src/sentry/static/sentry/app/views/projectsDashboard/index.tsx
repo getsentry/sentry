@@ -1,7 +1,7 @@
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 import flatten from 'lodash/flatten';
@@ -38,7 +38,7 @@ type Props = {
   error: Error | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-class Dashboard extends React.Component<Props> {
+class Dashboard extends Component<Props> {
   static propTypes = {
     teams: PropTypes.array,
     organization: SentryTypes.Organization,
@@ -83,7 +83,7 @@ class Dashboard extends React.Component<Props> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle
           title={t('Projects Dashboard')}
           objSlug={organization.slug}
@@ -133,7 +133,7 @@ class Dashboard extends React.Component<Props> {
         })}
 
         {showResources && <Resources organization={organization} />}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

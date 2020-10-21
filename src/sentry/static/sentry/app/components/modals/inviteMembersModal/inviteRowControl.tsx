@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t} from 'app/locale';
 import {Team, MemberRole} from 'app/types';
 import Button from 'app/components/button';

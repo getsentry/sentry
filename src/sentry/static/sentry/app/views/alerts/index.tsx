@@ -1,4 +1,4 @@
-import React from 'react';
+import { isValidElement, cloneElement, Component, Fragment } from 'react';
 
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
@@ -8,20 +8,20 @@ type Props = {
   organization: Organization;
 };
 
-class AlertsContainer extends React.Component<Props> {
+class AlertsContainer extends Component<Props> {
   render() {
     const {children, organization} = this.props;
     return (
       <Feature organization={organization} features={['incidents']}>
         {({hasFeature: hasMetricAlerts}) => (
-          <React.Fragment>
-            {children && React.isValidElement(children)
-              ? React.cloneElement(children, {
+          <Fragment>
+            {children && isValidElement(children)
+              ? cloneElement(children, {
                   organization,
                   hasMetricAlerts,
                 })
               : children}
-          </React.Fragment>
+          </Fragment>
         )}
       </Feature>
     );

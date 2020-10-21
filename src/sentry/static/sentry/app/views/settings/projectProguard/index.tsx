@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -9,7 +9,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import ProjectProguard from './projectProguard';
 
-class ProjectProguardContainer extends React.Component<ProjectProguard['props']> {
+class ProjectProguardContainer extends Component<ProjectProguard['props']> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
   };

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import LazyLoad from 'react-lazyload';
 
 import {t} from 'app/locale';
@@ -21,13 +21,13 @@ const ProjectStatsGraph = ({project, stats}: Props) => {
   ];
 
   return (
-    <React.Fragment>
+    <Fragment>
       {series && (
         <LazyLoad height={25} debounce={50}>
           <MiniBarChart isGroupedByDate showTimeInTooltip series={series} height={25} />
         </LazyLoad>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t, tct} from 'app/locale';
 import {Panel} from 'app/components/panels';
 import Button from 'app/components/button';

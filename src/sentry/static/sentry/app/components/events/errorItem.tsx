@@ -2,7 +2,7 @@ import mapKeys from 'lodash/mapKeys';
 import moment from 'moment';
 import startCase from 'lodash/startCase';
 import isEmpty from 'lodash/isEmpty';
-import React from 'react';
+import { Component, Fragment } from 'react';
 
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {t} from 'app/locale';
@@ -35,7 +35,7 @@ type State = {
   isOpen: boolean;
 };
 
-class EventErrorItem extends React.Component<Props, State> {
+class EventErrorItem extends Component<Props, State> {
   static propTypes = {
     error: EventError.isRequired,
   };
@@ -93,10 +93,10 @@ class EventErrorItem extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <strong>{name}</strong>
         {': '}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

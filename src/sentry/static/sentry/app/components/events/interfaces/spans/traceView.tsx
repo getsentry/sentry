@@ -1,4 +1,4 @@
-import React from 'react';
+import { createRef, PureComponent } from 'react';
 import pick from 'lodash/pick';
 
 import {t} from 'app/locale';
@@ -48,7 +48,7 @@ type State = {
   filterSpans: FilterSpans | undefined;
 };
 
-class TraceView extends React.PureComponent<Props, State> {
+class TraceView extends PureComponent<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -65,7 +65,7 @@ class TraceView extends React.PureComponent<Props, State> {
     }
   }
 
-  minimapInteractiveRef = React.createRef<HTMLDivElement>();
+  minimapInteractiveRef = createRef<HTMLDivElement>();
 
   async filterOnSpans(searchQuery: string | undefined) {
     if (!searchQuery) {

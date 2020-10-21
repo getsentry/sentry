@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
@@ -65,7 +65,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
     const {app, stats} = this.state;
     const {totalUninstalls, totalInstalls} = stats;
     return (
-      <React.Fragment>
+      <Fragment>
         <h5>{t('Installation & Interaction Data')}</h5>
         <Row>
           {app.datePublished ? (
@@ -84,7 +84,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
           </StatsSection>
         </Row>
         {this.renderInstallCharts()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -177,11 +177,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
             {Object.keys(componentInteractions).map(
               (component, idx) =>
                 componentInteractionsDetails[component] && (
-                  <React.Fragment key={idx}>
+                  <Fragment key={idx}>
                     <strong>{`${component}: `}</strong>
                     {componentInteractionsDetails[component]}
                     <br />
-                  </React.Fragment>
+                  </Fragment>
                 )
             )}
           </StyledFooter>

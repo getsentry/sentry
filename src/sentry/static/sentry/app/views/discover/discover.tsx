@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import React from 'react';
+import { Component, Fragment } from 'react';
 import moment from 'moment';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -69,7 +69,7 @@ type State = {
   view: string;
 };
 
-export default class Discover extends React.Component<Props, State> {
+export default class Discover extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     utc: true,
   };
@@ -376,7 +376,7 @@ export default class Discover extends React.Component<Props, State> {
     ];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SidebarTabs underlined>
           {views.map(({id, title}) => (
             <li key={id} className={view === id ? 'active' : ''}>
@@ -384,7 +384,7 @@ export default class Discover extends React.Component<Props, State> {
             </li>
           ))}
         </SidebarTabs>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -461,14 +461,14 @@ export default class Discover extends React.Component<Props, State> {
               />
             )}
             {!shouldDisplayResult && (
-              <React.Fragment>
+              <Fragment>
                 <div>
                   <HeadingContainer>
                     <PageHeading>{t('Discover')}</PageHeading>
                   </HeadingContainer>
                 </div>
                 <Intro updateQuery={this.updateAndRunQuery} />
-              </React.Fragment>
+              </Fragment>
             )}
             {isFetchingQuery && <ResultLoading />}
           </BodyContent>

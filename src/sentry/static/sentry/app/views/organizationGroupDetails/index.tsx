@@ -1,5 +1,5 @@
 import * as ReactRouter from 'react-router';
-import React from 'react';
+import * as React from 'react';
 
 import {analytics, metric} from 'app/utils/analytics';
 import withGlobalSelection from 'app/utils/withGlobalSelection';

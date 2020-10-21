@@ -1,4 +1,3 @@
-import React from 'react';
 import {Location} from 'history';
 import partition from 'lodash/partition';
 import flatten from 'lodash/flatten';

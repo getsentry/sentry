@@ -1,5 +1,4 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
 
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Organization} from 'app/types';

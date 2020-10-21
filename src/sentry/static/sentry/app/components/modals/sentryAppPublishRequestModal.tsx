@@ -1,7 +1,7 @@
 import {Body, Header} from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component, Fragment } from 'react';
 import intersection from 'lodash/intersection';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -62,7 +62,7 @@ type Props = {
   closeModal: () => void;
 };
 
-export default class SentryAppPublishRequestModal extends React.Component<Props> {
+export default class SentryAppPublishRequestModal extends Component<Props> {
   static propTypes = {
     app: PropTypes.object.isRequired,
   };
@@ -80,15 +80,15 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     )}.`;
 
     const permissionLabel = (
-      <React.Fragment>
+      <Fragment>
         {permissionQuestionBaseText}
         {permissions.map((permission, i) => (
-          <React.Fragment key={permission}>
+          <Fragment key={permission}>
             {i > 0 && ', '} <code>{permission}</code>
-          </React.Fragment>
+          </Fragment>
         ))}
         .
-      </React.Fragment>
+      </Fragment>
     );
 
     //No translations since we need to be able to read this email :)
@@ -158,7 +158,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
       },
     ];
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>{t('Publish Request Questionnaire')}</Header>
         <Body>
           <Explanation>
@@ -180,7 +180,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
             <JsonForm forms={forms} />
           </Form>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

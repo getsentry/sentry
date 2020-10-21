@@ -1,5 +1,5 @@
 // TODO(matej): this is very similar to app/components/stream/groupChart, will refactor to reusable component in a follow-up PR
-import React from 'react';
+import { Component } from 'react';
 import LazyLoad from 'react-lazyload';
 
 import {t} from 'app/locale';
@@ -20,7 +20,7 @@ type Props = DefaultProps & {
   };
 };
 
-class HealthStatsChart extends React.Component<Props> {
+class HealthStatsChart extends Component<Props> {
   static defaultProps: DefaultProps = {
     height: 24,
   };

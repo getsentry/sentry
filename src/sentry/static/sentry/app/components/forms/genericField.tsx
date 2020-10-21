@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import React from 'react';
 
 import {defined} from 'app/utils';
 import BooleanField from 'app/components/forms/booleanField';

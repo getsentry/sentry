@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t} from 'app/locale';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {IconWarning} from 'app/icons';

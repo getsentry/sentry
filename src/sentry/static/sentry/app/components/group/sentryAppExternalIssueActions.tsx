@@ -1,4 +1,4 @@
-import React, {ReactElement} from 'react';
+import { Component, Fragment, ReactElement } from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
@@ -39,7 +39,7 @@ type State = {
   showModal: boolean;
 };
 
-class SentryAppExternalIssueActions extends React.Component<Props, State> {
+class SentryAppExternalIssueActions extends Component<Props, State> {
   static propTypes: any = {
     api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
@@ -191,10 +191,10 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
 
   render() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.link}
         {this.modal}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

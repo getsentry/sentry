@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
@@ -33,7 +33,7 @@ function ProjectAlertsEditor(props: Props) {
   const title = t('Edit Alert Rule');
 
   return (
-    <React.Fragment>
+    <Fragment>
       <SentryDocumentTitle title={title} objSlug={projectId} />
       <PageContent>
         <BuilderBreadCrumbs
@@ -52,7 +52,7 @@ function ProjectAlertsEditor(props: Props) {
           <IncidentRulesDetails {...props} project={project} />
         )}
       </PageContent>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

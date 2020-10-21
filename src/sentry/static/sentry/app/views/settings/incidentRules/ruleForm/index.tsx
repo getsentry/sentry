@@ -1,6 +1,5 @@
 import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
 
 import {Organization, Project} from 'app/types';
 import FormModel from 'app/views/settings/components/forms/model';

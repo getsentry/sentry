@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
@@ -24,7 +24,7 @@ type Props = {
   query?: string;
 };
 
-export default class SavedSearchSelector extends React.Component<Props> {
+export default class SavedSearchSelector extends Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     savedSearchList: PropTypes.array.isRequired,

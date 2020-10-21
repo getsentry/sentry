@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -20,7 +20,7 @@ type State = {
   status: SentryServiceStatus | null;
 };
 
-class ServiceIncidents extends React.Component<Props, State> {
+class ServiceIncidents extends Component<Props, State> {
   state: State = {
     status: null,
   };
@@ -64,7 +64,7 @@ class ServiceIncidents extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SidebarItem
           id="statusupdate"
           orientation={orientation}
@@ -110,7 +110,7 @@ class ServiceIncidents extends React.Component<Props, State> {
             </IncidentList>
           </SidebarPanel>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

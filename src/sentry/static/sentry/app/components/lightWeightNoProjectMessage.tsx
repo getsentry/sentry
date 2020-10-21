@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {LightWeightOrganization, Organization, Project} from 'app/types';
 import NoProjectMessage from 'app/components/noProjectMessage';
@@ -10,7 +10,7 @@ type Props = {
   loadingProjects: boolean;
 };
 
-class LightWeightNoProjectMessage extends React.Component<Props> {
+class LightWeightNoProjectMessage extends Component<Props> {
   render() {
     const {organization, projects, loadingProjects} = this.props;
     return (

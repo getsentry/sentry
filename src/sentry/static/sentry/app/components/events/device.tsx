@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {Event} from 'app/types';

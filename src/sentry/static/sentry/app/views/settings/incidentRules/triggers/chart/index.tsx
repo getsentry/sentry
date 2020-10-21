@@ -1,4 +1,4 @@
-import React from 'react';
+import { PureComponent, Fragment } from 'react';
 import maxBy from 'lodash/maxBy';
 import chunk from 'lodash/chunk';
 import styled from '@emotion/styled';
@@ -118,7 +118,7 @@ type State = {
  * This is a chart to be used in Metric Alert rules that fetches events based on
  * query, timewindow, and aggregations.
  */
-class TriggersChart extends React.PureComponent<Props, State> {
+class TriggersChart extends PureComponent<Props, State> {
   state: State = {
     statsPeriod: TimePeriod.ONE_DAY,
   };
@@ -230,7 +230,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                         {loading || reloading ? (
                           <ChartPlaceholder />
                         ) : (
-                          <React.Fragment>
+                          <Fragment>
                             <TransparentLoadingMask visible={reloading} />
                             <ThresholdsChart
                               period={statsPeriod}
@@ -240,7 +240,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                               resolveThreshold={resolveThreshold}
                               thresholdType={thresholdType}
                             />
-                          </React.Fragment>
+                          </Fragment>
                         )}
                       </PanelBody>
                     </StyledPanel>

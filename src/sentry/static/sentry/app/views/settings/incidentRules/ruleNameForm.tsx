@@ -1,4 +1,4 @@
-import React from 'react';
+import { PureComponent } from 'react';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -8,7 +8,7 @@ type Props = {
   disabled: boolean;
 };
 
-class RuleNameForm extends React.PureComponent<Props> {
+class RuleNameForm extends PureComponent<Props> {
   render() {
     const {disabled} = this.props;
 

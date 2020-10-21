@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';

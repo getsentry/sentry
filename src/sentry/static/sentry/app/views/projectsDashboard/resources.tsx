@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
@@ -16,7 +16,7 @@ type Props = {
   organization: Organization;
 };
 
-class Resources extends React.Component<Props> {
+class Resources extends Component<Props> {
   componentDidMount() {
     const {organization} = this.props;
     trackAnalyticsEvent({

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {extractMultilineFields} from 'app/utils';
 import {tct} from 'app/locale';
 import {Field} from 'app/views/settings/components/forms/type';

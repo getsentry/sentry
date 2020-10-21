@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import React from 'react';
+import * as React from 'react';
 import omit from 'lodash/omit';
 
 import Link from 'app/components/links/link';

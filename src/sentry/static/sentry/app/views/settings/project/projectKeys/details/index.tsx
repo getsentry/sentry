@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
-import React from 'react';
 
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
 import {t} from 'app/locale';

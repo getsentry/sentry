@@ -1,5 +1,3 @@
-import React from 'react';
-
 import AsyncView from 'app/views/asyncView';
 import ConfigStore from 'app/stores/configStore';
 import NarrowLayout from 'app/components/narrowLayout';

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
@@ -70,7 +70,7 @@ function getSuggestion({event, suggestion}: Props) {
       if (!subSuggestionContent) {
         return null;
       }
-      return <React.Fragment key={index}>{subSuggestionContent}</React.Fragment>;
+      return <Fragment key={index}>{subSuggestionContent}</Fragment>;
     })
     .filter(content => !!content);
 

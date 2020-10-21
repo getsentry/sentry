@@ -1,4 +1,4 @@
-import React from 'react';
+import { createRef, Component } from 'react';
 import moment from 'moment';
 import Modal from 'react-bootstrap/lib/Modal';
 import {sprintf} from 'sprintf-js';
@@ -24,15 +24,15 @@ type State = {
   dateWarning: boolean;
 };
 
-export default class CustomIgnoreDurationModal extends React.Component<Props, State> {
+export default class CustomIgnoreDurationModal extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state = {
     dateWarning: false,
   };
-  snoozeDateInputRef = React.createRef<HTMLInputElement>();
+  snoozeDateInputRef = createRef<HTMLInputElement>();
 
-  snoozeTimeInputRef = React.createRef<HTMLInputElement>();
+  snoozeTimeInputRef = createRef<HTMLInputElement>();
 
   selectedIgnoreMinutes = () => {
     const dateStr = this.snoozeDateInputRef.current?.value; // YYYY-MM-DD

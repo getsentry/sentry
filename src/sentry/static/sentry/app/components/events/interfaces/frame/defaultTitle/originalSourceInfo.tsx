@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
@@ -16,12 +16,12 @@ const OriginalSourceInfo = ({mapUrl, map}: Props) => {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <strong>{t('Source Map')}</strong>
       <br />
       {mapUrl ?? map}
       <br />
-    </React.Fragment>
+    </Fragment>
   );
 };
 

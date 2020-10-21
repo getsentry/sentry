@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Fragment } from 'react';
 
 import {defined} from 'app/utils';
 import InputField from 'app/components/forms/inputField';
@@ -73,15 +73,15 @@ export default class RadioBooleanField extends InputField<Props> {
     return (
       <div className="control-group radio-boolean">
         {this.props.yesFirst ? (
-          <React.Fragment>
+          <Fragment>
             {yesOption}
             {noOption}
-          </React.Fragment>
+          </Fragment>
         ) : (
-          <React.Fragment>
+          <Fragment>
             {noOption}
             {yesOption}
-          </React.Fragment>
+          </Fragment>
         )}
       </div>
     );

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import SentryTypes from 'app/sentryTypes';
 import getDisplayName from 'app/utils/getDisplayName';
@@ -14,7 +14,7 @@ type InjectedProjectProps = {
 const withProject = <P extends InjectedProjectProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  (class extends React.Component<
     Omit<P, keyof InjectedProjectProps> & Partial<InjectedProjectProps>
   > {
     static displayName = `withProject(${getDisplayName(WrappedComponent)})`;
@@ -30,6 +30,6 @@ const withProject = <P extends InjectedProjectProps>(
         />
       );
     }
-  };
+  });
 
 export default withProject;

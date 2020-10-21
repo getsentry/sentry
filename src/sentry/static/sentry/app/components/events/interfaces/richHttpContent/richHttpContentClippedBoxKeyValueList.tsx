@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ErrorBoundary from 'app/components/errorBoundary';
 import ClippedBox from 'app/components/clippedBox';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import isObject from 'lodash/isObject';
 
 import {EventGroupComponent} from 'app/types';
@@ -16,7 +16,7 @@ type Props = {
 
 const GroupingComponentChildren = ({component, showNonContributing}: Props) => {
   return (
-    <React.Fragment>
+    <Fragment>
       {(component.values as EventGroupComponent[])
         .filter(value => groupingComponentFilter(value, showNonContributing))
         .map((value, idx) => (
@@ -35,7 +35,7 @@ const GroupingComponentChildren = ({component, showNonContributing}: Props) => {
             )}
           </GroupingComponentListItem>
         ))}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

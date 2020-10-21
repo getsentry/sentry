@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -109,20 +109,20 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
       : [];
 
     return (
-      <React.Fragment>
+      <Fragment>
         {showGroupingConfig && this.renderGroupConfigSelect()}
 
         {loading ? (
           <LoadingIndicator />
         ) : (
           variants.map((variant, index) => (
-            <React.Fragment key={variant.key}>
+            <Fragment key={variant.key}>
               <GroupVariant variant={variant} showGroupingConfig={showGroupingConfig} />
               {index < variants.length - 1 && <VariantDivider />}
-            </React.Fragment>
+            </Fragment>
           ))
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -134,10 +134,10 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
     const {isOpen} = this.state;
 
     const title = (
-      <React.Fragment>
+      <Fragment>
         {t('Event Grouping Information')}
         {!isOpen && this.renderGroupInfoSummary()}
-      </React.Fragment>
+      </Fragment>
     );
 
     const actions = (

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {PlatformType, Frame} from 'app/types';
 import {t} from 'app/locale';
 import {IconQuestion, IconWarning} from 'app/icons';

@@ -1,5 +1,5 @@
 import {ClassNames} from '@emotion/core';
-import React from 'react';
+import { Component, Fragment } from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {createProject} from 'app/actionCreators/projects';
@@ -38,7 +38,7 @@ type State = {
   progressing: boolean;
 };
 
-class OnboardingPlatform extends React.Component<Props, State> {
+class OnboardingPlatform extends Component<Props, State> {
   state: State = {
     firstProjectCreated: false,
     progressing: false,
@@ -126,7 +126,7 @@ class OnboardingPlatform extends React.Component<Props, State> {
       !selectedPlatform || this.state.progressing || (this.hasFirstProject && !active);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <p>
           {tct(
             `Sentry integrates with many different languages and platforms
@@ -168,7 +168,7 @@ class OnboardingPlatform extends React.Component<Props, State> {
         >
           {this.contineButtonLabel}
         </Button>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import ReactSelect, {Async, Creatable, AsyncCreatable} from 'react-select-legacy';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';

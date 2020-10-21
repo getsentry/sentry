@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Confirm from 'app/components/confirm';
 import Alert from 'app/components/alert';

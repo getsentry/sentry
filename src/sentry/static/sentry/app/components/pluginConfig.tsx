@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
 
@@ -33,7 +33,7 @@ type State = {
   loading?: boolean;
 };
 
-class PluginConfig extends React.Component<Props, State> {
+class PluginConfig extends Component<Props, State> {
   static propTypes: any = {
     api: PropTypes.object,
     organization: PropTypes.object.isRequired,

@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import React from 'react';
 import {Params} from 'react-router/lib/Router';
 
 import {Repository, RepositoryStatus} from 'app/types';

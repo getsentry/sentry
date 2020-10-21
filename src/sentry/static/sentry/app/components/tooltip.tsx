@@ -1,7 +1,7 @@
 import {Manager, Reference, Popper} from 'react-popper';
 import * as PopperJS from 'popper.js';
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';

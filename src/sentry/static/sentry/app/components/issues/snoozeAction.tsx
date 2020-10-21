@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component, Fragment } from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 
 import {t} from 'app/locale';
@@ -18,7 +18,7 @@ type SnoozeActionProps = {
   className?: string;
 };
 
-class SnoozeAction extends React.Component<SnoozeActionProps> {
+class SnoozeAction extends Component<SnoozeActionProps> {
   static propTypes = {
     disabled: PropTypes.bool,
     onSnooze: PropTypes.func.isRequired,
@@ -49,7 +49,7 @@ class SnoozeAction extends React.Component<SnoozeActionProps> {
 
   render() {
     return (
-      <React.Fragment>
+      <Fragment>
         <a
           title={this.props.tooltip}
           className={this.props.className}
@@ -94,7 +94,7 @@ class SnoozeAction extends React.Component<SnoozeActionProps> {
             </button>
           </div>
         </Modal>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -23,7 +23,7 @@ type Props = {
 const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
   <DropdownMenu isNestedDropdown>
     {({isOpen, getMenuProps, getActorProps}) => (
-      <React.Fragment>
+      <Fragment>
         <SwitchOrganizationMenuActor
           data-test-id="sidebar-switch-org"
           {...getActorProps({})}
@@ -77,7 +77,7 @@ const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
             )}
           </SwitchOrganizationMenu>
         )}
-      </React.Fragment>
+      </Fragment>
     )}
   </DropdownMenu>
 );

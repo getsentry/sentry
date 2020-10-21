@@ -1,6 +1,6 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -221,13 +221,13 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     const showAuth = !pending;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={
-            <React.Fragment>
+            <Fragment>
               <div>{member.name}</div>
               <ExtraHeaderText>{t('Member Settings')}</ExtraHeaderText>
-            </React.Fragment>
+            </Fragment>
           }
         />
 
@@ -357,7 +357,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
             {t('Save Member')}
           </Button>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

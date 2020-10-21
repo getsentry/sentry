@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 
@@ -24,7 +24,7 @@ const operatingSystemKnownDataValues = [
 const operatingSystemIgnoredDataValues = [OperatingSystemIgnoredDataType.BUILD];
 
 const OperatingSystem = ({data}: Props) => (
-  <React.Fragment>
+  <Fragment>
     <ContextBlock
       data={getOperatingSystemKnownData(data, operatingSystemKnownDataValues)}
     />
@@ -34,7 +34,7 @@ const OperatingSystem = ({data}: Props) => (
         ...operatingSystemIgnoredDataValues,
       ])}
     />
-  </React.Fragment>
+  </Fragment>
 );
 
 export default OperatingSystem;

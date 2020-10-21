@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import React from 'react';
 
 import {Organization, Project, Plugin} from 'app/types';
 import {enablePlugin, disablePlugin} from 'app/actionCreators/plugins';

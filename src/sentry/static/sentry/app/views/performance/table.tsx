@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
 import * as ReactRouter from 'react-router';
 

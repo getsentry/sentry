@@ -1,5 +1,4 @@
 import LazyLoad from 'react-lazyload';
-import React from 'react';
 
 import {Series} from 'app/types/echarts';
 import {Group, GroupStats} from 'app/types';

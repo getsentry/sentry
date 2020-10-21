@@ -1,6 +1,6 @@
 import {ClassNames} from '@emotion/core';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';

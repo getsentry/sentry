@@ -1,6 +1,6 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
-import React from 'react';
+import * as React from 'react';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';

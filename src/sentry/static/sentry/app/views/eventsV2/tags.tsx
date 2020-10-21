@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor} from 'history';
@@ -36,7 +36,7 @@ type State = {
   error: string;
 };
 
-class Tags extends React.Component<Props, State> {
+class Tags extends Component<Props, State> {
   static propTypes: any = {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
@@ -136,14 +136,14 @@ class Tags extends React.Component<Props, State> {
 
   renderPlaceholders() {
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledPlaceholderTitle key="title-1" />
         <StyledPlaceholder key="bar-1" />
         <StyledPlaceholderTitle key="title-2" />
         <StyledPlaceholder key="bar-2" />
         <StyledPlaceholderTitle key="title-3" />
         <StyledPlaceholder key="bar-3" />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -169,10 +169,10 @@ class Tags extends React.Component<Props, State> {
 
   render() {
     return (
-      <React.Fragment>
+      <Fragment>
         <SectionHeading>{t('Tag Summary')}</SectionHeading>
         {this.renderBody()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

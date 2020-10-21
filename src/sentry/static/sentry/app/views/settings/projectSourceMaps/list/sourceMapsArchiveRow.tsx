@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {SourceMapsArchive} from 'app/types';
@@ -27,7 +27,7 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
     name
   )}`;
   return (
-    <React.Fragment>
+    <Fragment>
       <Column>
         <TextOverflow>
           <Link to={archiveLink}>
@@ -57,7 +57,7 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
           </Confirm>
         </ButtonBar>
       </ActionsColumn>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

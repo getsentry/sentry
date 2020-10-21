@@ -1,4 +1,4 @@
-import React from 'react';
+import { PureComponent, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -16,7 +16,7 @@ type Props = {
   loading: boolean;
 };
 
-class SearchDropdown extends React.PureComponent<Props> {
+class SearchDropdown extends PureComponent<Props> {
   static defaultProps = {
     searchSubstring: '',
     onClick: function () {},
@@ -90,12 +90,12 @@ class SearchDropdown extends React.PureComponent<Props> {
 
               // Hide header if `item.children` is defined, an array, and is empty
               return (
-                <React.Fragment key={item.title}>
+                <Fragment key={item.title}>
                   {invalidTag && <Info>{t('Invalid tag')}</Info>}
                   {item.type === 'header' && this.renderHeaderItem(item)}
                   {item.children && item.children.map(this.renderItem)}
                   {isEmpty && !invalidTag && <Info>{t('No items found')}</Info>}
-                </React.Fragment>
+                </Fragment>
               );
             })}
           </SearchItemsList>

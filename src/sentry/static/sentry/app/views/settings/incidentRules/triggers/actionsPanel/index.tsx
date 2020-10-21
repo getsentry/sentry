@@ -1,4 +1,4 @@
-import React from 'react';
+import { PureComponent } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -124,7 +124,7 @@ const getFullActionTitle = ({
 /**
  * Lists saved actions as well as control to add a new action
  */
-class ActionsPanel extends React.PureComponent<Props> {
+class ActionsPanel extends PureComponent<Props> {
   handleChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];

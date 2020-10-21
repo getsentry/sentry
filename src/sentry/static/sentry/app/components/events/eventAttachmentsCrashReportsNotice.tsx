@@ -1,4 +1,3 @@
-import React from 'react';
 import {Location} from 'history';
 
 import {tct} from 'app/locale';

@@ -1,7 +1,7 @@
 import {css} from '@emotion/core';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import React from 'react';
+import * as React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';

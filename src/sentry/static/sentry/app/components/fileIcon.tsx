@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {IconFile} from 'app/icons';
 import theme from 'app/utils/theme';
 

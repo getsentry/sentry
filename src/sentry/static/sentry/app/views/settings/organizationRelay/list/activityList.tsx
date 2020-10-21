@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -14,11 +14,11 @@ const ActivityList = ({activities}: Props) => (
   <StyledPanelTable headers={[t('Version'), t('First Used'), t('Last Used')]}>
     {activities.map(({relayId, version, firstSeen, lastSeen}) => {
       return (
-        <React.Fragment key={relayId}>
+        <Fragment key={relayId}>
           <div>{version}</div>
           <DateTime date={firstSeen} seconds={false} />
           <DateTime date={lastSeen} seconds={false} />
-        </React.Fragment>
+        </Fragment>
       );
     })}
   </StyledPanelTable>

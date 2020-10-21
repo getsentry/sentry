@@ -1,4 +1,4 @@
-import React from 'react';
+import { createRef, PureComponent, Fragment } from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import {InjectedRouter} from 'react-router';
@@ -20,7 +20,7 @@ type State = {
   dropdownButtonWidth?: number;
 };
 
-class RepositorySwitcher extends React.PureComponent<Props, State> {
+class RepositorySwitcher extends PureComponent<Props, State> {
   state: State = {};
 
   componentDidMount() {
@@ -33,7 +33,7 @@ class RepositorySwitcher extends React.PureComponent<Props, State> {
     }
   }
 
-  dropdownButton = React.createRef<HTMLButtonElement>();
+  dropdownButton = createRef<HTMLButtonElement>();
   handleRepoFilterChange = (activeRepo: string) => {
     const {router, location} = this.props;
 
@@ -53,10 +53,10 @@ class RepositorySwitcher extends React.PureComponent<Props, State> {
       <StyledDropdownControl
         minMenuWidth={dropdownButtonWidth}
         label={
-          <React.Fragment>
+          <Fragment>
             <FilterText>{`${t('Filter')}:`}</FilterText>
             {activeRepo}
-          </React.Fragment>
+          </Fragment>
         }
         buttonProps={{forwardRef: this.dropdownButton}}
       >

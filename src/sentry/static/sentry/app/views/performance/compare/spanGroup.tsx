@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
 
@@ -21,7 +21,7 @@ type State = {
   showSpanTree: boolean;
 };
 
-class SpanGroup extends React.Component<Props, State> {
+class SpanGroup extends Component<Props, State> {
   state: State = {
     showSpanTree: true,
   };
@@ -53,7 +53,7 @@ class SpanGroup extends React.Component<Props, State> {
     } = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SpanBar
           span={span}
           treeDepth={treeDepth}
@@ -67,7 +67,7 @@ class SpanGroup extends React.Component<Props, State> {
           generateBounds={generateBounds}
         />
         {this.renderSpanChildren()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

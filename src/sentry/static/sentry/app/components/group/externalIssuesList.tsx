@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -198,7 +198,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
 
     if (!sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions) {
       return (
-        <React.Fragment>
+        <Fragment>
           <h6 data-test-id="linked-issues">
             <span>Linked Issues</span>
           </h6>
@@ -210,12 +210,12 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
           >
             {t('Set up Issue Tracking')}
           </AlertLink>
-        </React.Fragment>
+        </Fragment>
       );
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <h6 data-test-id="linked-issues">
           <span>Linked Issues</span>
         </h6>
@@ -223,7 +223,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
         {integrationIssues && <Wrapper>{integrationIssues}</Wrapper>}
         {pluginIssues && <Wrapper>{pluginIssues}</Wrapper>}
         {pluginActions && <Wrapper>{pluginActions}</Wrapper>}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

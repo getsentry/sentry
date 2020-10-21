@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
@@ -44,7 +44,7 @@ type Props = {
   'params'
 >;
 
-class KeyRateLimitsForm extends React.Component<Props> {
+class KeyRateLimitsForm extends Component<Props> {
   handleChangeWindow = (onChange, onBlur, currentValueObj, value, e) => {
     const valueObj = {
       ...currentValueObj,

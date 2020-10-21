@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {t} from 'app/locale';
 import {IconClose} from 'app/icons/iconClose';
@@ -13,7 +13,7 @@ type ConditionsProps = DiscoverBaseProps & {
   onChange: (value: [any, any, any][]) => void;
 };
 
-export default class Conditions extends React.Component<ConditionsProps> {
+export default class Conditions extends Component<ConditionsProps> {
   addRow() {
     this.props.onChange([...this.props.value, [null, null, null]]);
   }

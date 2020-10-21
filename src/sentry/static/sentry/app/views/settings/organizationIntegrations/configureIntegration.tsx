@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
@@ -100,7 +100,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     const title = <IntegrationItem integration={integration} />;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <BreadcrumbTitle routes={this.props.routes} title={integration.provider.name} />
         <SettingsPageHeader
           noTitleStyles
@@ -142,7 +142,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
         {provider && provider.features.includes('commits') && (
           <IntegrationRepos {...this.props} integration={integration} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
@@ -25,7 +25,7 @@ type Props = {
   tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
 } & DefaultProps;
 
-export default class AvatarList extends React.Component<Props> {
+export default class AvatarList extends Component<Props> {
   static propTypes = {
     users: PropTypes.arrayOf(SentryTypes.User).isRequired,
     avatarSize: PropTypes.number,

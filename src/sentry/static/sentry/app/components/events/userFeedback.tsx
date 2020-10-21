@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {UserReport} from 'app/types';
@@ -20,7 +20,7 @@ type Props = {
   className?: string;
 };
 
-class EventUserFeedback extends React.Component<Props> {
+class EventUserFeedback extends Component<Props> {
   static propTypes = {
     report: SentryTypes.UserReport.isRequired,
     orgId: PropTypes.string.isRequired,

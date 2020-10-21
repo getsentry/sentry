@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -22,10 +22,10 @@ const Times = ({lastSeen, firstSeen}: Props) => (
   <Container>
     <FlexWrapper>
       {lastSeen && (
-        <React.Fragment>
+        <Fragment>
           <StyledIconClock size="11px" />
           <TimeSince date={lastSeen} suffix={t('ago')} />
-        </React.Fragment>
+        </Fragment>
       )}
       {firstSeen && lastSeen && (
         <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {ApiForm, RadioBooleanField} from 'app/components/forms';
 import {tct, t} from 'app/locale';
@@ -9,7 +9,7 @@ type Props = {
   onSubmitSuccess?: () => void;
 };
 
-export default class NewsletterConsent extends React.Component<Props> {
+export default class NewsletterConsent extends Component<Props> {
   componentDidMount() {
     document.body.classList.add('auth');
   }

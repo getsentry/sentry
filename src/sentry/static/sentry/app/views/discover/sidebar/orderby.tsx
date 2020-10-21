@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -20,7 +20,7 @@ type OrderbyValue = {
   field: string;
 };
 
-export default class Orderby extends React.Component<OrderbyProps> {
+export default class Orderby extends Component<OrderbyProps> {
   updateField(field: any) {
     const orderby = this.getInternal(this.props.value);
     orderby.field = field;
@@ -58,7 +58,7 @@ export default class Orderby extends React.Component<OrderbyProps> {
     const {direction, field} = this.getInternal(value);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SidebarLabel className="control-label">{t('Order by')}</SidebarLabel>
         <Container>
           <OrderbyField>
@@ -85,7 +85,7 @@ export default class Orderby extends React.Component<OrderbyProps> {
             />
           </OrderbyValue>
         </Container>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

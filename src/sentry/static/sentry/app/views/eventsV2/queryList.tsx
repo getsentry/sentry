@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
-import React, {MouseEvent} from 'react';
+import { MouseEvent } from 'react';
+import * as React from 'react';
 import classNames from 'classnames';
 import moment from 'moment';
 import styled from '@emotion/styled';

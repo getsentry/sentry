@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
 

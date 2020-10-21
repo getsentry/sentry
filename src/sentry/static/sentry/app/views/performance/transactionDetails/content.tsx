@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 import PropTypes from 'prop-types';
@@ -120,7 +120,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const query = decodeScalar(location.query.query) || '';
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumb
@@ -179,7 +179,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             </Layout.Side>
           )}
         </Layout.Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

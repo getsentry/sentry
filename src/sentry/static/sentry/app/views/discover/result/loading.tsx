@@ -1,11 +1,11 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 
 import {LoadingContainer} from '../styles';
 
-export default class Loading extends React.Component {
+export default class Loading extends Component {
   render() {
     return (
       <Background>

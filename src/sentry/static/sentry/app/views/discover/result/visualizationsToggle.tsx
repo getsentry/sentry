@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
@@ -24,7 +24,7 @@ type Props = {
   visualization: string;
 };
 
-class VisualizationsToggle extends React.Component<Props> {
+class VisualizationsToggle extends Component<Props> {
   getMenuItem = (opt: Option) => (
     <MenuItem
       key={opt.id}

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {Project} from 'app/types';
 import {Project as ProjectPropType} from 'app/sentryTypes';

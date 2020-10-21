@@ -1,6 +1,6 @@
 import Clip from 'clipboard';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { isValidElement, cloneElement, Component } from 'react';
 import ReactDOM from 'react-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -18,7 +18,7 @@ type Props = {
   onError?: () => void;
 } & DefaultProps;
 
-class Clipboard extends React.Component<Props> {
+class Clipboard extends Component<Props> {
   static propTypes = {
     value: PropTypes.string,
     successMessage: PropTypes.string,
@@ -93,11 +93,11 @@ class Clipboard extends React.Component<Props> {
       return null;
     }
 
-    if (!React.isValidElement(children)) {
+    if (!isValidElement(children)) {
       return null;
     }
 
-    return React.cloneElement(children, {
+    return cloneElement(children, {
       ref: this.handleMount,
     });
   }

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {fadeOut, pulse} from 'app/styles/animations';
@@ -14,12 +14,12 @@ type Props = {
 /**
  * ControlState (i.e. loading/error icons) for form fields
  */
-class ControlState extends React.Component<Props> {
+class ControlState extends Component<Props> {
   render() {
     const {isSaving, isSaved, error} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {isSaving ? (
           <ControlStateWrapper>
             <FormSpinner />
@@ -39,7 +39,7 @@ class ControlState extends React.Component<Props> {
             </FieldError>
           </ControlStateWrapper>
         ) : null}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

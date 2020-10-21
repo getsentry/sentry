@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
@@ -16,7 +16,7 @@ type State = {
   authenticators: Array<Authenticator>;
 };
 
-class U2fContainer extends React.Component<Props, State> {
+class U2fContainer extends Component<Props, State> {
   state: State = {
     authenticators: [],
   };

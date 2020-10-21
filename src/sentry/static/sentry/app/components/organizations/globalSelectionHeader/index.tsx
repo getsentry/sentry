@@ -1,5 +1,5 @@
 import * as ReactRouter from 'react-router';
-import React from 'react';
+import * as React from 'react';
 import partition from 'lodash/partition';
 
 import {Organization, Project} from 'app/types';

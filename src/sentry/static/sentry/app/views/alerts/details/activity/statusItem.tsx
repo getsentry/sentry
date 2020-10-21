@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
@@ -32,7 +32,7 @@ type Props = {
  * Note `activity.dateCreated` refers to when the activity was created vs.
  * `incident.dateStarted` which is when an incident was first detected or created
  */
-class StatusItem extends React.Component<Props> {
+class StatusItem extends Component<Props> {
   render() {
     const {activity, authorName, incident, showTime} = this.props;
 

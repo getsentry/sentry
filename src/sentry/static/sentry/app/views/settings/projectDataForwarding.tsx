@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -145,7 +145,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
           hookName="feature-disabled:data-forwarding"
         >
           {({hasFeature, features}) => (
-            <React.Fragment>
+            <Fragment>
               <SettingsPageHeader title={t('Data Forwarding')} />
               <TextBlock>
                 {tct(
@@ -182,7 +182,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
 
               <DataForwardingStats params={params} />
               {hasAccess && hasFeature && pluginsPanel}
-            </React.Fragment>
+            </Fragment>
           )}
         </Feature>
       </div>

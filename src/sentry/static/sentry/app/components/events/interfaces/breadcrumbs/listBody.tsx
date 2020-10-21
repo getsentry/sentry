@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {Event} from 'app/types';
@@ -23,7 +23,7 @@ type Props = {
   displayRelativeTime: boolean;
 };
 
-const ListBody = React.memo(
+const ListBody = memo(
   ({
     orgId,
     event,
@@ -36,7 +36,7 @@ const ListBody = React.memo(
     const hasError = breadcrumb.type === BreadcrumbType.ERROR;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <GridCellLeft hasError={hasError} isLastItem={isLastItem}>
           <Tooltip title={breadcrumb.description}>
             <Icon icon={breadcrumb.icon} color={breadcrumb.color} />
@@ -64,7 +64,7 @@ const ListBody = React.memo(
             searchTerm={searchTerm}
           />
         </GridCell>
-      </React.Fragment>
+      </Fragment>
     );
   }
 );

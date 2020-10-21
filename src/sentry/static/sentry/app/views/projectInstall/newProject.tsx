@@ -1,5 +1,4 @@
 import DocumentTitle from 'react-document-title';
-import React from 'react';
 import styled from '@emotion/styled';
 
 import CreateProject from 'app/views/projectInstall/createProject';

@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import * as React from 'react';
 
 import {Authenticator, OrganizationSummary} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';

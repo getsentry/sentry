@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 
 import {EventGroupComponent} from 'app/types';
 
@@ -42,7 +42,7 @@ const GroupingComponentStacktrace = ({component, showNonContributing}: Props) =>
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       {getFrameGroups().map((group, index) => (
         <GroupingComponentFrames
           key={index}
@@ -55,7 +55,7 @@ const GroupingComponentStacktrace = ({component, showNonContributing}: Props) =>
           ))}
         />
       ))}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

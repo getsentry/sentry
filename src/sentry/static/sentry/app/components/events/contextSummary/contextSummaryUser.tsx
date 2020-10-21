@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -96,7 +96,7 @@ const ContextSummaryUser = ({data}: Props) => {
   return (
     <div className="context-item user">
       {userTitle ? (
-        <React.Fragment>
+        <Fragment>
           <UserAvatar
             user={user}
             size={48}
@@ -106,7 +106,7 @@ const ContextSummaryUser = ({data}: Props) => {
           <h3 data-test-id="user-title">
             <AnnotatedText value={userTitle.value} meta={userTitle.meta} />
           </h3>
-        </React.Fragment>
+        </Fragment>
       ) : (
         <span className="context-item-icon" />
       )}

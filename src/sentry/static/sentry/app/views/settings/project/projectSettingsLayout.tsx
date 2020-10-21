@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import * as React from 'react';
 
 import {Organization} from 'app/types';
 import ProjectContext from 'app/views/projects/projectContext';

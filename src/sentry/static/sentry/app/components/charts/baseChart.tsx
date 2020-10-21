@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {EChartOption, ECharts} from 'echarts/lib/echarts';
 import styled from '@emotion/styled';

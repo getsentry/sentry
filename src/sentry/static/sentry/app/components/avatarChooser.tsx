@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';

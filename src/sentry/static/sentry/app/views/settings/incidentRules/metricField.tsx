@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
@@ -56,7 +56,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
   )
     .map(preset => ({...preset, selected: preset.match.test(aggregate)}))
     .map((preset, i, list) => (
-      <React.Fragment key={preset.name}>
+      <Fragment key={preset.name}>
         <Tooltip title={t('This preset is selected')} disabled={!preset.selected}>
           <PresetButton
             type="button"
@@ -67,7 +67,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
           </PresetButton>
         </Tooltip>
         {i + 1 < list.length && ', '}
-      </React.Fragment>
+      </Fragment>
     ));
 
   return tct(
@@ -97,7 +97,7 @@ const MetricField = ({organization, ...props}: Props) => (
         selectedField.meta.parameters.length;
 
       return (
-        <React.Fragment>
+        <Fragment>
           <AggregateHeader>
             <div>{t('Function')}</div>
             {numParameters > 0 && <div>{t('Parameter')}</div>}
@@ -108,7 +108,7 @@ const MetricField = ({organization, ...props}: Props) => (
             fieldValue={fieldValue}
             onChange={v => onChange(generateFieldAsString(v), {})}
           />
-        </React.Fragment>
+        </Fragment>
       );
     }}
   </FormField>

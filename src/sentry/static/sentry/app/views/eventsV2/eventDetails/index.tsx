@@ -1,6 +1,6 @@
 import {Params} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -21,7 +21,7 @@ type Props = {
   params: Params;
 };
 
-class EventDetails extends React.Component<Props> {
+class EventDetails extends Component<Props> {
   static propTypes: any = {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,

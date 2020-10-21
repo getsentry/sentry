@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import MetaData from 'app/components/events/meta/metaData';

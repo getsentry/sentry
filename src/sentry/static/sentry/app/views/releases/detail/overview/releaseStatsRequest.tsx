@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import pick from 'lodash/pick';
 import omitBy from 'lodash/omitBy';
 import isEqual from 'lodash/isEqual';

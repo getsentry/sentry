@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
 import {Organization} from 'app/types';
@@ -12,7 +12,7 @@ type MissingProjectWarningModalProps = {
   closeModal: () => void;
 };
 
-export default class MissingProjectWarningModal extends React.Component<
+export default class MissingProjectWarningModal extends Component<
   MissingProjectWarningModalProps
 > {
   renderProject(id: number) {

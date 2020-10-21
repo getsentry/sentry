@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import uniqWith from 'lodash/uniqWith';
 import isEqual from 'lodash/isEqual';
@@ -25,7 +25,7 @@ type State = {
   isOpen: boolean;
 };
 
-class EventErrors extends React.Component<Props, State> {
+class EventErrors extends Component<Props, State> {
   static propTypes: any = {
     event: PropTypes.object.isRequired,
   };

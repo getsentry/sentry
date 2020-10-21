@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -20,7 +20,7 @@ type Props = {
   loadingProjects?: boolean;
 };
 
-export default class NoProjectMessage extends React.Component<Props> {
+export default class NoProjectMessage extends Component<Props> {
   static propTypes = {
     /* if the user has access to any projects, we show whatever
     children are included. Otherwise we show the message */
@@ -98,10 +98,10 @@ export default class NoProjectMessage extends React.Component<Props> {
               {!orgHasProjects ? (
                 createProjectAction
               ) : (
-                <React.Fragment>
+                <Fragment>
                   {joinTeamAction}
                   {createProjectAction}
-                </React.Fragment>
+                </Fragment>
               )}
             </Actions>
           </Content>

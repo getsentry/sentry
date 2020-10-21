@@ -1,6 +1,5 @@
 import {Params} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
-import React from 'react';
 import * as ReactRouter from 'react-router';
 import {stringify} from 'query-string';
 import isEqual from 'lodash/isEqual';

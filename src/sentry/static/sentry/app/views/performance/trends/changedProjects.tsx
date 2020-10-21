@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
@@ -157,13 +157,13 @@ function ChangedProjects(props: Props) {
                 <LoadingIndicator mini />
               </EmptyContainer>
             ) : (
-              <React.Fragment>
+              <Fragment>
                 {transactionsList.length ? (
-                  <React.Fragment>
+                  <Fragment>
                     <ProjectTrendContainer>
                       {getDescription(trendChangeType, trendView, projectTrend)}
                     </ProjectTrendContainer>
-                  </React.Fragment>
+                  </Fragment>
                 ) : (
                   <EmptyContainer>
                     <EmptyStateWarning small>{t('No results')}</EmptyStateWarning>
@@ -179,7 +179,7 @@ function ChangedProjects(props: Props) {
                     {t('View Transactions')}
                   </StyledProjectButton>
                 )}
-              </React.Fragment>
+              </Fragment>
             )}
             {projectTrend &&
               !isLoading &&

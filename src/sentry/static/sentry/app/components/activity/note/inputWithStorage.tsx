@@ -1,5 +1,5 @@
 import debounce from 'lodash/debounce';
-import React from 'react';
+import * as React from 'react';
 import * as Sentry from '@sentry/react';
 
 import {NoteType} from 'app/types/alerts';

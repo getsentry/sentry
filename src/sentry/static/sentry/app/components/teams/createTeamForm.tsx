@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {t} from 'app/locale';
@@ -18,7 +18,7 @@ type Props = {
   formProps?: Partial<typeof Form>;
 };
 
-export default class CreateTeamForm extends React.Component<Props> {
+export default class CreateTeamForm extends Component<Props> {
   handleSubmit = (data: Record<string, any>, onSuccess: Function, onError: Function) => {
     callIfFunction(this.props.onSubmit, data as Payload, onSuccess, onError);
   };
@@ -31,7 +31,7 @@ export default class CreateTeamForm extends React.Component<Props> {
     const {organization} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <p>
           {t(
             'Members of a team have access to specific areas, such as a new release or a new application feature.'
@@ -60,7 +60,7 @@ export default class CreateTeamForm extends React.Component<Props> {
             transformInput={slugify}
           />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

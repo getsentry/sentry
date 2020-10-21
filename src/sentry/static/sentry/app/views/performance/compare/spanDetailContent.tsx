@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import map from 'lodash/map';
 
 import {t} from 'app/locale';
@@ -36,10 +36,10 @@ const SpanDetailContent = (props: Props) => {
             {getDynamicText({
               fixed: 'Mar 16, 2020 9:10:12 AM UTC',
               value: (
-                <React.Fragment>
+                <Fragment>
                   <DateTime date={startTimestamp * 1000} />
                   {` (${startTimestamp})`}
-                </React.Fragment>
+                </Fragment>
               ),
             })}
           </Row>
@@ -47,10 +47,10 @@ const SpanDetailContent = (props: Props) => {
             {getDynamicText({
               fixed: 'Mar 16, 2020 9:10:13 AM UTC',
               value: (
-                <React.Fragment>
+                <Fragment>
                   <DateTime date={endTimestamp * 1000} />
                   {` (${endTimestamp})`}
-                </React.Fragment>
+                </Fragment>
               ),
             })}
           </Row>

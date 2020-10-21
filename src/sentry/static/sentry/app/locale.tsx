@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import Jed from 'jed';
 import {sprintf} from 'sprintf-js';
 import isString from 'lodash/isString';

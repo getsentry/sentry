@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import PlatformList from 'app/components/platformList';
@@ -11,7 +11,7 @@ type Props = {
   project: AvatarProject;
 } & BaseAvatar['props'];
 
-class ProjectAvatar extends React.Component<Props> {
+class ProjectAvatar extends Component<Props> {
   static propTypes = {
     project: PropTypes.oneOfType([
       PropTypes.shape({slug: PropTypes.string}),

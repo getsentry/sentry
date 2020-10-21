@@ -1,5 +1,5 @@
 import DocumentTitle from 'react-document-title';
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';

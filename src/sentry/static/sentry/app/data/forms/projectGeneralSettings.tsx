@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons';
 
@@ -193,7 +193,7 @@ export const fields: Record<string, Field> = {
     saveMessage: t('Changing grouping enhancements will apply to future events only.'),
     formatMessageValue: false,
     help: (
-      <React.Fragment>
+      <Fragment>
         <div style={{marginBottom: 3}}>
           {tct(
             `This can be used to enhance the grouping algorithm with custom rules.
@@ -212,7 +212,7 @@ export const fields: Record<string, Field> = {
             '# mark all functions following a prefix in-app\n' +
             'stack.function:mylibrary_*        +app\n'}
         </pre>
-      </React.Fragment>
+      </Fragment>
     ),
     validate: () => [],
     visible: true,
@@ -234,7 +234,7 @@ export const fields: Record<string, Field> = {
     saveMessage: t('Changing fingerprinting rules will apply to future events only.'),
     formatMessageValue: false,
     help: (
-      <React.Fragment>
+      <Fragment>
         <div style={{marginBottom: 3}}>
           {tct(
             `This can be used to modify the fingerprinting rules on the server with custom rules.
@@ -253,7 +253,7 @@ export const fields: Record<string, Field> = {
             '# force all memory allocation errors to be grouped together\n' +
             'stack.function:malloc -> memory-allocation-error\n'}
         </pre>
-      </React.Fragment>
+      </Fragment>
     ),
     visible: true,
   },

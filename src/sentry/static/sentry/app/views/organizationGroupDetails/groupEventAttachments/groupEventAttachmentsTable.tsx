@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {EventAttachment} from 'app/types';
 import {t} from 'app/locale';
 import GroupEventAttachmentsTableRow from 'app/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsTableRow';

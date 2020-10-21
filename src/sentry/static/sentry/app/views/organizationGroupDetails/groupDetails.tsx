@@ -1,6 +1,6 @@
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t, tct} from 'app/locale';
 import {GuidesContent} from 'app/components/assistant/types';
 import ExternalLink from 'app/components/links/externalLink';

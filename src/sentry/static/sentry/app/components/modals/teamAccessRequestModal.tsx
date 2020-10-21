@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -21,7 +21,7 @@ type State = {
   createBusy: boolean;
 };
 
-class CreateTeamAccessRequest extends React.Component<Props, State> {
+class CreateTeamAccessRequest extends Component<Props, State> {
   state: State = {
     createBusy: false,
   };
@@ -50,7 +50,7 @@ class CreateTeamAccessRequest extends React.Component<Props, State> {
     const {Body, Footer, closeModal, teamId} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Body>
           {tct(
             'You do not have permission to add members to the #[team] team, but we will send a request to your organization admins for approval.',
@@ -70,7 +70,7 @@ class CreateTeamAccessRequest extends React.Component<Props, State> {
             </Button>
           </ButtonGroup>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { createRef, lazy, Component, Suspense } from 'react';
 import isEqual from 'lodash/isEqual';
 import keydown from 'react-keydown';
 
@@ -61,7 +61,7 @@ type State = {
   user?: Config['user'];
 };
 
-class App extends React.Component<Props, State> {
+class App extends Component<Props, State> {
   static childContextTypes = {
     location: PropTypes.object,
   };
@@ -182,7 +182,7 @@ class App extends React.Component<Props, State> {
     OrganizationsStore.load([]);
   }
 
-  mainContainerRef = React.createRef<HTMLDivElement>();
+  mainContainerRef = createRef<HTMLDivElement>();
 
   handleConfigStoreChange(config) {
     const newState = {} as State;
@@ -223,15 +223,15 @@ class App extends React.Component<Props, State> {
     const {needsUpgrade, newsletterConsentPrompt} = this.state;
 
     if (needsUpgrade) {
-      const InstallWizard = React.lazy(
+      const InstallWizard = lazy(
         () =>
           import(/* webpackChunkName: "InstallWizard" */ 'app/views/admin/installWizard')
       );
 
       return (
-        <React.Suspense fallback={null}>
+        <Suspense fallback={null}>
           <InstallWizard onConfigured={this.onConfigured} />;
-        </React.Suspense>
+        </Suspense>
       );
     }
 

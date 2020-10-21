@@ -1,5 +1,3 @@
-import React from 'react';
-
 import AsyncView from 'app/views/asyncView';
 import AvatarChooser from 'app/components/avatarChooser';
 import Form from 'app/views/settings/components/forms/form';

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {Location} from 'history';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -8,7 +8,7 @@ type Props = {
   disable: (location: Location, prevLocation: Location) => boolean;
 };
 
-class ScrollToTop extends React.Component<Props> {
+class ScrollToTop extends Component<Props> {
   componentDidUpdate(prevProps: Props) {
     const {disable, location} = this.props;
 

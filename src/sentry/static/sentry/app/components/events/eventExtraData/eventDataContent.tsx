@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {defined} from 'app/utils';
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 

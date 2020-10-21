@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons';
 

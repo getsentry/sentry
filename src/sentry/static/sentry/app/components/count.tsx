@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import React from 'react';
 
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 

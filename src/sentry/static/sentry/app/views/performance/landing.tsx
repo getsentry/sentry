@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {Location} from 'history';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
@@ -76,7 +76,7 @@ function isStatsPeriodDefault(
   return !statsPeriod || defaultPeriod === statsPeriod;
 }
 
-class PerformanceLanding extends React.Component<Props, State> {
+class PerformanceLanding extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
     return {
       ...prevState,

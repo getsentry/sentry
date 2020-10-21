@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component, Fragment } from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
@@ -39,7 +39,7 @@ type State = {
   operationNameFilters: ActiveOperationFilter;
 };
 
-class SpansInterface extends React.Component<Props, State> {
+class SpansInterface extends Component<Props, State> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -169,7 +169,7 @@ class SpansInterface extends React.Component<Props, State> {
             const numOfErrors = spansWithErrors?.data.length || 0;
 
             return (
-              <React.Fragment>
+              <Fragment>
                 {this.renderTraceErrorsAlert({
                   isLoading,
                   numOfErrors,
@@ -199,7 +199,7 @@ class SpansInterface extends React.Component<Props, State> {
                     operationNameFilters={this.state.operationNameFilters}
                   />
                 </Panel>
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </DiscoverQuery>

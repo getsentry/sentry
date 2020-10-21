@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import * as React from 'react';
 
 import {Activity, Organization} from 'app/types';
 import {PageContent} from 'app/styles/organization';

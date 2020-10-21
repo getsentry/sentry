@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {explodeSlug} from 'app/utils';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
@@ -9,7 +9,7 @@ type Props = {
   team: Team | null;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
-class TeamAvatar extends React.Component<Props> {
+class TeamAvatar extends Component<Props> {
   static propTypes = {
     team: SentryTypes.Team,
     ...BaseAvatar.propTypes,

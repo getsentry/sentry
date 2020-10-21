@@ -1,4 +1,4 @@
-import React from 'react';
+import { createContext } from 'react';
 import {LocationDescriptor} from 'history';
 
 type ChildTransaction = {
@@ -14,7 +14,7 @@ export type SpanEntryContextChildrenProps = {
   ) => LocationDescriptor | undefined;
 };
 
-const SpanEntryContext = React.createContext<SpanEntryContextChildrenProps>({
+const SpanEntryContext = createContext<SpanEntryContextChildrenProps>({
   getViewChildTransactionTarget: () => undefined,
 });
 

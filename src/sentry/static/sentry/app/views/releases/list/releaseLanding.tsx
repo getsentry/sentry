@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -105,7 +105,7 @@ type PromoProps = {
   project: Project;
 };
 
-class Promo extends React.Component<PromoProps> {
+class Promo extends Component<PromoProps> {
   componentDidMount() {
     const {organization, project} = this.props;
 

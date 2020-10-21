@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import withOrganization from 'app/utils/withOrganization';

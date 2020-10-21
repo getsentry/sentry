@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import * as React from 'react';
 
 import theme from 'app/utils/theme';
 import {Client} from 'app/api';

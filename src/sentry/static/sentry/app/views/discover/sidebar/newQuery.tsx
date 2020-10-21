@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {browserHistory} from 'react-router';
 
 import {Organization} from 'app/types';
@@ -27,7 +27,7 @@ type NewQueryProps = {
   isLoading: boolean;
 };
 
-export default class NewQuery extends React.Component<NewQueryProps> {
+export default class NewQuery extends Component<NewQueryProps> {
   saveQuery() {
     const {organization, queryBuilder} = this.props;
     const savedQueryName = generateQueryName();

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t} from 'app/locale';
 
 import ModalManager from './modalManager';

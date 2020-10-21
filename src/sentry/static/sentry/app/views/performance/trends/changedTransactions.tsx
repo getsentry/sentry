@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {Location, Query} from 'history';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
@@ -266,9 +266,9 @@ function ChangedTransactions(props: Props) {
                   }}
                 />
               ) : (
-                <React.Fragment>
+                <Fragment>
                   {transactionsList.length ? (
-                    <React.Fragment>
+                    <Fragment>
                       <ChartContainer>
                         <Chart
                           statsData={statsData}
@@ -303,13 +303,13 @@ function ChangedTransactions(props: Props) {
                           )}
                         />
                       ))}
-                    </React.Fragment>
+                    </Fragment>
                   ) : (
                     <StyledEmptyStateWarning small>
                       {t('No results')}
                     </StyledEmptyStateWarning>
                   )}
-                </React.Fragment>
+                </Fragment>
               )}
             </TrendsTransactionPanel>
             <Pagination pageLinks={pageLinks} onCursor={onCursor} />
@@ -424,21 +424,21 @@ function TrendsListItem(props: TrendsListItemProps) {
       <ItemTransactionPercentage>
         <Tooltip title={percentChangeExplanation}>
           {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
-            <React.Fragment>
+            <Fragment>
               {transformValueDelta(
                 transaction.minus_aggregate_range_2_aggregate_range_1,
                 trendChangeType,
                 currentTrendFunction
               )}
-            </React.Fragment>
+            </Fragment>
           ) : (
-            <React.Fragment>
+            <Fragment>
               {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
               {formatPercentage(
                 transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
                 0
               )}
-            </React.Fragment>
+            </Fragment>
           )}
         </Tooltip>
       </ItemTransactionPercentage>
@@ -491,18 +491,18 @@ function TrendsListItem(props: TrendsListItemProps) {
       </ItemTransactionDurationChange>
       <ItemTransactionStatus color={color}>
         {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
-          <React.Fragment>
+          <Fragment>
             {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
             {percentChange}
-          </React.Fragment>
+          </Fragment>
         ) : (
-          <React.Fragment>
+          <Fragment>
             {transformValueDelta(
               transaction.minus_aggregate_range_2_aggregate_range_1,
               trendChangeType,
               currentTrendFunction
             )}
-          </React.Fragment>
+          </Fragment>
         )}
       </ItemTransactionStatus>
     </ListItemContainer>

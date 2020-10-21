@@ -2,7 +2,7 @@ import {css} from '@emotion/core';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { PureComponent } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -29,7 +29,7 @@ type Props = {
 } & Plugin &
   Pick<RouteComponentProps<{}, {}>, 'params' | 'routes'>;
 
-class ProjectPluginRow extends React.PureComponent<Props> {
+class ProjectPluginRow extends PureComponent<Props> {
   static propTypes: any = {
     ...SentryTypes.Plugin,
     onChange: PropTypes.func,

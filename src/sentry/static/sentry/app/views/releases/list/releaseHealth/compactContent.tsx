@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -19,7 +19,7 @@ type Props = {
 };
 
 const CompactContent = ({projects, releaseVersion, orgSlug}: Props) => (
-  <React.Fragment>
+  <Fragment>
     <Header>{t('Projects')}</Header>
     <PanelBody>
       <StyledClippedHealthRows maxVisibleItems={12}>
@@ -44,7 +44,7 @@ const CompactContent = ({projects, releaseVersion, orgSlug}: Props) => (
         })}
       </StyledClippedHealthRows>
     </PanelBody>
-  </React.Fragment>
+  </Fragment>
 );
 
 export default CompactContent;

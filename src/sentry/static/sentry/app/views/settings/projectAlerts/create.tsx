@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
@@ -35,7 +35,7 @@ type State = {
   eventView: EventView | undefined;
 };
 
-class Create extends React.Component<Props, State> {
+class Create extends Component<Props, State> {
   state: State = {
     eventView: undefined,
     alertType: this.props.location.pathname.includes('/alerts/rules/')
@@ -84,7 +84,7 @@ class Create extends React.Component<Props, State> {
     const title = t('New Alert Rule');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} objSlug={projectId} />
         <PageContent>
           <BuilderBreadCrumbs
@@ -116,7 +116,7 @@ class Create extends React.Component<Props, State> {
             />
           )}
         </PageContent>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

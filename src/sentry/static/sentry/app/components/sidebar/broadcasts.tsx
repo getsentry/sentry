@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 import {t} from 'app/locale';
@@ -28,7 +28,7 @@ type State = {
   error: boolean;
 };
 
-class Broadcasts extends React.Component<Props, State> {
+class Broadcasts extends Component<Props, State> {
   state: State = {
     broadcasts: [],
     loading: true,
@@ -120,7 +120,7 @@ class Broadcasts extends React.Component<Props, State> {
     const unseenPosts = this.unseenIds;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SidebarItem
           data-test-id="sidebar-broadcasts"
           orientation={orientation}
@@ -161,7 +161,7 @@ class Broadcasts extends React.Component<Props, State> {
             )}
           </SidebarPanel>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

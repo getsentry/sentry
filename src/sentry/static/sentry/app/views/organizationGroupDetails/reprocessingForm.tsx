@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
@@ -19,7 +19,7 @@ type Props = ModalRenderProps & {
   organization: Organization;
 };
 
-class ReprocessingForm extends React.Component<Props> {
+class ReprocessingForm extends Component<Props> {
   onSuccess = () => {
     const {group, organization} = this.props;
     browserHistory.push(
@@ -36,7 +36,7 @@ class ReprocessingForm extends React.Component<Props> {
     const {Header, Body, closeModal} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           {t('Reprocessing')}
           <FeatureBadge type="alpha" />
@@ -115,7 +115,7 @@ class ReprocessingForm extends React.Component<Props> {
             />
           </ApiForm>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

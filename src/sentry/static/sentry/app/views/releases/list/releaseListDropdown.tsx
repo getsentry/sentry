@@ -1,5 +1,3 @@
-import React from 'react';
-
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
 type Option = {

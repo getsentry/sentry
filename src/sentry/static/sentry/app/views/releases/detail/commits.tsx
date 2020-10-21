@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Client} from 'app/api';
@@ -84,7 +84,7 @@ class Commits extends AsyncView<Props, State> {
     const reposToRender = getReposToRender(Object.keys(commitsByRepository));
 
     return (
-      <React.Fragment>
+      <Fragment>
         {reposToRender.map(repoName => (
           <Panel key={repoName}>
             <PanelHeader>{repoName}</PanelHeader>
@@ -96,7 +96,7 @@ class Commits extends AsyncView<Props, State> {
           </Panel>
         ))}
         <Pagination pageLinks={commitsPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -104,7 +104,7 @@ class Commits extends AsyncView<Props, State> {
     const {location, router, activeRepository, repositories} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {repositories.length > 1 && (
           <RepositorySwitcher
             repositories={repositories}
@@ -114,7 +114,7 @@ class Commits extends AsyncView<Props, State> {
           />
         )}
         {this.renderContent()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

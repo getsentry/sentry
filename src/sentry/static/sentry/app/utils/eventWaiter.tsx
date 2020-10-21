@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import * as Sentry from '@sentry/react';
 
 import {analytics} from 'app/utils/analytics';

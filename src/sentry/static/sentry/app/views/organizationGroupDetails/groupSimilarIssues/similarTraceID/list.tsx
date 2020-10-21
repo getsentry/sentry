@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 import pick from 'lodash/pick';
@@ -47,7 +47,7 @@ type State = {
   isLoading: boolean;
 };
 
-class List extends React.Component<Props, State> {
+class List extends Component<Props, State> {
   state: State = {
     groups: [],
     hasError: false,
@@ -176,13 +176,13 @@ class List extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledPanel>
           <GroupListHeader withChart={false} />
           <PanelBody>{this.renderContent()}</PanelBody>
         </StyledPanel>
         <StyledPagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

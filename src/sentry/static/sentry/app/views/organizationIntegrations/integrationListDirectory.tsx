@@ -5,7 +5,7 @@ import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
 import * as queryString from 'query-string';
-import React from 'react';
+import { Fragment } from 'react';
 import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
@@ -485,7 +485,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
 
         {!this.props.hideHeader && (
@@ -539,7 +539,7 @@ export class IntegrationListDirectory extends AsyncComponent<
             )}
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

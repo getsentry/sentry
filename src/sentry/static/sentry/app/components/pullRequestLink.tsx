@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ExternalLink from 'app/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab} from 'app/icons';
 import {Repository, PullRequest} from 'app/types';

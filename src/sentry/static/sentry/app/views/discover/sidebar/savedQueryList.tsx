@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import moment from 'moment';
 
 import getDynamicText from 'app/utils/getDynamicText';
@@ -28,7 +28,7 @@ type SavedQueriesState = {
   savedQuery: SavedQuery | null;
 };
 
-export default class SavedQueries extends React.Component<
+export default class SavedQueries extends Component<
   SavedQueriesProps,
   SavedQueriesState
 > {

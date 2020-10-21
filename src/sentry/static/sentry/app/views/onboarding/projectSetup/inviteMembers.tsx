@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
@@ -45,7 +45,7 @@ type State = {
   roleList: MemberRole[];
 };
 
-class InviteMembers extends React.Component<Props, State> {
+class InviteMembers extends Component<Props, State> {
   state: State = {
     invitedEmails: [],
     roleList: [],
@@ -81,7 +81,7 @@ class InviteMembers extends React.Component<Props, State> {
     const {project, formProps, organization} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {invitedEmails.length > 0 && (
           <Alert type="success" icon={<IconGroup />}>
             {tct('[emailList] has been invited to your organization.', {
@@ -125,15 +125,15 @@ class InviteMembers extends React.Component<Props, State> {
               placeholder={t('Select a role')}
               choices={roleList.map(role => [
                 role.id,
-                <React.Fragment key={role.id}>
+                <Fragment key={role.id}>
                   {role.name}
                   <RoleDescriptiom>{role.desc}</RoleDescriptiom>
-                </React.Fragment>,
+                </Fragment>,
               ])}
             />
           </Form>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

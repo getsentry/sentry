@@ -1,5 +1,4 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
 
 import {ApiApplication} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';

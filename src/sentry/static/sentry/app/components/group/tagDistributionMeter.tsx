@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {Group, Organization, TagWithTopValues} from 'app/types';
 import {IOSDeviceList} from 'app/types/iOSDeviceList';
@@ -21,7 +21,7 @@ type State = {
   iOSDeviceList?: IOSDeviceList;
 };
 
-class GroupTagDistributionMeter extends React.Component<Props, State> {
+class GroupTagDistributionMeter extends Component<Props, State> {
   state: State = {
     loading: true,
     error: false,

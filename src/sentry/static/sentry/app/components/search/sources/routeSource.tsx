@@ -1,5 +1,5 @@
 import flattenDepth from 'lodash/flattenDepth';
-import React from 'react';
+import * as React from 'react';
 import {FuseOptions, FuseResultWithMatches} from 'fuse.js';
 import {WithRouterProps} from 'react-router';
 

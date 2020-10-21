@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
@@ -30,7 +30,7 @@ type State = {
   showDeprecatedDsn: boolean;
 };
 
-class ProjectKeyCredentials extends React.Component<Props, State> {
+class ProjectKeyCredentials extends Component<Props, State> {
   static defaultProps = DEFAULT_PROPS;
 
   state = {
@@ -59,7 +59,7 @@ class ProjectKeyCredentials extends React.Component<Props, State> {
     } = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {showDsnPublic && (
           <Field
             label={t('DSN')}
@@ -211,7 +211,7 @@ class ProjectKeyCredentials extends React.Component<Props, State> {
             </TextCopyInput>
           </Field>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 import memoize from 'lodash/memoize';
@@ -188,7 +188,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <h5>{t('Request Log')}</h5>
 
         <div>
@@ -283,7 +283,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
             label={t('Next page')}
           />
         </PaginationButtons>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

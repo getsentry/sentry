@@ -1,5 +1,5 @@
 import {withRouter, RouteComponentProps} from 'react-router';
-import React from 'react';
+import { Component } from 'react';
 
 import {setActiveProject} from 'app/actionCreators/projects';
 import {setLastRoute} from 'app/actionCreators/navigation';
@@ -12,7 +12,7 @@ type Props = RouteComponentProps<{}, {}>;
  *
  * Currently is just used to unset active project
  */
-class OrganizationRoot extends React.Component<Props> {
+class OrganizationRoot extends Component<Props> {
   componentDidMount() {
     setActiveProject(null);
   }

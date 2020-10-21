@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Fragment } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {MEMBER_ROLES} from 'app/constants';
@@ -171,7 +171,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     const {inviteRequestBusy, member} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {showInviteRequests && (
           <Panel>
             <PanelHeader>{t('Pending Invite Requests')}</PanelHeader>
@@ -201,7 +201,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
           requestList={requestList}
           onRemoveAccessRequest={onRemoveAccessRequest}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

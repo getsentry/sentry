@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Component, Fragment } from 'react';
 import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
@@ -140,7 +140,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     }
 
     const actions = (
-      <React.Fragment>
+      <Fragment>
         <Button size="small" external href={DOCS_URL}>
           {t('View Features')}
         </Button>
@@ -149,7 +149,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           iconProps={{size: 'xs'}}
           buttonProps={{size: 'small'}}
         />
-      </React.Fragment>
+      </Fragment>
     );
 
     return <Onboarding actions={actions} />;
@@ -200,7 +200,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(this.props.location.query.status);
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.tryRenderOnboarding() ?? (
           <Panel>
             {!loading && (
@@ -242,7 +242,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           </Panel>
         )}
         <Pagination pageLinks={incidentListPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -289,7 +289,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 }
 
-class IncidentsListContainer extends React.Component<Props> {
+class IncidentsListContainer extends Component<Props> {
   componentDidMount() {
     this.trackView();
   }

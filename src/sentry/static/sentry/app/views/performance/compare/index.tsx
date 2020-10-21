@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 import styled from '@emotion/styled';

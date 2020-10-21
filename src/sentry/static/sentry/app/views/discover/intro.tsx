@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {tct, t} from 'app/locale';
@@ -11,7 +11,7 @@ type IntroProps = {
   updateQuery: (query: any) => void;
 };
 
-export default class Intro extends React.Component<IntroProps> {
+export default class Intro extends Component<IntroProps> {
   getExampleQueries() {
     return [
       {

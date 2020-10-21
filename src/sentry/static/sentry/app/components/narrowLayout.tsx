@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
@@ -12,7 +12,7 @@ type Props = {
   maxWidth?: string;
 };
 
-class NarrowLayout extends React.Component<Props> {
+class NarrowLayout extends Component<Props> {
   static propTypes = {
     showLogout: PropTypes.bool,
     maxWidth: PropTypes.string,

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 
 import {Scope} from 'app/types';
 
@@ -34,7 +34,7 @@ type Props = {
   noOptionsMessage?: () => string;
 };
 
-export default class FieldFromConfig extends React.Component<Props> {
+export default class FieldFromConfig extends Component<Props> {
   static propTypes = {
     field: PropTypes.shape({
       name: PropTypes.string,

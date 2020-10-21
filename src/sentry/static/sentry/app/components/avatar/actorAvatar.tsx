@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/react';
 
@@ -23,7 +23,7 @@ type Props = DefaultProps & {
   onClick?: () => void;
 };
 
-class ActorAvatar extends React.Component<Props> {
+class ActorAvatar extends Component<Props> {
   static propTypes = {
     actor: SentryTypes.Actor.isRequired,
     size: PropTypes.number,

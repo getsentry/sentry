@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 
 import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
@@ -27,7 +27,7 @@ type Props = {
   data: Record<string, any>;
 };
 
-export default class CspInterface extends React.Component<Props> {
+export default class CspInterface extends Component<Props> {
   static propTypes = {
     data: PropTypes.object.isRequired,
   };

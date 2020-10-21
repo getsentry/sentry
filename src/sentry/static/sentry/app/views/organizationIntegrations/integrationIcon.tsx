@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -19,7 +19,7 @@ const StyledIcon = styled('img')<IconProps>`
   display: block;
 `;
 
-class Icon extends React.Component<Props> {
+class Icon extends Component<Props> {
   state = {
     imgSrc: this.props.integration.icon,
   };

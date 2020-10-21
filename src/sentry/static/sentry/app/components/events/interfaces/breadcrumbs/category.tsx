@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo } from 'react';
 import styled from '@emotion/styled';
 
 import Highlight from 'app/components/highlight';
@@ -12,7 +12,7 @@ type Props = {
   category?: string | null;
 };
 
-const Category = React.memo(({category, searchTerm}: Props) => {
+const Category = memo(({category, searchTerm}: Props) => {
   const title = !defined(category) ? t('generic') : category;
   return (
     <Wrapper title={title}>

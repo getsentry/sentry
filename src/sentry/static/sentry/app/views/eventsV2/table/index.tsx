@@ -1,4 +1,4 @@
-import React from 'react';
+import { PureComponent } from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 
@@ -44,7 +44,7 @@ type TableState = {
  * It will pass the data it fetched to `TableView`, where the state of the
  * Table is maintained and controlled
  */
-class Table extends React.PureComponent<TableProps, TableState> {
+class Table extends PureComponent<TableProps, TableState> {
   state: TableState = {
     isLoading: true,
     tableFetchID: undefined,

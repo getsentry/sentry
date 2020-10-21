@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {defined} from 'app/utils';

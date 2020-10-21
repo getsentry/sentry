@@ -1,4 +1,4 @@
-import React from 'react';
+import { cloneElement } from 'react';
 import styled from '@emotion/styled';
 
 import {ChunkType} from 'app/types';
@@ -11,7 +11,7 @@ type Props = {
 
 const Chunks = ({chunks}: Props) => (
   <ChunksSpan>
-    {chunks.map((chunk, key) => React.cloneElement(<Chunk chunk={chunk} />, {key}))}
+    {chunks.map((chunk, key) => cloneElement(<Chunk chunk={chunk} />, {key}))}
   </ChunksSpan>
 );
 

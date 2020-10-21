@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {IconClose} from 'app/icons/iconClose';
 import PageHeading from 'app/components/pageHeading';
@@ -10,7 +10,7 @@ type QueryPanelProps = {
   onClose: () => void;
 };
 
-export default class QueryPanel extends React.Component<QueryPanelProps> {
+export default class QueryPanel extends Component<QueryPanelProps> {
   render() {
     const {title, onClose} = this.props;
     return (

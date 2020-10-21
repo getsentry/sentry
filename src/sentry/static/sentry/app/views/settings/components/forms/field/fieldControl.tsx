@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import FieldControlState from 'app/views/settings/components/forms/field/fieldControlState';

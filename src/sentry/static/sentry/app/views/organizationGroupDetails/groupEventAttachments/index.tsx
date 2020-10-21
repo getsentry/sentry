@@ -1,4 +1,3 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Organization, Group} from 'app/types';

@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 

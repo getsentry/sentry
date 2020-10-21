@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 

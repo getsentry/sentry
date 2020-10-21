@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 
@@ -53,12 +53,12 @@ const deviceKnownDataValues = [
 const deviceIgnoredDataValues = [];
 
 const Device = ({data}: Props) => (
-  <React.Fragment>
+  <Fragment>
     <ContextBlock data={getDeviceKnownData(data, deviceKnownDataValues)} />
     <ContextBlock
       data={getUnknownData(data, [...deviceKnownDataValues, ...deviceIgnoredDataValues])}
     />
-  </React.Fragment>
+  </Fragment>
 );
 
 export default Device;

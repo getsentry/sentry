@@ -1,7 +1,7 @@
 import {withRouter, WithRouterProps} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import * as Sentry from '@sentry/react';
 
 import {t, tct} from 'app/locale';
@@ -14,7 +14,7 @@ const ERROR_NAME = 'Permission Denied';
 
 type Props = WithRouterProps;
 
-class PermissionDenied extends React.Component<Props> {
+class PermissionDenied extends Component<Props> {
   static contextTypes = {
     organization: PropTypes.object,
     project: PropTypes.object,

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import * as Sentry from '@sentry/react';
 
@@ -24,7 +24,7 @@ type State = {
 };
 
 const withRepositories = <P extends Props>(WrappedComponent: React.ComponentType<P>) =>
-  class extends React.Component<P, State> {
+  (class extends React.Component<P, State> {
     static displayName = `withRepositories(${getDisplayName(WrappedComponent)})`;
 
     state: State = {
@@ -130,6 +130,6 @@ const withRepositories = <P extends Props>(WrappedComponent: React.ComponentType
         />
       );
     }
-  };
+  });
 
 export default withRepositories;

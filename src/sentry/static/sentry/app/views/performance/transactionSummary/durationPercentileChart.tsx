@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -167,7 +167,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
 
   render() {
     return (
-      <React.Fragment>
+      <Fragment>
         <HeaderTitleLegend>
           {t('Duration Percentiles')}
           <QuestionTooltip
@@ -179,7 +179,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
           />
         </HeaderTitleLegend>
         {this.renderComponent()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

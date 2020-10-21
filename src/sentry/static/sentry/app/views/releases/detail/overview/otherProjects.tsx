@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -21,7 +21,7 @@ type State = {
   collapsed: boolean;
 };
 
-class OtherProjects extends React.Component<Props, State> {
+class OtherProjects extends Component<Props, State> {
   state = {
     collapsed: true,
   };

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import moment from 'moment-timezone';
 
 import ConfigStore from 'app/stores/configStore';
@@ -17,7 +17,7 @@ type Props = DefaultProps & {
   utc?: boolean;
 };
 
-class DateTime extends React.Component<Props> {
+class DateTime extends Component<Props> {
   static propTypes = {
     date: PropTypes.any.isRequired,
     dateOnly: PropTypes.bool,

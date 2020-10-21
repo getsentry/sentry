@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -33,19 +33,19 @@ export type Props = {
   className?: string;
 };
 
-export class InstalledPlugin extends React.Component<Props> {
+export class InstalledPlugin extends Component<Props> {
   get projectId() {
     return this.props.projectItem.projectId;
   }
   getConfirmMessage() {
     return (
-      <React.Fragment>
+      <Fragment>
         <Alert type="error" icon={<IconFlag size="md" />}>
           {t(
             'Deleting this installation will disable the integration for this project and remove any configurations.'
           )}
         </Alert>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

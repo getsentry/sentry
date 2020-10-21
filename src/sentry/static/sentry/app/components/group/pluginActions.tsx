@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component, Fragment } from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 
 import {Client} from 'app/api';
@@ -32,7 +32,7 @@ type State = {
   pluginLoading: boolean;
 };
 
-class PluginActions extends React.Component<Props, State> {
+class PluginActions extends Component<Props, State> {
   static propTypes: any = {
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
@@ -117,7 +117,7 @@ class PluginActions extends React.Component<Props, State> {
     const plugin = {...this.props.plugin, issue};
 
     return (
-      <React.Fragment>
+      <Fragment>
         <IssueSyncListElement
           onOpen={this.openModal}
           externalIssueDisplayName={issue ? issue.label : null}
@@ -160,7 +160,7 @@ class PluginActions extends React.Component<Props, State> {
             </Modal.Body>
           )}
         </Modal>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

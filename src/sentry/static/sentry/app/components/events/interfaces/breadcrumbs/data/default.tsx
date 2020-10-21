@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {Event, Project} from 'app/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import withProjects from 'app/utils/withProjects';

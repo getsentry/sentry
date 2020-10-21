@@ -1,5 +1,4 @@
 import capitalize from 'lodash/capitalize';
-import React from 'react';
 import * as qs from 'query-string';
 
 import HookStore from 'app/stores/hookStore';

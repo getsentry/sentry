@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import {Location} from 'history';
 import * as ReactRouter from 'react-router';
 
@@ -30,7 +30,7 @@ type Props = {
   keyTransactions: boolean;
 };
 
-class Container extends React.Component<Props> {
+class Container extends Component<Props> {
   getChartParameters() {
     const {location, organization} = this.props;
     const options = getAxisOptions(organization);
@@ -90,7 +90,7 @@ class Container extends React.Component<Props> {
             }
 
             return (
-              <React.Fragment>
+              <Fragment>
                 <HeaderContainer>
                   {axisOptions.map((option, i) => (
                     <div key={`${option.label}:${i}`}>
@@ -123,7 +123,7 @@ class Container extends React.Component<Props> {
                 ) : (
                   <LoadingPanel data-test-id="events-request-loading" />
                 )}
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </EventsRequest>

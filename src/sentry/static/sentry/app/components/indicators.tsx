@@ -1,7 +1,7 @@
 import {AnimatePresence} from 'framer-motion';
 import {ThemeProvider} from 'emotion-theming';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
@@ -23,7 +23,7 @@ type Props = {
   className?: string;
 };
 
-class Indicators extends React.Component<Props> {
+class Indicators extends Component<Props> {
   static propTypes = {
     className: PropTypes.string,
     items: PropTypes.arrayOf(

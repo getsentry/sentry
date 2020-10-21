@@ -1,7 +1,7 @@
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import moment from 'moment-timezone';
 
 import ConfigStore from 'app/stores/configStore';

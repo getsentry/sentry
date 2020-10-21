@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
@@ -13,7 +13,7 @@ type DefaultProps = {
 type Props = DefaultProps & {
   integration: Integration;
 };
-export default class IntegrationItem extends React.Component<Props> {
+export default class IntegrationItem extends Component<Props> {
   static propTypes = {
     integration: PropTypes.object.isRequired,
     compact: PropTypes.bool,

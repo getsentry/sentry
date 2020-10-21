@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {Event, SentryTransactionEvent} from 'app/types';
@@ -11,7 +11,7 @@ type Props = {
   event: Event;
 };
 
-class RootSpanStatus extends React.Component<Props> {
+class RootSpanStatus extends Component<Props> {
   getTransactionEvent(): SentryTransactionEvent | undefined {
     const {event} = this.props;
 

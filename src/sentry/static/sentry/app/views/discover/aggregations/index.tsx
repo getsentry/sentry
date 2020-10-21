@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {t} from 'app/locale';
 import {IconClose} from 'app/icons/iconClose';
@@ -13,7 +13,7 @@ type AggregationsProps = DiscoverBaseProps & {
   onChange: (value: Aggregation[]) => void;
 };
 
-export default class Aggregations extends React.Component<AggregationsProps> {
+export default class Aggregations extends Component<AggregationsProps> {
   addRow() {
     const aggregations: any[] = [...this.props.value, [null, null, null]];
     this.props.onChange(aggregations);

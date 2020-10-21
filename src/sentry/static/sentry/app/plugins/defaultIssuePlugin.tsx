@@ -1,5 +1,3 @@
-import React from 'react';
-
 import BasePlugin from 'app/plugins/basePlugin';
 import IssueActions from 'app/plugins/components/issueActions';
 import {Plugin, Group, Project, Organization} from 'app/types';

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled, {SerializedStyles} from '@emotion/styled';
 import {motion, AnimatePresence} from 'framer-motion';
 

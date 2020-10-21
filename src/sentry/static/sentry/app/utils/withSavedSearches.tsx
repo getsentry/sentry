@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import {RouteComponentProps} from 'react-router/lib/Router';

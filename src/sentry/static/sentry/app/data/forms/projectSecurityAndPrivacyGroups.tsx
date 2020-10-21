@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {
   getStoreCrashReportsValues,

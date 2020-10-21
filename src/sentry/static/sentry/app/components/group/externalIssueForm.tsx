@@ -1,4 +1,3 @@
-import React from 'react';
 import PropTypes from 'prop-types';
 import * as queryString from 'query-string';
 import * as Sentry from '@sentry/react';

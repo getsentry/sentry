@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t} from 'app/locale';
 import {Event} from 'app/types';
 import {IconWarning} from 'app/icons';

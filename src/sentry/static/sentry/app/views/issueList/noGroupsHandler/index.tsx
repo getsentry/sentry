@@ -1,4 +1,4 @@
-import React from 'react';
+import { lazy, Component, Suspense } from 'react';
 
 import {Client} from 'app/api';
 import {DEFAULT_QUERY} from 'app/constants';
@@ -30,7 +30,7 @@ type State = {
  * having no issues be returned from a query. This component will conditionally
  * render one of those states.
  */
-class NoGroupsHandler extends React.Component<Props, State> {
+class NoGroupsHandler extends Component<Props, State> {
   state = {
     fetchingSentFirstEvent: true,
     sentFirstEvent: false,
@@ -115,19 +115,19 @@ class NoGroupsHandler extends React.Component<Props, State> {
     const project = projects && projects.length > 0 ? projects[0] : undefined;
     const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
 
-    const ErrorRobot = React.lazy(
+    const ErrorRobot = lazy(
       () => import(/* webpackChunkName: "ErrorRobot" */ 'app/components/errorRobot')
     );
 
     return (
-      <React.Suspense fallback={<Placeholder height="260px" />}>
+      <Suspense fallback={<Placeholder height="260px" />}>
         <ErrorRobot
           org={organization}
           project={project}
           sampleIssueId={sampleIssueId?.toString() ?? ''}
           gradient
         />
-      </React.Suspense>
+      </Suspense>
     );
   }
 

@@ -1,6 +1,6 @@
 import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import scrollToElement from 'scroll-to-element';
 import {Location} from 'history';
 import * as Sentry from '@sentry/react';

@@ -1,7 +1,7 @@
 import {ClassNames} from '@emotion/core';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import debounce from 'lodash/debounce';

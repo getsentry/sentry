@@ -1,6 +1,5 @@
 import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';

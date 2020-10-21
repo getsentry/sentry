@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -13,7 +13,7 @@ type Props = {
   searchTerm?: string;
 };
 
-const Level = React.memo(({level, searchTerm = ''}: Props) => {
+const Level = memo(({level, searchTerm = ''}: Props) => {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (

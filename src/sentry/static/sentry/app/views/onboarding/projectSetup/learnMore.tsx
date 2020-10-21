@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
@@ -26,7 +26,7 @@ const learnMoveVideo = getDynamicText({
 });
 
 const LearnMore = ({project}: StepProps) => (
-  <React.Fragment>
+  <Fragment>
     <DemoVideo>{learnMoveVideo}</DemoVideo>
     {project ? (
       <Panel>
@@ -49,7 +49,7 @@ const LearnMore = ({project}: StepProps) => (
     ) : (
       <Alert type="info">{t('Create a project to view a sample event!')}</Alert>
     )}
-  </React.Fragment>
+  </Fragment>
 );
 
 const DemoVideo = styled(Panel)`

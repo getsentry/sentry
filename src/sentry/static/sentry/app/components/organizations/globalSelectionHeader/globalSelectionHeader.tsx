@@ -1,6 +1,6 @@
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 

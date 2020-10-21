@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -46,7 +46,7 @@ const Content = ({
   const activeStatsSubject = (location.query.healthStat || 'sessions') as StatsSubject;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header>
         <HeaderLayout>
           <ProjectColumn>{t('Project name')}</ProjectColumn>
@@ -185,7 +185,7 @@ const Content = ({
           })}
         </StyledClippedHealthRows>
       </PanelBody>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import {Location} from 'history';
@@ -45,7 +45,7 @@ type State = {
   issuesType: IssuesType;
 };
 
-class Issues extends React.Component<Props, State> {
+class Issues extends Component<Props, State> {
   state: State = {
     issuesType: IssuesType.NEW,
   };
@@ -146,7 +146,7 @@ class Issues extends React.Component<Props, State> {
 
     return (
       <EmptyState withIcon={false}>
-        <React.Fragment>
+        <Fragment>
           {issuesType === IssuesType.NEW &&
             tct('No new issues in this release for the [timePeriod].', {
               timePeriod: displayedPeriod,
@@ -160,7 +160,7 @@ class Issues extends React.Component<Props, State> {
             tct('No issues in this release for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
-        </React.Fragment>
+        </Fragment>
       </EmptyState>
     );
   };
@@ -177,7 +177,7 @@ class Issues extends React.Component<Props, State> {
     ];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ControlsWrapper>
           <DropdownControl
             button={({isOpen, getActorProps}) => (
@@ -231,7 +231,7 @@ class Issues extends React.Component<Props, State> {
             renderEmptyMessage={this.renderEmptyMessage}
           />
         </TableWrapper>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

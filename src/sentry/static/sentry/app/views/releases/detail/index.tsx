@@ -1,4 +1,4 @@
-import React from 'react';
+import { createContext } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import pick from 'lodash/pick';
 import styled from '@emotion/styled';
@@ -36,7 +36,7 @@ type ReleaseContext = {
   deploys: Deploy[];
   releaseMeta: ReleaseMeta;
 };
-const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
+const ReleaseContext = createContext<ReleaseContext>({} as ReleaseContext);
 
 type RouteParams = {
   orgId: string;

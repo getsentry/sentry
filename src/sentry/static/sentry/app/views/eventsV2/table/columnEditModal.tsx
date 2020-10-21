@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
@@ -29,7 +29,7 @@ type State = {
   columns: Column[];
 };
 
-class ColumnEditModal extends React.Component<Props, State> {
+class ColumnEditModal extends Component<Props, State> {
   state = {
     columns: this.props.columns,
   };
@@ -56,7 +56,7 @@ class ColumnEditModal extends React.Component<Props, State> {
   render() {
     const {Header, Body, Footer, tagKeys, measurementKeys, organization} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <h4>{t('Edit Columns')}</h4>
         </Header>
@@ -92,7 +92,7 @@ class ColumnEditModal extends React.Component<Props, State> {
             </Button>
           </ButtonBar>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

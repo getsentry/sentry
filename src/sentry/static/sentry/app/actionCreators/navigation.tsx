@@ -1,6 +1,5 @@
 import {InjectedRouter} from 'react-router/lib/Router';
 import {Location} from 'history';
-import React from 'react';
 
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';

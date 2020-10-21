@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import debounce from 'lodash/debounce';
 import {createFilter} from 'react-select';
@@ -52,7 +52,7 @@ type Props = {
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
 };
 
-export class SentryAppExternalIssueForm extends React.Component<Props, State> {
+export class SentryAppExternalIssueForm extends Component<Props, State> {
   static propTypes: any = {
     api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,

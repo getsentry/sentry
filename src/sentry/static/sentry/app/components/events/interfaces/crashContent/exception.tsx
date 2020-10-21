@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ErrorBoundary from 'app/components/errorBoundary';
 import RawExceptionContent from 'app/components/events/interfaces/rawExceptionContent';
 import ExceptionContent from 'app/components/events/interfaces/exceptionContent';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import {IconCommit} from 'app/icons';

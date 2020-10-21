@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
@@ -26,7 +26,7 @@ type Props = {
   onRemove: (data: ProjectKey) => void;
 } & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
 
-class KeyRow extends React.Component<Props> {
+class KeyRow extends Component<Props> {
   handleRemove = () => {
     const {data, onRemove} = this.props;
     onRemove(data);

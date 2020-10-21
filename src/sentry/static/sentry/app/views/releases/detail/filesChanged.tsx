@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
@@ -84,7 +84,7 @@ class FilesChanged extends AsyncView<Props, State> {
     const reposToRender = getReposToRender(Object.keys(filesByRepository));
 
     return (
-      <React.Fragment>
+      <Fragment>
         {reposToRender.map(repoName => {
           const repoData = filesByRepository[repoName];
           const files = Object.keys(repoData);
@@ -111,14 +111,14 @@ class FilesChanged extends AsyncView<Props, State> {
           );
         })}
         <Pagination pageLinks={fileListPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
   renderBody() {
     const {activeRepository, router, repositories, location} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         {repositories.length > 1 && (
           <RepositorySwitcher
             repositories={repositories}
@@ -128,7 +128,7 @@ class FilesChanged extends AsyncView<Props, State> {
           />
         )}
         {this.renderContent()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

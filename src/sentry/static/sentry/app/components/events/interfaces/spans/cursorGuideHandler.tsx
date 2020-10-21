@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {rectOfContent, clamp} from './utils';
 import {ParsedTraceType} from './types';

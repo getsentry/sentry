@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Component, Fragment } from 'react';
 
 import {Client} from 'app/api';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
@@ -47,7 +47,7 @@ type State = {
   error: boolean;
 };
 
-class KeySettings extends React.Component<Props, State> {
+class KeySettings extends Component<Props, State> {
   state = {
     loading: false,
     error: false,
@@ -90,7 +90,7 @@ class KeySettings extends React.Component<Props, State> {
     return (
       <Access access={['project:write']}>
         {({hasAccess}) => (
-          <React.Fragment>
+          <Fragment>
             <Form
               saveOnBlur
               allowUndo
@@ -213,7 +213,7 @@ class KeySettings extends React.Component<Props, State> {
                 </PanelBody>
               </Panel>
             </Access>
-          </React.Fragment>
+          </Fragment>
         )}
       </Access>
     );

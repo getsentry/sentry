@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
@@ -35,7 +35,7 @@ type Props = RouteComponentProps<
 
 type State = typeof OrganizationEnvironmentsStore['state'];
 
-export class GroupEventDetailsContainer extends React.Component<Props, State> {
+export class GroupEventDetailsContainer extends Component<Props, State> {
   state = OrganizationEnvironmentsStore.get();
 
   componentDidMount() {

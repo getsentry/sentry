@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import {IconChevron} from 'app/icons';
@@ -11,7 +11,7 @@ type PaginationProps = {
   next?: string | null;
 };
 
-export default class Pagination extends React.Component<PaginationProps> {
+export default class Pagination extends Component<PaginationProps> {
   render() {
     const {getPreviousPage, getNextPage, previous, next} = this.props;
 

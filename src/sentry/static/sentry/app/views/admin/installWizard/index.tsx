@@ -1,4 +1,3 @@
-import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';

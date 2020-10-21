@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import classNames from 'classnames';
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {

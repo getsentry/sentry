@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css} from '@emotion/core';
 import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 

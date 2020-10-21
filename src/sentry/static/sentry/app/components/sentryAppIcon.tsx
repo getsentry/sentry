@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {SentryAppComponent} from 'app/types';
 import {
   IconClickup,

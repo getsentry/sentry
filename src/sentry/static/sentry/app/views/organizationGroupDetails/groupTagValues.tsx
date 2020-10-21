@@ -1,6 +1,6 @@
 import sortBy from 'lodash/sortBy';
 import property from 'lodash/property';
-import React from 'react';
+import { Fragment } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
@@ -126,7 +126,7 @@ class GroupTagValues extends AsyncComponent<
     });
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <HeaderTitle>{tag.key === 'user' ? t('Affected Users') : tag.name}</HeaderTitle>
           <HeaderButtons gap={1}>
@@ -165,7 +165,7 @@ class GroupTagValues extends AsyncComponent<
             {t('Note: Percentage of issue is based on events seen in the last 7 days.')}
           </small>
         </p>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

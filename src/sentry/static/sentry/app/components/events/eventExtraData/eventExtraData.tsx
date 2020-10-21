@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {Event} from 'app/types';
 import {t} from 'app/locale';
@@ -15,7 +15,7 @@ type State = {
   raw: boolean;
 };
 
-class EventExtraData extends React.Component<Props, State> {
+class EventExtraData extends Component<Props, State> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
   };

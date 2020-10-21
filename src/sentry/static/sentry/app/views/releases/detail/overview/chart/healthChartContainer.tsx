@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import * as ReactRouter from 'react-router';
 
 import ChartZoom from 'app/components/charts/chartZoom';
@@ -34,7 +34,7 @@ const ReleaseChartContainer = ({
   const {utc, period, start, end} = datetime;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
         {zoomRenderProps => {
           if (errored) {
@@ -59,7 +59,7 @@ const ReleaseChartContainer = ({
           );
         }}
       </ChartZoom>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

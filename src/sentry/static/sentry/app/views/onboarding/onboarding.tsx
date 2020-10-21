@@ -1,6 +1,6 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 import DocumentTitle from 'react-document-title';
-import React from 'react';
+import * as React from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 import scrollToElement from 'scroll-to-element';
 import styled from '@emotion/styled';

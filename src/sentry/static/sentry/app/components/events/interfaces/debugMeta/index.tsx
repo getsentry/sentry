@@ -1,5 +1,5 @@
 import isNil from 'lodash/isNil';
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import {

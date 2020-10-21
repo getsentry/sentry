@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 // eslint import checks can't find types in the flow code.
 // eslint-disable-next-line import/named

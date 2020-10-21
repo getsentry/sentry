@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {ClassNames, css} from '@emotion/core';
 

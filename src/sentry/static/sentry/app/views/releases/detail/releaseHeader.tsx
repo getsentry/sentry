@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -44,27 +44,27 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
     {title: t('Overview'), to: releasePath},
     {
       title: (
-        <React.Fragment>
+        <Fragment>
           {t('Commits')} <NavTabsBadge text={formatAbbreviatedNumber(commitCount)} />
-        </React.Fragment>
+        </Fragment>
       ),
       to: `${releasePath}commits/`,
     },
     {
       title: (
-        <React.Fragment>
+        <Fragment>
           {t('Files Changed')}
           <NavTabsBadge text={formatAbbreviatedNumber(commitFilesChanged)} />
-        </React.Fragment>
+        </Fragment>
       ),
       to: `${releasePath}files-changed/`,
     },
     {
       title: (
-        <React.Fragment>
+        <Fragment>
           {t('Artifacts')}
           <NavTabsBadge text={formatAbbreviatedNumber(releaseFileCount)} />
-        </React.Fragment>
+        </Fragment>
       ),
       to: `${releasePath}artifacts/`,
     },

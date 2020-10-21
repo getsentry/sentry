@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 import {components} from 'react-select';
 
@@ -36,7 +36,7 @@ const getIcon = (iconType: string) => {
   }
 };
 
-export class RenderField extends React.Component<RenderProps, State> {
+export class RenderField extends Component<RenderProps, State> {
   state: State = {selectedSentryProjectId: null, selectedMappedValue: null};
 
   render() {
@@ -123,13 +123,13 @@ export class RenderField extends React.Component<RenderProps, State> {
           )}
           <MappedItemValue>
             {mappedItem ? (
-              <React.Fragment>
+              <Fragment>
                 <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
                 {mappedItem.label}
                 <StyledExternalLink href={mappedItem.url}>
                   <IconOpen />
                 </StyledExternalLink>
-              </React.Fragment>
+              </Fragment>
             ) : (
               t('Deleted')
             )}

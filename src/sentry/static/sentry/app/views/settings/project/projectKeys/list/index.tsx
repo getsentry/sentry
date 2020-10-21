@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Fragment } from 'react';
 
 import {
   addLoadingMessage,
@@ -141,7 +141,7 @@ class ProjectKeys extends AsyncView<Props, State> {
     const access = new Set(organization.access);
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.state.keyList.map(key => (
           <KeyRow
             api={this.api}
@@ -158,7 +158,7 @@ class ProjectKeys extends AsyncView<Props, State> {
           />
         ))}
         <Pagination pageLinks={this.state.keyListPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 

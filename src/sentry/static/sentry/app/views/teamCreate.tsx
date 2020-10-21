@@ -1,5 +1,4 @@
 import {withRouter, WithRouterProps} from 'react-router';
-import React from 'react';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';

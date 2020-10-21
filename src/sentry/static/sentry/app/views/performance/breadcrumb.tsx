@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {Location, LocationDescriptor} from 'history';
 
 import {t} from 'app/locale';
@@ -19,7 +19,7 @@ type Props = {
   realUserMonitoring?: boolean;
 };
 
-class Breadcrumb extends React.Component<Props> {
+class Breadcrumb extends Component<Props> {
   getCrumbs() {
     const crumbs: Crumb[] = [];
     const {

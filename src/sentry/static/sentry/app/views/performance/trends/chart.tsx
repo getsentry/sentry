@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 
@@ -223,7 +223,7 @@ function getIntervalLine(
   return additionalLineSeries;
 }
 
-class Chart extends React.Component<Props> {
+class Chart extends Component<Props> {
   render() {
     const props = this.props;
 
@@ -280,7 +280,7 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ChartZoom
           router={router}
           period={statsPeriod}
@@ -364,7 +364,7 @@ class Chart extends React.Component<Props> {
             );
           }}
         </ChartZoom>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

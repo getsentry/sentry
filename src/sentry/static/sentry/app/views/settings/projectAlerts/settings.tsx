@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {IconMail} from 'app/icons';
@@ -96,7 +96,7 @@ class Settings extends AsyncView<Props, State> {
     const projectEndpoint = this.getProjectEndpoint(params);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={t('Alerts Settings')}
           action={
@@ -160,7 +160,7 @@ class Settings extends AsyncView<Props, State> {
             onDisablePlugin={this.handleDisablePlugin}
           />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

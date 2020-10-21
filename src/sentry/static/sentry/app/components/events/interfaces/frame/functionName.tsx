@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {t} from 'app/locale';
 import {Frame} from 'app/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';

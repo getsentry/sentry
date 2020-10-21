@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -20,8 +20,8 @@ type Props = {
   displayRelativeTime: boolean;
 };
 
-const ListHeader = React.memo(({onSwitchTimeFormat, displayRelativeTime}: Props) => (
-  <React.Fragment>
+const ListHeader = memo(({onSwitchTimeFormat, displayRelativeTime}: Props) => (
+  <Fragment>
     <StyledGridCell>{t('Type')}</StyledGridCell>
     <Category>{t('Category')}</Category>
     <StyledGridCell>{t('Description')}</StyledGridCell>
@@ -32,7 +32,7 @@ const ListHeader = React.memo(({onSwitchTimeFormat, displayRelativeTime}: Props)
       </Tooltip>
       <span> {t('Time')}</span>
     </Time>
-  </React.Fragment>
+  </Fragment>
 ));
 
 export default ListHeader;

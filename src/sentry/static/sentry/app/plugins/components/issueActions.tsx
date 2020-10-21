@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 
 import {Form, FormState} from 'app/components/forms';
 import GroupActions from 'app/actions/groupActions';

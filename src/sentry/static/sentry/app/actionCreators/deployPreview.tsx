@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
 import {t, tct} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';

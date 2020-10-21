@@ -1,5 +1,5 @@
 import ReactSelect, {components} from 'react-select';
-import React from 'react';
+import { Component, Fragment } from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
@@ -65,7 +65,7 @@ type Props = ModalRenderProps & {
   comingFromProjectId?: string;
 };
 
-class ContextPickerModal extends React.Component<Props> {
+class ContextPickerModal extends Component<Props> {
   componentDidMount() {
     const {organization, projects, organizations} = this.props;
 
@@ -294,7 +294,7 @@ class ContextPickerModal extends React.Component<Props> {
       .map(({slug}) => ({label: slug, value: slug}));
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{this.headerText}</Header>
         <Body>
           {loading && <StyledLoadingIndicator overlay />}
@@ -318,7 +318,7 @@ class ContextPickerModal extends React.Component<Props> {
 
           {shouldShowProjectSelector && this.renderProjectSelectOrMessage()}
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,5 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
+import { Component, Fragment } from 'react';
 
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
@@ -33,7 +33,7 @@ type State = {
   stats?: IncidentStats;
 };
 
-class IncidentDetails extends React.Component<Props, State> {
+class IncidentDetails extends Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
@@ -142,7 +142,7 @@ class IncidentDetails extends React.Component<Props, State> {
     const {params} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <DetailsHeader
           hasIncidentDetailsError={hasError}
           params={params}
@@ -153,7 +153,7 @@ class IncidentDetails extends React.Component<Props, State> {
         />
 
         <DetailsBody {...this.props} incident={incident} stats={stats} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

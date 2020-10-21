@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
@@ -31,7 +31,7 @@ type Props = WithRouterProps<{orgId: string}> & {
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-class EventOrGroupHeader extends React.Component<Props> {
+class EventOrGroupHeader extends Component<Props> {
   static defaultProps: DefaultProps = {
     includeLink: true,
     size: 'normal',
@@ -42,7 +42,7 @@ class EventOrGroupHeader extends React.Component<Props> {
     const {level, status, isBookmarked, hasSeen} = data as Group;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {!hideLevel && level && (
           <GroupLevel level={level}>
             <Tooltip title={`Error level: ${capitalize(level)}`}>
@@ -61,7 +61,7 @@ class EventOrGroupHeader extends React.Component<Props> {
           </IconWrapper>
         )}
         <EventOrGroupTitle {...this.props} style={{fontWeight: hasSeen ? 400 : 600}} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 

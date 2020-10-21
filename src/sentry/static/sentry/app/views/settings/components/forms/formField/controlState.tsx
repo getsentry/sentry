@@ -1,5 +1,5 @@
 import {Observer} from 'mobx-react';
-import React from 'react';
+import { Component } from 'react';
 
 import ControlState from 'app/views/settings/components/forms/field/controlState';
 import FormState from 'app/components/forms/state';
@@ -13,7 +13,7 @@ type Props = {
 /**
  * ControlState (i.e. loading/error icons) for connected form components
  */
-class FormFieldControlState extends React.Component<Props> {
+class FormFieldControlState extends Component<Props> {
   render() {
     const {model, name} = this.props;
 

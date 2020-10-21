@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';

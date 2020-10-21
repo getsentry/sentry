@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 
 import Button from 'app/components/button';
@@ -31,7 +31,7 @@ type EditSavedQueryState = {
   savedQueryName: string;
 };
 
-export default class EditSavedQuery extends React.Component<
+export default class EditSavedQuery extends Component<
   EditSavedQueryProps,
   EditSavedQueryState
 > {

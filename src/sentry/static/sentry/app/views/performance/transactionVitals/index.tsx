@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {Location} from 'history';
 import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
@@ -36,7 +36,7 @@ type State = {
   eventView: EventView | undefined;
 };
 
-class TransactionVitals extends React.Component<Props> {
+class TransactionVitals extends Component<Props> {
   state: State = {
     eventView: generateRumEventView(
       this.props.location,

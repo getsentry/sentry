@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {Meta, EventTag} from 'app/types';
 import Version from 'app/components/version';
 import AnnotatedText from 'app/components/events/meta/annotatedText';

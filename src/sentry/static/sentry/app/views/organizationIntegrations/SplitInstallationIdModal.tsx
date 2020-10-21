@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -16,7 +16,7 @@ type Props = {
  * It will display the installation ID after installation so users can copy it and paste it in Split's website.
  * We also have a link for users to click so they can go to Split's website.
  */
-export default class SplitInstallationIdModal extends React.Component<Props> {
+export default class SplitInstallationIdModal extends Component<Props> {
   static propTypes = {
     installationId: PropTypes.string.isRequired,
     closeModal: PropTypes.func.isRequired,

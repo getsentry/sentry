@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {Params} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
@@ -54,7 +54,7 @@ type State = {
 // as React.ReactText
 type TotalValues = Record<string, number>;
 
-class TransactionSummary extends React.Component<Props, State> {
+class TransactionSummary extends Component<Props, State> {
   state: State = {
     eventView: generateSummaryEventView(
       this.props.location,

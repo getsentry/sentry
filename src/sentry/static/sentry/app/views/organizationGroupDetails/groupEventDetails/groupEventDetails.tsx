@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import * as Sentry from '@sentry/react';
 import styled from '@emotion/styled';
@@ -43,7 +43,7 @@ type State = {
   releasesCompletion: any;
 };
 
-class GroupEventDetails extends React.Component<Props, State> {
+class GroupEventDetails extends Component<Props, State> {
   static propTypes = {
     api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,

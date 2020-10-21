@@ -1,4 +1,3 @@
-import React from 'react';
 import omit from 'lodash/omit';
 import xor from 'lodash/xor';
 import {withRouter} from 'react-router';

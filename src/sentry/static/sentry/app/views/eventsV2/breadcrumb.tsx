@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
@@ -17,7 +17,7 @@ type Props = DefaultProps & {
   location: Location;
 };
 
-class DiscoverBreadcrumb extends React.Component<Props> {
+class DiscoverBreadcrumb extends Component<Props> {
   static defaultProps: DefaultProps = {
     event: undefined,
   };

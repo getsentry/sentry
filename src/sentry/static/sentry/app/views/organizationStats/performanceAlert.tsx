@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {t} from 'app/locale';
 import {IconInfo} from 'app/icons';

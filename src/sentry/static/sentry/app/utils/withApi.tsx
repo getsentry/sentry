@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {Client} from 'app/api';
 import getDisplayName from 'app/utils/getDisplayName';
@@ -29,7 +29,7 @@ const withApi = <P extends InjectedApiProps>(
   WrappedComponent: React.ComponentType<P>,
   {persistInFlight}: OptionProps = {}
 ) =>
-  class extends React.Component<WrappedProps<P>> {
+  (class extends React.Component<WrappedProps<P>> {
     static displayName = `withApi(${getDisplayName(WrappedComponent)})`;
 
     constructor(props: WrappedProps<P>) {
@@ -49,6 +49,6 @@ const withApi = <P extends InjectedApiProps>(
       const {api, ...props} = this.props;
       return <WrappedComponent {...({api: api ?? this.api, ...props} as P)} />;
     }
-  };
+  });
 
 export default withApi;

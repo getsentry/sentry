@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import {MultiGrid, AutoSizer} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -35,7 +35,7 @@ type Props = {
  * Renders results in a table as well as a query summary (timing, rows returned)
  * from any Snuba result
  */
-class ResultTable extends React.Component<Props> {
+class ResultTable extends Component<Props> {
   componentDidUpdate(prevProps: Props) {
     if (this.props.data.meta !== prevProps.data.meta) {
       this.grid.recomputeGridSize();

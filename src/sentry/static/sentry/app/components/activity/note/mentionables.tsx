@@ -1,5 +1,5 @@
 import uniqBy from 'lodash/uniqBy';
-import React from 'react';
+import * as React from 'react';
 
 import MemberListStore from 'app/stores/memberListStore';
 import Projects from 'app/utils/projects';

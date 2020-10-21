@@ -1,4 +1,4 @@
-import React from 'react';
+import { cloneElement, Fragment } from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
@@ -105,7 +105,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     const {requestList, inviteRequests} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title="Members" />
 
         <AlertLink
@@ -146,7 +146,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
         )}
 
         {children &&
-          React.cloneElement(children, {
+          cloneElement(children, {
             requestList,
             inviteRequests,
             onRemoveInviteRequest: this.removeInviteRequest,
@@ -154,7 +154,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
             onRemoveAccessRequest: this.removeAccessRequest,
             showInviteRequests: this.showInviteRequests,
           })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

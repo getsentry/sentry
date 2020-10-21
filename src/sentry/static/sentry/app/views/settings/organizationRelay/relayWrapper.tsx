@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
@@ -153,7 +153,7 @@ class RelayWrapper extends AsyncView<Props, State> {
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={t('Relay')}
           action={
@@ -178,7 +178,7 @@ class RelayWrapper extends AsyncView<Props, State> {
           })}
         </TextBlock>
         {this.renderContent()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

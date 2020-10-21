@@ -6,7 +6,7 @@ import 'focus-visible';
 import 'app/utils/statics-setup';
 
 import PropTypes from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import * as Router from 'react-router';

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -12,7 +12,7 @@ type Props = {
   organization: Organization;
 };
 
-class DiscoverContainer extends React.Component<Props> {
+class DiscoverContainer extends Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
   };

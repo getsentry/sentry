@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import { Component } from 'react';
 import omit from 'lodash/omit';
 import {Link} from 'react-router';
 import classNames from 'classnames';
@@ -21,7 +21,7 @@ type Props = DefaultProps & {
   isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
 };
 
-class ListLink extends React.Component<Props> {
+class ListLink extends Component<Props> {
   static displayName = 'ListLink';
 
   static contextTypes = {

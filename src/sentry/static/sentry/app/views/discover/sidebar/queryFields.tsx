@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, Fragment } from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -37,7 +37,7 @@ type QueryFieldsProps = {
   onUpdateName?: (name: string) => void;
 };
 
-export default class QueryFields extends React.Component<QueryFieldsProps> {
+export default class QueryFields extends Component<QueryFieldsProps> {
   getSummarizePlaceholder = () => {
     const {queryBuilder} = this.props;
     const query = queryBuilder.getInternal();
@@ -83,7 +83,7 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
       <div>
         {savedQuery && (
           <Fieldset>
-            <React.Fragment>
+            <Fragment>
               <SidebarLabel htmlFor="name" className="control-label">
                 {t('Name')}
               </SidebarLabel>
@@ -95,7 +95,7 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
                   onUpdateName && onUpdateName(`${val}`)
                 }
               />
-            </React.Fragment>
+            </Fragment>
           </Fieldset>
         )}
         <Fieldset>

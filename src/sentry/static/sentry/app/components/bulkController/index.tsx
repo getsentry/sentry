@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import xor from 'lodash/xor';
 import uniq from 'lodash/uniq';
 import intersection from 'lodash/intersection';
