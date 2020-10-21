@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
