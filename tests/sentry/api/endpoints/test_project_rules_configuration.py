@@ -1,27 +1,30 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
 from mock import Mock, patch
 
 from sentry.rules.registry import RuleRegistry
 from sentry.testutils import APITestCase
 
 
+EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
+APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
+JIRA_ACTION = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
+
+
 class ProjectRuleConfigurationTest(APITestCase):
-    def test_simple(self):
+    endpoint = "sentry-api-0-project-rules-configuration"
+
+    def setUp(self):
+        super(ProjectRuleConfigurationTest, self).setUp()
         self.login_as(user=self.user)
 
+    def test_simple(self):
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")
         self.create_project(teams=[team], name="baz")
 
-        url = reverse(
-            "sentry-api-0-project-rules-configuration",
-            kwargs={"organization_slug": project1.organization.slug, "project_slug": project1.slug},
-        )
-        response = self.client.get(url, format="json")
+        response = self.get_valid_response(self.organization.slug, project1.slug)
 
-        assert response.status_code == 200, response.content
         assert len(response.data["actions"]) == 5
         assert len(response.data["conditions"]) == 9
 
@@ -29,10 +32,10 @@ class ProjectRuleConfigurationTest(APITestCase):
     def rules(self):
         rules = RuleRegistry()
         rule = Mock()
-        rule.id = "sentry.mail.actions.NotifyEmailAction"
+        rule.id = EMAIL_ACTION
         rule.rule_type = "action/lol"
         node = rule.return_value
-        node.id = "sentry.mail.actions.NotifyEmailAction"
+        node.id = EMAIL_ACTION
         node.label = "hello"
         node.prompt = "hello"
         node.is_enabled.return_value = True
@@ -43,18 +46,11 @@ class ProjectRuleConfigurationTest(APITestCase):
     def run_mock_rules_test(self, expected_actions, querystring_params, rules=None):
         if not rules:
             rules = self.rules
-        self.login_as(user=self.user)
         with patch("sentry.api.endpoints.project_rules_configuration.rules", rules):
-            url = reverse(
-                "sentry-api-0-project-rules-configuration",
-                kwargs={
-                    "organization_slug": self.organization.slug,
-                    "project_slug": self.project.slug,
-                },
+            response = self.get_valid_response(
+                self.organization.slug, self.project.slug, qs_params=querystring_params
             )
-            response = self.client.get(url, querystring_params, format="json")
 
-            assert response.status_code == 200, response.content
             assert len(response.data["actions"]) == expected_actions
             assert len(response.data["conditions"]) == 0
 
@@ -64,7 +60,7 @@ class ProjectRuleConfigurationTest(APITestCase):
     def test_show_notify_event_service_action(self):
         rules = RuleRegistry()
         rule = Mock()
-        rule.id = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
+        rule.id = APP_ACTION
         rule.rule_type = "action/lol"
         node = rule.return_value
         node.id = rule.id
@@ -79,7 +75,7 @@ class ProjectRuleConfigurationTest(APITestCase):
     def test_hide_empty_notify_event_service_action(self):
         rules = RuleRegistry()
         rule = Mock()
-        rule.id = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
+        rule.id = APP_ACTION
         rule.rule_type = "action/lol"
         node = rule.return_value
         node.id = rule.id
