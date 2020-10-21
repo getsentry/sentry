@@ -21,11 +21,7 @@ import {
   resetSavedSearches,
 } from 'app/actionCreators/savedSearches';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {
-  fetchOrgMembers,
-  IndexedMembersByProject,
-  indexMembersByProject,
-} from 'app/actionCreators/members';
+import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
 import {loadOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
 import {getUtcDateString} from 'app/utils/dates';
 import CursorPoller from 'app/utils/cursorPoller';
@@ -93,7 +89,7 @@ type State = {
   isSidebarVisible: boolean;
   issuesLoading: boolean;
   tagsLoading: boolean;
-  memberList: IndexedMembersByProject;
+  memberList: ReturnType<typeof indexMembersByProject>;
   query?: string;
 };
 
