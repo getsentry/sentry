@@ -22,7 +22,6 @@ jobs:
     steps:
       - name: getsentry token
         id: getsentry
-        if: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY != '' }}
         uses: getsentry/action-github-app-token@v1
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
