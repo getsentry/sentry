@@ -301,13 +301,18 @@ export function transformValueDelta(
  * To minimize extra renders with missing results.
  */
 export function normalizeTrends(
-  data: Array<TrendsTransaction>
+  data: Array<TrendsTransaction>,
+  trendFunction: TrendFunction
 ): Array<NormalizedTrendsTransaction>;
 
-export function normalizeTrends(data: Array<ProjectTrend>): Array<NormalizedProjectTrend>;
+export function normalizeTrends(
+  data: Array<ProjectTrend>,
+  trendFunction: TrendFunction
+): Array<NormalizedProjectTrend>;
 
 export function normalizeTrends(
-  data: Array<TrendsTransaction | ProjectTrend>
+  data: Array<TrendsTransaction | ProjectTrend>,
+  trendFunction: TrendFunction
 ): Array<NormalizedTrendsTransaction | NormalizedProjectTrend> {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
@@ -319,16 +324,13 @@ export function normalizeTrends(
     } = row;
 
     const aliasedFields = {} as NormalizedTrendsTransaction;
-    TRENDS_FUNCTIONS.forEach(({alias}) => {
-      if (typeof row[`${alias}_1`] !== 'undefined') {
-        aliasedFields.aggregate_range_1 = row[`${alias}_1`];
-        aliasedFields.aggregate_range_2 = row[`${alias}_2`];
-        aliasedFields.percentage_aggregate_range_2_aggregate_range_1 =
-          row[getTrendAliasedFieldPercentage(alias)];
-        aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
-          row[getTrendAliasedMinus(alias)];
-      }
-    });
+    const alias = trendFunction.alias;
+    aliasedFields.aggregate_range_1 = row[`${alias}_1`];
+    aliasedFields.aggregate_range_2 = row[`${alias}_2`];
+    aliasedFields.percentage_aggregate_range_2_aggregate_range_1 =
+      row[getTrendAliasedFieldPercentage(alias)];
+    aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
+      row[getTrendAliasedMinus(alias)];
 
     const normalized = {
       ...aliasedFields,
