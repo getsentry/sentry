@@ -9,7 +9,7 @@ from datetime import timedelta, datetime
 from django.db import migrations
 from django.utils import timezone
 
-from sentry import options
+from sentry import nodestore, options
 from sentry.eventstore.models import Event as NewEvent
 from sentry.utils.dates import to_timestamp
 
