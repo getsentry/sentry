@@ -63,18 +63,22 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
+      - name: setup matchers
+        id: matchers
+        run: |
+          echo "::remove-matcher owner=masters::"
+          echo "::add-matcher::.github/tsc.json"
+          echo "::add-matcher::.github/eslint-stylish.json"
+
       - name: eslint + fix
-        uses: getsentry/action-eslint-fix@master
+        uses: getsentry/action-eslint-fix@v2
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: tsc
-        id: tsc
         if: always()
         run: |
-          echo "::remove-matcher owner=tsc::"
-          echo "::add-matcher::.github/tsc.json"
           yarn tsc -p config/tsconfig.build.json
 
   webpack:
