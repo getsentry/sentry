@@ -29,7 +29,7 @@ type Props = {
   project: Project;
   onMerge: () => void;
   groupId: string;
-  pageLinks: string;
+  pageLinks: string | null;
   items: Array<SimilarItem>;
 } & DefaultProps;
 
