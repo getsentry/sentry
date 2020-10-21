@@ -206,6 +206,7 @@ export type Project = {
   latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: Array<[number, number]>;
+  transactionStats?: Array<[number, number]>;
   latestRelease?: {version: string};
 } & AvatarProject;
 
