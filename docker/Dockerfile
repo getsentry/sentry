@@ -116,7 +116,7 @@ RUN set -x \
   && mkdir -p $SENTRY_CONF
 
 COPY /dist/*.whl /tmp/dist/
-RUN pip install /tmp/dist/*.whl && pip check && rm -rf /tmp/dist
+RUN pip install /tmp/dist/*.whl --no-deps && pip check && rm -rf /tmp/dist
 RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
 COPY ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
