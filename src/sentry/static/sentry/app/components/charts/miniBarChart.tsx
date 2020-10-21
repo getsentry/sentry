@@ -65,11 +65,7 @@ class MiniBarChart extends React.Component<Props> {
         set(updated, 'itemStyle.color', colors[i]);
         set(updated, 'itemStyle.opacity', 0.6);
         set(updated, 'itemStyle.emphasis.opacity', 1.0);
-        if (emphasisColors && emphasisColors[i]) {
-          set(updated, 'itemStyle.emphasis.color', emphasisColors[i]);
-        } else {
-          set(updated, 'itemStyle.emphasis.color', colors[i]);
-        }
+        set(updated, 'itemStyle.emphasis.color', emphasisColors?.[i] ?? colors[i]);
 
         return updated;
       });
