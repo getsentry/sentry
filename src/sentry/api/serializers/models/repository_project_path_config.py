@@ -11,8 +11,11 @@ class RepositoryProjectPathConfigSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             "id": six.text_type(obj.id),
-            "repositoryId": six.text_type(obj.repository_id),
             "projectId": six.text_type(obj.project_id),
+            "projectSlug": obj.project.slug,
+            "repositoryId": six.text_type(obj.repository_id),
+            "repositoryName": obj.repository.name,
+            "organizationIntegrationId": six.text_type(obj.organization_integration_id),
             "stackRoot": obj.stack_root,
             "sourceRoot": obj.source_root,
             "defaultBranch": obj.default_branch,
