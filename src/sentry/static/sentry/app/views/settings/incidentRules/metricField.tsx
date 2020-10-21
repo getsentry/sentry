@@ -17,6 +17,7 @@ import {
   generateFieldAsString,
   AGGREGATIONS,
   FIELDS,
+  measurementType,
 } from 'app/utils/discover/fields';
 
 import {errorFieldConfig, transactionFieldConfig} from './constants';
@@ -27,7 +28,7 @@ type Props = Omit<FormField['props'], 'children' | 'help'> & {
   organization: Organization;
 };
 
-const getFieldOptionConfig = (dataset: Dataset) => {
+const getFieldOptionConfig = (dataset: Dataset, organization: Organization) => {
   const config = dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
 
   const aggregations = Object.fromEntries(
@@ -39,6 +40,12 @@ const getFieldOptionConfig = (dataset: Dataset) => {
       // tags[sentry:user].
       if (key === 'user') {
         return ['tags[sentry:user]', 'string'];
+      }
+
+      if (organization.features.includes('measurements')) {
+        if (key.startsWith('measurements.')) {
+          return [key, measurementType(key)];
+        }
       }
 
       return [key, FIELDS[key]];
@@ -81,7 +88,7 @@ const MetricField = ({organization, ...props}: Props) => (
     {({onChange, value, model}) => {
       const dataset = model.getValue('dataset');
 
-      const fieldOptionsConfig = getFieldOptionConfig(dataset);
+      const fieldOptionsConfig = getFieldOptionConfig(dataset, organization);
       const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
       const fieldValue = explodeFieldString(value ?? '');
 

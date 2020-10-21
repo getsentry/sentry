@@ -43,7 +43,14 @@ export const transactionFieldConfig: OptionConfig = {
     'p99',
     'p100',
   ],
-  fields: ['transaction.duration'],
+  fields: [
+    'transaction.duration',
+    'measurements.lcp',
+    'measurements.fcp',
+    'measurements.fp',
+    'measurements.fid',
+    'measurements.cls',
+  ],
 };
 
 export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {

@@ -1350,7 +1350,7 @@ def get_column_from_aggregate(aggregate):
 
 def check_aggregate_column_support(aggregate):
     column = get_column_from_aggregate(aggregate)
-    return column is None or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS
+    return column is None or column.startswith("measurements.") or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS
 
 
 def translate_aggregate_field(aggregate, reverse=False):
