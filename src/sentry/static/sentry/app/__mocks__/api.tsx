@@ -126,7 +126,7 @@ class Client {
       // this needs to be mocked
       const lines = err.stack?.split('\n');
       const startIndex = lines?.findIndex(line => line.includes('tests/js/spec'));
-      err.stack = ['\n', lines?.[0], ...lines?.slice(startIndex)].join('\n');
+      err.stack = ['\n', lines?.[0], ...(lines?.slice(startIndex) ?? [])].join('\n');
 
       // Throwing an error here does not do what we want it to do....
       // Because we are mocking an API client, we generally catch errors to show

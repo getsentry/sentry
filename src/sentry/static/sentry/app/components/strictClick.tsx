@@ -32,9 +32,15 @@ class StrictClick<T extends HTMLElement> extends React.PureComponent<Props<T>, S
       return;
     }
 
+    const {startCoords} = this.state;
+
+    if (!startCoords) {
+      return;
+    }
+
     // Click happens if mouse down/up in same element - click will not fire if
     // either initial mouse down OR final mouse up occurs in different element
-    const [x, y] = this.state.startCoords;
+    const [x, y] = startCoords;
     const deltaX = Math.abs(evt.screenX - x);
     const deltaY = Math.abs(evt.screenY - y);
 

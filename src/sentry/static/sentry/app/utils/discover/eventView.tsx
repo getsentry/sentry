@@ -258,8 +258,8 @@ class EventView {
     interval?: string;
     createdBy: User | undefined;
   }) {
-    const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
-    let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
+    const fields: readonly Field[] = Array.isArray(props.fields) ? props.fields : [];
+    let sorts: readonly Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
     const project = Array.isArray(props.project) ? props.project : [];
     const environment = Array.isArray(props.environment) ? props.environment : [];
 
@@ -314,12 +314,12 @@ class EventView {
     const query = location.query;
 
     // apply global selection header values from location whenever possible
-    const environment: string[] =
+    const environment: readonly string[] =
       Array.isArray(newQuery.environment) && newQuery.environment.length > 0
         ? newQuery.environment
         : collectQueryStringByKey(query, 'environment');
 
-    const project: number[] =
+    const project: readonly number[] =
       Array.isArray(newQuery.projects) && newQuery.projects.length > 0
         ? newQuery.projects
         : decodeProjects(location);

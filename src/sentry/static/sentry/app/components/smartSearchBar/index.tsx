@@ -767,11 +767,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       (terms.length === 1 && terms[0] === this.props.defaultQuery) || // default term
       /^\s+$/.test(query.slice(cursor - 1, cursor + 1))
     ) {
-      const {
-        defaultSearchItems: [defaultSearchItems, defaultRecentItems],
-      } = this.props;
-
-      if (!defaultSearchItems.length) {
+      if (!this.props.defaultSearchItems?.length) {
         // Update searchTerm, otherwise <SearchDropdown> will have wrong state
         // (e.g. if you delete a query, the last letter will be highlighted if `searchTerm`
         // does not get updated)
@@ -785,6 +781,8 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       // cursor on whitespace show default "help" search terms
       this.setState({searchTerm: ''});
+
+      const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems;
 
       this.updateAutoCompleteState(defaultSearchItems, defaultRecentItems, '', 'default');
       return;

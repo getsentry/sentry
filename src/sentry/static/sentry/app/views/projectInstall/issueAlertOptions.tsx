@@ -1,4 +1,4 @@
-import { ReactElement } from 'react';
+import {ReactElement} from 'react';
 import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
@@ -154,7 +154,6 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
             name=""
             placeholder={DEFAULT_PLACEHOLDER_VALUE}
             value={this.state.threshold}
-            key={name}
             onChange={threshold =>
               this.setStateAndUpdateParents({threshold: threshold.target.value})
             }

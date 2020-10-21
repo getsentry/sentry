@@ -67,7 +67,7 @@ class MiniBarChart extends React.Component<Props> {
       stacked,
       ...props
     } = this.props;
-    let series = [...this.props.series];
+    let series = [...(this.props.series ?? [])];
 
     // Ensure bars overlap and that empty values display as we're disabling the axis lines.
     if (series.length) {

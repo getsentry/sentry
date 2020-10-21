@@ -20,7 +20,10 @@ const ContextLine = function (props: Props) {
   let lineWs = '';
   let lineCode = '';
   if (defined(line[1]) && line[1].match) {
-    [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
+    const hasMacthed = line[1].match(/^(\s*)(.*?)$/m);
+    if (hasMacthed) {
+      [, lineWs, lineCode] = hasMacthed;
+    }
   }
   const Component = !props.children ? React.Fragment : Context;
   return (

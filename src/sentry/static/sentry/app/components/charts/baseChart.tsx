@@ -412,7 +412,7 @@ class BaseChart extends React.Component<Props, State> {
             series: !previousPeriod
               ? series
               : [
-                  ...series,
+                  ...(series ?? []),
                   ...previousPeriod.map(previous =>
                     LineSeries({
                       name: previous.seriesName,

@@ -1,4 +1,4 @@
-import { Component, Fragment } from 'react';
+import {Component, Fragment} from 'react';
 import {Location} from 'history';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';

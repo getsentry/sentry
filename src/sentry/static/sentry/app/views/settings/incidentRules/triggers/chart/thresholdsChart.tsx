@@ -1,5 +1,5 @@
 import {ECharts} from 'echarts';
-import { PureComponent } from 'react';
+import {PureComponent} from 'react';
 import color from 'color';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
@@ -191,35 +191,37 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       // (or when they will be considered as resolved)
       //
       // Resolution is considered "off" if it is -1
-      ...(position !== null && [
-        {
-          type: 'rect',
-          draggable: false,
+      ...(position !== null
+        ? [
+            {
+              type: 'rect',
+              draggable: false,
 
-          position:
-            isResolution !== isInverted
-              ? [yAxisSize, position + 1]
-              : [yAxisSize, legendPadding],
-          shape: {
-            width: this.state.width,
-            height:
-              isResolution !== isInverted
-                ? yAxisPosition - position
-                : position - legendPadding,
-          },
+              position:
+                isResolution !== isInverted
+                  ? [yAxisSize, position + 1]
+                  : [yAxisSize, legendPadding],
+              shape: {
+                width: this.state.width,
+                height:
+                  isResolution !== isInverted
+                    ? yAxisPosition - position
+                    : position - legendPadding,
+              },
 
-          style: {
-            fill: isResolution
-              ? COLOR.RESOLUTION_FILL
-              : isCritical
-              ? COLOR.CRITICAL_FILL
-              : COLOR.WARNING_FILL,
-          },
+              style: {
+                fill: isResolution
+                  ? COLOR.RESOLUTION_FILL
+                  : isCritical
+                  ? COLOR.CRITICAL_FILL
+                  : COLOR.WARNING_FILL,
+              },
 
-          // This needs to be below the draggable line
-          z: 100,
-        },
-      ]),
+              // This needs to be below the draggable line
+              z: 100,
+            },
+          ]
+        : []),
     ];
   };
 

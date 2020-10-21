@@ -35,7 +35,7 @@ export function getEventsUrlFromDiscoverQueryWithConditions({
     query: {
       ...query,
       conditions: [
-        ...query.conditions,
+        ...(query.conditions || []),
         // For each `field`, create a condition that joins it with each `rowObject.name` value (separated by commas)
         // e.g. fields: ['browser', 'device'],  rowObject.name: "Chrome, iPhone"
         //      ----> [['browser', '=', 'Chrome'], ['device', '=', 'iPhone']]

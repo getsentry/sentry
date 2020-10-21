@@ -20,7 +20,7 @@ export type RawSpanType = {
   tags?: {[key: string]: string};
 };
 
-export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
+export const rawSpanKeys = new Set([
   'trace_id',
   'parent_span_id',
   'span_id',
@@ -32,7 +32,7 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'status',
   'data',
   'tags',
-]);
+]) as Set<keyof RawSpanType>;
 
 export type OrphanSpanType = {
   type: 'orphan';
