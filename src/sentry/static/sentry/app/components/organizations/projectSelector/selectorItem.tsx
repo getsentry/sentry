@@ -36,7 +36,7 @@ type State = {
 class ProjectSelectorItem extends React.PureComponent<Props, State> {
   static defaultProps = defaultProps;
   state: State = {
-    bookmarkHasChanged: true,
+    bookmarkHasChanged: false,
   };
 
   componentDidUpdate(nextProps: Props) {
