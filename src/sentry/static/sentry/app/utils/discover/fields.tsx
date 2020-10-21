@@ -105,7 +105,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: ['duration', 'number'],
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -118,7 +118,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: ['duration', 'number'],
         required: true,
       },
     ],
@@ -138,7 +138,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: ['duration', 'number'],
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -151,7 +151,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: ['duration', 'number'],
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -164,7 +164,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: ['duration', 'number'],
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -178,7 +178,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: ['duration', 'number'],
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -191,7 +191,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: ['duration', 'number'],
         required: false,
       },
     ],
@@ -203,7 +203,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: ['duration', 'number'],
         defaultValue: 'transaction.duration',
         required: true,
       },
