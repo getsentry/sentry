@@ -21,7 +21,7 @@ type Props = {
   dataFilter?: string;
 };
 
-class TransactionVitals extends React.Component<Props> {
+class VitalsPanel extends React.Component<Props> {
   renderVitalCard(
     vital: WebVital,
     isLoading: boolean,
@@ -200,4 +200,4 @@ class TransactionVitals extends React.Component<Props> {
   }
 }
 
-export default TransactionVitals;
+export default VitalsPanel;

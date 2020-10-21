@@ -1,36 +1,22 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 
 import {Project} from 'app/types';
-import BarChart from 'app/components/barChart';
+import {Series} from 'app/types/echarts';
+import {t} from 'app/locale';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 
 type Props = {
   stats: Required<Project>['stats'];
 };
 
 const Chart = ({stats = []}: Props) => {
-  const data = stats.map(d => ({x: d[0], y: d[1]}));
-  return <StyledBarChart points={data} label="events" height={60} gap={1.5} />;
-};
-
-Chart.propTypes = {
-  stats: PropTypes.array,
+  const series: Series[] = [
+    {
+      seriesName: t('Events'),
+      data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
+    },
+  ];
+  return <MiniBarChart isGroupedByDate showTimeInTooltip series={series} height={60} />;
 };
 
 export default Chart;
-
-const StyledBarChart = styled(BarChart)`
-  a {
-    &:not(:first-child) {
-      border-left: 2px solid transparent;
-    }
-    &:not(:last-child) {
-      border-right: 2px solid transparent;
-    }
-    > span {
-      left: 0;
-      right: 0;
-    }
-  }
-`;

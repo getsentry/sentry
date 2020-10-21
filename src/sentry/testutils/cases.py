@@ -55,6 +55,7 @@ from six.moves.urllib.parse import urlencode
 
 from sentry import auth
 from sentry import eventstore
+from sentry.auth.authenticators import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
     Superuser,
@@ -73,7 +74,6 @@ from sentry.models import (
     Repository,
     DeletedOrganization,
     Organization,
-    TotpInterface,
     Dashboard,
     ObjectStatus,
     WidgetDataSource,
