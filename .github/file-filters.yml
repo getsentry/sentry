@@ -1,3 +1,17 @@
-backend:
-  - '**/*.py'
-  - 'requirements*.txt'
+# This is used by the action https://github.com/dorny/paths-filter (which we have forked to https://github.com/getsentry/paths-filter)
+
+# TODO: There are some meta files that we potentially could ignore for both front/backend,
+# as well as some configuration files that should trigger both
+
+# backend == !frontend
+
+frontend:
+  - '**/*.[tj]{s,sx}'
+  - '**/*.less'
+  - '**/tsconfig*.json'
+  - 'yarn.lock'
+  - '{package,now,vercel}.json'
+  - '.eslint*'
+  - 'docs-ui/**'
+  - 'src/sentry/static/sentry/**'
+  - 'tests/js/**'
