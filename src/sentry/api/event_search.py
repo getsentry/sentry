@@ -1956,6 +1956,63 @@ FUNCTIONS = {
             default_result_type="duration",
         ),
         Function(
+            "variance_range",
+            required_args=[
+                DurationColumnNoLookup("column"),
+                DateArg("start"),
+                DateArg("end"),
+                NumberRange("index", 1, None),
+            ],
+            aggregate=[
+                u"varSampIf",
+                [
+                    ArgValue("column"),
+                    [
+                        "and",
+                        [
+                            # see `percentile_range` for why the conditions are backwards
+                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
+                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                        ],
+                    ],
+                ],
+                "variance_range_{index:g}",
+            ],
+            default_result_type="duration",
+        ),
+        Function(
+            "t_score",
+            required_args=[
+                FunctionArg("avg_1"),
+                FunctionArg("avg_2"),
+                FunctionArg("variance_1"),
+                FunctionArg("variance_2"),
+                FunctionArg("count_1"),
+                FunctionArg("count_2"),
+            ],
+            aggregate=[
+                u"divide(minus({avg_1},{avg_2}),sqrt(plus(divide({variance_1},{count_1}),divide({variance_2},{count_2}))))",
+                None,
+                "t_score",
+            ],
+            default_result_type="number",
+        ),
+        Function(
+            "degrees_of_freedom",
+            required_args=[
+                FunctionArg("variance_1"),
+                FunctionArg("variance_2"),
+                FunctionArg("count_1"),
+                FunctionArg("count_2"),
+            ],
+            aggregate=[
+                u"divide(power(plus({variance_1},{variance_2}),2),plus(divide(power({variance_1},2),minus({count_1},1)),divide(power({variance_2}, 2),minus({count_2}, 1))))",
+                None,
+                "degrees_of_freedom",
+            ],
+            default_result_type="number",
+        ),
+        Function(
             "user_misery_range",
             required_args=[
                 NumberRange("satisfaction", 0, None),

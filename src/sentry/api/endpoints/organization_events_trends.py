@@ -40,6 +40,16 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             "alias": "user_misery_range_",
         },
         "count_range": {"format": "count_range({start}, {end}, {index})", "alias": "count_range_"},
+        "t_score": {
+            "format": "t_score({avg}1, {avg}2, {variance}1, {variance}2, {count}1, {count}2)"
+        },
+        "degrees_of_freedom": {
+            "format": "degrees_of_freedom({variance}1, {variance}2, {count}1, {count}2)"
+        },
+        "variance_range": {
+            "format": "variance_range(transaction.duration, {start}, {end}, {index})",
+            "alias": "variance_range_",
+        },
         "percentage": {"format": "percentage({alias}2, {alias}1)"},
     }
 
@@ -73,6 +83,8 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
         count_column = self.trend_columns.get("count_range")
         percentage_column = self.trend_columns["percentage"]
+        variance_column = self.trend_columns["variance_range"]
+        avg_column = self.trend_columns["avg"]
         selected_columns = request.GET.getlist("field")[:]
         query = request.GET.get("query")
         orderby = self.get_orderby(request)
@@ -83,11 +95,22 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 + [
                     trend_column["format"].format(*columns, start=start, end=middle, index="1"),
                     trend_column["format"].format(*columns, start=middle, end=end, index="2"),
-                    percentage_column["format"].format(alias=trend_column["alias"]),
                     "minus({alias}2,{alias}1)".format(alias=trend_column["alias"]),
                     count_column["format"].format(start=start, end=middle, index="1"),
                     count_column["format"].format(start=middle, end=end, index="2"),
                     percentage_column["format"].format(alias=count_column["alias"]),
+                    variance_column["format"].format(start=start, end=middle, index="1"),
+                    variance_column["format"].format(start=middle, end=end, index="2"),
+                    avg_column["format"].format(start=start, end=middle, index="1"),
+                    avg_column["format"].format(start=middle, end=end, index="2"),
+                    self.trend_columns["t_score"]["format"].format(
+                        avg=avg_column["alias"],
+                        variance=variance_column["alias"],
+                        count=count_column["alias"],
+                    ),
+                    self.trend_columns["degrees_of_freedom"]["format"].format(
+                        variance=variance_column["alias"], count=count_column["alias"]
+                    ),
                 ],
                 query=query,
                 params=params,
