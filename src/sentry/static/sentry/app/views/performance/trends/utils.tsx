@@ -164,7 +164,7 @@ export function modifyTrendView(
   if (trendFunction) {
     trendView.trendFunction = trendFunction.field;
   }
-  const limitTrendResult = getLimitTransactionItems(trendFunction, trendsType);
+  const limitTrendResult = getLimitTransactionItems(trendsType);
   trendView.query += ' ' + limitTrendResult;
 
   trendView.interval = getQueryInterval(location, trendView);
@@ -359,10 +359,6 @@ export function getTrendAliasedFieldPercentage(alias: string) {
   return `percentage_${alias}_2_${alias}_1`;
 }
 
-export function getTrendAliasedQueryPercentage(alias: string) {
-  return `percentage(${alias}_2,${alias}_1)`;
-}
-
 export function getTrendAliasedMinus(alias: string) {
   return `minus_${alias}_2_${alias}_1`;
 }
@@ -383,14 +379,10 @@ export function movingAverage(data, index, size) {
 /**
  * This function applies a query to limit the results based on the trend type to being greater or less than 100% (depending on the type)
  */
-function getLimitTransactionItems(
-  trendFunction: TrendFunction,
-  trendChangeType: TrendChangeType
-) {
-  const aliasedPercentage = getTrendAliasedQueryPercentage(trendFunction.alias);
-  let limitQuery = aliasedPercentage + ':<1';
+function getLimitTransactionItems(trendChangeType: TrendChangeType) {
+  let limitQuery = 'trend_percentage():<1 t_score():>1';
   if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery = aliasedPercentage + ':>1';
+    limitQuery = 'trend_percentage():>1 t_score():<-1';
   }
   limitQuery +=
     ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';
