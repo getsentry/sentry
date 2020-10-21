@@ -58,6 +58,10 @@ class RealUserMonitoring extends React.Component<Props> {
       const currentValue = formattedValue(record, value);
       const thresholdValue = formattedValue(record, record?.failureThreshold ?? 0);
 
+      if (!LONG_MEASUREMENT_NAMES[name]) {
+        return null;
+      }
+
       return (
         <div key={name}>
           <StyledPanel failedThreshold={failedThreshold}>
