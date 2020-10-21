@@ -838,6 +838,8 @@ SENTRY_FEATURES = {
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
+    # Lets organizations set a custom title through fingerprinting
+    "organizations:custom-event-title": False,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature

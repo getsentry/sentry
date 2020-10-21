@@ -129,14 +129,14 @@ def get_fingerprinting_config_for_project(project):
     return rv
 
 
-def apply_server_fingerprinting(event, config):
+def apply_server_fingerprinting(event, config, allow_custom_title=True):
     rv = config.get_fingerprint_values_for_event(event)
     if rv is not None:
         new_fingerprint, attributes = rv
 
         # A custom title attribute is stored in the event to override the
         # default title.
-        if "title" in attributes:
+        if "title" in attributes and allow_custom_title:
             event["title"] = expand_title_template(attributes["title"], event)
         event["fingerprint"] = new_fingerprint
 
