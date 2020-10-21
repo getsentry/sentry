@@ -306,6 +306,15 @@ class IntegrationInstallation(object):
         identity = Identity.objects.get(id=self.org_integration.default_auth_id)
         return identity
 
+    def get_stacktrace_link(self, repo, path, version):
+        """
+        Handle formatting and returning back the stack trace link if the client
+        request was successful.
+
+        If no file was found return `None`, and re-raise for non "Not Found" errors
+        """
+        pass
+
     def error_message_from_json(self, data):
         return data.get("message", "unknown error")
 

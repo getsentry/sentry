@@ -4,19 +4,17 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import RepositoryProjectPathConfig
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.api.serializers import serialize
 
 
 def get_link(config, filepath, version):
-    # feel like there has got to be a better way to do this
-    # if we already have the oi
     oi = config.organization_integration
     integration = oi.integration
     install = integration.get_installation(oi.organization_id)
 
-    filepath.replace(config.stack_root, config.source_root)
+    formatted_path = filepath.replace(config.stack_root, config.source_root)
 
-    return install.get_stacktrace_link(config.repository, filepath, version)
+    return install.get_stacktrace_link(config.repository, formatted_path, version)
 
 
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
@@ -34,30 +32,30 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     def get(self, request, project):
         # should probably feature gate
         filepath = request.GET.get("file")
+        if not filepath:
+            return Response("Filepath is required", status=400)
+
         commitId = request.GET.get("commitId")
+        result = {"config": None}
 
-        results = []
-        # try and find any configurations set up, if there
-        # aren't any then we don't do anything else
-        configs = RepositoryProjectPathConfig.objects.filter(project=project,)
-
+        configs = RepositoryProjectPathConfig.objects.filter(project=project)
+        # we only want to attempt the stack trace linking IF the user
+        # has a configuration set up, otherwise we don't care
         if not configs:
-            return Response(results)
+            return Response(result)
 
         for config in configs:
+            if not filepath.startswith(config.stack_root):
+                continue
+
             version = commitId or config.default_branch
-            try:
-                link = get_link(config, filepath, version)
-                # don't think we need the whole configuration, but we
-                # may want to know what provider it is e.g. GH
-                results.append({"config": config, "source_url": link})
 
-            except ApiError:
-                # this could mean either we couldn't find a match
-                # or something else when wrong with the request,
-                # either way, we have a configuration without a match
-                #
-                # not sure exactly what we want to show the user, if anything
-                pass
+            link = get_link(config, filepath, version)
 
-        return Response(results)
+            result["config"] = serialize(config, request.user)
+            # it's possible for the link to be None, and in that
+            # case it means we could not find a match for the
+            # configuration
+            result["source_url"] = link
+
+        return Response(result)

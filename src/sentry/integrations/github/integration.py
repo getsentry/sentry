@@ -100,7 +100,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
     def get_stacktrace_link(self, repo, filepath, default_version):
         try:
-            resp = self.get_client().get_file(repo.name, filepath)
+            resp = self.get_client().get_file_url(repo.name, filepath)
         except ApiError as e:
             if e.code != 404:
                 raise
