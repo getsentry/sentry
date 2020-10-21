@@ -903,7 +903,7 @@ SENTRY_FEATURES = {
     # attachments
     "organizations:usage-stats-graph": False,
     # Enable dynamic issue counts and user counts in the issue stream
-    "organizations:dynamic-issue-counts": False,
+    "organizations:dynamic-issue-counts": True,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
     # Enable functionality to specify custom inbound filters on events.
