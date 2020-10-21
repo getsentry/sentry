@@ -193,7 +193,7 @@ class EventAttachments extends React.Component<Props, State> {
                         <EventAttachmentActions
                           url={url}
                           onDelete={this.handleDelete}
-                          onPreview={() => this.togglePreview(attachment)}
+                          onPreview={_attachmentId => this.togglePreview(attachment)}
                           withPreviewButton
                           previewIsOpen={this.attachmentPreviewIsOpen(attachment)}
                           hasPreview={this.hasInlineAttachmentRenderer(attachment)}

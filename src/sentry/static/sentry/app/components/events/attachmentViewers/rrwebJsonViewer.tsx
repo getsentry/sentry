@@ -11,8 +11,8 @@ type State = {
 
 export default class RRWebJsonViewer extends React.Component<ViewerProps, State> {
   state: State = {
-    showRawJson: false
-  }
+    showRawJson: false,
+  };
 
   render() {
     return (
