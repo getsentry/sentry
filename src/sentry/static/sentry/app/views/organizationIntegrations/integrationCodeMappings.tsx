@@ -78,21 +78,25 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
             {repoProjectPathConfigs.length === 0 && (
               <EmptyMessage description={t('No code path mappings')} />
             )}
-            {repoProjectPathConfigs.map(repoProjectPathConfig => {
-              const repo = this.getMatchingRepo(repoProjectPathConfig);
-              const project = this.getMatchingProject(repoProjectPathConfig);
-              if (!repo || !project) {
-                return null;
-              }
-              return (
-                <RepositoryProjectPathConfigRow
-                  key={repoProjectPathConfig.id}
-                  repoProjectPathConfig={repoProjectPathConfig}
-                  repo={repo}
-                  project={project}
-                />
-              );
-            })}
+            {repoProjectPathConfigs
+              .map(repoProjectPathConfig => {
+                const repo = this.getMatchingRepo(repoProjectPathConfig);
+                const project = this.getMatchingProject(repoProjectPathConfig);
+                // this should never happen since our repoProjectPathConfig would be deleted
+                // if the repo or project were deleted
+                if (!repo || !project) {
+                  return null;
+                }
+                return (
+                  <RepositoryProjectPathConfigRow
+                    key={repoProjectPathConfig.id}
+                    repoProjectPathConfig={repoProjectPathConfig}
+                    repo={repo}
+                    project={project}
+                  />
+                );
+              })
+              .filter(item => !!item)}
           </PanelBody>
         </Panel>
       </React.Fragment>
