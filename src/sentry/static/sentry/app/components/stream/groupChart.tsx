@@ -47,7 +47,7 @@ function GroupChart({
       data: secondaryStats.map(point => ({name: point[0] * 1000, value: point[1]})),
     });
     series.push({
-      seriesName: t('Filtered Events'),
+      seriesName: t('Matching Events'),
       data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
     });
   } else {
