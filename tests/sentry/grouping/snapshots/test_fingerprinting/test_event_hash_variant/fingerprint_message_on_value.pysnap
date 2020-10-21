@@ -1,11 +1,12 @@
 ---
-created: '2020-09-01T15:34:37.668131Z'
+created: '2020-10-13T10:09:30.542963Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
-  - fingerprint:
+  - attributes: {}
+    fingerprint:
     - what-is-love
     matchers:
     - - message
@@ -13,6 +14,7 @@ config:
   version: 1
 fingerprint:
 - what-is-love
+title: 'NoLove: something has no love.'
 variants:
   app:
     component:
