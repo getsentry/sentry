@@ -144,7 +144,7 @@ export function modifyTrendView(
   const trendFunction = getCurrentTrendFunction(location);
 
   const transactionField = isProjectOnly ? [] : ['transaction'];
-  const fields = [...transactionField, 'project', 'count()'].map(field => ({
+  const fields = [...transactionField, 'project'].map(field => ({
     field,
   })) as Field[];
 

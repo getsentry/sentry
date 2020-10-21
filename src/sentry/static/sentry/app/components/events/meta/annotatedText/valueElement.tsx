@@ -17,7 +17,7 @@ const ValueElement = ({value, meta}: Props) => {
 
   if (meta?.err?.length) {
     return (
-      <Redaction>
+      <Redaction withoutBackground>
         <i>{`<${t('invalid')}>`}</i>
       </Redaction>
     );
@@ -32,7 +32,11 @@ const ValueElement = ({value, meta}: Props) => {
   }
 
   if (!value) {
-    return null;
+    return (
+      <Redaction withoutBackground>
+        <i>{`<${t('invalid')}>`}</i>
+      </Redaction>
+    );
   }
 
   if (React.isValidElement(value)) {

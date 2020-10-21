@@ -21,7 +21,7 @@ export default class RRWebJsonViewer extends React.Component<ViewerProps, State>
           {tct(
             'This is an attachment containing a session replay. [replayLink:View the replay] or [jsonLink:view the raw JSON].',
             {
-              replayLink: <a href="#rrweb-replay" />,
+              replayLink: <a href="#context-replay" />,
               jsonLink: (
                 <a
                   onClick={() =>

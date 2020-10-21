@@ -1,128 +1,65 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
+import styled from '@emotion/styled';
+import {select, text} from '@storybook/addon-knobs';
 
-import Tooltip from 'app/components/tooltip';
+import theme from 'app/utils/theme';
 import Tag from 'app/components/tag';
+import {IconFire} from 'app/icons';
+import {toTitleCase} from 'app/utils';
 
 export default {
   title: 'Core/Badges+Tags/Tag',
 };
 
-export const Overview = withInfo({
-  text: 'An overview of all the different tags and states',
-})(() => (
-  <React.Fragment>
-    <div>
-      <Tag>default</Tag>
-    </div>
-    <div>
-      <Tag priority="error">error</Tag>
-    </div>
-    <div>
-      <Tag priority="warning">warning</Tag>
-    </div>
-    <div>
-      <Tag priority="success">success</Tag>
-    </div>
-    <div>
-      <Tooltip
-        title="This feature is in beta and may change in the future."
-        tooltipOptions={{
-          placement: 'right',
-        }}
-      >
-        <span>
-          <Tag priority="beta">beta</Tag>
-        </span>
-      </Tooltip>
-    </div>
-    <div>
-      <Tag priority="new">new</Tag>
-    </div>
-    <div>
-      <Tag priority="alpha">alpha</Tag>
-    </div>
-  </React.Fragment>
-));
+const types = Object.keys(theme.tag);
 
-export const Default = withInfo(
-  'A basic tag-like thing. If you pass no type, it will be gray'
-)(() => <Tag>Development</Tag>);
+export const Basic = () => (
+  <Wrapper>
+    {types.map(type => (
+      <Tag key={type} type={type}>
+        {toTitleCase(type)}
+      </Tag>
+    ))}
+  </Wrapper>
+);
+Basic.story = {name: 'basic'};
 
-Default.story = {
-  name: 'default',
-};
-
-export const Warning = withInfo(
-  'A warning tag-like thing. Use this to signal that something is maybe not so great'
-)(() => <Tag priority="warning">Development</Tag>);
-
-Warning.story = {
-  name: 'warning',
-};
-
-export const Success = withInfo(
-  'A happy tag-like thing. Use this to signal something good'
-)(() => <Tag priority="success">Development</Tag>);
-
-Success.story = {
-  name: 'success',
-};
-
-export const Beta = withInfo(
-  'An attention grabbing thing. Use this to communicate shiny new functionality.'
-)(() => (
-  <Tooltip
-    title="This feature is in beta and may change in the future."
-    tooltipOptions={{
-      placement: 'right',
-    }}
-  >
-    <span>
-      <Tag priority="beta">beta</Tag>
-    </span>
-  </Tooltip>
-));
-
-Beta.story = {
-  name: 'beta',
-};
-
-export const New = withInfo(
-  'An attention grabbing thing. Use this to communicate shiny new functionality.'
-)(() => (
-  <Tooltip
-    title="This feature is new and may change in the future."
-    tooltipOptions={{
-      placement: 'right',
-    }}
-  >
-    <span>
-      <Tag priority="new">new</Tag>
-    </span>
-  </Tooltip>
-));
-
-New.story = {
-  name: 'new',
-};
-
-export const Small = withInfo(
-  'A small tag-like thing. Use this when space is at a premium'
-)(() => (
-  <Tag size="small" border>
-    new
+export const WithIcon = () => (
+  <Tag icon={<IconFire />} type={select('type', types, 'error')}>
+    {text('children', 'Error')}
   </Tag>
-));
+);
+WithIcon.story = {name: 'with icon'};
 
-Small.story = {
-  name: 'small',
-};
+export const WithTooltip = () => (
+  <Tag type={select('type', types, 'highlight')} tooltipText="lorem ipsum">
+    {text('children', 'Tooltip')}
+  </Tag>
+);
+WithTooltip.story = {name: 'with tooltip'};
 
-export const WithIcon = withInfo(
-  'A tag-like thing with an icon. Use when you need to represent something'
-)(() => <Tag icon="icon-lock">Locked</Tag>);
+export const WithDismiss = () => (
+  // eslint-disable-next-line no-alert
+  <Tag type={select('type', types, 'highlight')} onDismiss={() => alert('dismissed')}>
+    {text('children', 'Dismissable')}
+  </Tag>
+);
+WithDismiss.story = {name: 'with dismiss'};
 
-WithIcon.story = {
-  name: 'with icon',
-};
+export const WithInternalLink = () => (
+  <Tag type={select('type', types, 'highlight')} to="/organizations/sentry/issues/">
+    {text('children', 'Internal link')}
+  </Tag>
+);
+WithInternalLink.story = {name: 'with internal link'};
+
+export const WithExternalLink = () => (
+  <Tag type={select('type', types, 'highlight')} href="https://sentry.io/">
+    {text('children', 'External link')}
+  </Tag>
+);
+WithExternalLink.story = {name: 'with external link'};
+
+const Wrapper = styled('div')`
+  display: grid;
+`;

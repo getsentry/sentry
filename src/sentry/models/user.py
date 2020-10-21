@@ -336,4 +336,4 @@ def refresh_user_nonce(sender, request, user, **kwargs):
     if user is None:
         return
     user.refresh_session_nonce()
-    user.save()
+    user.save(update_fields=["session_nonce"])
