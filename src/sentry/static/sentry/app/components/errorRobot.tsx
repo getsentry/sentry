@@ -2,13 +2,15 @@ import {Link} from 'react-router';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {LightWeightOrganization, Project} from 'app/types';
 import {defined} from 'app/utils';
+import space from 'app/styles/space';
+import robotBackground from 'app/../images/spot/sentry-robot.png';
 
 type Props = {
   api: Client;
@@ -103,19 +105,18 @@ class ErrorRobot extends React.Component<Props, State> {
         className="awaiting-events"
         gradient={gradient}
       >
-        <div className="wrap">
-          <div className="robot">
-            <span className="eye" />
-          </div>
-          <h3>Waiting for events…</h3>
+        <Robot aria-hidden>
+          <Eye />
+        </Robot>
+        <MessageContainer>
+          <h3>{t('Waiting for events…')}</h3>
           <p>
-            <span>
-              <span>Our error robot is waiting to </span>
-              <span className="strikethrough">
-                <span>devour</span>
-              </span>
-              <span> receive your first event.</span>
-            </span>
+            {tct(
+              'Our error robot is waiting to [strike:devour] receive your first event.',
+              {
+                strike: <Strikethrough />,
+              }
+            )}
           </p>
           <p>
             {project && (
@@ -131,7 +132,7 @@ class ErrorRobot extends React.Component<Props, State> {
             )}
           </p>
           {sampleLink}
-        </div>
+        </MessageContainer>
       </ErrorRobotWrapper>
     );
   }
@@ -142,12 +143,87 @@ export {ErrorRobot};
 export default withApi(ErrorRobot);
 
 const ErrorRobotWrapper = styled('div')<{gradient: boolean}>`
+  display: flex;
+  justify-content: center;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
   border-radius: 0 0 3px 3px;
+  padding: 40px ${space(3)} ${space(3)};
+  min-height: 260px;
   ${p =>
     p.gradient
       ? `
           background-image: linear-gradient(to bottom, #F8F9FA, #ffffff);
          `
       : ''};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column;
+    align-items: center;
+    padding: ${space(3)};
+    text-align: center;
+  }
+`;
+
+const Robot = styled('div')`
+  display: block;
+  position: relative;
+  width: 220px;
+  height: 260px;
+  background: url(${robotBackground});
+  background-size: cover;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 110px;
+    height: 130px;
+  }
+`;
+
+const Eye = styled('span')`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  position: absolute;
+  top: 70px;
+  left: 81px;
+  transform: translateZ(0);
+  animation: blink-eye 0.6s infinite;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 6px;
+    height: 6px;
+    top: 35px;
+    left: 41px;
+  }
+
+  @keyframes blink-eye {
+    0% {
+      background: #e03e2f;
+      box-shadow: 0 0 10px #e03e2f;
+    }
+
+    50% {
+      background: #4a4d67;
+      box-shadow: none;
+    }
+
+    100% {
+      background: #e03e2f;
+      box-shadow: 0 0 10px #e03e2f;
+    }
+  }
+`;
+
+const MessageContainer = styled('div')`
+  align-self: center;
+  max-width: 480px;
+  margin-left: 40px;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin: 0;
+  }
+`;
+
+const Strikethrough = styled('span')`
+  text-decoration: line-through;
 `;
