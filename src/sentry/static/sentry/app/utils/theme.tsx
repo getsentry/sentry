@@ -3,8 +3,8 @@ import color from 'color';
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 const colors = {
-  white: '#FFFFFF',
-  black: '#1D1127',
+  white: 'purple',
+  black: 'pink',
 
   gray100: '#FAF9FB',
   gray200: '#F2F0F5',
@@ -58,11 +58,11 @@ const colors = {
   pink500: '#902D4C',
 
   get borderLighter() {
-    return colors.gray100;
+    return colors.pink300;
   },
 
   get borderLight() {
-    return colors.gray300;
+    return colors.pink200;
   },
 
   get borderDark() {
