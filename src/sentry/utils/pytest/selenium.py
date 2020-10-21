@@ -315,6 +315,30 @@ class Browser(object):
         if not os.path.exists(snapshot_dir):
             os.makedirs(snapshot_dir)
 
+        # XXX: Unfortunately order matters here else snapshots in CI will be a tiny bit different.
+        #      Otherwise we could do mobile_viewport first and early return if mobile_only.
+        #      But to truly fix this, I think the driver needs to be refreshed.
+        if not mobile_only:
+            with self.full_viewport():
+                screenshot_path = u"{}/{}.png".format(snapshot_dir, slugify(name))
+                # This will make sure we resize viewport height to fit contents
+                self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
+
+                if os.environ.get("SENTRY_SCREENSHOT"):
+                    import click
+
+                    click.launch(screenshot_path)
+
+                has_tooltips = self.driver.execute_script(
+                    "return window.__openAllTooltips && window.__openAllTooltips()"
+                )
+                if has_tooltips:
+                    screenshot_path = u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
+                    self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
+                    self.driver.execute_script(
+                        "window.__closeAllTooltips && window.__closeAllTooltips()"
+                    )
+
         with self.mobile_viewport():
             screenshot_path = u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
             self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
@@ -323,29 +347,6 @@ class Browser(object):
                 import click
 
                 click.launch(screenshot_path)
-
-        if mobile_only:
-            return self
-
-        # This will make sure we resize viewport height to fit contents
-        with self.full_viewport():
-            screenshot_path = u"{}/{}.png".format(snapshot_dir, slugify(name))
-            self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
-
-            if os.environ.get("SENTRY_SCREENSHOT"):
-                import click
-
-                click.launch(screenshot_path)
-
-            has_tooltips = self.driver.execute_script(
-                "return window.__openAllTooltips && window.__openAllTooltips()"
-            )
-            if has_tooltips:
-                screenshot_path = u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
-                self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
-                self.driver.execute_script(
-                    "window.__closeAllTooltips && window.__closeAllTooltips()"
-                )
 
         return self
 
