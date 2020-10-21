@@ -140,7 +140,7 @@ class ContextData extends React.Component {
       jsonConsts,
       maxDefaultDepth,
     } = this.props;
-    const maxDepth = maxDefaultDepth || 2;
+    const maxDepth = maxDefaultDepth ?? 2;
 
     function getValueWithAnnotatedText(v, meta) {
       return <AnnotatedText value={v} meta={meta} />;
