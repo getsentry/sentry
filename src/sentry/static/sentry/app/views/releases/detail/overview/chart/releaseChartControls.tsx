@@ -81,7 +81,7 @@ const ReleaseChartControls = ({
       case YAxis.CRASH_FREE:
         return t('Average Rate');
       case YAxis.SESSION_DURATION:
-        return t('Average Duration');
+        return t('Mean Duration');
       case YAxis.EVENTS:
         return t('Total Events');
       case YAxis.SESSIONS:
