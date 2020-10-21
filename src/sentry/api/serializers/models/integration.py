@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import six
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
 
@@ -96,6 +97,11 @@ class IntegrationProviderSerializer(Serializer):
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None
 
+        has_code_mappings = False
+        if obj.has_code_mappings:
+            feature_flag_name = "organizations:stacktrace-linking"
+            has_code_mappings = features.has(feature_flag_name, organization, actor=user)
+
         return {
             "key": obj.key,
             "slug": obj.key,
@@ -108,6 +114,7 @@ class IntegrationProviderSerializer(Serializer):
                 url=u"/organizations/{}/integrations/{}/setup/".format(organization.slug, obj.key),
                 **obj.setup_dialog_config
             ),
+            "hasCodeMappings": has_code_mappings,
         }
 
 

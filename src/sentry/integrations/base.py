@@ -162,6 +162,8 @@ class IntegrationProvider(PipelineProvider):
     # if this is hidden without the feature flag
     requires_feature_flag = False
 
+    has_code_mappings = False
+
     @classmethod
     def get_installation(cls, model, organization_id, **kwargs):
         if cls.integration_cls is None:

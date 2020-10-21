@@ -147,6 +147,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
 
     setup_dialog_config = {"width": 1030, "height": 1000}
+    has_code_mappings = True
 
     def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(

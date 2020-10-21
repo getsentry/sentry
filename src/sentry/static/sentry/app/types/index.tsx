@@ -793,6 +793,15 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
+export type RepositoryProjectPathConfig = {
+  id: string;
+  repositoryId: string;
+  projectId: string;
+  stackRoot: string;
+  sourceRoot: string;
+  defaultBranch?: string;
+};
+
 export type PullRequest = {
   id: string;
   title: string;
@@ -830,6 +839,7 @@ type BaseIntegrationProvider = {
 
 export type IntegrationProvider = BaseIntegrationProvider & {
   setupDialog: {url: string; width: number; height: number};
+  hasCodeMappings?: boolean;
   metadata: {
     description: string;
     features: IntegrationFeature[];
