@@ -97,6 +97,8 @@ const StyledList = styled(List)`
     padding-left: ${space(3)};
     :before {
       border-color: ${p => p.theme.white};
+      top: 50%;
+      transform: translateY(-50%);
     }
   }
 `;
