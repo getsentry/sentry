@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -50,6 +51,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
 import withIssueTags from 'app/utils/withIssueTags';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -78,7 +80,7 @@ type Props = {
   savedSearches: SavedSearch[];
   savedSearchLoading: boolean;
   tags: TagCollection;
-};
+} & RouteComponentProps<{searchId?: string}, {}>;
 
 type State = {
   groupIds: string[];
@@ -93,6 +95,17 @@ type State = {
   tagsLoading: boolean;
   memberList: IndexedMembersByProject;
   query?: string;
+};
+
+type EndpointParams = Partial<GlobalSelection['datetime']> & {
+  project: number[];
+  environment: string[];
+  query?: string;
+  sort?: string;
+  statsPeriod?: string;
+  groupStatsPeriod?: string;
+  cursor?: string;
+  page?: number | string;
 };
 
 class IssueListOverview extends React.Component<Props, State> {
@@ -224,9 +237,10 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
-    // this._poller.disable();
-    // GroupStore.reset();
-    // this.props.api.clear();
+    this._poller.disable();
+    GroupStore.reset();
+    this.props.api.clear();
+    callIfFunction(this.listener);
     // Reset store when unmounting because we always fetch on mount
     // This means if you navigate away from stream and then back to stream,
     // this component will go from:
@@ -244,28 +258,17 @@ class IssueListOverview extends React.Component<Props, State> {
   private _lastRequest: any;
   private _streamManager = new StreamManager(GroupStore);
 
-  getQuery = () => {
+  getQuery = (): string => {
     if (this.props.savedSearch) {
       return this.props.savedSearch.query;
     }
 
     const {query} = this.props.location.query;
-
-    if (!query) {
-      return DEFAULT_QUERY;
-    }
-
-    return typeof query === 'string' ? query : query.join(' ');
+    return typeof query === 'undefined' ? DEFAULT_QUERY : (query as string);
   };
 
-  getSort = () => {
-    const {sort} = this.props.location.query;
-
-    if (!sort) {
-      return DEFAULT_SORT;
-    }
-
-    return typeof sort === 'string' ? sort : sort.join(' ');
+  getSort = (): string => {
+    return (this.props.location.query.sort as string) || DEFAULT_SORT;
   };
 
   getGroupStatsPeriod = () => {
@@ -281,10 +284,10 @@ class IssueListOverview extends React.Component<Props, State> {
       : DEFAULT_GRAPH_STATS_PERIOD;
   };
 
-  getEndpointParams = () => {
+  getEndpointParams = (): EndpointParams => {
     const {selection} = this.props;
 
-    const params: any = {
+    const params: EndpointParams = {
       project: selection.projects,
       environment: selection.environments,
       query: this.getQuery(),
@@ -313,7 +316,7 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     // only include defined values.
-    return pickBy(params, v => defined(v));
+    return pickBy(params, v => defined(v)) as EndpointParams;
   };
 
   getFeatures = () => {
@@ -498,7 +501,6 @@ class IssueListOverview extends React.Component<Props, State> {
       this.fetchData();
     } else {
       // Clear the saved search as the user wants something else.
-      this.setState({query});
       this.transitionTo({query}, null);
     }
   };
@@ -547,7 +549,7 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   transitionTo = (
-    newParams: any = {},
+    newParams: Partial<EndpointParams> = {},
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
     const query = {
@@ -555,7 +557,7 @@ class IssueListOverview extends React.Component<Props, State> {
       ...newParams,
     };
     const {organization} = this.props;
-    let path;
+    let path: string;
 
     if (savedSearch && savedSearch.id) {
       path = `/organizations/${organization.slug}/issues/searches/${savedSearch.id}/`;
@@ -574,7 +576,7 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     if (
-      path !== this.props.location.pathname &&
+      path !== this.props.location.pathname ||
       !isEqual(query, this.props.location.query)
     ) {
       browserHistory.push({
@@ -668,7 +670,14 @@ class IssueListOverview extends React.Component<Props, State> {
     const projectIds = this.getGlobalSearchProjectIds().map(id => id.toString());
     const endpointParams = this.getEndpointParams();
 
-    return fetchTagValues(this.props.api, orgId, key, search, projectIds, endpointParams);
+    return fetchTagValues(
+      this.props.api,
+      orgId,
+      key,
+      search,
+      projectIds,
+      endpointParams as any
+    );
   };
 
   render() {
@@ -721,7 +730,7 @@ class IssueListOverview extends React.Component<Props, State> {
             <PanelBody>
               <ProcessingIssueList
                 organization={this.props.organization}
-                projectIds={this.props.selection.projects.map(p => p.toString())}
+                projectIds={this.props.selection?.projects?.map(p => p.toString())}
                 showProject
               />
               {this.renderStreamBody()}
@@ -742,8 +751,8 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 }
 
-export default withGlobalSelection(
-  withApi(
+export default withApi(
+  withGlobalSelection(
     withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
   )
 );
