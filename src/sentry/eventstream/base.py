@@ -48,7 +48,6 @@ class EventStream(Service):
                 {"project": event.project_id, "event_id": event.event_id}
             )
             post_process_group.delay(
-                event=None,
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
