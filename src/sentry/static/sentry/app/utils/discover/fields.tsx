@@ -24,10 +24,14 @@ export type ColumnType =
 
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
+type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
+
+export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
+
 export type AggregateParameter =
   | {
       kind: 'column';
-      columnTypes: Readonly<ColumnType[]>;
+      columnTypes: Readonly<ValidateColumnTypes>;
       defaultValue?: string;
       required: boolean;
     }
