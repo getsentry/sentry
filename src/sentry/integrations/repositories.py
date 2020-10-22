@@ -9,6 +9,15 @@ class RepositoryMixin(object):
     # dynamically given a search query
     repo_search = False
 
+    def get_stacktrace_link(self, repo, path, version):
+        """
+        Handle formatting and returning back the stack trace link if the client
+        request was successful.
+
+        If no file was found return `None`, and re-raise for non "Not Found" errors
+        """
+        raise NotImplementedError
+
     def get_repositories(self, query=None):
         """
         Get a list of available repositories for an installation
