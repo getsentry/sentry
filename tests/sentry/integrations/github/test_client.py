@@ -8,7 +8,7 @@ from sentry.models import Integration
 
 
 class GitHubAppsClientTest(TestCase):
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_save_token(self, get_jwt):
 

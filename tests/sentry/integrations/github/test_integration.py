@@ -38,8 +38,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def _stub_github(self):
         responses.reset()
 
-        sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
-        sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
+        sentry.integrations.github.integration.get_jwt = MagicMock(return_value=b"jwt_token_1")
+        sentry.integrations.github.client.get_jwt = MagicMock(return_value=b"jwt_token_1")
 
         responses.add(
             responses.POST,
@@ -89,7 +89,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         auth_header = responses.calls[0].request.headers["Authorization"]
-        assert auth_header == "Bearer jwt_token_1"
+        assert auth_header == b"Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
         return resp
@@ -179,7 +179,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
 
         auth_header = responses.calls[0].request.headers["Authorization"]
-        assert auth_header == "Bearer jwt_token_1"
+        assert auth_header == b"Bearer jwt_token_1"
 
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.status == ObjectStatus.VISIBLE
