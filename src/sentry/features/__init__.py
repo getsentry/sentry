@@ -90,6 +90,7 @@ default_manager.add("organizations:performance-view", OrganizationFeature)  # NO
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
+default_manager.add("organizations:custom-event-title", OrganizationFeature)  # NOQA
 default_manager.add("organizations:slack-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA

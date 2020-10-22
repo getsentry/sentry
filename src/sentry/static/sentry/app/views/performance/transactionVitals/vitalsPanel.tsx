@@ -21,7 +21,7 @@ type Props = {
   dataFilter?: string;
 };
 
-class TransactionVitals extends React.Component<Props> {
+class VitalsPanel extends React.Component<Props> {
   renderVitalCard(
     vital: WebVital,
     isLoading: boolean,
@@ -160,8 +160,8 @@ class TransactionVitals extends React.Component<Props> {
                       failureRate,
                       multiHistogramResults.histograms?.[vital] ?? [],
                       [colors[index]],
-                      start !== undefined ? parseInt(start, 10) : undefined,
-                      end !== undefined ? parseInt(end, 10) : undefined,
+                      parseBound(start, precision),
+                      parseBound(end, precision),
                       precision
                     )}
                   </React.Fragment>
@@ -200,4 +200,16 @@ class TransactionVitals extends React.Component<Props> {
   }
 }
 
-export default TransactionVitals;
+function parseBound(
+  boundString: string | undefined,
+  precision: number | undefined
+): number | undefined {
+  if (boundString === undefined) {
+    return undefined;
+  } else if (precision === undefined || precision === 0) {
+    return parseInt(boundString, 10);
+  }
+  return parseFloat(boundString);
+}
+
+export default VitalsPanel;

@@ -463,7 +463,12 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
     # they'll be included in the standard results anyway.
     start_query_params = None
     extra_buckets = []
-    if int(to_timestamp(incident.date_started)) % time_window:
+    retention = quotas.get_event_retention(organization=incident.organization) or 90
+    if (
+        incident.date_started
+        > datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention)
+        and int(to_timestamp(incident.date_started)) % time_window
+    ):
         start_query_params = build_extra_query_params(incident.date_started)
         snuba_params.append(start_query_params)
         extra_buckets.append(incident.date_started)
@@ -1337,10 +1342,9 @@ TRANSLATABLE_COLUMNS = {
 
 
 def get_column_from_aggregate(aggregate):
-    field = resolve_field(aggregate)
-    if field[1] is not None:
-        column = field[1][0][1]
-        return column
+    function = resolve_field(aggregate)
+    if function.aggregate is not None:
+        return function.aggregate[1]
     return None
 
 

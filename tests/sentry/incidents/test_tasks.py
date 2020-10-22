@@ -279,6 +279,28 @@ class ProcessPendingIncidentSnapshots(TestCase):
         assert IncidentSnapshot.objects.filter(incident=incident).count() == 1
         assert IncidentSnapshot.objects.all().count() == 1
 
+    def test_dont_error_on_old_incident(self):
+        # We had a bug where incidents were able to get into a certain state and cause errors.
+        # Incident that started before retention and had a time window less than their total length
+        # were causing issues with the additional start bucket query.
+        alert_rule = self.create_alert_rule(time_window=1440)
+        incident = self.create_incident(
+            title="incident1",
+            status=IncidentStatus.CLOSED.value,
+            alert_rule=alert_rule,
+            date_started=datetime(2020, 6, 11, 11, 10, 20, 589692, tzinfo=timezone.utc),
+            date_closed=datetime(2020, 6, 11, 11, 11, 20, 589692, tzinfo=timezone.utc),
+        )
+        pending_1 = PendingIncidentSnapshot.objects.create(
+            incident=incident, target_run_date=timezone.now()
+        )
+        assert IncidentSnapshot.objects.all().count() == 0
+        with self.tasks():
+            process_pending_incident_snapshots()
+        assert not PendingIncidentSnapshot.objects.filter(id=pending_1.id).exists()
+        assert IncidentSnapshot.objects.filter(incident=incident).exists()
+        assert IncidentSnapshot.objects.all().count() == 1
+
     def test_abort_because_missing_project(self):
         project_to_burn = self.create_project(name="Burn", slug="burn", teams=[self.team])
         incident = self.create_incident(

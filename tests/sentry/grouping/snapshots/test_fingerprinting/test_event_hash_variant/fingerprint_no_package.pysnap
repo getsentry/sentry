@@ -1,11 +1,12 @@
 ---
-created: '2020-08-19T12:18:25.152005Z'
+created: '2020-10-13T10:09:30.523516Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
-  - fingerprint:
+  - attributes: {}
+    fingerprint:
     - '{{ package }}'
     matchers:
     - - type
@@ -13,6 +14,7 @@ config:
   version: 1
 fingerprint:
 - '{{ package }}'
+title: 'DatabaseUnavailable: For some reason the database went away'
 variants:
   app:
     component:

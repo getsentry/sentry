@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {Location} from 'history';
 import {RouteComponentProps} from 'react-router/lib/Router';
@@ -40,10 +39,6 @@ type State = AsyncView['state'] & {
 };
 
 class OrganizationProjects extends AsyncView<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-  };
-
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
     const {location} = this.props;
@@ -106,7 +101,7 @@ class OrganizationProjects extends AsyncView<Props, State> {
     );
 
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader title="Projects" action={action} />
         <Panel>
           <PanelHeader hasButtons>
@@ -118,7 +113,7 @@ class OrganizationProjects extends AsyncView<Props, State> {
               className: 'search',
             })}
           </PanelHeader>
-          <PanelBody css={{width: '100%'}}>
+          <PanelBody>
             {projectList ? (
               sortProjects(projectList).map(project => (
                 <GridPanelItem key={project.id}>
@@ -149,7 +144,7 @@ class OrganizationProjects extends AsyncView<Props, State> {
         {projectListPageLinks && (
           <Pagination pageLinks={projectListPageLinks} {...this.props} />
         )}
-      </div>
+      </React.Fragment>
     );
   }
 }
