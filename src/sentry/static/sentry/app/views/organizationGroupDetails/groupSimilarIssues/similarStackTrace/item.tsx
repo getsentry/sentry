@@ -40,14 +40,18 @@ type Props = {
 };
 
 const initialState = {visible: true, checked: false, busy: false};
+
 type State = typeof initialState;
+
 class Item extends React.Component<Props, State> {
   state: State = initialState;
 
   componentWillUnmount() {
     callIfFunction(this.listener);
   }
+
   listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);
+
   handleToggle = () => {
     const {issue} = this.props;
 
