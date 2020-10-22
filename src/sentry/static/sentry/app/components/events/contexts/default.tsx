@@ -12,10 +12,10 @@ type Props = {
 function getKnownData(data: Props['data']) {
   return Object.entries(data)
     .filter(([k]) => k !== 'type' && k !== 'title')
-    .map(([k, v]) => ({
-      key: k,
-      subject: k,
-      value: v,
+    .map(([key, value]) => ({
+      key,
+      subject: key,
+      value,
     }));
 }
 
