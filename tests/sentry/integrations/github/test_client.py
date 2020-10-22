@@ -22,7 +22,7 @@ class GitHubAppsClientTest(TestCase):
         install = integration.get_installation(organization_id="123")
         self.client = install.get_client()
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_save_token(self, get_jwt):
 
@@ -43,7 +43,7 @@ class GitHubAppsClientTest(TestCase):
         assert token == "12345token"
         assert len(responses.calls) == 1
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_check_file(self, get_jwt):
         responses.add(
@@ -64,7 +64,7 @@ class GitHubAppsClientTest(TestCase):
         resp = self.client.check_file(repo, path)
         assert resp.status_code == 200
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_check_no_file(self, get_jwt):
         responses.add(
