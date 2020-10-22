@@ -126,5 +126,5 @@ const Header = styled('div')`
 const Footer = styled('div')`
   display: flex;
   justify-content: center;
-  padding: 12px;
+  padding: ${space(1.5)};
 `;
