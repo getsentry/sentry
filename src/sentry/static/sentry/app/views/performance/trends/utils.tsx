@@ -19,6 +19,7 @@ import {IconArrow} from 'app/icons';
 
 import {
   TrendFunction,
+  ConfidenceLevel,
   TrendChangeType,
   TrendView,
   TrendsTransaction,
@@ -70,6 +71,23 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
   },
 ];
 
+export const CONFIDENCE_LEVELS: ConfidenceLevel[] = [
+  {
+    label: 'High',
+    min: 6,
+  },
+  {
+    label: 'Medium',
+    min: 3,
+    max: 6,
+  },
+  {
+    label: 'Low',
+    min: 0,
+    max: 3,
+  },
+];
+
 export const trendToColor = {
   [TrendChangeType.IMPROVED]: {
     lighter: theme.green300,
@@ -95,6 +113,14 @@ export function getCurrentTrendFunction(location: Location): TrendFunction {
   const trendFunctionField = decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
   return trendFunction || TRENDS_FUNCTIONS[0];
+}
+
+export function getCurrentConfidenceLevel(location: Location): ConfidenceLevel {
+  const confidenceLevelLabel = decodeScalar(location?.query?.confidenceLevel);
+  const confidenceLevel = CONFIDENCE_LEVELS.find(
+    ({label}) => label === confidenceLevelLabel
+  );
+  return confidenceLevel || CONFIDENCE_LEVELS[0];
 }
 
 export function getIntervalRatio(location: Location): number {
@@ -149,6 +175,7 @@ export function modifyTrendView(
   isProjectOnly?: boolean
 ) {
   const trendFunction = getCurrentTrendFunction(location);
+  const confidenceLevel = getCurrentConfidenceLevel(location);
 
   const transactionField = isProjectOnly ? [] : ['transaction'];
   const fields = [...transactionField, 'project'].map(field => ({
@@ -171,7 +198,7 @@ export function modifyTrendView(
   if (trendFunction) {
     trendView.trendFunction = trendFunction.field;
   }
-  const limitTrendResult = getLimitTransactionItems(trendsType);
+  const limitTrendResult = getLimitTransactionItems(trendsType, confidenceLevel);
   trendView.query += ' ' + limitTrendResult;
 
   trendView.interval = getQueryInterval(location, trendView);
@@ -386,10 +413,15 @@ export function movingAverage(data, index, size) {
 /**
  * This function applies a query to limit the results based on the trend type to being greater or less than 100% (depending on the type)
  */
-function getLimitTransactionItems(trendChangeType: TrendChangeType) {
-  let limitQuery = 'trend_percentage():<1 t_score():>1';
+function getLimitTransactionItems(
+  trendChangeType: TrendChangeType,
+  confidenceLevel: ConfidenceLevel
+) {
+  let limitQuery = `trend_percentage():<1 t_score():>${confidenceLevel.min}`;
+  limitQuery += confidenceLevel.max ? ` t_score():<=${confidenceLevel.max}` : '';
   if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery = 'trend_percentage():>1 t_score():<-1';
+    limitQuery = `trend_percentage():>1 t_score():<-${confidenceLevel.min}`;
+    limitQuery += confidenceLevel.max ? ` t_score():>=-${confidenceLevel.max}` : '';
   }
   limitQuery +=
     ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';
