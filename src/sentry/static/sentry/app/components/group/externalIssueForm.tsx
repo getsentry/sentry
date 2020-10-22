@@ -95,18 +95,9 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
 
   onRequestSuccess({stateKey, data}) {
     if (stateKey === 'integrationDetails' && !this.state.dynamicFieldValues) {
-      this.setState(
-        {
-          dynamicFieldValues: this.getDynamicFields(data),
-        },
-        () => {
-          // we need to reset the form model if fields change to/from
-          // required but we want to maintain the data as well
-          const existingData = this.model.getData();
-          this.model.reset();
-          this.model.setInitialData(existingData);
-        }
-      );
+      this.setState({
+        dynamicFieldValues: this.getDynamicFields(data),
+      });
     }
   }
 
@@ -251,7 +242,7 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
       >
         {config.map(field => (
           <FieldFromConfig
-            key={`${field.name}-${field.default}`}
+            key={`${field.name}-${field.default}-${field.required}`}
             field={field}
             inline={false}
             stacked
