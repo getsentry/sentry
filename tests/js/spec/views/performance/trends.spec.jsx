@@ -87,6 +87,10 @@ describe('Performance > Trends', function () {
       url: '/organizations/org-slug/releases/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/transaction.duration/values/',
+      body: [],
+    });
     trendsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-trends-stats/',
       body: {
@@ -288,6 +292,40 @@ describe('Performance > Trends', function () {
     });
   });
 
+  it('Changing search causes cursors to be reset', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+    const search = wrapper.find('#smart-search-input').first();
+
+    search
+      .simulate('change', {target: {value: 'transaction.duration:>9000'}})
+      .simulate('submit', {
+        preventDefault() {},
+      });
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: expect.objectContaining({
+        project: ['1'],
+        query: 'transaction.duration:>9000',
+        improvedCursor: undefined,
+        regressionCursor: undefined,
+        view: 'TRENDS',
+      }),
+    });
+  });
+
   it('exclude greater than list menu action modifies query', async function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeData(projects, {project: ['1']});
@@ -476,6 +514,8 @@ describe('Performance > Trends', function () {
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
+          regressionCursor: undefined,
+          improvedCursor: undefined,
           trendFunction: trendFunction.field,
         }),
       });

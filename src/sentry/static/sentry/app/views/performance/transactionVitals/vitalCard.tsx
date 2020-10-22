@@ -275,7 +275,11 @@ class VitalCard extends React.Component<Props, State> {
       const name =
         vital.type === 'duration'
           ? formatDuration(midPoint)
-          : formatFloat(midPoint, 2).toLocaleString();
+          : // This is trying to avoid some of potential rounding errors that cause bins
+            // have the same label, if the number of bins doesn't visually match what is
+            // expected, check that this rounding is correct. If this issue persists,
+            // consider formatting the bin as a string in the response
+            (Math.round((midPoint + Number.EPSILON) * 100) / 100).toLocaleString();
 
       return {
         value: item.count,
@@ -361,7 +365,7 @@ class VitalCard extends React.Component<Props, State> {
 
   drawFailRegion(series) {
     const {chartData, vital, failureRate} = this.props;
-    const {failureThreshold} = vital;
+    const {failureThreshold, type} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
       return;
     }
@@ -416,7 +420,12 @@ class VitalCard extends React.Component<Props, State> {
           '<div class="tooltip-series tooltip-series-solo">',
           '<span class="tooltip-label">',
           '<strong>',
-          t('Fails threshold at %s.', getDuration(failureThreshold / 1000)),
+          t(
+            'Fails threshold at %s.',
+            type === 'duration'
+              ? getDuration(failureThreshold / 1000, 2, true)
+              : formatFloat(failureThreshold, 2)
+          ),
           '</strong>',
           '</span>',
           '</div>',
@@ -449,20 +458,6 @@ class VitalCard extends React.Component<Props, State> {
         position: 'left',
       },
     });
-  }
-
-  approxFailureRate(failureIndex) {
-    const {chartData} = this.props;
-
-    const failures = chartData
-      .slice(failureIndex)
-      .reduce((sum, data) => sum + data.count, 0);
-    const total = chartData.reduce((sum, data) => sum + data.count, 0);
-    if (total === 0) {
-      return 0;
-    }
-
-    return failures / total;
   }
 
   render() {

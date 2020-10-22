@@ -1,5 +1,5 @@
 import {isNativePlatform} from 'app/utils/platform';
-import {Event, Group} from 'app/types';
+import {Event, Group, Organization} from 'app/types';
 
 /**
  * Extract the display message from an event.
@@ -36,7 +36,7 @@ type EventTitle = {
   subtitle: string;
 };
 
-export function getTitle(event: Event | Group): EventTitle {
+export function getTitle(event: Event | Group, organization?: Organization): EventTitle {
   const {metadata, type, culprit} = event;
   const result: EventTitle = {
     title: event.title,
@@ -61,6 +61,10 @@ export function getTitle(event: Event | Group): EventTitle {
     result.subtitle = metadata.origin || '';
   } else if (type === 'default') {
     result.title = metadata.title || '';
+  }
+
+  if (organization?.features.includes('custom-event-title') && metadata?.title) {
+    result.title = metadata.title;
   }
 
   return result;

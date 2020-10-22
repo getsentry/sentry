@@ -463,3 +463,47 @@ class EventAttributeConditionTest(RuleTestCase):
             }
         )
         self.assertDoesNotPass(rule, event)
+
+    def test_stacktrace_package(self):
+        """Stacktrace.package should match frames anywhere in the stack."""
+
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "value": "hello world",
+                        "stacktrace": {
+                            "frames": [
+                                {"filename": "example.php", "package": "package/example.lib"},
+                                {
+                                    "filename": "somecode.php",
+                                    "package": "package/otherpackage.lib",
+                                },
+                                {
+                                    "filename": "othercode.php",
+                                    "package": "package/somepackage.lib",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            }
+        )
+
+        # correctly matching filenames, at various locations in the stacktrace
+        for value in ["package/example.lib", "package/otherpackage.lib", "package/somepackage.lib"]:
+            rule = self.get_rule(
+                data={"match": MatchType.EQUAL, "attribute": "stacktrace.package", "value": value}
+            )
+            self.assertPasses(rule, event)
+
+        # non-matching filename
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "stacktrace.package",
+                "value": "package/otherotherpackage.lib",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
