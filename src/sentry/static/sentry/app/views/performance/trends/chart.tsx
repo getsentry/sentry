@@ -88,7 +88,7 @@ function transformEventStatsSmoothed(data: Series[], seriesName?: string): Serie
   ];
 }
 
-function getLegend() {
+function getLegend(trendFunction: string) {
   const legend = {
     right: 10,
     top: 0,
@@ -107,6 +107,10 @@ function getLegend() {
       },
       {
         name: 'Releases',
+        icon: 'line',
+      },
+      {
+        name: trendFunction,
         icon: 'line',
       },
     ],
@@ -259,7 +263,7 @@ class Chart extends React.Component<Props> {
     const utc = decodeScalar(router.location.query.utc);
 
     const intervalRatio = getIntervalRatio(router.location);
-    const legend = getLegend();
+    const legend = getLegend(trendFunction.chartLabel);
 
     const loading = isLoading;
     const reloading = isLoading;
