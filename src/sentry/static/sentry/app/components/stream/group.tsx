@@ -61,6 +61,7 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: any[];
+  // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
 type State = {
