@@ -64,7 +64,7 @@ type Props = {
    *
    * Additionally a `truncate` option
    */
-  xAxis?: EChartOption.XAxis & Truncateable;
+  xAxis?: (EChartOption.XAxis & Truncateable) | null;
   /**
    * Must be explicitly `null` to disable yAxis
    */
