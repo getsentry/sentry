@@ -704,9 +704,9 @@ class AuthHelper(object):
 
             if not auth_identity:
                 # XXX(leedongwei): Workaround for migrating Okta instance
-                if auth_provider.provider == "okta" and features.has(
+                if features.has(
                     "organizations:sso-migration", self.organization, actor=self.request.user
-                ):
+                ) and (auth_provider.provider == "okta" or auth_provider.provider == "saml2"):
                     identity["email_verified"] = True
 
                     logger.info(
