@@ -85,7 +85,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration', 'date'],
+        columnTypes: validateForNumericAggregate([
+          'integer',
+          'number',
+          'duration',
+          'date',
+        ]),
         required: true,
       },
     ],
@@ -97,7 +102,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration', 'date'],
+        columnTypes: validateForNumericAggregate([
+          'integer',
+          'number',
+          'duration',
+          'date',
+        ]),
         required: true,
       },
     ],
@@ -109,7 +119,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration', 'number'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -122,7 +132,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration', 'number'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         required: true,
       },
     ],
@@ -142,7 +152,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration', 'number'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -155,7 +165,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration', 'number'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -168,7 +178,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration', 'number'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -182,7 +192,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration', 'number'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -195,7 +205,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration', 'number'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         required: false,
       },
     ],
@@ -207,7 +217,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration', 'number'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -645,4 +655,24 @@ export function aggregateMultiPlotType(field: string): PlotType {
     return 'area';
   }
   return AGGREGATIONS[funcName].multiPlotType;
+}
+
+function validateForNumericAggregate(
+  validColumnTypes: ColumnType[]
+): ValidateColumnValueFunction {
+  return function ({name, dataType}: {name: string; dataType: ColumnType}): boolean {
+    // these built-in columns cannot be applied to numeric aggregates such as percentile(...)
+    if (
+      [
+        FieldKey.DEVICE_BATTERY_LEVEL,
+        FieldKey.STACK_COLNO,
+        FieldKey.STACK_LINENO,
+        FieldKey.STACK_STACK_LEVEL,
+      ].includes(name as FieldKey)
+    ) {
+      return false;
+    }
+
+    return validColumnTypes.includes(dataType);
+  };
 }
