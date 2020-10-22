@@ -95,10 +95,10 @@ const StyledTooltipError = styled(Tooltip)`
 const StyledList = styled(List)`
   li {
     padding-left: ${space(3)};
+    word-break: break-all;
     :before {
       border-color: ${p => p.theme.white};
-      top: 50%;
-      transform: translateY(-50%);
+      top: 6px;
     }
   }
 `;
