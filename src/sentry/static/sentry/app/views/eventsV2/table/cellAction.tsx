@@ -160,10 +160,24 @@ class CellAction extends React.Component<Props, State> {
 
   renderMenuButtons() {
     const {dataRow, column, handleCellAction, allowActions} = this.props;
-
     const fieldAlias = getAggregateAlias(column.name);
-    const value = dataRow[fieldAlias];
 
+    // Slice out the last element from array values as that is the value
+    // we show. See utils/discover/fieldRenderers.tsx and how
+    // strings and error.handled are rendered.
+    let value = dataRow[fieldAlias];
+    if (Array.isArray(value)) {
+      value = value.slice(-1)[0];
+    }
+
+    // error.handled is a strange field where null = true.
+    if (
+      value === null &&
+      column.column.kind === 'field' &&
+      column.column.field === 'error.handled'
+    ) {
+      value = 1;
+    }
     const actions: React.ReactNode[] = [];
 
     function addMenuItem(action: Actions, menuItem: React.ReactNode) {
@@ -177,7 +191,9 @@ class CellAction extends React.Component<Props, State> {
 
     if (
       !['duration', 'number', 'percentage'].includes(column.type) ||
-      (value === null && column.column.kind === 'field')
+      (value === null &&
+        column.column.kind === 'field' &&
+        column.column.field !== 'error.handled')
     ) {
       addMenuItem(
         Actions.ADD,
