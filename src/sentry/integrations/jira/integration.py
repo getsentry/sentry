@@ -303,7 +303,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return {
             "key": issue_id,
             "title": issue["fields"]["summary"],
-            "description": issue["fields"].get("description", None),
+            "description": issue["fields"].get("description"),
         }
 
     def create_comment(self, issue_id, user_id, group_note):
