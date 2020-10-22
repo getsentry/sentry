@@ -8,7 +8,7 @@ import {addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
-import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
+import {FieldValue} from 'app/views/settings/components/forms/model';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import {
@@ -42,7 +42,6 @@ type State = {
 } & AsyncComponent['state'];
 
 class ExternalIssueForm extends AsyncComponent<Props, State> {
-  model = new FormModel();
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     integration: PropTypes.object.isRequired,
@@ -228,7 +227,6 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
 
     return (
       <Form
-        model={this.model}
         apiEndpoint={`/groups/${group.id}/integrations/${integration.id}/`}
         apiMethod={action === 'create' ? 'POST' : 'PUT'}
         onSubmitSuccess={this.onSubmitSuccess}
