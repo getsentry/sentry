@@ -73,7 +73,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               <NameRepoColumn>{t('Code Path Mappings')}</NameRepoColumn>
               <OutputPathColumn>{t('Output Path')}</OutputPathColumn>
               <InputPathColumn>{t('Input Path')}</InputPathColumn>
-              <DefaultBranchColumn>{t('Default Branch')}</DefaultBranchColumn>
+              <DefaultBranchColumn>{t('Branch')}</DefaultBranchColumn>
               <ButtonColumn>
                 <AddButton size="xsmall" icon={<IconAdd size="xs" isCircled />}>
                   {t('Add Mapping')}
