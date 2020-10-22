@@ -7,7 +7,6 @@ import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 
 const data = {
   metadata: {
-    title: 'metadata title',
     type: 'metadata type',
     directive: 'metadata directive',
     uri: 'metadata uri',
@@ -65,8 +64,10 @@ describe('EventOrGroupHeader', function () {
           params={{orgId: 'orgId'}}
           data={{
             ...groupData,
-            ...{
-              type: 'default',
+            type: 'default',
+            metadata: {
+              ...groupData.metadata,
+              title: 'metadata title',
             },
           }}
         />,
@@ -126,8 +127,10 @@ describe('EventOrGroupHeader', function () {
           params={{orgId: 'orgId'}}
           data={{
             ...eventData,
-            ...{
-              type: 'default',
+            type: 'default',
+            metadata: {
+              ...eventData.metadata,
+              title: 'metadata title',
             },
           }}
         />,
@@ -144,8 +147,10 @@ describe('EventOrGroupHeader', function () {
           hideLevel
           data={{
             ...eventData,
-            ...{
-              type: 'default',
+            type: 'default',
+            metadata: {
+              ...eventData.metadata,
+              title: 'metadata title',
             },
           }}
         />,

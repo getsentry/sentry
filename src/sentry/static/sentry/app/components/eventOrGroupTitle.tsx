@@ -1,39 +1,21 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import {Event, Group} from 'app/types';
-import {Metadata} from 'app/sentryTypes';
+import {Organization, Event, Group} from 'app/types';
 import {getTitle} from 'app/utils/events';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   data: Event | Group;
+  organization: Organization;
   style?: React.CSSProperties;
   hasGuideAnchor?: boolean;
 };
 
 class EventOrGroupTitle extends React.Component<Props> {
-  static propTypes = {
-    data: PropTypes.shape({
-      type: PropTypes.oneOf([
-        'error',
-        'csp',
-        'hpkp',
-        'expectct',
-        'expectstaple',
-        'default',
-        'transaction',
-      ]).isRequired,
-      title: PropTypes.string,
-      metadata: Metadata.isRequired,
-      culprit: PropTypes.string,
-    }),
-    style: PropTypes.object,
-  };
-
   render() {
-    const {title, subtitle} = getTitle(this.props.data as Event);
-    const {hasGuideAnchor} = this.props;
+    const {hasGuideAnchor, organization} = this.props;
+    const {title, subtitle} = getTitle(this.props.data as Event, organization);
 
     return subtitle ? (
       <span style={this.props.style}>
@@ -54,7 +36,7 @@ class EventOrGroupTitle extends React.Component<Props> {
   }
 }
 
-export default EventOrGroupTitle;
+export default withOrganization(EventOrGroupTitle);
 
 /**
  * &nbsp; is used instead of margin/padding to split title and subtitle

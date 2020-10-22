@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
-import {Event, LightWeightOrganization, SelectValue} from 'app/types';
+import {Event, LightWeightOrganization, SelectValue, Organization} from 'app/types';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -104,7 +104,15 @@ export function pushEventViewToLocation(props: {
   });
 }
 
-export function generateTitle({eventView, event}: {eventView: EventView; event?: Event}) {
+export function generateTitle({
+  eventView,
+  event,
+  organization,
+}: {
+  eventView: EventView;
+  event?: Event;
+  organization?: Organization;
+}) {
   const titles = [t('Discover')];
 
   const eventViewName = eventView.name;
@@ -112,7 +120,7 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
     titles.push(String(eventViewName).trim());
   }
 
-  const eventTitle = event ? getTitle(event).title : undefined;
+  const eventTitle = event ? getTitle(event, organization).title : undefined;
   if (eventTitle) {
     titles.push(eventTitle);
   }

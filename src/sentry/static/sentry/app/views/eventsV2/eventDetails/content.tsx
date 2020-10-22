@@ -175,7 +175,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               organization={organization}
               location={location}
             />
-            <EventHeader event={event} />
+            <EventHeader event={event} organization={organization} />
           </Layout.HeaderContent>
           <StyledHeaderActions>
             <ButtonBar gap={1}>
@@ -282,7 +282,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {eventView, organization} = this.props;
     const {event} = this.state;
 
-    const title = generateTitle({eventView, event});
+    const title = generateTitle({eventView, event, organization});
 
     return (
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
@@ -292,10 +292,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 }
 
-const EventHeader = (props: {event: Event}) => {
-  const {title} = getTitle(props.event);
+const EventHeader = ({
+  event,
+  organization,
+}: {
+  event: Event;
+  organization: Organization;
+}) => {
+  const {title} = getTitle(event, organization);
 
-  const message = getMessage(props.event);
+  const message = getMessage(event);
 
   return (
     <Layout.Title data-test-id="event-header">
@@ -303,7 +309,7 @@ const EventHeader = (props: {event: Event}) => {
         {title}
         {message && message.length > 0 ? ':' : null}
       </span>
-      <EventSubheading>{getMessage(props.event)}</EventSubheading>
+      <EventSubheading>{getMessage(event)}</EventSubheading>
     </Layout.Title>
   );
 };
