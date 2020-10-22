@@ -1,17 +1,16 @@
 import React from 'react';
-import moment from 'moment';
 
-import {intcomma} from 'app/utils';
-import {t, tn} from 'app/locale';
+import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import StackedBarChart from 'app/components/stackedBarChart';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
+import Placeholder from 'app/components/placeholder';
+import MiniBarChart from 'app/components/charts/miniBarChart';
+import {Series} from 'app/types/echarts';
 import {Project} from 'app/types';
 import {Client} from 'app/api';
+import theme from 'app/utils/theme';
 
 type Props = {
   api: Client;
@@ -19,41 +18,37 @@ type Props = {
   params: {orgId: string; projectId: string};
 };
 
-type StatRecord = {
-  data: {x: number; y: number}[];
-  label: string;
-  statName: string;
-};
-
 type State = {
   loading: boolean;
   error: boolean;
   statsError: boolean;
-  querySince: number;
-  queryUntil: number;
-  rawStatsData: null | Record<string, any>;
-  formattedData: StatRecord[];
+  formattedData: Series[];
   blankStats: boolean;
 };
 
+type RawStats = Record<string, [timestamp: number, value: number][]>;
+
+const STAT_OPS = {
+  'browser-extensions': {title: t('Browser Extension'), color: theme.gray400},
+  cors: {title: 'CORS', color: theme.orange400},
+  'error-message': {title: t('Error Message'), color: theme.purple400},
+  'discarded-hash': {title: t('Discarded Issue'), color: theme.gray300},
+  'invalid-csp': {title: t('Invalid CSP'), color: theme.blue300},
+  'ip-address': {title: t('IP Address'), color: theme.red300},
+  'legacy-browsers': {title: t('Legacy Browser'), color: theme.gray300},
+  localhost: {title: t('Localhost'), color: theme.blue400},
+  'release-version': {title: t('Release'), color: theme.purple300},
+  'web-crawlers': {title: t('Web Crawler'), color: theme.red400},
+};
+
 class ProjectFiltersChart extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-
-    const until = Math.floor(new Date().getTime() / 1000);
-    const since = until - 3600 * 24 * 30;
-
-    this.state = {
-      loading: true,
-      error: false,
-      statsError: false,
-      querySince: since,
-      queryUntil: until,
-      rawStatsData: null,
-      formattedData: [],
-      blankStats: true,
-    };
-  }
+  state: State = {
+    loading: true,
+    error: false,
+    statsError: false,
+    formattedData: [],
+    blankStats: true,
+  };
 
   componentDidMount() {
     this.fetchData();
@@ -65,43 +60,35 @@ class ProjectFiltersChart extends React.Component<Props, State> {
     }
   }
 
-  getStatOpts() {
-    return {
-      'ip-address': 'IP Address',
-      'release-version': 'Release',
-      'error-message': 'Error Message',
-      'browser-extensions': 'Browser Extension',
-      'legacy-browsers': 'Legacy Browser',
-      localhost: 'Localhost',
-      'web-crawlers': 'Web Crawler',
-      'invalid-csp': 'Invalid CSP',
-      cors: 'CORS',
-      'discarded-hash': 'Discarded Issue',
-    };
-  }
-
-  formatData(rawData) {
-    return Object.keys(this.getStatOpts()).map(stat => ({
-      data: rawData[stat].map(([x, y]) => {
-        if (y > 0) {
+  formatData(rawData: RawStats) {
+    const seriesWithData: Set<string> = new Set();
+    const transformed = Object.keys(STAT_OPS).map(stat => ({
+      data: rawData[stat].map(([timestamp, value]) => {
+        if (value > 0) {
+          seriesWithData.add(STAT_OPS[stat].title);
           this.setState({blankStats: false});
         }
-
-        return {x, y};
+        return {name: timestamp * 1000, value};
       }),
-      label: this.getStatOpts()[stat],
-      statName: stat,
+      seriesName: STAT_OPS[stat].title,
+      color: STAT_OPS[stat].color,
     }));
+
+    return transformed.filter((series: Series) => seriesWithData.has(series.seriesName));
   }
 
   getFilterStats() {
-    const statOptions = Object.keys(this.getStatOpts());
+    const statOptions = Object.keys(STAT_OPS);
     const {project} = this.props;
     const {orgId} = this.props.params;
+
+    const until = Math.floor(new Date().getTime() / 1000);
+    const since = until - 3600 * 24 * 30;
+
     const statEndpoint = `/projects/${orgId}/${project.slug}/stats/`;
     const query = {
-      since: this.state.querySince,
-      until: this.state.queryUntil,
+      since,
+      until,
       resolution: '1d',
     };
     const requests = statOptions.map(stat =>
@@ -111,13 +98,12 @@ class ProjectFiltersChart extends React.Component<Props, State> {
     );
     Promise.all(requests)
       .then(results => {
-        const rawStatsData = {};
+        const rawStatsData: RawStats = {};
         for (let i = 0; i < statOptions.length; i++) {
           rawStatsData[statOptions[i]] = results[i];
         }
 
         this.setState({
-          rawStatsData,
           formattedData: this.formatData(rawStatsData),
           error: false,
           loading: false,
@@ -132,71 +118,30 @@ class ProjectFiltersChart extends React.Component<Props, State> {
     this.getFilterStats();
   };
 
-  timeLabelAsDay(point) {
-    const timeMoment = moment(point.x * 1000);
-
-    return timeMoment.format('LL');
-  }
-
-  renderTooltip = point => {
-    const timeLabel = this.timeLabelAsDay(point);
-    let totalY = 0;
-    for (let i = 0; i < point.y.length; i++) {
-      totalY += point.y[i];
-    }
-    const {formattedData} = this.state;
-
-    return (
-      <div style={{width: '175px'}}>
-        <div className="time-label">
-          <span>{timeLabel}</span>
-        </div>
-        <div>
-          {intcomma(totalY)} {tn('total event', 'total events', totalY)}
-        </div>
-        {formattedData.map(
-          (dataPoint, i) =>
-            point.y[i] > 0 && (
-              <dl className="legend" key={dataPoint.statName}>
-                <dt>
-                  <span className={`${dataPoint.statName} 'filter-color'`} />
-                </dt>
-                <dd style={{textAlign: 'left', position: 'absolute'}}>
-                  {dataPoint.label}{' '}
-                </dd>
-                <dd style={{textAlign: 'right', position: 'relative'}}>
-                  {formatAbbreviatedNumber(point.y[i])}{' '}
-                  {tn('event', 'events', point.y[i])}
-                </dd>
-              </dl>
-            )
-        )}
-      </div>
-    );
-  };
-
   render() {
-    const {loading, error} = this.state;
-    const isLoading = loading || !this.state.formattedData;
+    const {loading, error, formattedData} = this.state;
+    const isLoading = loading || !formattedData;
     const hasError = !isLoading && error;
     const hasLoaded = !isLoading && !error;
-    const classes = Object.keys(this.getStatOpts());
+    const colors = formattedData
+      ? formattedData.map(series => series.color || theme.gray400)
+      : undefined;
 
     return (
       <Panel>
         <PanelHeader>{t('Errors filtered in the last 30 days (by day)')}</PanelHeader>
 
-        <PanelBody>
-          {isLoading && <LoadingIndicator />}
+        <PanelBody withPadding>
+          {isLoading && <Placeholder height="100px" />}
           {hasError && <LoadingError onRetry={this.fetchData} />}
           {hasLoaded && !this.state.blankStats && (
-            <StackedBarChart
-              series={this.state.formattedData}
-              label="events"
-              barClasses={classes}
-              className="standard-barchart filtered-stats-barchart"
-              tooltip={this.renderTooltip}
-              minHeights={classes.map(p => (p === 'legacy-browsers' ? 1 : 0))}
+            <MiniBarChart
+              series={formattedData}
+              colors={colors}
+              height={100}
+              isGroupedByDate
+              stacked
+              labelYAxisExtents
             />
           )}
           {hasLoaded && this.state.blankStats && (
