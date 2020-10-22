@@ -29,13 +29,13 @@ class Migration(migrations.Migration):
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
-    is_dangerous = False
+    is_dangerous = True
 
     # This flag is used to decide whether to run this migration in a transaction or not.
     # By default we prefer to run in a transaction, but for migrations where you want
     # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
     # want to create an index concurrently when adding one to an existing table.
-    atomic = True
+    atomic = False
 
     dependencies = [
         ("sentry", "0115_add_checksum_to_debug_file"),
