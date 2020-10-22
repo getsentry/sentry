@@ -151,7 +151,7 @@ class MiniBarChart extends React.Component<Props> {
           }),
         },
       };
-      series?.push(markerSeries);
+      series.push(markerSeries);
     }
     const yAxisOptions = labelYAxisExtents
       ? {

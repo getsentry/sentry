@@ -43,7 +43,7 @@ type ResultProps = {
   savedQuery: SavedQuery | null; // Provided if it's a saved search
   onFetchPage: (nextOrPrev: string) => void;
   onToggleEdit: () => void;
-  utc?: boolean;
+  utc?: boolean | null;
 };
 
 type ResultState = {
