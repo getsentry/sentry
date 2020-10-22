@@ -35,10 +35,7 @@ export enum FieldValueKind {
   FUNCTION = 'function',
 }
 
-// Payload of select options in the column editor.
-// The first column contains a union of tags, fields and functions,
-// and we need ways to disambiguate them.
-export type FieldValue =
+export type FieldValueColumns =
   | {
       kind: FieldValueKind.TAG;
       meta: {
@@ -61,7 +58,13 @@ export type FieldValue =
         name: string;
         dataType: ColumnType;
       };
-    }
+    };
+
+// Payload of select options in the column editor.
+// The first column contains a union of tags, fields and functions,
+// and we need ways to disambiguate them.
+export type FieldValue =
+  | FieldValueColumns
   | {
       kind: FieldValueKind.FUNCTION;
       meta: {
