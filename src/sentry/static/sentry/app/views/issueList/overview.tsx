@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import Cookies from 'js-cookie';
-import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import isEqual from 'lodash/isEqual';
@@ -37,7 +36,6 @@ import {
   SavedSearch,
   TagCollection,
 } from 'app/types';
-import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
 import parseApiError from 'app/utils/parseApiError';
@@ -105,17 +103,6 @@ type EndpointParams = Partial<GlobalSelection['datetime']> & {
 };
 
 class IssueListOverview extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object,
-    location: PropTypes.object,
-    organization: SentryTypes.Organization,
-    params: PropTypes.object,
-    selection: SentryTypes.GlobalSelection,
-    savedSearch: SentryTypes.SavedSearch,
-    savedSearches: PropTypes.arrayOf(SentryTypes.SavedSearch),
-    savedSearchLoading: PropTypes.bool.isRequired,
-    tags: PropTypes.object,
-  };
   constructor(props) {
     super(props);
 
