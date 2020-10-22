@@ -183,7 +183,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         resp = session.get(
             "https://api.github.com/app/installations/%s" % installation_id,
             headers={
-                "Authorization": "Bearer %s" % get_jwt(),
+                "Authorization": b"Bearer %s" % get_jwt(),
                 "Accept": "application/vnd.github.machine-man-preview+json",
             },
         )

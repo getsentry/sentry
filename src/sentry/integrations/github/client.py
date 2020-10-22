@@ -106,7 +106,7 @@ class GitHubClientMixin(ApiClient):
         return self.post(
             u"/app/installations/{}/access_tokens".format(self.integration.external_id),
             headers={
-                "Authorization": "Bearer %s" % self.get_jwt(),
+                "Authorization": b"Bearer %s" % self.get_jwt(),
                 # TODO(jess): remove this whenever it's out of preview
                 "Accept": "application/vnd.github.machine-man-preview+json",
             },
