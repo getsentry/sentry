@@ -861,7 +861,7 @@ SENTRY_FEATURES = {
     "organizations:integrations-incident-management": True,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
-    # Allow orgs to install AzureDevops with limited scopes
+    # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
