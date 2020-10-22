@@ -5,6 +5,15 @@ import {t} from 'app/locale';
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
 
+type Props = {
+  handleSelectRelative: (value: string, e: React.MouseEvent) => void;
+  handleAbsoluteClick: (value: string, e: React.MouseEvent) => void;
+  shouldShowRelative?: boolean;
+  shouldShowAbsolute?: boolean;
+  isAbsoluteSelected: boolean;
+  relativeSelected: string;
+};
+
 const SelectorItems = ({
   shouldShowRelative,
   shouldShowAbsolute,
@@ -12,7 +21,7 @@ const SelectorItems = ({
   handleAbsoluteClick,
   relativeSelected,
   isAbsoluteSelected,
-}) => (
+}: Props) => (
   <React.Fragment>
     {shouldShowRelative && (
       <RelativeSelector onClick={handleSelectRelative} selected={relativeSelected} />
