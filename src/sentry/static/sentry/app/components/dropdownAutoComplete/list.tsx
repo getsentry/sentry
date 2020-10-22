@@ -2,15 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {AutoSizer, List as ReactVirtualizedList, ListRowProps} from 'react-virtualized';
 
-import {Item} from './types';
+import {ItemsAfterFilter} from './types';
 import Row from './row';
-
-type Items = Array<
-  Item & {
-    items?: Array<Item>;
-    hideGroupLabel?: boolean; // Should hide group label
-  }
->;
 
 type RowProps = Pick<
   React.ComponentProps<typeof Row>,
@@ -19,7 +12,7 @@ type RowProps = Pick<
 
 type Props = {
   // flat item array | grouped item array
-  items: Items;
+  items: ItemsAfterFilter;
   /**
    * Max height of dropdown menu. Units are assumed as `px`
    */
@@ -43,7 +36,7 @@ type Props = {
 } & RowProps;
 
 function getHeight(
-  items: Items,
+  items: ItemsAfterFilter,
   maxHeight: number,
   virtualizedHeight: number,
   virtualizedLabelHeight?: number
