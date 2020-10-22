@@ -177,9 +177,10 @@ function handleFilterDuration(location: Location, value: number, symbol: FilterS
   const conditions = tokenizeSearch(queryString || '');
 
   const existingValues = conditions.getTagValues(durationTag);
+  const alternateSymbol = symbol === FilterSymbols.GREATER_THAN_EQUALS ? '>' : '<';
 
   existingValues.forEach(existingValue => {
-    if (existingValue.startsWith(symbol)) {
+    if (existingValue.startsWith(symbol) || existingValue.startsWith(alternateSymbol)) {
       conditions.removeTagValue(durationTag, existingValue);
     }
   });
