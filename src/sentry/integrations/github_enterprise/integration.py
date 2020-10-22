@@ -297,7 +297,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 installation_data["url"], installation_id
             ),
             headers={
-                "Authorization": "Bearer %s"
+                "Authorization": b"Bearer %s"
                 % get_jwt(
                     github_id=installation_data["id"],
                     github_private_key=installation_data["private_key"],

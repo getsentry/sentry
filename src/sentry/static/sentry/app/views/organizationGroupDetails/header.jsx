@@ -22,6 +22,7 @@ import Tooltip from 'app/components/tooltip';
 import Badge from 'app/components/badge';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import {getMessage} from 'app/utils/events';
 
 import GroupActions from './actions';
 import UnhandledTag, {TagAndMessageWrapper} from './unhandledTag';
@@ -63,19 +64,6 @@ class GroupHeader extends React.Component {
     });
   }
 
-  getMessage() {
-    const data = this.props.group;
-    const metadata = data.metadata;
-    switch (data.type) {
-      case 'error':
-        return metadata.value;
-      case 'csp':
-        return metadata.message;
-      default:
-        return this.props.group.culprit || '';
-    }
-  }
-
   render() {
     const {project, group, currentTab, baseUrl} = this.props;
     const {organization, location} = this.context;
@@ -97,7 +85,7 @@ class GroupHeader extends React.Component {
 
     const {memberList} = this.state;
     const orgId = organization.slug;
-    const message = this.getMessage();
+    const message = getMessage(group);
 
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
