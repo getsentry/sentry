@@ -3,11 +3,10 @@ import $ from 'jquery';
 import {Flex, Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {GlobalSelection, Group, NewQuery, Organization} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {valueIsEqual} from 'app/utils';
 import AssigneeSelector from 'app/components/assigneeSelector';
@@ -31,8 +30,9 @@ import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import {queryToObj} from 'app/utils/stream';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
-const DiscoveryExclusionFields = [
+const DiscoveryExclusionFields: string[] = [
   'query',
   'status',
   'bookmarked_by',
@@ -47,10 +47,33 @@ const DiscoveryExclusionFields = [
   '__text',
 ];
 
-const StreamGroup = createReactClass({
-  displayName: 'StreamGroup',
+const defaultProps = {
+  id: '',
+  statsPeriod: '24h',
+  canSelect: true,
+  withChart: true,
+  useFilteredStats: false,
+};
 
-  propTypes: {
+type Props = {
+  id: string;
+  statsPeriod: string;
+  selection: GlobalSelection;
+  organization: Organization;
+  useFilteredStats?: boolean;
+  canSelect?: boolean;
+  query?: string;
+  hasGuideAnchor?: boolean;
+  memberList?: any[];
+  withChart?: boolean;
+} & typeof defaultProps;
+
+type State = {
+  data: Group;
+};
+
+class StreamGroup extends React.Component<Props, State> {
+  static propTypes: any = {
     id: PropTypes.string.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     canSelect: PropTypes.bool,
@@ -61,37 +84,28 @@ const StreamGroup = createReactClass({
     selection: SentryTypes.GlobalSelection.isRequired,
     organization: SentryTypes.Organization.isRequired,
     useFilteredStats: PropTypes.bool,
-  },
+  };
 
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
+  static defaultProps = defaultProps;
 
-  getDefaultProps() {
-    return {
-      id: '',
-      statsPeriod: '24h',
-      canSelect: true,
-      withChart: true,
-      useFilteredStats: false,
-    };
-  },
+  constructor(props: Props) {
+    super(props);
+    const data = GroupStore.get(props.id) as Group;
 
-  getInitialState() {
-    const data = GroupStore.get(this.props.id);
-
-    return {
+    this.state = {
       data: {
         ...data,
-        filtered: this.props.useFilteredStats ? data.filtered : undefined,
+        filtered: props.useFilteredStats ? data.filtered : undefined,
       },
     };
-  },
+  }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     if (
       nextProps.id !== this.props.id ||
       nextProps.useFilteredStats !== this.props.useFilteredStats
     ) {
-      const data = GroupStore.get(this.props.id);
+      const data = GroupStore.get(this.props.id) as Group;
 
       this.setState({
         data: {
@@ -100,9 +114,9 @@ const StreamGroup = createReactClass({
         },
       });
     }
-  },
+  }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
     if (nextProps.statsPeriod !== this.props.statsPeriod) {
       return true;
     }
@@ -110,28 +124,31 @@ const StreamGroup = createReactClass({
       return true;
     }
     return false;
-  },
+  }
 
   componentWillUnmount() {
     clearTimeout(this.hoverWait);
-  },
+    callIfFunction(this.listener);
+  }
 
-  onGroupChange(itemIds) {
-    if (!itemIds.has(this.props.id)) {
+  listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined);
+  hoverWait?: number;
+
+  onGroupChange(itemIds: Set<string>) {
+    const {id} = this.props;
+    if (!itemIds.has(id)) {
       return;
     }
-    const id = this.props.id;
-    const data = GroupStore.get(id);
-    this.setState({
-      data,
-    });
-  },
 
-  toggleSelect(evt) {
-    if (evt.target.tagName === 'A') {
+    const data = GroupStore.get(id) as Group;
+    this.setState({data});
+  }
+
+  toggleSelect(evt: React.MouseEvent<HTMLDivElement>) {
+    if ((evt.target as HTMLElement)?.tagName === 'A') {
       return;
     }
-    if (evt.target.tagName === 'INPUT') {
+    if ((evt.target as HTMLElement)?.tagName === 'INPUT') {
       return;
     }
     if ($(evt.target).parents('a').length !== 0) {
@@ -139,18 +156,18 @@ const StreamGroup = createReactClass({
     }
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
-  },
+  }
 
-  getDiscoverUrl(filtered) {
+  getDiscoverUrl(isFiltered?: boolean) {
     const {organization, query, selection} = this.props;
     const {data} = this.state;
 
     // when there is no discover feature open events page
     const hasDiscoverQuery = organization.features.includes('discover-basic');
 
-    const queryTerms = [];
+    const queryTerms: string[] = [];
 
-    if (filtered && query) {
+    if (isFiltered && query) {
       const queryObj = queryToObj(query);
       for (const queryTag in queryObj)
         if (!DiscoveryExclusionFields.includes(queryTag)) {
@@ -165,14 +182,14 @@ const StreamGroup = createReactClass({
       }
     }
 
-    const commonQuery = {projects: [data.project.id]};
+    const commonQuery = {projects: [Number(data.project.id)]};
 
     const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
 
     if (hasDiscoverQuery) {
       const {period, start, end} = selection.datetime || {};
 
-      const discoverQuery = {
+      const discoverQuery: NewQuery = {
         ...commonQuery,
         id: undefined,
         name: data.title || data.type,
@@ -183,8 +200,8 @@ const StreamGroup = createReactClass({
       };
 
       if (!!start && !!end) {
-        discoverQuery.start = start;
-        discoverQuery.end = end;
+        discoverQuery.start = start as string;
+        discoverQuery.end = end as string;
       } else {
         discoverQuery.range = period || DEFAULT_STATS_PERIOD;
       }
@@ -200,7 +217,7 @@ const StreamGroup = createReactClass({
         query: searchQuery,
       },
     };
-  },
+  }
 
   render() {
     const {data} = this.state;
@@ -239,7 +256,7 @@ const StreamGroup = createReactClass({
     );
 
     return (
-      <Group data-test-id="group" onClick={this.toggleSelect}>
+      <Wrapper data-test-id="group" onClick={this.toggleSelect}>
         {canSelect && (
           <GroupCheckbox ml={2}>
             <GroupCheckBox id={data.id} />
@@ -282,10 +299,7 @@ const StreamGroup = createReactClass({
                   >
                     <span {...getActorProps({})}>
                       <div className="dropdown-actor-title">
-                        <PrimaryCount
-                          value={primaryCount}
-                          filtered={secondaryCount !== undefined}
-                        />
+                        <PrimaryCount value={primaryCount} />
                         {secondaryCount !== undefined && (
                           <SecondaryCount value={secondaryCount} />
                         )}
@@ -379,12 +393,12 @@ const StreamGroup = createReactClass({
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
-      </Group>
+      </Wrapper>
     );
-  },
-});
+  }
+}
 
-const Group = styled(PanelItem)`
+const Wrapper = styled(PanelItem)`
   padding: ${space(1)} 0;
   align-items: center;
   line-height: 1.1;
@@ -420,7 +434,7 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
 const StyledMenuItem = styled(({to, children, ...p}) => (
   <MenuItem noAnchor>
     {to ? (
-      <Link to={to} target="_blank">
+      <Link to={to}>
         <div {...p}>{children}</div>
       </Link>
     ) : (
