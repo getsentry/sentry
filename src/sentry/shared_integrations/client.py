@@ -44,6 +44,8 @@ class BaseApiResponse(object):
 
     @classmethod
     def from_response(self, response, allow_text=False):
+        if response.request.method == "HEAD":
+            return BaseApiResponse(response.headers, response.status_code)
         # XXX(dcramer): this doesnt handle leading spaces, but they're not common
         # paths so its ok
         if response.text.startswith(u"<?xml"):
@@ -293,3 +295,15 @@ class BaseApiClient(object):
 
     def put(self, *args, **kwargs):
         return self.request("PUT", *args, **kwargs)
+
+    def head(self, *args, **kwargs):
+        return self.request("HEAD", *args, **kwargs)
+
+    def head_cached(self, path, *args, **kwargs):
+        key = self.get_cache_prefix() + md5_text(self.build_url(path)).hexdigest()
+
+        result = cache.get(key)
+        if result is None:
+            result = self.head(path, *args, **kwargs)
+            cache.set(key, result, self.cache_time)
+        return result

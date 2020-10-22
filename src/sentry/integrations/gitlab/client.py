@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import transaction_start
 from six.moves.urllib.parse import quote
 
 
@@ -17,6 +18,7 @@ class GitLabApiClientPath(object):
     commits = u"/projects/{project}/repository/commits"
     compare = u"/projects/{project}/repository/compare"
     diff = u"/projects/{project}/repository/commits/{sha}/diff"
+    file = u"/projects/{project}/repository/files/{path}"
     group = u"/groups/{group}"
     group_projects = u"/groups/{group}/projects"
     hooks = u"/hooks"
@@ -239,3 +241,14 @@ class GitLabApiClient(ApiClient):
         """
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
+
+    @transaction_start("GitLabApiClient.check_file")
+    def check_file(self, project_id, path, ref):
+        """Fetch a file for stacktrace linking
+
+        See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
+        Path requires file path and ref
+        """
+        self.base_url = self.metadata["base_url"]
+        request_path = GitLabApiClientPath.file.format(project=project_id, path=path)
+        return self.head_cached(request_path, params={"ref": ref})
