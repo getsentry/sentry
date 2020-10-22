@@ -6,6 +6,10 @@ import {DATA_SOURCE_LABELS} from 'app/views/alerts/utils';
 import {Environment, Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+<<<<<<< HEAD
+=======
+import {defined} from 'app/utils';
+>>>>>>> adding feature flag for gui filters and duplicated conditions form
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
@@ -78,8 +82,16 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
     const {organization, disabled, onFilterSearch} = this.props;
     const {environments} = this.state;
 
+<<<<<<< HEAD
     const environmentList: [IncidentRule['environment'], React.ReactNode][] =
       environments?.map((env: Environment) => [env.name, getDisplayName(env)]) ?? [];
+=======
+    const environmentList: [IncidentRule['environment'], React.ReactNode][] = defined(
+      environments
+    )
+      ? environments.map((env: Environment) => [env.name, getDisplayName(env)])
+      : [];
+>>>>>>> adding feature flag for gui filters and duplicated conditions form
 
     const anyEnvironmentLabel = (
       <React.Fragment>
