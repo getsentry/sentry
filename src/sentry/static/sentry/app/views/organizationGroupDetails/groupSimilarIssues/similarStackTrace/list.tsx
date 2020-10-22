@@ -25,7 +25,7 @@ type DefaultProps = {
 };
 
 type Props = {
-  orgId: Organization;
+  orgId: Organization['id'];
   project: Project;
   onMerge: () => void;
   groupId: string;
