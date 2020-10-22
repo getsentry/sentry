@@ -63,6 +63,12 @@ const vitals = [
     state: 'fail',
     baseline: '987.00ms',
   },
+  {
+    slug: 'cls',
+    heading: 'Cumulative Layout Shift (CLS)',
+    state: 'pass',
+    baseline: '0.02',
+  },
 ];
 
 describe('Performance > Web Vitals', function () {
@@ -84,6 +90,7 @@ describe('Performance > Web Vitals', function () {
           percentile_measurements_fcp_0_75: 'duration',
           percentile_measurements_lcp_0_75: 'duration',
           percentile_measurements_fid_0_75: 'duration',
+          percentile_measurements_cls_0_75: 'number',
         },
         data: [
           {
@@ -91,6 +98,7 @@ describe('Performance > Web Vitals', function () {
             percentile_measurements_fcp_0_75: 1456,
             percentile_measurements_lcp_0_75: 1342,
             percentile_measurements_fid_0_75: 987,
+            percentile_measurements_cls_0_75: 0.02,
           },
         ],
       },
@@ -213,7 +221,7 @@ describe('Performance > Web Vitals', function () {
     wrapper.update();
 
     const vitalCards = wrapper.find('VitalCard');
-    expect(vitalCards).toHaveLength(4);
+    expect(vitalCards).toHaveLength(5);
 
     vitalCards.forEach((vitalCard, i) => {
       expect(vitalCard.find('CardSectionHeading').text()).toEqual(
@@ -224,7 +232,7 @@ describe('Performance > Web Vitals', function () {
       );
       expect(vitalCard.find('StatNumber').text()).toEqual(vitals[i].baseline);
     });
-    expect(vitalCards.find('BarChart')).toHaveLength(4);
+    expect(vitalCards.find('BarChart')).toHaveLength(5);
   });
 
   describe('Open in Discover button', function () {
@@ -241,7 +249,7 @@ describe('Performance > Web Vitals', function () {
       );
 
       const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(4);
+      expect(buttons).toHaveLength(5);
 
       buttons.forEach((button, i) => {
         expect(button.prop('to')).toEqual(
@@ -259,14 +267,14 @@ describe('Performance > Web Vitals', function () {
     });
 
     it('renders open in discover buttons with greater than condition', function () {
-      const {organization, router, routerContext} = initialize({
-        query: {
-          fpStart: '10',
-          fcpStart: '10',
-          lcpStart: '10',
-          fidStart: '10',
-        },
-      });
+      const query = {
+        fpStart: '10',
+        fcpStart: '10',
+        lcpStart: '10',
+        fidStart: '10',
+        clsStart: '0.01',
+      };
+      const {organization, router, routerContext} = initialize({query});
 
       const wrapper = mountWithTheme(
         <TransactionVitals
@@ -278,13 +286,16 @@ describe('Performance > Web Vitals', function () {
       );
 
       const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(4);
+      expect(buttons).toHaveLength(5);
 
       buttons.forEach((button, i) => {
+        const slug = vitals[i].slug;
+        const key = `measurements.${slug}`;
+        const value = query[`${slug}Start`];
         expect(button.prop('to')).toEqual(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: expect.stringContaining(`measurements.${vitals[i].slug}:>=10`),
+              query: expect.stringContaining(`${key}:>=${value}`),
             }),
           })
         );
@@ -292,14 +303,14 @@ describe('Performance > Web Vitals', function () {
     });
 
     it('renders open in discover buttons with less than condition', function () {
-      const {organization, router, routerContext} = initialize({
-        query: {
-          fpEnd: '20',
-          fcpEnd: '20',
-          lcpEnd: '20',
-          fidEnd: '20',
-        },
-      });
+      const query = {
+        fpEnd: '20',
+        fcpEnd: '20',
+        lcpEnd: '20',
+        fidEnd: '20',
+        clsEnd: '0.03',
+      };
+      const {organization, router, routerContext} = initialize({query});
 
       const wrapper = mountWithTheme(
         <TransactionVitals
@@ -311,13 +322,16 @@ describe('Performance > Web Vitals', function () {
       );
 
       const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(4);
+      expect(buttons).toHaveLength(5);
 
       buttons.forEach((button, i) => {
+        const slug = vitals[i].slug;
+        const key = `measurements.${slug}`;
+        const value = query[`${slug}End`];
         expect(button.prop('to')).toEqual(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: expect.stringContaining(`measurements.${vitals[i].slug}:<=20`),
+              query: expect.stringContaining(`${key}:<=${value}`),
             }),
           })
         );
@@ -325,18 +339,19 @@ describe('Performance > Web Vitals', function () {
     });
 
     it('renders open in discover buttons with both condition', function () {
-      const {organization, router, routerContext} = initialize({
-        query: {
-          fpStart: '10',
-          fpEnd: '20',
-          fcpStart: '10',
-          fcpEnd: '20',
-          lcpStart: '10',
-          lcpEnd: '20',
-          fidStart: '10',
-          fidEnd: '20',
-        },
-      });
+      const query = {
+        fpStart: '10',
+        fpEnd: '20',
+        fcpStart: '10',
+        fcpEnd: '20',
+        lcpStart: '10',
+        lcpEnd: '20',
+        fidStart: '10',
+        fidEnd: '20',
+        clsStart: '0.01',
+        clsEnd: '0.03',
+      };
+      const {organization, router, routerContext} = initialize({query});
 
       const wrapper = mountWithTheme(
         <TransactionVitals
@@ -348,20 +363,24 @@ describe('Performance > Web Vitals', function () {
       );
 
       const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(4);
+      expect(buttons).toHaveLength(5);
 
       buttons.forEach((button, i) => {
+        const slug = vitals[i].slug;
+        const key = `measurements.${slug}`;
+        const start = query[`${slug}Start`];
+        const end = query[`${slug}End`];
         expect(button.prop('to')).toEqual(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: expect.stringContaining(`measurements.${vitals[i].slug}:>=10`),
+              query: expect.stringContaining(`${key}:>=${start}`),
             }),
           })
         );
         expect(button.prop('to')).toEqual(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: expect.stringContaining(`measurements.${vitals[i].slug}:<=20`),
+              query: expect.stringContaining(`${key}:<=${end}`),
             }),
           })
         );

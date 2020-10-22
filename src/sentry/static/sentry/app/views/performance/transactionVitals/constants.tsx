@@ -99,6 +99,11 @@ const _VITAL_GROUPS = [
     min: 0,
     precision: 2,
   },
+  {
+    vitals: [WebVital.CLS],
+    min: 0,
+    precision: 2,
+  },
 ];
 
 const _COLORS = [
