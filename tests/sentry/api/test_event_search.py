@@ -2411,11 +2411,8 @@ class ResolveFieldListTest(unittest.TestCase):
                     [
                         "and",
                         [
-                            [
-                                "lessOrEquals",
-                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                            ],
-                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                            ["greaterOrEquals", ["timestamp", "'2020-05-01T01:12:34'"]],
+                            ["less", ["timestamp", "'2020-05-03T06:48:57'"]],
                         ],
                     ],
                 ],
@@ -2446,11 +2443,8 @@ class ResolveFieldListTest(unittest.TestCase):
                     [
                         "and",
                         [
-                            [
-                                "lessOrEquals",
-                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                            ],
-                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                            ["greaterOrEquals", ["timestamp", "'2020-05-01T01:12:34'"]],
+                            ["less", ["timestamp", "'2020-05-03T06:48:57'"]],
                         ],
                     ],
                 ],
@@ -2483,14 +2477,8 @@ class ResolveFieldListTest(unittest.TestCase):
                             [
                                 "and",
                                 [
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                                    ],
-                                    [
-                                        "greater",
-                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                                    ],
+                                    ["greaterOrEquals", ["timestamp", "'2020-05-01T01:12:34'"]],
+                                    ["less", ["timestamp", "'2020-05-03T06:48:57'"]],
                                 ],
                             ],
                         ],
@@ -2540,14 +2528,8 @@ class ResolveFieldListTest(unittest.TestCase):
                             [
                                 "and",
                                 [
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                                    ],
-                                    [
-                                        "greater",
-                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                                    ],
+                                    ["greaterOrEquals", ["timestamp", "'2020-05-01T01:12:34'"]],
+                                    ["less", ["timestamp", "'2020-05-03T06:48:57'"]],
                                 ],
                             ],
                         ],
@@ -2566,14 +2548,8 @@ class ResolveFieldListTest(unittest.TestCase):
                             [
                                 "and",
                                 [
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                                    ],
-                                    [
-                                        "greater",
-                                        [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"],
-                                    ],
+                                    ["greaterOrEquals", ["timestamp", "'2020-05-03T06:48:57'"]],
+                                    ["less", ["timestamp", "'2020-05-05T01:12:34'"]],
                                 ],
                             ],
                         ],
@@ -2607,14 +2583,8 @@ class ResolveFieldListTest(unittest.TestCase):
                             [
                                 "and",
                                 [
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                                    ],
-                                    [
-                                        "greater",
-                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                                    ],
+                                    ["greaterOrEquals", ["timestamp", "'2020-05-01T01:12:34'"]],
+                                    ["less", ["timestamp", "'2020-05-03T06:48:57'"]],
                                 ],
                             ],
                         ],
@@ -2633,14 +2603,8 @@ class ResolveFieldListTest(unittest.TestCase):
                             [
                                 "and",
                                 [
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                                    ],
-                                    [
-                                        "greater",
-                                        [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"],
-                                    ],
+                                    ["greaterOrEquals", ["timestamp", "'2020-05-03T06:48:57'"]],
+                                    ["less", ["timestamp", "'2020-05-05T01:12:34'"]],
                                 ],
                             ],
                         ],

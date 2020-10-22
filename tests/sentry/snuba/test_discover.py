@@ -765,14 +765,8 @@ class QueryTransformTest(TestCase):
                         [
                             "and",
                             [
-                                [
-                                    "lessOrEquals",
-                                    [["toDateTime", ["'2020-05-02T13:45:01'"]], "timestamp"],
-                                ],
-                                [
-                                    "greater",
-                                    [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"],
-                                ],
+                                ["greaterOrEquals", ["timestamp", "'2020-05-02T13:45:01'"]],
+                                ["less", ["timestamp", "'2020-05-02T14:45:01'"]],
                             ],
                         ],
                     ],
@@ -817,14 +811,8 @@ class QueryTransformTest(TestCase):
                         [
                             "and",
                             [
-                                [
-                                    "lessOrEquals",
-                                    [["toDateTime", ["'2020-05-02T13:45:01'"]], "timestamp"],
-                                ],
-                                [
-                                    "greater",
-                                    [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"],
-                                ],
+                                ["greaterOrEquals", ["timestamp", "'2020-05-02T13:45:01'"]],
+                                ["less", ["timestamp", "'2020-05-02T14:45:01'"]],
                             ],
                         ],
                     ],
@@ -873,20 +861,8 @@ class QueryTransformTest(TestCase):
                                 [
                                     "and",
                                     [
-                                        [
-                                            "lessOrEquals",
-                                            [
-                                                ["toDateTime", ["'2020-05-02T13:45:01'"]],
-                                                "timestamp",
-                                            ],
-                                        ],
-                                        [
-                                            "greater",
-                                            [
-                                                ["toDateTime", ["'2020-05-02T14:45:01'"]],
-                                                "timestamp",
-                                            ],
-                                        ],
+                                        ["greaterOrEquals", ["timestamp", "'2020-05-02T13:45:01'"]],
+                                        ["less", ["timestamp", "'2020-05-02T14:45:01'"]],
                                     ],
                                 ],
                             ],
