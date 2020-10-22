@@ -215,6 +215,7 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   getTitle() {
+    const {organization} = this.props;
     const {group} = this.state;
     const defaultTitle = 'Sentry';
 
@@ -222,7 +223,7 @@ class GroupDetails extends React.Component<Props, State> {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group);
+    const {title} = getTitle(group, organization);
     const message = getMessage(group);
 
     if (title && message) {

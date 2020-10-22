@@ -62,6 +62,10 @@ describe('EventOrGroupTitle', function () {
   });
 
   it('renders with title override', function () {
+    const routerContext = TestStubs.routerContext([
+      {organization: TestStubs.Organization({features: ['custom-event-title']})},
+    ]);
+
     const component = mountWithTheme(
       <EventOrGroupTitle
         data={{
@@ -72,7 +76,8 @@ describe('EventOrGroupTitle', function () {
             title: 'metadata title',
           },
         }}
-      />
+      />,
+      routerContext
     );
 
     expect(component.text()).toContain('metadata title');
