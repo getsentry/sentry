@@ -865,7 +865,7 @@ def resolve_condition(cond, column_resolver):
                     if isinstance(arg, six.string_types):
                         func_args[i] = u"'{}'".format(arg)
                     elif isinstance(arg, datetime):
-                        func_args[i] = json.dumps(arg).replace('"', "'")
+                        func_args[i] = u"'{}'".format(arg.isoformat)
                     else:
                         func_args[i] = arg
 
