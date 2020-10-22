@@ -176,9 +176,8 @@ class CellAction extends React.Component<Props, State> {
     }
 
     if (
-      column.type !== 'duration' &&
-      column.type !== 'number' &&
-      column.type !== 'percentage'
+      !['duration', 'number', 'percentage'].includes(column.type) ||
+      (value === null && column.column.kind === 'field')
     ) {
       addMenuItem(
         Actions.ADD,
@@ -205,7 +204,10 @@ class CellAction extends React.Component<Props, State> {
       }
     }
 
-    if (['date', 'duration', 'integer', 'number', 'percentage'].includes(column.type)) {
+    if (
+      ['date', 'duration', 'integer', 'number', 'percentage'].includes(column.type) &&
+      value !== null
+    ) {
       addMenuItem(
         Actions.SHOW_GREATER_THAN,
         <ActionItem
