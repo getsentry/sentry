@@ -346,7 +346,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     projects,
     handleSelectTransaction,
   } = props;
-  const color = trendToColor[trendChangeType];
+  const color = trendToColor[trendChangeType].default;
 
   const selectedTransaction = getSelectedTransaction(
     location,

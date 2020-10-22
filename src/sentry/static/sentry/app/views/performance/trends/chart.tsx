@@ -297,7 +297,7 @@ class Chart extends React.Component<Props> {
                   .map(values => {
                     return {
                       ...values,
-                      color: lineColor,
+                      color: lineColor.default,
                       lineStyle: {
                         opacity: 1,
                       },
@@ -311,7 +311,7 @@ class Chart extends React.Component<Props> {
                   .map(values => {
                     return {
                       ...values,
-                      color: lineColor,
+                      color: lineColor.lighter,
                       lineStyle: {
                         opacity: 0.25,
                       },
