@@ -5,7 +5,6 @@ import React from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
 import ErrorRobot from 'app/components/errorRobot';
 import GroupStore from 'app/stores/groupStore';
 import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
@@ -35,7 +34,7 @@ describe('IssueList', function () {
 
   let fetchTagsRequest;
   let fetchMembersRequest;
-  const api = new Client();
+  const api = new MockApiClient();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
