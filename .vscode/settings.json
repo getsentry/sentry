@@ -56,7 +56,7 @@
   "python.linting.pylintEnabled": false,
   "python.linting.flake8Enabled": true,
   // https://github.com/DonJayamanne/pythonVSCode/issues/992
-  "python.pythonPath": "C:\\Users\\byk\\AppData\\Local\\Programs\\Python\\Python38\\python.exe",
+  "python.pythonPath": "${workspaceFolder}/.venv/bin/python",
   // test discovery is sluggish and the UI around running
   // tests is often in your way and misclicked
   "python.testing.pytestEnabled": false,
