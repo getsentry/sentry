@@ -9,7 +9,7 @@ import WorldMapChart from 'app/components/charts/worldMapChart';
 
 import {WIDGET_DISPLAY} from '../constants';
 
-const CHART_MAP: Record<WIDGET_DISPLAY, React.Component> = {
+const CHART_MAP: Record<WIDGET_DISPLAY, React.ComponentClass> = {
   [WIDGET_DISPLAY.LINE_CHART]: LineChart,
   [WIDGET_DISPLAY.AREA_CHART]: AreaChart,
   [WIDGET_DISPLAY.STACKED_AREA_CHART]: StackedAreaChart,

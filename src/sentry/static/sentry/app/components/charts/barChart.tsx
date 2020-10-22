@@ -8,7 +8,7 @@ import BaseChart from './baseChart';
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 type Props = Omit<ChartProps, 'series'> & {
-  stacked: boolean;
+  stacked?: boolean;
   series: Series[];
 };
 

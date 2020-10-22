@@ -197,7 +197,7 @@ class VitalCard extends React.Component<Props, State> {
     const series = this.getTransformedData();
 
     const xAxis = {
-      type: 'category',
+      type: 'category' as const,
       truncate: true,
       axisLabel: {
         margin: 20,
@@ -211,7 +211,7 @@ class VitalCard extends React.Component<Props, State> {
     const max = values.length ? Math.max(...values) : undefined;
 
     const yAxis = {
-      type: 'value',
+      type: 'value' as const,
       max,
       axisLabel: {
         color: theme.gray400,
