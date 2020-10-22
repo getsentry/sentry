@@ -139,7 +139,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
 
         resp = self.client.check_file(self.gitlab_id, path, ref)
         assert responses.calls[0].response.status_code == 200
-        assert resp == 200
+        assert resp.status_code == 200
 
     @responses.activate
     def test_check_no_file(self):

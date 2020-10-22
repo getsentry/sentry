@@ -62,7 +62,7 @@ class GitHubAppsClientTest(TestCase):
         )
 
         resp = self.client.check_file(repo, path)
-        assert resp == 200
+        assert resp.status_code == 200
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
