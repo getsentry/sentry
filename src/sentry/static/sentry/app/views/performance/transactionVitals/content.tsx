@@ -15,7 +15,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import SearchBar from 'app/views/events/searchBar';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
-import TransactionVitals from './transactionVitals';
+import VitalsPanel from './vitalsPanel';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
 import {FILTER_OPTIONS, ZOOM_KEYS} from './constants';
 
@@ -31,7 +31,7 @@ type State = {
   incompatibleAlertNotice: React.ReactNode;
 };
 
-class RumContent extends React.Component<Props, State> {
+class VitalsContent extends React.Component<Props, State> {
   state: State = {
     incompatibleAlertNotice: null,
   };
@@ -159,7 +159,7 @@ class RumContent extends React.Component<Props, State> {
                 {t('Reset View')}
               </Button>
             </StyledActions>
-            <TransactionVitals
+            <VitalsPanel
               organization={organization}
               location={location}
               eventView={eventView}
@@ -184,4 +184,4 @@ const StyledActions = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export default RumContent;
+export default VitalsContent;

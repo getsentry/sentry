@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import {domId} from 'app/utils/domId';
-import {IS_CI} from 'app/constants';
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
 
 const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
 
@@ -110,7 +110,7 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   async componentDidMount() {
-    if (IS_CI) {
+    if (IS_ACCEPTANCE_TEST) {
       const TooltipStore = (
         await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
       ).default;
@@ -121,7 +121,7 @@ class Tooltip extends React.Component<Props, State> {
   async componentWillUnmount() {
     const {usesGlobalPortal} = this.state;
 
-    if (IS_CI) {
+    if (IS_ACCEPTANCE_TEST) {
       const TooltipStore = (
         await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
       ).default;

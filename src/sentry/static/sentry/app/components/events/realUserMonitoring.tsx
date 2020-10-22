@@ -9,7 +9,7 @@ import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import {IconFire} from 'app/icons';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/realUserMonitoring/constants';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 import {formattedValue} from 'app/utils/measurements/index';
 
 // translate known short form names into their long forms
@@ -57,6 +57,10 @@ class RealUserMonitoring extends React.Component<Props> {
 
       const currentValue = formattedValue(record, value);
       const thresholdValue = formattedValue(record, record?.failureThreshold ?? 0);
+
+      if (!LONG_MEASUREMENT_NAMES.hasOwnProperty(name)) {
+        return null;
+      }
 
       return (
         <div key={name}>

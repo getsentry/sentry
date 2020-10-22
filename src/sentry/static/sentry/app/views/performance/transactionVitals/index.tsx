@@ -36,7 +36,7 @@ type State = {
   eventView: EventView | undefined;
 };
 
-class RealUserMonitoring extends React.Component<Props> {
+class TransactionVitals extends React.Component<Props> {
   state: State = {
     eventView: generateRumEventView(
       this.props.location,
@@ -60,10 +60,10 @@ class RealUserMonitoring extends React.Component<Props> {
     const hasTransactionName = typeof name === 'string' && String(name).trim().length > 0;
 
     if (hasTransactionName) {
-      return [String(name).trim(), t('RUM')].join(' \u2014 ');
+      return [String(name).trim(), t('Vitals')].join(' \u2014 ');
     }
 
-    return [t('Summary'), t('RUM')].join(' \u2014 ');
+    return [t('Summary'), t('Vitals')].join(' \u2014 ');
   }
 
   renderNoAccess = () => {
@@ -187,4 +187,4 @@ function generateRumEventView(
   );
 }
 
-export default withGlobalSelection(withProjects(withOrganization(RealUserMonitoring)));
+export default withGlobalSelection(withProjects(withOrganization(TransactionVitals)));

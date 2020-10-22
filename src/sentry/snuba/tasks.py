@@ -16,10 +16,27 @@ from sentry.utils.snuba import (
 # TODO: If we want to support security events here we'll need a way to
 # differentiate within the dataset. For now we can just assume all subscriptions
 # created within this dataset are just for errors.
-DATASET_CONDITIONS = {QueryDatasets.EVENTS: "event.type:error"}
+DATASET_CONDITIONS = {
+    QueryDatasets.EVENTS: "event.type:error",
+    QueryDatasets.TRANSACTIONS: "event.type:transaction",
+}
 
 
-def apply_dataset_query_conditions(dataset, query, event_types):
+def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
+    """
+    Applies query dataset conditions to a query. This essentially turns a query like
+    'release:123 or release:456' into '(event.type:error) AND (release:123 or release:456)'.
+    :param dataset: The `QueryDataset` that the query applies to
+    :param query: A string containing query to apply conditions to
+    :param event_types: A list of EventType(s) to apply to the query
+    :param discover: Whether this is intended for use with the discover dataset or not.
+    When False, we won't modify queries for `QueryDatasets.TRANSACTIONS` at all. This is
+    because the discover dataset requires that we always specify `event.type` so we can
+    differentiate between errors and transactions, but the TRANSACTIONS dataset doesn't
+    need it specified, and `event.type` ends up becoming a tag search.
+    """
+    if not discover and dataset == QueryDatasets.TRANSACTIONS:
+        return query
     if event_types:
         event_type_conditions = " OR ".join(
             ["event.type:{}".format(event_type.name.lower()) for event_type in event_types]
