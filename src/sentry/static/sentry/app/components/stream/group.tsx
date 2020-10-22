@@ -48,7 +48,6 @@ const DiscoveryExclusionFields: string[] = [
 ];
 
 const defaultProps = {
-  id: '',
   statsPeriod: '24h',
   canSelect: true,
   withChart: true,
@@ -57,16 +56,12 @@ const defaultProps = {
 
 type Props = {
   id: string;
-  statsPeriod: string;
   selection: GlobalSelection;
   organization: Organization;
-  useFilteredStats?: boolean;
-  canSelect?: boolean;
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: any[];
-  withChart?: boolean;
-} & typeof defaultProps;
+} & Partial<typeof defaultProps>;
 
 type State = {
   data: Group;
@@ -273,7 +268,7 @@ class StreamGroup extends React.Component<Props, State> {
         {withChart && (
           <Box width={160} mx={2} className="hidden-xs hidden-sm">
             <GroupChart
-              statsPeriod={statsPeriod}
+              statsPeriod={statsPeriod!}
               data={data}
               hasDynamicIssueCounts={hasDynamicIssueCounts}
               showSecondaryPoints={showSecondaryPoints}
