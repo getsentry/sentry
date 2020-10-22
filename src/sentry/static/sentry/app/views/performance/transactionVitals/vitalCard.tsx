@@ -365,7 +365,7 @@ class VitalCard extends React.Component<Props, State> {
 
   drawFailRegion(series) {
     const {chartData, vital, failureRate} = this.props;
-    const {failureThreshold} = vital;
+    const {failureThreshold, type} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
       return;
     }
@@ -420,7 +420,12 @@ class VitalCard extends React.Component<Props, State> {
           '<div class="tooltip-series tooltip-series-solo">',
           '<span class="tooltip-label">',
           '<strong>',
-          t('Fails threshold at %s.', getDuration(failureThreshold / 1000)),
+          t(
+            'Fails threshold at %s.',
+            type === 'duration'
+              ? getDuration(failureThreshold / 1000, 2, true)
+              : formatFloat(failureThreshold, 2)
+          ),
           '</strong>',
           '</span>',
           '</div>',
