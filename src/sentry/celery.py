@@ -78,3 +78,5 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 from sentry.utils.monitors import connect
 
 connect(app)
+
+# test
