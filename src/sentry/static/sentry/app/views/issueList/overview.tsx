@@ -306,7 +306,7 @@ class IssueListOverview extends React.Component<Props, State> {
     return this.props.selection.projects;
   };
 
-  fetchMemberList = () => {
+  fetchMemberList() {
     const projectIds = this.getGlobalSearchProjectIds();
 
     fetchOrgMembers(this.props.api, this.props.organization.slug, projectIds).then(
@@ -314,7 +314,7 @@ class IssueListOverview extends React.Component<Props, State> {
         this.setState({memberList: indexMembersByProject(members)});
       }
     );
-  };
+  }
 
   fetchTags() {
     const {organization, selection} = this.props;
