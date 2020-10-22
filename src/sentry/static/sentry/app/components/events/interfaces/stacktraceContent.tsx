@@ -1,4 +1,6 @@
 import React from 'react';
+import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/line';
 import {t} from 'app/locale';
@@ -21,6 +23,7 @@ type Props = {
 
 type State = {
   showingAbsoluteAddresses: boolean;
+  showCompleteFunctionName: boolean;
 };
 
 export default class StacktraceContent extends React.Component<Props, State> {
@@ -31,6 +34,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
 
   state: State = {
     showingAbsoluteAddresses: false,
+    showCompleteFunctionName: false,
   };
 
   renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
@@ -93,6 +97,14 @@ export default class StacktraceContent extends React.Component<Props, State> {
     }));
   };
 
+  handleToggleFunctionName = (event: React.MouseEvent<SVGElement>) => {
+    event.stopPropagation(); // to prevent collapsing if collapsable
+
+    this.setState(prevState => ({
+      showCompleteFunctionName: !prevState.showCompleteFunctionName,
+    }));
+  };
+
   getClassName() {
     const {className = '', includeSystemFrames} = this.props;
 
@@ -102,7 +114,6 @@ export default class StacktraceContent extends React.Component<Props, State> {
 
     return `${className} traceback in-app-traceback`;
   }
-
   render() {
     const {
       data,
@@ -111,7 +122,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       platform,
       includeSystemFrames,
     } = this.props;
-    const {showingAbsoluteAddresses} = this.state;
+    const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
     let firstFrameOmitted = null;
     let lastFrameOmitted = null;
@@ -194,6 +205,8 @@ export default class StacktraceContent extends React.Component<Props, State> {
             registers={{}} //TODO: Fix registers
             isFrameAfterLastNonApp={isFrameAfterLastNonApp}
             includeSystemFrames={includeSystemFrames}
+            onFunctionNameToggle={this.handleToggleFunctionName}
+            showCompleteFunctionName={showCompleteFunctionName}
           />
         );
       }
@@ -221,9 +234,28 @@ export default class StacktraceContent extends React.Component<Props, State> {
     const className = this.getClassName();
 
     return (
-      <div className={className}>
-        <ul>{frames}</ul>
-      </div>
+      <Wrapper className={className}>
+        <StyledPlatformIcon
+          platform={platform}
+          size="20px"
+          style={{borderRadius: '3px 0 0 3px'}}
+        />
+        <StyledList>{frames}</StyledList>
+      </Wrapper>
     );
   }
 }
+
+const Wrapper = styled('div')`
+  position: relative;
+`;
+
+const StyledPlatformIcon = styled(PlatformIcon)`
+  position: absolute;
+  top: -1px;
+  left: -20px;
+`;
+
+const StyledList = styled('ul')`
+  list-style: none;
+`;

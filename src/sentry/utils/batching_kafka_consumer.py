@@ -113,7 +113,7 @@ class BatchingKafkaConsumer(object):
         dead_letter_topic=None,
         commit_log_topic=None,
         auto_offset_reset="error",
-        queued_max_messages_kbytes=DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
+        queued_max_messages_kbytes=None,
         queued_min_messages=DEFAULT_QUEUED_MIN_MESSAGES,
         metrics_sample_rates=None,
         metrics_default_tags=None,
@@ -145,6 +145,9 @@ class BatchingKafkaConsumer(object):
             topics = list(topics)
         elif not isinstance(topics, list):
             topics = [topics]
+
+        if queued_max_messages_kbytes is None:
+            queued_max_messages_kbytes = DEFAULT_QUEUED_MAX_MESSAGE_KBYTES
 
         self.consumer = self.create_consumer(
             topics,
@@ -409,7 +412,7 @@ class BatchingKafkaConsumer(object):
             except KafkaException as e:
                 if e.args[0].code() in (
                     KafkaError.REQUEST_TIMED_OUT,
-                    KafkaError.NOT_COORDINATOR_FOR_GROUP,
+                    KafkaError.NOT_COORDINATOR,
                     KafkaError._WAIT_COORD,
                 ):
                     logger.warning("Commit failed: %s (%d retries)", e, retries)

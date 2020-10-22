@@ -27,7 +27,7 @@ type Props = {
   project: Project;
   onChange: (id: string, enabled: boolean) => void;
 } & Plugin &
-  Pick<RouteComponentProps<{}, {}>, 'params' | 'routes' | 'location'>;
+  Pick<RouteComponentProps<{}, {}>, 'params' | 'routes'>;
 
 class ProjectPluginRow extends React.PureComponent<Props> {
   static propTypes: any = {

@@ -118,7 +118,7 @@ class InstallationEventWebhook(Webhook):
                     "github.deletion-missing-integration",
                     extra={
                         "action": event["action"],
-                        "installation_name": event["account"]["login"],
+                        "installation_name": installation["account"]["login"],
                         "external_id": six.text_type(external_id),
                     },
                 )

@@ -1,6 +1,6 @@
 import {Transition} from 'framer-motion';
 
-import {IS_CI} from 'app/constants';
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
 
 /**
  * Use with a framer-motion transition to disable the animation in testing
@@ -16,7 +16,7 @@ import {IS_CI} from 'app/constants';
  *
  * This function simply disables the animation `type`.
  */
-const testableTransition = !IS_CI
+const testableTransition = !IS_ACCEPTANCE_TEST
   ? (t?: Transition) => t
   : function (transition?: Transition): Transition {
       return {

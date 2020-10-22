@@ -331,3 +331,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test(
             "trace.parent_span", qs_params={"query": "9000"}, expected=[("9000cec7cc0779c1", 1)]
         )
+
+    def test_boolean_fields(self):
+        self.run_test("error.handled", expected=[("true", None), ("false", None)])
+        self.run_test("error.unhandled", expected=[("true", None), ("false", None)])
