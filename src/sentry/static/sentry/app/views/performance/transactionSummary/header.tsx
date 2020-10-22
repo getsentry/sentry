@@ -17,7 +17,7 @@ import {decodeScalar} from 'app/utils/queryString';
 
 import KeyTransactionButton from './keyTransactionButton';
 import {transactionSummaryRouteWithQuery} from './utils';
-import {vitalsRouteWithQuery} from '../realUserMonitoring/utils';
+import {vitalsRouteWithQuery} from '../transactionVitals/utils';
 
 export enum Tab {
   TransactionSummary,
@@ -31,6 +31,7 @@ type Props = {
   projects: Project[];
   transactionName: string;
   currentTab: Tab;
+  hasWebVitals: boolean;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertButton
   >['onIncompatibleQuery'];
@@ -88,7 +89,13 @@ class TransactionHeader extends React.Component<Props> {
   }
 
   render() {
-    const {organization, location, transactionName, currentTab} = this.props;
+    const {
+      organization,
+      location,
+      transactionName,
+      currentTab,
+      hasWebVitals,
+    } = this.props;
 
     return (
       <Layout.Header>
@@ -134,12 +141,14 @@ class TransactionHeader extends React.Component<Props> {
                 >
                   {t('Overview')}
                 </ListLink>
-                <ListLink
-                  to={vitalsTarget}
-                  isActive={() => currentTab === Tab.RealUserMonitoring}
-                >
-                  {t('Web Vitals')}
-                </ListLink>
+                {hasWebVitals && (
+                  <ListLink
+                    to={vitalsTarget}
+                    isActive={() => currentTab === Tab.RealUserMonitoring}
+                  >
+                    {t('Web Vitals')}
+                  </ListLink>
+                )}
               </StyledNavTabs>
             );
           }}

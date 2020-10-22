@@ -15,6 +15,7 @@ jobs:
         instance: [0, 1, 2]
 
     env:
+      # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
@@ -67,6 +68,7 @@ jobs:
         id: setup
         with:
           python: 3
+          snuba: true
 
       - name: Run backend test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: steps.changes.outputs.backend == 'true'
