@@ -1,13 +1,14 @@
 import React from 'react';
-import {EChartOption} from 'echarts';
 import set from 'lodash/set';
 
 import theme from 'app/utils/theme';
 import {getFormattedDate} from 'app/utils/dates';
 
-import BarChart from './barChart';
+import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
 import {truncationFormatter} from './utils';
+import XAxis from './components/xAxis';
+import Tooltip from './components/tooltip';
 
 type Marker = {
   name: string;
@@ -35,7 +36,11 @@ const defaultProps = {
   stacked: false,
 };
 
-type Props = React.ComponentProps<typeof BaseChart> &
+type ChartProps = React.ComponentProps<typeof BaseChart>;
+
+type BarChartProps = React.ComponentProps<typeof BarChart>;
+
+type Props = Omit<ChartProps, 'series'> &
   typeof defaultProps & {
     /**
      * A list of series to be rendered as markLine components on the chart
@@ -52,6 +57,8 @@ type Props = React.ComponentProps<typeof BaseChart> &
      * You can use this prop to also shift colors on hover.
      */
     emphasisColors?: string[];
+
+    series: BarChartProps['series'];
   };
 
 class MiniBarChart extends React.Component<Props> {
@@ -67,34 +74,31 @@ class MiniBarChart extends React.Component<Props> {
       stacked,
       ...props
     } = this.props;
-    let series = [...this.props.series];
+    const series: BarChartProps['series'] = this.props.series?.length
+      ? [...this.props.series].map((original, i: number) => {
+          const updated = {
+            ...original,
+            cursor: 'normal',
+            type: 'bar',
+          } as BarChartSeries;
 
-    // Ensure bars overlap and that empty values display as we're disabling the axis lines.
-    if (series.length) {
-      series = series.map((original, i: number) => {
-        const updated = {
-          ...original,
-          cursor: 'normal',
-          type: 'bar',
-        } as EChartOption.SeriesBar;
-
-        if (i === 0) {
-          updated.barMinHeight = 1;
-          if (stacked === false) {
-            updated.barGap = '-100%';
+          if (i === 0) {
+            updated.barMinHeight = 1;
+            if (stacked === false) {
+              updated.barGap = '-100%';
+            }
           }
-        }
-        if (stacked) {
-          updated.stack = 'stack1';
-        }
-        set(updated, 'itemStyle.color', colors[i]);
-        set(updated, 'itemStyle.opacity', 0.6);
-        set(updated, 'itemStyle.emphasis.opacity', 1.0);
-        set(updated, 'itemStyle.emphasis.color', emphasisColors?.[i] ?? colors[i]);
+          if (stacked) {
+            updated.stack = 'stack1';
+          }
+          set(updated, 'itemStyle.color', colors[i]);
+          set(updated, 'itemStyle.opacity', 0.6);
+          set(updated, 'itemStyle.emphasis.opacity', 1.0);
+          set(updated, 'itemStyle.emphasis.color', emphasisColors?.[i] ?? colors[i]);
 
-        return updated;
-      });
-    }
+          return updated;
+        })
+      : [];
 
     if (markers) {
       const markerSeries = {
@@ -105,25 +109,30 @@ class MiniBarChart extends React.Component<Props> {
             show: false,
           },
           symbol: ['circle', 'none'],
-          tooltip: {
+          tooltip: Tooltip({
             trigger: 'item',
-            formatter: ({data}) => {
-              const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
-                local: !this.props.utc,
-              });
-              const name = truncationFormatter(data.name, props?.xAxis?.truncate);
-              return [
-                '<div class="tooltip-series">',
-                `<div><span class="tooltip-label"><strong>${name}</strong></span></div>`,
-                '</div>',
-                '<div class="tooltip-date">',
-                time,
-                '</div>',
-                '</div>',
-                '<div class="tooltip-arrow"></div>',
-              ].join('');
+            formatter: params => {
+              if (!Array.isArray(params)) {
+                const {data} = params;
+                const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
+                  local: !this.props.utc,
+                });
+                const name = truncationFormatter(data.name, props?.xAxis?.truncate);
+                return [
+                  '<div class="tooltip-series">',
+                  `<div><span class="tooltip-label"><strong>${name}</strong></span></div>`,
+                  '</div>',
+                  '<div class="tooltip-date">',
+                  time,
+                  '</div>',
+                  '</div>',
+                  '<div class="tooltip-arrow"></div>',
+                ].join('');
+              } else {
+                return '';
+              }
             },
-          },
+          }),
           data: markers.map((marker: Marker) => {
             return {
               name: marker.name,
@@ -142,7 +151,7 @@ class MiniBarChart extends React.Component<Props> {
           }),
         },
       };
-      series.push(markerSeries);
+      series?.push(markerSeries);
     }
     const yAxisOptions = labelYAxisExtents
       ? {
@@ -157,9 +166,9 @@ class MiniBarChart extends React.Component<Props> {
         };
 
     const chartOptions = {
-      tooltip: {
+      tooltip: Tooltip({
         trigger: 'axis',
-      },
+      }),
       yAxis: {
         max(value) {
           // This keeps small datasets from looking 'scary'
@@ -177,7 +186,7 @@ class MiniBarChart extends React.Component<Props> {
         left: markers ? 4 : 0,
         right: markers ? 4 : 0,
       },
-      xAxis: {
+      xAxis: XAxis({
         axisLine: {
           show: false,
         },
@@ -197,12 +206,12 @@ class MiniBarChart extends React.Component<Props> {
             width: 0,
           },
         },
-      },
+      }),
       options: {
         animation: false,
       },
     };
-    return <BarChart series={series} {...chartOptions} {...props} />;
+    return <BarChart series={series} {...chartOptions} />;
   }
 }
 
