@@ -5,8 +5,14 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {IconAdd} from 'app/icons';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import RepositoryProjectPathConfigRow from 'app/components/repositoryProjectPathConfigRow';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import RepositoryProjectPathConfigRow, {
+  NameRepoColumn,
+  OutputPathColumn,
+  InputPathColumn,
+  DefaultBranchColumn,
+  ButtonColumn,
+} from 'app/components/repositoryProjectPathConfigRow';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
@@ -59,21 +65,22 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {repoProjectPathConfigs} = this.state;
-    const header = (
-      <PanelHeader disablePadding hasButtons>
-        <HeaderText>{t('Code Path Mappings')}</HeaderText>
-        <ButtonWrapper>
-          <AddButton size="xsmall" icon={<IconAdd size="xs" isCircled />}>
-            {t('Add Mapping')}
-          </AddButton>
-        </ButtonWrapper>
-      </PanelHeader>
-    );
-
     return (
       <React.Fragment>
         <Panel>
-          {header}
+          <PanelHeader disablePadding hasButtons>
+            <HeaderLayout>
+              <NameRepoColumn>{t('Code Path Mappings')}</NameRepoColumn>
+              <OutputPathColumn>{t('Output Path')}</OutputPathColumn>
+              <InputPathColumn>{t('Input Path')}</InputPathColumn>
+              <DefaultBranchColumn>{t('Default Branch')}</DefaultBranchColumn>
+              <ButtonColumn>
+                <AddButton size="xsmall" icon={<IconAdd size="xs" isCircled />}>
+                  {t('Add Mapping')}
+                </AddButton>
+              </ButtonColumn>
+            </HeaderLayout>
+          </PanelHeader>
           <PanelBody>
             {repoProjectPathConfigs.length === 0 && (
               <EmptyMessage description={t('No code path mappings')} />
@@ -88,12 +95,15 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                   return null;
                 }
                 return (
-                  <RepositoryProjectPathConfigRow
-                    key={repoProjectPathConfig.id}
-                    repoProjectPathConfig={repoProjectPathConfig}
-                    repo={repo}
-                    project={project}
-                  />
+                  <ConfigPanelItem key={repoProjectPathConfig.id}>
+                    <Layout>
+                      <RepositoryProjectPathConfigRow
+                        repoProjectPathConfig={repoProjectPathConfig}
+                        repo={repo}
+                        project={project}
+                      />
+                    </Layout>
+                  </ConfigPanelItem>
                 );
               })
               .filter(item => !!item)}
@@ -106,14 +116,20 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
 export default withOrganization(IntegrationCodeMappings);
 
-const HeaderText = styled('div')`
-  padding-left: ${space(2)};
-  flex: 1;
-`;
-
-const ButtonWrapper = styled('div')`
-  padding-right: ${space(1)};
-  text-transform: none;
-`;
-
 const AddButton = styled(Button)``;
+
+const Layout = styled('div')`
+  display: grid;
+  grid-column-gap: ${space(1)};
+  width: 100%;
+  align-items: center;
+  grid-template-columns: 4fr 2fr 2fr 1.2fr 1.5fr;
+  grid-template-areas: 'name-repo output-path input-path default-branch button';
+`;
+
+const HeaderLayout = styled(Layout)`
+  align-items: flex-end;
+  margin: ${space(1)};
+`;
+
+const ConfigPanelItem = styled(PanelItem)``;
