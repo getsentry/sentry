@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
                 )
             ],
             state_operations=[
-                migrations.AlterField(
+                migrations.AddField(
                     model_name="projectdebugfile",
                     name="checksum",
                     field=models.CharField(db_index=True, max_length=40, null=True),
