@@ -12,6 +12,7 @@ import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import Feature from 'app/components/acl/feature';
 import Form from 'app/views/settings/components/forms/form';
 import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
 import Triggers from 'app/views/settings/incidentRules/triggers';
@@ -36,6 +37,7 @@ import {
 import {addOrUpdateRule} from '../actions';
 import {createDefaultTrigger, DATASET_EVENT_TYPE_FILTERS} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
+import RuleConditionsFormWithGuiFilters from '../ruleConditionsFormWithGuiFilters';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
@@ -601,14 +603,29 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             }
             submitLabel={t('Save Rule')}
           >
-            <RuleConditionsForm
-              api={this.api}
-              projectSlug={params.projectId}
-              organization={organization}
-              disabled={!hasAccess}
-              thresholdChart={chart}
-              onFilterSearch={this.handleFilterUpdate}
-            />
+            <Feature features={['metric-alert-gui-filters']} organization={organization}>
+              {hasFeature =>
+                hasFeature ? (
+                  <RuleConditionsFormWithGuiFilters
+                    api={this.api}
+                    projectSlug={params.projectId}
+                    organization={organization}
+                    disabled={!hasAccess}
+                    thresholdChart={chart}
+                    onFilterSearch={this.handleFilterUpdate}
+                  />
+                ) : (
+                  <RuleConditionsForm
+                    api={this.api}
+                    projectSlug={params.projectId}
+                    organization={organization}
+                    disabled={!hasAccess}
+                    thresholdChart={chart}
+                    onFilterSearch={this.handleFilterUpdate}
+                  />
+                )
+              }
+            </Feature>
 
             <Triggers
               disabled={!hasAccess}
