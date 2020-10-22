@@ -142,7 +142,7 @@ class StreamGroup extends React.Component<Props, State> {
     this.setState({data});
   }
 
-  toggleSelect(evt: React.MouseEvent<HTMLDivElement>) {
+  toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
     if ((evt.target as HTMLElement)?.tagName === 'A') {
       return;
     }
@@ -154,7 +154,7 @@ class StreamGroup extends React.Component<Props, State> {
     }
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
-  }
+  };
 
   getDiscoverUrl(isFiltered?: boolean) {
     const {organization, query, selection} = this.props;
@@ -198,8 +198,8 @@ class StreamGroup extends React.Component<Props, State> {
       };
 
       if (!!start && !!end) {
-        discoverQuery.start = start as string;
-        discoverQuery.end = end as string;
+        discoverQuery.start = String(start);
+        discoverQuery.end = String(end);
       } else {
         discoverQuery.range = period || DEFAULT_STATS_PERIOD;
       }
@@ -266,7 +266,7 @@ class StreamGroup extends React.Component<Props, State> {
           mr={1}
           flex="1"
         >
-          <EventOrGroupHeader data={data} query={query} />
+          <EventOrGroupHeader includeLink data={data} query={query} size="normal" />
           <EventOrGroupExtraDetails data={data} />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
@@ -432,7 +432,7 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
 const StyledMenuItem = styled(({to, children, ...p}) => (
   <MenuItem noAnchor>
     {to ? (
-      <Link to={to}>
+      <Link to={to} target="_blank">
         <div {...p}>{children}</div>
       </Link>
     ) : (

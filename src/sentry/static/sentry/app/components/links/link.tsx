@@ -15,7 +15,7 @@ type Props = {
   to: string | ToLocationFunction | LocationDescriptor;
   // Styles applied to the component's root
   className?: string;
-} & Omit<AnchorProps, 'href' | 'target'>;
+} & Omit<AnchorProps, 'href'>;
 
 /**
  * A context-aware version of Link (from react-router) that falls
