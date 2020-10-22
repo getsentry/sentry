@@ -191,9 +191,7 @@ class CellAction extends React.Component<Props, State> {
 
     if (
       !['duration', 'number', 'percentage'].includes(column.type) ||
-      (value === null &&
-        column.column.kind === 'field' &&
-        column.column.field !== 'error.handled')
+      (value === null && column.column.kind === 'field')
     ) {
       addMenuItem(
         Actions.ADD,
