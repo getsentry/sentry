@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
@@ -15,6 +16,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {formatVersion} from 'app/utils/formatters';
 import withOrganization from 'app/utils/withOrganization';
+import theme from 'app/utils/theme';
 
 type Props = {
   /**
@@ -125,12 +127,26 @@ const Version = ({
     </TooltipContent>
   );
 
+  const getPopperStyles = () => {
+    // if the version name is not a hash and we are not on mobile, allow tooltip to be as wide as 500px
+    if (/^[a-f0-9]{40}$/.test(version)) {
+      return undefined;
+    }
+
+    return css`
+      @media (min-width: ${theme.breakpoints[0]}) {
+        max-width: 500px;
+      }
+    `;
+  };
+
   return (
     <Tooltip
       title={renderTooltipContent()}
       disabled={!tooltipRawVersion}
       isHoverable
       containerDisplayMode={truncate ? 'block' : 'inline-block'}
+      popperStyle={getPopperStyles()}
     >
       {renderVersion()}
     </Tooltip>
@@ -161,6 +177,7 @@ const VersionText = styled('span')<{truncate?: boolean}>`
   ${p =>
     p.truncate &&
     `max-width: 100%;
+    display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;`}
