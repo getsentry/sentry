@@ -566,9 +566,6 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         for key, value in expected_data.items():
             assert events["data"][0][key] == value
 
-        print(events["data"][0])
-        assert False
-
         stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
         assert [attrs for time, attrs in stats["data"]] == [
             [{"count": 1}],
