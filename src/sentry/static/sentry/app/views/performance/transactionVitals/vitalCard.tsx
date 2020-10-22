@@ -275,7 +275,11 @@ class VitalCard extends React.Component<Props, State> {
       const name =
         vital.type === 'duration'
           ? formatDuration(midPoint)
-          : formatFloat(midPoint, 2).toLocaleString();
+          : // This is trying to avoid some of potential rounding errors that cause bins
+            // have the same label, if the number of bins doesn't visually match what is
+            // expected, check that this rounding is correct. If this issue persists,
+            // consider formatting the bin as a string in the response
+            (Math.round((midPoint + Number.EPSILON) * 100) / 100).toLocaleString();
 
       return {
         value: item.count,
@@ -449,20 +453,6 @@ class VitalCard extends React.Component<Props, State> {
         position: 'left',
       },
     });
-  }
-
-  approxFailureRate(failureIndex) {
-    const {chartData} = this.props;
-
-    const failures = chartData
-      .slice(failureIndex)
-      .reduce((sum, data) => sum + data.count, 0);
-    const total = chartData.reduce((sum, data) => sum + data.count, 0);
-    if (total === 0) {
-      return 0;
-    }
-
-    return failures / total;
   }
 
   render() {
