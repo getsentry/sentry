@@ -254,20 +254,20 @@ class IssueListOverview extends React.Component<Props, State> {
   private _lastRequest: any;
   private _streamManager = new StreamManager(GroupStore);
 
-  getQuery = (): string => {
+  getQuery(): string {
     if (this.props.savedSearch) {
       return this.props.savedSearch.query;
     }
 
     const {query} = this.props.location.query;
     return typeof query === 'undefined' ? DEFAULT_QUERY : (query as string);
-  };
+  }
 
-  getSort = (): string => {
+  getSort(): string {
     return (this.props.location.query.sort as string) || DEFAULT_SORT;
-  };
+  }
 
-  getGroupStatsPeriod = () => {
+  getGroupStatsPeriod(): string {
     const currentPeriod =
       typeof this.props.location.query?.groupStatsPeriod === 'string'
         ? this.props.location.query?.groupStatsPeriod
@@ -278,7 +278,7 @@ class IssueListOverview extends React.Component<Props, State> {
     ).has(currentPeriod)
       ? currentPeriod
       : DEFAULT_GRAPH_STATS_PERIOD;
-  };
+  }
 
   getEndpointParams = (): EndpointParams => {
     const {selection} = this.props;
@@ -315,10 +315,6 @@ class IssueListOverview extends React.Component<Props, State> {
     return pickBy(params, v => defined(v)) as EndpointParams;
   };
 
-  getFeatures = () => {
-    return new Set(this.props.organization.features);
-  };
-
   getGlobalSearchProjectIds = () => {
     return this.props.selection.projects;
   };
@@ -333,13 +329,13 @@ class IssueListOverview extends React.Component<Props, State> {
     );
   };
 
-  fetchTags = () => {
+  fetchTags() {
     const {organization, selection} = this.props;
     this.setState({tagsLoading: true});
     loadOrganizationTags(this.props.api, organization.slug, selection).then(() =>
       this.setState({tagsLoading: false})
     );
-  };
+  }
 
   fetchData = () => {
     GroupStore.loadInitialData([]);
@@ -446,11 +442,11 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
-  getGroupListEndpoint = () => {
+  getGroupListEndpoint(): string {
     const params = this.props.params;
 
     return `/organizations/${params.orgId}/issues/`;
-  };
+  }
 
   onRealtimeChange = (realtime: boolean) => {
     Cookies.set('realtimeActive', realtime.toString());
@@ -535,14 +531,14 @@ class IssueListOverview extends React.Component<Props, State> {
   /**
    * Returns true if all results in the current query are visible/on this page
    */
-  allResultsVisible = () => {
+  allResultsVisible(): boolean {
     if (!this.state.pageLinks) {
       return false;
     }
 
     const links = parseLinkHeader(this.state.pageLinks);
     return links && !links.previous.results && !links.next.results;
-  };
+  }
 
   transitionTo = (
     newParams: Partial<EndpointParams> = {},
@@ -612,11 +608,11 @@ class IssueListOverview extends React.Component<Props, State> {
     return <PanelBody>{groupNodes}</PanelBody>;
   };
 
-  renderLoading = () => {
+  renderLoading(): React.ReactNode {
     return <LoadingIndicator />;
-  };
+  }
 
-  renderStreamBody = () => {
+  renderStreamBody(): React.ReactNode {
     let body: React.ReactNode;
     if (this.state.issuesLoading) {
       body = this.renderLoading();
@@ -636,7 +632,7 @@ class IssueListOverview extends React.Component<Props, State> {
       );
     }
     return body;
-  };
+  }
 
   fetchSavedSearches = () => {
     const {organization} = this.props;
