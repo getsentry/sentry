@@ -514,6 +514,8 @@ describe('Performance > Trends', function () {
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
+          regressionCursor: undefined,
+          improvedCursor: undefined,
           trendFunction: trendFunction.field,
         }),
       });
