@@ -33,13 +33,19 @@ class Migration(migrations.Migration):
                 migrations.RunSQL(
                     """
                     ALTER TABLE "sentry_projectdsymfile" ADD COLUMN "checksum" varchar(40) NULL;
-                    CREATE INDEX CONCURRENTLY "sentry_projectdsymfile_checksum_8fb028a8_idx" ON "sentry_projectdsymfile" ("checksum");
                     """,
                     reverse_sql="""
                         ALTER TABLE "sentry_projectdsymfile" DROP COLUMN "checksum";
+                        """,
+                ),
+                migrations.RunSQL(
+                    """
+                    CREATE INDEX CONCURRENTLY "sentry_projectdsymfile_checksum_8fb028a8_idx" ON "sentry_projectdsymfile" ("checksum");
+                    """,
+                    reverse_sql="""
                         DROP INDEX CONCURRENTLY "sentry_projectdsymfile_checksum_8fb028a8_idx";
                         """,
-                )
+                ),
             ],
             state_operations=[
                 migrations.AddField(
