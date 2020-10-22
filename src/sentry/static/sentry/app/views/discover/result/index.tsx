@@ -288,7 +288,7 @@ class Result extends React.Component<ResultProps, ResultState> {
                 legend={legendData}
                 renderer="canvas"
                 isGroupedByDate
-                utc={utc}
+                utc={utc !== null && utc !== undefined ? utc : undefined}
                 options={{animation: false}}
               />
               {this.renderNote()}
