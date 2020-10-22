@@ -1181,6 +1181,7 @@ def get_filter(query=None, params=None):
         "project_ids": [],
         "group_ids": [],
         "condition_aggregates": [],
+        "function_access": {},
     }
 
     projects_to_filter = []
@@ -1246,6 +1247,8 @@ def get_filter(query=None, params=None):
         # Deprecated alias, use `group_ids` instead
         if ISSUE_ID_ALIAS in params:
             kwargs["group_ids"] = to_list(params["issue.id"])
+        if "function_access" in params:
+            kwargs["function_access"] = set(to_list(params["function_access"]))
 
     return eventstore.Filter(**kwargs)
 
@@ -1492,6 +1495,7 @@ class Function(object):
         transform=None,
         result_type_fn=None,
         default_result_type=None,
+        private=False,
     ):
         """
         Specifies a function interface that must be followed when defining new functions
@@ -1514,7 +1518,8 @@ class Function(object):
             This function will be passed the list of argument classes and argument values. This should
             be tried first as the source of truth if available.
         :param str default_result_type: The default resulting type of this function. Must be a type
-            defined by RESULTS_TYPES
+            defined by RESULTS_TYPES.
+        :param bool private: Whether or not this function should be disabled for general use.
         """
 
         self.name = name
@@ -1526,6 +1531,7 @@ class Function(object):
         self.transform = transform
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
+        self.private = private
 
         self.validate()
 
@@ -1565,6 +1571,9 @@ class Function(object):
         return columns
 
     def format_as_arguments(self, field, columns, params):
+        if self.private and self.name not in params["access"]:
+            raise InvalidSearchQuery(u"{}: no access to function".format(field))
+
         columns = self.add_default_arguments(field, columns, params)
 
         arguments = {}
@@ -1756,6 +1765,7 @@ FUNCTIONS = {
             required_args=[StringArrayColumn("column")],
             column=["arrayJoin", [ArgValue("column")], None],
             default_result_type="string",
+            private=True,
         ),
         Function(
             "measurements_histogram",
@@ -1805,6 +1815,7 @@ FUNCTIONS = {
                 None,
             ],
             default_result_type="number",
+            private=True,
         ),
         # The user facing signature for this function is histogram(<column>, <num_buckets>)
         # Internally, snuba.discover.query() expands the user request into this value by
@@ -2241,7 +2252,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     for field in fields:
         if isinstance(field, six.string_types) and field.strip() == "":
             continue
-        function = resolve_field(field, snuba_filter.date_params)
+        function = resolve_field(field, snuba_filter.params)
         if function.column is not None and function.column not in columns:
             columns.append(function.column)
             if function.details is not None and isinstance(function.column, (list, tuple)):
@@ -2254,7 +2265,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
-            function = resolve_field(agg, snuba_filter.date_params)
+            function = resolve_field(agg, snuba_filter.params)
             if function.aggregate is not None and function.aggregate not in aggregations:
                 aggregations.append(function.aggregate)
                 if function.details is not None and isinstance(function.aggregate, (list, tuple)):

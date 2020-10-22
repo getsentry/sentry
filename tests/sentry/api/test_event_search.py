@@ -2290,7 +2290,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "array_join(tags.value)",
             "array_join(measurements_key)",
         ]
-        result = resolve_field_list(fields, eventstore.Filter())
+        result = resolve_field_list(fields, eventstore.Filter(function_access={"array_join"}))
         assert result["selected_columns"] == [
             ["arrayJoin", ["tags.key"], "array_join_tags_key"],
             ["arrayJoin", ["tags.value"], "array_join_tags_value"],
@@ -2304,9 +2304,17 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
+    def test_array_join_function_no_access(self):
+        fields = ["array_join(tags.key)"]
+        with pytest.raises(InvalidSearchQuery) as err:
+            resolve_field_list(fields, eventstore.Filter())
+        assert "no access to function" in six.text_type(err)
+
     def test_measurements_histogram_function(self):
         fields = ["measurements_histogram(10, 5, 1)"]
-        result = resolve_field_list(fields, eventstore.Filter())
+        result = resolve_field_list(
+            fields, eventstore.Filter(function_access={"measurements_histogram"})
+        )
         assert result["selected_columns"] == [
             [
                 "plus",
@@ -2350,6 +2358,12 @@ class ResolveFieldListTest(unittest.TestCase):
                 "`project.name`",
             ],
         ]
+
+    def test_measurements_histogram_function_no_access(self):
+        fields = ["measurements_histogram(10, 5, 1)"]
+        with pytest.raises(InvalidSearchQuery) as err:
+            resolve_field_list(fields, eventstore.Filter())
+        assert "no access to function" in six.text_type(err)
 
     def test_histogram_function(self):
         fields = ["histogram(transaction.duration, 10, 1000, 0)", "count()"]

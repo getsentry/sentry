@@ -1023,6 +1023,8 @@ def measurements_histogram_query(
         If left unspecified, it is queried using `user_query` and `params`.
     :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
+    # make sure to grant access to these necessary functions
+    params["function_access"] = ["array_join", "measurements_histogram"]
 
     multiplier = int(10 ** precision)
     if max_value is not None:
