@@ -66,7 +66,8 @@ class BigtableNodeStorage(NodeStorage):
     """
 
     max_size = 1024 * 1024 * 10
-    column_family = b"x"
+    column_family = "x"
+
     ttl_column = b"t"
     flags_column = b"f"
     data_column = b"0"
