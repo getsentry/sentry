@@ -127,12 +127,10 @@ class StreamGroup extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
-    clearTimeout(this.hoverWait);
     callIfFunction(this.listener);
   }
 
   listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined);
-  hoverWait?: number;
 
   onGroupChange(itemIds: Set<string>) {
     const {id} = this.props;
