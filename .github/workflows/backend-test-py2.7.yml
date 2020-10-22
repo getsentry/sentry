@@ -32,7 +32,6 @@ jobs:
       - name: Check for python file changes
         uses: getsentry/paths-filter@v2
         id: changes
-        if: steps.changes.outputs.frontend == 'false'
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
