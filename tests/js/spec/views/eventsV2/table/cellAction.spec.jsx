@@ -12,6 +12,8 @@ const defaultData = {
   timestamp: '2020-06-09T01:46:25+00:00',
   release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
   nullValue: null,
+  'measurements.fcp': 1234,
+  percentile_measurements_fcp_0_5: 1234,
 };
 
 function makeWrapper(eventView, handleCellAction, columnIndex = 0, data = defaultData) {
@@ -32,7 +34,15 @@ describe('Discover -> CellAction', function () {
     query: {
       id: '42',
       name: 'best query',
-      field: ['transaction', 'count()', 'timestamp', 'release', 'nullValue'],
+      field: [
+        'transaction',
+        'count()',
+        'timestamp',
+        'release',
+        'nullValue',
+        'measurements.fcp',
+        'percentile(measurements.fcp, 0.5)',
+      ],
       widths: ['437', '647', '416', '905'],
       sort: ['title'],
       query: 'event.type:transaction',
@@ -231,6 +241,58 @@ describe('Discover -> CellAction', function () {
       wrapper.find('Container').simulate('mouseEnter');
       wrapper.find('MenuButton').simulate('click');
       expect(wrapper.find('button[data-test-id="release"]').exists()).toBeFalsy();
+    });
+
+    it('show appropriate actions for measurement cells', function () {
+      wrapper = makeWrapper(view, handleCellAction, 5);
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(
+        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
+      ).toBeTruthy();
+      expect(
+        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
+      ).toBeTruthy();
+      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeFalsy();
+      expect(
+        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
+      ).toBeFalsy();
+
+      wrapper = makeWrapper(view, handleCellAction, 5, {
+        ...defaultData,
+        'measurements.fcp': null,
+      });
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(
+        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
+      ).toBeFalsy();
+      expect(
+        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
+      ).toBeFalsy();
+      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeTruthy();
+      expect(
+        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
+      ).toBeTruthy();
+    });
+
+    it('show appropriate actions for numeric function cells', function () {
+      wrapper = makeWrapper(view, handleCellAction, 6);
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(
+        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
+      ).toBeTruthy();
+      expect(
+        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
+      ).toBeTruthy();
+
+      wrapper = makeWrapper(view, handleCellAction, 6, {
+        ...defaultData,
+        percentile_measurements_fcp_0_5: null,
+      });
+      wrapper.find('Container').simulate('mouseEnter');
+      expect(wrapper.find('MenuButton').exists()).toBeFalsy();
     });
   });
 });

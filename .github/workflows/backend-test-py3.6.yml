@@ -15,6 +15,7 @@ jobs:
         instance: [0, 1, 2]
 
     env:
+      # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
