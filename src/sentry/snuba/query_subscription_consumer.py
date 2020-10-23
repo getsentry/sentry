@@ -12,7 +12,7 @@ from django.conf import settings
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
-from sentry.utils import metrics, json
+from sentry.utils import metrics, json, kafka
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class QuerySubscriptionConsumer(object):
             topic = settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS
         self.topic = topic
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-        self.cluster_options = settings.KAFKA_CLUSTERS[cluster_name]
+        self.cluster_options = kafka.get_kafka_consumer_cluster_options(cluster_name)
         self.commit_batch_size = commit_batch_size
         self.initial_offset_reset = initial_offset_reset
         self.offsets = {}

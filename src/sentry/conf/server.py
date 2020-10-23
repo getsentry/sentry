@@ -1854,9 +1854,12 @@ SENTRY_USER_PERMISSIONS = ("broadcasts.admin",)
 
 KAFKA_CLUSTERS = {
     "default": {
-        "bootstrap.servers": "127.0.0.1:9092",
-        "compression.type": "lz4",
-        "message.max.bytes": 50000000,  # 50MB, default is 1MB
+        "common": {"bootstrap.servers": "127.0.0.1:9092"},
+        "producers": {
+            "compression.type": "lz4",
+            "message.max.bytes": 50000000,  # 50MB, default is 1MB
+        },
+        "consumers": {},
     }
 }
 

@@ -84,7 +84,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         logger.debug("Starting post-process forwarder...")
 
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-        cluster_options = settings.KAFKA_CLUSTERS[cluster_name]
+        cluster_options = kafka.get_kafka_consumer_cluster_options(cluster_name)
 
         consumer = SynchronizedConsumer(
             cluster_options=cluster_options,

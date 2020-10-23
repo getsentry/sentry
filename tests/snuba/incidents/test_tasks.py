@@ -82,7 +82,9 @@ class HandleSnubaQueryUpdateTest(TestCase):
     def producer(self):
         cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
         conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"],
+            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
+                "bootstrap.servers"
+            ],
             "session.timeout.ms": 6000,
         }
         return Producer(conf)

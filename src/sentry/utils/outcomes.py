@@ -7,7 +7,7 @@ import six
 import time
 
 from sentry.constants import DataCategory
-from sentry.utils import json, metrics
+from sentry.utils import json, metrics, kafka
 from sentry.utils.dates import to_datetime
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -49,7 +49,8 @@ def track_outcome(
     """
     global outcomes_publisher
     if outcomes_publisher is None:
-        outcomes_publisher = KafkaPublisher(settings.KAFKA_CLUSTERS[outcomes["cluster"]])
+        cluster_name = outcomes["cluster"]
+        outcomes_publisher = KafkaPublisher(kafka.get_kafka_producer_cluster_options(cluster_name))
 
     if quantity is None:
         quantity = 1
