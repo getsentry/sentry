@@ -84,14 +84,17 @@ class StreamGroup extends React.Component<Props, State> {
 
   static defaultProps = defaultProps;
 
-  constructor(props: Props) {
-    super(props);
-    const data = GroupStore.get(props.id) as Group;
+  state: State = this.getInitialState();
 
-    this.state = {
+  getInitialState(): State {
+    const {id, useFilteredStats} = this.props;
+
+    const data = GroupStore.get(id) as Group;
+
+    return {
       data: {
         ...data,
-        filtered: props.useFilteredStats ? data.filtered : undefined,
+        filtered: useFilteredStats ? data.filtered : undefined,
       },
     };
   }
