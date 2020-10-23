@@ -15,9 +15,16 @@ import Toolbar from './toolbar';
 
 type SimilarItem = {
   issue: Group;
-  score: Record<string, any>;
-  avgScore: number;
   isBelowThreshold: boolean;
+  score?: Record<string, number | null>;
+  scoresByInterface?: {
+    exception: Array<[string, number | null]>;
+    message: Array<[string, any | null]>;
+  };
+  aggregate?: {
+    exception: number;
+    message: number;
+  };
 };
 
 type DefaultProps = {
