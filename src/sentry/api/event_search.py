@@ -456,7 +456,7 @@ class SearchVisitor(NodeVisitor):
             aggregate_value = None
             if search_value.expr_name == "duration_format":
                 # Even if the search value matches duration format, only act as duration for certain columns
-                function = resolve_field(search_key.name, None)
+                function = resolve_field(search_key.name, functions_acl=True)
                 if function.aggregate is not None:
                     # Extract column and function name out so we can check if we should parse as duration
                     if self.is_duration_key(function.aggregate[1]):
@@ -747,7 +747,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
         return [["isNull", [name]], aggregate_filter.operator, 1]
 
-    function = resolve_field(name, params)
+    function = resolve_field(name, params, functions_acl=True)
     if function.aggregate is not None:
         name = function.aggregate[-1]
 
@@ -1181,7 +1181,6 @@ def get_filter(query=None, params=None):
         "project_ids": [],
         "group_ids": [],
         "condition_aggregates": [],
-        "function_access": {},
     }
 
     projects_to_filter = []
@@ -1247,8 +1246,6 @@ def get_filter(query=None, params=None):
         # Deprecated alias, use `group_ids` instead
         if ISSUE_ID_ALIAS in params:
             kwargs["group_ids"] = to_list(params["issue.id"])
-        if "function_access" in params:
-            kwargs["function_access"] = set(to_list(params["function_access"]))
 
     return eventstore.Filter(**kwargs)
 
@@ -1571,9 +1568,6 @@ class Function(object):
         return columns
 
     def format_as_arguments(self, field, columns, params):
-        if self.private and self.name not in params["access"]:
-            raise InvalidSearchQuery(u"{}: no access to function".format(field))
-
         columns = self.add_default_arguments(field, columns, params)
 
         arguments = {}
@@ -1667,6 +1661,23 @@ class Function(object):
         assert (
             result_type is None or result_type in RESULT_TYPES
         ), u"{}: result type {} not one of {}".format(self.name, result_type, list(RESULT_TYPES))
+
+    def is_accessible(self, acl=None):
+        """
+        Determines if this function should be accessible based on the access control list.
+
+        :param None or bool or list[str] acl: The access control list. This can take on various types.
+            1. None: This indicates that ALL private functions should NOT be accessible.
+            2. bool: This indicates whether or not ALL private functions should be accessible.
+            3. list[str]: This indicates the list of private functions that should be accessible.
+        """
+        if not self.private:
+            return True
+        elif acl is None:
+            return False
+        elif isinstance(acl, bool):
+            return acl
+        return self.name in acl
 
 
 def reflective_result_type(index=0):
@@ -2145,9 +2156,12 @@ FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
 ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")
 
 
-def resolve_function(field, match=None, params=None):
+def resolve_function(field, match=None, params=None, functions_acl=False):
     function_name, columns = parse_function(field, match)
     function = FUNCTIONS[function_name]
+    if not function.is_accessible(functions_acl):
+        raise InvalidSearchQuery(u"{}: no access to private function".format(function.name))
+
     arguments = function.format_as_arguments(field, columns, params)
     details = FunctionDetails(field, function, arguments)
 
@@ -2247,13 +2261,13 @@ def get_aggregate_alias(match):
     return u"{}_{}".format(match.group("function"), column).rstrip("_")
 
 
-def resolve_field(field, params=None):
+def resolve_field(field, params=None, functions_acl=None):
     if not isinstance(field, six.string_types):
         raise InvalidSearchQuery("Field names must be strings")
 
     match = is_function(field)
     if match:
-        return resolve_function(field, match, params)
+        return resolve_function(field, match, params, functions_acl)
 
     if field in FIELD_ALIASES:
         special_field = deepcopy(FIELD_ALIASES[field])
@@ -2261,7 +2275,9 @@ def resolve_field(field, params=None):
     return ResolvedFunction(None, field, None)
 
 
-def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations=False):
+def resolve_field_list(
+    fields, snuba_filter, auto_fields=True, auto_aggregations=False, functions_acl=None
+):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
@@ -2295,7 +2311,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     for field in fields:
         if isinstance(field, six.string_types) and field.strip() == "":
             continue
-        function = resolve_field(field, snuba_filter.params)
+        function = resolve_field(field, snuba_filter.date_params, functions_acl)
         if function.column is not None and function.column not in columns:
             columns.append(function.column)
             if function.details is not None and isinstance(function.column, (list, tuple)):
@@ -2308,7 +2324,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
-            function = resolve_field(agg, snuba_filter.params)
+            function = resolve_field(agg, snuba_filter.date_params, functions_acl)
             if function.aggregate is not None and function.aggregate not in aggregations:
                 aggregations.append(function.aggregate)
                 if function.details is not None and isinstance(function.aggregate, (list, tuple)):

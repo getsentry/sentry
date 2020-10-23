@@ -2290,7 +2290,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "array_join(tags.value)",
             "array_join(measurements_key)",
         ]
-        result = resolve_field_list(fields, eventstore.Filter(function_access={"array_join"}))
+        result = resolve_field_list(fields, eventstore.Filter(), functions_acl=["array_join"])
         assert result["selected_columns"] == [
             ["arrayJoin", ["tags.key"], "array_join_tags_key"],
             ["arrayJoin", ["tags.value"], "array_join_tags_value"],
@@ -2308,12 +2308,12 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["array_join(tags.key)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "no access to function" in six.text_type(err)
+        assert "no access to private function" in six.text_type(err)
 
     def test_measurements_histogram_function(self):
         fields = ["measurements_histogram(10, 5, 1)"]
         result = resolve_field_list(
-            fields, eventstore.Filter(function_access={"measurements_histogram"})
+            fields, eventstore.Filter(), functions_acl=["measurements_histogram"]
         )
         assert result["selected_columns"] == [
             [
@@ -2363,7 +2363,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["measurements_histogram(10, 5, 1)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "no access to function" in six.text_type(err)
+        assert "no access to private function" in six.text_type(err)
 
     def test_histogram_function(self):
         fields = ["histogram(transaction.duration, 10, 1000, 0)", "count()"]
@@ -2952,3 +2952,12 @@ class FunctionTest(unittest.TestCase):
             result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
         )
         assert fn.get_result_type("fn()", ["arg1"]) == "number"
+
+    def test_private_function(self):
+        fn = Function("fn", transform="", result_type_fn=lambda *_: None, private=True)
+        assert fn.is_accessible() is False
+        assert fn.is_accessible(False) is False
+        assert fn.is_accessible(True) is True
+        assert fn.is_accessible([]) is False
+        assert fn.is_accessible(["other_fn"]) is False
+        assert fn.is_accessible(["fn"]) is True

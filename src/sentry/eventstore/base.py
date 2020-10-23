@@ -46,7 +46,6 @@ class Filter(object):
         groupby=None,
         orderby=None,
         condition_aggregates=None,
-        function_access=None,
     ):
         self.start = start
         self.end = end
@@ -55,7 +54,6 @@ class Filter(object):
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
-        self.function_access = function_access if function_access is not None else {}
 
         self.rollup = rollup
         self.selected_columns = selected_columns if selected_columns is not None else []
@@ -83,15 +81,11 @@ class Filter(object):
         return filter_keys
 
     @property
-    def params(self):
+    def date_params(self):
         """
-        Get the filter parameters as a dictionary
+        Get the datetime parameters as a dictionary
         """
-        return {
-            "start": self.start,
-            "end": self.end,
-            "access": self.function_access,
-        }
+        return {"start": self.start, "end": self.end}
 
     def update_with(self, updates):
         keys = ("selected_columns", "aggregations", "conditions", "orderby", "groupby")
