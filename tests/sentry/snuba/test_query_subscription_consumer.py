@@ -152,6 +152,11 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
     def test_valid(self):
         self.run_test({"version": 2, "payload": self.valid_payload})
 
+    def test_valid_nan(self):
+        payload = deepcopy(self.valid_payload)
+        payload["result"]["data"][0]["hello"] = float("nan")
+        self.run_test({"version": 2, "payload": payload})
+
     def test_old_version(self):
         self.run_test({"version": 1, "payload": self.old_payload})
 
