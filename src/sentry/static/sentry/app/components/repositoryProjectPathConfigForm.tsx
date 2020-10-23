@@ -23,6 +23,7 @@ type Props = {
   integration: Integration;
   projects: Project[];
   repos: Repository[];
+  onSubmitSuccess: Form['onSubmitSuccess'];
 };
 
 export default class RepositoryProjectPathConfigForm extends React.Component<Props> {
@@ -33,7 +34,8 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
       defaultBranch: 'master',
       stackRoot: 'k',
       sourceRoot: 'k',
-      repositoryId: '25',
+      projectId: '25',
+      repositoryId: '40',
     };
   }
 
@@ -97,11 +99,16 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
   }
 
   render() {
-    const {organization, integration} = this.props;
+    const {organization, integration, onSubmitSuccess} = this.props;
     const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/`;
 
     return (
-      <StyledForm initialData={this.initialData} apiEndpoint={endpoint} apiMethod="POST">
+      <StyledForm
+        onSubmitSuccess={onSubmitSuccess}
+        initialData={this.initialData}
+        apiEndpoint={endpoint}
+        apiMethod="POST"
+      >
         <Observer>{() => <JsonForm forms={[this.formFields]} />}</Observer>
       </StyledForm>
     );

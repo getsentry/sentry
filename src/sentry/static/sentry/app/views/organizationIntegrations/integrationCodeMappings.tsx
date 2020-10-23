@@ -46,8 +46,18 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     };
   }
 
+  get integrationId() {
+    return this.props.integration.id;
+  }
+
   get projects() {
     return this.props.organization.projects;
+  }
+
+  get repos() {
+    //endpoint doesn't support loading only the repos for this integration
+    //but most people only have one source code repo so this should be fine
+    return this.state.repos.filter(repo => repo.integrationId === this.integrationId);
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -55,7 +65,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return [
       [
         'pathConfigs',
-        `/organizations/${orgSlug}/integrations/${this.props.integration.id}/repo-project-path-configs/`,
+        `/organizations/${orgSlug}/integrations/${this.integrationId}/repo-project-path-configs/`,
       ],
       ['repos', `/organizations/${orgSlug}/repos/`, {query: {status: 'active'}}],
     ];
@@ -83,7 +93,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {organization, integration} = this.props;
-    const {pathConfigs, showModal, repos} = this.state;
+    const {pathConfigs, showModal} = this.state;
     return (
       <React.Fragment>
         <Panel>
@@ -139,12 +149,14 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
           enforceFocus={false}
           backdrop="static"
         >
+          <Modal.Header closeButton />
           <Modal.Body>
             <RepositoryProjectPathConfigForm
               organization={organization}
               integration={integration}
               projects={this.projects}
-              repos={repos}
+              repos={this.repos}
+              onSubmitSuccess={this.closeModal}
             />
           </Modal.Body>
         </Modal>

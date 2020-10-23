@@ -686,12 +686,14 @@ class FormModel {
 
     // Show resp msg from API endpoint if possible
     Object.keys(resp).forEach(id => {
+      //non-field errors can be camelcase or snake case
+      const nonFieldErrors = resp.non_field_errors || resp.nonFieldErrors;
       if (
-        id === 'non_field_errors' &&
-        Array.isArray(resp.non_field_errors) &&
-        resp.non_field_errors.length
+        (id === 'non_field_errors' || id === 'nonFieldErrors') &&
+        Array.isArray(nonFieldErrors) &&
+        nonFieldErrors.length
       ) {
-        addErrorMessage(resp.non_field_errors[0], {duration: 10000});
+        addErrorMessage(nonFieldErrors[0], {duration: 10000});
       } else if (Array.isArray(resp[id]) && resp[id].length) {
         // Just take first resp for now
         this.setError(id, resp[id][0]);

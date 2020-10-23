@@ -33,19 +33,27 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     def validate(self, attrs):
         # TODO: Needs to be updated for update since the row already exists
         query = RepositoryProjectPathConfig.objects.filter(
-            project_id=attrs.get("project_id"),
-            stack_root=attrs.get("stack_root")
+            project_id=attrs.get("project_id"), stack_root=attrs.get("stack_root")
         )
         if query.exists():
-            raise serializers.ValidationError("Code path config already exists with this project and stack root")
+            raise serializers.ValidationError(
+                "Code path config already exists with this project and stack root"
+            )
         return attrs
 
     def validate_repository_id(self, repository_id):
-        # validate repo exists on this org and integratin
+        # validate repo exists on this org and integration
+        print(
+            "validate_repository_id",
+            repository_id,
+            self.organization_id,
+            self.org_integration.integration_id,
+        )
         repo_query = Repository.objects.filter(
             id=repository_id,
             organization_id=self.organization_id,
-            integration_id=self.org_integration.integration_id)
+            integration_id=self.org_integration.integration_id,
+        )
         if not repo_query.exists():
             raise serializers.ValidationError("Repository does not exist")
         return repository_id
@@ -59,8 +67,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         return RepositoryProjectPathConfig.objects.create(
-            organization_integration=self.org_integration,
-            **validated_data
+            organization_integration=self.org_integration, **validated_data
         )
 
 
@@ -87,11 +94,12 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
         org_integration = self.get_organization_integration(organization, integration_id)
 
         serializer = RepositoryProjectPathConfigSerializer(
-            context={"organization_integration": org_integration},
-            data=request.data,
+            context={"organization_integration": org_integration}, data=request.data,
         )
         if serializer.is_valid():
             repository_project_path_config = serializer.save()
-            return self.respond(serialize(repository_project_path_config, request.user), status=status.HTTP_200_OK)
+            return self.respond(
+                serialize(repository_project_path_config, request.user), status=status.HTTP_200_OK
+            )
 
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
