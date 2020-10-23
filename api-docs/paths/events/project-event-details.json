@@ -25,7 +25,7 @@
       {
         "name": "event_id",
         "in": "path",
-        "description": "The ID of the event to retrieve (either the numeric primary-key or the hexadecimal ID as reported by the client)",
+        "description": "The ID of the event to retrieve. It is the hexadecimal ID as reported by the client.",
         "required": true,
         "schema": {
           "type": "string"
