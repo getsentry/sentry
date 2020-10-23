@@ -8,6 +8,7 @@ import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -670,8 +671,8 @@ class IssueListOverview extends React.Component<Props, State> {
     const query = this.getQuery();
 
     return (
-      <div className={classNames(classes)}>
-        <div className="stream-content">
+      <StreamRow className={classNames(classes)}>
+        <StreamContent showSidebar={this.state.isSidebarVisible}>
           <IssueListFilters
             organization={organization}
             query={query}
@@ -714,16 +715,19 @@ class IssueListOverview extends React.Component<Props, State> {
             </PanelBody>
           </Panel>
           <Pagination pageLinks={this.state.pageLinks} onCursor={this.onCursorChange} />
-        </div>
-        <IssueListSidebar
-          loading={this.state.tagsLoading}
-          tags={tags}
-          query={query}
-          onQueryChange={this.onIssueListSidebarSearch}
-          orgId={organization.slug}
-          tagValueLoader={this.tagValueLoader}
-        />
-      </div>
+        </StreamContent>
+
+        <SidebarContainer showSidebar={this.state.isSidebarVisible}>
+          <IssueListSidebar
+            loading={this.state.tagsLoading}
+            tags={tags}
+            query={query}
+            onQueryChange={this.onIssueListSidebarSearch}
+            orgId={organization.slug}
+            tagValueLoader={this.tagValueLoader}
+          />
+        </SidebarContainer>
+      </StreamRow>
     );
   }
 }
@@ -733,4 +737,31 @@ export default withApi(
     withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
   )
 );
+
 export {IssueListOverview};
+
+const StreamRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+`;
+
+const StreamContent = styled('div')<{showSidebar: boolean}>`
+  width: ${p => (p.showSidebar ? '75%' : '100%')};
+  transition: width 0.2s ease-in-out;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
+  }
+`;
+
+const SidebarContainer = styled('div')<{showSidebar: boolean}>`
+  overflow: ${p => (p.showSidebar ? 'visible' : 'hidden')};
+  height: ${p => (p.showSidebar ? 'auto' : 0)};
+  width: ${p => (p.showSidebar ? '25%' : 0)};
+  transition: width 0.2s ease-in-out;
+  margin-left: 20px;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;

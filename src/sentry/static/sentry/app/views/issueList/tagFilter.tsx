@@ -1,11 +1,13 @@
 import debounce from 'lodash/debounce';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 import {Tag, TagValue} from 'app/types';
+import space from 'app/styles/space';
 
 import {TagValueLoader} from './types';
 
@@ -150,8 +152,8 @@ class IssueListTagFilter extends React.Component<Props, State> {
   render() {
     const {tag} = this.props;
     return (
-      <div className="stream-tag-filter">
-        <h6 className="nav-header">{tag.key}</h6>
+      <StreamTagFilter>
+        <StyledHeader>{tag.key}</StyledHeader>
 
         {!!tag.isInput && (
           <input
@@ -186,9 +188,18 @@ class IssueListTagFilter extends React.Component<Props, State> {
             }
           />
         )}
-      </div>
+      </StreamTagFilter>
     );
   }
 }
 
 export default IssueListTagFilter;
+
+const StreamTagFilter = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+const StyledHeader = styled('h6')`
+  color: #7c6a8e;
+  margin-bottom: 10px;
+`;
