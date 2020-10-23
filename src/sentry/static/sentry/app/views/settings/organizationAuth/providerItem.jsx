@@ -72,7 +72,7 @@ export default class ProviderItem extends React.PureComponent {
             <ProviderInfo>
               <ProviderLogo
                 className={`provider-logo ${provider.name
-                  .replace(/\s/g, '')
+                  .replace(/\s/g, '-')
                   .toLowerCase()}`}
               />
               <div>
