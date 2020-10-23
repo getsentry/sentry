@@ -42,7 +42,11 @@ import Charts from './charts/index';
 import Onboarding from './onboarding';
 import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
 import TrendsContent from './trends/content';
-import {modifyTrendsViewDefaultPeriod, DEFAULT_TRENDS_STATS_PERIOD} from './trends/utils';
+import {
+  modifyTrendsViewDefaultPeriod,
+  DEFAULT_TRENDS_STATS_PERIOD,
+  DEFAULT_MAX_DURATION,
+} from './trends/utils';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -236,7 +240,10 @@ class PerformanceLanding extends React.Component<Props, State> {
           conditions.getTagValues('transaction.duration')
         );
       } else {
-        modifiedConditions.setTagValues('transaction.duration', ['>0', '<60min']);
+        modifiedConditions.setTagValues('transaction.duration', [
+          '>0',
+          `<${DEFAULT_MAX_DURATION}`,
+        ]);
       }
       newQuery.query = stringifyQueryObject(modifiedConditions);
     }

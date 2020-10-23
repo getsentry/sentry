@@ -1956,6 +1956,31 @@ FUNCTIONS = {
             default_result_type="duration",
         ),
         Function(
+            "variance_range",
+            required_args=[
+                DurationColumnNoLookup("column"),
+                DateArg("start"),
+                DateArg("end"),
+                NumberRange("index", 1, None),
+            ],
+            aggregate=[
+                u"varSampIf",
+                [
+                    ArgValue("column"),
+                    [
+                        "and",
+                        [
+                            # see `percentile_range` for why the conditions are backwards
+                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
+                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                        ],
+                    ],
+                ],
+                "variance_range_{index:g}",
+            ],
+            default_result_type="duration",
+        ),
+        Function(
             "user_misery_range",
             required_args=[
                 NumberRange("satisfaction", 0, None),
@@ -2020,6 +2045,24 @@ FUNCTIONS = {
                 None,
             ],
             default_result_type="percentage",
+        ),
+        # Calculate the Welch's t-test value, this is used to help identify which of our trends are significant or not
+        Function(
+            "t_score",
+            required_args=[
+                FunctionArg("avg_1"),
+                FunctionArg("avg_2"),
+                FunctionArg("variance_1"),
+                FunctionArg("variance_2"),
+                FunctionArg("count_1"),
+                FunctionArg("count_2"),
+            ],
+            aggregate=[
+                u"divide(minus({avg_1},{avg_2}),sqrt(plus(divide({variance_1},{count_1}),divide({variance_2},{count_2}))))",
+                None,
+                "t_score",
+            ],
+            default_result_type="number",
         ),
         Function(
             "minus",

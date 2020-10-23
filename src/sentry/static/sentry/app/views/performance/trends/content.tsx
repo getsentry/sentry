@@ -23,6 +23,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import {getTransactionSearchQuery} from '../utils';
 import {TrendChangeType, TrendView, TrendFunctionField} from './types';
 import {
+  DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
   getCurrentTrendFunction,
   getSelectedQueryKey,
@@ -210,7 +211,7 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
       return <React.Fragment>{children}</React.Fragment>;
     } else {
       conditions.setTagValues('epm()', ['>0.01']);
-      conditions.setTagValues('transaction.duration', ['>0', '<60min']);
+      conditions.setTagValues('transaction.duration', ['>0', `<${DEFAULT_MAX_DURATION}`]);
     }
 
     const query = stringifyQueryObject(conditions);
