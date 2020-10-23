@@ -3,11 +3,11 @@ import * as PopperJS from 'popper.js';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import styled from '@emotion/styled';
+import styled, {SerializedStyles} from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import {domId} from 'app/utils/domId';
-import {IS_CI} from 'app/constants';
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
 
 const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
 
@@ -42,7 +42,7 @@ type Props = DefaultProps & {
   /**
    * Additional style rules for the tooltip content.
    */
-  popperStyle?: React.CSSProperties;
+  popperStyle?: React.CSSProperties | SerializedStyles;
 
   /**
    * Time to wait (in milliseconds) before showing the tooltip
@@ -110,7 +110,7 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   async componentDidMount() {
-    if (IS_CI) {
+    if (IS_ACCEPTANCE_TEST) {
       const TooltipStore = (
         await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
       ).default;
@@ -121,7 +121,7 @@ class Tooltip extends React.Component<Props, State> {
   async componentWillUnmount() {
     const {usesGlobalPortal} = this.state;
 
-    if (IS_CI) {
+    if (IS_ACCEPTANCE_TEST) {
       const TooltipStore = (
         await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
       ).default;
@@ -262,7 +262,7 @@ class Tooltip extends React.Component<Props, State> {
                 ref={arrowProps.ref}
                 data-placement={placement}
                 style={arrowProps.style}
-                background={popperStyle?.background || '#000'}
+                background={(popperStyle as React.CSSProperties)?.background || '#000'}
               />
             </TooltipContent>
           )}
@@ -290,7 +290,7 @@ const Container = styled('span')<{
 `;
 
 const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'>>`
-  color: #fff;
+  color: ${p => p.theme.white};
   background: #000;
   opacity: 0.9;
   padding: 5px 10px;

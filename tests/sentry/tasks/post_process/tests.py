@@ -64,11 +64,7 @@ class PostProcessGroupTest(TestCase):
         )
         cache_key = write_event_to_cache(event)
         post_process_group(
-            event=None,
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            cache_key=cache_key,
+            is_new=True, is_regression=False, is_new_group_environment=True, cache_key=cache_key,
         )
 
         mock_processor.assert_not_called()  # NOQA
@@ -84,7 +80,6 @@ class PostProcessGroupTest(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
 
         post_process_group(
-            event=None,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -99,7 +94,6 @@ class PostProcessGroupTest(TestCase):
         cache_key = write_event_to_cache(event)
 
         post_process_group(
-            event=None,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -107,50 +101,6 @@ class PostProcessGroupTest(TestCase):
             group_id=event.group_id,
         )
         assert event_processing_store.get(cache_key) is None
-
-    def test_processing_cache_cleared_with_event_param(self):
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
-
-        post_process_group(
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            cache_key=cache_key,
-        )
-        assert event_processing_store.get(cache_key) is None
-
-    def test_processing_cache_does_not_error(self):
-        event = self.store_event(data={}, project_id=self.project.id)
-
-        post_process_group(
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            cache_key="not-valid",
-        )
-        assert event_processing_store.get("not-valid") is None
-
-    @patch("sentry.rules.processor.RuleProcessor")
-    @patch("sentry.tasks.post_process.check_event_already_post_processed")
-    def test_already_processed_abort(self, mock_check, mock_processor):
-        mock_check.return_value = True
-
-        event = self.store_event(data={}, project_id=self.project.id)
-
-        post_process_group(
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            cache_key=None,
-            group_id=event.group_id,
-        )
-
-        assert mock_check.call_count == 1
-        assert mock_processor.call_count == 0, "Should abort early"
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_rule_processor_backwards_compat(self, mock_processor):
@@ -163,7 +113,6 @@ class PostProcessGroupTest(TestCase):
         mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         post_process_group(
-            event=None,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -187,7 +136,6 @@ class PostProcessGroupTest(TestCase):
         mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         post_process_group(
-            event=None,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -220,7 +168,6 @@ class PostProcessGroupTest(TestCase):
         mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         post_process_group(
-            event=None,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -243,7 +190,6 @@ class PostProcessGroupTest(TestCase):
 
         # Check for has_reappeared=False if is_new=True
         post_process_group(
-            event=None,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -258,7 +204,6 @@ class PostProcessGroupTest(TestCase):
         cache_key = write_event_to_cache(event)
         # Check for has_reappeared=True if is_new=False
         post_process_group(
-            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=True,
@@ -285,7 +230,6 @@ class PostProcessGroupTest(TestCase):
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
         post_process_group(
-            event=None,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -321,7 +265,6 @@ class PostProcessGroupTest(TestCase):
         )
         cache_key = write_event_to_cache(event)
         post_process_group(
-            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -344,7 +287,6 @@ class PostProcessGroupTest(TestCase):
         )
         cache_key = write_event_to_cache(event)
         post_process_group(
-            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -366,7 +308,6 @@ class PostProcessGroupTest(TestCase):
         )
         cache_key = write_event_to_cache(event)
         post_process_group(
-            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -388,7 +329,6 @@ class PostProcessGroupTest(TestCase):
         cache_key = write_event_to_cache(event)
         event.group.assignee_set.create(team=self.team, project=self.project)
         post_process_group(
-            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -414,7 +354,6 @@ class PostProcessGroupTest(TestCase):
         )
         cache_key = write_event_to_cache(event)
         post_process_group(
-            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -423,35 +362,6 @@ class PostProcessGroupTest(TestCase):
         )
         assignee = event.group.assignee_set.first()
         assert assignee is None
-
-    # TODO(mark) Remove this after October 16 2020.
-    @patch("sentry.tasks.servicehooks.process_service_hook")
-    def test_event_parameter_backwards_compat(self, mock_process_service_hook):
-        # Ensure that post_process_group still does
-        # what it should when an event parameter is used.
-        # This ensures backwards compatibility for self-hosted.
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
-        hook = self.create_service_hook(
-            project=self.project,
-            organization=self.project.organization,
-            actor=self.user,
-            events=["event.created"],
-        )
-
-        with self.feature("projects:servicehooks"):
-            post_process_group(
-                event=event,
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=cache_key,
-                group_id=event.group_id,
-            )
-
-        mock_process_service_hook.delay.assert_called_once_with(
-            servicehook_id=hook.id, event=EventMatcher(event)
-        )
 
     @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
@@ -466,7 +376,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.feature("projects:servicehooks"):
             post_process_group(
-                event=None,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -498,7 +407,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.feature("projects:servicehooks"):
             post_process_group(
-                event=None,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -529,7 +437,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.feature("projects:servicehooks"):
             post_process_group(
-                event=None,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -550,7 +457,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.feature("projects:servicehooks"):
             post_process_group(
-                event=None,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -566,7 +472,6 @@ class PostProcessGroupTest(TestCase):
         cache_key = write_event_to_cache(event)
         group = event.group
         post_process_group(
-            event=None,
             is_new=True,
             is_regression=False,
             is_new_group_environment=False,
@@ -599,7 +504,6 @@ class PostProcessGroupTest(TestCase):
         )
 
         post_process_group(
-            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -625,7 +529,6 @@ class PostProcessGroupTest(TestCase):
         cache_key = write_event_to_cache(event)
 
         post_process_group(
-            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -645,7 +548,6 @@ class PostProcessGroupTest(TestCase):
         cache_key = write_event_to_cache(event)
 
         post_process_group(
-            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -675,7 +577,6 @@ class PostProcessGroupTest(TestCase):
         )
 
         post_process_group(
-            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,

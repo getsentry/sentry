@@ -22,7 +22,13 @@ import ExternalLink from 'app/components/links/externalLink';
 
 import {getTransactionSearchQuery} from '../utils';
 import {TrendChangeType, TrendView, TrendFunctionField} from './types';
-import {TRENDS_FUNCTIONS, getCurrentTrendFunction, getSelectedQueryKey} from './utils';
+import {
+  DEFAULT_MAX_DURATION,
+  TRENDS_FUNCTIONS,
+  getCurrentTrendFunction,
+  getSelectedQueryKey,
+  trendCursorNames,
+} from './utils';
 import ChangedTransactions from './changedTransactions';
 import ChangedProjects from './changedProjects';
 import {FilterViews} from '../landing';
@@ -50,11 +56,14 @@ class TrendsContent extends React.Component<Props, State> {
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
 
+    const cursors = {};
+    Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
-        cursor: undefined,
+        ...cursors,
         query: String(searchQuery).trim() || undefined,
       },
     });
@@ -81,11 +90,15 @@ class TrendsContent extends React.Component<Props, State> {
       previousTrendFunction: getCurrentTrendFunction(location).field,
     });
 
+    const cursors = {};
+    Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
         ...offsets,
+        ...cursors,
         trendFunction: field,
       },
     });
@@ -197,8 +210,8 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     if (queryString || this.hasPushedDefaults) {
       return <React.Fragment>{children}</React.Fragment>;
     } else {
-      conditions.setTagValues('count()', ['>1000']);
-      conditions.setTagValues('transaction.duration', ['>0']);
+      conditions.setTagValues('epm()', ['>0.01']);
+      conditions.setTagValues('transaction.duration', ['>0', `<${DEFAULT_MAX_DURATION}`]);
     }
 
     const query = stringifyQueryObject(conditions);

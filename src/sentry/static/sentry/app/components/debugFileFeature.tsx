@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconClose} from 'app/icons';
 import {t} from 'app/locale';
-import Tag from 'app/components/tag';
+import Tag from 'app/components/tagDeprecated';
 
 const FEATURE_TOOLTIPS = {
   symtab: t(

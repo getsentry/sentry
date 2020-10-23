@@ -18,6 +18,8 @@ import SnoozeAction from 'app/components/issues/snoozeAction';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {getMessage} from 'app/utils/events';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 
 class CompactIssueHeader extends React.Component {
   static propTypes = {
@@ -25,46 +27,6 @@ class CompactIssueHeader extends React.Component {
     projectId: PropTypes.string,
     eventId: PropTypes.string,
     data: PropTypes.object.isRequired,
-  };
-
-  getTitle = () => {
-    const data = this.props.data;
-    const metadata = data.metadata;
-    switch (data.type) {
-      case 'error':
-        return (
-          <span>
-            <span style={{marginRight: 10}}>{metadata.type}</span>
-            <em>{data.culprit}</em>
-            <br />
-          </span>
-        );
-      case 'csp':
-        return (
-          <span>
-            <span style={{marginRight: 10}}>{metadata.directive}</span>
-            <em>{metadata.uri}</em>
-            <br />
-          </span>
-        );
-      case 'default':
-        return <span>{metadata.title}</span>;
-      default:
-        return <span>{data.title}</span>;
-    }
-  };
-
-  getMessage = () => {
-    const data = this.props.data;
-    const metadata = data.metadata;
-    switch (data.type) {
-      case 'error':
-        return metadata.value;
-      case 'csp':
-        return metadata.message;
-      default:
-        return '';
-    }
   };
 
   render() {
@@ -89,7 +51,7 @@ class CompactIssueHeader extends React.Component {
             <IconLink to={issueLink || ''}>
               {data.status === 'ignored' && <IconMute size="xs" />}
               {data.isBookmarked && <IconStar isSolid size="xs" />}
-              {this.getTitle()}
+              <EventOrGroupTitle data={data} />
             </IconLink>
           </h3>
         </IssueHeaderMetaWrapper>
@@ -105,7 +67,7 @@ class CompactIssueHeader extends React.Component {
               </IconLink>
             </span>
           )}
-          <span className="culprit">{this.getMessage()}</span>
+          <span className="culprit">{getMessage(data)}</span>
         </div>
       </React.Fragment>
     );

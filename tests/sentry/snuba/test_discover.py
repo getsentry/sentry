@@ -147,11 +147,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["release"] == "first-release"
 
         assert len(result["meta"]) == 3
-        assert result["meta"] == [
-            {"name": "project.id", "type": "UInt64"},
-            {"name": "user", "type": "Nullable(String)"},
-            {"name": "release", "type": "Nullable(String)"},
-        ]
+        assert result["meta"] == {
+            "project.id": "integer",
+            "user": "string",
+            "release": "string",
+        }
 
     def test_field_alias_with_component(self):
         result = discover.query(
@@ -166,11 +166,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["user.email"] == "bruce@example.com"
 
         assert len(result["meta"]) == 3
-        assert result["meta"] == [
-            {"name": "project.id", "type": "UInt64"},
-            {"name": "user", "type": "Nullable(String)"},
-            {"name": "user.email", "type": "Nullable(String)"},
-        ]
+        assert result["meta"] == {
+            "project.id": "integer",
+            "user": "string",
+            "user.email": "string",
+        }
 
     def test_field_aliasing_in_aggregate_functions_and_groupby(self):
         result = discover.query(
@@ -212,11 +212,13 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["project.name"] == self.project.slug
 
         assert len(result["meta"]) == 5
-        assert result["meta"][0] == {"name": "user.email", "type": "Nullable(String)"}
-        assert result["meta"][1] == {"name": "release", "type": "Nullable(String)"}
-        assert result["meta"][2] == {"name": "id", "type": "FixedString(32)"}
-        assert result["meta"][3] == {"name": "project.id", "type": "UInt64"}
-        assert result["meta"][4] == {"name": "project.name", "type": "String"}
+        assert result["meta"] == {
+            "user.email": "string",
+            "release": "string",
+            "id": "string",
+            "project.id": "integer",
+            "project.name": "string",
+        }
 
     def test_auto_fields_aggregates(self):
         result = discover.query(
@@ -435,6 +437,32 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 orderby="trek",
                 use_aggregate_conditions=True,
             )
+
+    def test_conditions_with_timestamps(self):
+        events = [("a", 1), ("b", 2), ("c", 3)]
+        for t, ev in enumerate(events):
+            val = ev[0] * 32
+            for i in range(ev[1]):
+                data = load_data("transaction", timestamp=before_now(seconds=3 * t + 1))
+                data["transaction"] = "{}".format(val)
+                self.store_event(data=data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=["transaction", "count()"],
+            query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
+                iso_format(before_now(seconds=5)), iso_format(before_now(seconds=3)),
+            ),
+            params={"project_id": [self.project.id]},
+            orderby="transaction",
+            use_aggregate_conditions=True,
+        )
+
+        data = results["data"]
+        assert len(data) == 2
+        assert data[0]["transaction"] == "a" * 32
+        assert data[0]["count"] == 1
+        assert data[1]["transaction"] == "c" * 32
+        assert data[1]["count"] == 3
 
 
 class QueryTransformTest(TestCase):
@@ -1248,10 +1276,6 @@ class QueryTransformTest(TestCase):
 
     @patch("sentry.snuba.discover.raw_query")
     def test_duration_aliases(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
         start_time = before_now(minutes=10)
         end_time = before_now(seconds=1)
         test_cases = [
@@ -1265,6 +1289,10 @@ class QueryTransformTest(TestCase):
             ("2.1w", 1000 * 60 * 60 * 24 * 7 * 2.1),
         ]
         for query_string, value in test_cases:
+            mock_query.return_value = {
+                "meta": [{"name": "transaction"}, {"name": "duration"}],
+                "data": [{"transaction": "api.do_things", "duration": 200}],
+            }
             discover.query(
                 selected_columns=["transaction", "p95()"],
                 query="http.method:GET p95():>{}".format(query_string),
@@ -1355,10 +1383,6 @@ class QueryTransformTest(TestCase):
 
     @patch("sentry.snuba.discover.raw_query")
     def test_aggregate_duration_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
         start_time = before_now(minutes=10)
         end_time = before_now(seconds=1)
 
@@ -1369,6 +1393,10 @@ class QueryTransformTest(TestCase):
             ("3.45hr", 1000 * 60 * 60 * 3.45),
         ]
         for query_string, value in test_cases:
+            mock_query.return_value = {
+                "meta": [{"name": "transaction"}, {"name": "duration"}],
+                "data": [{"transaction": "api.do_things", "duration": 200}],
+            }
             discover.query(
                 selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
                 query="http.method:GET avg(transaction.duration):>{}".format(query_string),
@@ -2034,38 +2062,49 @@ class QueryTransformTest(TestCase):
         assert discover.find_measurements_histogram_params(10, 10, 20, 10) == (11, 100, 10)
         assert discover.find_measurements_histogram_params(10, 10, 20, 100) == (101, 1000, 100)
 
-    def test_measurements_histogram_normalization_empty(self):
+    def test_measurements_histogram_normalization_meta(self):
         results = {
-            "meta": [
-                {"name": "array_join_measurements_key", "type": "String"},
-                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
+            "meta": {
+                "array_join_measurements_key": "string",
+                "measurements_histogram_1_0_1": "number",
+                "count": "integer",
+            },
             "data": [],
         }
         normalized_results = discover.normalize_measurements_histogram(
             ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
         )
-        assert normalized_results == {
-            "meta": [
-                {"name": "key", "type": "String"},
-                {"name": "bin", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
-            "data": [
-                {"key": "foo", "bin": 0, "count": 0},
-                {"key": "foo", "bin": 1, "count": 0},
-                {"key": "foo", "bin": 2, "count": 0},
-            ],
+        assert normalized_results["meta"] == {
+            "key": "string",
+            "bin": "number",
+            "count": "integer",
         }
+
+    def test_measurements_histogram_normalization_empty(self):
+        results = {
+            "meta": {
+                "array_join_measurements_key": "string",
+                "measurements_histogram_1_0_1": "number",
+                "count": "integer",
+            },
+            "data": [],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+        )
+        assert normalized_results["data"] == [
+            {"key": "foo", "bin": 0, "count": 0},
+            {"key": "foo", "bin": 1, "count": 0},
+            {"key": "foo", "bin": 2, "count": 0},
+        ]
 
     def test_measurements_histogram_normalization_empty_multiple(self):
         results = {
-            "meta": [
-                {"name": "array_join_measurements_key", "type": "String"},
-                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
+            "meta": {
+                "array_join_measurements_key": "string",
+                "measurements_histogram_1_0_1": "number",
+                "count": "integer",
+            },
             "data": [],
         }
         normalized_results = discover.normalize_measurements_histogram(
@@ -2075,29 +2114,22 @@ class QueryTransformTest(TestCase):
             discover.HistogramParams(1, 0, 1),
             results,
         )
-        assert normalized_results == {
-            "meta": [
-                {"name": "key", "type": "String"},
-                {"name": "bin", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
-            "data": [
-                {"key": "bar", "bin": 0, "count": 0},
-                {"key": "foo", "bin": 0, "count": 0},
-                {"key": "bar", "bin": 1, "count": 0},
-                {"key": "foo", "bin": 1, "count": 0},
-                {"key": "bar", "bin": 2, "count": 0},
-                {"key": "foo", "bin": 2, "count": 0},
-            ],
-        }
+        assert normalized_results["data"] == [
+            {"key": "bar", "bin": 0, "count": 0},
+            {"key": "foo", "bin": 0, "count": 0},
+            {"key": "bar", "bin": 1, "count": 0},
+            {"key": "foo", "bin": 1, "count": 0},
+            {"key": "bar", "bin": 2, "count": 0},
+            {"key": "foo", "bin": 2, "count": 0},
+        ]
 
     def test_measurements_histogram_normalization_full(self):
         results = {
-            "meta": [
-                {"name": "array_join_measurements_key", "type": "String"},
-                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
+            "meta": {
+                "array_join_measurements_key": "string",
+                "measurements_histogram_1_0_1": "number",
+                "count": "integer",
+            },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
@@ -2119,26 +2151,19 @@ class QueryTransformTest(TestCase):
         normalized_results = discover.normalize_measurements_histogram(
             ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
         )
-        assert normalized_results == {
-            "meta": [
-                {"name": "key", "type": "String"},
-                {"name": "bin", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
-            "data": [
-                {"key": "foo", "bin": 0, "count": 3},
-                {"key": "foo", "bin": 1, "count": 2},
-                {"key": "foo", "bin": 2, "count": 1},
-            ],
-        }
+        assert normalized_results["data"] == [
+            {"key": "foo", "bin": 0, "count": 3},
+            {"key": "foo", "bin": 1, "count": 2},
+            {"key": "foo", "bin": 2, "count": 1},
+        ]
 
     def test_measurements_histogram_normalization_full_multiple(self):
         results = {
-            "meta": [
-                {"name": "array_join_measurements_key", "type": "String"},
-                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
+            "meta": {
+                "array_join_measurements_key": "string",
+                "measurements_histogram_1_0_1": "number",
+                "count": "integer",
+            },
             "data": [
                 {
                     "array_join_measurements_key": "bar",
@@ -2179,29 +2204,22 @@ class QueryTransformTest(TestCase):
             discover.HistogramParams(1, 0, 1),
             results,
         )
-        assert normalized_results == {
-            "meta": [
-                {"name": "key", "type": "String"},
-                {"name": "bin", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
-            "data": [
-                {"key": "bar", "bin": 0, "count": 1},
-                {"key": "foo", "bin": 0, "count": 3},
-                {"key": "bar", "bin": 1, "count": 2},
-                {"key": "foo", "bin": 1, "count": 2},
-                {"key": "bar", "bin": 2, "count": 3},
-                {"key": "foo", "bin": 2, "count": 1},
-            ],
-        }
+        assert normalized_results["data"] == [
+            {"key": "bar", "bin": 0, "count": 1},
+            {"key": "foo", "bin": 0, "count": 3},
+            {"key": "bar", "bin": 1, "count": 2},
+            {"key": "foo", "bin": 1, "count": 2},
+            {"key": "bar", "bin": 2, "count": 3},
+            {"key": "foo", "bin": 2, "count": 1},
+        ]
 
     def test_measurements_histogram_normalization_partial(self):
         results = {
-            "meta": [
-                {"name": "array_join_measurements_key", "type": "String"},
-                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
+            "meta": {
+                "array_join_measurements_key": "string",
+                "measurements_histogram_1_0_1": "number",
+                "count": "integer",
+            },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
@@ -2213,26 +2231,19 @@ class QueryTransformTest(TestCase):
         normalized_results = discover.normalize_measurements_histogram(
             ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
         )
-        assert normalized_results == {
-            "meta": [
-                {"name": "key", "type": "String"},
-                {"name": "bin", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
-            "data": [
-                {"key": "foo", "bin": 0, "count": 3},
-                {"key": "foo", "bin": 1, "count": 0},
-                {"key": "foo", "bin": 2, "count": 0},
-            ],
-        }
+        assert normalized_results["data"] == [
+            {"key": "foo", "bin": 0, "count": 3},
+            {"key": "foo", "bin": 1, "count": 0},
+            {"key": "foo", "bin": 2, "count": 0},
+        ]
 
     def test_measurements_histogram_normalization_partial_multiple(self):
         results = {
-            "meta": [
-                {"name": "array_join_measurements_key", "type": "String"},
-                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
+            "meta": {
+                "array_join_measurements_key": "string",
+                "measurements_histogram_1_0_1": "number",
+                "count": "integer",
+            },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
@@ -2253,29 +2264,22 @@ class QueryTransformTest(TestCase):
             discover.HistogramParams(1, 0, 1),
             results,
         )
-        assert normalized_results == {
-            "meta": [
-                {"name": "key", "type": "String"},
-                {"name": "bin", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
-            "data": [
-                {"key": "bar", "bin": 0, "count": 0},
-                {"key": "foo", "bin": 0, "count": 3},
-                {"key": "bar", "bin": 1, "count": 0},
-                {"key": "foo", "bin": 1, "count": 0},
-                {"key": "bar", "bin": 2, "count": 3},
-                {"key": "foo", "bin": 2, "count": 0},
-            ],
-        }
+        assert normalized_results["data"] == [
+            {"key": "bar", "bin": 0, "count": 0},
+            {"key": "foo", "bin": 0, "count": 3},
+            {"key": "bar", "bin": 1, "count": 0},
+            {"key": "foo", "bin": 1, "count": 0},
+            {"key": "bar", "bin": 2, "count": 3},
+            {"key": "foo", "bin": 2, "count": 0},
+        ]
 
     def test_measurements_histogram_normalization_ignore_unexpected_rows(self):
         results = {
-            "meta": [
-                {"name": "array_join_measurements_key", "type": "String"},
-                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
+            "meta": {
+                "array_join_measurements_key": "string",
+                "measurements_histogram_1_0_1": "number",
+                "count": "integer",
+            },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
@@ -2308,29 +2312,22 @@ class QueryTransformTest(TestCase):
             discover.HistogramParams(1, 0, 1),
             results,
         )
-        assert normalized_results == {
-            "meta": [
-                {"name": "key", "type": "String"},
-                {"name": "bin", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
-            "data": [
-                {"key": "bar", "bin": 0, "count": 0},
-                {"key": "foo", "bin": 0, "count": 3},
-                {"key": "bar", "bin": 1, "count": 0},
-                {"key": "foo", "bin": 1, "count": 0},
-                {"key": "bar", "bin": 2, "count": 3},
-                {"key": "foo", "bin": 2, "count": 0},
-            ],
-        }
+        assert normalized_results["data"] == [
+            {"key": "bar", "bin": 0, "count": 0},
+            {"key": "foo", "bin": 0, "count": 3},
+            {"key": "bar", "bin": 1, "count": 0},
+            {"key": "foo", "bin": 1, "count": 0},
+            {"key": "bar", "bin": 2, "count": 3},
+            {"key": "foo", "bin": 2, "count": 0},
+        ]
 
     def test_measurements_histogram_normalization_adjust_for_precision(self):
         results = {
-            "meta": [
-                {"name": "array_join_measurements_key", "type": "String"},
-                {"name": "measurements_histogram_25_0_100", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
+            "meta": {
+                "array_join_measurements_key": "string",
+                "measurements_histogram_25_0_100": "number",
+                "count": "integer",
+            },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
@@ -2361,19 +2358,12 @@ class QueryTransformTest(TestCase):
             discover.HistogramParams(25, 0, 100),
             results,
         )
-        assert normalized_results == {
-            "meta": [
-                {"name": "key", "type": "String"},
-                {"name": "bin", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
-            "data": [
-                {"key": "foo", "bin": 0, "count": 3},
-                {"key": "foo", "bin": 0.25, "count": 2},
-                {"key": "foo", "bin": 0.50, "count": 1},
-                {"key": "foo", "bin": 0.75, "count": 1},
-            ],
-        }
+        assert normalized_results["data"] == [
+            {"key": "foo", "bin": 0, "count": 3},
+            {"key": "foo", "bin": 0.25, "count": 2},
+            {"key": "foo", "bin": 0.50, "count": 1},
+            {"key": "foo", "bin": 0.75, "count": 1},
+        ]
 
     @patch("sentry.snuba.discover.raw_query")
     def test_measurements_histogram(self, mock_query):
@@ -2417,21 +2407,14 @@ class QueryTransformTest(TestCase):
         results = discover.measurements_histogram_query(
             ["bar", "foo"], "", {"project_id": [self.project.id]}, 3, 0
         )
-        assert results == {
-            "meta": [
-                {"name": "key", "type": "String"},
-                {"name": "bin", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
-            "data": [
-                {"key": "bar", "bin": 0, "count": 3},
-                {"key": "foo", "bin": 0, "count": 3},
-                {"key": "bar", "bin": 1, "count": 0},
-                {"key": "foo", "bin": 1, "count": 0},
-                {"key": "bar", "bin": 2, "count": 0},
-                {"key": "foo", "bin": 2, "count": 1},
-            ],
-        }
+        assert results["data"] == [
+            {"key": "bar", "bin": 0, "count": 3},
+            {"key": "foo", "bin": 0, "count": 3},
+            {"key": "bar", "bin": 1, "count": 0},
+            {"key": "foo", "bin": 1, "count": 0},
+            {"key": "bar", "bin": 2, "count": 0},
+            {"key": "foo", "bin": 2, "count": 1},
+        ]
 
     @patch("sentry.snuba.discover.raw_query")
     def test_measurements_histogram_with_optionals(self, mock_query):
@@ -2476,21 +2459,14 @@ class QueryTransformTest(TestCase):
         results = discover.measurements_histogram_query(
             ["bar", "foo"], "", {"project_id": [self.project.id]}, 3, 1, 0.5, 2
         )
-        assert results == {
-            "meta": [
-                {"name": "key", "type": "String"},
-                {"name": "bin", "type": "Float64"},
-                {"name": "count", "type": "UInt64"},
-            ],
-            "data": [
-                {"key": "bar", "bin": 0.5, "count": 0},
-                {"key": "foo", "bin": 0.5, "count": 3},
-                {"key": "bar", "bin": 1.0, "count": 2},
-                {"key": "foo", "bin": 1.0, "count": 0},
-                {"key": "bar", "bin": 1.5, "count": 0},
-                {"key": "foo", "bin": 1.5, "count": 1},
-            ],
-        }
+        assert results["data"] == [
+            {"key": "bar", "bin": 0.5, "count": 0},
+            {"key": "foo", "bin": 0.5, "count": 3},
+            {"key": "bar", "bin": 1.0, "count": 2},
+            {"key": "foo", "bin": 1.0, "count": 0},
+            {"key": "bar", "bin": 1.5, "count": 0},
+            {"key": "foo", "bin": 1.5, "count": 1},
+        ]
 
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):

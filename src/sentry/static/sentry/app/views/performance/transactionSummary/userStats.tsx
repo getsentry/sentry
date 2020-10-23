@@ -14,11 +14,11 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp} from 'app/views/performance/data';
-import {vitalsRouteWithQuery} from 'app/views/performance/realUserMonitoring/utils';
+import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   WEB_VITAL_DETAILS,
-} from 'app/views/performance/realUserMonitoring/constants';
+} from 'app/views/performance/transactionVitals/constants';
 
 type Props = {
   totals: Record<string, number>;
@@ -57,7 +57,7 @@ function UserStats({totals, location, organization, transactionName}: Props) {
       .reduce(
         ([passed, total], vital) => {
           const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
-          if (totals[alias] !== null && !isNaN(totals[alias])) {
+          if (Number.isFinite(totals[alias])) {
             total += 1;
             if (totals[alias] < WEB_VITAL_DETAILS[vital].failureThreshold) {
               passed += 1;
