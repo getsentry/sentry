@@ -43,7 +43,7 @@ class ProjectPermission(OrganizationPermission):
             )
         elif is_system_auth(request.auth):
             return True
-        elif request.user.is_authenticated():
+        elif request.user and request.user.is_authenticated():
             # this is only for team-less projects
             if is_active_superuser(request):
                 return True
