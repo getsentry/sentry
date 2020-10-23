@@ -21,46 +21,57 @@ type Props = Omit<
   router: ReactRouter.InjectedRouter;
 };
 
-const ReleaseChartContainer = ({
-  loading,
-  errored,
-  reloading,
-  chartData,
-  selection,
-  yAxis,
-  router,
-}: Props) => {
-  const {datetime} = selection;
-  const {utc, period, start, end} = datetime;
-
-  return (
-    <React.Fragment>
-      <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
-        {zoomRenderProps => {
-          if (errored) {
-            return (
-              <ErrorPanel>
-                <IconWarning color="gray500" size="lg" />
-              </ErrorPanel>
-            );
-          }
-
-          return (
-            <TransitionChart loading={loading} reloading={reloading}>
-              <TransparentLoadingMask visible={reloading} />
-              <HealthChart
-                utc={utc}
-                timeseriesData={chartData}
-                zoomRenderProps={zoomRenderProps}
-                reloading={reloading}
-                yAxis={yAxis}
-              />
-            </TransitionChart>
-          );
-        }}
-      </ChartZoom>
-    </React.Fragment>
-  );
+type State = {
+  shouldRecalculateVisibleSeries: boolean;
 };
+
+class ReleaseChartContainer extends React.Component<Props, State> {
+  state = {
+    shouldRecalculateVisibleSeries: true,
+  };
+
+  handleVisibleSeriesRecalculated = () => {
+    this.setState({shouldRecalculateVisibleSeries: false});
+  };
+
+  render() {
+    const {loading, errored, reloading, chartData, selection, yAxis, router} = this.props;
+    const {shouldRecalculateVisibleSeries} = this.state;
+    const {datetime} = selection;
+    const {utc, period, start, end} = datetime;
+
+    return (
+      <React.Fragment>
+        <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
+          {zoomRenderProps => {
+            if (errored) {
+              return (
+                <ErrorPanel>
+                  <IconWarning color="gray500" size="lg" />
+                </ErrorPanel>
+              );
+            }
+
+            return (
+              <TransitionChart loading={loading} reloading={reloading}>
+                <TransparentLoadingMask visible={reloading} />
+                <HealthChart
+                  utc={utc}
+                  timeseriesData={chartData}
+                  zoomRenderProps={zoomRenderProps}
+                  reloading={reloading}
+                  yAxis={yAxis}
+                  location={router.location}
+                  shouldRecalculateVisibleSeries={shouldRecalculateVisibleSeries}
+                  onVisibleSeriesRecalculated={this.handleVisibleSeriesRecalculated}
+                />
+              </TransitionChart>
+            );
+          }}
+        </ChartZoom>
+      </React.Fragment>
+    );
+  }
+}
 
 export default ReleaseChartContainer;
