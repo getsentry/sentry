@@ -23,7 +23,6 @@ export default class SelectField extends React.Component {
     multiple: PropTypes.bool,
     escapeMarkup: PropTypes.bool,
     small: PropTypes.bool,
-    components: PropTypes.any,
   };
 
   static defaultProps = {
@@ -50,8 +49,6 @@ export default class SelectField extends React.Component {
     } else {
       value = optionObj.value;
     }
-
-    console.log('handleChange', optionObj, value);
 
     onChange(value, {});
     onBlur(value, {});
