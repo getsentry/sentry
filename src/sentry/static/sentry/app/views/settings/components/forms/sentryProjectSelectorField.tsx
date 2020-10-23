@@ -21,10 +21,24 @@ type RenderProps = {
 
 class RenderField extends React.Component<RenderProps> {
   static defaultProps = defaultProps;
-  render() {
-    const {projects, avatarSize, ...rest} = this.props;
 
-    const projectOptions = projects.map(({slug, id}) => [id, slug]);
+  //need to map the option object to the value
+  handleChange = (
+    onBlur: Props['onBlur'],
+    onChange: Props['onChange'],
+    optionObj: {value: any},
+    event: any
+  ) => {
+    const value = optionObj.value;
+    onChange?.(value, event);
+    onBlur?.(value, event);
+  };
+
+  render() {
+    const {projects, avatarSize, onChange, onBlur, ...rest} = this.props;
+
+    // const projectOptions = projects.map(({slug, id}) => [id, slug]);
+    const projectOptions = projects.map(({slug, id}) => ({value: id, label: slug}));
 
     const customOptionProject = projectProps => {
       const project = projects.find(proj => proj.id === projectProps.value);
@@ -65,12 +79,13 @@ class RenderField extends React.Component<RenderProps> {
 
     return (
       <SelectControl
-        choices={projectOptions}
+        options={projectOptions}
         components={{
           Option: customOptionProject,
           ValueContainer: customValueContainer,
         }}
         {...rest}
+        onChange={this.handleChange.bind(this, onBlur, onChange)}
       />
     );
   }
