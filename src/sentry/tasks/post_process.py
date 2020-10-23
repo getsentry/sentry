@@ -187,9 +187,9 @@ def post_process_group(
             has_reappeared = False if is_new else process_snoozes(event.group)
             if not has_reappeared:  # If true, we added the .UNIGNORED reason already
                 if is_new:
-                    add_group_to_inbox(event.group, GroupInboxReason.NEW, {})
+                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
-                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION, {})
+                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
             handle_owner_assignment(event.project, event.group, event)
 

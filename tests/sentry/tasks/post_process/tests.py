@@ -604,7 +604,9 @@ class PostProcessGroupTest(TestCase):
             group_id=event.group_id,
         )
         assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
-        GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the REGRESSION entry.
+        GroupInbox.objects.filter(
+            group=group
+        ).delete()  # Delete so it creates the .REGRESSION entry.
 
         mock_processor.assert_called_with(EventMatcher(event), True, True, False, False)
 
