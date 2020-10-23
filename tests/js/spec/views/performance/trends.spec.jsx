@@ -7,9 +7,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import PerformanceLanding from 'app/views/performance/landing';
 import ProjectsStore from 'app/stores/projectsStore';
 import {
+  DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
   getTrendAliasedFieldPercentage,
-  getTrendAliasedQueryPercentage,
   getTrendAliasedMinus,
 } from 'app/views/performance/trends/utils';
 import {TrendFunctionField} from 'app/views/performance/trends/types';
@@ -17,7 +17,7 @@ import {getUtcDateString} from 'app/utils/dates';
 
 const trendsViewQuery = {
   view: 'TRENDS',
-  query: 'epm():>0.01 transaction.duration:>0',
+  query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
 jest.mock('moment', () => {
@@ -85,6 +85,10 @@ describe('Performance > Trends', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/transaction.duration/values/',
       body: [],
     });
     trendsStatsMock = MockApiClient.addMockResponse({
@@ -281,8 +285,41 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query:
-          'epm():>0.01 transaction.duration:>0 !transaction:/organizations/:orgId/performance/',
+        query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION} !transaction:/organizations/:orgId/performance/`,
+        view: 'TRENDS',
+      }),
+    });
+  });
+
+  it('Changing search causes cursors to be reset', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+    const search = wrapper.find('#smart-search-input').first();
+
+    search
+      .simulate('change', {target: {value: 'transaction.duration:>9000'}})
+      .simulate('submit', {
+        preventDefault() {},
+      });
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: expect.objectContaining({
+        project: ['1'],
+        query: 'transaction.duration:>9000',
+        improvedCursor: undefined,
+        regressionCursor: undefined,
         view: 'TRENDS',
       }),
     });
@@ -350,7 +387,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:>=863',
+        query: `epm():>0.01 transaction.duration:<${DEFAULT_MAX_DURATION} transaction.duration:>=863`,
         view: 'TRENDS',
       }),
     });
@@ -476,6 +513,8 @@ describe('Performance > Trends', function () {
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
+          regressionCursor: undefined,
+          improvedCursor: undefined,
           trendFunction: trendFunction.field,
         }),
       });
@@ -558,7 +597,6 @@ describe('Performance > Trends', function () {
       expect(trendsStatsMock).toHaveBeenCalledTimes(2);
 
       const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
-      const aliasedQueryDivide = getTrendAliasedQueryPercentage(trendFunction.alias);
 
       const sort =
         trendFunction.field === TrendFunctionField.USER_MISERY
@@ -581,7 +619,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            query: expect.stringContaining('trend_percentage():<1'),
             interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
@@ -597,7 +635,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            query: expect.stringContaining('trend_percentage():<1'),
             interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
@@ -613,7 +651,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort: '-' + sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':>1'),
+            query: expect.stringContaining('trend_percentage():>1'),
             interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
@@ -629,7 +667,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort: '-' + sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':>1'),
+            query: expect.stringContaining('trend_percentage():>1'),
             interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',

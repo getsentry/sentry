@@ -293,11 +293,12 @@ class Results extends React.Component<Props, State> {
   };
 
   getDocumentTitle(): string {
+    const {organization} = this.props;
     const {eventView} = this.state;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView});
+    return generateTitle({eventView, organization});
   }
 
   renderTagsTable() {
