@@ -24,7 +24,7 @@
           ]
         },
         "type": "EndOfWorld",
-        "value": "something went wrong"
+        "value": "something went WRONG"
       }
     ]
   },

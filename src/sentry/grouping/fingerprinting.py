@@ -319,7 +319,7 @@ class Match(object):
             ref_val = get_rule_bool(self.pattern)
             if ref_val is not None and ref_val == value:
                 return True
-        elif glob_match(value, self.pattern, ignorecase=self.key == "level"):
+        elif glob_match(value, self.pattern, ignorecase=self.key in ("level", "value")):
             return True
         return False
 
