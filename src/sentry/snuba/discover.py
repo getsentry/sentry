@@ -734,7 +734,7 @@ def top_events_timeseries(
             if field in ["project", "project.id"]:
                 continue
             if field == "issue":
-                field = FIELD_ALIASES["issue"]["column_alias"]
+                field = FIELD_ALIASES["issue"].alias
             # Note that because orderby shouldn't be an array field its not included in the values
             values = list(
                 {

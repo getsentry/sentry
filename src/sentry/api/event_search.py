@@ -829,7 +829,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
         # allow snuba's prewhere optimizer to find this condition.
         return [name, search_filter.operator, value]
     elif name == USER_DISPLAY_ALIAS:
-        user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS]["expression"]
+        user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS].expression
 
         # Handle 'has' condition
         if search_filter.value.raw_value == "":
@@ -1250,21 +1250,46 @@ def get_filter(query=None, params=None):
     return eventstore.Filter(**kwargs)
 
 
+class PseudoField(object):
+    def __init__(self, name, alias, expression=None, expression_fn=None):
+        self.name = name
+        self.alias = alias
+        self.expression = expression
+        self.expression_fn = expression_fn
+
+    def get_field(self, params=None):
+        if isinstance(self.expression, (list, tuple)):
+            expression = deepcopy(self.expression)
+            expression.append(self.alias)
+            return expression
+        elif self.expression_fn is not None:
+            expression = deepcopy(self.expression_fn(params))
+            expression.append(self.alias)
+            return expression
+        return self.alias
+
+    def validate(self):
+        assert self.alias is not None, u"{}: alias is required".format(self.name)
+        assert (
+            self.expression is None or self.expression_fn is None
+        ), u"{}: only one of expression, expression_fn is allowed".format(self.name)
+
+
 # When adding aliases to this list please also update
 # static/app/views/eventsV2/eventQueryParams.tsx so that
 # the UI builder stays in sync.
 FIELD_ALIASES = {
-    "project": {"field": "project.id", "column_alias": "project.id"},
-    "issue": {"field": "issue.id", "column_alias": "issue.id"},
-    ERROR_UNHANDLED_ALIAS: {
-        "field": ["notHandled", [], ERROR_UNHANDLED_ALIAS],
-        "column_alias": ERROR_UNHANDLED_ALIAS,
-    },
-    USER_DISPLAY_ALIAS: {
-        "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
-        "field": ["coalesce", ["user.email", "user.username", "user.ip"], USER_DISPLAY_ALIAS],
-        "column_alias": USER_DISPLAY_ALIAS,
-    },
+    field.name: field
+    for field in [
+        PseudoField("project", "project.id"),
+        PseudoField("issue", "issue.id"),
+        PseudoField(ERROR_UNHANDLED_ALIAS, ERROR_UNHANDLED_ALIAS, expression=["notHandled", []]),
+        PseudoField(
+            USER_DISPLAY_ALIAS,
+            USER_DISPLAY_ALIAS,
+            expression=["coalesce", ["user.email", "user.username", "user.ip"]],
+        ),
+    ]
 }
 
 
@@ -1353,14 +1378,15 @@ class CountColumn(FunctionArg):
         if value not in FIELD_ALIASES:
             return value
 
-        alias = FIELD_ALIASES[value]
+        field = FIELD_ALIASES[value]
 
         # If the alias has an expression prefer that over the column alias
         # This enables user.display to work in aggregates
-        if "expression" in alias:
-            return alias["expression"]
-
-        return alias.get("column_alias", value)
+        if field.expression is not None:
+            return field.expression
+        elif field.alias is not None:
+            return field.alias
+        return value
 
 
 class DateArg(FunctionArg):
@@ -2209,11 +2235,11 @@ def resolve_orderby(orderby, fields, aggregations):
 
         if (
             bare_column in FIELD_ALIASES
-            and FIELD_ALIASES[bare_column].get("column_alias")
+            and FIELD_ALIASES[bare_column].alias
             and bare_column != PROJECT_ALIAS
         ):
             prefix = "-" if column.startswith("-") else ""
-            validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
+            validated.append(prefix + FIELD_ALIASES[bare_column].alias)
             continue
 
         found = [
@@ -2245,8 +2271,8 @@ def resolve_field(field, params=None):
         return resolve_function(field, match, params)
 
     if field in FIELD_ALIASES:
-        special_field = deepcopy(FIELD_ALIASES[field])
-        return ResolvedFunction(None, special_field.get("field"), None)
+        special_field = FIELD_ALIASES[field]
+        return ResolvedFunction(None, special_field.get_field(params), None)
     return ResolvedFunction(None, field, None)
 
 
