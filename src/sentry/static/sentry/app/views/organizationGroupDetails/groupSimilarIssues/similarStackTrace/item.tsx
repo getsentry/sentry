@@ -133,7 +133,9 @@ class Item extends React.Component<Props, State> {
               <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
             </EventDetails>
           </FlowLayout>
-          <StyledButton onClick={this.handleShowDiff}>{t('Diff')}</StyledButton>
+          <StyledButton onClick={this.handleShowDiff} size="small">
+            {t('Diff')}
+          </StyledButton>
         </FlowLayout>
 
         <Columns>
