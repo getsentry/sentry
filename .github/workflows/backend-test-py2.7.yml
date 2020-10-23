@@ -1,4 +1,4 @@
-name: snuba integration [py3.6]
+name: backend
 on:
   push:
     branches:
@@ -8,15 +8,14 @@ on:
 
 jobs:
   test:
-    name: snuba test py3.6
+    name: backend test
     runs-on: ubuntu-16.04
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
       matrix:
-        instance: [0]
+        instance: [0, 1, 2]
 
     env:
-      USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
@@ -37,42 +36,37 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: Set python version output
-        id: python-version
-        if: steps.changes.outputs.frontend == 'false'
-        run: |
-          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
-
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         if: steps.changes.outputs.frontend == 'false'
         with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
+          python-version: 2.7.17
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
-        if: steps.changes.outputs.frontend == 'false'
         id: pip
+        if: steps.changes.outputs.frontend == 'false'
 
       - name: pip cache
         uses: actions/cache@v2
         if: steps.changes.outputs.frontend == 'false'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+            ${{ runner.os }}-pip-
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
-        if: steps.changes.outputs.frontend == 'false'
         id: setup
+        if: steps.changes.outputs.frontend == 'false'
         with:
-          python: 3
+          python: 2
           snuba: true
-          kafka: true
 
-      - name: Run snuba test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Run backend test [py2.7] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: steps.changes.outputs.frontend == 'false'
         run: |
-          make travis-test-snuba
+          # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
+          unset USE_SNUBA
+          make travis-test-postgres
