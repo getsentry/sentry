@@ -547,15 +547,16 @@ class FormModel {
         // 1) map of {[fieldName] => Array<ErrorMessages>}
         // 2) {'non_field_errors' => Array<ErrorMessages>}
         if (resp && resp.responseJSON) {
+          //non-field errors can be camelcase or snake case
+          const nonFieldErrors =
+            resp.responseJSON.non_field_errors || resp.responseJSON.nonFieldErrors;
+
           // Show resp msg from API endpoint if possible
           if (Array.isArray(resp.responseJSON[id]) && resp.responseJSON[id].length) {
             // Just take first resp for now
             this.setError(id, resp.responseJSON[id][0]);
-          } else if (
-            Array.isArray(resp.responseJSON.non_field_errors) &&
-            resp.responseJSON.non_field_errors.length
-          ) {
-            addErrorMessage(resp.responseJSON.non_field_errors[0], {duration: 10000});
+          } else if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
+            addErrorMessage(nonFieldErrors[0], {duration: 10000});
             // Reset saving state
             this.setError(id, '');
           } else {
