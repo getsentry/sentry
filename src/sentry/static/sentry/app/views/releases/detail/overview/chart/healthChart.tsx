@@ -54,8 +54,8 @@ class HealthChart extends React.Component<Props> {
     }
 
     if (
-      this.props.shouldRecalculateVisibleSeries !==
-      nextProps.shouldRecalculateVisibleSeries
+      this.props.location.query.unselectedSeries !==
+      nextProps.location.query.unselectedSeries
     ) {
       return true;
     }
@@ -79,7 +79,7 @@ class HealthChart extends React.Component<Props> {
       },
     };
 
-    browserHistory.push(to);
+    browserHistory.replace(to);
   };
 
   formatTooltipValue = (value: string | number | null) => {
