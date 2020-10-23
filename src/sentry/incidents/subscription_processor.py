@@ -182,6 +182,12 @@ class SubscriptionProcessor(object):
                 },
             )
         aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
+        # In some cases Snuba can return a None value for an aggregation. This means
+        # there were no rows present when we made the query, for certain types of
+        # aggregations like avg. Defaulting this to 0 for now. It might turn out that
+        # we'd prefer to skip the update in the future.
+        if aggregation_value is None:
+            aggregation_value = 0
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
