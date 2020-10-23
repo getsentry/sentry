@@ -50,7 +50,7 @@ from sentry.snuba.subscriptions import (
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.compat import zip
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
+from sentry.utils.snuba import bulk_raw_query, is_measurement, SnubaQueryParams, SnubaTSResult
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -1350,7 +1350,12 @@ def get_column_from_aggregate(aggregate):
 
 def check_aggregate_column_support(aggregate):
     column = get_column_from_aggregate(aggregate)
-    return column is None or column.startswith("measurements.") or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS
+    return (
+        column is None
+        or is_measurement(column)
+        or column in SUPPORTED_COLUMNS
+        or column in TRANSLATABLE_COLUMNS
+    )
 
 
 def translate_aggregate_field(aggregate, reverse=False):
