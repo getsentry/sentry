@@ -109,6 +109,12 @@ export const trendCursorNames = {
   [TrendChangeType.REGRESSION]: 'regressionCursor',
 };
 
+export function resetCursors() {
+  const cursors = {};
+  Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
+  return cursors;
+}
+
 export function getCurrentTrendFunction(location: Location): TrendFunction {
   const trendFunctionField = decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);

@@ -26,7 +26,7 @@ import {
   DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
   CONFIDENCE_LEVELS,
-  trendCursorNames,
+  resetCursors,
   getCurrentTrendFunction,
   getCurrentConfidenceLevel,
   getSelectedQueryKey,
@@ -58,8 +58,7 @@ class TrendsContent extends React.Component<Props, State> {
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
 
-    const cursors = {};
-    Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
+    const cursors = resetCursors();
 
     browserHistory.push({
       pathname: location.pathname,
@@ -92,8 +91,7 @@ class TrendsContent extends React.Component<Props, State> {
       previousTrendFunction: getCurrentTrendFunction(location).field,
     });
 
-    const cursors = {};
-    Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
+    const cursors = resetCursors();
 
     browserHistory.push({
       pathname: location.pathname,
@@ -116,10 +114,13 @@ class TrendsContent extends React.Component<Props, State> {
       confidence_level: label,
     });
 
+    const cursors = resetCursors();
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
+        ...cursors,
         confidenceLevel: label,
       },
     });
