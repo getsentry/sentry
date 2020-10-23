@@ -26,6 +26,7 @@ import {
   DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
   CONFIDENCE_LEVELS,
+  trendCursorNames,
   getCurrentTrendFunction,
   getCurrentConfidenceLevel,
   getSelectedQueryKey,
