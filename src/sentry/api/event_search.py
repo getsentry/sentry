@@ -48,6 +48,8 @@ NEGATION_MAP = {
     ">=": "<",
 }
 
+RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+
 
 def translate(pat):
     """Translate a shell PATTERN to a regular expression.
@@ -164,10 +166,10 @@ function_arg         = space? key? comma? space?
 # only allow colons in quoted keys
 quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
-date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|$)"
-alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|$)"
-rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
-duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|$)"
+date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|\)|$)"
+alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|\)|$)"
+rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|\)|$)"
+duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|\)|$)"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -416,7 +418,9 @@ class SearchVisitor(NodeVisitor):
             return SearchFilter(search_key, "=", search_value)
         else:
             search_value = SearchValue(search_value.text)
-            return self._handle_basic_filter(search_key, "=", search_value)
+            return self._handle_basic_filter(
+                search_key, "=" if not is_negated else "!=", search_value
+            )
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -452,10 +456,10 @@ class SearchVisitor(NodeVisitor):
             aggregate_value = None
             if search_value.expr_name == "duration_format":
                 # Even if the search value matches duration format, only act as duration for certain columns
-                _, agg_additions = resolve_field(search_key.name, None)
-                if len(agg_additions) > 0:
+                function = resolve_field(search_key.name, None)
+                if function.aggregate is not None:
                     # Extract column and function name out so we can check if we should parse as duration
-                    if self.is_duration_key(agg_additions[0][-2]):
+                    if self.is_duration_key(function.aggregate[1]):
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
@@ -743,9 +747,9 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
         return [["isNull", [name]], aggregate_filter.operator, 1]
 
-    _, agg_additions = resolve_field(name, params)
-    if len(agg_additions) > 0:
-        name = agg_additions[0][-1]
+    function = resolve_field(name, params)
+    if function.aggregate is not None:
+        name = function.aggregate[-1]
 
     condition = [name, aggregate_filter.operator, value]
     return condition
@@ -1250,30 +1254,36 @@ def get_filter(query=None, params=None):
 # static/app/views/eventsV2/eventQueryParams.tsx so that
 # the UI builder stays in sync.
 FIELD_ALIASES = {
-    "project": {"fields": ["project.id"], "column_alias": "project.id"},
-    "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
+    "project": {"field": "project.id", "column_alias": "project.id"},
+    "issue": {"field": "issue.id", "column_alias": "issue.id"},
     ERROR_UNHANDLED_ALIAS: {
-        "fields": [["notHandled", [], ERROR_UNHANDLED_ALIAS]],
+        "field": ["notHandled", [], ERROR_UNHANDLED_ALIAS],
         "column_alias": ERROR_UNHANDLED_ALIAS,
     },
     USER_DISPLAY_ALIAS: {
         "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
-        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], USER_DISPLAY_ALIAS]],
+        "field": ["coalesce", ["user.email", "user.username", "user.ip"], USER_DISPLAY_ALIAS],
         "column_alias": USER_DISPLAY_ALIAS,
     },
 }
 
 
-def get_json_meta_type(field_alias, snuba_type):
-    alias_definition = FIELD_ALIASES.get(field_alias)
-    if alias_definition and alias_definition.get("result_type"):
-        return alias_definition.get("result_type")
+def get_json_meta_type(field_alias, snuba_type, function=None):
     snuba_json = get_json_type(snuba_type)
-    function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
-    if function_match and snuba_json != "string":
-        function_definition = FUNCTIONS.get(function_match.group(1))
-        if function_definition and function_definition.result_type:
-            return function_definition.result_type
+    if snuba_json != "string":
+        if function is not None:
+            result_type = function.instance.get_result_type(function.field, function.arguments)
+            if result_type is not None:
+                return result_type
+
+        function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
+        if function_match:
+            function_definition = FUNCTIONS.get(function_match.group(1))
+            if function_definition:
+                result_type = function_definition.get_result_type()
+                if result_type is not None:
+                    return result_type
+
     if "duration" in field_alias or is_duration_measurement(field_alias):
         return "duration"
     if is_measurement(field_alias):
@@ -1305,6 +1315,9 @@ class FunctionArg(object):
 
     def normalize(self, value):
         return value
+
+    def get_type(self, value):
+        raise InvalidFunctionArgument(u"{} has no type defined".format(self.name))
 
 
 class NullColumn(FunctionArg):
@@ -1364,7 +1377,10 @@ class DateArg(FunctionArg):
 
 
 class NumericColumn(FunctionArg):
-    def normalize(self, value):
+    def _normalize(self, value):
+        # This method is written in this way so that `get_type` can always call
+        # this even in child classes where `normalize` have been overridden.
+
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
             return value
@@ -1373,6 +1389,19 @@ class NumericColumn(FunctionArg):
         elif snuba_column not in ["time", "timestamp", "duration"]:
             raise InvalidFunctionArgument(u"{} is not a numeric column".format(value))
         return snuba_column
+
+    def normalize(self, value):
+        return self._normalize(value)
+
+    def get_type(self, value):
+        snuba_column = self._normalize(value)
+        if is_duration_measurement(snuba_column):
+            return "duration"
+        elif snuba_column == "duration":
+            return "duration"
+        elif snuba_column == "timestamp":
+            return "date"
+        return "number"
 
 
 class NumericColumnNoLookup(NumericColumn):
@@ -1461,7 +1490,8 @@ class Function(object):
         column=None,
         aggregate=None,
         transform=None,
-        result_type=None,
+        result_type_fn=None,
+        default_result_type=None,
     ):
         """
         Specifies a function interface that must be followed when defining new functions
@@ -1480,18 +1510,22 @@ class Function(object):
         :param str transform: NOTE: Use aggregate over transform whenever possible.
             An aggregate string to be passed to snuba once formatted. The arguments
             will be filled into the string using `.format(...)`.
-        :param str result_type: The resulting type of this function. Can be any of the following
-            (duration, string, number, integer, percentage, date).
+        :param str result_type_fn: A function to call with in order to determine the result type.
+            This function will be passed the list of argument classes and argument values. This should
+            be tried first as the source of truth if available.
+        :param str default_result_type: The default resulting type of this function. Must be a type
+            defined by RESULTS_TYPES
         """
 
         self.name = name
-        self.result_type = result_type
         self.required_args = [] if required_args is None else required_args
         self.optional_args = [] if optional_args is None else optional_args
         self.calculated_args = [] if calculated_args is None else calculated_args
         self.column = column
         self.aggregate = aggregate
         self.transform = transform
+        self.result_type_fn = result_type_fn
+        self.default_result_type = default_result_type
 
         self.validate()
 
@@ -1511,7 +1545,7 @@ class Function(object):
     def args(self):
         return self.required_args + self.optional_args
 
-    def format_as_arguments(self, field, columns, params):
+    def add_default_arguments(self, field, columns, params):
         # make sure to validate the argument count first to
         # ensure the right number of arguments have been passed
         self.validate_argument_count(field, columns)
@@ -1528,12 +1562,17 @@ class Function(object):
             # Hacky, but we expect column arguments to be strings so easiest to convert it back
             columns.append(six.text_type(default) if default else default)
 
+        return columns
+
+    def format_as_arguments(self, field, columns, params):
+        columns = self.add_default_arguments(field, columns, params)
+
         arguments = {}
 
         # normalize the arguments before putting them in a dict
-        for column_value, argument in zip(columns, self.args):
+        for argument, column in zip(self.args, columns):
             try:
-                arguments[argument.name] = argument.normalize(column_value)
+                arguments[argument.name] = argument.normalize(column)
             except InvalidFunctionArgument as e:
                 raise InvalidSearchQuery(
                     u"{}: {} argument invalid: {}".format(field, argument.name, e)
@@ -1544,6 +1583,17 @@ class Function(object):
             arguments[calculation["name"]] = calculation["fn"](arguments)
 
         return arguments
+
+    def get_result_type(self, field=None, arguments=None):
+        if field is None or arguments is None or self.result_type_fn is None:
+            return self.default_result_type
+
+        result_type = self.result_type_fn(self.args, arguments)
+        if result_type is None:
+            return self.default_result_type
+
+        self.validate_result_type(result_type)
+        return result_type
 
     def validate(self):
         # assert that all optional args have defaults available
@@ -1572,6 +1622,8 @@ class Function(object):
                 calculation["name"] not in names
             ), u"{}: argument {} specified more than once".format(self.name, calculation["name"])
             names.add(calculation["name"])
+
+        self.validate_result_type(self.default_result_type)
 
     def validate_argument_count(self, field, arguments):
         """
@@ -1602,6 +1654,20 @@ class Function(object):
                     u"{}: expected at most {:g} argument(s)".format(field, total_args_count)
                 )
 
+    def validate_result_type(self, result_type):
+        assert (
+            result_type is None or result_type in RESULT_TYPES
+        ), u"{}: result type {} not one of {}".format(self.name, result_type, list(RESULT_TYPES))
+
+
+def reflective_result_type(index=0):
+    def result_type_fn(function_arguments, parameter_values):
+        argument = function_arguments[index]
+        value = parameter_values[argument.name]
+        return argument.get_type(value)
+
+    return result_type_fn
+
 
 # When adding functions to this list please also update
 # static/sentry/app/utils/discover/fields.tsx so that
@@ -1613,75 +1679,83 @@ FUNCTIONS = {
             "percentile",
             required_args=[NumericColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
             aggregate=[u"quantile({percentile:g})", ArgValue("column"), None],
-            result_type="duration",
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
         ),
         Function(
             "p50",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.5)", ArgValue("column"), None],
-            result_type="duration",
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
         ),
         Function(
             "p75",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.75)", ArgValue("column"), None],
-            result_type="duration",
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
         ),
         Function(
             "p95",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.95)", ArgValue("column"), None],
-            result_type="duration",
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
         ),
         Function(
             "p99",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.99)", ArgValue("column"), None],
-            result_type="duration",
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
         ),
         Function(
             "p100",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"max", ArgValue("column"), None],
-            result_type="duration",
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
         ),
         Function(
             "eps",
             optional_args=[IntervalDefault("interval", 1, None)],
             transform=u"divide(count(), {interval:g})",
-            result_type="number",
+            default_result_type="number",
         ),
         Function(
             "epm",
             optional_args=[IntervalDefault("interval", 60, None)],
             transform=u"divide(count(), divide({interval:g}, 60))",
-            result_type="number",
+            default_result_type="number",
         ),
-        Function("last_seen", aggregate=["max", "timestamp", "last_seen"], result_type="date",),
+        Function(
+            "last_seen", aggregate=["max", "timestamp", "last_seen"], default_result_type="date"
+        ),
         Function(
             "latest_event",
             aggregate=["argMax", ["id", "timestamp"], "latest_event"],
-            result_type="string",
+            default_result_type="string",
         ),
         Function(
             "apdex",
             required_args=[NumberRange("satisfaction", 0, None)],
             transform=u"apdex(duration, {satisfaction:g})",
-            result_type="number",
+            default_result_type="number",
         ),
         Function(
             "user_misery",
             required_args=[NumberRange("satisfaction", 0, None)],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             transform=u"uniqIf(user, greater(duration, {tolerated:g}))",
-            result_type="number",
+            default_result_type="number",
         ),
-        Function("failure_rate", transform="failure_rate()", result_type="percentage",),
+        Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
         Function(
             "array_join",
             required_args=[StringArrayColumn("column")],
             column=["arrayJoin", [ArgValue("column")], None],
-            result_type="string",
+            default_result_type="string",
         ),
         Function(
             "measurements_histogram",
@@ -1730,7 +1804,7 @@ FUNCTIONS = {
                 ],
                 None,
             ],
-            result_type="number",
+            default_result_type="number",
         ),
         # The user facing signature for this function is histogram(<column>, <num_buckets>)
         # Internally, snuba.discover.query() expands the user request into this value by
@@ -1751,19 +1825,19 @@ FUNCTIONS = {
                 ],
                 None,
             ],
-            result_type="number",
+            default_result_type="number",
         ),
         Function(
             "count_unique",
             optional_args=[CountColumn("column")],
             aggregate=["uniq", ArgValue("column"), None],
-            result_type="integer",
+            default_result_type="integer",
         ),
         Function(
             "count",
             optional_args=[NullColumn("column")],
             aggregate=["count", None, None],
-            result_type="integer",
+            default_result_type="integer",
         ),
         Function(
             "count_at_least",
@@ -1773,36 +1847,42 @@ FUNCTIONS = {
                 [["greaterOrEquals", [ArgValue("column"), ArgValue("threshold")]]],
                 None,
             ],
-            result_type="integer",
+            default_result_type="integer",
         ),
         Function(
             "min",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["min", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
         ),
         Function(
             "max",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["max", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
         ),
         Function(
             "avg",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["avg", ArgValue("column"), None],
-            result_type="duration",
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
         ),
         Function(
             "sum",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["sum", ArgValue("column"), None],
-            result_type="duration",
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
         ),
         # Currently only being used by the baseline PoC
         Function(
             "absolute_delta",
             required_args=[DurationColumnNoLookup("column"), NumberRange("target", 0, None)],
             column=["abs", [["minus", [ArgValue("column"), ArgValue("target")]]], None],
-            result_type="duration",
+            default_result_type="duration",
         ),
         # These range functions for performance trends, these aren't If functions
         # to avoid allowing arbitrary if statements
@@ -1848,7 +1928,7 @@ FUNCTIONS = {
                 ],
                 "percentile_range_{index:g}",
             ],
-            result_type="duration",
+            default_result_type="duration",
         ),
         Function(
             "avg_range",
@@ -1873,7 +1953,32 @@ FUNCTIONS = {
                 ],
                 "avg_range_{index:g}",
             ],
-            result_type="duration",
+            default_result_type="duration",
+        ),
+        Function(
+            "variance_range",
+            required_args=[
+                DurationColumnNoLookup("column"),
+                DateArg("start"),
+                DateArg("end"),
+                NumberRange("index", 1, None),
+            ],
+            aggregate=[
+                u"varSampIf",
+                [
+                    ArgValue("column"),
+                    [
+                        "and",
+                        [
+                            # see `percentile_range` for why the conditions are backwards
+                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
+                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                        ],
+                    ],
+                ],
+                "variance_range_{index:g}",
+            ],
+            default_result_type="duration",
         ),
         Function(
             "user_misery_range",
@@ -1910,7 +2015,7 @@ FUNCTIONS = {
                 ],
                 "user_misery_range_{index:g}",
             ],
-            result_type="duration",
+            default_result_type="duration",
         ),
         Function(
             "count_range",
@@ -1929,7 +2034,7 @@ FUNCTIONS = {
                 ],
                 "count_range_{index:g}",
             ],
-            result_type="integer",
+            default_result_type="integer",
         ),
         Function(
             "percentage",
@@ -1939,13 +2044,31 @@ FUNCTIONS = {
                 None,
                 None,
             ],
-            result_type="percentage",
+            default_result_type="percentage",
+        ),
+        # Calculate the Welch's t-test value, this is used to help identify which of our trends are significant or not
+        Function(
+            "t_score",
+            required_args=[
+                FunctionArg("avg_1"),
+                FunctionArg("avg_2"),
+                FunctionArg("variance_1"),
+                FunctionArg("variance_2"),
+                FunctionArg("count_1"),
+                FunctionArg("count_2"),
+            ],
+            aggregate=[
+                u"divide(minus({avg_1},{avg_2}),sqrt(plus(divide({variance_1},{count_1}),divide({variance_2},{count_2}))))",
+                None,
+                "t_score",
+            ],
+            default_result_type="number",
         ),
         Function(
             "minus",
             required_args=[FunctionArg("minuend"), FunctionArg("subtrahend")],
             aggregate=[u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
-            result_type="duration",
+            default_result_type="duration",
         ),
         Function(
             "absolute_correlation",
@@ -1954,7 +2077,7 @@ FUNCTIONS = {
                 [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
                 None,
             ],
-            result_type="number",
+            default_result_type="number",
         ),
     ]
 }
@@ -2007,17 +2130,22 @@ def parse_function(field, match=None):
     )
 
 
-def resolve_function(field, match=None, params=None):
-    function, columns = parse_function(field, match)
-    function = FUNCTIONS[match.group("function")]
+FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
+ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")
 
+
+def resolve_function(field, match=None, params=None):
+    function_name, columns = parse_function(field, match)
+    function = FUNCTIONS[function_name]
     arguments = function.format_as_arguments(field, columns, params)
+    details = FunctionDetails(field, function, arguments)
 
     if function.transform is not None:
         snuba_string = function.transform.format(**arguments)
-        return (
-            [],
-            [[snuba_string, None, get_function_alias_with_columns(function.name, columns)]],
+        return ResolvedFunction(
+            details,
+            None,
+            [snuba_string, None, get_function_alias_with_columns(function.name, columns)],
         )
     elif function.aggregate is not None:
         aggregate = deepcopy(function.aggregate)
@@ -2040,7 +2168,7 @@ def resolve_function(field, match=None, params=None):
         else:
             aggregate[2] = aggregate[2].format(**arguments)
 
-        return ([], [aggregate])
+        return ResolvedFunction(details, None, aggregate)
     elif function.column is not None:
         # These can be very nested functions, so we need to iterate through all the layers
         addition = deepcopy(function.column)
@@ -2049,7 +2177,7 @@ def resolve_function(field, match=None, params=None):
             addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3 and addition[2] is None:
             addition[2] = get_function_alias_with_columns(function.name, columns)
-        return ([addition], [])
+        return ResolvedFunction(details, addition, [])
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -2118,8 +2246,8 @@ def resolve_field(field, params=None):
 
     if field in FIELD_ALIASES:
         special_field = deepcopy(FIELD_ALIASES[field])
-        return (special_field.get("fields", []), None)
-    return ([field], None)
+        return ResolvedFunction(None, special_field.get("field"), None)
+    return ResolvedFunction(None, field, None)
 
 
 def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations=False):
@@ -2139,6 +2267,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     columns = []
     groupby = []
     project_key = ""
+    functions = {}
 
     # If project is requested, we need to map ids to their names since snuba only has ids
     if "project" in fields:
@@ -2155,20 +2284,24 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     for field in fields:
         if isinstance(field, six.string_types) and field.strip() == "":
             continue
-        column_additions, agg_additions = resolve_field(field, snuba_filter.date_params)
-        if column_additions:
-            columns.extend([column for column in column_additions if column not in columns])
+        function = resolve_field(field, snuba_filter.date_params)
+        if function.column is not None and function.column not in columns:
+            columns.append(function.column)
+            if function.details is not None and isinstance(function.column, (list, tuple)):
+                functions[function.column[-1]] = function.details
+        elif function.aggregate is not None:
+            aggregations.append(function.aggregate)
+            if function.details is not None and isinstance(function.aggregate, (list, tuple)):
+                functions[function.aggregate[-1]] = function.details
 
-        if agg_additions:
-            aggregations.extend(agg_additions)
-
-    # Only auto aggregate when there's one other so we the group by is not unexpectedly changed
+    # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
-            _, agg_additions = resolve_field(agg, snuba_filter.date_params)
-
-            if agg_additions[0] not in aggregations:
-                aggregations.extend(agg_additions)
+            function = resolve_field(agg, snuba_filter.date_params)
+            if function.aggregate is not None and function.aggregate not in aggregations:
+                aggregations.append(function.aggregate)
+                if function.details is not None and isinstance(function.aggregate, (list, tuple)):
+                    functions[function.aggregate[-1]] = function.details
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -2238,6 +2371,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
         "aggregations": aggregations,
         "groupby": groupby,
         "orderby": orderby,
+        "functions": functions,
     }
 
 

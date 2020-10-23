@@ -57,7 +57,7 @@ export function axisLabelFormatter(
  *
  * @param value Number of milliseconds to format.
  */
-function axisDuration(value: number): string {
+export function axisDuration(value: number): string {
   if (value === 0) {
     return '0';
   }

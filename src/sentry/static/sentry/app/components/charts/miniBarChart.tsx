@@ -1,5 +1,6 @@
 import React from 'react';
 import {EChartOption} from 'echarts';
+import set from 'lodash/set';
 
 import theme from 'app/utils/theme';
 import {getFormattedDate} from 'app/utils/dates';
@@ -19,11 +20,19 @@ const defaultProps = {
   /**
    * Colors to use on the chart.
    */
-  colors: [theme.gray300, theme.purple300, theme.purple400] as string[],
+  colors: [theme.gray400, theme.purple400, theme.purple500] as string[],
   /**
-   * Hover state colors to use on the chart.
+   * Show max/min values on yAxis
    */
-  emphasisColors: [theme.gray400, theme.purple400, theme.purple500] as string[],
+  labelYAxisExtents: false,
+  /**
+   * Whether not the series should be stacked.
+   *
+   * Some of our stats endpoints return data where the 'total' series includes
+   * breakdown data (issues). For these results `stacked` should be false.
+   * Other endpoints return decomposed results that need to be stacked (outcomes).
+   */
+  stacked: false,
 };
 
 type Props = React.ComponentProps<typeof BaseChart> &
@@ -37,100 +46,129 @@ type Props = React.ComponentProps<typeof BaseChart> &
      * Whether timestamps are should be shown in UTC or local timezone.
      */
     utc?: boolean;
+    /**
+     * A list of colors to use on hover.
+     * By default hover state will shift opacity from 0.6 to 1.0.
+     * You can use this prop to also shift colors on hover.
+     */
+    emphasisColors?: string[];
   };
 
 class MiniBarChart extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   render() {
-    const {markers, colors, emphasisColors, series: _series, ...props} = this.props;
-    let series = [...this.props.series];
+    const {
+      markers,
+      emphasisColors,
+      colors,
+      series: _series,
+      labelYAxisExtents,
+      stacked,
+      series,
+      ...props
+    } = this.props;
+    let chartSeries: EChartOption.SeriesBar[] = [];
 
     // Ensure bars overlap and that empty values display as we're disabling the axis lines.
-    if (series.length) {
-      series = series.map((original, i: number) => {
+    if (series && series.length) {
+      chartSeries = series.map((original, i: number) => {
         const updated = {
           ...original,
           cursor: 'normal',
           type: 'bar',
         } as EChartOption.SeriesBar;
+
         if (i === 0) {
           updated.barMinHeight = 1;
-          updated.barGap = '-100%';
+          if (stacked === false) {
+            updated.barGap = '-100%';
+          }
         }
-        if (emphasisColors[i]) {
-          updated.emphasis = {
-            itemStyle: {
-              color: emphasisColors[i],
-            },
-          };
+        if (stacked) {
+          updated.stack = 'stack1';
         }
+        set(updated, 'itemStyle.color', colors[i]);
+        set(updated, 'itemStyle.opacity', 0.6);
+        set(updated, 'itemStyle.emphasis.opacity', 1.0);
+        set(updated, 'itemStyle.emphasis.color', emphasisColors?.[i] ?? colors[i]);
+
         return updated;
       });
     }
 
     if (markers) {
-      const markerSeries = {
-        seriesName: 'markers',
-        data: [],
-        markLine: {
-          label: {
-            show: false,
-          },
-          symbol: ['circle', 'none'],
-          tooltip: {
-            trigger: 'item',
-            formatter: ({data}) => {
-              const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
-                local: !this.props.utc,
-              });
-              const name = truncationFormatter(data.name, props?.xAxis?.truncate);
-              return [
-                '<div class="tooltip-series">',
-                `<div><span class="tooltip-label"><strong>${name}</strong></span></div>`,
-                '</div>',
-                '<div class="tooltip-date">',
-                time,
-                '</div>',
-                '</div>',
-                '<div class="tooltip-arrow"></div>',
-              ].join('');
-            },
-          },
-          data: markers.map((marker: Marker) => {
-            return {
-              name: marker.name,
-              xAxis: marker.value,
-              symbolSize: marker.symbolSize ?? 8,
-              itemStyle: {
-                color: marker.color,
-              },
-              lineStyle: {
-                width: 0,
-                emphasis: {
-                  width: 0,
-                },
-              },
-            };
-          }),
+      const markerTooltip = {
+        show: true,
+        trigger: 'item',
+        formatter: ({data}) => {
+          const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
+            local: !this.props.utc,
+          });
+          const name = truncationFormatter(data.name, props?.xAxis?.truncate);
+          return [
+            '<div class="tooltip-series">',
+            `<div><span class="tooltip-label"><strong>${name}</strong></span></div>`,
+            '</div>',
+            '<div class="tooltip-date">',
+            time,
+            '</div>',
+            '</div>',
+            '<div class="tooltip-arrow"></div>',
+          ].join('');
         },
       };
-      series.push(markerSeries);
+
+      const markPoint = {
+        data: markers.map((marker: Marker) => ({
+          name: marker.name,
+          coord: [marker.value, 0],
+          tooltip: markerTooltip,
+          symbol: 'circle',
+          symbolSize: marker.symbolSize ?? 8,
+          itemStyle: {
+            color: marker.color,
+            borderColor: '#ffffff',
+          },
+        })),
+      };
+      chartSeries[0].markPoint = markPoint;
     }
 
+    const yAxisOptions = labelYAxisExtents
+      ? {
+          showMinLabel: true,
+          showMaxLabel: true,
+          interval: Infinity,
+        }
+      : {
+          axisLabel: {
+            show: false,
+          },
+        };
+
     const chartOptions = {
-      colors,
-      animation: false,
       tooltip: {
         trigger: 'axis',
       },
       yAxis: {
-        axisLabel: {
-          show: false,
+        max(value) {
+          // This keeps small datasets from looking 'scary'
+          // by having full bars for < 10 values.
+          return Math.max(10, value.max);
         },
         splitLine: {
           show: false,
         },
+        ...yAxisOptions,
+      },
+      grid: {
+        // Offset to ensure there is room for the marker symbols at the
+        // default size.
+        top: labelYAxisExtents ? 6 : 0,
+        bottom: markers || labelYAxisExtents ? 4 : 0,
+        left: markers ? 4 : 0,
+        right: markers ? 4 : 0,
       },
       xAxis: {
         axisLine: {
@@ -153,8 +191,11 @@ class MiniBarChart extends React.Component<Props> {
           },
         },
       },
+      options: {
+        animation: false,
+      },
     };
-    return <BarChart series={series} {...chartOptions} {...props} />;
+    return <BarChart series={chartSeries} {...chartOptions} {...props} />;
   }
 }
 

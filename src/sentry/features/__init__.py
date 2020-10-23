@@ -77,6 +77,7 @@ default_manager.add("organizations:integrations-alert-rule", OrganizationFeature
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-incident-management", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA
+default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
 default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
@@ -89,6 +90,7 @@ default_manager.add("organizations:performance-view", OrganizationFeature)  # NO
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
+default_manager.add("organizations:custom-event-title", OrganizationFeature)  # NOQA
 default_manager.add("organizations:slack-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA

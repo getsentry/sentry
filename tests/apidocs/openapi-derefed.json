@@ -7217,7 +7217,7 @@
                 "properties": {
                   "event_id": {
                     "type": "string",
-                    "description": "The event ID."
+                    "description": "The event ID. This can be retrieved from the [beforeSend callback](https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-beforesend)."
                   },
                   "name": {
                     "type": "string",
@@ -8559,7 +8559,7 @@
           {
             "name": "event_id",
             "in": "path",
-            "description": "The ID of the event to retrieve (either the numeric primary-key or the hexadecimal ID as reported by the client)",
+            "description": "The ID of the event to retrieve. It is the hexadecimal ID as reported by the client.",
             "required": true,
             "schema": {
               "type": "string"

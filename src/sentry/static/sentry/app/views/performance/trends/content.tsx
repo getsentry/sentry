@@ -17,11 +17,20 @@ import {decodeScalar} from 'app/utils/queryString';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import Alert from 'app/components/alert';
+import {IconInfo} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
 
 import {getTransactionSearchQuery} from '../utils';
 import {TrendChangeType, TrendView, TrendFunctionField} from './types';
-import {TRENDS_FUNCTIONS, getCurrentTrendFunction, getSelectedQueryKey} from './utils';
+import {
+  DEFAULT_MAX_DURATION,
+  TRENDS_FUNCTIONS,
+  CONFIDENCE_LEVELS,
+  resetCursors,
+  getCurrentTrendFunction,
+  getCurrentConfidenceLevel,
+  getSelectedQueryKey,
+} from './utils';
 import ChangedTransactions from './changedTransactions';
 import ChangedProjects from './changedProjects';
 import {FilterViews} from '../landing';
@@ -49,11 +58,13 @@ class TrendsContent extends React.Component<Props, State> {
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
 
+    const cursors = resetCursors();
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
-        cursor: undefined,
+        ...cursors,
         query: String(searchQuery).trim() || undefined,
       },
     });
@@ -80,12 +91,37 @@ class TrendsContent extends React.Component<Props, State> {
       previousTrendFunction: getCurrentTrendFunction(location).field,
     });
 
+    const cursors = resetCursors();
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
         ...offsets,
+        ...cursors,
         trendFunction: field,
+      },
+    });
+  };
+
+  handleConfidenceChange = (label: string) => {
+    const {organization, location} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.trends.change_confidence',
+      eventName: 'Performance Views: Change confidence',
+      organization_id: parseInt(organization.id, 10),
+      confidence_level: label,
+    });
+
+    const cursors = resetCursors();
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        ...cursors,
+        confidenceLevel: label,
       },
     });
   };
@@ -101,15 +137,16 @@ class TrendsContent extends React.Component<Props, State> {
       },
     ]);
     const currentTrendFunction = getCurrentTrendFunction(location);
+    const currentConfidenceLevel = getCurrentConfidenceLevel(location);
     const query = getTransactionSearchQuery(location);
     const showChangedProjects = hasMultipleProjects(selection);
 
     return (
       <Feature features={['trends']}>
         <DefaultTrends location={location} eventView={eventView}>
-          <Alert type="info">
+          <Alert type="info" icon={<IconInfo size="md" />}>
             {t(
-              "Performance trends is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
+              "Performance Trends is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
             )}{' '}
             <ExternalLink href="mailto:performance-feedback@sentry.io">
               performance-feedback@sentry.io
@@ -123,6 +160,24 @@ class TrendsContent extends React.Component<Props, State> {
               fields={fields}
               onSearch={this.handleSearch}
             />
+            <TrendsDropdown>
+              <DropdownControl
+                buttonProps={{prefix: t('Confidence')}}
+                label={currentConfidenceLevel.label}
+              >
+                {CONFIDENCE_LEVELS.map(({label}) => (
+                  <DropdownItem
+                    key={label}
+                    onSelect={this.handleConfidenceChange}
+                    eventKey={label}
+                    data-test-id={label}
+                    isActive={label === currentConfidenceLevel.label}
+                  >
+                    {label}
+                  </DropdownItem>
+                ))}
+              </DropdownControl>
+            </TrendsDropdown>
             <TrendsDropdown>
               <DropdownControl
                 buttonProps={{prefix: t('Display')}}
@@ -196,8 +251,8 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     if (queryString || this.hasPushedDefaults) {
       return <React.Fragment>{children}</React.Fragment>;
     } else {
-      conditions.setTagValues('count()', ['>1000']);
-      conditions.setTagValues('transaction.duration', ['>0']);
+      conditions.setTagValues('epm()', ['>0.01']);
+      conditions.setTagValues('transaction.duration', ['>0', `<${DEFAULT_MAX_DURATION}`]);
     }
 
     const query = stringifyQueryObject(conditions);
@@ -220,10 +275,10 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
   margin-bottom: ${space(2)};
-  margin-right: ${space(1)};
 `;
 
 const TrendsDropdown = styled('div')`
+  margin-left: ${space(1)};
   flex-grow: 0;
 `;
 

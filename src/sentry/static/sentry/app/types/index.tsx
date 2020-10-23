@@ -736,7 +736,7 @@ export type ProcessingIssue = {
   numIssues: number;
   signedLink: string;
   lastSeen: string;
-  hasMoreResolvableIssues: boolean;
+  hasMoreResolveableIssues: boolean;
   hasIssues: boolean;
   issuesProcessing: number;
   resolveableIssues: number;
@@ -793,6 +793,18 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
+export type RepositoryProjectPathConfig = {
+  id: string;
+  projectId: string;
+  projectSlug: string;
+  repoId: string;
+  repoName: string;
+  organizationIntegrationId: string;
+  stackRoot: string;
+  sourceRoot: string;
+  defaultBranch?: string;
+};
+
 export type PullRequest = {
   id: string;
   title: string;
@@ -839,6 +851,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
     aspects: IntegrationAspects;
   };
+  hasStacktraceLinking?: boolean; // TODO: Remove when we GA the feature
 };
 
 export type IntegrationFeature = {
@@ -1489,29 +1502,37 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType = 'java' | 'csharp' | 'objc' | 'cocoa' | 'native' | 'other';
+export type PlatformType =
+  | 'java'
+  | 'csharp'
+  | 'objc'
+  | 'cocoa'
+  | 'native'
+  | 'javascript'
+  | 'other';
 
 export type Frame = {
-  filename: string;
-  module: string;
-  map: string;
-  preventCollapse: () => void;
-  errors: Array<any>;
+  absPath: string | null;
+  colNo: number | null;
   context: Array<[number, string]>;
-  vars: {[key: string]: any};
+  errors: Array<any> | null;
+  filename: string | null;
+  function: string | null;
   inApp: boolean;
-  function?: string;
-  absPath?: string;
-  rawFunction?: string;
-  platform: PlatformType;
-  lineNo?: number;
-  colNo?: number;
-  package?: string;
-  origAbsPath?: string;
-  mapUrl?: string;
-  instructionAddr?: string;
-  trust?: string;
-  symbolicatorStatus?: SymbolicatorStatus;
+  instructionAddr: string | null;
+  lineNo: number | null;
+  module: string | null;
+  package: string | null;
+  platform: PlatformType | null;
+  rawFunction: string | null;
+  symbol: string | null;
+  symbolAddr: string | null;
+  symbolicatorStatus: SymbolicatorStatus;
+  trust: any | null;
+  vars: Record<string, any> | null;
+  origAbsPath?: string | null;
+  mapUrl?: string | null;
+  map?: string | null;
 };
 
 /**
