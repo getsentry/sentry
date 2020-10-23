@@ -616,6 +616,7 @@ class Factories(object):
             object_name=object_name,
             cpu_name=cpu_name or "x86_64",
             file=file,
+            checksum=file.checksum,
             data=data,
             **kwargs
         )

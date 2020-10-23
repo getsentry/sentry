@@ -107,6 +107,7 @@ class ProjectDebugFile(Model):
     __core__ = False
 
     file = FlexibleForeignKey("sentry.File")
+    checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey("sentry.Project", null=True)
@@ -236,6 +237,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
 
     dif = ProjectDebugFile.objects.create(
         file=file,
+        checksum=file.checksum,
         debug_id=meta.debug_id,
         code_id=meta.code_id,
         cpu_name=meta.arch,
