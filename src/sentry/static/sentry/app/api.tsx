@@ -151,7 +151,7 @@ export class Client {
       if (req && req.alive) {
         // Check if API response is a 302 -- means project slug was renamed and user
         // needs to be redirected
-        // @ts-ignore
+        // @ts-expect-error
         if (this.hasProjectBeenRenamed(...args)) {
           return;
         }

@@ -28,7 +28,7 @@ const SvgIcon = React.forwardRef<SVGSVGElement, Props>(function SvgIcon(
 });
 
 SvgIcon.propTypes = {
-  // @ts-ignore
+  // @ts-expect-error
   color: PropTypes.string,
   size: PropTypes.string,
   viewBox: PropTypes.string,

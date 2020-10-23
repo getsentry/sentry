@@ -305,20 +305,20 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
   const previousValues = {
     userSelect: document.body.style.userSelect,
     // MozUserSelect is not typed in TS
-    // @ts-ignore
+    // @ts-expect-error
     MozUserSelect: document.body.style.MozUserSelect,
     // msUserSelect is not typed in TS
-    // @ts-ignore
+    // @ts-expect-error
     msUserSelect: document.body.style.msUserSelect,
     webkitUserSelect: document.body.style.webkitUserSelect,
   };
 
   document.body.style.userSelect = nextValues.userSelect || '';
   // MozUserSelect is not typed in TS
-  // @ts-ignore
+  // @ts-expect-error
   document.body.style.MozUserSelect = nextValues.MozUserSelect || '';
   // msUserSelect is not typed in TS
-  // @ts-ignore
+  // @ts-expect-error
   document.body.style.msUserSelect = nextValues.msUserSelect || '';
   document.body.style.webkitUserSelect = nextValues.webkitUserSelect || '';
 

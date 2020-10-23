@@ -82,7 +82,7 @@ class Client {
 
   wrapCallback(_id, error) {
     return (...args) => {
-      // @ts-ignore
+      // @ts-expect-error
       if (this.hasProjectBeenRenamed(...args)) {
         return;
       }

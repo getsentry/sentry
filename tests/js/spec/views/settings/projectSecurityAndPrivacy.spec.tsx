@@ -6,14 +6,14 @@ import ProjectSecurityAndPrivacy, {
   ProjectSecurityAndPrivacyProps,
 } from 'app/views/settings/projectSecurityAndPrivacy';
 
-// @ts-ignore
+// @ts-expect-error
 const org = TestStubs.Organization();
-// @ts-ignore
+// @ts-expect-error
 const project = TestStubs.ProjectDetails();
-// @ts-ignore
+// @ts-expect-error
 const routerContext = TestStubs.routerContext([
   {
-    // @ts-ignore
+    // @ts-expect-error
     router: TestStubs.router({
       params: {
         projectId: project.slug,
@@ -25,7 +25,7 @@ const routerContext = TestStubs.routerContext([
 
 function renderComponent(props: Partial<ProjectSecurityAndPrivacyProps>) {
   const organization = props?.organization ?? org;
-  // @ts-ignore
+  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/`,
     method: 'GET',

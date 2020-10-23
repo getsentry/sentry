@@ -15,7 +15,7 @@ import {
 } from 'app/views/settings/components/dataScrubbing/utils';
 import submitRules from 'app/views/settings/components/dataScrubbing/submitRules';
 
-// @ts-ignore
+// @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const organizationSlug = 'sentry';
@@ -25,7 +25,7 @@ const rule = rules[2];
 const successfullySaved = jest.fn();
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
-// @ts-ignore
+// @ts-expect-error
 const api = new MockApiClient();
 
 jest.mock('app/views/settings/components/dataScrubbing/submitRules');
@@ -46,7 +46,7 @@ async function renderComponent() {
     />
   ));
 
-  // @ts-ignore
+  // @ts-expect-error
   await tick();
   wrapper.update();
 
@@ -149,7 +149,7 @@ describe('Edit Modal', () => {
     expect(cancelButton.exists()).toBe(true);
     cancelButton.simulate('click');
 
-    // @ts-ignore
+    // @ts-expect-error
     await tick();
     wrapper.update();
 

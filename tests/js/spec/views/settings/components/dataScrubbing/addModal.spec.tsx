@@ -13,7 +13,7 @@ import {
   getRuleLabel,
 } from 'app/views/settings/components/dataScrubbing/utils';
 
-// @ts-ignore
+// @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const organizationSlug = 'sentry';
@@ -22,7 +22,7 @@ const rules = convertedRules;
 const successfullySaved = jest.fn();
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
-// @ts-ignore
+// @ts-expect-error
 const api = new MockApiClient();
 
 async function renderComponent() {
@@ -40,7 +40,7 @@ async function renderComponent() {
     />
   ));
 
-  // @ts-ignore
+  // @ts-expect-error
   await tick();
   wrapper.update();
 
@@ -111,7 +111,7 @@ describe('Add Modal', () => {
     expect(cancelButton.exists()).toBe(true);
     cancelButton.simulate('click');
 
-    // @ts-ignore
+    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -253,7 +253,7 @@ describe('Add Modal', () => {
   it('Display Event Id', async () => {
     const eventId = '12345678901234567890123456789012';
 
-    // @ts-ignore
+    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/data-scrubbing-selector-suggestions/`,
       body: {
@@ -275,7 +275,7 @@ describe('Add Modal', () => {
 
     eventIdFieldInput.simulate('blur');
 
-    // @ts-ignore
+    // @ts-expect-error
     await tick();
 
     // Loading

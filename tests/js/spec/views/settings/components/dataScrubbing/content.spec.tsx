@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import Content from 'app/views/settings/components/dataScrubbing/content';
 import convertRelayPiiConfig from 'app/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
-// @ts-ignore
+// @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const convertedRules = convertRelayPiiConfig(stringRelayPiiConfig);
