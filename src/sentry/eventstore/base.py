@@ -37,6 +37,8 @@ class Filter(object):
         end=None,
         conditions=None,
         having=None,
+        user_id=None,
+        organization_id=None,
         project_ids=None,
         group_ids=None,
         event_ids=None,
@@ -51,6 +53,8 @@ class Filter(object):
         self.end = end
         self.conditions = conditions
         self.having = having
+        self.user_id = user_id
+        self.organization_id = organization_id
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
@@ -81,11 +85,17 @@ class Filter(object):
         return filter_keys
 
     @property
-    def date_params(self):
+    def params(self):
         """
         Get the datetime parameters as a dictionary
         """
-        return {"start": self.start, "end": self.end}
+        return {
+            "start": self.start,
+            "end": self.end,
+            "user_id": self.user_id,
+            "organization_id": self.organization_id,
+            "project_ids": self.project_ids,
+        }
 
     def update_with(self, updates):
         keys = ("selected_columns", "aggregations", "conditions", "orderby", "groupby")

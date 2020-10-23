@@ -14,6 +14,7 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
+from sentry.discover.models import KeyTransaction
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.search.utils import (
@@ -210,6 +211,7 @@ ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 USER_DISPLAY_ALIAS = "user.display"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
+KEY_TRANSACTION_ALIAS = "key.transaction"
 
 
 class InvalidSearchQuery(Exception):
@@ -1178,6 +1180,8 @@ def get_filter(query=None, params=None):
         "end": None,
         "conditions": [],
         "having": [],
+        "user_id": None,
+        "organization_id": None,
         "project_ids": [],
         "group_ids": [],
         "condition_aggregates": [],
@@ -1233,6 +1237,10 @@ def get_filter(query=None, params=None):
         for key in ("start", "end"):
             kwargs[key] = params.get(key, None)
         # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
+        if "user_id" in params:
+            kwargs["user_id"] = params["user_id"]
+        if "organization_id" in params:
+            kwargs["organization_id"] = params["organization_id"]
         if "project_id" in params:
             if projects_to_filter:
                 kwargs["project_ids"] = projects_to_filter
@@ -1263,7 +1271,7 @@ class PseudoField(object):
             expression.append(self.alias)
             return expression
         elif self.expression_fn is not None:
-            expression = deepcopy(self.expression_fn(params))
+            expression = self.expression_fn(params)
             expression.append(self.alias)
             return expression
         return self.alias
@@ -1273,6 +1281,41 @@ class PseudoField(object):
         assert (
             self.expression is None or self.expression_fn is None
         ), u"{}: only one of expression, expression_fn is allowed".format(self.name)
+
+
+def key_transaction_expression(params):
+    if (
+        params["user_id"] is None
+        or params["organization_id"] is None
+        or params["project_ids"] is None
+    ):
+        raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
+
+    key_transactions = KeyTransaction.objects.filter(
+        owner__id=params["user_id"],
+        organization__id=params["organization_id"],
+        project__id__in=params["project_ids"],
+    ).values("project__id", "transaction")
+
+    return [
+        "indexOf",
+        [
+            [
+                "array",
+                [
+                    [
+                        "tuple",
+                        [
+                            ["toUInt64", [transaction["project__id"]]],
+                            "'{}'".format(transaction["transaction"]),
+                        ],
+                    ]
+                    for transaction in key_transactions
+                ],
+            ],
+            ["tuple", ["project_id", "transaction"]],
+        ],
+    ]
 
 
 # When adding aliases to this list please also update
@@ -1288,6 +1331,9 @@ FIELD_ALIASES = {
             USER_DISPLAY_ALIAS,
             USER_DISPLAY_ALIAS,
             expression=["coalesce", ["user.email", "user.username", "user.ip"]],
+        ),
+        PseudoField(
+            KEY_TRANSACTION_ALIAS, KEY_TRANSACTION_ALIAS, expression_fn=key_transaction_expression,
         ),
     ]
 }
@@ -2310,7 +2356,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     for field in fields:
         if isinstance(field, six.string_types) and field.strip() == "":
             continue
-        function = resolve_field(field, snuba_filter.date_params)
+        function = resolve_field(field, snuba_filter.params)
         if function.column is not None and function.column not in columns:
             columns.append(function.column)
             if function.details is not None and isinstance(function.column, (list, tuple)):
@@ -2323,7 +2369,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
-            function = resolve_field(agg, snuba_filter.date_params)
+            function = resolve_field(agg, snuba_filter.params)
             if function.aggregate is not None and function.aggregate not in aggregations:
                 aggregations.append(function.aggregate)
                 if function.details is not None and isinstance(function.aggregate, (list, tuple)):
