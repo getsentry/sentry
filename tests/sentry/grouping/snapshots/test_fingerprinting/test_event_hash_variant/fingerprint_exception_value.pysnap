@@ -1,5 +1,5 @@
 ---
-created: '2020-10-13T10:09:31.907723Z'
+created: '2020-10-23T09:01:29.796869Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -14,7 +14,7 @@ config:
   version: 1
 fingerprint:
 - something-went-wrong
-title: 'EndOfWorld: something went wrong'
+title: 'EndOfWorld: something went WRONG'
 variants:
   app:
     component:

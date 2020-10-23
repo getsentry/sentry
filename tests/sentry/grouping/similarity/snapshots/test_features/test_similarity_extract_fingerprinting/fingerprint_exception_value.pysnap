@@ -1,24 +1,24 @@
 ---
-created: '2020-08-21T21:07:53.517004Z'
+created: '2020-10-23T11:19:17.553494Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
 similarity:2020-07-23:fingerprint:ident-shingle: "something-went-wrong"
 similarity:2020-07-23:stacktrace:frames-ident: [["filename","application.java"],["function","main"],["module","io.sentry.example.Application"]]
 similarity:2020-07-23:type:ident-shingle: "EndOfWorld"
+similarity:2020-07-23:value:character-5-shingle: " WRON"
 similarity:2020-07-23:value:character-5-shingle: " went"
-similarity:2020-07-23:value:character-5-shingle: " wron"
-similarity:2020-07-23:value:character-5-shingle: "ent w"
+similarity:2020-07-23:value:character-5-shingle: "WRONG"
+similarity:2020-07-23:value:character-5-shingle: "ent W"
 similarity:2020-07-23:value:character-5-shingle: "ethin"
 similarity:2020-07-23:value:character-5-shingle: "g wen"
 similarity:2020-07-23:value:character-5-shingle: "hing "
 similarity:2020-07-23:value:character-5-shingle: "ing w"
 similarity:2020-07-23:value:character-5-shingle: "methi"
 similarity:2020-07-23:value:character-5-shingle: "ng we"
-similarity:2020-07-23:value:character-5-shingle: "nt wr"
+similarity:2020-07-23:value:character-5-shingle: "nt WR"
 similarity:2020-07-23:value:character-5-shingle: "ometh"
 similarity:2020-07-23:value:character-5-shingle: "somet"
-similarity:2020-07-23:value:character-5-shingle: "t wro"
+similarity:2020-07-23:value:character-5-shingle: "t WRO"
 similarity:2020-07-23:value:character-5-shingle: "thing"
 similarity:2020-07-23:value:character-5-shingle: "went "
-similarity:2020-07-23:value:character-5-shingle: "wrong"

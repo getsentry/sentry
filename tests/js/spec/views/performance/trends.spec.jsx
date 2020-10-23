@@ -17,7 +17,7 @@ import {getUtcDateString} from 'app/utils/dates';
 
 const trendsViewQuery = {
   view: 'TRENDS',
-  query: 'epm():>0.01 transaction.duration:>0',
+  query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
 };
 
 jest.mock('moment', () => {
@@ -85,6 +85,10 @@ describe('Performance > Trends', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/transaction.duration/values/',
       body: [],
     });
     trendsStatsMock = MockApiClient.addMockResponse({
@@ -282,7 +286,41 @@ describe('Performance > Trends', function () {
       query: expect.objectContaining({
         project: expect.anything(),
         query:
-          'epm():>0.01 transaction.duration:>0 !transaction:/organizations/:orgId/performance/',
+          'epm():>0.01 transaction.duration:>0 transaction.duration:<60min !transaction:/organizations/:orgId/performance/',
+        view: 'TRENDS',
+      }),
+    });
+  });
+
+  it('Changing search causes cursors to be reset', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+    const search = wrapper.find('#smart-search-input').first();
+
+    search
+      .simulate('change', {target: {value: 'transaction.duration:>9000'}})
+      .simulate('submit', {
+        preventDefault() {},
+      });
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: expect.objectContaining({
+        project: ['1'],
+        query: 'transaction.duration:>9000',
+        improvedCursor: undefined,
+        regressionCursor: undefined,
         view: 'TRENDS',
       }),
     });
@@ -350,7 +388,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:>=863',
+        query: 'epm():>0.01 transaction.duration:<60min transaction.duration:>=863',
         view: 'TRENDS',
       }),
     });
@@ -476,6 +514,8 @@ describe('Performance > Trends', function () {
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
+          regressionCursor: undefined,
+          improvedCursor: undefined,
           trendFunction: trendFunction.field,
         }),
       });
