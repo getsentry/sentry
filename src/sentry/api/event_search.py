@@ -316,7 +316,7 @@ class SearchVisitor(NodeVisitor):
             "transaction.end_time",
         ]
     )
-    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app"])
+    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -757,7 +757,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     return condition
 
 
-def convert_search_filter_to_snuba_query(search_filter, key=None):
+def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
@@ -868,6 +868,18 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
         raise InvalidSearchQuery(
             "Invalid value for error.handled condition. Accepted values are 1, 0"
         )
+    elif name == KEY_TRANSACTION_ALIAS:
+        key_transaction_expr = FIELD_ALIASES[KEY_TRANSACTION_ALIAS].get_expression(params)
+
+        if search_filter.value.raw_value == "":
+            return [["isNull", [key_transaction_expr]], search_filter.operator, 1]
+        if value in ("1", 1):
+            return [key_transaction_expr, ">", 0]
+        if value in ("0", 0):
+            return [key_transaction_expr, "=", 0]
+        raise InvalidSearchQuery(
+            "Invalid value for key.transaction condition. Accepted values are 1, 0"
+        )
     else:
         value = (
             int(to_timestamp(value)) * 1000
@@ -977,7 +989,7 @@ def format_search_filter(term, params):
         if converted_filter:
             conditions.append(converted_filter)
     else:
-        converted_filter = convert_search_filter_to_snuba_query(term)
+        converted_filter = convert_search_filter_to_snuba_query(term, params=params)
         if converted_filter:
             conditions.append(converted_filter)
 
@@ -1265,13 +1277,18 @@ class PseudoField(object):
         self.expression = expression
         self.expression_fn = expression_fn
 
-    def get_field(self, params=None):
+    def get_expression(self, params):
         if isinstance(self.expression, (list, tuple)):
             expression = deepcopy(self.expression)
-            expression.append(self.alias)
             return expression
         elif self.expression_fn is not None:
             expression = self.expression_fn(params)
+            return expression
+        return None
+
+    def get_field(self, params=None):
+        expression = self.get_expression(params)
+        if expression is not None:
             expression.append(self.alias)
             return expression
         return self.alias
@@ -1285,16 +1302,16 @@ class PseudoField(object):
 
 def key_transaction_expression(params):
     if (
-        params["user_id"] is None
-        or params["organization_id"] is None
-        or params["project_ids"] is None
+        params.get("user_id") is None
+        or params.get("organization_id") is None
+        or params.get("project_id") is None
     ):
         raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
 
     key_transactions = KeyTransaction.objects.filter(
         owner__id=params["user_id"],
         organization__id=params["organization_id"],
-        project__id__in=params["project_ids"],
+        project__id__in=params["project_id"],
     ).values("project__id", "transaction")
 
     return [
@@ -1319,7 +1336,7 @@ def key_transaction_expression(params):
 
 
 # When adding aliases to this list please also update
-# static/app/views/eventsV2/eventQueryParams.tsx so that
+# static/app/utils/discover/fields.tsx so that
 # the UI builder stays in sync.
 FIELD_ALIASES = {
     field.name: field

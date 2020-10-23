@@ -94,7 +94,7 @@ class Filter(object):
             "end": self.end,
             "user_id": self.user_id,
             "organization_id": self.organization_id,
-            "project_ids": self.project_ids,
+            "project_id": self.project_ids,
         }
 
     def update_with(self, updates):

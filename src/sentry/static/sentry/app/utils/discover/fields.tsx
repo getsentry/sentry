@@ -380,6 +380,7 @@ enum FieldKey {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
   TRANSACTION_STATUS = 'transaction.status',
+  KEY_TRANSACTION = 'key.transaction',
   USER_EMAIL = 'user.email',
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
@@ -457,6 +458,8 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.TRACE]: 'string',
   [FieldKey.TRACE_SPAN]: 'string',
   [FieldKey.TRACE_PARENT_SPAN]: 'string',
+
+  [FieldKey.KEY_TRANSACTION]: 'boolean',
 
   // Field alises defined in src/sentry/api/event_search.py
   [FieldKey.PROJECT]: 'string',
