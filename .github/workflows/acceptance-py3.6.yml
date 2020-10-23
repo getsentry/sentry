@@ -42,24 +42,24 @@ jobs:
 
       - name: Set python version output
         id: python-version
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.frontend == 'false'
         run: |
           echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.frontend == 'false'
         with:
           python-version: ${{ steps.python-version.outputs.python-version }}
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
         id: pip
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.frontend == 'false'
 
       - name: pip cache
         uses: actions/cache@v2
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.frontend == 'false'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
@@ -69,7 +69,7 @@ jobs:
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.frontend == 'false'
         with:
           python: 3
           snuba: true
@@ -77,7 +77,7 @@ jobs:
       - name: yarn cache
         uses: actions/cache@v2
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.frontend == 'false'
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
@@ -85,17 +85,17 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install Javascript Dependencies
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.frontend == 'false'
         run: |
           yarn install --frozen-lockfile
 
       - name: webpack
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.frontend == 'false'
         run: |
           yarn webpack --display errors-only
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.frontend == 'false'
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile

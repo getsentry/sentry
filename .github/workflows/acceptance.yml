@@ -17,6 +17,8 @@ jobs:
   frontend:
     name: frontend tests
     runs-on: ubuntu-16.04
+    timeout-minutes: 20
+
     env:
       VISUAL_HTML_ENABLE: 1
     steps:
@@ -143,6 +145,7 @@ jobs:
     if: ${{ github.ref != 'refs/heads/master' }}
     needs: [acceptance, frontend]
     runs-on: ubuntu-16.04
+    timeout-minutes: 20
 
     steps:
       - name: Diff snapshots

@@ -1,0 +1,69 @@
+name: symbolicator integration
+on:
+  push:
+    branches:
+      - master
+      - releases/**
+  pull_request:
+
+jobs:
+  test:
+    name: symbolicator test
+    runs-on: ubuntu-16.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        if: steps.changes.outputs.frontend == 'false'
+        with:
+          python-version: 2.7.17
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+        if: steps.changes.outputs.frontend == 'false'
+
+      - name: pip cache
+        uses: actions/cache@v2
+        if: steps.changes.outputs.frontend == 'false'
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        if: steps.changes.outputs.frontend == 'false'
+        with:
+          python: 2
+          snuba: true
+          kafka: true
+
+      - name: Start symbolicator
+        if: steps.changes.outputs.frontend == 'false'
+        run: |
+          echo $PWD
+          docker run \
+            -d \
+            -v $PWD/config/symbolicator/:/etc/symbolicator \
+            --network host \
+            --name symbolicator \
+            us.gcr.io/sentryio/symbolicator:latest \
+            run -c /etc/symbolicator/config.yml
+          docker ps -a
+
+      - name: Run test
+        if: steps.changes.outputs.frontend == 'false'
+        run: |
+          make test-symbolicator
