@@ -5,7 +5,8 @@ import {t} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
 import SpreadLayout from 'app/components/spreadLayout';
 import FlowLayout from 'app/components/flowLayout';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import Confirm from 'app/components/confirm';
+import Button from 'app/components/button';
 import Toolbar from 'app/components/toolbar';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -29,12 +30,17 @@ class SimilarToolbar extends React.Component<Props, State> {
   }
 
   onGroupChange = ({mergeList}) => {
-    if (mergeList?.size !== this.state.mergeCount) {
+    if (!mergeList?.size) {
+      return;
+    }
+
+    if (mergeList.size !== this.state.mergeCount) {
       this.setState({mergeCount: mergeList.size});
     }
   };
 
   listener = GroupingStore.listen(this.onGroupChange, undefined);
+
   render() {
     const {onMerge} = this.props;
     const {mergeCount} = this.state;
@@ -45,16 +51,16 @@ class SimilarToolbar extends React.Component<Props, State> {
           <StyledFlowLayout>
             <FlowLayout>
               <Actions>
-                <LinkWithConfirmation
+                <Confirm
                   data-test-id="merge"
                   disabled={mergeCount === 0}
-                  title={t('Merging %s issues', mergeCount)}
                   message={t('Are you sure you want to merge these issues?')}
                   onConfirm={onMerge}
                 >
-                  {t('Merge')}
-                  {` (${mergeCount || 0})`}
-                </LinkWithConfirmation>
+                  <Button size="small" title={t('Merging %s issues', mergeCount)}>
+                    {t('Merge %s', `(${mergeCount || 0})`)}
+                  </Button>
+                </Confirm>
               </Actions>
             </FlowLayout>
           </StyledFlowLayout>
