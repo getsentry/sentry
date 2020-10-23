@@ -111,6 +111,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         has_dynamic_issue_counts = features.has(
             "organizations:dynamic-issue-counts", organization, actor=request.user
         )
+        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
@@ -136,6 +137,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             stats_period=stats_period,
             stats_period_start=stats_period_start,
             stats_period_end=stats_period_end,
+            has_inbox=has_inbox,
         )
 
         projects = self.get_projects(request, organization)
