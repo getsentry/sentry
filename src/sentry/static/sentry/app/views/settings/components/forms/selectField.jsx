@@ -23,6 +23,7 @@ export default class SelectField extends React.Component {
     multiple: PropTypes.bool,
     escapeMarkup: PropTypes.bool,
     small: PropTypes.bool,
+    components: PropTypes.any,
   };
 
   static defaultProps = {

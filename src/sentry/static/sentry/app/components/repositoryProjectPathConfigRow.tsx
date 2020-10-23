@@ -14,7 +14,7 @@ import Tooltip from 'app/components/tooltip';
 import IdBadge from 'app/components/idBadge';
 
 type Props = {
-  repoProjectPathConfig: RepositoryProjectPathConfig;
+  pathConfig: RepositoryProjectPathConfig;
   repo: Repository; //TODO: remove
   project: Project;
 };
@@ -28,7 +28,7 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
 
   render() {
     // TODO: Improve UI
-    const {repoProjectPathConfig, project} = this.props;
+    const {pathConfig, project} = this.props;
 
     return (
       <Access access={['org:integrations']}>
@@ -37,7 +37,7 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
             <NameRepoColumn>
               <ProjectRepoHolder>
                 <RepoName>
-                  {repoProjectPathConfig.repoName}
+                  {pathConfig.repoName}
                   <StyledQuestionTooltip
                     size="xs"
                     position="top"
@@ -52,11 +52,9 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
                 />
               </ProjectRepoHolder>
             </NameRepoColumn>
-            <OutputPathColumn>{repoProjectPathConfig.sourceRoot}</OutputPathColumn>
-            <InputPathColumn>{repoProjectPathConfig.stackRoot}</InputPathColumn>
-            <DefaultBranchColumn>
-              {repoProjectPathConfig.defaultBranch}
-            </DefaultBranchColumn>
+            <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
+            <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
+            <DefaultBranchColumn>{pathConfig.defaultBranch}</DefaultBranchColumn>
             <ButtonColumn>
               <Tooltip
                 title={t(
