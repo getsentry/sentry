@@ -34,6 +34,17 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
             data["user"] = {"email": "foo{}@example.com".format(i)}
             self.store_event(data, project_id=self.project.id)
 
+        self.expected_data = {
+            "count_range_1": 1,
+            "count_range_2": 3,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+        }
+
+    def assert_event(self, data):
+        for key, value in self.expected_data.items():
+            assert data[key] == value, key
+
 
 class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
     def setUp(self):
@@ -61,19 +72,16 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_1": 1,
-            "count_range_2": 3,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 2000,
-            "percentile_range_2": 2000,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_percentile_range_2_percentile_range_1": 0.0,
-            "percentage_percentile_range_2_percentile_range_1": 1.0,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "percentile_range_1": 2000,
+                "percentile_range_2": 2000,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_percentile_range_2_percentile_range_1": 0.0,
+                "percentage_percentile_range_2_percentile_range_1": 1.0,
+            }
+        )
+        self.assert_event(events["data"][0])
 
     def test_p75(self):
         with self.feature("organizations:trends"):
@@ -94,19 +102,16 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_1": 1,
-            "count_range_2": 3,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 2000,
-            "percentile_range_2": 6000,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_percentile_range_2_percentile_range_1": 4000.0,
-            "percentage_percentile_range_2_percentile_range_1": 3.0,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "percentile_range_1": 2000,
+                "percentile_range_2": 6000,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_percentile_range_2_percentile_range_1": 4000.0,
+                "percentage_percentile_range_2_percentile_range_1": 3.0,
+            }
+        )
+        self.assert_event(events["data"][0])
 
     def test_p95(self):
         with self.feature("organizations:trends"):
@@ -127,19 +132,16 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_1": 1,
-            "count_range_2": 3,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 2000,
-            "percentile_range_2": 9200,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_percentile_range_2_percentile_range_1": 7200.0,
-            "percentage_percentile_range_2_percentile_range_1": 4.6,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "percentile_range_1": 2000,
+                "percentile_range_2": 9200,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_percentile_range_2_percentile_range_1": 7200.0,
+                "percentage_percentile_range_2_percentile_range_1": 4.6,
+            }
+        )
+        self.assert_event(events["data"][0])
 
     def test_p99(self):
         with self.feature("organizations:trends"):
@@ -160,19 +162,16 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_1": 1,
-            "count_range_2": 3,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 2000,
-            "percentile_range_2": 9840,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_percentile_range_2_percentile_range_1": 7840.0,
-            "percentage_percentile_range_2_percentile_range_1": 4.92,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "percentile_range_1": 2000,
+                "percentile_range_2": 9840,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_percentile_range_2_percentile_range_1": 7840.0,
+                "percentage_percentile_range_2_percentile_range_1": 4.92,
+            }
+        )
+        self.assert_event(events["data"][0])
 
     def test_avg_trend_function(self):
         with self.feature("organizations:trends"):
@@ -193,19 +192,16 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_2": 3,
-            "count_range_1": 1,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "avg_range_1": 2000,
-            "avg_range_2": 4000,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_avg_range_2_avg_range_1": 2000.0,
-            "percentage_avg_range_2_avg_range_1": 2.0,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "avg_range_1": 2000,
+                "avg_range_2": 4000,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_avg_range_2_avg_range_1": 2000.0,
+                "percentage_avg_range_2_avg_range_1": 2.0,
+            }
+        )
+        self.assert_event(events["data"][0])
 
     def test_misery_trend_function(self):
         with self.feature("organizations:trends"):
@@ -226,19 +222,16 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_2": 3,
-            "count_range_1": 1,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "user_misery_range_1": 1,
-            "user_misery_range_2": 2,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_user_misery_range_2_user_misery_range_1": 1.0,
-            "percentage_user_misery_range_2_user_misery_range_1": 2.0,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "user_misery_range_1": 1,
+                "user_misery_range_2": 2,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_user_misery_range_2_user_misery_range_1": 1.0,
+                "percentage_user_misery_range_2_user_misery_range_1": 2.0,
+            }
+        )
+        self.assert_event(events["data"][0])
 
     def test_invalid_trend_function(self):
         with self.feature("organizations:trends"):
@@ -275,19 +268,18 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_2": 4,
-            "count_range_1": 0,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 0,
-            "percentile_range_2": 2000.0,
-            "percentage_count_range_2_count_range_1": None,
-            "minus_percentile_range_2_percentile_range_1": 0,
-            "percentage_percentile_range_2_percentile_range_1": None,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "count_range_2": 4,
+                "count_range_1": 0,
+                "percentile_range_1": 0,
+                "percentile_range_2": 2000.0,
+                "percentage_count_range_2_count_range_1": None,
+                "minus_percentile_range_2_percentile_range_1": 0,
+                "percentage_percentile_range_2_percentile_range_1": None,
+            }
+        )
+        self.assert_event(events["data"][0])
 
     def test_auto_aggregation(self):
         # absolute_correlation is automatically added, and not a part of data otherwise
@@ -310,19 +302,18 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
 
         assert len(events["data"]) == 1
         assert events["data"][0].pop("absolute_correlation") > 0.2
-        expected_data = {
-            "count_range_2": 4,
-            "count_range_1": 0,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 0,
-            "percentile_range_2": 2000.0,
-            "percentage_count_range_2_count_range_1": None,
-            "minus_percentile_range_2_percentile_range_1": 0,
-            "percentage_percentile_range_2_percentile_range_1": None,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "count_range_2": 4,
+                "count_range_1": 0,
+                "percentile_range_1": 0,
+                "percentile_range_2": 2000.0,
+                "percentage_count_range_2_count_range_1": None,
+                "minus_percentile_range_2_percentile_range_1": 0,
+                "percentage_percentile_range_2_percentile_range_1": None,
+            }
+        )
+        self.assert_event(events["data"][0])
 
 
 class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
@@ -352,19 +343,16 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_1": 1,
-            "count_range_2": 3,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 2000,
-            "percentile_range_2": 2000,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_percentile_range_2_percentile_range_1": 0.0,
-            "percentage_percentile_range_2_percentile_range_1": 1.0,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "percentile_range_1": 2000,
+                "percentile_range_2": 2000,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_percentile_range_2_percentile_range_1": 0.0,
+                "percentage_percentile_range_2_percentile_range_1": 1.0,
+            }
+        )
+        self.assert_event(events["data"][0])
 
         stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
         assert [attrs for time, attrs in stats["data"]] == [
@@ -392,19 +380,16 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_1": 1,
-            "count_range_2": 3,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 2000,
-            "percentile_range_2": 6000,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_percentile_range_2_percentile_range_1": 4000.0,
-            "percentage_percentile_range_2_percentile_range_1": 3.0,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "percentile_range_1": 2000,
+                "percentile_range_2": 6000,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_percentile_range_2_percentile_range_1": 4000.0,
+                "percentage_percentile_range_2_percentile_range_1": 3.0,
+            }
+        )
+        self.assert_event(events["data"][0])
 
         stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
         assert [attrs for time, attrs in stats["data"]] == [
@@ -432,19 +417,16 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_1": 1,
-            "count_range_2": 3,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 2000,
-            "percentile_range_2": 9200,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_percentile_range_2_percentile_range_1": 7200.0,
-            "percentage_percentile_range_2_percentile_range_1": 4.6,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "percentile_range_1": 2000,
+                "percentile_range_2": 9200,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_percentile_range_2_percentile_range_1": 7200.0,
+                "percentage_percentile_range_2_percentile_range_1": 4.6,
+            }
+        )
+        self.assert_event(events["data"][0])
 
         stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
         assert [attrs for time, attrs in stats["data"]] == [
@@ -472,19 +454,16 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_1": 1,
-            "count_range_2": 3,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 2000,
-            "percentile_range_2": 9840,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_percentile_range_2_percentile_range_1": 7840.0,
-            "percentage_percentile_range_2_percentile_range_1": 4.92,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "percentile_range_1": 2000,
+                "percentile_range_2": 9840,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_percentile_range_2_percentile_range_1": 7840.0,
+                "percentage_percentile_range_2_percentile_range_1": 4.92,
+            }
+        )
+        self.assert_event(events["data"][0])
 
         stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
         assert [attrs for time, attrs in stats["data"]] == [
@@ -512,19 +491,16 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_1": 1,
-            "count_range_2": 3,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "avg_range_1": 2000,
-            "avg_range_2": 4000,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_avg_range_2_avg_range_1": 2000.0,
-            "percentage_avg_range_2_avg_range_1": 2.0,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "avg_range_1": 2000,
+                "avg_range_2": 4000,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_avg_range_2_avg_range_1": 2000.0,
+                "percentage_avg_range_2_avg_range_1": 2.0,
+            }
+        )
+        self.assert_event(events["data"][0])
 
         stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
         assert [attrs for time, attrs in stats["data"]] == [
@@ -552,19 +528,16 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_2": 3,
-            "count_range_1": 1,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "user_misery_range_1": 1,
-            "user_misery_range_2": 2,
-            "percentage_count_range_2_count_range_1": 3.0,
-            "minus_user_misery_range_2_user_misery_range_1": 1.0,
-            "percentage_user_misery_range_2_user_misery_range_1": 2.0,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "user_misery_range_1": 1,
+                "user_misery_range_2": 2,
+                "percentage_count_range_2_count_range_1": 3.0,
+                "minus_user_misery_range_2_user_misery_range_1": 1.0,
+                "percentage_user_misery_range_2_user_misery_range_1": 2.0,
+            }
+        )
+        self.assert_event(events["data"][0])
 
         stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
         assert [attrs for time, attrs in stats["data"]] == [
@@ -608,19 +581,18 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        expected_data = {
-            "count_range_2": 4,
-            "count_range_1": 0,
-            "transaction": self.prototype["transaction"],
-            "project": self.project.slug,
-            "percentile_range_1": 0,
-            "percentile_range_2": 2000.0,
-            "percentage_count_range_2_count_range_1": None,
-            "minus_percentile_range_2_percentile_range_1": 0,
-            "percentage_percentile_range_2_percentile_range_1": None,
-        }
-        for key, value in expected_data.items():
-            assert events["data"][0][key] == value
+        self.expected_data.update(
+            {
+                "count_range_2": 4,
+                "count_range_1": 0,
+                "percentile_range_1": 0,
+                "percentile_range_2": 2000.0,
+                "percentage_count_range_2_count_range_1": None,
+                "minus_percentile_range_2_percentile_range_1": 0,
+                "percentage_percentile_range_2_percentile_range_1": None,
+            }
+        )
+        self.assert_event(events["data"][0])
 
         stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
         assert [attrs for time, attrs in stats["data"]] == [
