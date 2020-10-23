@@ -1,18 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {components} from 'react-select';
 import {Observer} from 'mobx-react';
 
-import {Client} from 'app/api';
 import {t} from 'app/locale';
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import {IconDelete, IconEdit} from 'app/icons';
-import QuestionTooltip from 'app/components/questionTooltip';
-import space from 'app/styles/space';
-import Tooltip from 'app/components/tooltip';
-import IdBadge from 'app/components/idBadge';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {Project, Organization, Integration, Repository} from 'app/types';
@@ -27,8 +17,6 @@ type Props = {
 };
 
 export default class RepositoryProjectPathConfigForm extends React.Component<Props> {
-  api = new Client();
-
   get initialData() {
     return {
       defaultBranch: 'master',
@@ -100,14 +88,17 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
 
   render() {
     const {organization, integration, onSubmitSuccess} = this.props;
+
+    //TODO: make endpoint and method dynamic
     const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/`;
+    const apiMethod = 'POST';
 
     return (
       <StyledForm
         onSubmitSuccess={onSubmitSuccess}
         initialData={this.initialData}
         apiEndpoint={endpoint}
-        apiMethod="POST"
+        apiMethod={apiMethod}
       >
         <Observer>{() => <JsonForm forms={[this.formFields]} />}</Observer>
       </StyledForm>

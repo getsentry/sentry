@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import Modal from 'react-bootstrap/lib/Modal';
+import sortBy from 'lodash/sortBy';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
@@ -10,7 +11,6 @@ import RepositoryProjectPathConfigRow, {
   NameRepoColumn,
   OutputPathColumn,
   InputPathColumn,
-  DefaultBranchColumn,
   ButtonColumn,
 } from 'app/components/repositoryProjectPathConfigRow';
 import RepositoryProjectPathConfigForm from 'app/components/repositoryProjectPathConfigForm';
@@ -54,6 +54,13 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return this.props.organization.projects;
   }
 
+  get pathConfigs() {
+    return sortBy(this.state.pathConfigs, [
+      ({projectSlug}) => projectSlug,
+      ({id}) => parseInt(id, 10),
+    ]);
+  }
+
   get repos() {
     //endpoint doesn't support loading only the repos for this integration
     //but most people only have one source code repo so this should be fine
@@ -91,9 +98,17 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     });
   };
 
+  handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
+    let {pathConfigs} = this.state;
+    pathConfigs = pathConfigs.concat([pathConfig]);
+    this.setState({pathConfigs});
+    this.closeModal();
+  };
+
   renderBody() {
     const {organization, integration} = this.props;
-    const {pathConfigs, showModal} = this.state;
+    const {showModal} = this.state;
+    const pathConfigs = this.pathConfigs;
     return (
       <React.Fragment>
         <Panel>
@@ -102,7 +117,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               <NameRepoColumn>{t('Code Path Mappings')}</NameRepoColumn>
               <OutputPathColumn>{t('Output Path')}</OutputPathColumn>
               <InputPathColumn>{t('Input Path')}</InputPathColumn>
-              <DefaultBranchColumn>{t('Branch')}</DefaultBranchColumn>
               <ButtonColumn>
                 <AddButton
                   onClick={this.openModal}
@@ -148,6 +162,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
           onHide={this.closeModal}
           enforceFocus={false}
           backdrop="static"
+          animation={false}
         >
           <Modal.Header closeButton />
           <Modal.Body>
@@ -156,7 +171,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               integration={integration}
               projects={this.projects}
               repos={this.repos}
-              onSubmitSuccess={this.closeModal}
+              onSubmitSuccess={this.handleSubmitSuccess}
             />
           </Modal.Body>
         </Modal>
@@ -174,8 +189,8 @@ const Layout = styled('div')`
   grid-column-gap: ${space(1)};
   width: 100%;
   align-items: center;
-  grid-template-columns: 4fr 2fr 2fr 1.2fr 1.5fr;
-  grid-template-areas: 'name-repo output-path input-path default-branch button';
+  grid-template-columns: 4.5fr 2.5fr 2.5fr 1.6fr;
+  grid-template-areas: 'name-repo output-path input-path button';
 `;
 
 const HeaderLayout = styled(Layout)`

@@ -43,12 +43,6 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def validate_repository_id(self, repository_id):
         # validate repo exists on this org and integration
-        print(
-            "validate_repository_id",
-            repository_id,
-            self.organization_id,
-            self.org_integration.integration_id,
-        )
         repo_query = Repository.objects.filter(
             id=repository_id,
             organization_id=self.organization_id,
@@ -82,6 +76,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
         """
         org_integration = self.get_organization_integration(organization, integration_id)
 
+        # front end handles ordering
         repository_project_path_configs = RepositoryProjectPathConfig.objects.filter(
             organization_integration=org_integration
         )

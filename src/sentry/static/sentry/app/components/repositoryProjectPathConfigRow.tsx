@@ -8,7 +8,6 @@ import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {IconDelete, IconEdit} from 'app/icons';
-import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import IdBadge from 'app/components/idBadge';
@@ -36,25 +35,20 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
           <React.Fragment>
             <NameRepoColumn>
               <ProjectRepoHolder>
-                <RepoName>
-                  {pathConfig.repoName}
-                  <StyledQuestionTooltip
-                    size="xs"
-                    position="top"
-                    title={t('TO BE FILLED IN LATER')}
+                <RepoName>{pathConfig.repoName}</RepoName>
+                <ProjectAndBranch>
+                  <StyledIdBadge
+                    project={project}
+                    avatarSize={14}
+                    displayName={project.slug}
+                    avatarProps={{consistentWidth: true}}
                   />
-                </RepoName>
-                <StyledIdBadge
-                  project={project}
-                  avatarSize={14}
-                  displayName={project.slug}
-                  avatarProps={{consistentWidth: true}}
-                />
+                  <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
+                </ProjectAndBranch>
               </ProjectRepoHolder>
             </NameRepoColumn>
             <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
             <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
-            <DefaultBranchColumn>{pathConfig.defaultBranch}</DefaultBranchColumn>
             <ButtonColumn>
               <Tooltip
                 title={t(
@@ -89,13 +83,7 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
   }
 }
 
-const StyledIdBadge = styled(IdBadge)`
-  color: ${p => p.theme.gray500};
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  padding: ${space(0.5)};
-`;
+const StyledIdBadge = styled(IdBadge)``;
 
 const ProjectRepoHolder = styled('div')`
   display: flex;
@@ -108,6 +96,17 @@ const RepoName = styled(`span`)`
 
 const StyledButton = styled(Button)`
   margin: ${space(0.5)};
+`;
+
+const ProjectAndBranch = styled('div')`
+  display: flex;
+  flex-direction: row;
+  color: ${p => p.theme.gray500};
+`;
+
+//match the line eight of the badge
+const BranchWrapper = styled('div')`
+  line-height: 1.2;
 `;
 
 //Columns below
@@ -126,10 +125,6 @@ export const OutputPathColumn = styled(Column)`
 
 export const InputPathColumn = styled(Column)`
   grid-area: input-path;
-`;
-
-export const DefaultBranchColumn = styled(Column)`
-  grid-area: default-branch;
 `;
 
 export const ButtonColumn = styled(Column)`
