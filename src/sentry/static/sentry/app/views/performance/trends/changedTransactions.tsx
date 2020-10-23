@@ -48,6 +48,7 @@ import {
   normalizeTrends,
   getSelectedQueryKey,
   getCurrentTrendFunction,
+  getCurrentConfidenceLevel,
   getTrendBaselinesForTransaction,
   getIntervalRatio,
   StyledIconArrow,
@@ -162,12 +163,26 @@ function handleFilterTransaction(location: Location, transaction: string) {
 
   const query = stringifyQueryObject(conditions);
 
+  trackAnalyticsEvent({
+    eventKey: 'performance_views.trends.hide_transaction',
+    eventName: 'Performance Views: Hide Transaction',
+    confidence_level: getCurrentConfidenceLevel(location).label,
+  });
+
   browserHistory.push({
     pathname: location.pathname,
     query: {
       ...location.query,
       query: String(query).trim(),
     },
+  });
+}
+
+function handleSummaryClick(confidenceLevel: string) {
+  trackAnalyticsEvent({
+    eventKey: 'performance_views.trends.summary',
+    eventName: 'Performance Views: Summary Navigation',
+    confidence_level: confidenceLevel,
   });
 }
 
@@ -566,7 +581,8 @@ const CompareDurations = (props: CompareLinkProps) => {
 type TransactionSummaryLinkProps = TrendsListItemProps & {};
 
 const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
-  const {organization, trendView: eventView, transaction, projects} = props;
+  const {organization, trendView: eventView, transaction, projects, location} = props;
+  const confidenceLevel = getCurrentConfidenceLevel(location).label;
 
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
@@ -577,7 +593,11 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     projectID,
   });
 
-  return <ItemTransactionName to={target}>{transaction.transaction}</ItemTransactionName>;
+  return (
+    <ItemTransactionName to={target} onClick={() => handleSummaryClick(confidenceLevel)}>
+      {transaction.transaction}
+    </ItemTransactionName>
+  );
 };
 
 const TransactionsListContainer = styled('div')`

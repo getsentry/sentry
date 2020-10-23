@@ -24,6 +24,12 @@ export type TrendFunction = {
   legendLabel: string;
 };
 
+export type ConfidenceLevel = {
+  label: string;
+  min: number;
+  max?: number;
+};
+
 export enum TrendChangeType {
   IMPROVED = 'improved',
   REGRESSION = 'regression',
