@@ -16,6 +16,7 @@ import {Group, GroupIntegration, IntegrationExternalIssue} from 'app/types';
 
 type Props = AsyncComponent['props'] & {
   integration: GroupIntegration;
+  configurations: GroupIntegration[];
   group: Group;
 };
 
@@ -93,11 +94,11 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {action, selectedIntegration, issue} = this.state;
-
+    console.log({issue});
     return (
       <React.Fragment>
         <IssueSyncListElement
-          onOpen={this.openModal}
+          // onOpen={this.openModal}
           externalIssueLink={issue ? issue.url : null}
           externalIssueId={issue ? issue.id : null}
           externalIssueKey={issue ? issue.key : null}
@@ -114,7 +115,13 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
                 )}
               </div>
             ) : (
-              <IntegrationItem integration={selectedIntegration} />
+              <React.Fragment>
+                {this.props.configurations.map(config => (
+                  <Wrapper onClick={this.openModal}>
+                    <IntegrationItem integration={config} />
+                  </Wrapper>
+                ))}
+              </React.Fragment>
             )
           }
         />
@@ -166,6 +173,11 @@ const IssueTitle = styled('div')`
 const IssueDescription = styled('div')`
   margin-top: ${space(1)};
   ${overflowEllipsis};
+`;
+
+const Wrapper = styled('div')`
+  margin-bottom: ${space(2)};
+  cursor: pointer;
 `;
 
 export default ExternalIssueActions;

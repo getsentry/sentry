@@ -123,11 +123,25 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       integration => integration.status === 'active'
     );
 
+    const activeIntegrationsByProvider: {
+      [key: string]: GroupIntegration[];
+    } = activeIntegrations.reduce((acc, curr) => {
+      if (acc[curr.provider.key]) {
+        acc[curr.provider.key].push(curr);
+      } else {
+        acc[curr.provider.key] = [curr];
+      }
+      return acc;
+    }, {});
+
+    console.log({activeIntegrations, activeIntegrationsByProvider});
+
     return activeIntegrations.length
-      ? activeIntegrations.map(integration => (
+      ? Object.entries(activeIntegrationsByProvider).map(([provider, configurations]) => (
           <ExternalIssueActions
-            key={integration.id}
-            integration={integration}
+            key={provider}
+            configurations={configurations}
+            integration={configurations[0]}
             group={group}
           />
         ))
@@ -195,7 +209,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     const integrationIssues = this.renderIntegrationIssues(this.state.integrations);
     const pluginIssues = this.renderPluginIssues();
     const pluginActions = this.renderPluginActions();
-
+    console.log({integrationIssues});
     if (!sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions) {
       return (
         <React.Fragment>
