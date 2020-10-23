@@ -428,6 +428,7 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
 const StyledMenuItem = styled(({to, children, ...p}) => (
   <MenuItem noAnchor>
     {to ? (
+      // @ts-expect-error allow target _blank for this link to open in new window
       <Link to={to} target="_blank">
         <div {...p}>{children}</div>
       </Link>
