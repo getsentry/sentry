@@ -6,7 +6,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {GlobalSelection, Group, NewQuery, Organization} from 'app/types';
+import {GlobalSelection, Group, NewQuery, Organization, User} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {valueIsEqual} from 'app/utils';
 import AssigneeSelector from 'app/components/assigneeSelector';
@@ -60,7 +60,7 @@ type Props = {
   organization: Organization;
   query?: string;
   hasGuideAnchor?: boolean;
-  memberList?: any[];
+  memberList?: User[];
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
