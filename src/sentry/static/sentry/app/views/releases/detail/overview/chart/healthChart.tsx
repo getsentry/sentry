@@ -10,6 +10,7 @@ import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {defined} from 'app/utils';
 import {getExactDuration} from 'app/utils/formatters';
+import {axisDuration} from 'app/utils/discover/charts';
 import {decodeList} from 'app/utils/queryString';
 
 import {YAxis} from './releaseChartControls';
@@ -111,6 +112,10 @@ class HealthChart extends React.Component<Props> {
       case YAxis.SESSION_DURATION:
         return {
           scale: true,
+          axisLabel: {
+            formatter: value => axisDuration(value * 1000),
+            color: theme.gray400,
+          },
         };
       case YAxis.SESSIONS:
       case YAxis.USERS:
