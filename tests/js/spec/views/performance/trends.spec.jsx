@@ -7,6 +7,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import PerformanceLanding from 'app/views/performance/landing';
 import ProjectsStore from 'app/stores/projectsStore';
 import {
+  DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
   getTrendAliasedFieldPercentage,
   getTrendAliasedMinus,
@@ -16,7 +17,7 @@ import {getUtcDateString} from 'app/utils/dates';
 
 const trendsViewQuery = {
   view: 'TRENDS',
-  query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
+  query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
 jest.mock('moment', () => {
@@ -284,8 +285,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query:
-          'epm():>0.01 transaction.duration:>0 transaction.duration:<60min !transaction:/organizations/:orgId/performance/',
+        query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION} !transaction:/organizations/:orgId/performance/`,
         view: 'TRENDS',
       }),
     });
@@ -387,7 +387,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'epm():>0.01 transaction.duration:<60min transaction.duration:>=863',
+        query: `epm():>0.01 transaction.duration:<${DEFAULT_MAX_DURATION} transaction.duration:>=863`,
         view: 'TRENDS',
       }),
     });

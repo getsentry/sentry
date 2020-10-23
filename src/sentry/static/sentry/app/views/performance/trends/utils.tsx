@@ -30,6 +30,7 @@ import {
 import {BaselineQueryResults} from '../transactionSummary/baselineQuery';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
+export const DEFAULT_MAX_DURATION = '15min';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
