@@ -604,7 +604,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             submitLabel={t('Save Rule')}
           >
             <Feature features={['metric-alert-gui-filters']} organization={organization}>
-              {hasFeature =>
+              {({hasFeature}) =>
                 hasFeature ? (
                   <RuleConditionsFormWithGuiFilters
                     api={this.api}
