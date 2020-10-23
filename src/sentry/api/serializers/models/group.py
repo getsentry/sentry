@@ -918,8 +918,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
         inbox_stats = {
             gi.group.id: {
-                "comments": None,
-                "tracker": None,
                 "reason": gi.reason,
                 "reason_details": gi.reason_details,
                 "date_added": gi.date_added,
