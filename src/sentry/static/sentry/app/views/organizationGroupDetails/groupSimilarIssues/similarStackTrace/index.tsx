@@ -166,9 +166,9 @@ class SimilarStackTrace extends React.Component<Props, State> {
     return this.props.project.features.includes('similarity-view');
   }
 
-  toggleSimilarityVersion() {
+  toggleSimilarityVersion = () => {
     this.setState(prevState => ({v2: !prevState.v2}), this.fetchData);
-  }
+  };
 
   render() {
     const {params, project} = this.props;
