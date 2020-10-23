@@ -30,6 +30,7 @@ import {
 import {BaselineQueryResults} from '../transactionSummary/baselineQuery';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
+export const DEFAULT_MAX_DURATION = '15min';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
@@ -70,8 +71,14 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
 ];
 
 export const trendToColor = {
-  [TrendChangeType.IMPROVED]: theme.green400,
-  [TrendChangeType.REGRESSION]: theme.red400,
+  [TrendChangeType.IMPROVED]: {
+    lighter: theme.green300,
+    default: theme.green400,
+  },
+  [TrendChangeType.REGRESSION]: {
+    lighter: theme.red300,
+    default: theme.red400,
+  },
 };
 
 export const trendSelectedQueryKeys = {
@@ -164,7 +171,7 @@ export function modifyTrendView(
   if (trendFunction) {
     trendView.trendFunction = trendFunction.field;
   }
-  const limitTrendResult = getLimitTransactionItems(trendFunction, trendsType);
+  const limitTrendResult = getLimitTransactionItems(trendsType);
   trendView.query += ' ' + limitTrendResult;
 
   trendView.interval = getQueryInterval(location, trendView);
@@ -301,13 +308,18 @@ export function transformValueDelta(
  * To minimize extra renders with missing results.
  */
 export function normalizeTrends(
-  data: Array<TrendsTransaction>
+  data: Array<TrendsTransaction>,
+  trendFunction: TrendFunction
 ): Array<NormalizedTrendsTransaction>;
 
-export function normalizeTrends(data: Array<ProjectTrend>): Array<NormalizedProjectTrend>;
+export function normalizeTrends(
+  data: Array<ProjectTrend>,
+  trendFunction: TrendFunction
+): Array<NormalizedProjectTrend>;
 
 export function normalizeTrends(
-  data: Array<TrendsTransaction | ProjectTrend>
+  data: Array<TrendsTransaction | ProjectTrend>,
+  trendFunction: TrendFunction
 ): Array<NormalizedTrendsTransaction | NormalizedProjectTrend> {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
@@ -319,16 +331,13 @@ export function normalizeTrends(
     } = row;
 
     const aliasedFields = {} as NormalizedTrendsTransaction;
-    TRENDS_FUNCTIONS.forEach(({alias}) => {
-      if (typeof row[`${alias}_1`] !== 'undefined') {
-        aliasedFields.aggregate_range_1 = row[`${alias}_1`];
-        aliasedFields.aggregate_range_2 = row[`${alias}_2`];
-        aliasedFields.percentage_aggregate_range_2_aggregate_range_1 =
-          row[getTrendAliasedFieldPercentage(alias)];
-        aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
-          row[getTrendAliasedMinus(alias)];
-      }
-    });
+    const alias = trendFunction.alias;
+    aliasedFields.aggregate_range_1 = row[`${alias}_1`];
+    aliasedFields.aggregate_range_2 = row[`${alias}_2`];
+    aliasedFields.percentage_aggregate_range_2_aggregate_range_1 =
+      row[getTrendAliasedFieldPercentage(alias)];
+    aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
+      row[getTrendAliasedMinus(alias)];
 
     const normalized = {
       ...aliasedFields,
@@ -357,10 +366,6 @@ export function getTrendAliasedFieldPercentage(alias: string) {
   return `percentage_${alias}_2_${alias}_1`;
 }
 
-export function getTrendAliasedQueryPercentage(alias: string) {
-  return `percentage(${alias}_2,${alias}_1)`;
-}
-
 export function getTrendAliasedMinus(alias: string) {
   return `minus_${alias}_2_${alias}_1`;
 }
@@ -381,14 +386,10 @@ export function movingAverage(data, index, size) {
 /**
  * This function applies a query to limit the results based on the trend type to being greater or less than 100% (depending on the type)
  */
-function getLimitTransactionItems(
-  trendFunction: TrendFunction,
-  trendChangeType: TrendChangeType
-) {
-  const aliasedPercentage = getTrendAliasedQueryPercentage(trendFunction.alias);
-  let limitQuery = aliasedPercentage + ':<1';
+function getLimitTransactionItems(trendChangeType: TrendChangeType) {
+  let limitQuery = 'trend_percentage():<1 t_score():>1';
   if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery = aliasedPercentage + ':>1';
+    limitQuery = 'trend_percentage():>1 t_score():<-1';
   }
   limitQuery +=
     ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';

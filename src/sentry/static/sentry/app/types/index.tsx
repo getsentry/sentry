@@ -736,7 +736,7 @@ export type ProcessingIssue = {
   numIssues: number;
   signedLink: string;
   lastSeen: string;
-  hasMoreResolvableIssues: boolean;
+  hasMoreResolveableIssues: boolean;
   hasIssues: boolean;
   issuesProcessing: number;
   resolveableIssues: number;

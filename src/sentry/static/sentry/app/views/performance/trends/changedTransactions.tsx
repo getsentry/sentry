@@ -177,9 +177,10 @@ function handleFilterDuration(location: Location, value: number, symbol: FilterS
   const conditions = tokenizeSearch(queryString || '');
 
   const existingValues = conditions.getTagValues(durationTag);
+  const alternateSymbol = symbol === FilterSymbols.GREATER_THAN_EQUALS ? '>' : '<';
 
   existingValues.forEach(existingValue => {
-    if (existingValue.startsWith(symbol)) {
+    if (existingValue.startsWith(symbol) || existingValue.startsWith(alternateSymbol)) {
       conditions.removeTagValue(durationTag, existingValue);
     }
   });
@@ -229,8 +230,10 @@ function ChangedTransactions(props: Props) {
         if (!trendsData) {
           return null;
         }
+        const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
-          (trendsData && trendsData.events && trendsData.events.data) || []
+          (trendsData && trendsData.events && trendsData.events.data) || [],
+          trendFunction
         );
         const selectedTransaction = getSelectedTransaction(
           location,
@@ -241,7 +244,6 @@ function ChangedTransactions(props: Props) {
         const statsData = trendsData?.stats;
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
-        const trendFunction = getCurrentTrendFunction(location);
         const currentTrendFunction =
           isLoading && previousTrendFunction
             ? previousTrendFunction
@@ -346,7 +348,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     projects,
     handleSelectTransaction,
   } = props;
-  const color = trendToColor[trendChangeType];
+  const color = trendToColor[trendChangeType].default;
 
   const selectedTransaction = getSelectedTransaction(
     location,
