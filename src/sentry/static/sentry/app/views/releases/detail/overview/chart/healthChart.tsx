@@ -33,21 +33,6 @@ class HealthChart extends React.Component<Props> {
     }
   }
 
-  shouldUnselectHealthySeries(): boolean {
-    const {timeseriesData, location, shouldRecalculateVisibleSeries} = this.props;
-
-    const otherAreasThanHealthyArePositive = timeseriesData
-      .filter(s => s.seriesName !== 'Healthy')
-      .some(s => s.data.some(d => d.value > 0));
-    const alreadySomethingUnselected = !!decodeList(location.query.unselectedSeries);
-
-    return (
-      shouldRecalculateVisibleSeries &&
-      otherAreasThanHealthyArePositive &&
-      !alreadySomethingUnselected
-    );
-  }
-
   shouldComponentUpdate(nextProps: Props) {
     if (nextProps.reloading || !nextProps.timeseriesData) {
       return false;
@@ -65,6 +50,21 @@ class HealthChart extends React.Component<Props> {
     }
 
     return true;
+  }
+
+  shouldUnselectHealthySeries(): boolean {
+    const {timeseriesData, location, shouldRecalculateVisibleSeries} = this.props;
+
+    const otherAreasThanHealthyArePositive = timeseriesData
+      .filter(s => s.seriesName !== 'Healthy')
+      .some(s => s.data.some(d => d.value > 0));
+    const alreadySomethingUnselected = !!decodeList(location.query.unselectedSeries);
+
+    return (
+      shouldRecalculateVisibleSeries &&
+      otherAreasThanHealthyArePositive &&
+      !alreadySomethingUnselected
+    );
   }
 
   handleLegendSelectChanged = legendChange => {
