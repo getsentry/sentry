@@ -11,7 +11,7 @@ import space from 'app/styles/space';
 import {Organization, Project, Group} from 'app/types';
 
 import Item from './item';
-import SimilarToolbar from './toolbar';
+import Toolbar from './toolbar';
 
 type SimilarItem = {
   issue: Group;
@@ -85,7 +85,7 @@ class List extends React.Component<Props, State> {
         <Header>
           <SimilarSpectrum />
         </Header>
-        <SimilarToolbar onMerge={onMerge} />
+        <Toolbar onMerge={onMerge} />
         <div className="similar-list">
           {itemsWithFiltered.map(item => (
             <Item
