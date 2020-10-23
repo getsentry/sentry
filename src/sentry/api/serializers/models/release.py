@@ -416,22 +416,30 @@ class ReleaseSerializer(Serializer):
 
         d = {
             "version": obj.version,
-            "shortVersion": obj.version,
-            "versionInfo": expose_version_info(obj.version_info),
-            "ref": obj.ref,
-            "url": obj.url,
-            "dateReleased": obj.date_released,
             "dateCreated": obj.date_added,
-            "data": obj.data,
-            "newGroups": attrs["new_groups"],
-            "owner": attrs["owner"],
-            "commitCount": obj.commit_count,
-            "lastCommit": attrs.get("last_commit"),
-            "deployCount": obj.total_deploys,
-            "lastDeploy": attrs.get("last_deploy"),
-            "authors": attrs.get("authors", []),
-            "projects": [expose_project(p) for p in attrs.get("projects", [])],
-            "firstEvent": attrs.get("first_seen"),
-            "lastEvent": attrs.get("last_seen"),
         }
+
+        if kwargs.get("chart_only"):
+            return d
+
+        d.update(
+            {
+                "shortVersion": obj.version,
+                "dateReleased": obj.date_released,
+                "versionInfo": expose_version_info(obj.version_info),
+                "ref": obj.ref,
+                "url": obj.url,
+                "data": obj.data,
+                "newGroups": attrs["new_groups"],
+                "owner": attrs["owner"],
+                "commitCount": obj.commit_count,
+                "lastCommit": attrs.get("last_commit"),
+                "deployCount": obj.total_deploys,
+                "lastDeploy": attrs.get("last_deploy"),
+                "authors": attrs.get("authors", []),
+                "projects": [expose_project(p) for p in attrs.get("projects", [])],
+                "firstEvent": attrs.get("first_seen"),
+                "lastEvent": attrs.get("last_seen"),
+            }
+        )
         return d

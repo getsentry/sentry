@@ -11,13 +11,14 @@ import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {escape} from 'app/utils';
 import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
-function getOrganizationReleases(api, organization, conditions = null) {
-  const query = {};
+async function getOrganizationReleases(api, organization, conditions = null) {
+  const query = {chartOnly: 1};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
     if (value && (key === 'start' || key === 'end')) {
@@ -28,10 +29,29 @@ function getOrganizationReleases(api, organization, conditions = null) {
     }
   });
   api.clear();
-  return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
-    method: 'GET',
-    query,
-  });
+  let hasMore = true;
+  const results = [];
+  while (hasMore) {
+    const [newResults, , xhr] = await api.requestPromise(
+      `/organizations/${organization.slug}/releases/`,
+      {
+        includeAllArgs: true,
+        method: 'GET',
+        query,
+      }
+    );
+    results.push(...newResults);
+
+    const pageLinks = xhr && xhr.getResponseHeader('Link');
+    if (pageLinks) {
+      const paginationObject = parseLinkHeader(pageLinks);
+      hasMore = paginationObject && paginationObject.next.results;
+      query.cursor = paginationObject.next.cursor;
+    } else {
+      hasMore = false;
+    }
+  }
+  return results;
 }
 
 class ReleaseSeries extends React.Component {

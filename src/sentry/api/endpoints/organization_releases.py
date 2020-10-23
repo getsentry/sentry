@@ -126,6 +126,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
+        chart_only = request.GET.get("chartOnly") == "1"
         health_stat = request.GET.get("healthStat") or "sessions"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
@@ -233,6 +234,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
                 environments=filter_params.get("environment") or None,
+                chart_only=chart_only,
             ),
             **paginator_kwargs
         )

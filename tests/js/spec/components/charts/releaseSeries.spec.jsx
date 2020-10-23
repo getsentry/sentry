@@ -57,7 +57,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {project: [1, 2]},
+        query: {project: [1, 2], chartOnly: 1},
       })
     );
   });
@@ -74,7 +74,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {environment: ['dev', 'test']},
+        query: {environment: ['dev', 'test'], chartOnly: 1},
       })
     );
   });
@@ -93,7 +93,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {start: '2020-01-01T00:00:00', end: '2020-01-31T00:00:00'},
+        query: {start: '2020-01-01T00:00:00', end: '2020-01-31T00:00:00', chartOnly: 1},
       })
     );
   });
@@ -114,7 +114,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {start: '2020-01-01T12:13:14', end: '2020-01-31T14:15:16'},
+        query: {start: '2020-01-01T12:13:14', end: '2020-01-31T14:15:16', chartOnly: 1},
       })
     );
   });
@@ -131,7 +131,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {statsPeriod: '14d'},
+        query: {statsPeriod: '14d', chartOnly: 1},
       })
     );
   });
