@@ -70,7 +70,7 @@ describe('Issues Similar View', function () {
     await tick();
     wrapper.update();
     expect(mock).toHaveBeenCalled();
-    expect(wrapper.find('GroupGroupingView')).toSnapshot();
+    expect(wrapper.find('SimilarStackTrace')).toSnapshot();
   });
 
   it('can merge and redirect to new parent', async function () {
