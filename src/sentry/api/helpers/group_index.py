@@ -988,11 +988,11 @@ def update_groups(request, projects, organization_id, search_fn):
 
     # Support moving groups in or out of the inbox
     inbox = result.get("inbox", None)
-    if inbox in (True, False):
-        if inbox is True:
+    if inbox is not None:
+        if inbox:
             for group in group_list:
                 add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        elif inbox is False:
+        elif not inbox:
             GroupInbox.objects.filter(group__in=group_ids).delete()
         result["inbox"] = inbox
 
