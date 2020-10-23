@@ -128,8 +128,8 @@ const Version = ({
   );
 
   const getPopperStyles = () => {
-    // if the version name is not a hash and we are not on mobile, allow tooltip to be as wide as 500px
-    if (/^[a-f0-9]{40}$/.test(version)) {
+    // if the version name is not a hash (sha1 or sha265) and we are not on mobile, allow tooltip to be as wide as 500px
+    if (/(^[a-f0-9]{40}$)|(^[a-f0-9]{64}$)/.test(version)) {
       return undefined;
     }
 
