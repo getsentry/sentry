@@ -731,6 +731,15 @@ export type Group = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
 };
 
+export type GroupTombstone = {
+  id: string;
+  title: string;
+  culprit: string;
+  level: Level;
+  actor: AvatarUser;
+  metadata: EventMetadata;
+};
+
 export type ProcessingIssue = {
   project: string;
   numIssues: number;
