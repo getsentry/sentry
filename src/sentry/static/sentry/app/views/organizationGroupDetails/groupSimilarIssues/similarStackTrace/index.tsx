@@ -19,6 +19,9 @@ import {callIfFunction} from 'app/utils/callIfFunction';
 
 import List from './list';
 
+type ListProps = React.ComponentProps<typeof List>;
+
+type SimilarItems = ListProps['items'];
 type RouteParams = {
   orgId: string;
   groupId: string;
@@ -30,8 +33,8 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = {
-  similarItems: Array<any>;
-  filteredSimilarItems: Array<any>;
+  similarItems: SimilarItems;
+  filteredSimilarItems: SimilarItems;
   similarLinks: string | null;
   loading: boolean;
   error: boolean;
