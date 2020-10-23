@@ -8,10 +8,10 @@ import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRan
 type Props = {
   handleSelectRelative: (value: string, e: React.MouseEvent) => void;
   handleAbsoluteClick: (value: string, e: React.MouseEvent) => void;
-  shouldShowRelative?: boolean;
-  shouldShowAbsolute?: boolean;
   isAbsoluteSelected: boolean;
   relativeSelected: string;
+  shouldShowRelative?: boolean;
+  shouldShowAbsolute?: boolean;
 };
 
 const SelectorItems = ({
