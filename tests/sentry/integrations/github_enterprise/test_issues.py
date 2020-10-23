@@ -34,7 +34,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         self.integration = GitHubEnterpriseIntegration(self.model, self.organization.id)
 
     @responses.activate
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value=b"jwt_token_1")
     def test_get_allowed_assignees(self, mock_get_jwt):
         responses.add(
             responses.POST,
@@ -55,13 +55,13 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         )
 
         request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        assert request.headers["Authorization"] == b"Bearer jwt_token_1"
 
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "token token_1"
 
     @responses.activate
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value=b"jwt_token_1")
     def test_create_issue(self, mock_get_jwt):
         responses.add(
             responses.POST,
@@ -94,7 +94,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
             "repo": "getsentry/sentry",
         }
         request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        assert request.headers["Authorization"] == b"Bearer jwt_token_1"
 
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "token token_1"
@@ -102,7 +102,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         assert payload == {"body": "This is the description", "assignee": None, "title": "hello"}
 
     @responses.activate
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value=b"jwt_token_1")
     def test_get_repo_issues(self, mock_get_jwt):
         responses.add(
             responses.POST,
@@ -119,13 +119,13 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         assert self.integration.get_repo_issues(repo) == ((321, "#321 hello"),)
 
         request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        assert request.headers["Authorization"] == b"Bearer jwt_token_1"
 
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "token token_1"
 
     @responses.activate
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value=b"jwt_token_1")
     def test_link_issue(self, mock_get_jwt):
         issue_id = 321
         responses.add(
@@ -155,13 +155,13 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
             "repo": "getsentry/sentry",
         }
         request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        assert request.headers["Authorization"] == b"Bearer jwt_token_1"
 
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "token token_1"
 
     @responses.activate
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value=b"jwt_token_1")
     def after_link_issue(self, mock_get_jwt):
         responses.add(
             responses.POST,
@@ -183,7 +183,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         self.integration.after_link_issue(external_issue, data=data)
 
         request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        assert request.headers["Authorization"] == b"Bearer jwt_token_1"
 
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "token token_1"

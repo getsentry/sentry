@@ -276,7 +276,7 @@ describe('Performance > Landing', function () {
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
     const data = initializeTrendsData({
-      query: 'epm():>0.005 transaction.duration:>10 transaction.duration:<60min',
+      query: 'epm():>0.005 transaction.duration:>10 transaction.duration:<=60min',
       statsPeriod: '24h',
     });
 
@@ -298,7 +298,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'epm():>0.005 transaction.duration:>10 transaction.duration:<60min',
+          query: 'epm():>0.005 transaction.duration:>10 transaction.duration:<=60min',
           statsPeriod: '24h',
           view: 'TRENDS',
         },
