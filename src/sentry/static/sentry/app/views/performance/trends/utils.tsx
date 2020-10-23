@@ -70,8 +70,14 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
 ];
 
 export const trendToColor = {
-  [TrendChangeType.IMPROVED]: theme.green400,
-  [TrendChangeType.REGRESSION]: theme.red400,
+  [TrendChangeType.IMPROVED]: {
+    lighter: theme.green300,
+    default: theme.green400,
+  },
+  [TrendChangeType.REGRESSION]: {
+    lighter: theme.red300,
+    default: theme.red400,
+  },
 };
 
 export const trendSelectedQueryKeys = {

@@ -226,7 +226,7 @@ function getVisualization(
   trendChangeType: TrendChangeType,
   projectTrend: NormalizedProjectTrend
 ) {
-  const color = trendToColor[trendChangeType];
+  const color = trendToColor[trendChangeType].default;
 
   const trendPercent = formatPercentage(
     projectTrend.percentage_aggregate_range_2_aggregate_range_1 - 1,
