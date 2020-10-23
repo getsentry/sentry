@@ -229,6 +229,8 @@ class FormModel {
         : null;
     const value = this.getValue(id);
 
+    console.log('getTransformedValue', id, value, transformer);
+
     return transformer ? transformer(value) : value;
   }
 
@@ -297,6 +299,7 @@ class FormModel {
    */
   @action
   setValue(id: string, value: FieldValue, {quiet}: {quiet?: boolean} = {}) {
+    console.log('set value', id, value);
     const fieldDescriptor = this.fieldDescriptor.get(id);
     let finalValue = value;
 
@@ -399,6 +402,8 @@ class FormModel {
     }
 
     let saveSnapshot: SaveSnapshot = this.createSnapshot();
+
+    console.log('this.getTransformedData()', this.getTransformedData());
 
     const request = this.doApiRequest({
       data: this.getTransformedData(),

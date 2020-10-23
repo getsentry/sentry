@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {components} from 'react-select';
+import {Observer} from 'mobx-react';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
@@ -29,7 +30,10 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
 
   get initialData() {
     return {
-      branch: 'master',
+      defaultBranch: 'master',
+      stackRoot: 'k',
+      sourceRoot: 'k',
+      repositoryId: '25',
     };
   }
 
@@ -40,7 +44,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
       title: t('Create Code Path'),
       fields: [
         {
-          name: 'project',
+          name: 'projectId',
           type: 'sentry_project_selector',
           required: true,
           label: t('Project'),
@@ -48,7 +52,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
           projects,
         },
         {
-          name: 'repo',
+          name: 'repositoryId',
           type: 'select',
           required: true,
           label: t('Repo'),
@@ -57,7 +61,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
           options: repoChoices,
         },
         {
-          name: 'branch',
+          name: 'defaultBranch',
           type: 'string',
           required: true,
           label: t('Branch'),
@@ -71,6 +75,10 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
           label: t('Input Path'),
           placeholder: t('Type root path of your stack traces'),
           inline: false,
+          showHelpInTooltip: true,
+          help: t(
+            'Any stack trace starting with this path will be mapped with this rule. An empty string will match all paths.'
+          ),
         },
         {
           name: 'sourceRoot',
@@ -79,6 +87,10 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
           label: t('Output Path'),
           placeholder: t('Type root path of your source code'),
           inline: false,
+          showHelpInTooltip: true,
+          help: t(
+            'When a rule matches, the input path is replaced with this path to get the path in your repository. Leaving this empty means replacing the input path with an empty string.'
+          ),
         },
       ],
     };
@@ -90,7 +102,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
 
     return (
       <StyledForm initialData={this.initialData} apiEndpoint={endpoint} apiMethod="POST">
-        <JsonForm forms={[this.formFields]} />
+        <Observer>{() => <JsonForm forms={[this.formFields]} />}</Observer>
       </StyledForm>
     );
   }

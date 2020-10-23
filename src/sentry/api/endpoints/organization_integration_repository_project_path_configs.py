@@ -23,8 +23,12 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         extra_kwargs = {}
 
     @property
+    def org_integration(self):
+        return self.context["organization_integration"]
+
+    @property
     def organization_id(self):
-        return self.context["organization_integration"]["organization_id"]
+        return self.org_integration.organization_id
 
     def validate(self, attrs):
         # TODO: Needs to be updated for update since the row already exists
@@ -41,8 +45,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         repo_query = Repository.objects.filter(
             id=repository_id,
             organization_id=self.organization_id,
-            integration_id=self.context["organization_integration"].integration_id
-            )
+            integration_id=self.org_integration.integration_id)
         if not repo_query.exists():
             raise serializers.ValidationError("Repository does not exist")
         return repository_id
@@ -56,7 +59,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         return RepositoryProjectPathConfig.objects.create(
-            organization_integration=self.context["organization_integration"],
+            organization_integration=self.org_integration,
             **validated_data
         )
 
