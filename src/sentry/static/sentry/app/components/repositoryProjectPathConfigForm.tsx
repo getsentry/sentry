@@ -20,10 +20,6 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
   get initialData() {
     return {
       defaultBranch: 'master',
-      stackRoot: 'k',
-      sourceRoot: 'k',
-      projectId: '25',
-      repositoryId: '40',
     };
   }
 
