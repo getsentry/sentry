@@ -83,7 +83,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {organization, integration} = this.props;
-    const {pathConfigs, showModal} = this.state;
+    const {pathConfigs, showModal, repos} = this.state;
     return (
       <React.Fragment>
         <Panel>
@@ -133,13 +133,18 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
           </PanelBody>
         </Panel>
 
-        <Modal show={showModal} onHide={this.closeModal}>
-          <Modal.Header>Header</Modal.Header>
+        <Modal
+          show={showModal}
+          onHide={this.closeModal}
+          enforceFocus={false}
+          backdrop="static"
+        >
           <Modal.Body>
             <RepositoryProjectPathConfigForm
               organization={organization}
               integration={integration}
               projects={this.projects}
+              repos={repos}
             />
           </Modal.Body>
         </Modal>

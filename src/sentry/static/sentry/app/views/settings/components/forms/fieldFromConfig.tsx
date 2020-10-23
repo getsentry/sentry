@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Scope} from 'app/types';
+import {Scope, Project} from 'app/types';
 
 import BooleanField from './booleanField';
 import EmailField from './emailField';
@@ -18,6 +18,7 @@ import ChoiceMapperField from './choiceMapperField';
 import RichListField from './richListField';
 import FieldSeparator from './fieldSeparator';
 import ProjectMapperField from './projectMapperField';
+import SentryProjectSelectorField from './sentryProjectSelectorField';
 import {Field} from './type';
 
 type Props = {
@@ -60,6 +61,7 @@ export default class FieldFromConfig extends React.Component<Props> {
         'url',
         'table',
         'project_mapper',
+        'sentry_project_selector',
       ]),
       required: PropTypes.bool,
       multiline: PropTypes.bool,
@@ -142,6 +144,8 @@ export default class FieldFromConfig extends React.Component<Props> {
         return <TableField {...props} />;
       case 'project_mapper':
         return <ProjectMapperField {...props} />;
+      case 'sentry_project_selector':
+        return <SentryProjectSelectorField {...props} />;
       case 'custom':
         return field.Component(props);
       default:

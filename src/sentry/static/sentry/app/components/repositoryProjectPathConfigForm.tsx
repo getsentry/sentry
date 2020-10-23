@@ -14,94 +14,94 @@ import Tooltip from 'app/components/tooltip';
 import IdBadge from 'app/components/idBadge';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import Field from 'app/views/settings/components/forms/field';
-import SelectControl from 'app/components/forms/selectControl';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import {Project, Organization, Integration} from 'app/types';
+import {Project, Organization, Integration, Repository} from 'app/types';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 type Props = {
-  projects: Project[];
   organization: Organization;
   integration: Integration;
+  projects: Project[];
+  repos: Repository[];
 };
 
 export default class RepositoryProjectPathConfigForm extends React.Component<Props> {
   api = new Client();
 
-  get formFields(): JsonFormObject {
+  get initialData() {
     return {
-      title: 'test',
+      branch: 'master',
+    };
+  }
+
+  get formFields(): JsonFormObject {
+    const {projects, repos} = this.props;
+    const repoChoices = repos.map(({name, id}) => ({value: id, label: name}));
+    return {
+      title: t('Create Code Path'),
       fields: [
+        {
+          name: 'project',
+          type: 'sentry_project_selector',
+          required: true,
+          label: t('Project'),
+          inline: false,
+          projects,
+        },
+        {
+          name: 'repo',
+          type: 'select',
+          required: true,
+          label: t('Repo'),
+          inline: false,
+          placeholder: t('Choose repo'),
+          options: repoChoices,
+        },
+        {
+          name: 'branch',
+          type: 'string',
+          required: true,
+          label: t('Branch'),
+          placeholder: t('Type your branch'),
+          inline: false,
+        },
         {
           name: 'stackRoot',
           type: 'string',
           required: false,
-          label: 'Input Path',
-          help: 'My help',
+          label: t('Input Path'),
+          placeholder: t('Type root path of your stack traces'),
+          inline: false,
+        },
+        {
+          name: 'sourceRoot',
+          type: 'string',
+          required: false,
+          label: t('Output Path'),
+          placeholder: t('Type root path of your source code'),
+          inline: false,
         },
       ],
     };
   }
 
   render() {
-    const {organization, integration, projects} = this.props;
+    const {organization, integration} = this.props;
     const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/`;
 
-    // const projectOptions = projects.map(({slug, id}) => ([{label: slug, value: id})]);
-    const projectOptions = projects.map(({slug, id}) => [id, slug]);
-
-    const customOptionProject = projectProps => {
-      const project = projects.find(proj => proj.id === projectProps.value);
-      //Should never happen for a dropdown item
-      if (!project) {
-        return null;
-      }
-      return (
-        <components.Option {...projectProps}>
-          <IdBadge
-            project={project}
-            avatarSize={20}
-            displayName={project.slug}
-            avatarProps={{consistentWidth: true}}
-          />
-        </components.Option>
-      );
-    };
-
-    const customValueContainer = containerProps => {
-      const selectedValue = containerProps.getValue()[0];
-      const project = projects.find(proj => proj.id === selectedValue?.value);
-      if (!project) {
-        return <components.ValueContainer {...containerProps} />;
-      }
-      return (
-        <components.ValueContainer {...containerProps}>
-          <IdBadge
-            project={project}
-            avatarSize={20}
-            displayName={project.slug}
-            avatarProps={{consistentWidth: true}}
-          />
-        </components.ValueContainer>
-      );
-    };
-
     return (
-      <Form apiEndpoint={endpoint} apiMethod="POST">
-        <StyledSelectControl
-          placeholder={t('Choose Sentry project\u2026')}
-          name="project"
-          choices={projectOptions}
-          components={{
-            Option: customOptionProject,
-            ValueContainer: customValueContainer,
-          }}
-        />
+      <StyledForm initialData={this.initialData} apiEndpoint={endpoint} apiMethod="POST">
         <JsonForm forms={[this.formFields]} />
-      </Form>
+      </StyledForm>
     );
   }
 }
 
-const StyledSelectControl = styled(SelectField)``;
+const StyledForm = styled(Form)`
+  label {
+    color: ${p => p.theme.gray600};
+    font-family: Rubik;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+`;
