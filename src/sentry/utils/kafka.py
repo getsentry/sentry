@@ -9,6 +9,8 @@ from sentry.utils import metrics
 
 from django.conf import settings
 
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,11 +66,9 @@ def create_batching_kafka_consumer(topic_names, worker, **options):
 
     (cluster_name,) = cluster_names
 
-    cluster_options = get_kafka_consumer_cluster_options(cluster_name)
-
     consumer = BatchingKafkaConsumer(
         topics=topic_names,
-        cluster_options=cluster_options,
+        cluster_name=cluster_name,
         worker=worker,
         metrics=metrics,
         metrics_default_tags={
@@ -85,34 +85,3 @@ def create_batching_kafka_consumer(topic_names, worker, **options):
     signal.signal(signal.SIGTERM, handler)
 
     return consumer
-
-
-def _get_legacy_kafka_cluster_options(cluster_name):
-    options = settings.KAFKA_CLUSTERS[cluster_name]
-
-    options = {k: v for k, v in options.items() if k not in ("common", "producers", "consumers")}
-    if options:
-        logger.warning(
-            "You are running with legacy kafka configuration. "
-            "Please check src/sentry/conf/server.py for the new way of configuring kafka"
-        )
-    return options
-
-
-def _get_kafka_cluster_options(cluster_name, config_section):
-    options = {}
-    legacy_options = _get_legacy_kafka_cluster_options(cluster_name)
-    custom_options = settings.KAFKA_CLUSTERS[cluster_name].get(config_section, {})
-    common_options = settings.KAFKA_CLUSTERS[cluster_name].get("common", {})
-    options.update(legacy_options)
-    options.update(custom_options)
-    options.update(common_options)
-    return options
-
-
-def get_kafka_producer_cluster_options(cluster_name):
-    return _get_kafka_cluster_options(cluster_name, "producers")
-
-
-def get_kafka_consumer_cluster_options(cluster_name):
-    return _get_kafka_cluster_options(cluster_name, "consumers")

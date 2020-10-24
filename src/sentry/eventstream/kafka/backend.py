@@ -10,7 +10,7 @@ from django.utils.functional import cached_property
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.eventstream.snuba import SnubaProtocolEventStream
-from sentry.utils import json, kafka, metrics
+from sentry.utils import json, kafka, kafka_config, metrics
 
 
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         logger.debug("Starting post-process forwarder...")
 
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-        cluster_options = kafka.get_kafka_consumer_cluster_options(cluster_name)
+        cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)
 
         consumer = SynchronizedConsumer(
             cluster_options=cluster_options,
