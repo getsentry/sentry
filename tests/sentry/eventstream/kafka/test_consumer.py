@@ -9,12 +9,25 @@ from contextlib import contextmanager
 import pytest
 
 from six.moves import xrange
+import importlib
 
 try:
     from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
     from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 except ImportError:
     pass
+
+from django.conf import settings
+
+
+def setup_function():
+    settings.KAFKA_CLUSTERS["default"] = {
+        "common": {"bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"]}
+    }
+
+
+def teardown_function():
+    importlib.reload(settings)
 
 
 @contextmanager
@@ -67,11 +80,8 @@ def test_consumer_start_from_partition_start(requires_kafka):
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
         # Create the synchronized consumer.
-        cluster_options = {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
-        }
         consumer = SynchronizedConsumer(
-            cluster_options=cluster_options,
+            cluster_name="default",
             consumer_group="consumer-{}".format(uuid.uuid1().hex),
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -161,11 +171,8 @@ def test_consumer_start_from_committed_offset(requires_kafka):
         ).commit(message=messages_delivered[topic][0], asynchronous=False)
 
         # Create the synchronized consumer.
-        cluster_options = {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
-        }
         consumer = SynchronizedConsumer(
-            cluster_options=cluster_options,
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -260,11 +267,8 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
-        cluster_options = {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
-        }
         consumer_a = SynchronizedConsumer(
-            cluster_options=cluster_options,
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -293,7 +297,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
 
         assignments_received[consumer_a].pop()
         consumer_b = SynchronizedConsumer(
-            cluster_options=cluster_options,
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -393,11 +397,8 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
             asynchronous=False,
         )
 
-        cluster_options = {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
-        }
         consumer_a = SynchronizedConsumer(
-            cluster_options=cluster_options,
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -427,7 +428,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
         assignments_received[consumer_a].pop()
 
         consumer_b = SynchronizedConsumer(
-            cluster_options=cluster_options,
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -564,11 +565,8 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
             )
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
-        cluster_options = {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
-        }
         consumer_a = SynchronizedConsumer(
-            cluster_options=cluster_options,
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -602,7 +600,7 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
         ), "there should be no more messages to receive"
 
         consumer_b = SynchronizedConsumer(
-            cluster_options=cluster_options,
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
