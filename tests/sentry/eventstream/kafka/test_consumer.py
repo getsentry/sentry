@@ -9,7 +9,6 @@ from contextlib import contextmanager
 import pytest
 
 from six.moves import xrange
-import importlib
 
 try:
     from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
@@ -19,15 +18,9 @@ except ImportError:
 
 from django.conf import settings
 
-
-def setup_function():
-    settings.KAFKA_CLUSTERS["default"] = {
-        "common": {"bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"]}
-    }
-
-
-def teardown_function():
-    importlib.reload(settings)
+settings.KAFKA_CLUSTERS["default"] = {
+    "common": {"bootstrap.servers": os.environ.get("SENTRY_KAFKA_HOSTS", "localhost:9092")}
+}
 
 
 @contextmanager
