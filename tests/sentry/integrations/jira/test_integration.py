@@ -474,7 +474,7 @@ class JiraIntegrationTest(APITestCase):
             return MockJiraApiClient()
 
         with mock.patch.object(installation, "get_client", get_client):
-            assert installation.get_create_issue_config(group) == [
+            assert installation.get_create_issue_config(group, self.user) == [
                 {
                     "default": "10000",
                     "choices": [("10000", "EX"), ("10001", "ABC")],
@@ -566,7 +566,9 @@ class JiraIntegrationTest(APITestCase):
             return MockJiraApiClient()
 
         with mock.patch.object(installation, "get_client", get_client):
-            fields = installation.get_create_issue_config(group, params={"project": "10000"})
+            fields = installation.get_create_issue_config(
+                group, self.user, params={"project": "10000"}
+            )
             project_field = [field for field in fields if field["name"] == "project"][0]
 
             assert project_field == {
@@ -601,7 +603,7 @@ class JiraIntegrationTest(APITestCase):
             return MockJiraApiClient()
 
         with mock.patch.object(installation, "get_client", get_client):
-            fields = installation.get_create_issue_config(group)
+            fields = installation.get_create_issue_config(group, self.user)
             project_field = [field for field in fields if field["name"] == "project"][0]
 
             assert project_field == {
@@ -638,7 +640,7 @@ class JiraIntegrationTest(APITestCase):
             return MockJiraApiClient()
 
         with mock.patch.object(installation, "get_client", get_client):
-            fields = installation.get_create_issue_config(group)
+            fields = installation.get_create_issue_config(group, self.user)
             label_field = [field for field in fields if field["name"] == "labels"][0]
 
             assert label_field == {
@@ -669,7 +671,7 @@ class JiraIntegrationTest(APITestCase):
             body="{}",
         )
         with pytest.raises(IntegrationError):
-            installation.get_create_issue_config(event.group)
+            installation.get_create_issue_config(event.group, self.user)
 
     @responses.activate
     def test_get_create_issue_config__no_issue_config(self):
@@ -701,7 +703,7 @@ class JiraIntegrationTest(APITestCase):
             body="",
         )
         with pytest.raises(IntegrationError):
-            installation.get_create_issue_config(event.group)
+            installation.get_create_issue_config(event.group, self.user)
 
     def test_get_link_issue_config(self):
         org = self.organization

@@ -503,9 +503,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config(self, group, **kwargs):
+    def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "jira_integration"
-        fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
+        fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
         params = kwargs.get("params", {})
 
         defaults = self.get_project_defaults(group.project_id)
