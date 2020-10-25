@@ -273,6 +273,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_default_config_fields(self):
         return ["project", "issuetype", "priority", "labels"]
 
+    def get_persisted_user_default_config_fields(self):
+        return ["reporter"]
+
     def get_group_description(self, group, event, **kwargs):
         output = [
             u"Sentry Issue: [{}|{}]".format(
@@ -508,7 +511,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
         params = kwargs.get("params", {})
 
-        defaults = self.get_project_defaults(group.project_id)
+        defaults = self.get_defaults(group.project, user)
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
@@ -608,6 +611,17 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 field["choices"] = self.make_choices(client.get_versions(meta["key"]))
             elif field["name"] == "labels":
                 field["default"] = defaults.get("labels", "")
+            elif field["name"] == "reporter":
+                reporter_id = defaults.get("reporter", "")
+                if not reporter_id:
+                    continue
+                reporter_info = client.get_user(reporter_id)
+                reporter_tuple = client.format_user(reporter_info)
+                if not reporter_tuple:
+                    continue
+                reporter_id, reporter_label = reporter_tuple
+                field["default"] = reporter_id
+                field["choices"] = [(reporter_id, reporter_label)]
 
         return fields
 
