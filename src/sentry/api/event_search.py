@@ -456,7 +456,7 @@ class SearchVisitor(NodeVisitor):
             aggregate_value = None
             if search_value.expr_name == "duration_format":
                 # Even if the search value matches duration format, only act as duration for certain columns
-                function = resolve_field(search_key.name, functions_acl=True)
+                function = resolve_field(search_key.name, functions_acl=FUNCTIONS.keys())
                 if function.aggregate is not None:
                     # Extract column and function name out so we can check if we should parse as duration
                     if self.is_duration_key(function.aggregate[1]):
@@ -747,7 +747,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
         return [["isNull", [name]], aggregate_filter.operator, 1]
 
-    function = resolve_field(name, params, functions_acl=True)
+    function = resolve_field(name, params, functions_acl=FUNCTIONS.keys())
     if function.aggregate is not None:
         name = function.aggregate[-1]
 
@@ -1663,20 +1663,10 @@ class Function(object):
         ), u"{}: result type {} not one of {}".format(self.name, result_type, list(RESULT_TYPES))
 
     def is_accessible(self, acl=None):
-        """
-        Determines if this function should be accessible based on the access control list.
-
-        :param None or bool or list[str] acl: The access control list. This can take on various types.
-            1. None: This indicates that ALL private functions should NOT be accessible.
-            2. bool: This indicates whether or not ALL private functions should be accessible.
-            3. list[str]: This indicates the list of private functions that should be accessible.
-        """
         if not self.private:
             return True
-        elif acl is None:
+        elif not acl:
             return False
-        elif isinstance(acl, bool):
-            return acl
         return self.name in acl
 
 
@@ -2202,7 +2192,7 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
             addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3 and addition[2] is None:
             addition[2] = get_function_alias_with_columns(function.name, columns)
-        return ResolvedFunction(details, addition, [])
+        return ResolvedFunction(details, addition, None)
 
 
 def resolve_orderby(orderby, fields, aggregations):
