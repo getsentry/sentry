@@ -21,10 +21,10 @@ class OrganizationStatsContainer extends React.Component {
     const since = until - 3600 * 24 * 7;
 
     this.state = {
-      projectsError: false,
+      projectsError: null,
       projectsLoading: false,
       projectsRequestsPending: 0,
-      statsError: false,
+      statsError: null,
       statsLoading: false,
       statsRequestsPending: 0,
       projectMap: null,
