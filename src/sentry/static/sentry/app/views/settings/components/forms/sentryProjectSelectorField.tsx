@@ -27,9 +27,9 @@ class RenderField extends React.Component<RenderProps> {
     onBlur: Props['onBlur'],
     onChange: Props['onChange'],
     optionObj: {value: any},
-    event: any
+    event: React.MouseEvent
   ) => {
-    const value = optionObj.value;
+    const {value} = optionObj;
     onChange?.(value, event);
     onBlur?.(value, event);
   };
@@ -37,7 +37,6 @@ class RenderField extends React.Component<RenderProps> {
   render() {
     const {projects, avatarSize, onChange, onBlur, ...rest} = this.props;
 
-    // const projectOptions = projects.map(({slug, id}) => [id, slug]);
     const projectOptions = projects.map(({slug, id}) => ({value: id, label: slug}));
 
     const customOptionProject = projectProps => {
