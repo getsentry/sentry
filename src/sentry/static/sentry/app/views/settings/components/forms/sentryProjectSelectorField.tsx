@@ -27,7 +27,7 @@ class RenderField extends React.Component<RenderProps> {
     onBlur: Props['onBlur'],
     onChange: Props['onChange'],
     optionObj: {value: any},
-    event: any
+    event: React.MouseEvent
   ) => {
     const {value} = optionObj;
     onChange?.(value, event);
