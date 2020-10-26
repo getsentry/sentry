@@ -8,6 +8,7 @@ import {Organization, Project} from 'app/types';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import {Client} from 'app/api';
 import {loadStatsForProject} from 'app/actionCreators/projects';
+import {tn} from 'app/locale';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
@@ -15,6 +16,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import withApi from 'app/utils/withApi';
+import {formatAbbreviatedNumber} from 'app/utils/formatters';
 
 import Chart from './chart';
 import Deploys from './deploys';
@@ -42,39 +44,73 @@ class ProjectCard extends React.Component<Props> {
       orgId: organization.slug,
       projectId: project.id,
       query: {
-        transactionStats: organization.features.includes('performance-view')
-          ? '1'
-          : undefined,
+        transactionStats: this.hasPerformance ? '1' : undefined,
       },
     });
+  }
+
+  get hasPerformance() {
+    return this.props.organization.features.includes('performance-view');
   }
 
   render() {
     const {organization, project, hasProjectAccess} = this.props;
     const {id, firstEvent, stats, slug, transactionStats} = project;
+    const totalErrors =
+      stats !== undefined
+        ? formatAbbreviatedNumber(stats.reduce((sum, [_, value]) => sum + value, 0))
+        : '\u2014';
+
+    const totalTransactions =
+      transactionStats !== undefined
+        ? formatAbbreviatedNumber(
+            transactionStats.reduce((sum, [_, value]) => sum + value, 0)
+          )
+        : '\u2014';
 
     return (
       <div data-test-id={slug}>
         {stats ? (
           <StyledProjectCard>
-            <StyledProjectCardHeader>
-              <StyledIdBadge
-                project={project}
-                avatarSize={18}
-                displayName={
-                  hasProjectAccess ? (
+            <CardHeader>
+              <HeaderRow>
+                <StyledIdBadge
+                  project={project}
+                  avatarSize={18}
+                  displayName={
+                    hasProjectAccess ? (
+                      <Link
+                        to={`/organizations/${organization.slug}/issues/?project=${id}`}
+                      >
+                        <strong>{slug}</strong>
+                      </Link>
+                    ) : (
+                      <span>{slug}</span>
+                    )
+                  }
+                />
+                <BookmarkStar organization={organization} project={project} />
+              </HeaderRow>
+              <SummaryLinks>
+                <Link
+                  data-test-id="project-errors"
+                  to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
+                >
+                  {tn('%s error', '%s errors', totalErrors)}
+                </Link>
+                {this.hasPerformance && (
+                  <React.Fragment>
+                    <em>|</em>
                     <Link
-                      to={`/organizations/${organization.slug}/issues/?project=${id}`}
+                      data-test-id="project-transactions"
+                      to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
                     >
-                      <strong>{slug}</strong>
+                      {tn('%s transaction', '%s transactions', totalTransactions)}
                     </Link>
-                  ) : (
-                    <span>{slug}</span>
-                  )
-                }
-              />
-              <BookmarkStar organization={organization} project={project} />
-            </StyledProjectCardHeader>
+                  </React.Fragment>
+                )}
+              </SummaryLinks>
+            </CardHeader>
             <ChartContainer>
               <Chart stats={stats} transactionStats={transactionStats} />
               {!firstEvent && <NoEvents />}
@@ -148,11 +184,14 @@ const ChartContainer = styled('div')`
   padding-top: ${space(1)};
 `;
 
-const StyledProjectCardHeader = styled('div')`
+const CardHeader = styled('div')`
+  margin: 12px ${space(2)};
+`;
+
+const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 12px ${space(2)};
 `;
 
 const StyledProjectCard = styled('div')`
@@ -171,6 +210,25 @@ const LoadingCard = styled('div')`
 const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
+`;
+
+const SummaryLinks = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  /* Need to offset for the project icon and margin */
+  margin-left: 26px;
+
+  a {
+    color: ${p => p.theme.formText};
+    :hover {
+      color: ${p => p.theme.gray600};
+    }
+  }
+  em {
+    font-style: normal;
+    margin: 0 ${space(0.5)};
+  }
 `;
 
 export {ProjectCard};
