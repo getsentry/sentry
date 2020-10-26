@@ -102,9 +102,9 @@ class IssueListSearchBar extends React.Component<Props, State> {
    * @returns array of tag values that substring match `query`
    */
   getTagValues = async (tag: Tag, query: string): Promise<string[]> => {
-    const {tagValueLoader, projectIds} = this.props;
+    const {tagValueLoader} = this.props;
 
-    const values = await tagValueLoader(tag.key, query, projectIds);
+    const values = await tagValueLoader(tag.key, query);
     return values.map(({value}) => value);
   };
 
