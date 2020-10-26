@@ -20,7 +20,7 @@ const Chart = ({stats, transactionStats}: Props) => {
       cursor: 'normal' as const,
       name: t('Transactions'),
       type: 'bar',
-      data: transactionStats.map(point => [point[0] * 1000, point[1]]),
+      data: transactionStats.map(([timestamp, value]) => [timestamp * 1000, value]),
       itemStyle: {
         color: theme.gray300,
         opacity: 0.8,
@@ -37,7 +37,7 @@ const Chart = ({stats, transactionStats}: Props) => {
       cursor: 'normal' as const,
       name: t('Errors'),
       type: 'bar',
-      data: stats.map(point => [point[0] * 1000, point[1]]),
+      data: stats.map(([timestamp, value]) => [timestamp * 1000, value]),
       barGap: '-100%',
       itemStyle: {
         color: theme.purple500,
@@ -72,7 +72,7 @@ const Chart = ({stats, transactionStats}: Props) => {
       axisLine: {
         show: true,
         lineStyle: {
-          color: theme.gray300,
+          color: theme.chartLabel,
           opacity: 0.8,
         },
       },

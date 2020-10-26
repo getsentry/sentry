@@ -183,6 +183,11 @@ export type AvatarProject = {
   platform?: PlatformKey;
 };
 
+/**
+ * Simple timeseries data used in groups, projects and release health.
+ */
+export type TimeseriesValue = [timestamp: number, value: number];
+
 export type Project = {
   id: string;
   dateCreated: string;
@@ -205,8 +210,8 @@ export type Project = {
   relayPiiConfig: string;
   latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
-  stats?: Array<[number, number]>;
-  transactionStats?: Array<[number, number]>;
+  stats?: TimeseriesValue[];
+  transactionStats?: TimeseriesValue[];
   latestRelease?: {version: string};
 } & AvatarProject;
 
@@ -228,7 +233,7 @@ export type Health = {
   durationP90: number | null;
 };
 
-export type HealthGraphData = Record<string, [number, number][]>;
+export type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export type Team = {
   id: string;
@@ -685,8 +690,6 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
-export type GroupStats = [number, number];
-
 // TODO(ts): incomplete
 export type Group = {
   id: string;
@@ -719,7 +722,7 @@ export type Group = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  stats: Record<string, GroupStats[]>;
+  stats: Record<string, TimeseriesValue[]>;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
   status: string;

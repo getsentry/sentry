@@ -6,7 +6,7 @@ import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import {intcomma} from 'app/utils';
 import theme from 'app/utils/theme';
-import {Group, GroupStats, Release} from 'app/types';
+import {Group, TimeseriesValue, Release} from 'app/types';
 
 type Markers = React.ComponentProps<typeof StackedBarChart>['markers'];
 
@@ -14,7 +14,7 @@ type Markers = React.ComponentProps<typeof StackedBarChart>['markers'];
  * Stats are provided indexed by statsPeriod strings.
  */
 type StatsGroup = {
-  [key: string]: GroupStats[];
+  [key: string]: TimeseriesValue[];
 };
 
 /**
@@ -65,7 +65,7 @@ class GroupReleaseChart extends React.Component<Props, State> {
     const releaseStats = props.releaseStats;
     const releasePoints: StatsMap = {};
     if (releaseStats) {
-      releaseStats[props.statsPeriod].forEach((point: GroupStats) => {
+      releaseStats[props.statsPeriod].forEach((point: TimeseriesValue) => {
         releasePoints[point[0]] = point[1];
       });
     }
@@ -73,7 +73,7 @@ class GroupReleaseChart extends React.Component<Props, State> {
     const envStats = props.environmentStats;
     const envPoints: StatsMap = {};
     if (envStats) {
-      envStats[props.statsPeriod]?.forEach((point: GroupStats) => {
+      envStats[props.statsPeriod]?.forEach((point: TimeseriesValue) => {
         envPoints[point[0]] = point[1];
       });
     }
