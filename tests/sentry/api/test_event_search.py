@@ -2956,8 +2956,7 @@ class FunctionTest(unittest.TestCase):
     def test_private_function(self):
         fn = Function("fn", transform="", result_type_fn=lambda *_: None, private=True)
         assert fn.is_accessible() is False
-        assert fn.is_accessible(False) is False
-        assert fn.is_accessible(True) is True
+        assert fn.is_accessible(None) is False
         assert fn.is_accessible([]) is False
         assert fn.is_accessible(["other_fn"]) is False
         assert fn.is_accessible(["fn"]) is True
