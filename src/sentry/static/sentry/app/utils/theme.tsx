@@ -89,7 +89,7 @@ const aliases = {
   /**
    * Primary background color
    */
-  background: colors.purple,
+  background: colors.purple100,
 
   /**
    * Secondary background color used as a slight contrast against primary background
