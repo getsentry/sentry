@@ -101,6 +101,10 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "defaultBranch": "master",
         }
 
+    def test_empty_roots_post(self):
+        response = self.make_post({"stackRoot": "", "sourceRoot": ""})
+        assert response.status_code == 201, response.content
+
     def test_project_does_not_exist(self):
         bad_org = self.create_organization()
         bad_project = self.create_project(organization=bad_org)

@@ -13,8 +13,8 @@ from sentry.utils.compat import map
 class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     repository_id = serializers.IntegerField(required=True)
     project_id = serializers.IntegerField(required=True)
-    stack_root = serializers.CharField(required=True)
-    source_root = serializers.CharField(required=True)
+    stack_root = serializers.CharField(required=True, allow_blank=True)
+    source_root = serializers.CharField(required=True, allow_blank=True)
     default_branch = serializers.CharField(required=True)
 
     class Meta:
