@@ -61,9 +61,6 @@ class MeasurementsPanel extends React.PureComponent<Props> {
                     key={label}
                     label={label}
                     left={toPercent(bounds.left || 0)}
-                    onMouseEnter={() => {
-                      hoveringMeasurement(hoverMeasurementName);
-                    }}
                     onMouseLeave={() => {
                       notHovering();
                     }}
@@ -105,7 +102,6 @@ export default MeasurementsPanel;
 type LabelContainerProps = {
   left: string;
   label: string;
-  onMouseEnter: () => void;
   onMouseLeave: () => void;
   onMouseOver: () => void;
 };
@@ -132,16 +128,13 @@ class LabelContainer extends React.Component<LabelContainerProps> {
   elementDOMRef = React.createRef<HTMLDivElement>();
 
   render() {
-    const {left, onMouseEnter, onMouseLeave, onMouseOver, label} = this.props;
+    const {left, onMouseLeave, onMouseOver, label} = this.props;
 
     return (
       <StyledLabelContainer
         ref={this.elementDOMRef}
         style={{
           left: `clamp(calc(0.5 * ${this.state.width}px), ${left}, calc(100% - 0.5 * ${this.state.width}px))`,
-        }}
-        onMouseEnter={() => {
-          onMouseEnter();
         }}
         onMouseLeave={() => {
           onMouseLeave();
