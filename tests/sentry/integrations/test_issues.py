@@ -145,6 +145,25 @@ class IssueDefaultTest(TestCase):
         assert default_repo == "user/repo2"
         assert repo_choice == [("user/repo1", "repo1"), ("user/repo2", "repo2")]
 
+    def test_store_issue_last_defaults_partial_update(self):
+        assert "project" in self.installation.get_persisted_default_config_fields()
+        assert "issueType" in self.installation.get_persisted_default_config_fields()
+        self.installation.store_issue_last_defaults(1, {"project": "xyz", "issueType": "BUG"})
+        self.installation.store_issue_last_defaults(1, {"issueType": "FEATURE"})
+        # {} is commonly triggered by "link issue" flow
+        self.installation.store_issue_last_defaults(1, {})
+        assert self.installation.get_project_defaults(1) == {
+            "project": "xyz",
+            "issueType": "FEATURE",
+        }
+
+    def test_store_issue_last_defaults_multiple_projects(self):
+        assert "project" in self.installation.get_persisted_default_config_fields()
+        self.installation.store_issue_last_defaults(1, {"project": "xyz"})
+        self.installation.store_issue_last_defaults(2, {"project": "abc"})
+        assert self.installation.get_project_defaults(1) == {"project": "xyz"}
+        assert self.installation.get_project_defaults(2) == {"project": "abc"}
+
     def test_annotations(self):
         label = self.installation.get_issue_display_name(self.external_issue)
         link = self.installation.get_issue_url(self.external_issue.key)
