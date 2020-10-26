@@ -14,7 +14,7 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 
 # in prod we run with infinite retries to recover from errors
 # in debug/development, we assume these tasks generally shouldn't fail
-MAX_RETRIES = 1 if settings.DEBUG else None
+MAX_RETRIES = 1 if settings.DEBUG else 5
 
 
 @instrumented_task(name="sentry.tasks.deletion.run_scheduled_deletions", queue="cleanup")
