@@ -2,6 +2,8 @@ from __future__ import absolute_import, print_function
 
 from .manager import ProjectOptionsManager
 
+__all__ = ("get", "set", "delete", "register", "isset")
+
 default_manager = ProjectOptionsManager()
 
 # expose public api
