@@ -2,8 +2,10 @@
 import React from 'react';
 import LazyLoad from 'react-lazyload';
 
+import {Series} from 'app/types/echarts';
 import {t} from 'app/locale';
-import BarChart from 'app/components/barChart';
+import MiniBarChart from 'app/components/charts/miniBarChart';
+import theme from 'app/utils/theme';
 
 import {StatsSubject} from './healthStatsSubject';
 import {StatsPeriod} from './healthStatsPeriod';
@@ -36,31 +38,37 @@ class HealthStatsChart extends React.Component<Props> {
   getChartLabel() {
     const {subject} = this.props;
     if (subject === 'users') {
-      return t('users');
+      return t('Users');
     }
 
-    return t('sessions');
+    return t('Sessions');
   }
 
   render() {
     const {height, period, data} = this.props;
-
     const stats = period ? data[period] : null;
-
     if (!stats || !stats.length) {
       return null;
     }
 
-    const chartData = stats.map(point => ({x: point[0], y: point[1]}));
+    const colors = [theme.gray500];
+    const emphasisColors = [theme.purple400];
+    const series: Series[] = [
+      {
+        seriesName: this.getChartLabel(),
+        data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
+      },
+    ];
 
     return (
       <LazyLoad debounce={50} height={height}>
-        <BarChart
-          points={chartData}
+        <MiniBarChart
+          series={series}
           height={height}
-          label={this.getChartLabel()}
-          minHeights={[3]}
-          gap={1}
+          colors={colors}
+          emphasisColors={emphasisColors}
+          isGroupedByDate
+          showTimeInTooltip
         />
       </LazyLoad>
     );
