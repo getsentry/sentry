@@ -8,7 +8,7 @@ inputs:
   snuba:
     description: 'Is snuba required?'
     required: false
-    default: 'true'
+    default: 'false'
   kafka:
     description: 'Is kafka required?'
     required: false
@@ -95,17 +95,6 @@ runs:
         echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
         echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
-    - name: Install pip
-      shell: bash
-      run: |
-        pip install --no-cache-dir --upgrade "pip>=20.0.2"
-
-    - name: Get pip cache dir
-      id: pip-cache
-      shell: bash
-      run: |
-        echo "::set-output name=pip-cache::$(pip cache dir)"
-
     - name: Install python dependencies
       shell: bash
       run: |
@@ -120,6 +109,9 @@ runs:
         NEED_SNUBA: ${{ inputs.snuba }}
       run: |
         sentry init
+
+        # redis, postgres are needed for almost every code path.
+        sentry devservices up redis postgres
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
@@ -142,7 +134,7 @@ runs:
         fi
 
         if [ "$NEED_SNUBA" = "true" ]; then
-          sentry devservices up postgres redis clickhouse snuba
+          sentry devservices up clickhouse snuba
         fi
 
         docker ps -a

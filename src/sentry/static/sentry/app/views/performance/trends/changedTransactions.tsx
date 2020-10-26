@@ -29,6 +29,7 @@ import ProjectAvatar from 'app/components/avatar/projectAvatar';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import QuestionTooltip from 'app/components/questionTooltip';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import TrendsDiscoverQuery from './trendsDiscoverQuery';
 import Chart from './chart';
@@ -47,6 +48,7 @@ import {
   normalizeTrends,
   getSelectedQueryKey,
   getCurrentTrendFunction,
+  getCurrentConfidenceLevel,
   getTrendBaselinesForTransaction,
   getIntervalRatio,
   StyledIconArrow,
@@ -148,6 +150,69 @@ function handleChangeSelected(location: Location, trendChangeType: TrendChangeTy
   };
 }
 
+enum FilterSymbols {
+  GREATER_THAN_EQUALS = '>=',
+  LESS_THAN_EQUALS = '<=',
+}
+
+function handleFilterTransaction(location: Location, transaction: string) {
+  const queryString = decodeScalar(location.query.query);
+  const conditions = tokenizeSearch(queryString || '');
+
+  conditions.addTagValues('!transaction', [transaction]);
+
+  const query = stringifyQueryObject(conditions);
+
+  trackAnalyticsEvent({
+    eventKey: 'performance_views.trends.hide_transaction',
+    eventName: 'Performance Views: Hide Transaction',
+    confidence_level: getCurrentConfidenceLevel(location).label,
+  });
+
+  browserHistory.push({
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      query: String(query).trim(),
+    },
+  });
+}
+
+function handleSummaryClick(confidenceLevel: string) {
+  trackAnalyticsEvent({
+    eventKey: 'performance_views.trends.summary',
+    eventName: 'Performance Views: Summary Navigation',
+    confidence_level: confidenceLevel,
+  });
+}
+
+function handleFilterDuration(location: Location, value: number, symbol: FilterSymbols) {
+  const durationTag = 'transaction.duration';
+  const queryString = decodeScalar(location.query.query);
+  const conditions = tokenizeSearch(queryString || '');
+
+  const existingValues = conditions.getTagValues(durationTag);
+  const alternateSymbol = symbol === FilterSymbols.GREATER_THAN_EQUALS ? '>' : '<';
+
+  existingValues.forEach(existingValue => {
+    if (existingValue.startsWith(symbol) || existingValue.startsWith(alternateSymbol)) {
+      conditions.removeTagValue(durationTag, existingValue);
+    }
+  });
+
+  conditions.addTagValues(durationTag, [`${symbol}${value}`]);
+
+  const query = stringifyQueryObject(conditions);
+
+  browserHistory.push({
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      query: String(query).trim(),
+    },
+  });
+}
+
 function ChangedTransactions(props: Props) {
   const {
     api,
@@ -180,8 +245,10 @@ function ChangedTransactions(props: Props) {
         if (!trendsData) {
           return null;
         }
+        const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
-          (trendsData && trendsData.events && trendsData.events.data) || []
+          (trendsData && trendsData.events && trendsData.events.data) || [],
+          trendFunction
         );
         const selectedTransaction = getSelectedTransaction(
           location,
@@ -192,7 +259,6 @@ function ChangedTransactions(props: Props) {
         const statsData = trendsData?.stats;
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
-        const trendFunction = getCurrentTrendFunction(location);
         const currentTrendFunction =
           isLoading && previousTrendFunction
             ? previousTrendFunction
@@ -297,7 +363,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     projects,
     handleSelectTransaction,
   } = props;
-  const color = trendToColor[trendChangeType];
+  const color = trendToColor[trendChangeType].default;
 
   const selectedTransaction = getSelectedTransaction(
     location,
@@ -323,26 +389,34 @@ function TrendsListItem(props: TrendsListItemProps) {
     0
   );
 
+  const previousDuration = getDuration(
+    previousPeriodValue / 1000,
+    previousPeriodValue < 1000 ? 0 : 2
+  );
+  const currentDuration = getDuration(
+    currentPeriodValue / 1000,
+    currentPeriodValue < 1000 ? 0 : 2
+  );
+
   const percentChangeExplanation = t(
     'Over this period, the duration for %s has %s %s from %s to %s',
     currentTrendFunction,
     trendChangeType === TrendChangeType.IMPROVED ? t('decreased') : t('increased'),
     absolutePercentChange,
-    getDuration(previousPeriodValue / 1000, previousPeriodValue < 1000 ? 0 : 2),
-    getDuration(currentPeriodValue / 1000, currentPeriodValue < 1000 ? 0 : 2)
+    previousDuration,
+    currentDuration
   );
+
+  const longestPeriodValue =
+    trendChangeType === TrendChangeType.IMPROVED
+      ? previousPeriodValue
+      : currentPeriodValue;
+  const longestDuration =
+    trendChangeType === TrendChangeType.IMPROVED ? previousDuration : currentDuration;
 
   return (
     <ListItemContainer data-test-id={'trends-list-item-' + trendChangeType}>
       <ItemRadioContainer color={color}>
-        <RadioLineItem index={index} role="radio">
-          <Radio
-            checked={isSelected}
-            onChange={() => handleSelectTransaction(transaction)}
-          />
-        </RadioLineItem>
-      </ItemRadioContainer>
-      <ItemTransactionName>
         <Tooltip
           title={
             <TooltipContent>
@@ -355,25 +429,15 @@ function TrendsListItem(props: TrendsListItemProps) {
             </TooltipContent>
           }
         >
-          <TransactionName onClick={() => handleSelectTransaction(transaction)}>
-            {transaction.transaction}
-          </TransactionName>
-        </Tooltip>
-        <DropdownLink
-          caret={false}
-          title={
-            <StyledButton
-              size="zero"
-              borderless
-              icon={<IconEllipsis data-test-id="trends-item-action" />}
+          <RadioLineItem index={index} role="radio">
+            <Radio
+              checked={isSelected}
+              onChange={() => handleSelectTransaction(transaction)}
             />
-          }
-        >
-          <MenuItem>
-            <TransactionSummaryLink {...props} />
-          </MenuItem>
-        </DropdownLink>
-      </ItemTransactionName>
+          </RadioLineItem>
+        </Tooltip>
+      </ItemRadioContainer>
+      <TransactionSummaryLink {...props} />
       <ItemTransactionPercentage>
         <Tooltip title={percentChangeExplanation}>
           {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
@@ -395,16 +459,52 @@ function TrendsListItem(props: TrendsListItemProps) {
           )}
         </Tooltip>
       </ItemTransactionPercentage>
+      <DropdownLink
+        caret={false}
+        anchorRight
+        title={
+          <StyledButton
+            size="xsmall"
+            icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
+          />
+        }
+      >
+        <CompareLink {...props} />
+        <MenuItem
+          onClick={() =>
+            handleFilterDuration(
+              location,
+              longestPeriodValue,
+              FilterSymbols.LESS_THAN_EQUALS
+            )
+          }
+        >
+          <StyledMenuAction>{t('Show \u2264 %s', longestDuration)}</StyledMenuAction>
+        </MenuItem>
+        <MenuItem
+          onClick={() =>
+            handleFilterDuration(
+              location,
+              longestPeriodValue,
+              FilterSymbols.GREATER_THAN_EQUALS
+            )
+          }
+        >
+          <StyledMenuAction>{t('Show \u2265 %s', longestDuration)}</StyledMenuAction>
+        </MenuItem>
+        <MenuItem
+          onClick={() => handleFilterTransaction(location, transaction.transaction)}
+        >
+          <StyledMenuAction>{t('Hide from list')}</StyledMenuAction>
+        </MenuItem>
+      </DropdownLink>
       <ItemTransactionDurationChange>
         {project && (
           <Tooltip title={transaction.project}>
             <ProjectAvatar project={project} />
           </Tooltip>
         )}
-
-        <Tooltip title={t('Compare baselines')}>
-          <CompareLink {...props} />
-        </Tooltip>
+        <CompareDurations {...props} />
       </ItemTransactionDurationChange>
       <ItemTransactionStatus color={color}>
         {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
@@ -429,14 +529,7 @@ function TrendsListItem(props: TrendsListItemProps) {
 type CompareLinkProps = TrendsListItemProps & {};
 
 const CompareLink = (props: CompareLinkProps) => {
-  const {
-    organization,
-    trendView: eventView,
-    transaction,
-    api,
-    location,
-    currentTrendFunction,
-  } = props;
+  const {organization, trendView: eventView, transaction, api, location} = props;
   const intervalRatio = getIntervalRatio(location);
 
   async function onLinkClick() {
@@ -468,8 +561,14 @@ const CompareLink = (props: CompareLinkProps) => {
     }
   }
 
+  return <MenuItem onClick={onLinkClick}>{t('Compare baselines')}</MenuItem>;
+};
+
+const CompareDurations = (props: CompareLinkProps) => {
+  const {transaction, currentTrendFunction} = props;
+
   return (
-    <DurationChange onClick={onLinkClick}>
+    <DurationChange>
       {transformDeltaSpread(
         transaction.aggregate_range_1,
         transaction.aggregate_range_2,
@@ -482,7 +581,8 @@ const CompareLink = (props: CompareLinkProps) => {
 type TransactionSummaryLinkProps = TrendsListItemProps & {};
 
 const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
-  const {organization, trendView: eventView, transaction, projects} = props;
+  const {organization, trendView: eventView, transaction, projects, location} = props;
+  const confidenceLevel = getCurrentConfidenceLevel(location).label;
 
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
@@ -493,7 +593,11 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     projectID,
   });
 
-  return <StyledSummaryLink to={target}>{t('View Summary')}</StyledSummaryLink>;
+  return (
+    <ItemTransactionName to={target} onClick={() => handleSummaryClick(confidenceLevel)}>
+      {transaction.transaction}
+    </ItemTransactionName>
+  );
 };
 
 const TransactionsListContainer = styled('div')`
@@ -519,21 +623,9 @@ const StyledButton = styled(Button)`
   vertical-align: middle;
 `;
 
-const TransactionName = styled('div')`
-  cursor: pointer;
-  margin-right: ${space(1)};
-  ${overflowEllipsis};
-`;
-
-const DurationChange = styled('a')`
-  margin: 0 ${space(1)};
-`;
-
-const StyledSummaryLink = styled(Link)`
+const StyledMenuAction = styled('div')`
+  white-space: nowrap;
   color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
@@ -543,7 +635,7 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 
 const ListItemContainer = styled('div')`
   display: grid;
-  grid-template-columns: 24px 75% auto;
+  grid-template-columns: 24px auto 100px 30px;
   grid-template-rows: repeat(2, auto);
   grid-column-gap: ${space(1)};
   border-top: 1px solid ${p => p.theme.borderLight};
@@ -552,20 +644,29 @@ const ListItemContainer = styled('div')`
 
 const ItemRadioContainer = styled('div')`
   grid-row: 1/3;
+  input {
+    cursor: pointer;
+  }
   input:checked::after {
     background-color: ${p => p.color};
   }
 `;
 
-const ItemTransactionName = styled('div')`
-  display: flex;
+const ItemTransactionName = styled(Link)`
   font-size: ${p => p.theme.fontSizeMedium};
+  margin-right: ${space(1)};
+  ${overflowEllipsis};
 `;
 
 const ItemTransactionDurationChange = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const DurationChange = styled('span')`
+  color: ${p => p.theme.gray500};
+  margin: 0 ${space(1)};
 `;
 
 const ItemTransactionPercentage = styled('div')`

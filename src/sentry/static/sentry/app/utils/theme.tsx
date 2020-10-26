@@ -15,43 +15,43 @@ const colors = {
   gray700: '#4A3E56',
   gray800: '#302839',
 
-  yellow100: '#FFFDF5',
+  yellow100: '#FFF9DF',
   yellow200: '#FFF8C4',
   yellow300: '#FFF492',
   yellow400: '#FFC227',
   yellow500: '#E2A301',
 
-  purple100: '#FAF5FF',
+  purple100: '#F5E9FF',
   purple200: '#E7D3FF',
   purple300: '#B9A2FD',
   purple400: '#6C5FC7',
   purple500: '#3E2C73',
 
-  blue100: '#F5F9FF',
+  blue100: '#E9F2FF',
   blue200: '#AFC7EE',
   blue300: '#7199DD',
   blue400: '#3D74DB',
   blue500: '#194591',
 
-  orange100: '#FCF8F7',
+  orange100: '#FFF1ED',
   orange200: '#F9C7B9',
   orange300: '#F69C7D',
   orange400: '#FF7738',
   orange500: '#BA4A23',
 
-  red100: '#FFF5F7',
+  red100: '#FFECF0',
   red200: '#F4B1BB',
   red300: '#EA7282',
   red400: '#FA4747',
   red500: '#AC1025',
 
-  green100: '#F5FFFB',
+  green100: '#E4F9F0',
   green200: '#C0F3DD',
   green300: '#8FE7BF',
   green400: '#4DC771',
   green500: '#1C8952',
 
-  pink100: '#FFF5F9',
+  pink100: '#FFE1ED',
   pink200: '#FFCEE4',
   pink300: '#FF99BC',
   pink400: '#E1567C',
@@ -218,6 +218,41 @@ const badge = {
   new: {
     background: `linear-gradient(90deg, ${colors.green400}, ${colors.green500})`,
     indicatorColor: colors.green400,
+  },
+};
+
+const tag = {
+  default: {
+    background: colors.gray200,
+    iconColor: colors.purple400,
+  },
+  promotion: {
+    background: colors.orange100,
+    iconColor: colors.orange400,
+  },
+  highlight: {
+    background: colors.purple100,
+    iconColor: colors.purple400,
+  },
+  warning: {
+    background: colors.yellow100,
+    iconColor: colors.yellow400,
+  },
+  success: {
+    background: colors.green100,
+    iconColor: colors.green400,
+  },
+  error: {
+    background: colors.red100,
+    iconColor: colors.red400,
+  },
+  info: {
+    background: colors.blue100,
+    iconColor: colors.blue400,
+  },
+  white: {
+    background: colors.white,
+    iconColor: colors.gray700,
   },
 };
 
@@ -402,7 +437,7 @@ const theme = {
 
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: 'Monaco, Consolas, "Courier New", monospace',
+    familyMono: '"IBM Plex", Monaco, Consolas, "Courier New", monospace',
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
   },
@@ -412,6 +447,7 @@ const theme = {
 
   alert,
   badge,
+  tag,
   button: generateButtonTheme(aliases),
 
   charts: {

@@ -41,12 +41,17 @@ class ProjectCard extends React.Component<Props> {
     loadStatsForProject(api, project.id, {
       orgId: organization.slug,
       projectId: project.id,
+      query: {
+        transactionStats: organization.features.includes('performance-view')
+          ? '1'
+          : undefined,
+      },
     });
   }
 
   render() {
     const {organization, project, hasProjectAccess} = this.props;
-    const {id, firstEvent, stats, slug} = project;
+    const {id, firstEvent, stats, slug, transactionStats} = project;
 
     return (
       <div data-test-id={slug}>
@@ -71,7 +76,7 @@ class ProjectCard extends React.Component<Props> {
               <BookmarkStar organization={organization} project={project} />
             </StyledProjectCardHeader>
             <ChartContainer>
-              <Chart stats={stats} />
+              <Chart stats={stats} transactionStats={transactionStats} />
               {!firstEvent && <NoEvents />}
             </ChartContainer>
             <Deploys project={project} />
@@ -160,7 +165,7 @@ const StyledProjectCard = styled('div')`
 const LoadingCard = styled('div')`
   border: 1px solid transparent;
   background-color: ${p => p.theme.gray100};
-  height: 210px;
+  height: 265px;
 `;
 
 const StyledIdBadge = styled(IdBadge)`

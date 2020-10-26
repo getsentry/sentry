@@ -36,14 +36,7 @@ SEEN_COLUMN = "timestamp"
 BLACKLISTED_COLUMNS = frozenset(["project_id"])
 
 FUZZY_NUMERIC_KEYS = frozenset(
-    [
-        "error.handled",
-        "stack.colno",
-        "stack.in_app",
-        "stack.lineno",
-        "stack.stack_level",
-        "transaction.duration",
-    ]
+    ["stack.colno", "stack.in_app", "stack.lineno", "stack.stack_level", "transaction.duration"]
 )
 FUZZY_NUMERIC_DISTANCE = 50
 
@@ -707,8 +700,27 @@ class SnubaTagStorage(TagStorage):
         if snuba_key in {"event_id", "timestamp", "time"}:
             return SequencePaginator([])
 
-        conditions = []
+        # These columns have fixed values and we don't need to emit queries to find out the
+        # potential options.
+        if key in {"error.handled", "error.unhandled"}:
+            return SequencePaginator(
+                [
+                    (
+                        1,
+                        TagValue(
+                            key=key, value="true", times_seen=None, first_seen=None, last_seen=None
+                        ),
+                    ),
+                    (
+                        2,
+                        TagValue(
+                            key=key, value="false", times_seen=None, first_seen=None, last_seen=None
+                        ),
+                    ),
+                ]
+            )
 
+        conditions = []
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
         if include_transactions and transaction_status:
@@ -755,7 +767,7 @@ class SnubaTagStorage(TagStorage):
                 # and resolve it to the corresponding snuba query
                 dataset = Dataset.Discover
                 resolver = snuba.resolve_column(dataset)
-                snuba_name = deepcopy(FIELD_ALIASES[USER_DISPLAY_ALIAS]["fields"][0])
+                snuba_name = deepcopy(FIELD_ALIASES[USER_DISPLAY_ALIAS]["field"])
                 snuba.resolve_complex_column(snuba_name, resolver)
             elif snuba_name in BLACKLISTED_COLUMNS:
                 snuba_name = "tags[%s]" % (key,)

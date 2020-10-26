@@ -520,6 +520,49 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert [None] == response.data["data"][0]["error.handled"]
             assert [1] == response.data["data"][1]["error.handled"]
 
+    def test_error_unhandled_condition(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        prototype = load_data("android-ndk")
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "was handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
+            prototype["exception"]["values"][0]["value"] = event[1]
+            prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.two_min_ago
+            self.store_event(data=prototype, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.unhandled", "error.handled"],
+                "query": "error.unhandled:true",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 1 == len(response.data["data"])
+            assert [0] == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][0]["error.unhandled"]
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled", "error.unhandled"],
+                "query": "error.unhandled:false",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert [None] == response.data["data"][0]["error.handled"]
+            assert 0 == response.data["data"][0]["error.unhandled"]
+            assert [1] == response.data["data"][1]["error.handled"]
+            assert 0 == response.data["data"][1]["error.unhandled"]
+
     def test_implicit_groupby(self):
         project = self.create_project()
         self.store_event(
@@ -2476,6 +2519,62 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     response.data["detail"]
                     == "You can view up to 20 fields at a time. Please delete some and try again."
                 )
+
+    def test_percentile_function_meta_types(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "percentile(transaction.duration, 0.95)",
+                "percentile(measurements.fp, 0.95)",
+                "percentile(measurements.fcp, 0.95)",
+                "percentile(measurements.lcp, 0.95)",
+                "percentile(measurements.fid, 0.95)",
+                "percentile(measurements.ttfb, 0.95)",
+                "percentile(measurements.ttfb.requesttime, 0.95)",
+                "percentile(measurements.cls, 0.95)",
+                "percentile(measurements.foo, 0.95)",
+                "percentile(measurements.bar, 0.95)",
+            ],
+            "query": "",
+            "orderby": ["transaction"],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["percentile_transaction_duration_0_95"] == "duration"
+        assert meta["percentile_measurements_fp_0_95"] == "duration"
+        assert meta["percentile_measurements_fcp_0_95"] == "duration"
+        assert meta["percentile_measurements_lcp_0_95"] == "duration"
+        assert meta["percentile_measurements_fid_0_95"] == "duration"
+        assert meta["percentile_measurements_ttfb_0_95"] == "duration"
+        assert meta["percentile_measurements_ttfb_requesttime_0_95"] == "duration"
+        assert meta["percentile_measurements_cls_0_95"] == "number"
+        assert meta["percentile_measurements_foo_0_95"] == "number"
+        assert meta["percentile_measurements_bar_0_95"] == "number"
+
+    def test_count_at_least_query(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(0)})
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_at_least_measurements_fcp_0"] == 1
+
+        # a value that's a little bigger than the stored fcp
+        fcp = int(self.transaction_data["measurements"]["fcp"]["value"] + 1)
+        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(fcp)})
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_at_least_measurements_fcp_{}".format(fcp)] == 0
 
     def test_measurements_query(self):
         self.store_event(self.transaction_data, self.project.id)
