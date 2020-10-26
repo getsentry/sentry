@@ -846,6 +846,8 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
+    # Enable new GUI filters in the metric alert rule builder
+    "organizations:metric-alert-gui-filters": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
