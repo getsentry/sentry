@@ -94,7 +94,8 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
         if serializer.is_valid():
             repository_project_path_config = serializer.save()
             return self.respond(
-                serialize(repository_project_path_config, request.user), status=status.HTTP_200_OK
+                serialize(repository_project_path_config, request.user),
+                status=status.HTTP_201_CREATED,
             )
 
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -37,7 +37,7 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
               <ProjectRepoHolder>
                 <RepoName>{pathConfig.repoName}</RepoName>
                 <ProjectAndBranch>
-                  <StyledIdBadge
+                  <IdBadge
                     project={project}
                     avatarSize={14}
                     displayName={project.slug}
@@ -82,8 +82,6 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
     );
   }
 }
-
-const StyledIdBadge = styled(IdBadge)``;
 
 const ProjectRepoHolder = styled('div')`
   display: flex;

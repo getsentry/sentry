@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Observer} from 'mobx-react';
 
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
@@ -96,7 +95,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
         apiEndpoint={endpoint}
         apiMethod={apiMethod}
       >
-        <Observer>{() => <JsonForm forms={[this.formFields]} />}</Observer>
+        <JsonForm forms={[this.formFields]} />
       </StyledForm>
     );
   }

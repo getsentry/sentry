@@ -77,8 +77,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   };
 
   get tab() {
-    return this.state.tab || 'codeMappings';
-    // return this.state.tab || 'repos';
+    return this.state.tab || 'repos';
   }
 
   onUpdateIntegration = () => {
