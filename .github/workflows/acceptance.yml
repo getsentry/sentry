@@ -23,6 +23,14 @@ jobs:
       VISUAL_HTML_ENABLE: 1
     steps:
       - uses: actions/checkout@v2
+        name: Checkout ${{github.event.pull_request.head.repo.full_name}} --> ${{github.event.pull_request.head.ref}}
+        if: github.event.pull_request.head.ref != ''
+        with:
+          ref: ${{github.event.pull_request.head.ref}}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
+
+      - uses: actions/checkout@v2
+        if: github.event.pull_request.head.ref == ''
 
       - uses: volta-cli/action@v1
 
@@ -82,6 +90,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        name: Checkout ${{github.event.pull_request.head.repo.full_name}} --> ${{github.event.pull_request.head.ref}}
+        if: github.event.pull_request.head.ref != ''
+        with:
+          ref: ${{github.event.pull_request.head.ref}}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
+
+      - uses: actions/checkout@v2
+        if: github.event.pull_request.head.ref == ''
 
       - uses: volta-cli/action@v1
 
