@@ -464,6 +464,39 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[1]["transaction"] == "c" * 32
         assert data[1]["count"] == 3
 
+    def test_access_to_private_functions(self):
+        # using private functions directly without access should error
+        with pytest.raises(InvalidSearchQuery, match="array_join: no access to private function"):
+            discover.query(
+                selected_columns=["array_join(tags.key)"],
+                query="",
+                params={"project_id": [self.project.id]},
+            )
+
+        # using private functions in an aggregation without access should error
+        with pytest.raises(
+            InvalidSearchQuery, match="measurements_histogram: no access to private function"
+        ):
+            discover.query(
+                selected_columns=["measurements_histogram(1,0,1)"],
+                query="measurements_histogram(1,0,1):>0",
+                params={"project_id": [self.project.id]},
+                use_aggregate_conditions=True,
+            )
+
+        # using private functions in an aggregation without access should error
+        # with auto aggregation on
+        with pytest.raises(
+            InvalidSearchQuery, match="measurements_histogram: no access to private function"
+        ):
+            discover.query(
+                selected_columns=["count()"],
+                query="measurements_histogram(1,0,1):>0",
+                params={"project_id": [self.project.id]},
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            )
+
 
 class QueryTransformTest(TestCase):
     """
