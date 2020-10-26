@@ -31,10 +31,11 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return self.org_integration.organization_id
 
     def validate(self, attrs):
-        # TODO: Needs to be updated for update since the row already exists
         query = RepositoryProjectPathConfig.objects.filter(
             project_id=attrs.get("project_id"), stack_root=attrs.get("stack_root")
         )
+        if self.instance:
+            query = query.exclude(id=self.instance.id)
         if query.exists():
             raise serializers.ValidationError(
                 "Code path config already exists with this project and stack root"
@@ -63,6 +64,13 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return RepositoryProjectPathConfig.objects.create(
             organization_integration=self.org_integration, **validated_data
         )
+
+    def update(self, instance, validated_data):
+        if "id" in validated_data:
+            validated_data.pop("id")
+        for key, value in validated_data.items():
+            setattr(self.instance, key, value)
+        return self.instance.save()
 
 
 class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(

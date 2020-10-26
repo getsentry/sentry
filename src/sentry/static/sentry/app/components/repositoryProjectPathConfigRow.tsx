@@ -15,6 +15,7 @@ import IdBadge from 'app/components/idBadge';
 type Props = {
   pathConfig: RepositoryProjectPathConfig;
   project: Project;
+  onEdit: (pathConfig: RepositoryProjectPathConfig) => void;
 };
 
 export default class RepositoryProjectPathConfigRow extends React.Component<Props> {
@@ -25,8 +26,7 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
   };
 
   render() {
-    // TODO: Improve UI
-    const {pathConfig, project} = this.props;
+    const {pathConfig, project, onEdit} = this.props;
 
     return (
       <Access access={['org:integrations']}>
@@ -60,6 +60,7 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
                   icon={<IconEdit size="sm" />}
                   label={t('edit')}
                   disabled={!hasAccess}
+                  onClick={() => onEdit(pathConfig)}
                 />
                 <Confirm
                   disabled={!hasAccess}
