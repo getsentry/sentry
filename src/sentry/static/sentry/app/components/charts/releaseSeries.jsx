@@ -18,6 +18,7 @@ import {formatVersion} from 'app/utils/formatters';
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
 async function getOrganizationReleases(api, organization, conditions = null) {
+  // chartOnly will only have version and timestamp
   const query = {chartOnly: 1};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
@@ -29,29 +30,11 @@ async function getOrganizationReleases(api, organization, conditions = null) {
     }
   });
   api.clear();
-  let hasMore = true;
-  const results = [];
-  while (hasMore) {
-    const [newResults, , xhr] = await api.requestPromise(
-      `/organizations/${organization.slug}/releases/`,
-      {
-        includeAllArgs: true,
-        method: 'GET',
-        query,
-      }
-    );
-    results.push(...newResults);
-
-    const pageLinks = xhr && xhr.getResponseHeader('Link');
-    if (pageLinks) {
-      const paginationObject = parseLinkHeader(pageLinks);
-      hasMore = paginationObject && paginationObject.next.results;
-      query.cursor = paginationObject.next.cursor;
-    } else {
-      hasMore = false;
-    }
-  }
-  return results;
+  return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
+    includeAllArgs: true,
+    method: 'GET',
+    query,
+  });
 }
 
 class ReleaseSeries extends React.Component {
@@ -106,7 +89,7 @@ class ReleaseSeries extends React.Component {
     this.props.api.clear();
   }
 
-  fetchData() {
+  async fetchData() {
     const {api, organization, projects, environments, period, start, end} = this.props;
     const conditions = {
       start,
@@ -115,15 +98,33 @@ class ReleaseSeries extends React.Component {
       environment: environments,
       statsPeriod: period,
     };
-    getOrganizationReleases(api, organization, conditions)
-      .then(releases => {
+    let hasMore = true;
+    const releases = [];
+    while (hasMore) {
+      try {
+        const [newReleases, , xhr] = await getOrganizationReleases(
+          api,
+          organization,
+          conditions
+        );
+        releases.push(...newReleases);
         if (this._isMounted) {
           this.setReleasesWithSeries(releases);
         }
-      })
-      .catch(() => {
+
+        const pageLinks = xhr && xhr.getResponseHeader('Link');
+        if (pageLinks) {
+          const paginationObject = parseLinkHeader(pageLinks);
+          hasMore = paginationObject && paginationObject.next.results;
+          conditions.cursor = paginationObject.next.cursor;
+        } else {
+          hasMore = false;
+        }
+      } catch {
         addErrorMessage(t('Error fetching releases'));
-      });
+        hasMore = false;
+      }
+    }
   }
 
   setReleasesWithSeries(releases) {
