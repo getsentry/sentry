@@ -212,7 +212,7 @@ ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 USER_DISPLAY_ALIAS = "user.display"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
-KEY_TRANSACTION_ALIAS = "key.transaction"
+KEY_TRANSACTION_ALIAS = "key_transaction"
 
 
 class InvalidSearchQuery(Exception):
@@ -873,14 +873,14 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         key_transaction_expr = FIELD_ALIASES[KEY_TRANSACTION_ALIAS].get_expression(params)
 
         if search_filter.value.raw_value == "":
-            operator = ">" if search_filter.operator == "!=" else "="
+            operator = "!=" if search_filter.operator == "!=" else "="
             return [key_transaction_expr, operator, 0]
         if value in ("1", 1):
-            return [key_transaction_expr, ">", 0]
+            return [key_transaction_expr, "!=", 0]
         if value in ("0", 0):
             return [key_transaction_expr, "=", 0]
         raise InvalidSearchQuery(
-            "Invalid value for key.transaction condition. Accepted values are 1, 0"
+            "Invalid value for key_transaction condition. Accepted values are 1, 0"
         )
     else:
         value = (
@@ -1311,31 +1311,57 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     if user_id is None or organization_id is None or project_ids is None:
         raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
 
+    """
+    The key transaction expression results in a numeric value. It will give zero if it
+    was NOT a key transaction, and non-zero if it was a key transaction.
+
+    In order to have a sensible sort, we choose to use negative values to number them.
+    This is because when sorting by key transactions in an ascending order, we want to
+    see key transactions start at the top of the list in lexicographical order. By
+    labelling them with negative numbers, we can accomplish having key transactions
+    appear before non key transactions.
+
+    Furthermore, we pre-sort the key transactions in descending order by their name
+    (and project id to break ties) because we want the transaction that should appear
+    first to be last in the array. This allows us to multiply it by -1 to create the
+    desired sort.
+    """
+
     key_transactions = (
         KeyTransaction.objects.filter(
             owner__id=user_id, organization__id=organization_id, project__id__in=project_ids,
         )
-        .order_by("transaction", "project__id")
+        .order_by("-transaction", "-project__id")
         .values("project__id", "transaction")
     )
 
+    # if there are no key transactions, the value should always be 0
+    if not len(key_transactions):
+        return ["toInt64", [0]]
+
     return [
-        "indexOf",
+        "multiply",
         [
             [
-                "array",
+                "indexOf",
                 [
                     [
-                        "tuple",
+                        "array",
                         [
-                            ["toUInt64", [transaction["project__id"]]],
-                            "'{}'".format(transaction["transaction"]),
+                            [
+                                "tuple",
+                                [
+                                    ["toUInt64", [transaction["project__id"]]],
+                                    "'{}'".format(transaction["transaction"]),
+                                ],
+                            ]
+                            for transaction in key_transactions
                         ],
-                    ]
-                    for transaction in key_transactions
+                    ],
+                    ["tuple", ["project_id", "transaction"]],
                 ],
             ],
-            ["tuple", ["project_id", "transaction"]],
+            -1,
         ],
     ]
 
@@ -1359,10 +1385,13 @@ FIELD_ALIASES = {
         PseudoField(
             KEY_TRANSACTION_ALIAS,
             KEY_TRANSACTION_ALIAS,
-            expression_fn=lambda params: key_transaction_expression(
-                params.get("user_id"),
-                params.get("organization_id"),
-                tuple(params.get("project_id", [])),
+            # the result is cached, but may be mutated by the caller, so we deepcopy it here
+            expression_fn=lambda params: deepcopy(
+                key_transaction_expression(
+                    params.get("user_id"),
+                    params.get("organization_id"),
+                    tuple(params.get("project_id", [])),
+                )
             ),
         ),
     ]
