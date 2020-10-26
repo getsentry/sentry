@@ -11,7 +11,6 @@ on:
     branches:
       - master
       - releases/**
-  pull_request:
   pull_request_target:
 
 jobs:
