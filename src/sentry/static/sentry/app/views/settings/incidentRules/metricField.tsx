@@ -97,7 +97,7 @@ const MetricField = ({organization, ...props}: Props) => (
 
       const selectedField = fieldOptions[fieldKey]?.value;
       const numParameters: number =
-        selectedField && selectedField.kind === FieldValueKind.FUNCTION
+        selectedField?.kind === FieldValueKind.FUNCTION
           ? selectedField.meta.parameters.length
           : 0;
 
