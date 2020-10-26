@@ -26,6 +26,7 @@ jobs:
         if: ${{ github.event.pull_request.head.ref == "" }}
 
       - uses: actions/checkout@v2
+        name: Checkout ${{github.event.pull_request.head.repo.full_name}} --> ${{github.event.pull_request.head.ref}}
         if: ${{ github.event.pull_request.head.ref != "" }}
         with:
           ref: ${{github.event.pull_request.head.ref}}
@@ -90,6 +91,7 @@ jobs:
         if: ${{ github.event.pull_request.head.ref == "" }}
 
       - uses: actions/checkout@v2
+        name: Checkout ${{github.event.pull_request.head.repo.full_name}} --> ${{github.event.pull_request.head.ref}}
         if: ${{ github.event.pull_request.head.ref != "" }}
         with:
           ref: ${{github.event.pull_request.head.ref}}
