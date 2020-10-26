@@ -34,22 +34,26 @@ const getFieldOptionConfig = (dataset: Dataset, organization: Organization) => {
   const aggregations = Object.fromEntries(
     config.aggregations.map(key => [key, AGGREGATIONS[key]])
   );
+
+  const hasMeasurementsFeature = organization.features.includes('measurements');
+
   const fields = Object.fromEntries(
-    config.fields.map(key => {
-      // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
-      // tags[sentry:user].
-      if (key === 'user') {
-        return ['tags[sentry:user]', 'string'];
-      }
-
-      if (organization.features.includes('measurements')) {
+    config.fields
+      .filter(key => {
         if (key.startsWith('measurements.')) {
-          return [key, measurementType(key)];
+          return hasMeasurementsFeature;
         }
-      }
+        return true;
+      })
+      .map(key => {
+        // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
+        // tags[sentry:user].
+        if (key === 'user') {
+          return ['tags[sentry:user]', 'string'];
+        }
 
-      return [key, FIELDS[key]];
-    })
+        return [key, FIELDS[key]];
+      })
   );
 
   return {aggregations, fields};
