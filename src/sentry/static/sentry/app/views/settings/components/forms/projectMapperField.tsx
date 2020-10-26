@@ -47,7 +47,7 @@ export class RenderField extends React.Component<RenderProps, State> {
       value: incomingValues,
       sentryProjects,
       mappedDropdown: {items: mappedDropdownItems, placeholder: mappedValuePlaceholder},
-      nextButton: {text: nextButtonText},
+      nextButton: {text: nextButtonText, allowedDomain},
       iconType,
       model,
       id: formElementId,
@@ -55,7 +55,13 @@ export class RenderField extends React.Component<RenderProps, State> {
     } = this.props;
     const existingValues: Array<[number, MappedValue]> = incomingValues || [];
     const nextUrlOrArray = safeGetQsParam('next');
-    const nextUrl = Array.isArray(nextUrlOrArray) ? nextUrlOrArray[0] : nextUrlOrArray;
+    let nextUrl = Array.isArray(nextUrlOrArray) ? nextUrlOrArray[0] : nextUrlOrArray;
+
+    if (nextUrl && !nextUrl.startsWith(allowedDomain)) {
+      // eslint-disable-next-line no-console
+      console.warn(`Got unexpected next url: ${nextUrl}`);
+      nextUrl = undefined;
+    }
 
     const {selectedSentryProjectId, selectedMappedValue} = this.state;
 

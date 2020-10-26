@@ -148,6 +148,7 @@ export type ProjectMapperType = {
   sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   nextButton: {
     text: string; //url comes from the `next` parameter in the QS
+    allowedDomain: string;
   };
   iconType: string;
 };
