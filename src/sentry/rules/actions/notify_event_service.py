@@ -177,11 +177,14 @@ class NotifyEventServiceAction(EventAction):
 
         return results
 
-    # TODO MARCOS FIRST should
     def get_services(self):
-        services = self.get_plugins()
-        services += self.get_sentry_app_services()
-        return services
+        """
+        Get the list of installed plugins and alertable Sentry Apps that
+        populate the available actions dropdown.
+
+        :return: A list of Plugins and Sentry Apps.
+        """
+        return self.get_plugins() + self.get_sentry_app_services()
 
     def get_form_instance(self):
         return self.form_cls(self.data, services=self.get_services())

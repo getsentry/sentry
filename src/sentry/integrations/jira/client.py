@@ -161,6 +161,13 @@ class JiraApiClient(ApiClient):
         return ""
 
     def get_create_meta_for_project(self, project):
+        """
+        Note: Instead of returning a 401 when not authed, the API happily returns
+        a 200 with an empty projects list.
+
+        :param project: String. TODO
+        :return:
+        """
         params = {"expand": "projects.issuetypes.fields", "projectIds": project}
         metas = self.get_cached(self.META_URL, params=params)
         # We saw an empty JSON response come back from the API :(
