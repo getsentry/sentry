@@ -1401,7 +1401,7 @@ class FunctionArg(object):
     def get_default(self, params):
         raise InvalidFunctionArgument(u"{} has no defaults".format(self.name))
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         return value
 
     def get_type(self, value):
@@ -1422,7 +1422,7 @@ class NullColumn(FunctionArg):
     def get_default(self, params):
         return None
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         return None
 
 
@@ -1434,7 +1434,7 @@ class CountColumn(FunctionArg):
     def get_default(self, params):
         return None
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         if value is None:
             raise InvalidFunctionArgument("a column is required")
 
@@ -1445,8 +1445,9 @@ class CountColumn(FunctionArg):
 
         # If the alias has an expression prefer that over the column alias
         # This enables user.display to work in aggregates
-        if field.expression is not None:
-            return field.expression
+        expression = field.get_expression(params)
+        if expression is not None:
+            return expression
         elif field.alias is not None:
             return field.alias
         return value
@@ -1455,7 +1456,7 @@ class CountColumn(FunctionArg):
 class DateArg(FunctionArg):
     date_format = "%Y-%m-%dT%H:%M:%S"
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         try:
             datetime.strptime(value, self.date_format)
         except ValueError:
@@ -1479,7 +1480,7 @@ class NumericColumn(FunctionArg):
             raise InvalidFunctionArgument(u"{} is not a numeric column".format(value))
         return snuba_column
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         return self._normalize(value)
 
     def get_type(self, value):
@@ -1494,13 +1495,13 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
-    def normalize(self, value):
-        super(NumericColumnNoLookup, self).normalize(value)
+    def normalize(self, value, params):
+        super(NumericColumnNoLookup, self).normalize(value, params)
         return value
 
 
 class DurationColumn(FunctionArg):
-    def normalize(self, value):
+    def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_duration_measurement(value):
             return value
@@ -1512,13 +1513,13 @@ class DurationColumn(FunctionArg):
 
 
 class DurationColumnNoLookup(DurationColumn):
-    def normalize(self, value):
-        super(DurationColumnNoLookup, self).normalize(value)
+    def normalize(self, value, params):
+        super(DurationColumnNoLookup, self).normalize(value, params)
         return value
 
 
 class StringArrayColumn(FunctionArg):
-    def normalize(self, value):
+    def normalize(self, value, params):
         if value in ["tags.key", "tags.value", "measurements_key"]:
             return value
         raise InvalidFunctionArgument(u"{} is not a valid string array column".format(value))
@@ -1530,7 +1531,7 @@ class NumberRange(FunctionArg):
         self.start = start
         self.end = end
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         try:
             value = float(value)
         except ValueError:
@@ -1661,7 +1662,7 @@ class Function(object):
         # normalize the arguments before putting them in a dict
         for argument, column in zip(self.args, columns):
             try:
-                arguments[argument.name] = argument.normalize(column)
+                arguments[argument.name] = argument.normalize(column, params)
             except InvalidFunctionArgument as e:
                 raise InvalidSearchQuery(
                     u"{}: {} argument invalid: {}".format(field, argument.name, e)
