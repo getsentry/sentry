@@ -17,6 +17,7 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupHash,
+    GroupInbox,
     GroupLink,
     GroupSeen,
     GroupShare,
@@ -1603,6 +1604,21 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
         self.get_valid_response(sort_by="date", limit=1, status_code=429)
+
+    def test_set_inbox(self):
+        group1 = self.create_group(checksum="a" * 32)
+        group2 = self.create_group(checksum="b" * 32)
+
+        self.login_as(user=self.user)
+        response = self.get_valid_response(qs_params={"id": [group1.id, group2.id]}, inbox="true")
+        assert response.data == {"inbox": True}
+        assert GroupInbox.objects.filter(group=group1).exists()
+        assert GroupInbox.objects.filter(group=group2).exists()
+
+        response = self.get_valid_response(qs_params={"id": [group2.id]}, inbox="false")
+        assert response.data == {"inbox": False}
+        assert GroupInbox.objects.filter(group=group1).exists()
+        assert not GroupInbox.objects.filter(group=group2).exists()
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):

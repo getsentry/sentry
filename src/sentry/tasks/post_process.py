@@ -150,7 +150,13 @@ def post_process_group(
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import Project, Organization, EventDict
+        from sentry.models import (
+            Project,
+            Organization,
+            EventDict,
+            GroupInboxReason,
+        )
+        from sentry.models.groupinbox import add_group_to_inbox
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
@@ -179,6 +185,11 @@ def post_process_group(
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
             has_reappeared = False if is_new else process_snoozes(event.group)
+            if not has_reappeared:  # If true, we added the .UNIGNORED reason already
+                if is_new:
+                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
+                elif is_regression:
+                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
             handle_owner_assignment(event.project, event.group, event)
 
@@ -243,7 +254,12 @@ def process_snoozes(group):
     Return True if the group is transitioning from "resolved" to "unresolved",
     otherwise return False.
     """
-    from sentry.models import GroupSnooze, GroupStatus
+    from sentry.models import (
+        GroupSnooze,
+        GroupStatus,
+        GroupInboxReason,
+        add_group_to_inbox,
+    )
 
     key = GroupSnooze.get_cache_key(group.id)
     snooze = cache.get(key)
@@ -258,6 +274,14 @@ def process_snoozes(group):
         return False
 
     if not snooze.is_valid(group, test_rates=True):
+        snooze_details = {
+            "until": snooze.until,
+            "count": snooze.count,
+            "window": snooze.window,
+            "user_count": snooze.user_count,
+            "user_window": snooze.user_window,
+        }
+        add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
         issue_unignored.send_robust(
