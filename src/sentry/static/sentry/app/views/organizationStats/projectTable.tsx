@@ -1,6 +1,5 @@
-import {Link} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -8,24 +7,32 @@ import {
   ProjectTableDataElement,
 } from 'app/views/organizationStats/projectTableLayout';
 import Count from 'app/components/count';
+import {formatPercentage} from 'app/utils/formatters';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 
-const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
-  const getPercent = (item, total) => {
+import {ProjectTotal} from './types';
+
+type Props = {
+  organization: Organization;
+  projectMap: Record<string, Project>;
+  projectTotals: ProjectTotal[];
+  orgTotal: ProjectTotal & {avgRate: number};
+};
+
+const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}: Props) => {
+  const getPercent = (item: number, total: number): string => {
     if (total === 0) {
       return '';
     }
-    if (item === 0) {
-      return '0%';
-    }
-    return parseInt((item / total) * 100, 10) + '%';
+    return formatPercentage(item / total, 0);
   };
 
   if (!projectTotals) {
-    return <div />;
+    return null;
   }
 
-  return projectTotals
+  const elements = projectTotals
     .sort((a, b) => b.received - a.received)
     .map((item, index) => {
       const project = projectMap[item.id];
@@ -60,13 +67,7 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
         </StyledProjectTableLayout>
       );
     });
-};
-
-ProjectTable.propTypes = {
-  projectMap: PropTypes.object.isRequired,
-  projectTotals: PropTypes.array.isRequired,
-  orgTotal: PropTypes.object.isRequired,
-  organization: PropTypes.object.isRequired,
+  return <React.Fragment>{elements}</React.Fragment>;
 };
 
 const StyledProjectTitle = styled(ProjectTableDataElement)`
@@ -83,9 +84,14 @@ const StyledProjectTableLayout = styled(ProjectTableLayout)`
   }
 `;
 
-const Percentage = styled(
-  ({children, ...props}) => children !== '' && <div {...props}>{children}</div>
-)`
+type PercentageProps = React.HTMLProps<HTMLDivElement>;
+
+const Percentage = styled(({children, ...props}: PercentageProps) => {
+  if (children === '') {
+    return null;
+  }
+  return <div {...props}>{children}</div>;
+})`
   margin-top: ${space(0.25)};
   color: ${p => p.theme.gray500};
   font-size: 12px;

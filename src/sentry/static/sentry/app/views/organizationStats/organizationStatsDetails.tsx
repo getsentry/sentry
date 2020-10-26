@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -17,22 +16,27 @@ import {
 } from 'app/views/organizationStats/projectTableLayout';
 import {PageContent} from 'app/styles/organization';
 import PerformanceAlert from 'app/views/organizationStats/performanceAlert';
+import {Project, Organization} from 'app/types';
 
-class OrganizationStats extends React.Component {
-  static propTypes = {
-    statsLoading: PropTypes.bool,
-    projectsLoading: PropTypes.bool,
-    orgTotal: PropTypes.object,
-    statsError: PropTypes.oneOfType([PropTypes.bool, PropTypes.object]),
-    orgStats: PropTypes.array,
-    projectTotals: PropTypes.array,
-    projectMap: PropTypes.object,
-    projectsError: PropTypes.oneOfType([PropTypes.bool, PropTypes.object]),
-    pageLinks: PropTypes.string,
-    organization: PropTypes.object,
-  };
+import {ProjectTotal} from './types';
 
-  renderTooltip(point, _pointIdx, chart) {
+type Point = {x: number; y: number[]};
+
+type Props = {
+  organization: Organization;
+  statsLoading: boolean;
+  projectsLoading: boolean;
+  orgTotal: ProjectTotal & {avgRate: number};
+  statsError: null | Error;
+  orgStats: Point[];
+  projectMap: Record<string, Project>;
+  projectTotals: ProjectTotal[];
+  projectsError: null | Error;
+  pageLinks: string;
+};
+
+class OrganizationStats extends React.Component<Props> {
+  renderTooltip(point: Point, _pointIdx, chart) {
     const timeLabel = chart.getTimeLabel(point);
     const [accepted, rejected, blacklisted] = point.y;
 
@@ -68,7 +72,6 @@ class OrganizationStats extends React.Component {
       projectTotals,
       projectMap,
       projectsError,
-      pageLinks,
       organization,
     } = this.props;
 
@@ -100,7 +103,7 @@ class OrganizationStats extends React.Component {
           {statsLoading ? (
             <LoadingIndicator />
           ) : statsError ? (
-            <LoadingError onRetry={this.fetchData} />
+            <LoadingError />
           ) : (
             <Panel className="bar-chart">
               <StackedBarChart
@@ -131,7 +134,7 @@ class OrganizationStats extends React.Component {
             {statsLoading || projectsLoading ? (
               <LoadingIndicator />
             ) : projectsError ? (
-              <LoadingError onRetry={this.fetchData} />
+              <LoadingError />
             ) : (
               <ProjectTable
                 projectTotals={projectTotals}
@@ -142,17 +145,13 @@ class OrganizationStats extends React.Component {
             )}
           </PanelBody>
         </Panel>
-        {pageLinks && <Pagination pageLinks={pageLinks} {...this.props} />}
+        {this.props.pageLinks && <Pagination {...this.props} />}
       </div>
     );
   }
 
   render() {
-    return (
-      <React.Fragment>
-        <PageContent>{this.renderContent()}</PageContent>
-      </React.Fragment>
-    );
+    return <PageContent>{this.renderContent()}</PageContent>;
   }
 }
 
