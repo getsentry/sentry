@@ -17,7 +17,6 @@ import {
   generateFieldAsString,
   AGGREGATIONS,
   FIELDS,
-  measurementType,
 } from 'app/utils/discover/fields';
 
 import {errorFieldConfig, transactionFieldConfig} from './constants';
@@ -35,28 +34,23 @@ const getFieldOptionConfig = (dataset: Dataset, organization: Organization) => {
     config.aggregations.map(key => [key, AGGREGATIONS[key]])
   );
 
-  const hasMeasurementsFeature = organization.features.includes('measurements');
-
   const fields = Object.fromEntries(
-    config.fields
-      .filter(key => {
-        if (key.startsWith('measurements.')) {
-          return hasMeasurementsFeature;
-        }
-        return true;
-      })
-      .map(key => {
-        // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
-        // tags[sentry:user].
-        if (key === 'user') {
-          return ['tags[sentry:user]', 'string'];
-        }
+    config.fields.map(key => {
+      // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
+      // tags[sentry:user].
+      if (key === 'user') {
+        return ['tags[sentry:user]', 'string'];
+      }
 
-        return [key, FIELDS[key]];
-      })
+      return [key, FIELDS[key]];
+    })
   );
 
-  return {aggregations, fields};
+  const measurementKeys = organization.features.includes('measurements')
+    ? config.measurementKeys
+    : undefined;
+
+  return {aggregations, fields, measurementKeys};
 };
 
 const help = ({name, model}: {name: string; model: FormModel}) => {
@@ -102,10 +96,10 @@ const MetricField = ({organization, ...props}: Props) => (
           : '';
 
       const selectedField = fieldOptions[fieldKey]?.value;
-      const numParameters =
-        selectedField &&
-        selectedField.kind === FieldValueKind.FUNCTION &&
-        selectedField.meta.parameters.length;
+      const numParameters: number =
+        selectedField && selectedField.kind === FieldValueKind.FUNCTION
+          ? selectedField.meta.parameters.length
+          : 0;
 
       return (
         <React.Fragment>
