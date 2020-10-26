@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from uuid import uuid4
 
 from django.apps import apps
-from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
