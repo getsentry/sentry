@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from uuid import uuid4
 
 from django.apps import apps
-from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -12,9 +11,8 @@ from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 
-# in prod we run with infinite retries to recover from errors
-# in debug/development, we assume these tasks generally shouldn't fail
-MAX_RETRIES = 1 if settings.DEBUG else 5
+
+MAX_RETRIES = 5
 
 
 @instrumented_task(name="sentry.tasks.deletion.run_scheduled_deletions", queue="cleanup")
