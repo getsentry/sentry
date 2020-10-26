@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    paths:
-      - '**.[tj]sx?'
-      - package.json
-      - yarn.lock
   pull_request_target:
     paths:
       - '**.[tj]sx?'
