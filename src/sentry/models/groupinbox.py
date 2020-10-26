@@ -12,6 +12,7 @@ class GroupInboxReason(Enum):
     NEW = 0
     UNIGNORED = 1
     REGRESSION = 2
+    MANUAL = 3
 
 
 class GroupInbox(Model):
