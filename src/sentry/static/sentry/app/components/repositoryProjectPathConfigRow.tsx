@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {Repository, RepositoryProjectPathConfig, Project} from 'app/types';
+import {RepositoryProjectPathConfig, Project} from 'app/types';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
@@ -14,7 +14,6 @@ import IdBadge from 'app/components/idBadge';
 
 type Props = {
   pathConfig: RepositoryProjectPathConfig;
-  repo: Repository; //TODO: remove
   project: Project;
 };
 

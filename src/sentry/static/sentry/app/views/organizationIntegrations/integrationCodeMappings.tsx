@@ -55,6 +55,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   get pathConfigs() {
+    // we want to sort by the project slug and the
+    // id of the config
     return sortBy(this.state.pathConfigs, [
       ({projectSlug}) => projectSlug,
       ({id}) => parseInt(id, 10),
@@ -78,10 +80,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     ];
   }
 
-  getMatchingRepo(pathConfig: RepositoryProjectPathConfig) {
-    return this.state.repos.find(repo => repo.id === pathConfig.repoId);
-  }
-
   getMatchingProject(pathConfig: RepositoryProjectPathConfig) {
     return this.projects.find(project => project.id === pathConfig.projectId);
   }
@@ -100,6 +98,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
     let {pathConfigs} = this.state;
+    // our getter handles the order of the configs
     pathConfigs = pathConfigs.concat([pathConfig]);
     this.setState({pathConfigs});
     this.closeModal();
@@ -134,11 +133,10 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
             )}
             {pathConfigs
               .map(pathConfig => {
-                const repo = this.getMatchingRepo(pathConfig);
                 const project = this.getMatchingProject(pathConfig);
                 // this should never happen since our pathConfig would be deleted
-                // if the repo or project were deleted
-                if (!repo || !project) {
+                // if project was deleted
+                if (!project) {
                   return null;
                 }
                 return (
@@ -146,7 +144,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                     <Layout>
                       <RepositoryProjectPathConfigRow
                         pathConfig={pathConfig}
-                        repo={repo}
                         project={project}
                       />
                     </Layout>
