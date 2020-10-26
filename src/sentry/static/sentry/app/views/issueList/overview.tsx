@@ -454,14 +454,14 @@ class IssueListOverview extends React.Component<Props, State> {
     this._streamManager.unshift(data);
   };
 
-  listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined);
+  listener = GroupStore.listen(() => this.onGroupChange(), undefined);
 
-  onGroupChange = (itemIds: Set<string>) => {
-    const groupIds = [...itemIds];
+  onGroupChange() {
+    const groupIds = this._streamManager.getAllItems().map(item => item.id);
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
     }
-  };
+  }
 
   onIssueListSidebarSearch = (query: string) => {
     analytics('search.searched', {
