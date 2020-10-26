@@ -4,7 +4,7 @@ import CHART_PALETTE from 'app/constants/chartPalette';
 
 const colors = {
   white: 'purple',
-  black: '#1D1127',
+  black: '#fff',
 
   gray100: '#FAF9FB',
   gray200: '#F2F0F5',
