@@ -3,7 +3,11 @@ import styled from '@emotion/styled';
 
 import {SentryTransactionEvent} from 'app/types';
 import {defined} from 'app/utils';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {
+  WEB_VITAL_ACRONYMS,
+  LONG_WEB_VITAL_NAMES,
+} from 'app/views/performance/transactionVitals/constants';
+import Tooltip from 'app/components/tooltip';
 
 import {
   getMeasurements,
@@ -13,12 +17,6 @@ import {
   SpanGeneratedBoundsType,
 } from './utils';
 import * as MeasurementsManager from './measurementsManager';
-
-const MEASUREMENT_ACRONYMS = Object.fromEntries(
-  Object.values(WEB_VITAL_DETAILS).map(value => {
-    return [value.slug, value.acronym];
-  })
-);
 
 type Props = {
   event: SentryTransactionEvent;
@@ -49,9 +47,19 @@ class MeasurementsPanel extends React.PureComponent<Props> {
 
           const hoverMeasurementName = names.join('');
 
-          names = names.map(name => MEASUREMENT_ACRONYMS[name]);
-          const last = names.pop() as string;
-          const label = names.length ? `${names.join(', ')} & ${last}` : last;
+          // generate vertical marker label
+          const acronyms = names.map(name => WEB_VITAL_ACRONYMS[name]);
+          const lastAcronym = acronyms.pop() as string;
+          const label = acronyms.length
+            ? `${acronyms.join(', ')} & ${lastAcronym}`
+            : lastAcronym;
+
+          // generate tooltip labe;l
+          const longNames = names.map(name => LONG_WEB_VITAL_NAMES[name]);
+          const lastName = longNames.pop() as string;
+          const tooltipLabel = longNames.length
+            ? `${longNames.join(', ')} & ${lastName}`
+            : lastName;
 
           return (
             <MeasurementsManager.Consumer key={String(timestamp)}>
@@ -60,6 +68,7 @@ class MeasurementsPanel extends React.PureComponent<Props> {
                   <LabelContainer
                     key={label}
                     label={label}
+                    tooltipLabel={tooltipLabel}
                     left={toPercent(bounds.left || 0)}
                     onMouseLeave={() => {
                       notHovering();
@@ -102,6 +111,7 @@ export default MeasurementsPanel;
 type LabelContainerProps = {
   left: string;
   label: string;
+  tooltipLabel: string;
   onMouseLeave: () => void;
   onMouseOver: () => void;
 };
@@ -128,7 +138,7 @@ class LabelContainer extends React.Component<LabelContainerProps> {
   elementDOMRef = React.createRef<HTMLDivElement>();
 
   render() {
-    const {left, onMouseLeave, onMouseOver, label} = this.props;
+    const {left, onMouseLeave, onMouseOver, label, tooltipLabel} = this.props;
 
     return (
       <StyledLabelContainer
@@ -143,7 +153,15 @@ class LabelContainer extends React.Component<LabelContainerProps> {
           onMouseOver();
         }}
       >
-        <Label>{label}</Label>
+        <Label>
+          <Tooltip
+            title={tooltipLabel}
+            position="top"
+            containerDisplayMode="inline-block"
+          >
+            {label}
+          </Tooltip>
+        </Label>
       </StyledLabelContainer>
     );
   }

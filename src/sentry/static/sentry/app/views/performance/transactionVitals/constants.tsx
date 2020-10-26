@@ -86,6 +86,19 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   },
 };
 
+// translate known short form names into their long forms
+export const LONG_WEB_VITAL_NAMES = Object.fromEntries(
+  Object.values(WEB_VITAL_DETAILS).map(value => {
+    return [value.slug, value.name];
+  })
+);
+
+export const WEB_VITAL_ACRONYMS = Object.fromEntries(
+  Object.values(WEB_VITAL_DETAILS).map(value => {
+    return [value.slug, value.acronym];
+  })
+);
+
 export const FILTER_OPTIONS: SelectValue<string>[] = [
   {label: t('Exclude Outliers'), value: 'exclude_outliers'},
   {label: t('View All'), value: 'all'},
