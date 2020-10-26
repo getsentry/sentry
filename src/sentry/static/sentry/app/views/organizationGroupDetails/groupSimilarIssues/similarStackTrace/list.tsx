@@ -1,46 +1,57 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
+import Button from 'app/components/button';
 import SimilarSpectrum from 'app/components/similarSpectrum';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
+import {Organization, Project, Group} from 'app/types';
 
 import Item from './item';
-import SimilarToolbar from './toolbar';
+import Toolbar from './toolbar';
 
-const SimilarItemPropType = PropTypes.shape({
-  issue: SentryTypes.Group,
-  score: PropTypes.object,
-  avgScore: PropTypes.number,
-  isBelowThreshold: PropTypes.bool,
-});
-
-class List extends React.Component {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    project: SentryTypes.Project.isRequired,
-    groupId: PropTypes.string.isRequired,
-    onMerge: PropTypes.func.isRequired,
-    pageLinks: PropTypes.string,
-    items: PropTypes.arrayOf(SimilarItemPropType),
-    filteredItems: PropTypes.arrayOf(SimilarItemPropType),
+type SimilarItem = {
+  issue: Group;
+  isBelowThreshold: boolean;
+  score?: Record<string, number | null>;
+  scoresByInterface?: {
+    exception: Array<[string, number | null]>;
+    message: Array<[string, any | null]>;
   };
+  aggregate?: {
+    exception: number;
+    message: number;
+  };
+};
 
-  static defaultProps = {
+type DefaultProps = {
+  filteredItems: Array<SimilarItem>;
+};
+
+type Props = {
+  orgId: Organization['id'];
+  project: Project;
+  onMerge: () => void;
+  groupId: string;
+  pageLinks: string | null;
+  items: Array<SimilarItem>;
+} & DefaultProps;
+
+type State = {
+  showAllItems: boolean;
+};
+
+class List extends React.Component<Props, State> {
+  static defaultProps: DefaultProps = {
     filteredItems: [],
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      showAllItems: false,
-    };
-  }
+  state: State = {
+    showAllItems: false,
+  };
 
   renderEmpty = () => (
     <Panel>
@@ -55,7 +66,6 @@ class List extends React.Component {
   handleShowAll = () => {
     this.setState({showAllItems: true});
   };
-
   render() {
     const {
       orgId,
@@ -66,11 +76,12 @@ class List extends React.Component {
       pageLinks,
       onMerge,
     } = this.props;
+
+    const {showAllItems} = this.state;
+
     const hasHiddenItems = !!filteredItems.length;
     const hasResults = items.length > 0 || hasHiddenItems;
-    const itemsWithFiltered = items.concat(
-      (this.state.showAllItems && filteredItems) || []
-    );
+    const itemsWithFiltered = items.concat((showAllItems && filteredItems) || []);
 
     if (!hasResults) {
       return this.renderEmpty();
@@ -81,7 +92,7 @@ class List extends React.Component {
         <Header>
           <SimilarSpectrum />
         </Header>
-        <SimilarToolbar onMerge={onMerge} />
+        <Toolbar onMerge={onMerge} />
         <div className="similar-list">
           {itemsWithFiltered.map(item => (
             <Item
@@ -93,12 +104,12 @@ class List extends React.Component {
             />
           ))}
 
-          {hasHiddenItems && !this.state.showAllItems && (
-            <div className="similar-items-footer">
-              <button className="btn btn-default btn-xl" onClick={this.handleShowAll}>
-                Show {filteredItems.length} issues below threshold
-              </button>
-            </div>
+          {hasHiddenItems && !showAllItems && (
+            <Footer>
+              <Button onClick={this.handleShowAll}>
+                {t('Show %s issues below threshold', filteredItems.length)}
+              </Button>
+            </Footer>
           )}
         </div>
         <Pagination pageLinks={pageLinks} />
@@ -117,4 +128,10 @@ const Header = styled('div')`
   display: flex;
   justify-content: flex-end;
   margin-bottom: ${space(1)};
+`;
+
+const Footer = styled('div')`
+  display: flex;
+  justify-content: center;
+  padding: ${space(1.5)};
 `;

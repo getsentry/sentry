@@ -1,5 +1,7 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
+import {browserHistory} from 'react-router';
+import {Location} from 'history';
 
 import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
@@ -8,6 +10,8 @@ import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {defined} from 'app/utils';
 import {getExactDuration} from 'app/utils/formatters';
+import {axisDuration} from 'app/utils/discover/charts';
+import {decodeList} from 'app/utils/queryString';
 
 import {YAxis} from './releaseChartControls';
 
@@ -17,12 +21,29 @@ type Props = {
   timeseriesData: Series[];
   zoomRenderProps: any;
   yAxis: YAxis;
+  location: Location;
+  shouldRecalculateVisibleSeries: boolean;
+  onVisibleSeriesRecalculated: () => void;
 };
 
 class HealthChart extends React.Component<Props> {
+  componentDidMount() {
+    if (this.shouldUnselectHealthySeries()) {
+      this.props.onVisibleSeriesRecalculated();
+      this.handleLegendSelectChanged({selected: {Healthy: false}});
+    }
+  }
+
   shouldComponentUpdate(nextProps: Props) {
     if (nextProps.reloading || !nextProps.timeseriesData) {
       return false;
+    }
+
+    if (
+      this.props.location.query.unselectedSeries !==
+      nextProps.location.query.unselectedSeries
+    ) {
+      return true;
     }
 
     if (isEqual(this.props.timeseriesData, nextProps.timeseriesData)) {
@@ -31,6 +52,36 @@ class HealthChart extends React.Component<Props> {
 
     return true;
   }
+
+  shouldUnselectHealthySeries(): boolean {
+    const {timeseriesData, location, shouldRecalculateVisibleSeries} = this.props;
+
+    const otherAreasThanHealthyArePositive = timeseriesData
+      .filter(s => s.seriesName !== 'Healthy')
+      .some(s => s.data.some(d => d.value > 0));
+    const alreadySomethingUnselected = !!decodeList(location.query.unselectedSeries);
+
+    return (
+      shouldRecalculateVisibleSeries &&
+      otherAreasThanHealthyArePositive &&
+      !alreadySomethingUnselected
+    );
+  }
+
+  handleLegendSelectChanged = legendChange => {
+    const {location} = this.props;
+    const {selected} = legendChange;
+
+    const to = {
+      ...location,
+      query: {
+        ...location.query,
+        unselectedSeries: Object.keys(selected).filter(key => !selected[key]),
+      },
+    };
+
+    browserHistory.replace(to);
+  };
 
   formatTooltipValue = (value: string | number | null) => {
     const {yAxis} = this.props;
@@ -61,6 +112,10 @@ class HealthChart extends React.Component<Props> {
       case YAxis.SESSION_DURATION:
         return {
           scale: true,
+          axisLabel: {
+            formatter: value => axisDuration(value * 1000),
+            color: theme.gray400,
+          },
         };
       case YAxis.SESSIONS:
       case YAxis.USERS:
@@ -84,13 +139,21 @@ class HealthChart extends React.Component<Props> {
   };
 
   render() {
-    const {utc, timeseriesData, zoomRenderProps} = this.props;
+    const {utc, timeseriesData, zoomRenderProps, location} = this.props;
+
     const Chart = this.getChart();
 
+    const seriesSelection = (decodeList(location.query.unselectedSeries) ?? []).reduce(
+      (selection, metric) => {
+        selection[metric] = false;
+        return selection;
+      },
+      {}
+    );
+
     const legend = {
-      right: 16,
+      right: 22,
       top: 12,
-      selectedMode: false,
       icon: 'circle',
       itemHeight: 8,
       itemWidth: 8,
@@ -101,7 +164,8 @@ class HealthChart extends React.Component<Props> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      data: timeseriesData.map(d => d.seriesName),
+      data: timeseriesData.map(d => d.seriesName).reverse(),
+      selected: seriesSelection,
     };
 
     return (
@@ -122,6 +186,7 @@ class HealthChart extends React.Component<Props> {
         }}
         yAxis={this.configureYAxis()}
         tooltip={{valueFormatter: this.formatTooltipValue}}
+        onLegendSelectChanged={this.handleLegendSelectChanged}
       />
     );
   }

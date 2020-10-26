@@ -19,40 +19,25 @@ FEATURE_NAMES = (
 )
 
 
-def make_nth_transaction(base_event, name, n, start, end):
-    event = base_event.copy()
-
-    event["transaction"] = name
-    event["event_id"] = "{:02x}".format(n).rjust(32, "0")
-    event["start_timestamp"] = iso_format(start)
-    event["timestamp"] = iso_format(end)
-
-    return event
-
-
-def make_trend(
-    store_event,
-    project_id,
-    event,
-    name,
-    first_duration,
-    second_duration,
-    number_transactions=2,
-    period_mins=60,
-):
-    for i in range(number_transactions):
-        time_between = period_mins / number_transactions
-        minutes = period_mins - ((i + 1) * time_between) + (time_between / 2)
-        if i < (number_transactions / 2):
-            event_start = before_now(minutes=minutes, seconds=first_duration)
-        else:
-            event_start = before_now(minutes=minutes, seconds=second_duration)
-        event_end = before_now(minutes=minutes)
-        transaction = make_nth_transaction(event, name, i, event_start, event_end)
-        store_event(data=transaction, project_id=project_id)
-
-
 class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
+    def make_trend(
+        self, name, durations, period_mins=60,
+    ):
+        for index, duration in enumerate(durations):
+            time_between = period_mins / len(durations)
+            # distirbute events over the period
+            minutes = period_mins - ((index + 1) * time_between) + (time_between / 2)
+            event = load_data("transaction")
+            event.update(
+                {
+                    "transaction": name,
+                    "event_id": "{:02x}".format(index).rjust(32, "0"),
+                    "start_timestamp": iso_format(before_now(minutes=minutes, seconds=duration)),
+                    "timestamp": iso_format(before_now(minutes=minutes)),
+                }
+            )
+            self.store_event(data=event, project_id=self.project.id)
+
     def setUp(self):
         super(PerformanceTrendsTest, self).setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -79,10 +64,10 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        values = range(1, 100, 5)
 
-        base_event = load_data("transaction", timestamp=before_now(minutes=0))
-        make_trend(self.store_event, self.project.id, base_event, "improvement", 2, 1)
-        make_trend(self.store_event, self.project.id, base_event, "regression", 1, 3)
+        self.make_trend("improvement", [v for v in reversed(values)])
+        self.make_trend("regression", values)
 
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 

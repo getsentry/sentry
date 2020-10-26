@@ -1,207 +1,120 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
-import StackedBarChart from 'app/components/stackedBarChart';
-import SentryTypes from 'app/sentryTypes';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import {t} from 'app/locale';
-import {intcomma} from 'app/utils';
 import theme from 'app/utils/theme';
+import space from 'app/styles/space';
+import {Series} from 'app/types/echarts';
 import {Group, TimeseriesValue, Release} from 'app/types';
 
-type Markers = React.ComponentProps<typeof StackedBarChart>['markers'];
+type Markers = React.ComponentProps<typeof MiniBarChart>['markers'];
 
 /**
  * Stats are provided indexed by statsPeriod strings.
  */
-type StatsGroup = {
-  [key: string]: TimeseriesValue[];
-};
-
-/**
- * Lookup map for formatting tooltips.
- */
-type StatsMap = {
-  [key: number]: number;
-};
+type StatsGroup = Record<string, TimeseriesValue[]>;
 
 type Props = {
   group: Group;
   statsPeriod: string;
-  release: Release;
+  title: string;
   className?: string;
-  environment?: string;
   firstSeen?: string;
   lastSeen?: string;
-  title?: string;
+  environment?: string;
+  release?: Release;
   releaseStats?: StatsGroup;
   environmentStats?: StatsGroup;
 };
 
-type State = {
-  releasePoints: StatsMap;
-  envPoints: StatsMap;
-};
+function GroupReleaseChart(props: Props) {
+  const {
+    className,
+    group,
+    lastSeen,
+    firstSeen,
+    statsPeriod,
+    release,
+    releaseStats,
+    environment,
+    environmentStats,
+    title,
+  } = props;
 
-class GroupReleaseChart extends React.Component<Props, State> {
-  static propTypes = {
-    group: SentryTypes.Group.isRequired,
-    release: PropTypes.shape({
-      version: PropTypes.string.isRequired,
-    }),
-    statsPeriod: PropTypes.string.isRequired,
-    environment: PropTypes.string,
-    firstSeen: PropTypes.string,
-    lastSeen: PropTypes.string,
-    title: PropTypes.string,
-  };
-
-  state = this.getNextState(this.props);
-
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    this.setState(this.getNextState(nextProps));
+  const stats = group.stats[statsPeriod];
+  if (!stats || !stats.length) {
+    return null;
   }
+  const series: Series[] = [];
+  // Add all events.
+  series.push({
+    seriesName: t('Events'),
+    data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
+  });
 
-  getNextState(props: Props) {
-    const releaseStats = props.releaseStats;
-    const releasePoints: StatsMap = {};
-    if (releaseStats) {
-      releaseStats[props.statsPeriod].forEach((point: TimeseriesValue) => {
-        releasePoints[point[0]] = point[1];
-      });
-    }
+  // Get the timestamp of the first point.
+  const firstTime = series[0].data[0].value;
 
-    const envStats = props.environmentStats;
-    const envPoints: StatsMap = {};
-    if (envStats) {
-      envStats[props.statsPeriod]?.forEach((point: TimeseriesValue) => {
-        envPoints[point[0]] = point[1];
-      });
-    }
-
-    return {
-      releasePoints,
-      envPoints,
-    };
-  }
-
-  renderTooltip = (point, _pointIdx, chart) => {
-    const timeLabel = chart.getTimeLabel(point);
-    let totalY = 0;
-    for (let i = 0; i < point.y.length; i++) {
-      totalY += point.y[i];
-    }
-
-    const {environment, release} = this.props;
-    const {releasePoints, envPoints} = this.state;
-
-    return (
-      <div style={{width: '150px'}}>
-        <div className="time-label">{timeLabel}</div>
-        <dl className="legend">
-          <dt className="inactive">
-            <span />
-          </dt>
-          <dd>
-            {intcomma(totalY)} event{totalY !== 1 ? 's' : ''}
-          </dd>
-          {environment && (
-            <React.Fragment>
-              <dt className="environment">
-                <span />
-              </dt>
-              <dd>
-                {intcomma(envPoints[point.x] || 0)} event
-                {envPoints[point.x] !== 1 ? 's' : ''}
-                <small>in {environment}</small>
-              </dd>
-            </React.Fragment>
-          )}
-          {release && (
-            <React.Fragment>
-              <dt className="active">
-                <span />
-              </dt>
-              <dd>
-                {intcomma(releasePoints[point.x] || 0)} event
-                {releasePoints[point.x] !== 1 ? 's' : ''}
-                <small>in {release.version.substr(0, 12)}</small>
-              </dd>
-            </React.Fragment>
-          )}
-        </dl>
-      </div>
-    );
-  };
-
-  render() {
-    const className = 'bar-chart group-chart ' + (this.props.className || '');
-
-    const group = this.props.group;
-    const stats = group.stats[this.props.statsPeriod];
-    if (!stats || !stats.length) {
-      return null;
-    }
-
-    const {releasePoints, envPoints} = this.state;
-
-    const points = stats.map(point => {
-      const rData = releasePoints[point[0]] || 0;
-      let eData = (envPoints[point[0]] || 0) - rData;
-      if (eData < 0) {
-        eData = 0;
-      }
-      const remaining = point[1] - rData - eData;
-      return {
-        x: point[0],
-        y: [rData, eData, remaining >= 0 ? remaining : 0],
-      };
+  if (environment && environmentStats) {
+    series.push({
+      seriesName: t('Events in %s', environment),
+      data: environmentStats[statsPeriod].map(point => ({
+        name: point[0] * 1000,
+        value: point[1],
+      })),
     });
-
-    const markers: Markers = [];
-
-    if (this.props.firstSeen) {
-      const firstSeenX = new Date(this.props.firstSeen).getTime() / 1000;
-      if (firstSeenX >= points[0].x) {
-        markers.push({
-          label: t('First seen'),
-          x: firstSeenX,
-          className: 'first-seen',
-          offset: -7.5,
-          fill: theme.pink400,
-        });
-      }
-    }
-
-    if (this.props.lastSeen) {
-      const lastSeenX = new Date(this.props.lastSeen).getTime() / 1000;
-      if (lastSeenX >= points[0].x) {
-        markers.push({
-          label: t('Last seen'),
-          x: lastSeenX,
-          className: 'last-seen',
-          fill: theme.green400,
-        });
-      }
-    }
-
-    return (
-      <div className={className}>
-        <h6>
-          <span>{this.props.title}</span>
-        </h6>
-        <StackedBarChart
-          points={points}
-          height={40}
-          label={t('events')}
-          markers={markers}
-          barClasses={['release', 'environment', 'inactive']}
-          tooltip={this.renderTooltip}
-          gap={0.75}
-          minHeights={[0, 0, 5]}
-        />
-      </div>
-    );
   }
+
+  if (release && releaseStats) {
+    series.push({
+      seriesName: t('Events in %s', release.version),
+      data: releaseStats[statsPeriod].map(point => ({
+        name: point[0] * 1000,
+        value: point[1],
+      })),
+    });
+  }
+
+  const markers: Markers = [];
+  if (firstSeen) {
+    const firstSeenX = new Date(firstSeen).getTime();
+    if (firstSeenX >= firstTime) {
+      markers.push({
+        name: t('First seen'),
+        value: firstSeenX,
+        color: theme.pink400,
+      });
+    }
+  }
+
+  if (lastSeen) {
+    const lastSeenX = new Date(lastSeen).getTime();
+    if (lastSeenX >= firstTime) {
+      markers.push({
+        name: t('Last seen'),
+        value: lastSeenX,
+        color: theme.green400,
+      });
+    }
+  }
+
+  return (
+    <Wrapper className={className}>
+      <h6>{title}</h6>
+      <MiniBarChart
+        isGroupedByDate
+        showTimeInTooltip
+        height={42}
+        series={series}
+        markers={markers}
+      />
+    </Wrapper>
+  );
 }
 
 export default GroupReleaseChart;
+
+const Wrapper = styled('div')`
+  margin-bottom: ${space(2)};
+`;

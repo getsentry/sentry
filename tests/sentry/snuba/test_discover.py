@@ -438,6 +438,32 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 use_aggregate_conditions=True,
             )
 
+    def test_conditions_with_timestamps(self):
+        events = [("a", 1), ("b", 2), ("c", 3)]
+        for t, ev in enumerate(events):
+            val = ev[0] * 32
+            for i in range(ev[1]):
+                data = load_data("transaction", timestamp=before_now(seconds=3 * t + 1))
+                data["transaction"] = "{}".format(val)
+                self.store_event(data=data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=["transaction", "count()"],
+            query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
+                iso_format(before_now(seconds=5)), iso_format(before_now(seconds=3)),
+            ),
+            params={"project_id": [self.project.id]},
+            orderby="transaction",
+            use_aggregate_conditions=True,
+        )
+
+        data = results["data"]
+        assert len(data) == 2
+        assert data[0]["transaction"] == "a" * 32
+        assert data[0]["count"] == 1
+        assert data[1]["transaction"] == "c" * 32
+        assert data[1]["count"] == 3
+
 
 class QueryTransformTest(TestCase):
     """

@@ -16,7 +16,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     description: t(
       'Render time of the first pixel loaded in the viewport (may overlap with FCP).'
     ),
-    failureThreshold: 4000,
+    failureThreshold: 3000,
     type: measurementType(WebVital.FP),
     includeInSummary: true,
   },
@@ -26,7 +26,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     description: t(
       'Render time of the first image, text or other DOM node in the viewport.'
     ),
-    failureThreshold: 4000,
+    failureThreshold: 3000,
     type: measurementType(WebVital.FCP),
     includeInSummary: true,
   },
@@ -54,9 +54,9 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     slug: 'cls',
     name: t('Cumulative Layout Shift'),
     description: t(
-      'The sum total of all individual layout shift scores for every unexpected layout shift that occurs during the entire lifespan of the page.'
+      'Sum of layout shift scores that measure the visual stability of the page.'
     ),
-    failureThreshold: 0.1,
+    failureThreshold: 0.25,
     type: measurementType(WebVital.CLS),
   },
   [WebVital.TTFB]: {
@@ -75,7 +75,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
       'Captures the time spent making the request and receiving the first byte of the response.'
     ),
     failureThreshold: 600,
-    type: measurementType(WebVital.TTFB),
+    type: measurementType(WebVital.RequestTime),
   },
 };
 
@@ -96,6 +96,11 @@ const _VITAL_GROUPS = [
   },
   {
     vitals: [WebVital.FID],
+    min: 0,
+    precision: 2,
+  },
+  {
+    vitals: [WebVital.CLS],
     min: 0,
     precision: 2,
   },

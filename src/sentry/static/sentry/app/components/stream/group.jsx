@@ -160,7 +160,7 @@ const StreamGroup = createReactClass({
           queryTerms.push(`${queryTag}:${queryVal}`);
         }
 
-      if (!hasDiscoverQuery && queryObj.__text) {
+      if (queryObj.__text) {
         queryTerms.push(queryObj.__text);
       }
     }
