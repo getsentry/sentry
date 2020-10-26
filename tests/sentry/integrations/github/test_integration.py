@@ -237,6 +237,55 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
+    def test_get_stacktrace_link_file_exists(self):
+        self.assert_setup_flow()
+
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+        )
+        path = "README.md"
+        version = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+        )
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+        result = installation.get_stacktrace_link(repo, path, version)
+
+        assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
+
+    @responses.activate
+    def test_get_stacktrace_link_file_doesnt_exists(self):
+        self.assert_setup_flow()
+
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+        )
+        path = "README.md"
+        version = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+            status=404,
+        )
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+        result = installation.get_stacktrace_link(repo, path, version)
+
+        assert not result
+
+    @responses.activate
     def test_get_message_from_error(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)

@@ -92,12 +92,12 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         resp = self.get_client().search_group_projects(group, query)
         return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
 
-    def get_stacktrace_link(self, repo, filepath, default_version):
+    def get_stacktrace_link(self, repo, filepath, version):
         project_id = repo.config["project_id"]
         try:
             # repos are projects in GL so the project_id is the repo id which
             # GL's API uses instead of slugs like GH
-            self.get_client().check_file(project_id, filepath, default_version)
+            self.get_client().check_file(project_id, filepath, version)
         except ApiError as e:
             if e.code != 404:
                 raise
@@ -107,7 +107,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
-        web_url = "{}/{}/blob/{}/{}".format(base_url, repo.name, default_version, filepath)
+        web_url = u"{}/{}/blob/{}/{}".format(base_url, repo.name, version, filepath)
 
         return web_url
 
