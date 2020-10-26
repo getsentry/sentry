@@ -70,6 +70,7 @@ configure_integration = {"title": _("Connect Your Projects")}
 connect_project_instruction = _(
     "To complete installation, please connect your Sentry and Vercel projects."
 )
+create_project_instruction = _("Don't have a project yet? Click [here]({}) to create one.")
 install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
 )
@@ -115,10 +116,12 @@ class VercelIntegration(IntegrationInstallation):
             u"/settings/%s/integrations/?%s"
             % (organization.slug, urlencode({"category": "source code management"}))
         )
+        add_project_link = absolute_uri(u"/organizations/%s/projects/new/" % (organization.slug))
         return {
             "configure_integration": {
                 "instructions": [
                     connect_project_instruction,
+                    create_project_instruction.format(add_project_link),
                     install_source_code_integration.format(source_code_link),
                 ]
             }
@@ -166,10 +169,10 @@ class VercelIntegration(IntegrationInstallation):
         configuration_id = self.get_configuration_id()
         if configuration_id:
             if self.metadata["installation_type"] == "team":
-                dashboard_url = u"https://vercel.com/dashboard/%s/" % slug
+                dashboard_url = u"https://vercel.com/dashboard/%s" % slug
             else:
-                dashboard_url = "https://vercel.com/dashboard/"
-            next_url = u"%s/integrations/%s" % (dashboard_url, configuration_id)
+                dashboard_url = "https://vercel.com/dashboard"
+            next_url = u"%s/integrations/%s/popup" % (dashboard_url, configuration_id)
 
         proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = map(
@@ -189,10 +192,10 @@ class VercelIntegration(IntegrationInstallation):
                 "type": "project_mapper",
                 "mappedDropdown": {
                     "items": vercel_projects,
-                    "placeholder": _("Choose Vercel project..."),
+                    "placeholder": _("Vercel project..."),
                 },
                 "sentryProjects": sentry_projects,
-                "nextButton": {"url": next_url, "text": _("Return to Vercel")},
+                "nextButton": {"url": next_url, "text": _("To Vercel")},
                 "iconType": "vercel",
             }
         ]
@@ -206,7 +209,7 @@ class VercelIntegration(IntegrationInstallation):
         try:
             new_mappings = data["project_mappings"]
         except KeyError:
-            return ValidationError("Failed to update configuration.")
+            raise ValidationError("Failed to update configuration.")
 
         old_mappings = config.get("project_mappings") or []
 
