@@ -54,7 +54,7 @@ ExpressionNode = CombinedExpression
 resolve_expression_node = resolve_combined_expression
 
 
-def slugify_instance(inst, label, reserved=(), max_length=50, field_name="slug", *args, **kwargs):
+def slugify_instance(inst, label, reserved=(), max_length=30, field_name="slug", *args, **kwargs):
     base_value = slugify(label)[:max_length]
 
     if base_value is not None:
