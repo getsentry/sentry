@@ -7,9 +7,12 @@ import {Environment, Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import {defined} from 'app/utils';
 >>>>>>> adding feature flag for gui filters and duplicated conditions form
+=======
+>>>>>>> use optional chaining
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
@@ -83,6 +86,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
     const {environments} = this.state;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     const environmentList: [IncidentRule['environment'], React.ReactNode][] =
       environments?.map((env: Environment) => [env.name, getDisplayName(env)]) ?? [];
 =======
@@ -92,6 +96,10 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
       ? environments.map((env: Environment) => [env.name, getDisplayName(env)])
       : [];
 >>>>>>> adding feature flag for gui filters and duplicated conditions form
+=======
+    const environmentList: [IncidentRule['environment'], React.ReactNode][] =
+      environments?.map((env: Environment) => [env.name, getDisplayName(env)]) ?? [];
+>>>>>>> use optional chaining
 
     const anyEnvironmentLabel = (
       <React.Fragment>
