@@ -8,6 +8,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 
 import six
+import unittest
 from django.conf import settings
 from django.core import mail
 from django.utils import timezone
@@ -1721,7 +1722,7 @@ class TriggerActionTest(TestCase):
         assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
 
 
-class TestDeduplicateTriggerActions(TestCase):
+class TestDeduplicateTriggerActions(unittest.TestCase):
     @fixture
     def critical(self):
         return AlertRuleTrigger(label=CRITICAL_TRIGGER_LABEL)
@@ -1731,10 +1732,12 @@ class TestDeduplicateTriggerActions(TestCase):
         return AlertRuleTrigger(label=WARNING_TRIGGER_LABEL)
 
     def run_test(self, input, output):
-        assert sorted(deduplicate_trigger_actions(input)) == sorted(output)
+        key = lambda action: action.id
+        assert sorted(deduplicate_trigger_actions(input), key=key) == sorted(output, key=key)
 
     def test_critical_only(self):
         action = AlertRuleTriggerAction(
+            id=1,
             alert_rule_trigger=self.critical,
             type=AlertRuleTriggerAction.Type.EMAIL.value,
             target_type=AlertRuleTriggerAction.TargetType.USER,
@@ -1744,6 +1747,7 @@ class TestDeduplicateTriggerActions(TestCase):
         self.run_test([action, action], [action])
 
         other_action = AlertRuleTriggerAction(
+            id=2,
             alert_rule_trigger=self.critical,
             type=AlertRuleTriggerAction.Type.EMAIL.value,
             target_type=AlertRuleTriggerAction.TargetType.USER,
@@ -1751,6 +1755,7 @@ class TestDeduplicateTriggerActions(TestCase):
         )
         self.run_test([action, action, other_action], [action, other_action])
         integration_action = AlertRuleTriggerAction(
+            id=3,
             alert_rule_trigger=self.critical,
             type=AlertRuleTriggerAction.Type.SLACK.value,
             integration_id=1,
@@ -1758,6 +1763,7 @@ class TestDeduplicateTriggerActions(TestCase):
             target_identifier="D12345",
         )
         app_action = AlertRuleTriggerAction(
+            id=4,
             alert_rule_trigger=self.critical,
             type=AlertRuleTriggerAction.Type.MSTEAMS.value,
             integration_id=1,
@@ -1784,12 +1790,14 @@ class TestDeduplicateTriggerActions(TestCase):
 
     def test_critical_warning(self):
         action_c = AlertRuleTriggerAction(
+            id=1,
             alert_rule_trigger=self.critical,
             type=AlertRuleTriggerAction.Type.EMAIL.value,
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier="1",
         )
         action_w = AlertRuleTriggerAction(
+            id=2,
             alert_rule_trigger=self.warning,
             type=AlertRuleTriggerAction.Type.EMAIL.value,
             target_type=AlertRuleTriggerAction.TargetType.USER,
@@ -1797,6 +1805,7 @@ class TestDeduplicateTriggerActions(TestCase):
         )
         self.run_test([action_w, action_c, action_c], [action_c])
         other_action_w = AlertRuleTriggerAction(
+            id=3,
             alert_rule_trigger=self.warning,
             type=AlertRuleTriggerAction.Type.EMAIL.value,
             target_type=AlertRuleTriggerAction.TargetType.USER,
@@ -1804,6 +1813,7 @@ class TestDeduplicateTriggerActions(TestCase):
         )
         self.run_test([action_w, action_c, action_c, other_action_w], [action_c, other_action_w])
         integration_action_w = AlertRuleTriggerAction(
+            id=4,
             alert_rule_trigger=self.warning,
             type=AlertRuleTriggerAction.Type.SLACK.value,
             integration_id=1,
@@ -1811,6 +1821,7 @@ class TestDeduplicateTriggerActions(TestCase):
             target_identifier="D12345",
         )
         app_action_w = AlertRuleTriggerAction(
+            id=5,
             alert_rule_trigger=self.warning,
             type=AlertRuleTriggerAction.Type.MSTEAMS.value,
             integration_id=1,
@@ -1822,6 +1833,7 @@ class TestDeduplicateTriggerActions(TestCase):
             [action_c, other_action_w, integration_action_w, app_action_w],
         )
         integration_action_c = AlertRuleTriggerAction(
+            id=6,
             alert_rule_trigger=self.critical,
             type=AlertRuleTriggerAction.Type.SLACK.value,
             integration_id=1,
@@ -1829,6 +1841,7 @@ class TestDeduplicateTriggerActions(TestCase):
             target_identifier="D12345",
         )
         app_action_c = AlertRuleTriggerAction(
+            id=7,
             alert_rule_trigger=self.critical,
             type=AlertRuleTriggerAction.Type.MSTEAMS.value,
             integration_id=1,
