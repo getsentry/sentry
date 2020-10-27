@@ -17,7 +17,6 @@ class ProjectDeletionTask(ModelDeletionTask):
 
         # in bulk
         model_list = (
-            models.Activity,
             models.EnvironmentProject,
             models.EventAttachment,
             models.EventUser,

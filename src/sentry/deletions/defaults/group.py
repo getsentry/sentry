@@ -89,6 +89,7 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupSubscription,
             models.UserReport,
             models.EventAttachment,
+            models.Activity,
         )
 
         relations.extend([ModelRelation(m, {"group_id": instance.id}) for m in model_list])
