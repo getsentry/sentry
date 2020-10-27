@@ -7,7 +7,14 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from time import time
 
-from sentry.models import Activity, Group, GroupStatus, Project, ProjectOption
+from sentry.models import (
+    Activity,
+    Group,
+    GroupStatus,
+    Project,
+    ProjectOption,
+    remove_group_from_inbox,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations import kick_off_status_syncs
 
@@ -67,6 +74,8 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
             status=GroupStatus.RESOLVED, resolved_at=timezone.now()
         )
+        # TODO: Write test to ensure group is removed properly
+        remove_group_from_inbox(group)
 
         if happened:
             Activity.objects.create(

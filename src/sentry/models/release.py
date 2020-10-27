@@ -23,7 +23,7 @@ from sentry.db.models import (
 
 from sentry_relay import parse_release, RelayError
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
-from sentry.models import CommitFileChange
+from sentry.models import CommitFileChange, remove_group_from_inbox
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -622,6 +622,7 @@ class Release(Model):
                 )
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
+                remove_group_from_inbox(group)
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
             issue_resolved.send_robust(

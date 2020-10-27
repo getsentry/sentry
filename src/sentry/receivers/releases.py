@@ -15,6 +15,7 @@ from sentry.models import (
     GroupSubscriptionReason,
     GroupStatus,
     Release,
+    remove_group_from_inbox,
     Repository,
     PullRequest,
     UserOption,
@@ -123,6 +124,8 @@ def resolved_in_commit(instance, created, **kwargs):
                 Group.objects.filter(id=group.id).update(
                     status=GroupStatus.RESOLVED, resolved_at=current_datetime
                 )
+                # TODO: Write test to ensure new release removes group from inbox.
+                remove_group_from_inbox(group)
         except IntegrityError:
             pass
         else:
