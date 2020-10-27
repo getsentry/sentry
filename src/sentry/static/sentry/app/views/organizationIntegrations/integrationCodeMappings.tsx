@@ -18,6 +18,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {
   Integration,
   Organization,
@@ -103,6 +104,24 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     this.openModal(pathConfig);
   };
 
+  handleDelete = async (pathConfig: RepositoryProjectPathConfig) => {
+    const {organization, integration} = this.props;
+    const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/${pathConfig.id}/`;
+    try {
+      await this.api.requestPromise(endpoint, {
+        method: 'DELETE',
+      });
+      // remove config and update state
+      let {pathConfigs} = this.state;
+      pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
+      this.setState({pathConfigs});
+      addSuccessMessage(t('Deletion successful'));
+    } catch {
+      //no 4xx errors should happen on delete
+      addErrorMessage(t('An error occurred'));
+    }
+  };
+
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
     let {pathConfigs} = this.state;
     pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
@@ -154,6 +173,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                         pathConfig={pathConfig}
                         project={project}
                         onEdit={this.handleEdit}
+                        onDelete={this.handleDelete}
                       />
                     </Layout>
                   </ConfigPanelItem>
