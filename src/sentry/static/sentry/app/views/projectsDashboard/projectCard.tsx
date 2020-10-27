@@ -185,7 +185,7 @@ const ChartContainer = styled('div')`
 `;
 
 const CardHeader = styled('div')`
-  margin: 12px ${space(2)};
+  margin: ${space(1.5)} ${space(2)};
 `;
 
 const HeaderRow = styled('div')`
