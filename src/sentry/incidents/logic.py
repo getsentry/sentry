@@ -1079,7 +1079,10 @@ def deduplicate_trigger_actions(actions):
     """
     # Make sure we process actions from the critical trigger first
     actions.sort(
-        key=lambda action: 0 if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL else 1
+        key=lambda action: (
+            0 if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL else 1,
+            action.id,
+        )
     )
     deduped = {}
     for action in actions:
