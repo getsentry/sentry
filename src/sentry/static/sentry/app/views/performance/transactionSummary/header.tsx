@@ -140,14 +140,14 @@ class TransactionHeader extends React.Component<Props> {
             return (
               <React.Fragment>
                 {currentTab === Tab.RealUserMonitoring && (
-                  <Alert type="info" icon={<IconInfo size="md" />}>
+                  <StyledAlert type="info" icon={<IconInfo size="md" />}>
                     {t(
                       "Web vitals is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
                     )}{' '}
                     <ExternalLink href="mailto:performance-feedback@sentry.io">
                       performance-feedback@sentry.io
                     </ExternalLink>
-                  </Alert>
+                  </StyledAlert>
                 )}
                 <StyledNavTabs>
                   <ListLink
@@ -174,6 +174,11 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 }
+
+const StyledAlert = styled(Alert)`
+  /* Makes sure the alert is pushed into another row */
+  width: 100%;
+`;
 
 const StyledNavTabs = styled(NavTabs)`
   margin-bottom: 0;
