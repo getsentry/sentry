@@ -11,7 +11,6 @@ from math import ceil, floor
 
 from sentry import options
 from sentry.api.event_search import (
-    KEY_TRANSACTION_ALIAS,
     FIELD_ALIASES,
     get_filter,
     get_function_alias,
@@ -280,10 +279,6 @@ def transform_data(result, translated_columns, snuba_filter, selected_columns=No
         for key, value in row.items():
             if isinstance(value, float) and math.isnan(value):
                 value = 0
-            elif key == KEY_TRANSACTION_ALIAS:
-                # key transaction generates the order by assigning non-zero values
-                # for key transactions, map them back to 0 and 1 so it looks boolean
-                value = 0 if value == 0 else 1
             transformed[translated_columns.get(key, key)] = value
 
         return transformed

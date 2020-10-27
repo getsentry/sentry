@@ -2770,7 +2770,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[2]["key_transaction"] == 0
         assert data[2]["transaction"] == "/zoo_transaction/"
 
-    def test_mix_of_key_transactions(self):
+    def test_key_transactions_orderby(self):
         transactions = ["/blah_transaction/"]
         key_transactions = [
             "/foo_transaction/",
@@ -2782,48 +2782,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.store_event(self.transaction_data, self.project.id)
 
         for transaction in key_transactions:
-            self.transaction_data["transaction"] = transaction
-            self.store_event(self.transaction_data, self.project.id)
-            KeyTransaction.objects.create(
-                owner=self.user,
-                organization=self.organization,
-                transaction=transaction,
-                project=self.project,
-            )
-
-        query = {
-            "project": [self.project.id],
-            "orderby": "transaction",
-            "field": [
-                "key_transaction",
-                "transaction",
-                "transaction.status",
-                "project",
-                "epm()",
-                "failure_rate()",
-                "percentile(transaction.duration, 0.95)",
-            ],
-        }
-        response = self.do_request(query)
-
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert data[0]["key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
-        assert data[1]["key_transaction"] == 1
-        assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["key_transaction"] == 1
-        assert data[2]["transaction"] == "/zoo_transaction/"
-
-    def test_key_transactions_orderby(self):
-        transactions = [
-            "/blah_transaction/",
-            "/foo_transaction/",
-            "/zoo_transaction/",
-        ]
-
-        for transaction in transactions:
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
             KeyTransaction.objects.create(
@@ -2847,12 +2805,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
 
         # test ascending order
-        query["orderby"] = "key_transaction"
+        query["orderby"] = ["key_transaction", "transaction"]
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 3
-        assert data[0]["key_transaction"] == 1
+        assert data[0]["key_transaction"] == 0
         assert data[0]["transaction"] == "/blah_transaction/"
         assert data[1]["key_transaction"] == 1
         assert data[1]["transaction"] == "/foo_transaction/"
@@ -2860,7 +2818,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[2]["transaction"] == "/zoo_transaction/"
 
         # test descending order
-        query["orderby"] = "-key_transaction"
+        query["orderby"] = ["-key_transaction", "-transaction"]
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         data = response.data["data"]
@@ -2869,7 +2827,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["transaction"] == "/zoo_transaction/"
         assert data[1]["key_transaction"] == 1
         assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["key_transaction"] == 1
+        assert data[2]["key_transaction"] == 0
         assert data[2]["transaction"] == "/blah_transaction/"
 
     def test_key_transactions_query(self):

@@ -1312,31 +1312,11 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     if user_id is None or organization_id is None or project_ids is None:
         raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
 
-    """
-    The key transaction expression results in a numeric value. It will give zero if it
-    was NOT a key transaction, and non-zero if it was a key transaction.
-
-    In order to have a sensible sort, we choose to use negative values to number them.
-    This is because when sorting by key transactions in an ascending order, we want to
-    see key transactions start at the top of the list in lexicographical order. By
-    labelling them with negative numbers, we can accomplish having key transactions
-    appear before non key transactions.
-
-    Furthermore, we pre-sort the key transactions in descending order by their name
-    (and project id to break ties) because we want the transaction that should appear
-    first to be last in the array. This allows us to multiply it by -1 to create the
-    desired sort.
-
-    (As an aside, if we want to keep key transactions at the top of the list, we'd have
-    to change this expression to use an `IN` to produce a 0/1 then use key transactions
-    as the primary sort with a secondary sort to break ties.)
-    """
-
     key_transactions = (
         KeyTransaction.objects.filter(
             owner__id=user_id, organization__id=organization_id, project__id__in=project_ids,
         )
-        .order_by("-transaction", "-project__id")
+        .order_by("transaction", "project__id")
         .values("project__id", "transaction")
     )
 
@@ -1345,28 +1325,22 @@ def key_transaction_expression(user_id, organization_id, project_ids):
         return ["toInt64", [0]]
 
     return [
-        "multiply",
+        "has",
         [
             [
-                "indexOf",
+                "array",
                 [
                     [
-                        "array",
+                        "tuple",
                         [
-                            [
-                                "tuple",
-                                [
-                                    ["toUInt64", [transaction["project__id"]]],
-                                    "'{}'".format(transaction["transaction"]),
-                                ],
-                            ]
-                            for transaction in key_transactions
+                            ["toUInt64", [transaction["project__id"]]],
+                            "'{}'".format(transaction["transaction"]),
                         ],
-                    ],
-                    ["tuple", ["project_id", "transaction"]],
+                    ]
+                    for transaction in key_transactions
                 ],
             ],
-            -1,
+            ["tuple", ["project_id", "transaction"]],
         ],
     ]
 
