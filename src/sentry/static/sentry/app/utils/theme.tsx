@@ -66,7 +66,7 @@ const colors = {
   },
 
   get borderDark() {
-    return colors.gray400;
+    return colors.orange500;
   },
 } as const;
 
