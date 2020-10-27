@@ -134,7 +134,9 @@ class ProcessUpdateTest(TestCase):
             subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.capture_on_commit_callbacks(execute=True):
             processor.process_update(message)
         return processor
 
@@ -282,6 +284,35 @@ class ProcessUpdateTest(TestCase):
         )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(incident, [self.action])
+
+    def test_alert_dedupe(self):
+        # Verify that an alert rule that only expects a single update to be over the
+        # alert threshold triggers correctly
+        rule = self.rule
+        c_trigger = self.trigger
+        c_action = self.action
+        create_alert_rule_trigger_action(
+            self.trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            six.text_type(self.user.id),
+        )
+        w_trigger = create_alert_rule_trigger(self.rule, "hello", c_trigger.alert_threshold - 10)
+        create_alert_rule_trigger_action(
+            w_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            six.text_type(self.user.id),
+        )
+
+        processor = self.send_update(rule, c_trigger.alert_threshold + 1)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        assert incident.date_started == (
+            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+        )
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [c_action])
 
     def test_alert_nullable(self):
         # Verify that an alert rule that only expects a single update to be over the
