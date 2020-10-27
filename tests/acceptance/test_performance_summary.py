@@ -11,7 +11,10 @@ from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage
 
-FEATURE_NAMES = ("organizations:performance-view",)
+FEATURE_NAMES = (
+    "organizations:performance-view",
+    "organizations:measurements",
+)
 
 
 def make_event(event_data):
@@ -96,7 +99,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         self.store_event(data=event, project_id=self.project.id)
         self.wait_for_event_count(self.project.id, 1)
 
-        with self.feature(list(FEATURE_NAMES) + ["organizations:measurements"]):
+        with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
             self.browser.wait_until_not('[data-test-id="stats-loading"]')
@@ -148,7 +151,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         self.wait_for_event_count(self.project.id, 5)
 
-        with self.feature(list(FEATURE_NAMES) + ["organizations:measurements"]):
+        with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
             self.browser.wait_until_not('[data-test-id="stats-loading"]')
