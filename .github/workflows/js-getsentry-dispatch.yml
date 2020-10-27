@@ -19,9 +19,9 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: getsentry token
+        uses: getsentry/action-github-app-token@v1
         id: getsentry
         if: steps.changes.outputs.frontend == 'true'
-        uses: getsentry/action-github-app-token@v1
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
