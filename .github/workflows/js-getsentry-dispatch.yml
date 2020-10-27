@@ -1,0 +1,43 @@
+# If frontend files change, dispatch a request to getsentry to run its javascript test suites
+name: getsentry dispatcher
+
+on:
+  pull_request:
+
+jobs:
+  frontend:
+    name: frontend dispatch
+    runs-on: ubuntu-16.04
+    steps:
+      - name: Check for frontend file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: getsentry token
+        id: getsentry
+        if: steps.changes.outputs.frontend == 'true'
+        uses: getsentry/action-github-app-token@v1
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      # Notify getsentry only if there were frontend files changed
+      - name: Dispatch getsentry frontend tests
+        uses: actions/github-script@v3
+        if: steps.changes.outputs.frontend == 'true'
+        with:
+          github-token: ${{ steps.getsentry.outputs.token }}
+          script: |
+            github.actions.createWorkflowDispatch({
+              owner: 'getsentry',
+              repo: 'getsentry',
+              workflow_id: 'javascript.yml',
+              ref: 'build/gha/allow-javascript-tests-to-be-skipped',
+              inputs: {
+                'skip': "${{ steps.changes.outputs.frontend == 'true' }}",
+                'sentry-sha': '${{ github.event.pull_request.head.sha }}',
+              }
+            })

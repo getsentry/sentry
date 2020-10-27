@@ -1,45 +1,16 @@
-name: javascript
+name: js build and lint
 
 on:
+  # Only runs webpack on master to save bundle size info into artifacts
+  # which are then used on PRs to compare against
   push:
     branches:
       - master
   pull_request:
-    paths:
-      - '**.[tj]sx?'
-      - package.json
-      - yarn.lock
 
 jobs:
-  getsentry:
-    if: ${{ github.ref != 'refs/heads/master' }}
-    runs-on: ubuntu-16.04
-    steps:
-      - name: getsentry token
-        id: getsentry
-        uses: getsentry/action-github-app-token@v1
-        with:
-          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-
-      # Notify getsentry
-      - name: Dispatch getsentry tests
-        uses: actions/github-script@v3
-        with:
-          github-token: ${{ steps.getsentry.outputs.token }}
-          script: |
-            github.actions.createWorkflowDispatch({
-              owner: 'getsentry',
-              repo: 'getsentry',
-              workflow_id: 'javascript.yml',
-              ref: 'master',
-              inputs: {
-                'sentry-sha': '${{ github.event.pull_request.head.sha }}',
-              }
-            })
-
-  build:
-    name: lint and typescript
+  ts-and-lint:
+    name: typescript and lint
     if: ${{ github.ref != 'refs/heads/master' }}
     runs-on: ubuntu-16.04
     steps:
