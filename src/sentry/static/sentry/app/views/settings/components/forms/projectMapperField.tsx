@@ -138,11 +138,9 @@ export class RenderField extends React.Component<RenderProps, State> {
                 <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
                 <MappedValueLabel>{mappedItem.label}</MappedValueLabel>
                 <ExternalLinkWrapper>
-                  <InnerLinkWrapper>
-                    <StyledExternalLink href={mappedItem.url}>
-                      <IconOpen />
-                    </StyledExternalLink>
-                  </InnerLinkWrapper>
+                  <StyledExternalLink href={mappedItem.url}>
+                    <IconOpen />
+                  </StyledExternalLink>
                 </ExternalLinkWrapper>
               </React.Fragment>
             ) : (
@@ -365,14 +363,10 @@ const StyledInputField = styled(InputField)`
 `;
 
 const ExternalLinkWrapper = styled('div')`
-  width: 100%;
-`;
-
-const InnerLinkWrapper = styled('div')`
   height: 100%;
-  float: right;
   display: flex;
   align-items: center;
+  margin-left: ${space(0.5)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)``;
