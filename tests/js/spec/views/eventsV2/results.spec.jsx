@@ -58,7 +58,7 @@ describe('EventsV2 > Results', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
     eventResultsMock = MockApiClient.addMockResponse({
