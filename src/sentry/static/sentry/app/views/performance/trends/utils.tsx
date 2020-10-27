@@ -77,14 +77,9 @@ export const CONFIDENCE_LEVELS: ConfidenceLevel[] = [
     min: 6,
   },
   {
-    label: 'Medium',
-    min: 3,
-    max: 6,
-  },
-  {
     label: 'Low',
     min: 0,
-    max: 3,
+    max: 6,
   },
 ];
 

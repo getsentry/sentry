@@ -2,20 +2,18 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {Repository, RepositoryProjectPathConfig, Project} from 'app/types';
+import {RepositoryProjectPathConfig, Project} from 'app/types';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {IconDelete, IconEdit} from 'app/icons';
-import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import IdBadge from 'app/components/idBadge';
 
 type Props = {
-  repoProjectPathConfig: RepositoryProjectPathConfig;
-  repo: Repository; //TODO: remove
+  pathConfig: RepositoryProjectPathConfig;
   project: Project;
 };
 
@@ -28,7 +26,7 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
 
   render() {
     // TODO: Improve UI
-    const {repoProjectPathConfig, project} = this.props;
+    const {pathConfig, project} = this.props;
 
     return (
       <Access access={['org:integrations']}>
@@ -36,27 +34,20 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
           <React.Fragment>
             <NameRepoColumn>
               <ProjectRepoHolder>
-                <RepoName>
-                  {repoProjectPathConfig.repoName}
-                  <StyledQuestionTooltip
-                    size="xs"
-                    position="top"
-                    title={t('TO BE FILLED IN LATER')}
+                <RepoName>{pathConfig.repoName}</RepoName>
+                <ProjectAndBranch>
+                  <IdBadge
+                    project={project}
+                    avatarSize={14}
+                    displayName={project.slug}
+                    avatarProps={{consistentWidth: true}}
                   />
-                </RepoName>
-                <StyledIdBadge
-                  project={project}
-                  avatarSize={14}
-                  displayName={project.slug}
-                  avatarProps={{consistentWidth: true}}
-                />
+                  <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
+                </ProjectAndBranch>
               </ProjectRepoHolder>
             </NameRepoColumn>
-            <OutputPathColumn>{repoProjectPathConfig.sourceRoot}</OutputPathColumn>
-            <InputPathColumn>{repoProjectPathConfig.stackRoot}</InputPathColumn>
-            <DefaultBranchColumn>
-              {repoProjectPathConfig.defaultBranch}
-            </DefaultBranchColumn>
+            <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
+            <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
             <ButtonColumn>
               <Tooltip
                 title={t(
@@ -91,14 +82,6 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
   }
 }
 
-const StyledIdBadge = styled(IdBadge)`
-  color: ${p => p.theme.gray500};
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  padding: ${space(0.5)};
-`;
-
 const ProjectRepoHolder = styled('div')`
   display: flex;
   flex-direction: column;
@@ -110,6 +93,17 @@ const RepoName = styled(`span`)`
 
 const StyledButton = styled(Button)`
   margin: ${space(0.5)};
+`;
+
+const ProjectAndBranch = styled('div')`
+  display: flex;
+  flex-direction: row;
+  color: ${p => p.theme.gray500};
+`;
+
+//match the line eight of the badge
+const BranchWrapper = styled('div')`
+  line-height: 1.2;
 `;
 
 //Columns below
@@ -128,10 +122,6 @@ export const OutputPathColumn = styled(Column)`
 
 export const InputPathColumn = styled(Column)`
   grid-area: input-path;
-`;
-
-export const DefaultBranchColumn = styled(Column)`
-  grid-area: default-branch;
 `;
 
 export const ButtonColumn = styled(Column)`

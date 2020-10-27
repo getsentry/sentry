@@ -154,7 +154,10 @@ from .endpoints.organization_release_details import OrganizationReleaseDetailsEn
 from .endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
-from .endpoints.organization_releases import OrganizationReleasesEndpoint
+from .endpoints.organization_releases import (
+    OrganizationReleasesEndpoint,
+    OrganizationReleasesStatsEndpoint,
+)
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
@@ -1038,6 +1041,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/releases/$",
                     OrganizationReleasesEndpoint.as_view(),
                     name="sentry-api-0-organization-releases",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/releases/stats/$",
+                    OrganizationReleasesStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-releases-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/$",

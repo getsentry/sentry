@@ -2,7 +2,7 @@ import LazyLoad from 'react-lazyload';
 import React from 'react';
 
 import {Series} from 'app/types/echarts';
-import {Group, GroupStats} from 'app/types';
+import {Group, TimeseriesValue} from 'app/types';
 import {t} from 'app/locale';
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import theme from 'app/utils/theme';
@@ -22,13 +22,13 @@ function GroupChart({
   showSecondaryPoints = false,
   height = 24,
 }: Props) {
-  const stats: GroupStats[] = statsPeriod
+  const stats: TimeseriesValue[] = statsPeriod
     ? hasDynamicIssueCounts && data.filtered
       ? data.filtered.stats[statsPeriod]
       : data.stats[statsPeriod]
     : null;
 
-  const secondaryStats: GroupStats[] | null =
+  const secondaryStats: TimeseriesValue[] | null =
     statsPeriod && hasDynamicIssueCounts && data.filtered
       ? data.stats[statsPeriod]
       : null;

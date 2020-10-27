@@ -169,7 +169,7 @@ def load_data(
 
     if data.get("type") == "transaction":
         if start_timestamp is None:
-            start_timestamp = timestamp - timedelta(seconds=2)
+            start_timestamp = timestamp - timedelta(seconds=3)
         else:
             start_timestamp = start_timestamp.replace(tzinfo=pytz.utc)
         data["start_timestamp"] = to_timestamp(start_timestamp)
@@ -199,6 +199,17 @@ def load_data(
             span["trace_id"] = trace
             span.setdefault("start_timestamp", span_start)
             span.setdefault("timestamp", span_start + duration)
+
+        measurements = data.get("measurements")
+
+        if measurements:
+            measurement_markers = {}
+            for key, entry in measurements.items():
+                if key in ["fp", "fcp", "lcp", "fid"]:
+                    measurement_markers["mark.{}".format(key)] = {
+                        "value": data["start_timestamp"] + entry["value"] / 1000
+                    }
+            measurements.update(measurement_markers)
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.

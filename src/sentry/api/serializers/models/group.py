@@ -91,30 +91,29 @@ class GroupSerializerBase(Serializer):
         """
         raise NotImplementedError
 
-    def _get_group_snuba_stats(self, item_list, seen_stats):
-        filter_keys = {}
-
+    @staticmethod
+    def _get_start_from_seen_stats(seen_stats):
         # Try to figure out what is a reasonable time frame to look into stats,
         # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
         # but it has to be at least 14 days, and not more than 90 days ago.
         # Fallback to the 30 days ago if we are not able to calculate the value.
         last_seen = None
         for item in seen_stats.values():
-            if last_seen is None or (
-                item["last_seen"] is not None and last_seen > item["last_seen"]
-            ):
+            if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
                 last_seen = item["last_seen"]
-        if last_seen is not None:
-            last_seen = last_seen - timedelta(days=1)
 
         if last_seen is None:
-            start = datetime.now(pytz.utc) - timedelta(days=30)
-        else:
-            start = max(
-                min(last_seen, datetime.now(pytz.utc) - timedelta(days=14)),
-                datetime.now(pytz.utc) - timedelta(days=90),
-            )
+            return datetime.now(pytz.utc) - timedelta(days=30)
 
+        return max(
+            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
+            datetime.now(pytz.utc) - timedelta(days=90),
+        )
+
+    def _get_group_snuba_stats(self, item_list, seen_stats):
+        start = self._get_start_from_seen_stats(seen_stats)
+
+        filter_keys = {}
         for item in item_list:
             filter_keys.setdefault("project_id", []).append(item.project_id)
             filter_keys.setdefault("group_id", []).append(item.id)

@@ -17,7 +17,9 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project1 = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.project2 = self.create_project(organization=self.org, teams=[self.team], name="Tiger")
-        self.integration = Integration.objects.create(provider="github", name="Example")
+        self.integration = Integration.objects.create(
+            provider="github", name="Example", external_id="abcd"
+        )
         self.org_integration = self.integration.add_organization(self.org, self.user)
         self.repo1 = Repository.objects.create(
             name="example", organization_id=self.org.id, integration_id=self.integration.id
@@ -26,6 +28,19 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "sentry-api-0-organization-integration-repository-project-path-config",
             args=[self.org.slug, self.integration.id],
         )
+
+    def make_post(self, data=None):
+        config_data = {
+            "repository_id": self.repo1.id,
+            "project_id": self.project1.id,
+            "stack_root": "/stack/root",
+            "source_root": "/source/root",
+            "default_branch": "master",
+        }
+        if data:
+            config_data.update(data)
+
+        return self.client.post(self.url, data=config_data, format="json")
 
     def test_basic_get(self):
         path_config1 = RepositoryProjectPathConfig.objects.create(
@@ -69,4 +84,49 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "stackRoot": "another/path",
             "sourceRoot": "hey/there",
             "defaultBranch": None,
+        }
+
+    def test_basic_post(self):
+        response = self.make_post()
+        assert response.status_code == 201, response.content
+        assert response.data == {
+            "id": six.text_type(response.data["id"]),
+            "projectId": six.text_type(self.project1.id),
+            "projectSlug": self.project1.slug,
+            "repoId": six.text_type(self.repo1.id),
+            "repoName": self.repo1.name,
+            "organizationIntegrationId": six.text_type(self.org_integration.id),
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+        }
+
+    def test_empty_roots_post(self):
+        response = self.make_post({"stackRoot": "", "sourceRoot": ""})
+        assert response.status_code == 201, response.content
+
+    def test_project_does_not_exist(self):
+        bad_org = self.create_organization()
+        bad_project = self.create_project(organization=bad_org)
+        response = self.make_post({"project_id": bad_project.id})
+        assert response.status_code == 400
+        assert response.data == {"projectId": ["Project does not exist"]}
+
+    def test_repo_does_not_exist(self):
+        bad_integration = Integration.objects.create(provider="github", external_id="radsfas")
+        bad_integration.add_organization(self.org, self.user)
+        bad_repo = Repository.objects.create(
+            name="another", organization_id=self.org.id, integration_id=bad_integration.id
+        )
+        response = self.make_post({"repository_id": bad_repo.id})
+
+        assert response.status_code == 400
+        assert response.data == {"repositoryId": ["Repository does not exist"]}
+
+    def test_validate_path_conflict(self):
+        self.make_post()
+        response = self.make_post()
+        assert response.status_code == 400
+        assert response.data == {
+            "nonFieldErrors": ["Code path config already exists with this project and stack root"]
         }

@@ -129,7 +129,7 @@ class Item extends React.Component<Props, State> {
               />
             </ActionColumn>
             <EventDetails className="event-details">
-              <EventOrGroupHeader data={issue} />
+              <EventOrGroupHeader data={issue} includeLink size="normal" />
               <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
             </EventDetails>
           </FlowLayout>
