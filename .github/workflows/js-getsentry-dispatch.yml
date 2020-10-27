@@ -9,6 +9,8 @@ jobs:
     name: frontend dispatch
     runs-on: ubuntu-16.04
     steps:
+      - use: actions/checkout@v2
+
       - name: Check for frontend file changes
         uses: getsentry/paths-filter@v2
         id: changes

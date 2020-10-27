@@ -20,4 +20,4 @@ backend:
   - 'requirements-*.txt'
   - 'migrations_lockfile.txt'
   - '.python-version'
-  - '.github/workflows/!(js-*)'
+  # - '.github/workflows/!(js-*)'
