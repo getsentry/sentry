@@ -14,8 +14,8 @@ import GroupingActions from 'app/actions/groupingActions';
 const MIN_SCORE = 0.6;
 
 // @param score: {[key: string]: number}
-const checkBelowThreshold = (scores: Record<string, number>) => {
-  const scoreKeys = (scores && Object.keys(scores)) || [];
+const checkBelowThreshold = (scores = {}) => {
+  const scoreKeys = Object.keys(scores);
   return !scoreKeys.map(key => scores[key]).find(score => score >= MIN_SCORE);
 };
 
@@ -43,17 +43,60 @@ type State = {
   error: boolean;
 };
 
+type ScoreMap = Record<string, number | null>;
+
+type Item = {
+  id: string;
+  latestEvent: Event;
+  state?: string;
+};
+
+type ResponseProcessors = {
+  merged: (item: Item) => Item;
+  similar: (
+    data: [Group, ScoreMap]
+  ) => {
+    issue: Group;
+    score: ScoreMap;
+    scoresByInterface: Record<string, Array<[string, number | null]>>;
+    aggregate: Record<string, number>;
+    isBelowThreshold: boolean;
+  };
+};
+
+type DataKey = keyof ResponseProcessors;
+
+type ResultsAsArrayDataMerged = Array<Parameters<ResponseProcessors['merged']>[0]>;
+
+type ResultsAsArrayDataSimilar = Array<Parameters<ResponseProcessors['similar']>[0]>;
+
+type ResultsAsArray = Array<{
+  dataKey: DataKey;
+  data: ResultsAsArrayDataMerged | ResultsAsArrayDataSimilar;
+  links: string | null;
+}>;
+
+type IdState = {
+  busy?: boolean;
+  checked?: boolean;
+  collapsed?: boolean;
+};
+
 type GroupingStoreInterface = Reflux.StoreDefinition & {
   init: () => void;
   getInitialState: () => State;
   setStateForId: (
-    map: Record<string, any>,
-    idOrIds: Array<any> | any,
-    newState: any
-  ) => Array<any>;
+    map: Map<string, IdState>,
+    idOrIds: Array<string> | string,
+    newState: IdState
+  ) => Array<IdState>;
   isAllUnmergedSelected: () => boolean;
   onFetch: (
-    toFetchArray?: Array<{dataKey: string; endpoint: string; queryParams?: string}>
+    toFetchArray?: Array<{
+      dataKey: DataKey;
+      endpoint: string;
+      queryParams?: Record<string, any>;
+    }>
   ) => Promise<any>;
   onToggleMerge: (id: string) => void;
   onToggleUnmerge: (props: [string, string] | string) => void;
@@ -99,17 +142,6 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
 
 type Internals = {
   api: Client;
-};
-
-type Item = {
-  id: string;
-  latestEvent: Event;
-  state: string;
-};
-
-type ResponseProcessors = {
-  merged: (item: Item) => Item;
-  similar: (props: [{id: string}, Record<string, number>]) => any;
 };
 
 type GroupingStore = Reflux.Store & GroupingStoreInterface;
@@ -165,7 +197,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
 
   isAllUnmergedSelected() {
     const lockedItems =
-      (Array.from(this.unmergeState.values()) as Array<{busy: boolean}>).filter(
+      (Array.from(this.unmergeState.values()) as Array<IdState>).filter(
         ({busy}) => busy
       ) || [];
     return (
@@ -205,7 +237,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
     );
 
     const responseProcessors: ResponseProcessors = {
-      merged: (item: {latestEvent: Event; state: string; id: string}) => {
+      merged: item => {
         // Check for locked items
         this.setStateForId(this.unmergeState, item.id, {
           busy: item.state === 'locked',
@@ -258,12 +290,11 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
 
     return Promise.all(promises).then(
       resultsArray => {
-        (resultsArray as Array<{
-          dataKey: string;
-          data: Array<[{id: string}, Record<string, number | null>]>;
-          links: string | null;
-        }>).forEach(({dataKey, data, links}) => {
-          const items = data.map(responseProcessors[dataKey]);
+        (resultsArray as ResultsAsArray).forEach(({dataKey, data, links}) => {
+          const items =
+            dataKey === 'similar'
+              ? (data as ResultsAsArrayDataSimilar).map(responseProcessors[dataKey])
+              : (data as ResultsAsArrayDataMerged).map(responseProcessors[dataKey]);
           this[`${dataKey}Items`] = items;
           this[`${dataKey}Links`] = links;
         });
@@ -336,7 +367,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
   },
 
   onUnmerge({groupId, loadingMessage, successMessage, errorMessage}) {
-    const ids = Array.from(this.unmergeList.keys());
+    const ids = Array.from(this.unmergeList.keys()) as Array<string>;
 
     return new Promise((resolve, reject) => {
       if (this.isAllUnmergedSelected()) {
@@ -391,7 +422,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       return undefined;
     }
 
-    const ids = Array.from(this.mergeList.values());
+    const ids = Array.from(this.mergeList.values()) as Array<string>;
 
     this.mergeDisabled = true;
 
@@ -409,7 +440,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
         {
           orgId,
           projectId: projectId || params.projectId,
-          itemIds: [...ids, groupId] as Array<number>,
+          itemIds: [...(ids as any), groupId] as Array<number>,
           query,
         },
         {
