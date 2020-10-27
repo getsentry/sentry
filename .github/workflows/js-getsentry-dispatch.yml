@@ -37,7 +37,7 @@ jobs:
               workflow_id: 'javascript.yml',
               ref: 'build/gha/allow-javascript-tests-to-be-skipped',
               inputs: {
-                'skip': "${{ steps.changes.outputs.frontend == 'true' }}",
+                'skip': "${{ steps.changes.outputs.frontend != 'true' }}",
                 'sentry-sha': '${{ github.event.pull_request.head.sha }}',
               }
             })
