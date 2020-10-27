@@ -570,20 +570,18 @@ class IssueListOverview extends React.Component<Props, State> {
     const topIssue = ids[0];
     const {memberList} = this.state;
 
-    const {orgId} = this.props.params;
     const groupNodes = ids.map(id => {
       const hasGuideAnchor = id === topIssue;
       const group = GroupStore.get(id);
-      let members: Member['user'][] | null = null;
+      let members: Member['user'][] | undefined;
       if (group && group.project) {
-        members = memberList[group.project.slug] || null;
+        members = memberList[group.project.slug];
       }
 
       return (
         <StreamGroup
           key={id}
           id={id}
-          orgId={orgId}
           statsPeriod={groupStatsPeriod}
           query={this.getQuery()}
           hasGuideAnchor={hasGuideAnchor}
