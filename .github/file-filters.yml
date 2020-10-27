@@ -16,7 +16,7 @@ frontend:
 
 backend:
   - '**/*.py'
-  - 'src/sentry/templates'
+  - 'src/sentry/!(static)/**'
   - 'requirements-*.txt'
   - 'migrations_lockfile.txt'
   - '.python-version'
