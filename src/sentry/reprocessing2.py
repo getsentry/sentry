@@ -9,15 +9,25 @@ from django.conf import settings
 
 from sentry import nodestore, features, eventstore
 from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.models import EventAttachment
+from sentry import models
 from sentry.utils import snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
+from sentry.deletions.defaults.group import GROUP_RELATED_MODELS
 
 logger = logging.getLogger("sentry.reprocessing")
 
 _REDIS_SYNC_TTL = 3600
+
+
+GROUP_MODELS_TO_MIGRATE = GROUP_RELATED_MODELS + (models.Activity,)
+
+RESET_GROUP_ATTRS = {
+    "times_seen": 0,
+}
+
+TRANSFER_GROUP_ATTRS = ("status", "short_id")
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
@@ -101,7 +111,7 @@ def reprocess_event(project_id, event_id, start_time):
     cache_key = event_processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache
-    queryset = EventAttachment.objects.filter(
+    queryset = models.EventAttachment.objects.filter(
         project_id=project_id, event_id=orig_event_id
     ).select_related("file")
 
@@ -204,14 +214,31 @@ def mark_event_reprocessed(data):
 
 def start_group_reprocessing(project_id, group_id, max_events=None):
     from sentry.models.group import Group, GroupStatus
-    from sentry.models.grouphash import GroupHash
     from django.db import transaction
 
     with transaction.atomic():
-        Group.objects.filter(id=group_id).update(status=GroupStatus.REPROCESSING)
-        # Remove all grouphashes such that new events get sorted into a
-        # different group.
-        GroupHash.objects.filter(group_id=group_id).delete()
+        group = Group.objects.get(id=group_id)
+        transferred_group_attrs = {}
+        for attr in TRANSFER_GROUP_ATTRS:
+            transferred_group_attrs[attr] = getattr(group, attr)
+
+        group.status = GroupStatus.REPROCESSING
+        group.short_id = None  # satisfy unique constraint
+        group.save()
+
+        group.pk = group.id = None
+        for attr in TRANSFER_GROUP_ATTRS:
+            setattr(group, attr, transferred_group_attrs[attr])
+
+        for attr in RESET_GROUP_ATTRS:
+            setattr(group, attr, RESET_GROUP_ATTRS[attr])
+
+        group.save()
+        new_group = group
+        del group
+
+        for model in GROUP_MODELS_TO_MIGRATE:
+            model.objects.filter(group_id=group_id).update(group_id=new_group.id)
 
     # Get event counts of issue (for all environments etc). This was copypasted
     # and simplified from groupserializer.

@@ -18,10 +18,9 @@ GROUP_REPROCESSING_CHUNK_SIZE = 100
 def reprocess_group(project_id, group_id, offset=0, start_time=None, max_events=None):
     from sentry.reprocessing2 import start_group_reprocessing
 
-    start_group_reprocessing(project_id, group_id, max_events=max_events)
-
     if start_time is None:
         start_time = time.time()
+        start_group_reprocessing(project_id, group_id, max_events=max_events)
 
     if max_events is not None and max_events <= 0:
         events = []
