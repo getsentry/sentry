@@ -35,8 +35,8 @@ type State = {
   similarItems: [];
   filteredSimilarItems: [];
   similarLinks: string;
-  mergeState: Map<any, any>;
-  mergeList: Set<any>;
+  mergeState: Record<string, any>;
+  mergeList: Array<string>;
   mergedLinks: string;
   mergeDisabled: boolean;
   loading: boolean;
@@ -158,7 +158,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
     });
   },
 
-  getInitialState() {
+  getInitialState(): State {
     return {
       // List of fingerprints that belong to issue
       mergedItems: [],
@@ -175,8 +175,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       similarItems: [],
       filteredSimilarItems: [],
       similarLinks: '',
-      mergeState: new Map(),
-      mergeList: new Set(),
+      mergeState: {},
+      mergeList: [],
       mergedLinks: '',
       mergeDisabled: false,
       loading: true,
@@ -322,10 +322,10 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       return;
     }
 
-    if (this.mergeList.has(id)) {
-      this.mergeList.delete(id);
+    if (this.mergedList.includes(id)) {
+      this.mergeList = this.mergeList.filter(item => item !== id);
     } else {
-      this.mergeList.add(id);
+      this.mergeList = [...this.mergeList, id];
       checked = true;
     }
 
@@ -422,7 +422,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       return undefined;
     }
 
-    const ids = Array.from(this.mergeList.values()) as Array<string>;
+    const ids = this.mergeList;
 
     this.mergeDisabled = true;
 
@@ -456,7 +456,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
               checked: false,
               busy: true,
             });
-            this.mergeList.clear();
+            this.mergeList = [];
           },
           error: () => {
             this.setStateForId(this.mergeState, ids, {
