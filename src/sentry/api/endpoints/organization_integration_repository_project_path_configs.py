@@ -70,7 +70,8 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
             validated_data.pop("id")
         for key, value in validated_data.items():
             setattr(self.instance, key, value)
-        return self.instance.save()
+        self.instance.save()
+        return self.instance
 
 
 class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(

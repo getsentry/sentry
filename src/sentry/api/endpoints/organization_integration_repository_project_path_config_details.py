@@ -23,16 +23,20 @@ class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
         args, kwargs = super(
             OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint, self
         ).convert_args(request, organization_slug, integration_id, config_id, *args, **kwargs)
+
+        org_integration = self.get_organization_integration(kwargs["organization"], integration_id)
+        kwargs["org_integration"] = org_integration
+
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.get(
-                id=config_id, organization=kwargs["organization"], integration_id=integration_id,
+                id=config_id,
+                organization_integration_id=org_integration.id,
             )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise Http404
+        return (args, kwargs)
 
-    def put(self, request, organization, integration_id, config):
-        org_integration = self.get_organization_integration(organization, integration_id)
-
+    def put(self, request, organization_slug, integration_id, organization, org_integration, config):
         serializer = RepositoryProjectPathConfigSerializer(
             context={"organization_integration": org_integration},
             instance=config,
@@ -45,3 +49,8 @@ class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
             )
 
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+    def delete(self, request, organization_slug, integration_id, organization, org_integration, config):
+        config.delete()
+        return self.respond(status=status.HTTP_204_NO_CONTENT)

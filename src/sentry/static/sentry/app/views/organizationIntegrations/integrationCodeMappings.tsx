@@ -105,6 +105,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
     let {pathConfigs} = this.state;
+    pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
     // our getter handles the order of the configs
     pathConfigs = pathConfigs.concat([pathConfig]);
     this.setState({pathConfigs});
