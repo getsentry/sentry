@@ -1,10 +1,17 @@
 import {isNativePlatform} from 'app/utils/platform';
-import {Event, Group, Organization} from 'app/types';
+import {Event, Group, GroupTombstone, Organization} from 'app/types';
+
+function isTombstone(maybe: Group | Event | GroupTombstone): maybe is GroupTombstone {
+  return maybe.hasOwnProperty('type');
+}
 
 /**
  * Extract the display message from an event.
  */
-export function getMessage(event: Event | Group): string | undefined {
+export function getMessage(event: Event | Group | GroupTombstone): string | undefined {
+  if (isTombstone(event)) {
+    return event.culprit || '';
+  }
   const {metadata, type, culprit} = event;
 
   switch (type) {
@@ -24,7 +31,10 @@ export function getMessage(event: Event | Group): string | undefined {
 /**
  * Get the location from an event.
  */
-export function getLocation(event: Event | Group): string | null {
+export function getLocation(event: Event | Group | GroupTombstone): string | null {
+  if (isTombstone(event)) {
+    return null;
+  }
   if (event.type === 'error' && isNativePlatform(event.platform)) {
     return event.metadata.filename || null;
   }

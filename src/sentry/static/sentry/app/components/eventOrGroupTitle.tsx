@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {Organization, Event, Group} from 'app/types';
+import {Organization, Event, Group, GroupTombstone} from 'app/types';
 import {getTitle} from 'app/utils/events';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
-  data: Event | Group;
+  data: Event | Group | GroupTombstone;
   organization: Organization;
   style?: React.CSSProperties;
   hasGuideAnchor?: boolean;
