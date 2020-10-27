@@ -876,7 +876,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             operator = "!=" if search_filter.operator == "!=" else "="
             return [key_transaction_expr, operator, 0]
         if value in ("1", 1):
-            return [key_transaction_expr, "!=", 0]
+            return [key_transaction_expr, "=", 1]
         if value in ("0", 0):
             return [key_transaction_expr, "=", 0]
         raise InvalidSearchQuery(
