@@ -6,6 +6,7 @@ import uuid
 
 from sentry import eventstore
 from sentry.models.group import Group
+from sentry.models import GroupAssignee
 from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
 from sentry.plugins.base.v2 import Plugin2
@@ -138,8 +139,19 @@ def test_basic(
 @pytest.mark.django_db
 @pytest.mark.snuba
 def test_concurrent_events_go_into_new_group(
-    default_project, reset_snuba, register_event_preprocessor, process_and_save, burst_task_runner
+    default_project,
+    reset_snuba,
+    register_event_preprocessor,
+    process_and_save,
+    burst_task_runner,
+    default_user,
 ):
+    """
+    Assert that both unmodified and concurrently inserted events go into "the
+    new group", i.e. the successor of the reprocessed (old) group that
+    inherited the group hashes.
+    """
+
     @register_event_preprocessor
     def event_preprocessor(data):
         extra = data.setdefault("extra", {})
@@ -151,6 +163,12 @@ def test_concurrent_events_go_into_new_group(
 
     event = eventstore.get_event_by_id(default_project.id, event_id)
     original_short_id = event.group.short_id
+    assert original_short_id
+    original_group_id = event.group.id
+
+    original_assignee = GroupAssignee.objects.create(
+        group_id=original_group_id, project=default_project, user=default_user
+    )
 
     with burst_task_runner() as burst_reprocess:
         reprocess_group(default_project.id, event.group_id)
@@ -176,7 +194,10 @@ def test_concurrent_events_go_into_new_group(
     assert event2.group_id == event3.group_id
     assert event.get_hashes() == event2.get_hashes() == event3.get_hashes()
 
-    assert event3.group.short_id == original_short_id
+    group = event3.group
+
+    assert group.short_id == original_short_id
+    assert GroupAssignee.objects.get(group=group) == original_assignee
 
 
 @pytest.mark.django_db
