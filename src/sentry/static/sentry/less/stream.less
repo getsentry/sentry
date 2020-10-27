@@ -3,7 +3,6 @@
 * ============================================================================
 */
 
-.group-list,
 .similar-list,
 .event-list {
   background: #fff;
@@ -14,15 +13,7 @@
   // position: relative;
 }
 
-.group-list {
-  .group {
-    .flex;
-    .flex.flex-vertically-centered;
-  }
-}
-
 // .similar-list is used in a tab in an Issue
-.group-list,
 .events,
 .similar-list,
 .event-list {
@@ -221,13 +212,6 @@
     span {
       .stream-count;
       .transition(all linear 0.3s);
-
-      &.ng-update {
-        background: rgba(255, 252, 82, 0.75);
-        opacity: 1;
-        border-radius: 4px;
-        color: #111;
-      }
     }
   }
 
@@ -239,18 +223,6 @@
 // stop from accidentally clicking event title
 .similar-list .event-details h3 a {
   display: inline-block;
-}
-
-.app-icon {
-  width: 28px;
-  height: 28px;
-  background: url(../images/logos/empty-app-icon-180x180.png) center no-repeat;
-  margin-right: 8px;
-  display: inline-block;
-  background-size: contain;
-  vertical-align: middle;
-  border-radius: 6px;
-  box-shadow: 0px 0px 2px #e3e3e3;
 }
 
 /**
@@ -433,15 +405,4 @@
 
 .stream-count {
   font-size: 20px;
-}
-
-/**
-* Responsive small screen
-* ============================================================================
-*/
-
-@media (max-width: 767px) {
-  .group-list .group {
-    padding-right: 0;
-  }
 }
