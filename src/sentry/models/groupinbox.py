@@ -33,15 +33,15 @@ class GroupInbox(Model):
 
 
 def add_group_to_inbox(group, reason, reason_details=None):
-    gi, created = GroupInbox.objects.get_or_create(
+    group_index, created = GroupInbox.objects.get_or_create(
         group=group, defaults={"reason": reason.value, "reason_details": reason_details}
     )
-    return gi
+    return group_index
 
 
 def remove_group_from_inbox(group):
     try:
-        group = GroupInbox.objects.get(group=group)
-        group.delete()
+        group_index = GroupInbox.objects.get(group=group)
+        group_index.delete()
     except GroupInbox.DoesNotExist:
         pass
