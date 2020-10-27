@@ -18,8 +18,7 @@ import {formatVersion} from 'app/utils/formatters';
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
 async function getOrganizationReleases(api, organization, conditions = null) {
-  // chartOnly will only have version and timestamp
-  const query = {chartOnly: 1};
+  const query = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
     if (value && (key === 'start' || key === 'end')) {
@@ -30,7 +29,7 @@ async function getOrganizationReleases(api, organization, conditions = null) {
     }
   });
   api.clear();
-  return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
+  return api.requestPromise(`/organizations/${organization.slug}/releases/stats/`, {
     includeAllArgs: true,
     method: 'GET',
     query,
@@ -176,7 +175,7 @@ class ReleaseSeries extends React.Component {
           show: false,
         },
         data: releases.map(release => ({
-          xAxis: +new Date(release.dateCreated),
+          xAxis: +new Date(release.date),
           name: formatVersion(release.version, true),
           value: formatVersion(release.version, true),
           onClick: () => {

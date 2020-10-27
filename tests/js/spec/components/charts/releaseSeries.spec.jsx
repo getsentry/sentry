@@ -8,13 +8,18 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
   const {routerContext, organization} = initializeOrg();
-  const releases = [TestStubs.Release()];
+  const releases = [
+    {
+      version: 'sentry-android-shop@1.2.0',
+      date: '2020-03-23T00:00:00Z',
+    },
+  ];
   let releasesMock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     releasesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/`,
+      url: `/organizations/${organization.slug}/releases/stats/`,
       body: releases,
     });
   });
@@ -57,7 +62,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {project: [1, 2], chartOnly: 1},
+        query: {project: [1, 2]},
       })
     );
   });
@@ -74,7 +79,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {environment: ['dev', 'test'], chartOnly: 1},
+        query: {environment: ['dev', 'test']},
       })
     );
   });
@@ -93,7 +98,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {start: '2020-01-01T00:00:00', end: '2020-01-31T00:00:00', chartOnly: 1},
+        query: {start: '2020-01-01T00:00:00', end: '2020-01-31T00:00:00'},
       })
     );
   });
@@ -114,7 +119,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {start: '2020-01-01T12:13:14', end: '2020-01-31T14:15:16', chartOnly: 1},
+        query: {start: '2020-01-01T12:13:14', end: '2020-01-31T14:15:16'},
       })
     );
   });
@@ -131,7 +136,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {statsPeriod: '14d', chartOnly: 1},
+        query: {statsPeriod: '14d'},
       })
     );
   });

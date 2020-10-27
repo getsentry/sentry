@@ -4,6 +4,7 @@ import re
 import six
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.db.models.functions import Coalesce
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
@@ -41,6 +42,22 @@ def get_stats_period_detail(key, choices):
 
 
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
+
+
+def add_environment_to_queryset(queryset, filter_params):
+    if "environment" in filter_params:
+        return queryset.filter(
+            releaseprojectenvironment__environment__name__in=filter_params["environment"],
+            releaseprojectenvironment__project_id__in=filter_params["project_id"],
+        )
+    return queryset
+
+
+def add_date_filter_to_queryset(queryset, filter_params):
+    """ Once date has been coalesced over released and added, use it to filter releases """
+    if filter_params["start"] and filter_params["end"]:
+        return queryset.filter(date__gte=filter_params["start"], date__lte=filter_params["end"])
+    return queryset
 
 
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
@@ -126,7 +143,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
-        chart_only = request.GET.get("chartOnly") == "1"
         health_stat = request.GET.get("healthStat") or "sessions"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
@@ -151,13 +167,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         if with_health:
             debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        queryset = Release.objects.filter(organization=organization).select_related("owner")
+        queryset = (
+            Release.objects.filter(organization=organization)
+            .select_related("owner")
+            .annotate(date=Coalesce("date_released", "date_added"),)
+        )
 
-        if "environment" in filter_params:
-            queryset = queryset.filter(
-                releaseprojectenvironment__environment__name__in=filter_params["environment"],
-                releaseprojectenvironment__project_id__in=filter_params["project_id"],
-            )
+        queryset = add_environment_to_queryset(queryset, filter_params)
 
         if query:
             query_q = Q(version__icontains=query)
@@ -169,14 +185,16 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             queryset = queryset.filter(query_q)
 
         select_extra = {}
-        sort_query = None
 
         queryset = queryset.distinct()
         if flatten:
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
 
         if sort == "date":
-            sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
+            queryset = queryset.filter(projects__id__in=filter_params["project_id"]).order_by(
+                "-date"
+            )
+            paginator_kwargs["order_by"] = "-date"
         elif sort in (
             "crash_free_sessions",
             "crash_free_users",
@@ -208,19 +226,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         else:
             return Response({"detail": "invalid sort"}, status=400)
 
-        if sort_query is not None:
-            queryset = queryset.filter(projects__id__in=filter_params["project_id"])
-            select_extra["sort"] = sort_query
-            paginator_kwargs["order_by"] = "-sort"
-
         queryset = queryset.extra(select=select_extra)
-        if filter_params["start"] and filter_params["end"]:
-            queryset = queryset.extra(
-                where=[
-                    "COALESCE(sentry_release.date_released, sentry_release.date_added) BETWEEN %s and %s"
-                ],
-                params=[filter_params["start"], filter_params["end"]],
-            )
+        queryset = add_date_filter_to_queryset(queryset, filter_params)
 
         return self.paginate(
             request=request,
@@ -234,7 +241,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
                 environments=filter_params.get("environment") or None,
-                chart_only=chart_only,
             ),
             **paginator_kwargs
         )
@@ -376,3 +382,44 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             )
             return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)
+
+
+class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+    def get(self, request, organization):
+        """
+        List an Organization's Releases specifically for building timeseries
+        ```````````````````````````````
+        Return a list of releases for a given organization, sorted for most recent releases.
+
+        :pparam string organization_slug: the organization short name
+        """
+        try:
+            filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
+        except NoProjects:
+            return Response([])
+
+        queryset = (
+            Release.objects.filter(
+                organization=organization, projects__id__in=filter_params["project_id"]
+            )
+            .annotate(date=Coalesce("date_released", "date_added"),)
+            .values("version", "date")
+            .order_by("-date")
+            .distinct()
+        )
+
+        queryset = add_date_filter_to_queryset(queryset, filter_params)
+        queryset = add_environment_to_queryset(queryset, filter_params)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: [
+                {"version": release["version"], "date": serialize(release["date"])} for release in x
+            ],
+            default_per_page=1000,
+            max_per_page=1000,
+            max_limit=1000,
+            order_by="-date",
+        )
