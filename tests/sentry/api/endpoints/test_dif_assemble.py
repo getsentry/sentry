@@ -101,6 +101,7 @@ class DifAssembleEndpoint(APITestCase):
         # Finally, we simulate a successful job
         ProjectDebugFile.objects.create(
             file=file1,
+            checksum=file1.checksum,
             object_name="baz.dSYM",
             cpu_name="x86_64",
             project=self.project,
