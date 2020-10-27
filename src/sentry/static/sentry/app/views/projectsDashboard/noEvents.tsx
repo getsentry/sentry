@@ -24,6 +24,6 @@ const EmptyText = styled('div')`
   justify-content: center;
   margin-left: 4px;
   margin-right: 4px;
-  height: 68px;
+  height: 120px;
   color: ${p => p.theme.gray500};
 `;

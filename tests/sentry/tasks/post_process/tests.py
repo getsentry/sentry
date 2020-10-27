@@ -596,7 +596,6 @@ class PostProcessGroupTest(TestCase):
         group = event.group
 
         post_process_group(
-            event=None,
             is_new=True,
             is_regression=True,
             is_new_group_environment=False,

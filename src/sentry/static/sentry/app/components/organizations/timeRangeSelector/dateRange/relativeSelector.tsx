@@ -5,7 +5,13 @@ import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 
 import SelectorItem from './selectorItem';
 
-const RelativeSelector = ({onClick, selected, relativePeriods}) => (
+type Props = {
+  onClick: (value: string, e: React.MouseEvent) => void;
+  selected: string;
+  relativePeriods?: Record<string, string>;
+};
+
+const RelativeSelector = ({onClick, selected, relativePeriods}: Props) => (
   <React.Fragment>
     {Object.entries(relativePeriods || DEFAULT_RELATIVE_PERIODS).map(([value, label]) => (
       <SelectorItem

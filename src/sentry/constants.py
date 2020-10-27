@@ -175,6 +175,8 @@ RESERVED_PROJECT_SLUGS = frozenset(
         "integrations",
         "developer-settings",
         "usage",
+        "trust",
+        "legal",
     )
 )
 
