@@ -97,143 +97,137 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
     environmentList.unshift([null, anyEnvironmentLabel]);
 
     return (
-      <React.Fragment>
-        <Feature requireAll features={['organizations:performance-view']}>
-          <StyledPanel>
-            <PanelHeader>{t('Alert Conditions')}</PanelHeader>
-            <PanelBody>
-              <FormField required name="dataset" label="Data source">
-                {({onChange, onBlur, value, model, label}) => (
-                  <RadioGroup
-                    orientInline
-                    disabled={disabled}
-                    value={value}
-                    label={label}
-                    onChange={(id, e) => {
-                      onChange(id, e);
-                      onBlur(id, e);
-                      // Reset the aggregate to the default (which works across
-                      // datatypes), otherwise we may send snuba an invalid query
-                      // (transaction aggregate on events datasource = bad).
-                      model.setValue('aggregate', DEFAULT_AGGREGATE);
-                    }}
-                    choices={[
-                      [Dataset.ERRORS, DATA_SOURCE_LABELS[Dataset.ERRORS]],
-                      [Dataset.TRANSACTIONS, DATA_SOURCE_LABELS[Dataset.TRANSACTIONS]],
-                    ]}
-                  />
-                )}
-              </FormField>
-            </PanelBody>
-          </StyledPanel>
-        </Feature>
-
-        <div>
-          {/* Contained in the same div for the css sticky overlay */}
-          {this.props.thresholdChart}
-          <StyledPanel>
-            <PanelHeader>{t('Alert Conditions')}</PanelHeader>
-            <PanelBody>
-              <FormField name="query" inline={false}>
-                {({onChange, onBlur, onKeyDown, initialData, model}) => (
-                  <SearchContainer>
-                    <SearchLabel>{t('Filter')}</SearchLabel>
-                    <StyledSearchBar
-                      defaultQuery={initialData?.query ?? ''}
-                      inlineLabel={
-                        <Tooltip
-                          title={t(
-                            'Metric alerts are automatically filtered to your data source'
-                          )}
-                        >
-                          <SearchEventTypeNote>
-                            {DATASET_EVENT_TYPE_FILTERS[model.getValue('dataset')]}
-                          </SearchEventTypeNote>
-                        </Tooltip>
-                      }
-                      omitTags={['event.type']}
-                      disabled={disabled}
-                      useFormWrapper={false}
-                      organization={organization}
-                      onChange={onChange}
-                      onKeyDown={e => {
-                        /**
-                         * Do not allow enter key to submit the alerts form since it is unlikely
-                         * users will be ready to create the rule as this sits above required fields.
-                         */
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-
-                        onKeyDown?.(e);
-                      }}
-                      onBlur={query => {
-                        onFilterSearch(query);
-                        onBlur(query);
-                      }}
-                      onSearch={query => {
-                        onFilterSearch(query);
-                        onChange(query, {});
-                      }}
-                    />
-                  </SearchContainer>
-                )}
-              </FormField>
-              <MetricField
-                name="aggregate"
-                label={t('Metric')}
-                organization={organization}
-                disabled={disabled}
-                required
-              />
-              <SelectField
-                name="timeWindow"
-                label={t('Time Window')}
-                help={
-                  <React.Fragment>
-                    <div>{t('The time window over which the Metric is evaluated')}</div>
-                    <div>
-                      {t(
-                        'Note: Triggers are evaluated every minute regardless of this value.'
+      <StyledPanel>
+        <PanelHeader>{t('Alert Conditions')}</PanelHeader>
+        <PanelBody>
+          <Feature requireAll features={['organizations:performance-view']}>
+            <FormField required name="dataset" label="Data source">
+              {({onChange, onBlur, value, model, label}) => (
+                <RadioGroup
+                  orientInline
+                  disabled={disabled}
+                  value={value}
+                  label={label}
+                  onChange={(id, e) => {
+                    onChange(id, e);
+                    onBlur(id, e);
+                    // Reset the aggregate to the default (which works across
+                    // datatypes), otherwise we may send snuba an invalid query
+                    // (transaction aggregate on events datasource = bad).
+                    model.setValue('aggregate', DEFAULT_AGGREGATE);
+                  }}
+                  choices={[
+                    [Dataset.ERRORS, DATA_SOURCE_LABELS[Dataset.ERRORS]],
+                    [Dataset.TRANSACTIONS, DATA_SOURCE_LABELS[Dataset.TRANSACTIONS]],
+                  ]}
+                />
+              )}
+            </FormField>
+          </Feature>
+          <SelectField
+            name="environment"
+            label={t('Environment')}
+            placeholder={t('All Environments')}
+            help={t('Choose which environment events must match')}
+            styles={{
+              singleValue: (base: any) => ({
+                ...base,
+                '.all-environment-note': {display: 'none'},
+              }),
+              option: (base: any, state: any) => ({
+                ...base,
+                '.all-environment-note': {
+                  ...(!state.isSelected && !state.isFocused
+                    ? {color: theme.gray600}
+                    : {}),
+                  fontSize: theme.fontSizeSmall,
+                },
+              }),
+            }}
+            choices={environmentList}
+            isDisabled={disabled || this.state.environments === null}
+            isClearable
+          />
+          <FormField name="query" inline={false}>
+            {({onChange, onBlur, onKeyDown, initialData, model}) => (
+              <SearchContainer>
+                <SearchLabel>{t('Filter')}</SearchLabel>
+                <StyledSearchBar
+                  defaultQuery={initialData?.query ?? ''}
+                  inlineLabel={
+                    <Tooltip
+                      title={t(
+                        'Metric alerts are automatically filtered to your data source'
                       )}
-                    </div>
-                  </React.Fragment>
-                }
-                choices={Object.entries(TIME_WINDOW_MAP)}
-                required
-                isDisabled={disabled}
-                getValue={value => Number(value)}
-                setValue={value => `${value}`}
-              />
-              <SelectField
-                name="environment"
-                label={t('Environment')}
-                placeholder={t('All Environments')}
-                help={t('Choose which environment events must match')}
-                styles={{
-                  singleValue: (base: any) => ({
-                    ...base,
-                    '.all-environment-note': {display: 'none'},
-                  }),
-                  option: (base: any, state: any) => ({
-                    ...base,
-                    '.all-environment-note': {
-                      ...(!state.isSelected && !state.isFocused
-                        ? {color: theme.gray600}
-                        : {}),
-                      fontSize: theme.fontSizeSmall,
-                    },
-                  }),
-                }}
-                choices={environmentList}
-                isDisabled={disabled || this.state.environments === null}
-                isClearable
-              />
-            </PanelBody>
-          </StyledPanel>
-        </div>
-      </React.Fragment>
+                    >
+                      <SearchEventTypeNote>
+                        {DATASET_EVENT_TYPE_FILTERS[model.getValue('dataset')]}
+                      </SearchEventTypeNote>
+                    </Tooltip>
+                  }
+                  omitTags={['event.type']}
+                  disabled={disabled}
+                  useFormWrapper={false}
+                  organization={organization}
+                  placeholder={
+                    model.getValue('dataset') === 'events'
+                      ? t('Filter events by level, message, or other properties...')
+                      : t('Filter transactions by URL, tags, and other properties...')
+                  }
+                  onChange={onChange}
+                  onKeyDown={e => {
+                    /**
+                     * Do not allow enter key to submit the alerts form since it is unlikely
+                     * users will be ready to create the rule as this sits above required fields.
+                     */
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+
+                    onKeyDown?.(e);
+                  }}
+                  onBlur={query => {
+                    onFilterSearch(query);
+                    onBlur(query);
+                  }}
+                  onSearch={query => {
+                    onFilterSearch(query);
+                    onChange(query, {});
+                  }}
+                />
+              </SearchContainer>
+            )}
+          </FormField>
+          <MetricField
+            name="aggregate"
+            label={t('Metric')}
+            organization={organization}
+            disabled={disabled}
+            required
+          />
+          <SelectField
+            name="timeWindow"
+            label={t('Time Window')}
+            help={
+              <React.Fragment>
+                <div>{t('The time window over which the Metric is evaluated')}</div>
+                <div>
+                  {t(
+                    'Note: Triggers are evaluated every minute regardless of this value.'
+                  )}
+                </div>
+              </React.Fragment>
+            }
+            choices={Object.entries(TIME_WINDOW_MAP)}
+            required
+            isDisabled={disabled}
+            getValue={value => Number(value)}
+            setValue={value => `${value}`}
+          />
+          {this.props.thresholdChart}
+        </PanelBody>
+      </StyledPanel>
     );
   }
 }
