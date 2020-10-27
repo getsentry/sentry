@@ -8,6 +8,8 @@ from six import text_type
 
 from sentry.utils.compat import map
 
+import requests
+
 
 def get_docker_client():
     import docker
@@ -18,6 +20,46 @@ def get_docker_client():
         return client
     except Exception:
         raise click.ClickException("Make sure Docker is running.")
+
+
+def get_local_image_digest(repo, tag):
+    import docker
+
+    with docker.APIClient() as docker_low_level_client:
+        local_image_details = docker_low_level_client.inspect_image(
+            "{repo}:{tag}".format(repo=repo, tag=tag)
+        )
+
+    return local_image_details["Id"]
+
+
+def get_docker_registry_token(*, repo):
+    resp = requests.get(
+        "https://auth.docker.io/token?service=registry.docker.io&scope=repository:{repo}:pull".format(
+            repo=repo,
+        )
+    )
+    resp.raise_for_status()
+
+    # XXX: We don't take into account expires_in / token refresh.
+    return resp.json()["token"]
+
+
+def get_remote_image_digest(*, repo, tag):
+    if "/" not in repo:
+        # Assume official remote registry.
+        repo = "library/" + repo
+
+    registry_token = get_docker_registry_token(repo=repo)
+    resp = requests.head(
+        "https://index.docker.io/v2/{repo}/manifests/{tag}".format(repo=repo, tag=tag,),
+        headers={
+            "Authorization": "Bearer " + registry_token,
+            "Accept": "application/vnd.docker.distribution.manifest.v2+json",
+        },
+    )
+    resp.raise_for_status()
+    return resp.headers["Docker-Content-Digest"]
 
 
 def get_or_create(client, thing, name):
@@ -215,17 +257,30 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
 
     pull = options.pop("pull", False)
     if not fast:
-        if pull:
-            click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-            client.images.pull(options["image"])
-        else:
-            # We want make sure to pull everything on the first time,
-            # (the image doesn't exist), regardless of pull=True.
-            try:
-                client.images.get(options["image"])
-            except NotFound:
-                click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-                client.images.pull(options["image"])
+        repo, tag = options["image"].split(":")
+        try:
+            local_image_digest = get_local_image_digest(repo=repo, tag=tag)
+        except NotFound:
+            print(options["image"], "not found locally. todo pull.")
+
+        remote_image_digest = get_remote_image_digest(repo=repo, tag=tag)
+
+        print("local", options["image"], local_image_digest)
+        print("remote", options["image"], remote_image_digest)
+
+        # if pull:
+        #    click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
+        #    client.images.pull(options["image"])
+        # else:
+        #    # We want make sure to pull everything on the first time,
+        #    # (the image doesn't exist), regardless of pull=True.
+        #    try:
+        #        client.images.get(options["image"])
+        #    except NotFound:
+        #        click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
+        #        client.images.pull(options["image"])
+
+    return
 
     for mount in list(options.get("volumes", {}).keys()):
         if "/" not in mount:
