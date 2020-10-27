@@ -409,7 +409,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
         {
           orgId,
           projectId: projectId || params.projectId,
-          itemIds: [...ids, groupId] as Array<string>,
+          itemIds: [...ids, groupId] as Array<number>,
           query,
         },
         {

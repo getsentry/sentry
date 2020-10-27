@@ -32,7 +32,7 @@ export class Request {
 }
 
 type ParamsType = {
-  itemIds?: Array<number> | Array<string>;
+  itemIds?: Array<number>;
   query?: string;
   environment?: string | null;
   project?: Array<number> | null;
