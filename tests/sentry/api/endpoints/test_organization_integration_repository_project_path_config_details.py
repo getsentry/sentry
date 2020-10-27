@@ -54,7 +54,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         ).exists()
 
     def test_basic_edit(self):
-        resp = self.make_put({"stackRoot": "newRoot"})
+        resp = self.make_put({"sourceRoot": "newRoot"})
         assert resp.status_code == 200
         assert resp.data["id"] == six.text_type(self.config.id)
-        assert resp.data["stackRoot"] == "newRoot"
+        assert resp.data["sourceRoot"] == "newRoot"

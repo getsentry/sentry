@@ -97,7 +97,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
   render() {
     const {organization, integration, onSubmitSuccess, existingConfig} = this.props;
 
-    //TODO: make endpoint and method dynamic
+    // endpoint changes if we are making a new row or updating an existing one
     const baseEndpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/`;
     const endpoint = existingConfig
       ? `${baseEndpoint}${existingConfig.id}/`
