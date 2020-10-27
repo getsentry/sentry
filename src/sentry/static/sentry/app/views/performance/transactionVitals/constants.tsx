@@ -54,7 +54,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     slug: 'cls',
     name: t('Cumulative Layout Shift'),
     description: t(
-      'The sum total of all individual layout shift scores for every unexpected layout shift that occurs during the entire lifespan of the page.'
+      'Sum of layout shift scores that measure the visual stability of the page.'
     ),
     failureThreshold: 0.25,
     type: measurementType(WebVital.CLS),
