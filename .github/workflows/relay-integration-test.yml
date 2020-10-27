@@ -23,18 +23,18 @@ jobs:
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
         with:
           python-version: 2.7.17
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
         id: pip
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
 
       - name: pip cache
         uses: actions/cache@v2
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
@@ -44,20 +44,20 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
         with:
           python: 2
           snuba: true
           kafka: true
 
       - name: Pull relay image
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
         run: |
           # pull relay we'll run and kill it for each test
           docker pull us.gcr.io/sentryio/relay:latest
           docker ps -a
 
       - name: Run test
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
         run: |
           make test-relay-integration
