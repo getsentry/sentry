@@ -74,7 +74,6 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
             status=GroupStatus.RESOLVED, resolved_at=timezone.now()
         )
-        # TODO: Write test to ensure group is removed properly
         remove_group_from_inbox(group)
 
         if happened:
