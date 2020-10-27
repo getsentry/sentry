@@ -19,7 +19,6 @@ class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
 ):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    @staticmethod
     def convert_args(self, request, organization_slug, integration_id, config_id, *args, **kwargs):
         args, kwargs = super(
             OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint, self
