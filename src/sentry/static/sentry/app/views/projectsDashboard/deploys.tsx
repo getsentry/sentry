@@ -108,7 +108,7 @@ const DeployRows = styled(DeployContainer)`
   line-height: 1.2;
 `;
 
-const Environment = styled('p')`
+const Environment = styled('div')`
   color: ${p => p.theme.textColor};
   margin: 0;
 `;
