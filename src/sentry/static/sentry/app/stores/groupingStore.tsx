@@ -158,7 +158,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
     });
   },
 
-  getInitialState(): State {
+  getInitialState() {
     return {
       // List of fingerprints that belong to issue
       mergedItems: [],
