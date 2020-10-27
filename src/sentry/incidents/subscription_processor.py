@@ -10,8 +10,12 @@ from django.conf import settings
 from django.db import transaction
 
 from sentry import features
-from sentry.incidents.logic import create_incident, update_incident_status
-from sentry.incidents.endpoints.serializers import WARNING_TRIGGER_LABEL, CRITICAL_TRIGGER_LABEL
+from sentry.incidents.logic import (
+    create_incident,
+    CRITICAL_TRIGGER_LABEL,
+    update_incident_status,
+    WARNING_TRIGGER_LABEL,
+)
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
