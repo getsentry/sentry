@@ -3,10 +3,10 @@ from __future__ import absolute_import
 from time import time
 import pytest
 import uuid
+import six
 
 from sentry import eventstore
-from sentry.models.group import Group
-from sentry.models import GroupAssignee
+from sentry.models import Group, GroupAssignee, Activity
 from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
 from sentry.plugins.base.v2 import Plugin2
@@ -198,6 +198,8 @@ def test_concurrent_events_go_into_new_group(
 
     assert group.short_id == original_short_id
     assert GroupAssignee.objects.get(group=group) == original_assignee
+    activity = Activity.objects.get(group=group, type=Activity.REPROCESS)
+    assert activity.ident == six.text_type(original_group_id)
 
 
 @pytest.mark.django_db

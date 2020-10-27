@@ -15,7 +15,9 @@ GROUP_REPROCESSING_CHUNK_SIZE = 100
     time_limit=120,
     soft_time_limit=110,
 )
-def reprocess_group(project_id, group_id, offset=0, start_time=None, max_events=None):
+def reprocess_group(
+    project_id, group_id, offset=0, start_time=None, max_events=None, acting_user_id=None
+):
     from sentry.reprocessing2 import start_group_reprocessing
 
     if start_time is None:

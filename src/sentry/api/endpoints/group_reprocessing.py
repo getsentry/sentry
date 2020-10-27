@@ -34,5 +34,10 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         else:
             max_events = None
 
-        reprocess_group.delay(project_id=group.project_id, group_id=group.id, max_events=max_events)
+        reprocess_group.delay(
+            project_id=group.project_id,
+            group_id=group.id,
+            max_events=max_events,
+            acting_user_id=request.user.id,
+        )
         return self.respond(status=200)

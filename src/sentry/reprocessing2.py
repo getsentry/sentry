@@ -4,6 +4,7 @@ import uuid
 import hashlib
 import logging
 import sentry_sdk
+import six
 
 from django.conf import settings
 
@@ -21,7 +22,7 @@ logger = logging.getLogger("sentry.reprocessing")
 _REDIS_SYNC_TTL = 3600
 
 
-GROUP_MODELS_TO_MIGRATE = GROUP_RELATED_MODELS + (models.Activity, models.ExternalIssue,)
+GROUP_MODELS_TO_MIGRATE = GROUP_RELATED_MODELS + (models.Activity,)
 
 RESET_GROUP_ATTRS = {
     "times_seen": 0,
@@ -212,7 +213,7 @@ def mark_event_reprocessed(data):
     _get_sync_redis_client().decr(key)
 
 
-def start_group_reprocessing(project_id, group_id, max_events=None):
+def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_id=None):
     from django.db import transaction
 
     with transaction.atomic():
@@ -240,7 +241,17 @@ def start_group_reprocessing(project_id, group_id, max_events=None):
             model.objects.filter(group_id=group_id).update(group_id=new_group.id)
 
     models.GroupRedirect.objects.create(
-        organization_id=new_group.organization_id, group_id=new_group.id, previous_group_id=group_id
+        organization_id=new_group.project.organization_id,
+        group_id=new_group.id,
+        previous_group_id=group_id,
+    )
+
+    models.Activity.objects.create(
+        type=models.Activity.REPROCESS,
+        project=new_group.project,
+        ident=six.text_type(group_id),
+        group=new_group,
+        user_id=acting_user_id,
     )
 
     # Get event counts of issue (for all environments etc). This was copypasted
