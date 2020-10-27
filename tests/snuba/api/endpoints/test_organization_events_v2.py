@@ -2733,7 +2733,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "{}:0".format(count_unique), field=[count_unique]
         )
 
-    def test_get_no_key_transactions(self):
+    def test_no_key_transactions(self):
         transactions = [
             "/blah_transaction/",
             "/foo_transaction/",
@@ -2751,7 +2751,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "field": [
                 "key_transaction",
                 "transaction",
-                "transaction_status",
+                "transaction.status",
                 "project",
                 "epm()",
                 "failure_rate()",
@@ -2770,7 +2770,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[2]["key_transaction"] == 0
         assert data[2]["transaction"] == "/zoo_transaction/"
 
-    def test_get_mix_of_key_transactions(self):
+    def test_mix_of_key_transactions(self):
         transactions = ["/blah_transaction/"]
         key_transactions = [
             "/foo_transaction/",
@@ -2797,7 +2797,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "field": [
                 "key_transaction",
                 "transaction",
-                "transaction_status",
+                "transaction.status",
                 "project",
                 "epm()",
                 "failure_rate()",
@@ -2811,12 +2811,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 3
         assert data[0]["key_transaction"] == 0
         assert data[0]["transaction"] == "/blah_transaction/"
-        assert data[1]["key_transaction"] == -2
+        assert data[1]["key_transaction"] == 1
         assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["key_transaction"] == -1
+        assert data[2]["key_transaction"] == 1
         assert data[2]["transaction"] == "/zoo_transaction/"
 
-    def test_get_key_transactions_orderby(self):
+    def test_key_transactions_orderby(self):
         transactions = [
             "/blah_transaction/",
             "/foo_transaction/",
@@ -2838,7 +2838,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "field": [
                 "key_transaction",
                 "transaction",
-                "transaction_status",
+                "transaction.status",
                 "project",
                 "epm()",
                 "failure_rate()",
@@ -2852,11 +2852,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 3
-        assert data[0]["key_transaction"] == -3
+        assert data[0]["key_transaction"] == 1
         assert data[0]["transaction"] == "/blah_transaction/"
-        assert data[1]["key_transaction"] == -2
+        assert data[1]["key_transaction"] == 1
         assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["key_transaction"] == -1
+        assert data[2]["key_transaction"] == 1
         assert data[2]["transaction"] == "/zoo_transaction/"
 
         # test descending order
@@ -2865,14 +2865,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 3
-        assert data[0]["key_transaction"] == -1
+        assert data[0]["key_transaction"] == 1
         assert data[0]["transaction"] == "/zoo_transaction/"
-        assert data[1]["key_transaction"] == -2
+        assert data[1]["key_transaction"] == 1
         assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["key_transaction"] == -3
+        assert data[2]["key_transaction"] == 1
         assert data[2]["transaction"] == "/blah_transaction/"
 
-    def test_get_key_transactions_query(self):
+    def test_key_transactions_query(self):
         transactions = ["/blah_transaction/"]
         key_transactions = [
             "/foo_transaction/",
@@ -2899,7 +2899,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "field": [
                 "key_transaction",
                 "transaction",
-                "transaction_status",
+                "transaction.status",
                 "project",
                 "epm()",
                 "failure_rate()",
@@ -2913,9 +2913,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["key_transaction"] == -2
+        assert data[0]["key_transaction"] == 1
         assert data[0]["transaction"] == "/foo_transaction/"
-        assert data[1]["key_transaction"] == -1
+        assert data[1]["key_transaction"] == 1
         assert data[1]["transaction"] == "/zoo_transaction/"
 
         # key transactions
@@ -2924,9 +2924,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["key_transaction"] == -2
+        assert data[0]["key_transaction"] == 1
         assert data[0]["transaction"] == "/foo_transaction/"
-        assert data[1]["key_transaction"] == -1
+        assert data[1]["key_transaction"] == 1
         assert data[1]["transaction"] == "/zoo_transaction/"
 
         # not key transactions

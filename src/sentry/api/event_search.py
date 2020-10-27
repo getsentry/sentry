@@ -1273,11 +1273,12 @@ def get_filter(query=None, params=None):
 
 
 class PseudoField(object):
-    def __init__(self, name, alias, expression=None, expression_fn=None):
+    def __init__(self, name, alias, expression=None, expression_fn=None, result_type=None):
         self.name = name
         self.alias = alias
         self.expression = expression
         self.expression_fn = expression_fn
+        self.result_type = result_type
 
     def get_expression(self, params):
         if isinstance(self.expression, (list, tuple)):
@@ -1325,6 +1326,10 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     (and project id to break ties) because we want the transaction that should appear
     first to be last in the array. This allows us to multiply it by -1 to create the
     desired sort.
+
+    (As an aside, if we want to keep key transactions at the top of the list, we'd have
+    to change this expression to use an `IN` to produce a 0/1 then use key transactions
+    as the primary sort with a secondary sort to break ties.)
     """
 
     key_transactions = (
@@ -1393,12 +1398,17 @@ FIELD_ALIASES = {
                     tuple(params.get("project_id", [])),
                 )
             ),
+            result_type="boolean",
         ),
     ]
 }
 
 
 def get_json_meta_type(field_alias, snuba_type, function=None):
+    alias_definition = FIELD_ALIASES.get(field_alias)
+    if alias_definition and alias_definition.result_type is not None:
+        return alias_definition.result_type
+
     snuba_json = get_json_type(snuba_type)
     if snuba_json != "string":
         if function is not None:
