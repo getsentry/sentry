@@ -21,7 +21,7 @@ logger = logging.getLogger("sentry.reprocessing")
 _REDIS_SYNC_TTL = 3600
 
 
-GROUP_MODELS_TO_MIGRATE = GROUP_RELATED_MODELS + (models.Activity,)
+GROUP_MODELS_TO_MIGRATE = GROUP_RELATED_MODELS + (models.Activity, models.ExternalIssue,)
 
 RESET_GROUP_ATTRS = {
     "times_seen": 0,
@@ -213,16 +213,15 @@ def mark_event_reprocessed(data):
 
 
 def start_group_reprocessing(project_id, group_id, max_events=None):
-    from sentry.models.group import Group, GroupStatus
     from django.db import transaction
 
     with transaction.atomic():
-        group = Group.objects.get(id=group_id)
+        group = models.Group.objects.get(id=group_id)
         transferred_group_attrs = {}
         for attr in TRANSFER_GROUP_ATTRS:
             transferred_group_attrs[attr] = getattr(group, attr)
 
-        group.status = GroupStatus.REPROCESSING
+        group.status = models.GroupStatus.REPROCESSING
         group.short_id = None  # satisfy unique constraint
         group.save()
 
@@ -239,6 +238,10 @@ def start_group_reprocessing(project_id, group_id, max_events=None):
 
         for model in GROUP_MODELS_TO_MIGRATE:
             model.objects.filter(group_id=group_id).update(group_id=new_group.id)
+
+    models.GroupRedirect.objects.create(
+        organization_id=new_group.organization_id, group_id=new_group.id, previous_group_id=group_id
+    )
 
     # Get event counts of issue (for all environments etc). This was copypasted
     # and simplified from groupserializer.
