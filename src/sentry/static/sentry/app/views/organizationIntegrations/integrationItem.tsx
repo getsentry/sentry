@@ -52,6 +52,7 @@ const Labels = styled('div')<StyledProps>`
   flex-direction: ${p => (p.compact ? 'row' : 'column')};
   padding-left: ${space(1)};
   min-width: 0;
+  justify-content: center;
 `;
 
 const IntegrationName = styled('div')`
