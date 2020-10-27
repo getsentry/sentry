@@ -10,6 +10,7 @@ import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
+import {IconReleases} from 'app/icons';
 
 const DEPLOY_COUNT = 2;
 
@@ -36,7 +37,7 @@ const Deploys = ({project}: Props) => {
   }
 
   return (
-    <DeployContainer>
+    <DeployRows>
       {deploys.map(deploy => (
         <Deploy
           key={`${deploy.environment}-${deploy.version}`}
@@ -44,7 +45,7 @@ const Deploys = ({project}: Props) => {
           project={project}
         />
       ))}
-    </DeployContainer>
+    </DeployRows>
   );
 };
 
@@ -59,25 +60,25 @@ type DeployProps = Props & {
 };
 
 const Deploy = ({deploy, project}: DeployProps) => (
-  <DeployRow>
-    <Environment>{deploy.environment}</Environment>
-
-    <StyledTextOverflow>
+  <React.Fragment>
+    <IconReleases size="sm" />
+    <TextOverflow>
+      <Environment>{deploy.environment}</Environment>
       <Version
         version={deploy.version}
         projectId={project.id}
         tooltipRawVersion
         truncate
       />
-    </StyledTextOverflow>
+    </TextOverflow>
 
-    <DeployTimeWrapper>
+    <DeployTime>
       {getDynamicText({
         fixed: '3 hours ago',
         value: <TimeSince date={deploy.dateFinished} />,
       })}
-    </DeployTimeWrapper>
-  </DeployRow>
+    </DeployTime>
+  </React.Fragment>
 );
 
 Deploy.propTypes = {
@@ -86,61 +87,41 @@ Deploy.propTypes = {
 };
 
 const NoDeploys = () => (
-  <DeployContainer>
-    <Background>
-      <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
-        {t('Track deploys')}
-      </Button>
-    </Background>
-  </DeployContainer>
+  <GetStarted>
+    <Button size="small" href="https://docs.sentry.io/learn/releases/" external>
+      {t('Track deploys')}
+    </Button>
+  </GetStarted>
 );
-
-const DeployRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSizeSmall};
-
-  &:not(:last-of-type) {
-    margin-top: ${space(1)};
-  }
-`;
-
-const Environment = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  text-transform: uppercase;
-  width: 80px;
-  border: 1px solid ${p => p.theme.borderLight};
-  margin-right: ${space(1)};
-  background-color: ${p => p.theme.gray100};
-  text-align: center;
-  border-radius: ${p => p.theme.borderRadius};
-  flex-shrink: 0;
-`;
-
-const StyledTextOverflow = styled(TextOverflow)`
-  margin-right: ${space(1)};
-`;
-
-const DeployTimeWrapper = styled('div')`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 90px;
-  flex-grow: 1;
-  flex-shrink: 0;
-  text-align: right;
-`;
-
 const DeployContainer = styled('div')`
-  height: 92px;
   padding: ${space(2)};
+  height: 115px;
 `;
 
-const Background = styled('div')`
+const DeployRows = styled(DeployContainer)`
+  display: grid;
+  grid-template-columns: 30px 1fr 1fr;
+  grid-template-rows: auto;
+  grid-column-gap: ${space(1)};
+  grid-row-gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.2;
+`;
+
+const Environment = styled('div')`
+  color: ${p => p.theme.textColor};
+  margin: 0;
+`;
+
+const DeployTime = styled('div')`
+  color: ${p => p.theme.gray500};
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+`;
+
+const GetStarted = styled(DeployContainer)`
   display: flex;
-  height: 100%;
-  background-color: ${p => p.theme.gray100};
   align-items: center;
   justify-content: center;
 `;
