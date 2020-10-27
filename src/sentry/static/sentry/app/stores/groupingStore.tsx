@@ -106,6 +106,7 @@ type Item = {
   latestEvent: Event;
   state: string;
 };
+
 type ResponseProcessors = {
   merged: (item: Item) => Item;
   similar: (props: [{id: string}, Record<string, number>]) => any;
