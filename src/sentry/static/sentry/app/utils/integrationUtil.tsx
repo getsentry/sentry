@@ -325,3 +325,12 @@ export const convertIntegrationTypeToSnakeCase = (
       return type;
   }
 };
+
+export const safeGetQsParam = (param: string) => {
+  try {
+    const query = qs.parse(window.location.search) || {};
+    return query[param];
+  } catch {
+    return undefined;
+  }
+};
