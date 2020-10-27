@@ -8,6 +8,7 @@ import Count from 'app/components/count';
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
 import {
   SPAN_ROW_HEIGHT,
+  SPAN_ROW_PADDING,
   SpanRow,
   getHatchPattern,
 } from 'app/components/events/interfaces/spans/styles';
@@ -272,9 +273,7 @@ class SpanBar extends React.Component<Props, State> {
       if (!width) {
         return undefined;
       }
-
-      // there is a "padding" of 1px on either side of the span rectangle
-      return `max(1px, calc(${width} - 2px))`;
+      return `max(1px, ${width})`;
     }
 
     switch (span.comparisonResult) {
@@ -526,7 +525,8 @@ const ComparisonLabel = styled('div')`
   position: absolute;
   user-select: none;
   right: ${space(1)};
-  line-height: 16px;
+  line-height: ${SPAN_ROW_HEIGHT - 2 * SPAN_ROW_PADDING}px;
+  top: ${SPAN_ROW_PADDING}px;
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 

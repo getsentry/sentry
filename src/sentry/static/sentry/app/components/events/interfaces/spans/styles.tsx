@@ -11,6 +11,7 @@ export const zIndex = {
 };
 
 export const SPAN_ROW_HEIGHT = 24;
+export const SPAN_ROW_PADDING = 4;
 
 type SpanRowProps = {
   visible?: boolean;

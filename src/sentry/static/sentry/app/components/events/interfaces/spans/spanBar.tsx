@@ -16,6 +16,7 @@ import {
   toPercent,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  SpanViewBoundsType,
   getHumanDuration,
   getSpanID,
   getSpanOperation,
@@ -24,6 +25,8 @@ import {
   isOrphanTreeDepth,
   isEventFromBrowserJavaScriptSDK,
   durationlessBrowserOps,
+  getMeasurements,
+  getMeasurementBounds,
 } from './utils';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
 import {
@@ -31,9 +34,16 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './header';
-import {SPAN_ROW_HEIGHT, SpanRow, zIndex, getHatchPattern} from './styles';
+import {
+  SPAN_ROW_HEIGHT,
+  SPAN_ROW_PADDING,
+  SpanRow,
+  zIndex,
+  getHatchPattern,
+} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as CursorGuideHandler from './cursorGuideHandler';
+import * as MeasurementsManager from './measurementsManager';
 import SpanDetail from './spanDetail';
 
 // TODO: maybe use babel-plugin-preval
@@ -275,12 +285,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  getBounds(): {
-    warning: undefined | string;
-    left: undefined | number;
-    width: undefined | number;
-    isSpanVisibleInView: boolean;
-  } {
+  getBounds(): SpanViewBoundsType {
     const {event, span, generateBounds} = this.props;
 
     const bounds = generateBounds({
@@ -343,6 +348,56 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         return _exhaustiveCheck;
       }
     }
+  }
+
+  renderMeasurements() {
+    const {organization, event, generateBounds} = this.props;
+
+    if (!organization.features.includes('measurements') || this.state.showDetail) {
+      return null;
+    }
+
+    const measurements = getMeasurements(event);
+
+    return (
+      <React.Fragment>
+        {Array.from(measurements).map(([timestamp, names]) => {
+          const bounds = getMeasurementBounds(timestamp, generateBounds);
+
+          const shouldDisplay = defined(bounds.left) && defined(bounds.width);
+
+          if (!shouldDisplay) {
+            return null;
+          }
+
+          const measurementName = names.join('');
+
+          return (
+            <MeasurementsManager.Consumer key={String(timestamp)}>
+              {({hoveringMeasurement, notHovering, currentHoveredMeasurement}) => {
+                return (
+                  <MeasurementMarker
+                    hovering={currentHoveredMeasurement === measurementName}
+                    style={{
+                      left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+                    }}
+                    onMouseEnter={() => {
+                      hoveringMeasurement(measurementName);
+                    }}
+                    onMouseLeave={() => {
+                      notHovering();
+                    }}
+                    onMouseOver={() => {
+                      hoveringMeasurement(measurementName);
+                    }}
+                  />
+                );
+              }}
+            </MeasurementsManager.Consumer>
+          );
+        })}
+      </React.Fragment>
+    );
   }
 
   renderSpanTreeConnector({hasToggler}: {hasToggler: boolean}) {
@@ -788,7 +843,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               spanBarHatch={!!spanBarHatch}
               style={{
                 backgroundColor: spanBarColour,
-                left: toPercent(bounds.left || 0),
+                left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
                 width: toPercent(bounds.width || 0),
               }}
             >
@@ -802,6 +857,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               </DurationPill>
             </SpanBarRectangle>
           )}
+          {this.renderMeasurements()}
           {this.renderCursorGuide()}
         </SpanRowCell>
         {!this.state.showDetail && (
@@ -862,7 +918,6 @@ type SpanRowCellProps = OmitHtmlDivProps<{
 
 export const SpanRowCell = styled('div')<SpanRowCellProps>`
   position: relative;
-  padding: ${space(0.5)} 1px;
   height: 100%;
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
@@ -1101,13 +1156,39 @@ const DurationPill = styled('div')<{
 `;
 
 export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
-  position: relative;
-  height: 100%;
+  position: absolute;
+  height: ${SPAN_ROW_HEIGHT - 2 * SPAN_ROW_PADDING}px;
+  top: ${SPAN_ROW_PADDING}px;
+  left: 0;
   min-width: 1px;
   user-select: none;
   transition: border-color 0.15s ease-in-out;
-  border-right: 1px solid rgba(0, 0, 0, 0);
   ${p => getHatchPattern(p, '#dedae3', '#f4f2f7')}
+`;
+
+const MeasurementMarker = styled('div')<{hovering: boolean}>`
+  position: absolute;
+  top: 0;
+  height: ${SPAN_ROW_HEIGHT}px;
+  width: 1px;
+  user-select: none;
+  background-color: ${p => p.theme.gray800};
+
+  transition: opacity 125ms ease-in-out;
+  z-index: ${zIndex.dividerLine};
+
+  /* enhanced hit-box */
+  &:after {
+    content: '';
+    z-index: -1;
+    position: absolute;
+    left: -2px;
+    top: 0;
+    width: 9px;
+    height: 100%;
+  }
+
+  opacity: ${({hovering}) => (hovering ? '1' : '0.25')};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

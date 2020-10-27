@@ -8,6 +8,7 @@ export type HistogramData = {
 export type Vital = {
   slug: string;
   name: string;
+  acronym: string;
   description: string;
   failureThreshold: number;
   type: ColumnType;
