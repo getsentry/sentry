@@ -18,15 +18,13 @@ import {PageContent} from 'app/styles/organization';
 import PerformanceAlert from 'app/views/organizationStats/performanceAlert';
 import {Project, Organization} from 'app/types';
 
-import {ProjectTotal} from './types';
-
-type Point = {x: number; y: number[]};
+import {Point, ProjectTotal, OrgTotal} from './types';
 
 type Props = {
   organization: Organization;
   statsLoading: boolean;
   projectsLoading: boolean;
-  orgTotal: ProjectTotal & {avgRate: number};
+  orgTotal: OrgTotal;
   statsError: null | Error;
   orgStats: Point[];
   projectMap: Record<string, Project>;

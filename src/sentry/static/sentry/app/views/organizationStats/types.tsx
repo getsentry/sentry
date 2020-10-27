@@ -5,3 +5,9 @@ export type ProjectTotal = {
   received: number;
   rejected: number;
 };
+
+export type OrgTotal = ProjectTotal & {
+  avgRate: number;
+};
+
+export type Point = {x: number; y: number[]};
