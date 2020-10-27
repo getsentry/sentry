@@ -456,7 +456,7 @@ class SearchVisitor(NodeVisitor):
             aggregate_value = None
             if search_value.expr_name == "duration_format":
                 # Even if the search value matches duration format, only act as duration for certain columns
-                function = resolve_field(search_key.name, None)
+                function = resolve_field(search_key.name, functions_acl=FUNCTIONS.keys())
                 if function.aggregate is not None:
                     # Extract column and function name out so we can check if we should parse as duration
                     if self.is_duration_key(function.aggregate[1]):
@@ -747,7 +747,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
         return [["isNull", [name]], aggregate_filter.operator, 1]
 
-    function = resolve_field(name, params)
+    function = resolve_field(name, params, functions_acl=FUNCTIONS.keys())
     if function.aggregate is not None:
         name = function.aggregate[-1]
 
@@ -1492,6 +1492,7 @@ class Function(object):
         transform=None,
         result_type_fn=None,
         default_result_type=None,
+        private=False,
     ):
         """
         Specifies a function interface that must be followed when defining new functions
@@ -1514,7 +1515,8 @@ class Function(object):
             This function will be passed the list of argument classes and argument values. This should
             be tried first as the source of truth if available.
         :param str default_result_type: The default resulting type of this function. Must be a type
-            defined by RESULTS_TYPES
+            defined by RESULTS_TYPES.
+        :param bool private: Whether or not this function should be disabled for general use.
         """
 
         self.name = name
@@ -1526,6 +1528,7 @@ class Function(object):
         self.transform = transform
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
+        self.private = private
 
         self.validate()
 
@@ -1659,6 +1662,13 @@ class Function(object):
             result_type is None or result_type in RESULT_TYPES
         ), u"{}: result type {} not one of {}".format(self.name, result_type, list(RESULT_TYPES))
 
+    def is_accessible(self, acl=None):
+        if not self.private:
+            return True
+        elif not acl:
+            return False
+        return self.name in acl
+
 
 def reflective_result_type(index=0):
     def result_type_fn(function_arguments, parameter_values):
@@ -1756,6 +1766,7 @@ FUNCTIONS = {
             required_args=[StringArrayColumn("column")],
             column=["arrayJoin", [ArgValue("column")], None],
             default_result_type="string",
+            private=True,
         ),
         Function(
             "measurements_histogram",
@@ -1805,6 +1816,7 @@ FUNCTIONS = {
                 None,
             ],
             default_result_type="number",
+            private=True,
         ),
         # The user facing signature for this function is histogram(<column>, <num_buckets>)
         # Internally, snuba.discover.query() expands the user request into this value by
@@ -2134,9 +2146,12 @@ FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
 ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")
 
 
-def resolve_function(field, match=None, params=None):
+def resolve_function(field, match=None, params=None, functions_acl=False):
     function_name, columns = parse_function(field, match)
     function = FUNCTIONS[function_name]
+    if not function.is_accessible(functions_acl):
+        raise InvalidSearchQuery(u"{}: no access to private function".format(function.name))
+
     arguments = function.format_as_arguments(field, columns, params)
     details = FunctionDetails(field, function, arguments)
 
@@ -2177,7 +2192,7 @@ def resolve_function(field, match=None, params=None):
             addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3 and addition[2] is None:
             addition[2] = get_function_alias_with_columns(function.name, columns)
-        return ResolvedFunction(details, addition, [])
+        return ResolvedFunction(details, addition, None)
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -2236,13 +2251,13 @@ def get_aggregate_alias(match):
     return u"{}_{}".format(match.group("function"), column).rstrip("_")
 
 
-def resolve_field(field, params=None):
+def resolve_field(field, params=None, functions_acl=None):
     if not isinstance(field, six.string_types):
         raise InvalidSearchQuery("Field names must be strings")
 
     match = is_function(field)
     if match:
-        return resolve_function(field, match, params)
+        return resolve_function(field, match, params, functions_acl)
 
     if field in FIELD_ALIASES:
         special_field = deepcopy(FIELD_ALIASES[field])
@@ -2250,7 +2265,9 @@ def resolve_field(field, params=None):
     return ResolvedFunction(None, field, None)
 
 
-def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations=False):
+def resolve_field_list(
+    fields, snuba_filter, auto_fields=True, auto_aggregations=False, functions_acl=None
+):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
@@ -2284,7 +2301,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     for field in fields:
         if isinstance(field, six.string_types) and field.strip() == "":
             continue
-        function = resolve_field(field, snuba_filter.date_params)
+        function = resolve_field(field, snuba_filter.date_params, functions_acl)
         if function.column is not None and function.column not in columns:
             columns.append(function.column)
             if function.details is not None and isinstance(function.column, (list, tuple)):
@@ -2297,7 +2314,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
-            function = resolve_field(agg, snuba_filter.date_params)
+            function = resolve_field(agg, snuba_filter.date_params, functions_acl)
             if function.aggregate is not None and function.aggregate not in aggregations:
                 aggregations.append(function.aggregate)
                 if function.details is not None and isinstance(function.aggregate, (list, tuple)):

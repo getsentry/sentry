@@ -149,6 +149,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   onDisable = (integration: IntegrationWithConfig) => {
     let url: string;
 
+    //TODO: Clean up hack for Vercel
     if (integration.provider.key === 'vercel') {
       // kind of a hack since this isn't what the url was stored for
       // but it's exactly what we need and contains the configuration id
@@ -159,7 +160,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
       if (field) {
         const mappingField = field as ProjectMapperType;
-        url = mappingField.nextButton.url || '';
+        url = mappingField.manageUrl || '';
         window.open(url, '_blank');
       }
       return;
