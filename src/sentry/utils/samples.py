@@ -209,7 +209,7 @@ def load_data(
                     measurement_markers["mark.{}".format(key)] = {
                         "value": data["start_timestamp"] + entry["value"] / 1000
                     }
-                measurements.update(measurement_markers)
+            measurements.update(measurement_markers)
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
