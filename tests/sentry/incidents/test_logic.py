@@ -8,6 +8,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 
 import six
+import unittest
 from django.conf import settings
 from django.core import mail
 from django.utils import timezone
@@ -22,15 +23,16 @@ from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
     InvalidTriggerActionError,
-    get_incident_stats,
+    calculate_incident_time_range,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     create_event_stat_snapshot,
-    calculate_incident_time_range,
     create_incident,
     create_incident_activity,
     create_incident_snapshot,
+    CRITICAL_TRIGGER_LABEL,
+    deduplicate_trigger_actions,
     delete_alert_rule,
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
@@ -42,6 +44,7 @@ from sentry.incidents.logic import (
     get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
     get_incident_event_stats,
+    get_incident_stats,
     get_incident_subscribers,
     get_triggers_for_alert_rule,
     ProjectsNotAssociatedWithAlertRuleError,
@@ -51,6 +54,7 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
     update_alert_rule_trigger,
     update_incident_status,
+    WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
 )
 from sentry.incidents.models import (
@@ -1716,3 +1720,144 @@ class TriggerActionTest(TestCase):
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+
+
+class TestDeduplicateTriggerActions(unittest.TestCase):
+    @fixture
+    def critical(self):
+        return AlertRuleTrigger(label=CRITICAL_TRIGGER_LABEL)
+
+    @fixture
+    def warning(self):
+        return AlertRuleTrigger(label=WARNING_TRIGGER_LABEL)
+
+    def run_test(self, input, output):
+        key = lambda action: action.id
+        assert sorted(deduplicate_trigger_actions(input), key=key) == sorted(output, key=key)
+
+    def test_critical_only(self):
+        action = AlertRuleTriggerAction(
+            id=1,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="1",
+        )
+        self.run_test([action], [action])
+        self.run_test([action, action], [action])
+
+        other_action = AlertRuleTriggerAction(
+            id=2,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="2",
+        )
+        self.run_test([action, action, other_action], [action, other_action])
+        integration_action = AlertRuleTriggerAction(
+            id=3,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.SLACK.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        app_action = AlertRuleTriggerAction(
+            id=4,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.MSTEAMS.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        self.run_test(
+            [action, action, other_action, integration_action, app_action],
+            [action, other_action, integration_action, app_action],
+        )
+        self.run_test(
+            [
+                action,
+                action,
+                other_action,
+                other_action,
+                integration_action,
+                integration_action,
+                app_action,
+                app_action,
+            ],
+            [action, other_action, integration_action, app_action],
+        )
+
+    def test_critical_warning(self):
+        action_c = AlertRuleTriggerAction(
+            id=1,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="1",
+        )
+        action_w = AlertRuleTriggerAction(
+            id=2,
+            alert_rule_trigger=self.warning,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="1",
+        )
+        self.run_test([action_w, action_c, action_c], [action_c])
+        other_action_w = AlertRuleTriggerAction(
+            id=3,
+            alert_rule_trigger=self.warning,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="2",
+        )
+        self.run_test([action_w, action_c, action_c, other_action_w], [action_c, other_action_w])
+        integration_action_w = AlertRuleTriggerAction(
+            id=4,
+            alert_rule_trigger=self.warning,
+            type=AlertRuleTriggerAction.Type.SLACK.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        app_action_w = AlertRuleTriggerAction(
+            id=5,
+            alert_rule_trigger=self.warning,
+            type=AlertRuleTriggerAction.Type.MSTEAMS.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        self.run_test(
+            [action_w, action_c, action_c, other_action_w, integration_action_w, app_action_w],
+            [action_c, other_action_w, integration_action_w, app_action_w],
+        )
+        integration_action_c = AlertRuleTriggerAction(
+            id=6,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.SLACK.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        app_action_c = AlertRuleTriggerAction(
+            id=7,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.MSTEAMS.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        self.run_test(
+            [
+                action_w,
+                action_c,
+                action_c,
+                other_action_w,
+                integration_action_w,
+                app_action_w,
+                integration_action_c,
+                app_action_c,
+            ],
+            [action_c, other_action_w, integration_action_c, app_action_c],
+        )
