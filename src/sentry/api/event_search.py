@@ -1282,11 +1282,9 @@ class PseudoField(object):
 
     def get_expression(self, params):
         if isinstance(self.expression, (list, tuple)):
-            expression = deepcopy(self.expression)
-            return expression
+            return deepcopy(self.expression)
         elif self.expression_fn is not None:
-            expression = self.expression_fn(params)
-            return expression
+            return self.expression_fn(params)
         return None
 
     def get_field(self, params=None):
@@ -1314,10 +1312,10 @@ def key_transaction_expression(user_id, organization_id, project_ids):
 
     key_transactions = (
         KeyTransaction.objects.filter(
-            owner__id=user_id, organization__id=organization_id, project__id__in=project_ids,
+            owner_id=user_id, organization_id=organization_id, project_id__in=project_ids,
         )
-        .order_by("transaction", "project__id")
-        .values("project__id", "transaction")
+        .order_by("transaction", "project_id")
+        .values("project_id", "transaction")
     )
 
     # if there are no key transactions, the value should always be 0
@@ -1333,7 +1331,7 @@ def key_transaction_expression(user_id, organization_id, project_ids):
                     [
                         "tuple",
                         [
-                            ["toUInt64", [transaction["project__id"]]],
+                            ["toUInt64", [transaction["project_id"]]],
                             "'{}'".format(transaction["transaction"]),
                         ],
                     ]
