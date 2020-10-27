@@ -124,7 +124,7 @@ class List extends React.Component<Props, State> {
   };
 
   renderContent = () => {
-    const {issues, orgSlug, period, traceID} = this.props;
+    const {issues, period, traceID} = this.props;
 
     if (!issues.length) {
       return (
@@ -145,7 +145,6 @@ class List extends React.Component<Props, State> {
       <StreamGroup
         key={issue.id}
         id={String(issue['issue.id'])}
-        orgId={orgSlug}
         canSelect={false}
         withChart={false}
       />
