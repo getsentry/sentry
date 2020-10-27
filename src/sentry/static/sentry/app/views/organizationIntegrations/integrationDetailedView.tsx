@@ -160,6 +160,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
       if (field) {
         const mappingField = field as ProjectMapperType;
+        url = mappingField.manageUrl || '';
         window.open(mappingField.manageUrl, '_blank');
       }
       return;
