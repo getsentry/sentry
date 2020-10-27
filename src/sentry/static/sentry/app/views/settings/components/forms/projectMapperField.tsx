@@ -11,7 +11,7 @@ import {ProjectMapperType} from 'app/views/settings/components/forms/type';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
 import Button from 'app/components/button';
-import {IconVercel, IconGeneric, IconDelete, IconOpen} from 'app/icons';
+import {IconVercel, IconGeneric, IconDelete, IconOpen, IconAdd} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
@@ -205,7 +205,7 @@ export class RenderField extends React.Component<RenderProps, State> {
       return (
         <components.ValueContainer {...containerProps}>
           <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
-          {mappedValue.label}
+          <OptionLabelWrapper>{mappedValue.label}</OptionLabelWrapper>
         </components.ValueContainer>
       );
     };
@@ -215,7 +215,7 @@ export class RenderField extends React.Component<RenderProps, State> {
         <components.Option {...optionProps}>
           <OptionWrapper>
             <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
-            {optionProps.label}
+            <OptionLabelWrapper>{optionProps.label}</OptionLabelWrapper>
           </OptionWrapper>
         </components.Option>
       );
@@ -249,15 +249,16 @@ export class RenderField extends React.Component<RenderProps, State> {
             onChange={handleSelectMappedValue}
             value={selectedMappedValue}
           />
-          <StyledAddProjectButton
-            type="button"
-            disabled={!selectedSentryProjectId || !selectedMappedValue}
-            size="small"
-            priority="primary"
-            onClick={handleAdd}
-          >
-            {t('Add Project')}
-          </StyledAddProjectButton>
+          <AddProjectWrapper>
+            <StyledAddProjectButton
+              type="button"
+              disabled={!selectedSentryProjectId || !selectedMappedValue}
+              size="small"
+              priority="primary"
+              onClick={handleAdd}
+              icon={<IconAdd />}
+            />
+          </AddProjectWrapper>
           <FieldControlWrapper>
             {formElementId && (
               <div>
@@ -344,6 +345,14 @@ const StyledIdBadge = styled(IdBadge)``;
 const IntegrationIconWrapper = styled('span')`
   display: flex;
   align-items: center;
+`;
+
+const AddProjectWrapper = styled('div')`
+  grid-area: add-project;
+`;
+
+const OptionLabelWrapper = styled('div')`
+  margin-left: ${space(0.5)};
 `;
 
 const StyledAddProjectButton = styled(Button)`

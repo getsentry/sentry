@@ -325,7 +325,7 @@ const iconSizes = {
 };
 
 const theme = {
-  breakpoints: ['768px', '992px', '1200px', '1440px', '2560px'],
+  breakpoints: ['800px', '992px', '1200px', '1440px', '2560px'],
 
   ...colors,
 
