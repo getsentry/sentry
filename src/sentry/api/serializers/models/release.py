@@ -417,11 +417,11 @@ class ReleaseSerializer(Serializer):
         d = {
             "version": obj.version,
             "shortVersion": obj.version,
-            "dateCreated": obj.date_added,
-            "dateReleased": obj.date_released,
             "versionInfo": expose_version_info(obj.version_info),
             "ref": obj.ref,
             "url": obj.url,
+            "dateReleased": obj.date_released,
+            "dateCreated": obj.date_added,
             "data": obj.data,
             "newGroups": attrs["new_groups"],
             "owner": attrs["owner"],
