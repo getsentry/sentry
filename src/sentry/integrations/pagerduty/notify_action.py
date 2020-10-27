@@ -78,9 +78,10 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             "service": {"type": "choice", "choices": self.get_services()},
         }
 
-    def after(self, event, state):
-        service_id = self.get_option("service")
+    def _get_service(self):
+        return PagerDutyService.objects.get(id=self.get_option("service"))
 
+    def after(self, event, state):
         try:
             integration = self.get_integration()
         except Integration.DoesNotExist:
@@ -88,7 +89,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             return
 
         try:
-            service = PagerDutyService.objects.get(pk=service_id)
+            service = self._get_service()
         except PagerDutyService.DoesNotExist:
             return
 
@@ -123,23 +124,19 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         yield self.future(send_notification, key=key)
 
     def get_services(self):
-        organization = self.project.organization
-        integrations = Integration.objects.filter(
-            provider="pagerduty", organizations=organization, status=ObjectStatus.VISIBLE
-        )
-        services = []
-        for integration in integrations:
-            service_list = PagerDutyService.objects.filter(
+        return [
+            service
+            for integration in self.get_integrations()
+            for service in PagerDutyService.objects.filter(
                 organization_integration_id=OrganizationIntegration.objects.get(
-                    organization=organization, integration=integration
+                    organization=self.project.organization, integration=integration
                 )
             ).values_list("id", "service_name")
-            services += service_list
-        return services
+        ]
 
     def render_label(self):
         try:
-            service_name = PagerDutyService.objects.get(id=self.get_option("service")).service_name
+            service_name = self._get_service().service_name
         except PagerDutyService.DoesNotExist:
             service_name = "[removed]"
 
