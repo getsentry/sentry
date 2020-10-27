@@ -28,7 +28,7 @@ import {IconAdd, IconClose, IconChevron, IconUser} from 'app/icons';
 
 type Props = {
   id: string | null;
-  size: number;
+  size?: number;
   memberList?: User[];
 };
 
