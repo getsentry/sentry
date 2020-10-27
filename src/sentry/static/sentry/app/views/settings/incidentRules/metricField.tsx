@@ -27,12 +27,13 @@ type Props = Omit<FormField['props'], 'children' | 'help'> & {
   organization: Organization;
 };
 
-const getFieldOptionConfig = (dataset: Dataset) => {
+const getFieldOptionConfig = (dataset: Dataset, organization: Organization) => {
   const config = dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
 
   const aggregations = Object.fromEntries(
     config.aggregations.map(key => [key, AGGREGATIONS[key]])
   );
+
   const fields = Object.fromEntries(
     config.fields.map(key => {
       // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
@@ -45,7 +46,11 @@ const getFieldOptionConfig = (dataset: Dataset) => {
     })
   );
 
-  return {aggregations, fields};
+  const measurementKeys = organization.features.includes('measurements')
+    ? config.measurementKeys
+    : undefined;
+
+  return {aggregations, fields, measurementKeys};
 };
 
 const help = ({name, model}: {name: string; model: FormModel}) => {
@@ -81,7 +86,7 @@ const MetricField = ({organization, ...props}: Props) => (
     {({onChange, value, model}) => {
       const dataset = model.getValue('dataset');
 
-      const fieldOptionsConfig = getFieldOptionConfig(dataset);
+      const fieldOptionsConfig = getFieldOptionConfig(dataset, organization);
       const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
       const fieldValue = explodeFieldString(value ?? '');
 
@@ -91,10 +96,10 @@ const MetricField = ({organization, ...props}: Props) => (
           : '';
 
       const selectedField = fieldOptions[fieldKey]?.value;
-      const numParameters =
-        selectedField &&
-        selectedField.kind === FieldValueKind.FUNCTION &&
-        selectedField.meta.parameters.length;
+      const numParameters: number =
+        selectedField?.kind === FieldValueKind.FUNCTION
+          ? selectedField.meta.parameters.length
+          : 0;
 
       return (
         <React.Fragment>
