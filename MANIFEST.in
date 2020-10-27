@@ -3,4 +3,6 @@ recursive-include ./ requirements*.txt
 recursive-include ./config/relay *
 graft src/sentry
 graft src/sentry_plugins
+graft src/social_auth
+graft src/bitfield
 global-exclude *.pyc
