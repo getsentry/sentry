@@ -11,6 +11,7 @@ import {IconFlag, IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationWithConfig, IntegrationProvider} from 'app/types';
+import {ProjectMapperType} from 'app/views/settings/components/forms/type';
 import {sortArray} from 'app/utils';
 import {isSlackWorkspaceApp, getReauthAlertText} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
@@ -158,8 +159,8 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       );
 
       if (field) {
-        url = 'https://vercel.com/dashboard/integrations';
-        window.open(url, '_blank');
+        const mappingField = field as ProjectMapperType;
+        window.open(mappingField.manageUrl, '_blank');
       }
       return;
     }

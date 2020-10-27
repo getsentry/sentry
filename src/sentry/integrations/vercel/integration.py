@@ -165,6 +165,15 @@ class VercelIntegration(IntegrationInstallation):
             for p in vercel_client.get_projects()
         ]
 
+        manage_url = None
+        configuration_id = self.get_configuration_id()
+        if configuration_id:
+            if self.metadata["installation_type"] == "team":
+                dashboard_url = u"https://vercel.com/dashboard/%s/" % slug
+            else:
+                dashboard_url = "https://vercel.com/dashboard/"
+            manage_url = u"%s/integrations/%s" % (dashboard_url, configuration_id)
+
         proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = map(
             lambda proj: {key: proj[key] for key in proj_fields},
@@ -188,6 +197,7 @@ class VercelIntegration(IntegrationInstallation):
                 "sentryProjects": sentry_projects,
                 "nextButton": {"allowedDomain": "https://vercel.com", "text": _("To Vercel")},
                 "iconType": "vercel",
+                "manageUrl": manage_url,
             }
         ]
 
