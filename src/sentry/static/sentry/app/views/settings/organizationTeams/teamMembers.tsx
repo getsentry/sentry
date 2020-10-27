@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Panel, PanelItem, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -10,6 +10,7 @@ import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
 } from 'app/actionCreators/modal';
+import {Client} from 'app/api';
 import {t} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
@@ -21,21 +22,35 @@ import {IconSubtract, IconUser} from 'app/icons';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {Config, Member, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 
-class TeamMembers extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    config: SentryTypes.Config.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-  };
+type Params = {
+  orgId: string;
+  teamId: string;
+};
 
-  state = {
+type Props = {
+  api: Client;
+  config: Config;
+  organization: Organization;
+  params: Params;
+};
+
+type State = {
+  loading: boolean;
+  error: boolean;
+  dropdownBusy: boolean;
+  teamMemberList: Member[] | null;
+  orgMemberList: Member[] | null;
+};
+
+class TeamMembers extends React.Component<Props, State> {
+  state: State = {
     loading: true,
     error: false,
     dropdownBusy: false,
@@ -63,14 +78,16 @@ class TeamMembers extends React.Component {
     }
   }
 
-  debouncedFetchMembersRequest = debounce(function (query) {
-    this.setState(
-      {
-        dropdownBusy: true,
-      },
-      () => this.fetchMembersRequest(query)
-    );
-  }, 200);
+  debouncedFetchMembersRequest = debounce(
+    query =>
+      this.setState(
+        {
+          dropdownBusy: true,
+        },
+        () => this.fetchMembersRequest(query)
+      ),
+    200
+  );
 
   removeMember(member) {
     const {params} = this.props;
@@ -84,7 +101,8 @@ class TeamMembers extends React.Component {
       {
         success: () => {
           this.setState({
-            teamMemberList: this.state.teamMemberList.filter(m => m.id !== member.id),
+            teamMemberList:
+              this.state.teamMemberList?.filter(m => m.id !== member.id) || null,
           });
           addSuccessMessage(t('Successfully removed member from team.'));
         },
@@ -135,10 +153,10 @@ class TeamMembers extends React.Component {
         error: false,
       });
     } catch (err) {
+      Sentry.captureException(err);
       this.setState({
         loading: false,
         error: true,
-        errorResponse: err,
       });
     }
 
@@ -164,14 +182,16 @@ class TeamMembers extends React.Component {
       },
       {
         success: () => {
-          const orgMember = this.state.orgMemberList.find(
+          const orgMember = this.state.orgMemberList?.find(
             member => member.id === selection.value
           );
-          this.setState({
+          this.setState(prevState => ({
             loading: false,
             error: false,
-            teamMemberList: this.state.teamMemberList.concat([orgMember]),
-          });
+            teamMemberList: orgMember
+              ? prevState.teamMemberList?.concat([orgMember]) || null
+              : prevState.teamMemberList,
+          }));
           addSuccessMessage(t('Successfully added member to team.'));
         },
         error: () => {
@@ -196,7 +216,9 @@ class TeamMembers extends React.Component {
 
   renderDropdown = access => {
     const {organization, params} = this.props;
-    const existingMembers = new Set(this.state.teamMemberList.map(member => member.id));
+    const existingMembers = new Set(
+      (this.state.teamMemberList || []).map(member => member.id)
+    );
 
     // members can add other members to a team if the `Open Membership` setting is enabled
     // otherwise, `org:write` or `team:admin` permissions are required
@@ -286,7 +308,7 @@ class TeamMembers extends React.Component {
           <div>{t('Members')}</div>
           <div style={{textTransform: 'none'}}>{this.renderDropdown(access)}</div>
         </PanelHeader>
-        {this.state.teamMemberList.length ? (
+        {this.state.teamMemberList?.length ? (
           this.state.teamMemberList.map(member => {
             const isSelf = member.email === config.user.email;
             const canRemoveMember = hasWriteAccess || isSelf;
