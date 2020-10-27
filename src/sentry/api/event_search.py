@@ -1280,6 +1280,8 @@ class PseudoField(object):
         self.expression_fn = expression_fn
         self.result_type = result_type
 
+        self.validate()
+
     def get_expression(self, params):
         if isinstance(self.expression, (list, tuple)):
             return deepcopy(self.expression)
@@ -1296,10 +1298,8 @@ class PseudoField(object):
 
     def validate(self):
         assert self.alias is not None, u"{}: alias is required".format(self.name)
-        no_expression = self.expression is None
-        no_expression_fn = self.expression_fn is None
         assert (
-            no_expression != no_expression_fn
+            self.expression is None or self.expression_fn is None
         ), u"{}: only one of expression, expression_fn is allowed".format(self.name)
 
 
