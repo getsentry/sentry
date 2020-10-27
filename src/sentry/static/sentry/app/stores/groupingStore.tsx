@@ -66,6 +66,8 @@ type ResponseProcessors = {
 
 type DataKey = keyof ResponseProcessors;
 
+type Version = '1' | '2';
+
 type ResultsAsArrayDataMerged = Array<Parameters<ResponseProcessors['merged']>[0]>;
 
 type ResultsAsArrayDataSimilar = Array<Parameters<ResponseProcessors['similar']>[0]>;
@@ -91,10 +93,12 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     newState: IdState
   ) => Array<IdState>;
   isAllUnmergedSelected: () => boolean;
+  convertScoreStructure: (scoreMap: ScoreMap, version?: Version) => ScoreMap;
   onFetch: (
     toFetchArray?: Array<{
       dataKey: DataKey;
       endpoint: string;
+      version?: Version;
       queryParams?: Record<string, any>;
     }>
   ) => Promise<any>;
@@ -158,7 +162,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
     });
   },
 
-  getInitialState(): State {
+  getInitialState() {
     return {
       // List of fingerprints that belong to issue
       mergedItems: [],
@@ -207,9 +211,42 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
     );
   },
 
+  convertScoreStructure(scoreMap, version) {
+    if (scoreMap.hasOwnProperty('exception:stacktrace:application-chunks')) {
+      delete scoreMap['exception:stacktrace:application-chunks'];
+    }
+
+    if (!version || version === '1') {
+      return scoreMap;
+    }
+
+    const newScoreMap = {};
+
+    const scoreMapKeys = Object.keys(scoreMap);
+
+    for (const key in scoreMapKeys) {
+      const scoreMapKey = scoreMapKeys[key];
+      if (scoreMapKey.includes('message:character-5-shingle')) {
+        newScoreMap['message:message:character-shingles'] = scoreMap[scoreMapKey];
+        continue;
+      }
+      if (scoreMapKey.includes('value:character-5-shingle')) {
+        newScoreMap['exception:message:character-shingles'] = scoreMap[scoreMapKey];
+        continue;
+      }
+      if (scoreMapKey.includes('stacktrace:frames-pairs')) {
+        newScoreMap['exception:stacktrace:pairs'] = scoreMap[scoreMapKey];
+        continue;
+      }
+    }
+
+    return newScoreMap;
+  },
+
   // Fetches data
   onFetch(toFetchArray) {
     const requests = toFetchArray || this.toFetchArray;
+    const version = toFetchArray?.[0]?.version;
 
     // Reset state and trigger update
     this.init();
@@ -245,15 +282,17 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
         return item;
       },
       similar: ([issue, scoreMap]) => {
+        const convertedScore = this.convertScoreStructure(scoreMap, version);
         // Hide items with a low scores
-        const isBelowThreshold = checkBelowThreshold(scoreMap);
+        const isBelowThreshold = checkBelowThreshold(convertedScore);
 
         // List of scores indexed by interface (i.e., exception and message)
-        const scoresByInterface = Object.keys(scoreMap)
-          .map(scoreKey => [scoreKey, scoreMap[scoreKey]])
+        const scoresByInterface = Object.keys(convertedScore)
+          .map(scoreKey => [scoreKey, convertedScore[scoreKey]])
           .reduce((acc, [scoreKey, score]) => {
             // tokenize scorekey, first token is the interface name
             const [interfaceName] = String(scoreKey).split(':');
+
             if (!acc[interfaceName]) {
               acc[interfaceName] = [];
             }
@@ -269,14 +308,16 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
             // `null` scores means feature was not present in both issues, do not
             // include in aggregate
             const scores = allScores.filter(([, score]) => score !== null);
+
             const avg = scores.reduce((sum, [, score]) => sum + score, 0) / scores.length;
+
             acc[interfaceName] = avg;
             return acc;
           }, {});
 
         return {
           issue,
-          score: scoreMap,
+          score: convertedScore,
           scoresByInterface,
           aggregate,
           isBelowThreshold,
@@ -426,7 +467,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
 
     this.mergeDisabled = true;
 
-    this.setStateForId(this.mergeState, ids, {
+    this.setStateForId(this.mergeState, ids as Array<string>, {
       busy: true,
     });
 
@@ -452,14 +493,14 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
             }
 
             // Hide rows after successful merge
-            this.setStateForId(this.mergeState, ids, {
+            this.setStateForId(this.mergeState, ids as Array<string>, {
               checked: false,
               busy: true,
             });
             this.mergeList = [];
           },
           error: () => {
-            this.setStateForId(this.mergeState, ids, {
+            this.setStateForId(this.mergeState, ids as Array<string>, {
               checked: true,
               busy: false,
             });

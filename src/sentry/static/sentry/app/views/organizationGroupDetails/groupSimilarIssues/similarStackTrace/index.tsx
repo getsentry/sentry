@@ -106,27 +106,24 @@ class SimilarStackTrace extends React.Component<Props, State> {
 
   listener = GroupingStore.listen(this.onGroupingChange, undefined);
 
-  getEndpoint(type = 'similar') {
+  fetchData() {
     const {params, location} = this.props;
 
-    const queryParams = {
-      ...location.query,
-      limit: 50,
-      version: this.state.v2 ? '2' : '1',
-    };
-
-    return `/issues/${params.groupId}/${type}/?${queryString.stringify(queryParams)}`;
-  }
-
-  fetchData() {
     this.setState({loading: true, error: false});
 
-    const reqs: Array<{endpoint: string; dataKey: string}> = [];
+    const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
 
     if (this.hasSimilarityFeature()) {
+      const version = this.state.v2 ? '2' : '1';
+
       reqs.push({
-        endpoint: this.getEndpoint('similar'),
+        endpoint: `/issues/${params.groupId}/similar/?${queryString.stringify({
+          ...location.query,
+          limit: 50,
+          version,
+        })}`,
         dataKey: 'similar',
+        version: this.state.v2 ? '2' : '1',
       });
     }
 
