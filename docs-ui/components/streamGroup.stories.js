@@ -76,10 +76,6 @@ class LocationContext extends React.Component {
     return {location: {query: {}}};
   }
 
-  shouldComponentUpdate() {
-    return false;
-  }
-
   render() {
     return (
       <Router history={browserHistory}>
