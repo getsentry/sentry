@@ -59,7 +59,6 @@ def register_event_preprocessor(register_plugin):
 
 @pytest.mark.django_db
 @pytest.mark.snuba
-@pytest.mark.skip(reason="Some of these tests deadlock on CI")
 @pytest.mark.parametrize("change_groups", (True, False), ids=("new_group", "same_group"))
 def test_basic(
     task_runner,
@@ -138,7 +137,6 @@ def test_basic(
 
 @pytest.mark.django_db
 @pytest.mark.snuba
-@pytest.mark.skip(reason="Some of these tests deadlock on CI")
 def test_concurrent_events_go_into_new_group(
     default_project, reset_snuba, register_event_preprocessor, process_and_save, burst_task_runner
 ):
@@ -152,6 +150,7 @@ def test_concurrent_events_go_into_new_group(
     event_id = process_and_save({"message": "hello world"})
 
     event = eventstore.get_event_by_id(default_project.id, event_id)
+    original_short_id = event.group.short_id
 
     with burst_task_runner() as burst_reprocess:
         reprocess_group(default_project.id, event.group_id)
@@ -177,10 +176,11 @@ def test_concurrent_events_go_into_new_group(
     assert event2.group_id == event3.group_id
     assert event.get_hashes() == event2.get_hashes() == event3.get_hashes()
 
+    assert event3.group.short_id == original_short_id
+
 
 @pytest.mark.django_db
 @pytest.mark.snuba
-@pytest.mark.skip(reason="Some of these tests deadlock on CI")
 def test_max_events(
     default_project,
     reset_snuba,
