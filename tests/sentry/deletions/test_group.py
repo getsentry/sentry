@@ -11,6 +11,7 @@ from sentry.models import (
     GroupHash,
     GroupMeta,
     GroupRedirect,
+    Activity,
     UserReport,
 )
 from sentry import nodestore
@@ -77,6 +78,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         GroupHash.objects.create(project=self.project, group=group, hash=uuid4().hex)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
+        Activity.objects.create(group=group, project=self.project, type=Activity.SET_RESOLVED)
 
         self.node_id = Event.generate_node_id(self.project.id, self.event_id)
         self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2)
@@ -99,6 +101,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
+        assert not Activity.objects.filter(group_id=group.id).exists()
         assert not nodestore.get(self.node_id)
         assert not nodestore.get(self.node_id2)
         assert nodestore.get(self.node_id3), "Does not remove from second group"
