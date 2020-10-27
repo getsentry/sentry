@@ -21,7 +21,6 @@ jobs:
       - name: getsentry token
         uses: getsentry/action-github-app-token@v1
         id: getsentry
-        if: steps.changes.outputs.frontend == 'true'
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
@@ -29,7 +28,6 @@ jobs:
       # Notify getsentry only if there were frontend files changed
       - name: Dispatch getsentry frontend tests
         uses: actions/github-script@v3
-        if: steps.changes.outputs.frontend == 'true'
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
           script: |
