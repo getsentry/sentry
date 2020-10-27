@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import status, serializers
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
@@ -10,11 +11,20 @@ from sentry.models import RepositoryProjectPathConfig, Project, Repository
 from sentry.utils.compat import map
 
 
+def gen_regex_field():
+    return serializers.RegexField(
+        r"^[^\s]+$",  # may need to add more characters to prevent in the future
+        required=True,
+        allow_blank=True,
+        error_messages={"invalid": _("Path may not contain spaces")},
+    )
+
+
 class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     repository_id = serializers.IntegerField(required=True)
     project_id = serializers.IntegerField(required=True)
-    stack_root = serializers.CharField(required=True, allow_blank=True)
-    source_root = serializers.CharField(required=True, allow_blank=True)
+    stack_root = gen_regex_field()
+    source_root = gen_regex_field()
     default_branch = serializers.CharField(required=True)
 
     class Meta:
