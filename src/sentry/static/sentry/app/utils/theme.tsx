@@ -62,7 +62,7 @@ const colors = {
   },
 
   get borderLight() {
-    return colors.gray300;
+    return colors.green500;
   },
 
   get borderDark() {
