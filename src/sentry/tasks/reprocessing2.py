@@ -22,7 +22,9 @@ def reprocess_group(
 
     if start_time is None:
         start_time = time.time()
-        start_group_reprocessing(project_id, group_id, max_events=max_events)
+        start_group_reprocessing(
+            project_id, group_id, max_events=max_events, acting_user_id=acting_user_id
+        )
 
     if max_events is not None and max_events <= 0:
         events = []
