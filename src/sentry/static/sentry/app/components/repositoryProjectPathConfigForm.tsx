@@ -65,6 +65,10 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
           label: t('Branch'),
           placeholder: t('Type your branch'),
           inline: false,
+          showHelpInTooltip: true,
+          help: t(
+            'If an event does not have a release tied to a commit, we will use this branch when linking to your source code.'
+          ),
         },
         {
           name: 'stackRoot',

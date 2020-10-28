@@ -11,7 +11,7 @@ from sentry.models import RepositoryProjectPathConfig, Project, Repository
 from sentry.utils.compat import map
 
 
-def gen_regex_field():
+def gen_path_regex_field():
     return serializers.RegexField(
         r"^[^\s'\"]+$",  # may need to add more characters to prevent in the future
         required=True,
@@ -23,9 +23,15 @@ def gen_regex_field():
 class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     repository_id = serializers.IntegerField(required=True)
     project_id = serializers.IntegerField(required=True)
-    stack_root = gen_regex_field()
-    source_root = gen_regex_field()
-    default_branch = serializers.CharField(required=True)
+    stack_root = gen_path_regex_field()
+    source_root = gen_path_regex_field()
+    default_branch = serializers.RegexField(
+        r"^\w+$",
+        required=True,
+        error_messages={
+            "invalid": _("Branch name may only have letters, numbers, underscores, and dashes")
+        },
+    )
 
     class Meta:
         model = RepositoryProjectPathConfig
@@ -48,7 +54,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
             query = query.exclude(id=self.instance.id)
         if query.exists():
             raise serializers.ValidationError(
-                "Code path config already exists with this project and stack root"
+                "Code path config already exists with this project and input path"
             )
         return attrs
 

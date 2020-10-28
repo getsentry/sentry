@@ -127,7 +127,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 400
         assert response.data == {
-            "nonFieldErrors": [u"Code path config already exists with this project and stack root"]
+            "nonFieldErrors": [u"Code path config already exists with this project and input path"]
         }
 
     def test_space_in_stack_root(self):
@@ -149,4 +149,13 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {
             "stackRoot": ["Path may not contain spaces or quotations"],
+        }
+
+    def test_quote_in_branch(self):
+        response = self.make_post({"defaultBranch": "f'f"})
+        assert response.status_code == 400
+        assert response.data == {
+            "defaultBranch": [
+                "Branch name may only have letters, numbers, underscores, and dashes"
+            ],
         }
