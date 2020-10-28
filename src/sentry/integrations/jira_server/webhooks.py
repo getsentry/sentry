@@ -6,14 +6,12 @@ import six
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
-from sentry.integrations.jira.webhooks import (
-    handle_assignee_change,
-    handle_status_change
-)
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.integrations.jira.webhooks import handle_assignee_change, handle_status_change
 from sentry.models import Integration
 
 
-logger = logging.getLogger('sentry.integrations.jiraserver.webhooks')
+logger = logging.getLogger("sentry.integrations.jira_server.webhooks")
 
 
 def get_integration_from_token(token):
@@ -23,24 +21,22 @@ def get_integration_from_token(token):
     as Jira doesn't have any additional fields we can embed information in.
     """
     if not token:
-        raise ValueError('Token was empty')
+        raise ValueError("Token was empty")
 
     try:
         unvalidated = jwt.decode(token, verify=False)
     except jwt.DecodeError:
-        raise ValueError('Could not decode JWT token')
-    if 'id' not in unvalidated:
-        raise ValueError('Token did not contain `id`')
+        raise ValueError("Could not decode JWT token")
+    if "id" not in unvalidated:
+        raise ValueError("Token did not contain `id`")
     try:
-        integration = Integration.objects.get(
-            provider='jira_server',
-            external_id=unvalidated['id'])
+        integration = Integration.objects.get(provider="jira_server", external_id=unvalidated["id"])
     except Integration.DoesNotExist:
-        raise ValueError('Could not find integration for token')
+        raise ValueError("Could not find integration for token")
     try:
-        jwt.decode(token, integration.metadata['webhook_secret'])
+        jwt.decode(token, integration.metadata["webhook_secret"])
     except Exception as err:
-        raise ValueError('Could not validate JWT. Got %s' % err)
+        raise ValueError("Could not validate JWT. Got %s" % err)
 
     return integration
 
@@ -57,24 +53,22 @@ class JiraIssueUpdatedWebhook(Endpoint):
         try:
             integration = get_integration_from_token(token)
         except ValueError as err:
-            logger.info('token-validation-error', extra={
-                'token': token,
-                'error': six.text_type(err)
-            })
+            logger.info(
+                "token-validation-error", extra={"token": token, "error": six.text_type(err)}
+            )
             return self.respond(status=400)
 
-        data = request.DATA
+        data = request.data
 
-        if not data.get('changelog'):
-            logger.info(
-                'missing-changelog', extra={
-                    'integration_id': integration.id,
-                    'data': data,
-                }
-            )
+        if not data.get("changelog"):
+            logger.info("missing-changelog", extra={"integration_id": integration.id})
             return self.respond()
 
-        handle_assignee_change(integration, data)
-        handle_status_change(integration, data)
-
-        return self.respond()
+        try:
+            handle_assignee_change(integration, data)
+            handle_status_change(integration, data)
+        except ApiError as err:
+            logger.info("sync-failed", extra={"token": token, "error": six.text_type(err)})
+            return self.respond(status=400)
+        else:
+            return self.respond()

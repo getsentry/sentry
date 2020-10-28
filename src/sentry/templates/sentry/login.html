@@ -47,8 +47,16 @@
             </div>
           </form>
         </div>
-        {% if github_login_link or vsts_login_link %}
+        {% if github_login_link or vsts_login_link or google_login_link %}
           <div class="auth-provider-column">
+            {% if google_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-google" href="{{ google_login_link }}" style="display: block">
+                  <span class="provider-logo google"></span> Sign in with Google
+                </a>
+              </p>
+            {% endif %}
+
             {% if github_login_link %}
               <p>
                 <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="display: block">
@@ -123,7 +131,7 @@
               <div class="controls">
                 <label class="control-label">{% trans "Organization ID" %}</label>
                 <input type="text" class="form-control" name="organization" placeholder="acme" required>
-                <p class="help-block">Your ID is the reference used when Sentry generates URLs, e.g. <code>{{ server_hostname }}/<strong>acme</strong>/</code></p>
+                <p class="help-block">Your ID is the slug after the hostname. e.g. <code>{{ server_hostname }}/<strong>acme</strong>/</code> is <code>acme</code>.</p>
               </div>
             </div>
             <div class="auth-footer m-t-1">

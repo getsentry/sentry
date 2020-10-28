@@ -4,7 +4,6 @@
 {% load i18n %}
 
 {% block css %}
-  <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
   <style>
     ol li {
       padding:10px 0px;
@@ -33,7 +32,8 @@
     <i class="icon icon-exclamation"></i>
     <span>
         {% blocktrans %}
-        You must complete the <a href="https://docs.sentry.io/workflow/integrations/jira-server/">required steps</a>
+        You must complete the <a href="https://docs.sentry.io/product/integrations/jira/#jira-server">required steps</a>
+
         in Jira Server before attempting to connect with Sentry.
         {% endblocktrans %}
     </span>

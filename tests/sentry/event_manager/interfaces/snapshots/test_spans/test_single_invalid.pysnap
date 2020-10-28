@@ -1,0 +1,17 @@
+---
+created: '2019-07-11T19:30:21.301373Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_spans.py
+---
+errors:
+- name: spans.0.span_id
+  reason: not a valid span id
+  type: invalid_data
+  value: bad
+- name: spans.0.trace_id
+  reason: not a valid trace id
+  type: invalid_data
+  value: bad
+to_json:
+- start_timestamp: 1562873192.624
+  timestamp: 1562873194.624

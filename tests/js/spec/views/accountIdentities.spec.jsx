@@ -1,29 +1,30 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountIdentities from 'app/views/settings/account/accountIdentities';
 
 const ENDPOINT = '/users/me/social-identities/';
 
-describe('AccountIdentities', function() {
-  beforeEach(function() {
+describe('AccountIdentities', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
       body: [],
     });
 
-    let wrapper = shallow(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders list', function() {
+  it('renders list', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -36,11 +37,11 @@ describe('AccountIdentities', function() {
       ],
     });
 
-    let wrapper = shallow(<AccountIdentities />, TestStubs.routerContext());
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
+    expect(wrapper).toSnapshot();
   });
 
-  it('disconnects identity', function() {
+  it('disconnects identity', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -53,21 +54,18 @@ describe('AccountIdentities', function() {
       ],
     });
 
-    let wrapper = mount(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
 
-    let disconnectRequest = {
+    const disconnectRequest = {
       url: `${ENDPOINT}1/`,
       method: 'DELETE',
     };
 
-    let mock = Client.addMockResponse(disconnectRequest);
+    const mock = Client.addMockResponse(disconnectRequest);
 
     expect(mock).not.toHaveBeenCalled();
 
-    wrapper
-      .find('Button')
-      .first()
-      .simulate('click');
+    wrapper.find('Button').first().simulate('click');
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(

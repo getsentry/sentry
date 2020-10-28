@@ -1,0 +1,28 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "<anonymous>",
+        "filename": "<anonymous>",
+        "in_app": false
+      },
+      {
+        "function": "c",
+        "abs_path": "file:///C:/Users/redacted/AppData/Local/redacted/resources/app.asar/dojo/dojo.js",
+        "filename": "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js",
+        "lineno": 1188,
+        "colno": 125,
+        "in_app": false
+      },
+      {
+        "function": "Object._createDocumentViewModel",
+        "abs_path": "file:///C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js",
+        "filename": "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js",
+        "lineno": 1184,
+        "colno": 92,
+        "in_app": false
+      }
+    ]
+  },
+  "platform": "javascript"
+}

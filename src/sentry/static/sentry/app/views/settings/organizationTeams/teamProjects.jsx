@@ -1,96 +1,146 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import ApiMixin from 'app/mixins/apiMixin';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import space from 'app/styles/space';
+import {sortProjects} from 'app/utils';
+import {IconFlag, IconSubtract} from 'app/icons';
+import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ProjectsStore from 'app/stores/projectsStore';
 import LoadingError from 'app/components/loadingError';
-import OrganizationState from 'app/mixins/organizationState';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import ProjectActions from 'app/actions/projectActions';
 import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
-import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import InlineSvg from 'app/components/inlineSvg';
-import {sortProjects} from 'app/utils';
-import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
-const TeamProjects = createReactClass({
-  displayName: 'TeamProjects',
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-    Reflux.listenTo(ProjectsStore, 'onProjectUpdate'),
-  ],
+class TeamProjects extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+  };
 
-  getInitialState() {
-    let {teamId} = this.props.params;
-    let projectList = ProjectsStore.getAll();
-    return {
-      allProjects: projectList,
-      error: false,
-      projectListLinked: projectList.filter(p => p.teams.find(t1 => teamId === t1.slug)),
-    };
-  },
+  state = {
+    error: false,
+    loading: true,
+    pageLinks: null,
+    unlinkedProjects: [],
+    linkedProjects: [],
+  };
 
-  componentWillReceiveProps(nextProps) {
-    let params = this.props.params;
+  componentDidMount() {
+    this.fetchAll();
+  }
+
+  componentDidUpdate(prevProps) {
     if (
-      nextProps.params.teamId !== params.teamId ||
-      nextProps.params.orgId !== params.orgId
+      prevProps.params.orgId !== this.props.params.orgId ||
+      prevProps.params.teamId !== this.props.params.teamId
     ) {
-      this.setState(this.getInitialState());
+      this.fetchAll();
     }
-  },
 
-  onProjectUpdate() {
-    let {teamId} = this.props.params;
-    let projectList = ProjectsStore.getAll();
-    this.setState({
-      allProjects: projectList,
-      projectListLinked: projectList.filter(p => p.teams.find(t1 => teamId === t1.slug)),
-    });
-  },
+    if (prevProps.location !== this.props.location) {
+      this.fetchTeamProjects();
+    }
+  }
 
-  handleLinkProject(project, action) {
-    let {orgId, teamId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
+  fetchAll = () => {
+    this.fetchTeamProjects();
+    this.fetchUnlinkedProjects();
+  };
+
+  fetchTeamProjects = () => {
+    const {
+      location,
+      params: {orgId, teamId},
+    } = this.props;
+
+    this.setState({loading: true});
+
+    this.props.api
+      .requestPromise(`/organizations/${orgId}/projects/`, {
+        query: {
+          query: `team:${teamId}`,
+          cursor: location.query.cursor || '',
+        },
+        includeAllArgs: true,
+      })
+      .then(([linkedProjects, _, jqXHR]) => {
+        this.setState({
+          loading: false,
+          error: false,
+          linkedProjects,
+          pageLinks: jqXHR.getResponseHeader('Link'),
+        });
+      })
+      .catch(() => {
+        this.setState({loading: false, error: true});
+      });
+  };
+
+  fetchUnlinkedProjects = query => {
+    const {
+      params: {orgId, teamId},
+    } = this.props;
+
+    this.props.api
+      .requestPromise(`/organizations/${orgId}/projects/`, {
+        query: {
+          query: query ? `!team:${teamId} ${query}` : `!team:${teamId}`,
+        },
+      })
+      .then(unlinkedProjects => {
+        this.setState({unlinkedProjects});
+      });
+  };
+
+  handleLinkProject = (project, action) => {
+    const {orgId, teamId} = this.props.params;
+    this.props.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
       method: action === 'add' ? 'POST' : 'DELETE',
-      success: data => {
-        ProjectsStore.onUpdateSuccess(data);
+      success: resp => {
+        this.fetchAll();
+        ProjectActions.updateSuccess(resp);
         addSuccessMessage(
           action === 'add'
             ? t('Successfully added project to team.')
             : t('Successfully removed project from team')
         );
       },
-      error: e => {
+      error: () => {
         addErrorMessage(t("Wasn't able to change project association."));
       },
     });
-  },
+  };
 
-  handleProjectSelected(selection) {
-    let project = this.state.allProjects.find(p => {
-      return p.id === selection.value;
-    });
+  handleProjectSelected = selection => {
+    const project = this.state.unlinkedProjects.find(p => p.id === selection.value);
 
     this.handleLinkProject(project, 'add');
-  },
+  };
 
-  projectPanelcontents(projects) {
-    let access = this.getAccess();
-    let canWrite = access.has('org:write');
+  handleQueryUpdate = evt => {
+    this.fetchUnlinkedProjects(evt.target.value);
+  };
+
+  projectPanelContents(projects) {
+    const {organization} = this.props;
+    const access = new Set(organization.access);
+    const canWrite = access.has('org:write');
 
     return projects.length ? (
-      sortProjects(projects).map((project, i) => (
+      sortProjects(projects).map(project => (
         <StyledPanelItem key={project.id}>
-          <ProjectListItem project={project} organization={this.context.organization} />
+          <ProjectListItem project={project} organization={organization} />
           <Tooltip
             disabled={canWrite}
             title={t('You do not have enough permission to change project association.')}
@@ -98,85 +148,79 @@ const TeamProjects = createReactClass({
             <Button
               size="small"
               disabled={!canWrite}
+              icon={<IconSubtract isCircled size="xs" />}
               onClick={() => {
                 this.handleLinkProject(project, 'remove');
               }}
             >
-              <RemoveIcon /> {t('Remove')}
+              {t('Remove')}
             </Button>
           </Tooltip>
         </StyledPanelItem>
       ))
     ) : (
-      <EmptyMessage size="large" icon="icon-circle-exclamation">
+      <EmptyMessage size="large" icon={<IconFlag size="xl" />}>
         {t("This team doesn't have access to any projects.")}
       </EmptyMessage>
     );
-  },
+  }
 
   render() {
-    if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    const {linkedProjects, unlinkedProjects, error, loading} = this.state;
 
-    let {projectListLinked, allProjects} = this.state;
-    let access = this.getAccess();
+    if (error) {
+      return <LoadingError onRetry={() => this.fetchAll()} />;
+    }
 
-    let linkedProjectIds = new Set(projectListLinked.map(p => p.id));
-    let linkedProjects = allProjects.filter(p => linkedProjectIds.has(p.id));
-    let otherProjects = allProjects
-      .filter(p => {
-        return !linkedProjectIds.has(p.id);
-      })
-      .map(p => {
-        return {
-          value: p.id,
-          searchKey: p.slug,
-          label: <ProjectListElement>{p.slug}</ProjectListElement>,
-        };
-      });
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+
+    const access = new Set(this.props.organization.access);
+
+    const otherProjects = unlinkedProjects.map(p => ({
+      value: p.id,
+      searchKey: p.slug,
+      label: <ProjectListElement>{p.slug}</ProjectListElement>,
+    }));
 
     return (
-      <Panel>
-        <PanelHeader hasButtons={true}>
-          <div>{t('Projects')}</div>
-          <div style={{textTransform: 'none'}}>
-            {!access.has('org:write') ? (
-              <DropdownButton
-                disabled
-                title={t('You do not have enough permission to associate a project.')}
-                size="xsmall"
-              >
-                {t('Add Project')}
-              </DropdownButton>
-            ) : (
-              <DropdownAutoComplete
-                items={otherProjects}
-                onSelect={this.handleProjectSelected}
-                emptyMessage={t('No projects')}
-              >
-                {({isOpen, selectedItem}) => (
-                  <DropdownButton isOpen={isOpen} size="xsmall">
-                    {t('Add Project')}
-                  </DropdownButton>
-                )}
-              </DropdownAutoComplete>
-            )}
-          </div>
-        </PanelHeader>
-        <PanelBody>{this.projectPanelcontents(linkedProjects)}</PanelBody>
-      </Panel>
+      <React.Fragment>
+        <Panel>
+          <PanelHeader hasButtons>
+            <div>{t('Projects')}</div>
+            <div style={{textTransform: 'none'}}>
+              {!access.has('org:write') ? (
+                <DropdownButton
+                  disabled
+                  title={t('You do not have enough permission to associate a project.')}
+                  size="xsmall"
+                >
+                  {t('Add Project')}
+                </DropdownButton>
+              ) : (
+                <DropdownAutoComplete
+                  items={otherProjects}
+                  onChange={this.handleQueryUpdate}
+                  onSelect={this.handleProjectSelected}
+                  emptyMessage={t('No projects')}
+                >
+                  {({isOpen}) => (
+                    <DropdownButton isOpen={isOpen} size="xsmall">
+                      {t('Add Project')}
+                    </DropdownButton>
+                  )}
+                </DropdownAutoComplete>
+              )}
+            </div>
+          </PanelHeader>
+          <PanelBody>{this.projectPanelContents(linkedProjects)}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} {...this.props} />
+      </React.Fragment>
     );
-  },
-});
-
-const RemoveIcon = styled(props => (
-  <InlineSvg {...props} src="icon-circle-subtract">
-    {t('Remove')}
-  </InlineSvg>
-))`
-  min-height: 1.25em;
-  min-width: 1.25em;
-  margin-right: ${space(1)};
-`;
+  }
+}
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
@@ -189,4 +233,6 @@ const ProjectListElement = styled('div')`
   padding: ${space(0.25)} 0;
 `;
 
-export default TeamProjects;
+export {TeamProjects};
+
+export default withApi(withOrganization(TeamProjects));

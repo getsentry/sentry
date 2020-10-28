@@ -1,0 +1,246 @@
+---
+created: '2020-02-26T19:54:25.404612Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "79f7443afa4022bb3e5093e765e755bb"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (non app frame)
+            module*
+              "django.core.handlers.base"
+            filename (module takes precedence)
+              "django/core/handlers/base.py"
+            context-line*
+              "                    response = wrapped_callback(request, *callback_args, **callback_kwargs)"
+            function (function name is not used if context-line is available)
+              "get_response"
+            lineno (line number is not used if context-line is available)
+              112
+          frame (non app frame)
+            module*
+              "django.views.generic.base"
+            filename (module takes precedence)
+              "django/views/generic/base.py"
+            context-line*
+              "            return self.dispatch(request, *args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "view"
+            lineno (line number is not used if context-line is available)
+              69
+          frame (non app frame)
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "django/utils/decorators.py"
+            context-line*
+              "            return bound_func(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "_wrapper"
+            lineno (line number is not used if context-line is available)
+              29
+          frame (non app frame)
+            module*
+              "django.views.decorators.csrf"
+            filename (module takes precedence)
+              "django/views/decorators/csrf.py"
+            context-line*
+              "        return view_func(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "wrapped_view"
+            lineno (line number is not used if context-line is available)
+              57
+          frame (non app frame)
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "django/utils/decorators.py"
+            context-line*
+              "                return func(self, *args2, **kwargs2)"
+            function (function name is not used if context-line is available)
+              "bound_func"
+            lineno (line number is not used if context-line is available)
+              25
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (module takes precedence)
+              "sentry/web/frontend/release_webhook.py"
+            context-line*
+              "        return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "dispatch"
+            lineno (line number is not used if context-line is available)
+              37
+          frame (non app frame)
+            module*
+              "django.views.generic.base"
+            filename (module takes precedence)
+              "django/views/generic/base.py"
+            context-line*
+              "        return handler(request, *args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "dispatch"
+            lineno (line number is not used if context-line is available)
+              87
+          frame*
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (module takes precedence)
+              "sentry/web/frontend/release_webhook.py"
+            context-line*
+              "            hook.handle(request)"
+            function (function name is not used if context-line is available)
+              "post"
+            lineno (line number is not used if context-line is available)
+              127
+          frame*
+            module*
+              "sentry_plugins.heroku.plugin"
+            filename (module takes precedence)
+              "sentry_plugins/heroku/plugin.py"
+            context-line*
+              "        email = request.POST['user']"
+            function (function name is not used if context-line is available)
+              "handle"
+            lineno (line number is not used if context-line is available)
+              17
+          frame (non app frame)
+            module*
+              "django.utils.datastructures"
+            filename (module takes precedence)
+              "django/utils/datastructures.py"
+            context-line*
+              "            raise MultiValueDictKeyError(repr(key))"
+            function (function name is not used if context-line is available)
+              "__getitem__"
+            lineno (line number is not used if context-line is available)
+              301
+        type*
+          "MultiValueDictKeyError"
+        value (stacktrace and type take precedence)
+          "\"'user'\""
+--------------------------------------------------------------------------
+system:
+  hash: "5586fbb54ed18866eea266e91cee7f8b"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+            module*
+              "django.core.handlers.base"
+            filename (module takes precedence)
+              "django/core/handlers/base.py"
+            context-line*
+              "                    response = wrapped_callback(request, *callback_args, **callback_kwargs)"
+            function (function name is not used if context-line is available)
+              "get_response"
+            lineno (line number is not used if context-line is available)
+              112
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+            module*
+              "django.views.generic.base"
+            filename (module takes precedence)
+              "django/views/generic/base.py"
+            context-line*
+              "            return self.dispatch(request, *args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "view"
+            lineno (line number is not used if context-line is available)
+              69
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "django/utils/decorators.py"
+            context-line*
+              "            return bound_func(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "_wrapper"
+            lineno (line number is not used if context-line is available)
+              29
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+            module*
+              "django.views.decorators.csrf"
+            filename (module takes precedence)
+              "django/views/decorators/csrf.py"
+            context-line*
+              "        return view_func(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "wrapped_view"
+            lineno (line number is not used if context-line is available)
+              57
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "django/utils/decorators.py"
+            context-line*
+              "                return func(self, *args2, **kwargs2)"
+            function (function name is not used if context-line is available)
+              "bound_func"
+            lineno (line number is not used if context-line is available)
+              25
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (module takes precedence)
+              "sentry/web/frontend/release_webhook.py"
+            context-line*
+              "        return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "dispatch"
+            lineno (line number is not used if context-line is available)
+              37
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+            module*
+              "django.views.generic.base"
+            filename (module takes precedence)
+              "django/views/generic/base.py"
+            context-line*
+              "        return handler(request, *args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "dispatch"
+            lineno (line number is not used if context-line is available)
+              87
+          frame*
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (module takes precedence)
+              "sentry/web/frontend/release_webhook.py"
+            context-line*
+              "            hook.handle(request)"
+            function (function name is not used if context-line is available)
+              "post"
+            lineno (line number is not used if context-line is available)
+              127
+          frame*
+            module*
+              "sentry_plugins.heroku.plugin"
+            filename (module takes precedence)
+              "sentry_plugins/heroku/plugin.py"
+            context-line*
+              "        email = request.POST['user']"
+            function (function name is not used if context-line is available)
+              "handle"
+            lineno (line number is not used if context-line is available)
+              17
+          frame*
+            module*
+              "django.utils.datastructures"
+            filename (module takes precedence)
+              "django/utils/datastructures.py"
+            context-line*
+              "            raise MultiValueDictKeyError(repr(key))"
+            function (function name is not used if context-line is available)
+              "__getitem__"
+            lineno (line number is not used if context-line is available)
+              301
+        type*
+          "MultiValueDictKeyError"
+        value (stacktrace and type take precedence)
+          "\"'user'\""

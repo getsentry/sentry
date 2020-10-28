@@ -1,14 +1,15 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import Annotated from 'app/components/events/meta/annotated';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 
 describe('Annotated', () => {
-  let mock = jest.fn(() => null);
+  const mock = jest.fn(() => null);
 
-  const createEvent = (value, {err, rem, chunks} = {}) => {
-    return withMeta({
+  const createEvent = (value, {err, rem, chunks} = {}) =>
+    withMeta({
       value,
       _meta: {
         value: {
@@ -20,58 +21,69 @@ describe('Annotated', () => {
         },
       },
     });
-  };
 
-  beforeEach(function() {
+  beforeEach(function () {
     mock.mockClear();
   });
 
   describe('without meta', () => {
     it('renders a string', () => {
-      let obj = {
+      const obj = {
         value: 'foo',
       };
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
-      expect(mock).toHaveBeenCalledWith('foo');
+      expect(mock.mock.calls[0][0].props).toEqual(
+        expect.objectContaining({
+          value: 'foo',
+        })
+      );
     });
 
     it('does not error if prop does not exist on object', () => {
-      let obj = {
+      const obj = {
         value: 'foo',
       };
-      mount(<Annotated object={obj} prop="invalid" />);
+      mount(<Annotated object={obj} objectKey="invalid" />);
     });
 
     it('renders a number', () => {
-      let obj = {
+      const obj = {
         value: 0,
       };
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
-      expect(mock).toHaveBeenCalledWith(0);
+      expect(mock.mock.calls[0][0].props).toEqual(
+        expect.objectContaining({
+          value: 0,
+        })
+      );
     });
 
     it('renders a boolean', () => {
-      let obj = {
+      const obj = {
         value: false,
       };
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
-      expect(mock).toHaveBeenCalledWith(false);
+      expect(mock.mock.calls[0][0].props).toEqual(
+        expect.objectContaining({
+          value: false,
+        })
+      );
     });
 
     it('ignores empty meta data', () => {
-      let obj = withMeta({
+      const obj = withMeta({
         value: 'foo',
         _meta: {
           value: {
@@ -84,18 +96,22 @@ describe('Annotated', () => {
         },
       });
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
-      expect(mock).toHaveBeenCalledWith('foo');
+      expect(mock.mock.calls[0][0].props).toEqual(
+        expect.objectContaining({
+          value: 'foo',
+        })
+      );
     });
 
     it('does not call render prop if required and value is falsy and no meta', () => {
-      let obj = createEvent(null, {});
+      const obj = createEvent(null, {});
 
       mount(
-        <Annotated object={obj} prop="value" required>
+        <Annotated object={obj} objectKey="value" required>
           {mock}
         </Annotated>
       );
@@ -106,10 +122,11 @@ describe('Annotated', () => {
 
   describe('with meta', () => {
     it('annotates errors', () => {
-      let obj = createEvent('foo', {err: ['something']});
+      const meta = {err: ['something']};
+      const obj = createEvent('foo', meta);
 
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
@@ -117,18 +134,21 @@ describe('Annotated', () => {
       expect(mock.mock.calls[0][0].props).toEqual(
         expect.objectContaining({
           value: 'foo',
-          chunks: [],
-          remarks: [],
-          errors: ['something'],
+          meta: {
+            chunks: [],
+            rem: [],
+            ...meta,
+          },
         })
       );
     });
 
     it('annotates remarks and chunks', () => {
-      let obj = createEvent('foo', {rem: [{type: 't'}], chunks: [{text: 'foo'}]});
+      const meta = {rem: [{type: 't'}], chunks: [{text: 'foo'}]};
+      const obj = createEvent('foo', meta);
 
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
@@ -136,18 +156,20 @@ describe('Annotated', () => {
       expect(mock.mock.calls[0][0].props).toEqual(
         expect.objectContaining({
           value: 'foo',
-          remarks: [{type: 't'}],
-          chunks: [{text: 'foo'}],
-          errors: [],
+          meta: {
+            err: [],
+            ...meta,
+          },
         })
       );
     });
 
     it('annotates redacted text', () => {
-      let obj = createEvent(null, {err: ['something']});
+      const meta = {err: ['something']};
+      const obj = createEvent(null, meta);
 
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
@@ -155,9 +177,11 @@ describe('Annotated', () => {
       expect(mock.mock.calls[0][0].props).toEqual(
         expect.objectContaining({
           value: null,
-          chunks: [],
-          remarks: [],
-          errors: ['something'],
+          meta: {
+            rem: [],
+            chunks: [],
+            ...meta,
+          },
         })
       );
     });

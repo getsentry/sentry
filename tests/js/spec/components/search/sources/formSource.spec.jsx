@@ -1,13 +1,14 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import FormSource from 'app/components/search/sources/formSource';
 import FormSearchActions from 'app/actions/formSearchActions';
 import * as ActionCreators from 'app/actionCreators/formSearch';
 
-describe('FormSource', function() {
+describe('FormSource', function () {
   let wrapper;
-  let searchMap = [
+  const searchMap = [
     {
       title: 'Test Field',
       description: 'test-help',
@@ -29,42 +30,49 @@ describe('FormSource', function() {
       },
     },
   ];
-  let loadStub;
 
-  beforeEach(function() {
-    loadStub = sinon.stub(ActionCreators, 'loadSearchMap');
+  beforeEach(function () {
+    jest.spyOn(ActionCreators, 'loadSearchMap').mockImplementation(() => {});
+
     FormSearchActions.loadSearchMap(searchMap);
   });
 
-  afterEach(function() {
-    loadStub.restore();
+  afterEach(function () {
+    ActionCreators.loadSearchMap.mockRestore();
   });
 
-  it('can find a form field', async function() {
-    let mock = jest.fn().mockReturnValue(null);
+  it('can find a form field', async function () {
+    const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(<FormSource query="te">{mock}</FormSource>);
 
     await tick();
     await tick();
     wrapper.update();
-    let calls = mock.mock.calls;
-    expect(calls[calls.length - 1][0].results[0].item).toEqual({
-      field: {
-        label: 'Test Field',
-        name: 'test-field',
-        help: 'test-help',
-      },
-      title: 'Test Field',
-      description: 'test-help',
-      route: '/route/',
-      resultType: 'field',
-      sourceType: 'field',
-      to: '/route/#test-field',
-    });
+    expect(mock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        results: [
+          expect.objectContaining({
+            item: {
+              field: {
+                label: 'Test Field',
+                name: 'test-field',
+                help: 'test-help',
+              },
+              title: 'Test Field',
+              description: 'test-help',
+              route: '/route/',
+              resultType: 'field',
+              sourceType: 'field',
+              to: '/route/#test-field',
+            },
+          }),
+        ],
+      })
+    );
   });
 
-  it('does not find any form field ', async function() {
-    let mock = jest.fn().mockReturnValue(null);
+  it('does not find any form field ', async function () {
+    const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(<FormSource query="invalid">{mock}</FormSource>);
 
     await tick();

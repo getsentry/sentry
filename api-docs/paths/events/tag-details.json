@@ -1,0 +1,60 @@
+{
+  "get": {
+    "tags": ["Events"],
+    "description": "Returns details for given tag key related to an issue.",
+    "operationId": "Retrieve Tag Details",
+    "parameters": [
+      {
+        "name": "issue_id",
+        "in": "path",
+        "description": "The ID of the issue to retrieve.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "key",
+        "in": "path",
+        "description": "The tag key to look the values up for.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["key", "totalValues"],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "totalValues": {
+                  "type": "integer"
+                }
+              }
+            },
+            "example": {
+              "key": "ice_cream",
+              "totalValues": 6
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["event:read"]
+      }
+    ]
+  }
+}

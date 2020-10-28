@@ -1,0 +1,13 @@
+---
+created: '2019-12-06T10:30:09.416213Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_breadcrumbs.py
+---
+errors: null
+to_json:
+  values:
+  - data:
+      message: Whats up dawg?
+    level: info
+    timestamp: 1458857193.973275
+    type: message

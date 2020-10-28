@@ -1,15 +1,16 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {SwitchOrganization} from 'app/components/sidebar/sidebarDropdown/switchOrganization';
 
-describe('SwitchOrganization', function() {
-  let routerContext = TestStubs.routerContext();
-  let {organization} = routerContext.context;
+describe('SwitchOrganization', function () {
+  const routerContext = TestStubs.routerContext();
+  const {organization} = routerContext.context;
 
-  it('can list organizations', function() {
+  it('can list organizations', function () {
     jest.useFakeTimers();
-    let wrapper = mount(
+    const wrapper = mountWithTheme(
       <SwitchOrganization
         organizations={[organization, TestStubs.Organization({slug: 'org2'})]}
       />,
@@ -24,9 +25,9 @@ describe('SwitchOrganization', function() {
     jest.useRealTimers();
   });
 
-  it('shows "Create an Org" if they have permission', function() {
+  it('shows "Create an Org" if they have permission', function () {
     jest.useFakeTimers();
-    let wrapper = mount(
+    const wrapper = mountWithTheme(
       <SwitchOrganization
         organizations={[organization, TestStubs.Organization({slug: 'org2'})]}
         canCreateOrganization
@@ -43,9 +44,9 @@ describe('SwitchOrganization', function() {
     jest.useRealTimers();
   });
 
-  it('does not have "Create an Org" if they do not have permission', function() {
+  it('does not have "Create an Org" if they do not have permission', function () {
     jest.useFakeTimers();
-    let wrapper = mount(
+    const wrapper = mountWithTheme(
       <SwitchOrganization
         organizations={[organization, TestStubs.Organization({slug: 'org2'})]}
         canCreateOrganization={false}

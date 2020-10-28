@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import {Client} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
@@ -18,7 +19,7 @@ class SetupWizard extends React.Component {
     this.state = this.getDefaultState();
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.api = new Client();
     this.pollFinished();
   }
@@ -31,13 +32,13 @@ class SetupWizard extends React.Component {
   }
 
   pollFinished() {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
       this.api.request(`/wizard/${this.props.hash}/`, {
         method: 'GET',
-        success: data => {
+        success: () => {
           setTimeout(() => this.pollFinished(), 1000);
         },
-        error: err => {
+        error: () => {
           resolve();
           this.setState({
             finished: true,

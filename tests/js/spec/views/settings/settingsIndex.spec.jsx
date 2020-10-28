@@ -1,28 +1,41 @@
-import {shallow, mount} from 'enzyme';
 import React from 'react';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as OrgActions from 'app/actionCreators/organizations';
 import {SettingsIndex} from 'app/views/settings/settingsIndex';
 import ConfigStore from 'app/stores/configStore';
 
-describe('SettingsIndex', function() {
+describe('SettingsIndex', function () {
   let wrapper;
 
-  it('renders', function() {
-    wrapper = shallow(<SettingsIndex organization={TestStubs.Organization()} />);
-    expect(wrapper).toMatchSnapshot();
+  it('renders', function () {
+    wrapper = mountWithTheme(
+      <SettingsIndex
+        router={TestStubs.router()}
+        organization={TestStubs.Organization()}
+      />
+    );
+    expect(wrapper).toSnapshot();
   });
 
-  it('has loading when there is no organization', function() {
-    wrapper = shallow(<SettingsIndex organization={null} />);
+  it('has loading when there is no organization', function () {
+    wrapper = mountWithTheme(
+      <SettingsIndex router={TestStubs.router()} organization={null} />
+    );
 
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('has different links for on premise users', function() {
+  it('has different links for on premise users', function () {
     ConfigStore.set('isOnPremise', true);
 
-    wrapper = shallow(<SettingsIndex organization={TestStubs.Organization()} />);
+    wrapper = mountWithTheme(
+      <SettingsIndex
+        router={TestStubs.router()}
+        organization={TestStubs.Organization()}
+      />
+    );
 
     expect(
       wrapper.find(
@@ -37,25 +50,28 @@ describe('SettingsIndex', function() {
     ).toBe('Community Forums');
   });
 
-  describe('Fetch org details for Sidebar', function() {
+  describe('Fetch org details for Sidebar', function () {
     let spy;
     let api;
-    let organization = {
+    const organization = {
       id: '44',
       name: 'Org Index',
       slug: 'org-index',
     };
 
-    beforeEach(function() {
+    beforeEach(function () {
       spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
       api = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/`,
       });
       ConfigStore.config.isOnPremise = false;
-      wrapper = mount(<SettingsIndex params={{}} />, TestStubs.routerContext());
+      wrapper = mountWithTheme(
+        <SettingsIndex router={TestStubs.router()} params={{}} />,
+        TestStubs.routerContext()
+      );
     });
 
-    it('fetches org details for SidebarDropdown', function() {
+    it('fetches org details for SidebarDropdown', function () {
       // org from index endpoint, no `access` info
       wrapper.setProps({organization});
       wrapper.update();
@@ -67,7 +83,7 @@ describe('SettingsIndex', function() {
       expect(api).toHaveBeenCalledTimes(1);
     });
 
-    it('does not fetch org details for SidebarDropdown', function() {
+    it('does not fetch org details for SidebarDropdown', function () {
       // org already has details
       wrapper.setProps({organization: TestStubs.Organization()});
       wrapper.update();

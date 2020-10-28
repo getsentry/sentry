@@ -1,10 +1,12 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import OrganizationBadge from 'app/components/idBadge/organizationBadge';
 
-describe('OrganizationBadge', function() {
-  it('renders with Avatar and organization name', function() {
-    let wrapper = mount(
+describe('OrganizationBadge', function () {
+  it('renders with Avatar and organization name', function () {
+    const wrapper = mountWithTheme(
       <OrganizationBadge organization={TestStubs.Organization()} />,
       TestStubs.routerContext()
     );

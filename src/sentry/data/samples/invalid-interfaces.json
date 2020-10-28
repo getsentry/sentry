@@ -88,11 +88,17 @@
     },
     "logentry": {
         "params": [
-            "missing message or formatted"
-        ]
+            "bogus"
+        ],
+        "formatted": 42
     },
     "request": {
-        "method": "unknown"
+        "method": "unknown",
+        "query_string": [
+            ["foo", "bar"],
+            ["bam", null],
+            null
+        ]
     },
     "sdk": {
         "name": "sentry.python",

@@ -1,9 +1,10 @@
 import React from 'react';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import IndicatorStore from 'app/stores/indicatorStore';
 import SentryTypes from 'app/sentryTypes';
+import routeTitleGen from 'app/utils/routeTitle';
 
 import OrganizationAuthList from './organizationAuthList';
 
@@ -12,10 +13,10 @@ class OrganizationAuth extends AsyncView {
     organization: SentryTypes.Organization,
   };
 
-  componentWillUpdate(nextProps, nextState) {
+  UNSAFE_componentWillUpdate(_nextProps, nextState) {
     const access = this.context.organization.access;
 
-    if (nextState.provider && access.includes('org:admin')) {
+    if (nextState.provider && access.includes('org:write')) {
       // If SSO provider is configured, keep showing loading while we redirect
       // to django configuration view
       window.location.assign(`/organizations/${this.props.params.orgId}/auth/configure/`);
@@ -30,11 +31,10 @@ class OrganizationAuth extends AsyncView {
   }
 
   getTitle() {
-    let org = this.context.organization;
-    return `${org.name} - Auth Settings`;
+    return routeTitleGen(t('Auth Settings'), this.context.organization.slug, false);
   }
 
-  handleSendReminders = provider => {
+  handleSendReminders = _provider => {
     this.setState({sendRemindersBusy: true});
 
     this.api.request(
@@ -42,8 +42,8 @@ class OrganizationAuth extends AsyncView {
       {
         method: 'POST',
         data: {},
-        success: data => IndicatorStore.add(t('Sent reminders to members'), 'success'),
-        error: err => IndicatorStore.add(t('Failed to send reminders'), 'error'),
+        success: () => addSuccessMessage(t('Sent reminders to members')),
+        error: () => addErrorMessage(t('Failed to send reminders')),
         complete: () => this.setState({sendRemindersBusy: false}),
       }
     );
@@ -64,7 +64,7 @@ class OrganizationAuth extends AsyncView {
           window.location.href = data.auth_url;
         }
       },
-      error: err => {
+      error: () => {
         this.setState({busy: false});
       },
     });
@@ -79,29 +79,29 @@ class OrganizationAuth extends AsyncView {
     this.api.request(`/organizations/${this.props.params.orgId}/auth-provider/`, {
       method: 'DELETE',
       data: {provider},
-      success: data => {
+      success: () => {
         this.setState({
           provider: null,
           disableBusy: false,
         });
       },
-      error: err => {
+      error: () => {
         this.setState({disableBusy: false});
       },
     });
   };
 
   renderBody() {
-    let {providerList, provider} = this.state;
-    let access = this.context.organization.access;
+    const {providerList, provider} = this.state;
+    const access = this.context.organization.access;
 
-    if (access.includes('org:admin') && provider) {
+    if (access.includes('org:write') && provider) {
       // If SSO provider is configured, keep showing loading while we redirect
       // to django configuration view
       return this.renderLoading();
     }
 
-    let activeProvider = providerList.find(
+    const activeProvider = providerList.find(
       p => provider && p.key === provider.provider_name
     );
 

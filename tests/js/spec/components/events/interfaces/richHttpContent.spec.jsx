@@ -1,64 +1,61 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
 
-import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
-describe('RichHttpContent', function() {
-  let sandbox;
+import RichHttpContent from 'app/components/events/interfaces/richHttpContent/richHttpContent';
+
+describe('RichHttpContent', function () {
   let data;
-  let elem;
 
-  beforeEach(function() {
-    data = {
-      query: '',
-      data: '',
-      headers: [],
-      cookies: [],
-      env: {},
-    };
-    elem = shallow(<RichHttpContent data={data} />).instance();
-    sandbox = sinon.sandbox.create();
-  });
+  afterEach(function () {});
 
-  afterEach(function() {
-    sandbox.restore();
-  });
-
-  describe('getBodySection', function() {
-    it('should return plain-text when given unrecognized inferred Content-Type', function() {
-      let out = elem.getBodySection({
-        inferredContentType: null, // no inferred content type
+  describe('getBodySection', function () {
+    it('should return plain-text when given unrecognized inferred Content-Type', function () {
+      data = {
+        query: '',
         data: 'helloworld',
-      });
-
-      expect(out.type).toEqual('pre');
+        headers: [],
+        cookies: [],
+        env: {},
+        inferredContentType: null,
+      };
+      const wrapper = mountWithTheme(<RichHttpContent data={data} />);
+      expect(
+        wrapper.find('[data-test-id="rich-http-content-body-section-pre"]')
+      ).toBeTruthy();
     });
 
-    it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function() {
-      let out = elem.getBodySection({
-        inferredContentType: 'application/x-www-form-urlencoded',
+    it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function () {
+      data = {
+        query: '',
         data: {foo: ['bar'], bar: ['baz']},
-      });
-
-      // NOTE: displayName is set manually in this class
-      expect(out.type.displayName).toEqual('KeyValueList');
-      expect(out.props.data).toEqual([['bar', 'baz'], ['foo', 'bar']]);
+        headers: [],
+        cookies: [],
+        env: {},
+        inferredContentType: 'application/x-www-form-urlencoded',
+      };
+      const wrapper = mountWithTheme(<RichHttpContent data={data} />);
+      expect(
+        wrapper.find('[data-test-id="rich-http-content-body-key-value-list"]')
+      ).toBeTruthy();
     });
 
-    it('should return a ContextData element when inferred Content-Type is application/json', function() {
-      let out = elem.getBodySection({
-        inferredContentType: 'application/json',
+    it('should return a ContextData element when inferred Content-Type is application/json', function () {
+      data = {
+        query: '',
         data: {foo: 'bar'},
-      });
-
-      // NOTE: displayName is set manually in this class
-      expect(out.type.displayName).toEqual('ContextData');
-      expect(out.props.data).toEqual({
-        foo: 'bar',
-      });
+        headers: [],
+        cookies: [],
+        env: {},
+        inferredContentType: 'application/json',
+      };
+      const wrapper = mountWithTheme(<RichHttpContent data={data} />);
+      expect(
+        wrapper.find('[data-test-id="rich-http-content-body-context-data"]')
+      ).toBeTruthy();
     });
 
-    it('should not blow up in a malformed uri', function() {
+    it('should not blow up in a malformed uri', function () {
       // > decodeURIComponent('a%AFc')
       // URIError: URI malformed
       data = {
@@ -71,7 +68,7 @@ describe('RichHttpContent', function() {
       expect(() => shallow(<RichHttpContent data={data} />)).not.toThrow(URIError);
     });
 
-    it("should not cause an invariant violation if data.data isn't a string", function() {
+    it("should not cause an invariant violation if data.data isn't a string", function () {
       data = {
         query: '',
         data: [{foo: 'bar', baz: 1}],
@@ -80,7 +77,7 @@ describe('RichHttpContent', function() {
         env: {},
       };
 
-      expect(() => mount(<RichHttpContent data={data} />)).not.toThrow();
+      expect(() => mountWithTheme(<RichHttpContent data={data} />)).not.toThrow();
     });
   });
 });

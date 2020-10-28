@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron} from 'app/icons';
 
-const StyledDivider = styled.span`
+const StyledDivider = styled('span')`
   display: inline-block;
   margin-left: 6px;
-  color: ${p => p.theme.borderDark};
+  color: ${p => p.theme.gray400};
   position: relative;
   top: -1px;
 
@@ -20,7 +20,7 @@ const StyledDivider = styled.span`
       : ''};
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
+const StyledIconChevron = styled(IconChevron)`
   display: block;
 `;
 
@@ -30,12 +30,14 @@ class Divider extends React.Component {
     isLast: PropTypes.bool,
   };
   render() {
-    let {isHover, isLast} = this.props;
-    if (isLast) return null;
+    const {isHover, isLast} = this.props;
+    if (isLast) {
+      return null;
+    }
 
     return (
       <StyledDivider isHover={isHover}>
-        <StyledInlineSvg src="icon-chevron-right" size="14px" />
+        <StyledIconChevron direction="right" size="14px" />
       </StyledDivider>
     );
   }

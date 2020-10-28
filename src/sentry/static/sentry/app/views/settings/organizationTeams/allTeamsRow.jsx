@@ -1,87 +1,109 @@
-import {Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
+import styled from '@emotion/styled';
 
+import {PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import {t, tct, tn} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
-import {PanelItem} from 'app/components/panels';
+import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
-// TODO(dcramer): this isnt great UX
-
-const AllTeamsRow = createReactClass({
-  displayName: 'AllTeamsRow',
-
-  propTypes: {
+class AllTeamsRow extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
     urlPrefix: PropTypes.string.isRequired,
-    access: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
     team: PropTypes.object.isRequired,
     openMembership: PropTypes.bool.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
+  state = {
+    loading: false,
+    error: false,
+  };
 
-  getInitialState() {
-    return {
-      loading: false,
-      error: false,
-    };
-  },
+  handleRequestAccess = async () => {
+    const {team} = this.props;
 
-  joinTeam() {
-    let {organization, team} = this.props;
+    try {
+      this.joinTeam({
+        successMessage: tct('You have requested access to [team]', {
+          team: `#${team.slug}`,
+        }),
+
+        errorMessage: tct('Unable to request access to [team]', {
+          team: `#${team.slug}`,
+        }),
+      });
+
+      // TODO: Ideally we would update team so that `isPending` is true
+    } catch (_err) {
+      // No need to do anything
+    }
+  };
+
+  handleJoinTeam = () => {
+    const {team} = this.props;
+
+    this.joinTeam({
+      successMessage: tct('You have joined [team]', {
+        team: `#${team.slug}`,
+      }),
+      errorMessage: tct('Unable to join [team]', {
+        team: `#${team.slug}`,
+      }),
+    });
+  };
+
+  joinTeam = ({successMessage, errorMessage}) => {
+    const {api, organization, team} = this.props;
 
     this.setState({
       loading: true,
     });
 
-    joinTeam(
-      this.api,
-      {
-        orgId: organization.slug,
-        teamId: team.slug,
-      },
-      {
-        success: () => {
-          this.setState({
-            loading: false,
-            error: false,
-          });
-          addSuccessMessage(
-            tct('You have joined [team]', {
-              team: `#${team.slug}`,
-            })
-          );
+    return new Promise((resolve, reject) =>
+      joinTeam(
+        api,
+        {
+          orgId: organization.slug,
+          teamId: team.slug,
         },
-        error: () => {
-          this.setState({
-            loading: false,
-            error: true,
-          });
-          addErrorMessage(
-            tct('Unable to join [team]', {
-              team: `#${team.slug}`,
-            })
-          );
-        },
-      }
+        {
+          success: () => {
+            this.setState({
+              loading: false,
+              error: false,
+            });
+            addSuccessMessage(successMessage);
+            resolve();
+          },
+          error: () => {
+            this.setState({
+              loading: false,
+              error: true,
+            });
+            addErrorMessage(errorMessage);
+            reject(new Error('Unable to join team'));
+          },
+        }
+      )
     );
-  },
+  };
 
-  leaveTeam() {
-    let {organization, team} = this.props;
+  handleLeaveTeam = () => {
+    const {api, organization, team} = this.props;
 
     this.setState({
       loading: true,
     });
 
     leaveTeam(
-      this.api,
+      api,
       {
         orgId: organization.slug,
         teamId: team.slug,
@@ -111,11 +133,11 @@ const AllTeamsRow = createReactClass({
         },
       }
     );
-  },
+  };
 
   render() {
-    let {access, team, urlPrefix, openMembership} = this.props;
-    let display = (
+    const {team, urlPrefix, openMembership} = this.props;
+    const display = (
       <IdBadge
         team={team}
         avatarSize={36}
@@ -123,37 +145,71 @@ const AllTeamsRow = createReactClass({
       />
     );
 
+    // You can only view team details if you have access to team -- this should account
+    // for your role + org open membership
+    const canViewTeam = team.hasAccess;
+
     return (
-      <PanelItem p={0} align="center">
-        <Box flex="1" p={2}>
-          {access.has('team:read') ? (
-            <Link to={`${urlPrefix}teams/${team.slug}/`}>{display}</Link>
+      <TeamPanelItem>
+        <TeamNameWrapper>
+          {canViewTeam ? (
+            <TeamLink to={`${urlPrefix}teams/${team.slug}/`}>{display}</TeamLink>
           ) : (
             display
           )}
-        </Box>
-        <Box p={2}>
+        </TeamNameWrapper>
+        <Spacer>
           {this.state.loading ? (
-            <a className="btn btn-default btn-sm btn-loading btn-disabled">...</a>
+            <Button size="small" disabled>
+              ...
+            </Button>
           ) : team.isMember ? (
-            <a className="leave-team btn btn-default btn-sm" onClick={this.leaveTeam}>
+            <Button size="small" onClick={this.handleLeaveTeam}>
               {t('Leave Team')}
-            </a>
+            </Button>
           ) : team.isPending ? (
-            <a className="btn btn-default btn-sm btn-disabled">{t('Request Pending')}</a>
+            <Button size="small" disabled>
+              {t('Request Pending')}
+            </Button>
           ) : openMembership ? (
-            <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
+            <Button size="small" onClick={this.handleJoinTeam}>
               {t('Join Team')}
-            </a>
+            </Button>
           ) : (
-            <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
+            <Button size="small" onClick={this.handleRequestAccess}>
               {t('Request Access')}
-            </a>
+            </Button>
           )}
-        </Box>
-      </PanelItem>
+        </Spacer>
+      </TeamPanelItem>
     );
-  },
-});
+  }
+}
 
-export default AllTeamsRow;
+const TeamLink = styled(Link)`
+  display: inline-block;
+
+  &.focus-visible {
+    margin: -${space(1)};
+    padding: ${space(1)};
+    background: #f2eff5;
+    border-radius: 3px;
+    outline: none;
+  }
+`;
+
+export {AllTeamsRow};
+export default withApi(AllTeamsRow);
+
+const TeamPanelItem = styled(PanelItem)`
+  padding: 0;
+  align-items: center;
+`;
+
+const Spacer = styled('div')`
+  padding: ${space(2)};
+`;
+
+const TeamNameWrapper = styled(Spacer)`
+  flex: 1;
+`;

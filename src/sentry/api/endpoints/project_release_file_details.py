@@ -1,65 +1,15 @@
 from __future__ import absolute_import
 import posixpath
 
+from django.http import StreamingHttpResponse
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
-from sentry.utils.apidocs import scenario, attach_scenarios
-try:
-    from django.http import (CompatibleStreamingHttpResponse as StreamingHttpResponse)
-except ImportError:
-    from django.http import StreamingHttpResponse
-
-
-@scenario('RetrieveReleaseFile')
-def retrieve_file_scenario(runner):
-    rf = runner.utils.create_release_file(
-        project=runner.default_project,
-        release=runner.default_release,
-        path='/demo/readme.txt',
-        contents='Hello World!'
-    )
-    runner.request(
-        method='GET',
-        path='/projects/%s/%s/releases/%s/files/%s/' %
-        (runner.org.slug, runner.default_project.slug, runner.default_release.version, rf.id)
-    )
-
-
-@scenario('UpdateReleaseFile')
-def update_file_scenario(runner):
-    rf = runner.utils.create_release_file(
-        project=runner.default_project,
-        release=runner.default_release,
-        path='/demo/hello.txt',
-        contents='Good bye World!'
-    )
-    runner.request(
-        method='PUT',
-        path='/projects/%s/%s/releases/%s/files/%s/' %
-        (runner.org.slug, runner.default_project.slug, runner.default_release.version, rf.id),
-        data={'name': '/demo/goodbye.txt'}
-    )
-
-
-@scenario('DeleteReleaseFile')
-def delete_file_scenario(runner):
-    rf = runner.utils.create_release_file(
-        project=runner.default_project,
-        release=runner.default_release,
-        path='/demo/badfile.txt',
-        contents='Whatever!'
-    )
-    runner.request(
-        method='DELETE',
-        path='/projects/%s/%s/releases/%s/files/%s/' %
-        (runner.org.slug, runner.default_project.slug, runner.default_release.version, rf.id)
-    )
+from sentry.api.endpoints.debug_files import has_download_permission
 
 
 class ReleaseFileSerializer(serializers.Serializer):
@@ -67,23 +17,21 @@ class ReleaseFileSerializer(serializers.Serializer):
 
 
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.RELEASES
-    permission_classes = (ProjectReleasePermission, )
+    permission_classes = (ProjectReleasePermission,)
 
     def download(self, releasefile):
         file = releasefile.file
         fp = file.getfile()
         response = StreamingHttpResponse(
-            iter(lambda: fp.read(4096), b''),
-            content_type=file.headers.get('content-type', 'application/octet-stream'),
+            iter(lambda: fp.read(4096), b""),
+            content_type=file.headers.get("content-type", "application/octet-stream"),
         )
-        response['Content-Length'] = file.size
-        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(
+        response["Content-Length"] = file.size
+        response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
             " ".join(releasefile.name.split())
         )
         return response
 
-    @attach_scenarios([retrieve_file_scenario])
     def get(self, request, project, version, file_id):
         """
         Retrieve a Project Release's File
@@ -103,29 +51,23 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
-                version=version,
+                organization_id=project.organization_id, projects=project, version=version
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
         try:
-            releasefile = ReleaseFile.objects.get(
-                release=release,
-                id=file_id,
-            )
+            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
-        download_requested = request.GET.get('download') is not None
-        if download_requested and (request.access.has_scope('project:write')):
+        download_requested = request.GET.get("download") is not None
+        if download_requested and (has_download_permission(request, project)):
             return self.download(releasefile)
         elif download_requested:
             return Response(status=403)
         return Response(serialize(releasefile, request.user))
 
-    @attach_scenarios([update_file_scenario])
     def put(self, request, project, version, file_id):
         """
         Update a File
@@ -145,35 +87,27 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
-                version=version,
+                organization_id=project.organization_id, projects=project, version=version
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
         try:
-            releasefile = ReleaseFile.objects.get(
-                release=release,
-                id=file_id,
-            )
+            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ReleaseFileSerializer(data=request.DATA)
+        serializer = ReleaseFileSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
-        releasefile.update(
-            name=result['name'],
-        )
+        releasefile.update(name=result["name"])
 
         return Response(serialize(releasefile, request.user))
 
-    @attach_scenarios([delete_file_scenario])
     def delete(self, request, project, version, file_id):
         """
         Delete a File
@@ -193,18 +127,13 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
-                version=version,
+                organization_id=project.organization_id, projects=project, version=version
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
         try:
-            releasefile = ReleaseFile.objects.get(
-                release=release,
-                id=file_id,
-            )
+            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 

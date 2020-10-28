@@ -1,16 +1,16 @@
-import {Flex, Box} from 'grid-emotion';
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import TimeSince from 'app/components/timeSince';
 import recreateRoute from 'app/utils/recreateRoute';
+import space from 'app/styles/space';
 
 class SessionRow extends React.Component {
   static propTypes = {
@@ -22,39 +22,44 @@ class SessionRow extends React.Component {
   };
 
   render() {
-    let {ipAddress, countryCode, regionCode, lastSeen, firstSeen} = this.props;
+    const {ipAddress, countryCode, regionCode, lastSeen, firstSeen} = this.props;
 
     return (
-      <PanelItem justify="space-between">
-        <Flex align="center" flex={1}>
-          <Box flex="1">
-            <div style={{marginBottom: 5}}>
-              <strong>{ipAddress}</strong>
-            </div>
-            {countryCode &&
-              regionCode && (
-                <div>
-                  <small>
-                    {countryCode} ({regionCode})
-                  </small>
-                </div>
-              )}
-          </Box>
-        </Flex>
-        <Flex align="center" w={140} mx={2}>
-          <small>
-            <TimeSince date={firstSeen} />
-          </small>
-        </Flex>
-        <Flex align="center" w={140} mx={2}>
-          <small>
-            <TimeSince date={lastSeen} />
-          </small>
-        </Flex>
-      </PanelItem>
+      <SessionPanelItem>
+        <IpAndLocation>
+          <div>
+            <IpAddress>{ipAddress}</IpAddress>
+            {countryCode && regionCode && (
+              <CountryCode>
+                {countryCode} ({regionCode})
+              </CountryCode>
+            )}
+          </div>
+        </IpAndLocation>
+        <StyledTimeSince date={firstSeen} />
+        <StyledTimeSince date={lastSeen} />
+      </SessionPanelItem>
     );
   }
 }
+
+const IpAddress = styled('div')`
+  margin-bottom: ${space(0.5)};
+  font-weight: bold;
+`;
+const CountryCode = styled('div')`
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+`;
+
+const IpAndLocation = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+`;
 
 class AccountSecuritySessionHistory extends AsyncView {
   getTitle() {
@@ -66,18 +71,15 @@ class AccountSecuritySessionHistory extends AsyncView {
   }
 
   renderBody() {
-    let {ipList} = this.state;
+    const {ipList} = this.state;
 
     return (
       <React.Fragment>
         <SettingsPageHeader
           title="Security"
           tabs={
-            <NavTabs underlined={true}>
-              <ListLink
-                to={recreateRoute('', {...this.props, stepBack: -1})}
-                index={true}
-              >
+            <NavTabs underlined>
+              <ListLink to={recreateRoute('', {...this.props, stepBack: -1})} index>
                 {t('Settings')}
               </ListLink>
               <ListLink to={recreateRoute('', this.props)}>
@@ -88,21 +90,16 @@ class AccountSecuritySessionHistory extends AsyncView {
         />
 
         <Panel>
-          <PanelHeader>
-            <Flex align="center" flex={1}>
-              {t('Sessions')}
-            </Flex>
-            <Flex w={140} mx={2}>
-              {t('First Seen')}
-            </Flex>
-            <Flex w={140} mx={2}>
-              {t('Last Seen')}
-            </Flex>
-          </PanelHeader>
+          <SessionPanelHeader>
+            <div>{t('Sessions')}</div>
+            <div>{t('First Seen')}</div>
+            <div>{t('Last Seen')}</div>
+          </SessionPanelHeader>
+
           <PanelBody>
-            {ipList.map(ipObj => {
-              return <SessionRow key={ipObj.id} {...ipObj} />;
-            })}
+            {ipList.map(ipObj => (
+              <SessionRow key={ipObj.id} {...ipObj} />
+            ))}
           </PanelBody>
         </Panel>
       </React.Fragment>
@@ -110,4 +107,20 @@ class AccountSecuritySessionHistory extends AsyncView {
   }
 }
 
-export default withRouter(AccountSecuritySessionHistory);
+export default AccountSecuritySessionHistory;
+
+const getTableLayout = () => `
+  display: grid;
+  grid-template-columns: auto 140px 140px;
+  grid-gap ${space(1)};
+  align-items: center;
+`;
+
+const SessionPanelHeader = styled(PanelHeader)`
+  ${getTableLayout}
+  justify-content: initial;
+`;
+
+const SessionPanelItem = styled(PanelItem)`
+  ${getTableLayout}
+`;

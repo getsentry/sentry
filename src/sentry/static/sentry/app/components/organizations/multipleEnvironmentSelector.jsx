@@ -1,24 +1,22 @@
+import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import uniq from 'lodash/uniq';
 
-import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
+import {analytics} from 'app/utils/analytics';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import CheckboxFancy from 'app/components/checkboxFancy';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import HeaderItem from 'app/components/organizations/headerItem';
 import Highlight from 'app/components/highlight';
-import InlineSvg from 'app/components/inlineSvg';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
-
-const rootClassName = css`
-  position: relative;
-  display: flex;
-  left: -1px;
-`;
+import {IconWindow} from 'app/icons';
 
 /**
  * Environment Selector
@@ -32,11 +30,25 @@ class MultipleEnvironmentSelector extends React.PureComponent {
 
     organization: SentryTypes.Organization,
 
+    projects: PropTypes.arrayOf(SentryTypes.Project),
+
+    loadingProjects: PropTypes.bool,
+
+    selectedProjects: PropTypes.arrayOf(PropTypes.number),
+
     // This component must be controlled using a value array
     value: PropTypes.array,
 
     // When menu is closed
     onUpdate: PropTypes.func,
+  };
+
+  static contextTypes = {
+    router: PropTypes.object,
+  };
+
+  static defaultProps = {
+    value: [],
   };
 
   constructor(props) {
@@ -46,6 +58,16 @@ class MultipleEnvironmentSelector extends React.PureComponent {
       hasChanges: false,
     };
   }
+
+  componentDidUpdate(prevProps) {
+    // Need to sync state
+    if (this.props.value !== prevProps.value) {
+      this.syncSelectedStateFromProps();
+    }
+  }
+
+  syncSelectedStateFromProps = () =>
+    this.setState({selectedEnvs: new Set(this.props.value)});
 
   /**
    * If value in state is different than value from props, propagate changes
@@ -68,11 +90,17 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     this.setState(state => {
       const selectedEnvs = new Set(state.selectedEnvs);
 
-      if (selectedEnvs.has(env.name)) {
-        selectedEnvs.delete(env.name);
+      if (selectedEnvs.has(env)) {
+        selectedEnvs.delete(env);
       } else {
-        selectedEnvs.add(env.name);
+        selectedEnvs.add(env);
       }
+
+      analytics('environmentselector.toggle', {
+        action: selectedEnvs.has(env) ? 'added' : 'removed',
+        path: getRouteStringFromRoutes(this.context.router.routes),
+        org_id: parseInt(this.props.organization.id, 10),
+      });
 
       this.doChange(Array.from(selectedEnvs.values()), e);
 
@@ -93,7 +121,16 @@ class MultipleEnvironmentSelector extends React.PureComponent {
 
   handleClose = () => {
     // Only update if there are changes
-    if (!this.state.hasChanges) return;
+    if (!this.state.hasChanges) {
+      return;
+    }
+
+    analytics('environmentselector.update', {
+      count: this.state.selectedEnvs.size,
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+
     this.doUpdate();
   };
 
@@ -101,6 +138,11 @@ class MultipleEnvironmentSelector extends React.PureComponent {
    * Clears all selected environments and updates
    */
   handleClear = () => {
+    analytics('environmentselector.clear', {
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+
     this.setState(
       {
         hasChanges: false,
@@ -117,11 +159,16 @@ class MultipleEnvironmentSelector extends React.PureComponent {
    * Selects an environment, should close menu and initiate an update
    */
   handleSelect = ({value: env}, e) => {
-    this.setState(state => {
-      this.doChange([env.name], e);
+    analytics('environmentselector.direct_selection', {
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+
+    this.setState(() => {
+      this.doChange([env], e);
 
       return {
-        selectedEnvs: new Set([env.name]),
+        selectedEnvs: new Set([env]),
       };
     }, this.doUpdate);
   };
@@ -134,126 +181,130 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     this.toggleSelected(env, e);
   };
 
-  render() {
-    const {value, organization} = this.props;
-    const summary = value && value.length ? `${value.join(', ')}` : t('All Environments');
+  getEnvironments() {
+    const {projects, selectedProjects} = this.props;
+    let environments = [];
+    projects.forEach(function (project) {
+      const projectId = parseInt(project.id, 10);
 
-    return (
-      <FetchOrganizationEnvironments organization={organization}>
-        {({environments}) => (
+      // Include environments from:
+      // - the requested projects
+      // - all member projects if 'my projects' (empty list) is selected.
+      // - all projects if -1 is the only selected project.
+      if (
+        (selectedProjects.length === 1 &&
+          selectedProjects[0] === ALL_ACCESS_PROJECTS &&
+          project.hasAccess) ||
+        (selectedProjects.length === 0 && project.isMember) ||
+        selectedProjects.includes(projectId)
+      ) {
+        environments = environments.concat(project.environments);
+      }
+    });
+
+    return uniq(environments);
+  }
+
+  render() {
+    const {value, loadingProjects} = this.props;
+    const environments = this.getEnvironments();
+
+    const validatedValue = value.filter(env => environments.includes(env));
+    const summary = validatedValue.length
+      ? `${validatedValue.join(', ')}`
+      : t('All Environments');
+
+    return loadingProjects ? (
+      <StyledHeaderItem
+        data-test-id="global-header-environment-selector"
+        icon={<IconWindow />}
+        loading={loadingProjects}
+      >
+        {t('Loading\u2026')}
+      </StyledHeaderItem>
+    ) : (
+      <ClassNames>
+        {({css}) => (
           <StyledDropdownAutoComplete
             alignMenu="left"
-            closeOnSelect={true}
+            allowActorToggle
+            closeOnSelect
             blendCorner={false}
             searchPlaceholder={t('Filter environments')}
             onSelect={this.handleSelect}
             onClose={this.handleClose}
             maxHeight={500}
-            rootClassName={rootClassName}
+            rootClassName={css`
+              position: relative;
+              display: flex;
+              left: -1px;
+            `}
             zIndex={theme.zIndex.dropdown}
             inputProps={{style: {padding: 8, paddingLeft: 14}}}
-            emptyMessage={
-              environments === null ? <LoadingIndicator /> : t('You have no environments')
-            }
+            emptyMessage={t('You have no environments')}
             noResultsMessage={t('No environments found')}
-            virtualizedHeight={40}
+            virtualizedHeight={theme.headerSelectorRowHeight}
             emptyHidesInput
             menuProps={{style: {position: 'relative'}}}
-            items={
-              environments
-                ? environments.map(env => ({
-                    value: env,
-                    searchKey: env.name,
-                    label: ({inputValue}) => (
-                      <EnvironmentSelectorItem
-                        environment={env}
-                        multi={true}
-                        inputValue={inputValue}
-                        isChecked={this.state.selectedEnvs.has(env.name)}
-                        onMultiSelect={this.handleMultiSelect}
-                      />
-                    ),
-                  }))
-                : []
+            menuFooter={({actions}) =>
+              this.state.hasChanges && (
+                <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
+              )
             }
+            items={environments.map(env => ({
+              value: env,
+              searchKey: env,
+              label: ({inputValue}) => (
+                <EnvironmentSelectorItem
+                  environment={env}
+                  multi
+                  inputValue={inputValue}
+                  isChecked={this.state.selectedEnvs.has(env)}
+                  onMultiSelect={this.handleMultiSelect}
+                />
+              ),
+            }))}
           >
-            {({isOpen, getActorProps, actions}) => (
+            {({isOpen, getActorProps}) => (
               <StyledHeaderItem
-                icon={<StyledInlineSvg src="icon-window" />}
+                data-test-id="global-header-environment-selector"
+                icon={<IconWindow />}
                 isOpen={isOpen}
                 hasSelected={value && !!value.length}
-                hasChanges={this.state.hasChanges}
-                onSubmit={() => this.handleUpdate(actions)}
                 onClear={this.handleClear}
-                {...getActorProps({
-                  isStyled: true,
-                })}
+                {...getActorProps()}
               >
                 {summary}
               </StyledHeaderItem>
             )}
           </StyledDropdownAutoComplete>
         )}
-      </FetchOrganizationEnvironments>
+      </ClassNames>
     );
   }
 }
 
 export default withApi(MultipleEnvironmentSelector);
 
-const FetchOrganizationEnvironments = withApi(
-  class FetchOrganizationEnvironments extends React.Component {
-    static propTypes = {
-      api: PropTypes.object,
-      organization: SentryTypes.Organization,
-    };
-    constructor(props) {
-      super(props);
-      this.state = {
-        environments: null,
-      };
-    }
-
-    componentDidMount() {
-      let {api, organization} = this.props;
-      fetchOrganizationEnvironments(api, organization.slug).then(environments =>
-        this.setState({environments})
-      );
-    }
-    render() {
-      let {children} = this.props;
-      return children({
-        environments: this.state.environments,
-      });
-    }
-  }
-);
-
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
-  transform: translateY(-2px);
-  height: 17px;
-  width: 17px;
-`;
-
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   background: #fff;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: 100%;
   box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: 0;
+  border-radius: ${p => p.theme.borderRadiusBottom};
   margin-top: 0;
-  min-width: 120%;
+  min-width: 100%;
 `;
 
 class EnvironmentSelectorItem extends React.PureComponent {
   static propTypes = {
     onMultiSelect: PropTypes.func.isRequired,
-    environment: SentryTypes.Environment,
+    environment: PropTypes.string.isRequired,
     inputValue: PropTypes.string,
     isChecked: PropTypes.bool,
   };
@@ -271,38 +322,13 @@ class EnvironmentSelectorItem extends React.PureComponent {
   render() {
     const {environment, inputValue, isChecked} = this.props;
     return (
-      <EnvironmentRow>
-        <div>
-          <Highlight text={inputValue}>{environment.name}</Highlight>
-        </div>
-
-        <MultiSelectWrapper onClick={this.handleClick}>
-          <MultiSelect checked={isChecked} />
-        </MultiSelectWrapper>
-      </EnvironmentRow>
+      <GlobalSelectionHeaderRow
+        data-test-id={`environment-${environment}`}
+        checked={isChecked}
+        onCheckClick={this.handleClick}
+      >
+        <Highlight text={inputValue}>{environment}</Highlight>
+      </GlobalSelectionHeaderRow>
     );
   }
 }
-const FlexY = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const EnvironmentRow = styled(FlexY)`
-  font-size: 14px;
-  font-weight: 400;
-
-  /* thanks bootstrap? */
-  input[type='checkbox'] {
-    margin: 0;
-  }
-`;
-const MultiSelectWrapper = styled('div')`
-  margin: -8px;
-  padding: 8px;
-`;
-
-const MultiSelect = styled(CheckboxFancy)`
-  flex-shrink: 0;
-`;

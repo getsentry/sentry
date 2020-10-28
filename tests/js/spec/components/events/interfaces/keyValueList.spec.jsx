@@ -1,159 +1,79 @@
 import React from 'react';
-import {mount} from 'enzyme';
 
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import {mount} from 'sentry-test/enzyme';
 
-describe('KeyValueList', function() {
-  describe('render', function() {
-    it('should render a definition list of key/value pairs', function() {
-      let data = [['a', 'x'], ['b', 'y']];
-      let wrapper = mount(<KeyValueList data={data} />);
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 
-      expect(
-        wrapper
-          .find('.key')
-          .at(0)
-          .text()
-      ).toEqual('a');
-      expect(
-        wrapper
-          .find('.key')
-          .at(1)
-          .text()
-      ).toEqual('b');
+describe('KeyValueList', function () {
+  describe('render', function () {
+    it('should render a definition list of key/value pairs', function () {
+      const data = [
+        ['a', 'x'],
+        ['b', 'y'],
+      ];
+      const wrapper = mount(<KeyValueList data={data} />);
 
-      expect(
-        wrapper
-          .find('.value')
-          .at(0)
-          .text()
-      ).toEqual('x');
-      expect(
-        wrapper
-          .find('.value')
-          .at(1)
-          .text()
-      ).toEqual('y');
+      expect(wrapper.find('td.key').at(0).text()).toEqual('a');
+      expect(wrapper.find('td.key').at(1).text()).toEqual('b');
+
+      expect(wrapper.find('td.val').at(0).text()).toEqual('x');
+      expect(wrapper.find('td.val').at(1).text()).toEqual('y');
     });
 
-    it('should sort sort key/value pairs', function() {
-      let data = [['b', 'y'], ['a', 'x']];
-      let wrapper = mount(<KeyValueList data={data} />);
+    it('should sort sort key/value pairs', function () {
+      const data = [
+        ['b', 'y'],
+        ['a', 'x'],
+      ];
+      const wrapper = mount(<KeyValueList data={data} />);
 
-      expect(
-        wrapper
-          .find('.key')
-          .at(0)
-          .text()
-      ).toEqual('a');
-      expect(
-        wrapper
-          .find('.key')
-          .at(1)
-          .text()
-      ).toEqual('b');
+      expect(wrapper.find('td.key').at(0).text()).toEqual('a');
+      expect(wrapper.find('td.key').at(1).text()).toEqual('b');
 
-      expect(
-        wrapper
-          .find('.value')
-          .at(0)
-          .text()
-      ).toEqual('x');
-      expect(
-        wrapper
-          .find('.value')
-          .at(1)
-          .text()
-      ).toEqual('y');
+      expect(wrapper.find('td.val').at(0).text()).toEqual('x');
+      expect(wrapper.find('td.val').at(1).text()).toEqual('y');
     });
 
-    it('should use a single space for values that are an empty string', function() {
-      let data = [
+    it('should use a single space for values that are an empty string', function () {
+      const data = [
         ['b', 'y'],
         ['a', ''], // empty string
       ];
-      let wrapper = mount(<KeyValueList data={data} />);
+      const wrapper = mount(<KeyValueList data={data} />);
 
-      expect(
-        wrapper
-          .find('.key')
-          .at(0)
-          .text()
-      ).toEqual('a');
-      expect(
-        wrapper
-          .find('.key')
-          .at(1)
-          .text()
-      ).toEqual('b');
+      expect(wrapper.find('td.key').at(0).text()).toEqual('a');
+      expect(wrapper.find('td.key').at(1).text()).toEqual('b');
 
-      expect(
-        wrapper
-          .find('.value')
-          .at(0)
-          .text()
-      ).toEqual(' ');
-      expect(
-        wrapper
-          .find('.value')
-          .at(1)
-          .text()
-      ).toEqual('y');
+      expect(wrapper.find('td.val').at(0).text()).toEqual(' ');
+      expect(wrapper.find('td.val').at(1).text()).toEqual('y');
     });
 
-    it('can sort key/value pairs with non-string values', function() {
-      let data = [['b', {foo: 'bar'}], ['a', [3, 2, 1]]];
-      let wrapper = mount(<KeyValueList isContextData data={data} />);
+    it('can sort key/value pairs with non-string values', function () {
+      const data = [
+        ['b', {foo: 'bar'}],
+        ['a', [3, 2, 1]],
+      ];
+      const wrapper = mount(<KeyValueList isContextData data={data} />);
 
       // Ignore values, more interested in if keys rendered + are sorted
-      expect(
-        wrapper
-          .find('.key')
-          .at(0)
-          .text()
-      ).toEqual('a');
-      expect(
-        wrapper
-          .find('.key')
-          .at(1)
-          .text()
-      ).toEqual('b');
+      expect(wrapper.find('td.key').at(0).text()).toEqual('a');
+      expect(wrapper.find('td.key').at(1).text()).toEqual('b');
     });
 
-    it('should coerce non-strings into strings', function() {
-      let data = [['a', false]];
-      let wrapper = mount(<KeyValueList data={data} />);
+    it('should coerce non-strings into strings', function () {
+      const data = [['a', false]];
+      const wrapper = mount(<KeyValueList data={data} />);
 
-      expect(
-        wrapper
-          .find('.key')
-          .at(0)
-          .text()
-      ).toEqual('a');
-      expect(
-        wrapper
-          .find('.value')
-          .at(0)
-          .text()
-      ).toEqual('false');
+      expect(wrapper.find('td.key').at(0).text()).toEqual('a');
+      expect(wrapper.find('td.val').at(0).text()).toEqual('false');
     });
 
-    it("shouldn't blow up on null", function() {
-      let data = [['a', null]];
-      let wrapper = mount(<KeyValueList data={data} />);
+    it("shouldn't blow up on null", function () {
+      const data = [['a', null]];
+      const wrapper = mount(<KeyValueList data={data} />);
 
-      expect(
-        wrapper
-          .find('.key')
-          .at(0)
-          .text()
-      ).toEqual('a');
-      expect(
-        wrapper
-          .find('.value')
-          .at(0)
-          .text()
-      ).toEqual('null');
+      expect(wrapper.find('td.key').at(0).text()).toEqual('a');
+      expect(wrapper.find('td.val').at(0).text()).toEqual('null');
     });
   });
 });

@@ -1,11 +1,12 @@
-{% load sentry_helpers %}Notifications for {{ project.slug }}
+{% load sentry_helpers %}
+{% load sentry_features %}Notifications for {{ project.slug }}
 {{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}
 
-{% for rule, groups in digest.iteritems %}{{ rule.label }}
-
-{% for group, records in groups.iteritems %}* {{ group.title }} ({{ group.event_count }} event{{ group.event_count|pluralize }}, {{ group.user_count }} user{{ group.user_count|pluralize }})
-  {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}{% absolute_uri group_link %}?referrer=digest_email
-
-{% endfor %}{% endfor %}
+{% for rule, groups in digest.items %}{{ rule.label }}
+{% for group, records in groups.items %}
+* {{ group.title }} ({{ group.event_count }} event{{ group.event_count|pluralize }}, {{ group.user_count }} user{{ group.user_count|pluralize }}){% url 'sentry-organization-issue' group.organization.slug group.id as group_link %}
+  {% absolute_uri group_link %}?referrer=digest_email
+{% endfor %}
+{% endfor %}
 
 Unsubscribe: {{ unsubscribe_link }}

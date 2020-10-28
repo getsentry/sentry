@@ -6,19 +6,20 @@ from six.moves.urllib.parse import parse_qsl, urlencode
 from time import time
 from uuid import uuid4
 
-from sentry.auth import Provider, AuthView
+from sentry.auth.provider import Provider
+from sentry.auth.view import AuthView
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-ERR_INVALID_STATE = 'An error occurred while validating your request.'
+ERR_INVALID_STATE = "An error occurred while validating your request."
 
 
 class OAuth2Login(AuthView):
     authorize_url = None
     client_id = None
-    scope = ''
+    scope = ""
 
     def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
         super(OAuth2Login, self).__init__(*args, **kwargs)
@@ -45,18 +46,17 @@ class OAuth2Login(AuthView):
         }
 
     def dispatch(self, request, helper):
-        if 'code' in request.GET:
+        if "code" in request.GET:
             return helper.next_step()
 
         state = uuid4().hex
 
         params = self.get_authorize_params(
-            state=state,
-            redirect_uri=absolute_uri(helper.get_redirect_url()),
+            state=state, redirect_uri=absolute_uri(helper.get_redirect_url())
         )
-        redirect_uri = u'{}?{}'.format(self.get_authorize_url(), urlencode(params))
+        redirect_uri = u"{}?{}".format(self.get_authorize_url(), urlencode(params))
 
-        helper.bind_state('state', state)
+        helper.bind_state("state", state)
 
         return self.redirect(redirect_uri)
 
@@ -87,39 +87,38 @@ class OAuth2Callback(AuthView):
     def exchange_token(self, request, helper, code):
         # TODO: this needs the auth yet
         data = self.get_token_params(
-            code=code,
-            redirect_uri=absolute_uri(helper.get_redirect_url()),
+            code=code, redirect_uri=absolute_uri(helper.get_redirect_url())
         )
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
-        if req.headers['Content-Type'].startswith('application/x-www-form-urlencoded'):
+        if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
             return dict(parse_qsl(body))
         return json.loads(body)
 
     def dispatch(self, request, helper):
-        error = request.GET.get('error')
-        state = request.GET.get('state')
-        code = request.GET.get('code')
+        error = request.GET.get("error")
+        state = request.GET.get("state")
+        code = request.GET.get("code")
 
         if error:
             return helper.error(error)
 
-        if state != helper.fetch_state('state'):
+        if state != helper.fetch_state("state"):
             return helper.error(ERR_INVALID_STATE)
 
         data = self.exchange_token(request, helper, code)
 
-        if 'error_description' in data:
-            return helper.error(data['error_description'])
+        if "error_description" in data:
+            return helper.error(data["error_description"])
 
-        if 'error' in data:
-            logging.info('Error exchanging token: %s', data['error'])
-            return helper.error('Unable to retrieve your token')
+        if "error" in data:
+            logging.info("Error exchanging token: %s", data["error"])
+            return helper.error("Unable to retrieve your token")
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
         # hook here
-        helper.bind_state('data', data)
+        helper.bind_state("data", data)
 
         return helper.next_step()
 
@@ -128,15 +127,16 @@ class OAuth2Provider(Provider):
     client_id = None
     client_secret = None
 
+    def get_client_id(self):
+        return self.client_id
+
+    def get_client_secret(self):
+        return self.client_secret
+
     def get_auth_pipeline(self):
         return [
-            OAuth2Login(
-                client_id=self.client_id,
-            ),
-            OAuth2Callback(
-                client_id=self.client_id,
-                client_secret=self.client_secret,
-            ),
+            OAuth2Login(client_id=self.get_client_id()),
+            OAuth2Callback(client_id=self.get_client_id(), client_secret=self.get_client_secret()),
         ]
 
     def get_refresh_token_url(self):
@@ -144,21 +144,18 @@ class OAuth2Provider(Provider):
 
     def get_refresh_token_params(self, refresh_token):
         return {
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
+            "client_id": self.get_client_id(),
+            "client_secret": self.get_client_secret(),
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
         }
 
     def get_oauth_data(self, payload):
-        data = {
-            'access_token': payload['access_token'],
-            'token_type': payload['token_type'],
-        }
-        if 'expires_in' in payload:
-            data['expires'] = int(time()) + payload['expires_in']
-        if 'refresh_token' in payload:
-            data['refresh_token'] = payload['refresh_token']
+        data = {"access_token": payload["access_token"], "token_type": payload["token_type"]}
+        if "expires_in" in payload:
+            data["expires"] = int(time()) + int(payload["expires_in"])
+        if "refresh_token" in payload:
+            data["refresh_token"] = payload["refresh_token"]
         return data
 
     def build_identity(self, state):
@@ -174,19 +171,17 @@ class OAuth2Provider(Provider):
     def update_identity(self, new_data, current_data):
         # we want to maintain things like refresh_token that might not
         # exist on a refreshed state
-        if 'refresh_token' in current_data:
-            new_data.setdefault('refresh_token', current_data['refresh_token'])
+        if "refresh_token" in current_data:
+            new_data.setdefault("refresh_token", current_data["refresh_token"])
         return new_data
 
     def refresh_identity(self, auth_identity):
-        refresh_token = auth_identity.data.get('refresh_token')
+        refresh_token = auth_identity.data.get("refresh_token")
 
         if not refresh_token:
-            raise IdentityNotValid('Missing refresh token')
+            raise IdentityNotValid("Missing refresh token")
 
-        data = self.get_refresh_token_params(
-            refresh_token=refresh_token,
-        )
+        data = self.get_refresh_token_params(refresh_token=refresh_token)
         req = safe_urlopen(self.get_refresh_token_url(), data=data)
 
         try:
@@ -195,10 +190,10 @@ class OAuth2Provider(Provider):
         except Exception:
             payload = {}
 
-        error = payload.get('error', 'unknown_error')
-        error_description = payload.get('error_description', 'no description available')
+        error = payload.get("error", "unknown_error")
+        error_description = payload.get("error_description", "no description available")
 
-        formatted_error = u'HTTP {} ({}): {}'.format(req.status_code, error, error_description)
+        formatted_error = u"HTTP {} ({}): {}".format(req.status_code, error, error_description)
 
         if req.status_code == 401:
             raise IdentityNotValid(formatted_error)
@@ -206,7 +201,7 @@ class OAuth2Provider(Provider):
         if req.status_code == 400:
             # this may not be common, but at the very least Google will return
             # an invalid grant when a user is suspended
-            if error == 'invalid_grant':
+            if error == "invalid_grant":
                 raise IdentityNotValid(formatted_error)
 
         if req.status_code != 200:

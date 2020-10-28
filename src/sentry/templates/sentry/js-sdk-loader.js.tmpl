@@ -1,5 +1,4 @@
-{% load sentry_helpers %}// Sentry Loader
-(function(
+{% load sentry_helpers %}(function(
   _window,
   _document,
   _script,
@@ -95,35 +94,42 @@
 
   function sdkLoaded(callbacks, SDK) {
     try {
+      var data = queue.data;
+
+      // We have to make sure to call all callbacks first
       for (var i = 0; i < callbacks.length; i++) {
         if (typeof callbacks[i] === 'function') {
           callbacks[i]();
         }
       }
 
-      var data = queue.data;
+      var initAlreadyCalled = false;
+      var __sentry = _window['__SENTRY__'];
+      // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
+      if (!(typeof __sentry === 'undefined') && __sentry.hub && __sentry.hub.getClient()) {
+        initAlreadyCalled = true;
+      }
 
-      // We want to replay all calls to Sentry first to make sure init is called before
-      // we call all our internal error handlers
-      var firstInitCall = false;
+      // We want to replay all calls to Sentry and also make sure that `init` is called if it wasn't already
+      // We replay all calls to `Sentry.*` now
       var calledSentry = false;
       for (var i = 0; i < data.length; i++) {
         if (data[i].f) {
           calledSentry = true;
           var call = data[i];
-          if (firstInitCall === false && call.f !== 'init') {
-            // First call always has to be init, this is a conveniece for the user
-            // so call to init is optional
+          if (initAlreadyCalled === false && call.f !== 'init') {
+            // First call always has to be init, this is a conveniece for the user so call to init is optional
             SDK.init();
           }
-          firstInitCall = true;
+          initAlreadyCalled = true;
           SDK[call.f].apply(SDK, call.a);
         }
       }
-      if (calledSentry === false) {
+      if (initAlreadyCalled === false && calledSentry === false) {
         // Sentry has never been called but we need Sentry.init() so call it
         SDK.init();
       }
+
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
       var tracekitErrorHandler = _window[_onerror];
@@ -142,25 +148,26 @@
     }
   }
 
-  // We don't want to _window.Sentry = _window.Sentry || { ... } since we want to make sure
-  // that the first Sentry "instance" is our with onLoad
-  _window[_namespace] = {
-    onLoad: function (callback) {
-      onLoadCallbacks.push(callback);
-      if (lazy && !forceLoad) {
-        return;
-      }
-      injectSdk(onLoadCallbacks);
-    },
-    forceLoad: function() {
-      forceLoad = true;
-      if (lazy) {
-        setTimeout(function() {
-          injectSdk(onLoadCallbacks);
-        });
-      }
+  // We make sure we do not overwrite window.Sentry since there could be already integrations in there
+  _window[_namespace] = _window[_namespace] || {};
+
+  _window[_namespace].onLoad = function (callback) {
+    onLoadCallbacks.push(callback);
+    if (lazy && !forceLoad) {
+      return;
+    }
+    injectSdk(onLoadCallbacks);
+  };
+
+  _window[_namespace].forceLoad = function() {
+    forceLoad = true;
+    if (lazy) {
+      setTimeout(function() {
+        injectSdk(onLoadCallbacks);
+      });
     }
   };
+
 
   [
     'init',
@@ -199,8 +206,8 @@
   };
 
   if (!lazy) {
-    setTimeout(function() {
+    setTimeout(function () {
       injectSdk(onLoadCallbacks);
     });
   }
-})(window, document, "script", "onerror", "onunhandledrejection", "Sentry", "{{ publicKey|safe }}", "{{ jsSdkUrl|safe }}", {{ config|to_json|safe }});
+})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }});

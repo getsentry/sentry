@@ -1,5 +1,8 @@
 import moment from 'moment';
 
+import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
+import {t} from 'app/locale';
+
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 /**
@@ -7,8 +10,8 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
  * and end date, with the end date as the current time and the start date as the
  * time that is the current time less the statsPeriod.
  *
- * @param {String} val Relative stats period
- * @returns {Object} Object containing start and end date as YYYY-MM-DDTHH:mm:ss
+ * @param {String} statsPeriod Relative stats period
+ * @return {Object} Object containing start and end date as YYYY-MM-DDTHH:mm:ss
  *
  */
 export function parseStatsPeriod(statsPeriod) {
@@ -29,9 +32,30 @@ export function parseStatsPeriod(statsPeriod) {
   }[result[2]];
 
   return {
-    start: moment()
-      .subtract(value, unit)
-      .format(DATE_TIME_FORMAT),
+    start: moment().subtract(value, unit).format(DATE_TIME_FORMAT),
     end: moment().format(DATE_TIME_FORMAT),
   };
+}
+
+/**
+ * Given a relative stats period, e.g. `1h`, return a pretty string if it
+ * is a default stats period. Otherwise if it's a valid period (can be any number
+ * followed by a single character s|m|h|d) display "Other" or "Invalid period" if invalid
+ *
+ * @param {String} relative Relative stats period
+ * @return {String} Returns either one of the default "Last x days" string, "Other" if period is valid on the backend, or "Invalid period" otherwise
+ */
+export function getRelativeSummary(relative) {
+  const defaultRelativePeriodString = DEFAULT_RELATIVE_PERIODS[relative];
+
+  if (!defaultRelativePeriodString) {
+    try {
+      parseStatsPeriod(relative);
+      return t('Other');
+    } catch (err) {
+      return 'Invalid period';
+    }
+  }
+
+  return defaultRelativePeriodString;
 }

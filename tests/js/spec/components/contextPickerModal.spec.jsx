@@ -1,16 +1,21 @@
 import React from 'react';
 
-import * as OrgActions from 'app/actionCreators/organizations';
-import {mount, shallow} from 'enzyme';
-import {ContextPickerModal} from 'app/components/contextPickerModal';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select-new';
+
+import ContextPickerModal from 'app/components/contextPickerModal';
+import OrganizationStore from 'app/stores/organizationStore';
+import OrganizationsStore from 'app/stores/organizationsStore';
+import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('jquery');
 
-describe('ContextPickerModal', function() {
+describe('ContextPickerModal', function () {
   let project, project2, org, org2;
-  let onFinish = jest.fn();
+  const onFinish = jest.fn();
 
-  beforeEach(function() {
+  beforeEach(function () {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
     onFinish.mockReset();
 
@@ -23,6 +28,12 @@ describe('ContextPickerModal', function() {
     });
   });
 
+  afterEach(async function () {
+    OrganizationsStore.load([]);
+    OrganizationStore.reset();
+    await tick();
+  });
+
   const getComponent = props => (
     <ContextPickerModal
       Header={() => <div />}
@@ -30,109 +41,103 @@ describe('ContextPickerModal', function() {
       nextPath="/test/:orgId/path/"
       organizations={[org, org2]}
       needOrg
-      latestContext={{}}
       onFinish={onFinish}
       {...props}
     />
   );
 
-  it('renders with only org selector when no org in latest context', function() {
-    let wrapper = shallow(getComponent());
+  it('renders with only org selector when no org is selected', async function () {
+    const wrapper = mountWithTheme(getComponent());
 
     expect(wrapper.find('StyledSelectControl[name="organization"]').exists()).toBe(true);
     expect(wrapper.find('StyledSelectControl[name="project"]').exists()).toBe(false);
+
+    await tick();
+    wrapper.unmount();
   });
 
-  it('fetches org details and sets as active org if there is only one org', function() {
-    let spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    let api = MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/`,
+  it('calls onFinish, if project id is not needed, and only 1 org', async function () {
+    OrganizationsStore.load([org2]);
+    OrganizationStore.onUpdate(org2);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/projects/`,
+      body: [],
     });
-    let wrapper = mount(getComponent({organizations: [org2]}));
+    const wrapper = mountWithTheme(getComponent(), TestStubs.routerContext());
 
-    wrapper.update();
-    expect(spy).toHaveBeenCalledWith('org2', {
-      setActive: true,
-      loadProjects: true,
-    });
-    expect(api).toHaveBeenCalled();
-  });
-
-  it('calls onFinish after latestContext is set, if project id is not needed, and only 1 org', function() {
-    let spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    let api = MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/`,
-    });
-    let wrapper = mount(getComponent({organizations: [org2]}));
-
-    expect(spy).toHaveBeenCalledWith('org2', {
-      setActive: true,
-      loadProjects: true,
-    });
-    expect(api).toHaveBeenCalled();
-
-    wrapper.setProps({latestContext: {organization: org2}});
-    wrapper.update();
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/');
+    await tick();
+    wrapper.unmount();
   });
 
-  it('calls onFinish if there is only 1 org and 1 project', function() {
-    let spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    let api = MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/`,
+  it('calls onFinish if there is only 1 org and 1 project', async function () {
+    expect(onFinish).not.toHaveBeenCalled();
+    OrganizationsStore.load([org2]);
+    OrganizationStore.onUpdate(org2);
+
+    const fetchProjectsForOrg = MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/projects/`,
+      body: [project2],
     });
-    let wrapper = mount(
+
+    const wrapper = mountWithTheme(
       getComponent({
         needOrg: true,
         needProject: true,
         nextPath: '/test/:orgId/path/:projectId/',
-        organizations: [org2],
-      })
+      }),
+      TestStubs.routerContext()
     );
 
-    expect(spy).toHaveBeenCalledWith('org2', {
-      setActive: true,
-      loadProjects: true,
-    });
-    expect(api).toHaveBeenCalled();
+    expect(fetchProjectsForOrg).toHaveBeenCalled();
+    expect(onFinish).not.toHaveBeenCalled();
 
-    wrapper.setProps({latestContext: {organization: {...org2, projects: [project2]}}});
+    await tick();
     wrapper.update();
-    expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project2/');
+
+    expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
+
+    await tick();
+    wrapper.unmount();
   });
 
-  it('selects an org and calls `onFinish` with URL with organization slug', function() {
-    let wrapper = mount(getComponent({}));
-    let mock = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/`,
+  it('selects an org and calls `onFinish` with URL with organization slug', async function () {
+    OrganizationsStore.load([org]);
+    const wrapper = mountWithTheme(getComponent({}), TestStubs.routerContext());
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
     });
 
-    wrapper.find('StyledSelectControl[name="organization"] input').simulate('focus');
+    selectByValue(wrapper, 'org-slug', {control: true});
 
-    expect(wrapper.find('Select[name="organization"] .Select-menu')).toHaveLength(1);
-
-    wrapper
-      .find('Select[name="organization"] Option')
-      .first()
-      .simulate('mouseDown');
+    await tick();
+    wrapper.update();
     expect(onFinish).toHaveBeenCalledWith('/test/org-slug/path/');
-    // Is not called because we don't need to fetch org details
-    expect(mock).not.toHaveBeenCalled();
+
+    await tick();
+    wrapper.unmount();
   });
 
-  it('renders with project selector and org selector selected when org is in latest context', function() {
-    let wrapper = shallow(
+  it('renders with project selector and org selector selected when org is already selected', async function () {
+    OrganizationStore.onUpdate(org);
+    const fetchProjectsForOrg = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [project, project2],
+    });
+    await tick();
+
+    const wrapper = mountWithTheme(
       getComponent({
         needOrg: true,
         needProject: true,
-        latestContext: {
-          organization: {
-            ...org,
-            projects: [project, project2],
-          },
-        },
       })
     );
+
+    await tick();
+    wrapper.update();
+
+    expect(fetchProjectsForOrg).toHaveBeenCalled();
 
     // Default to org in latest context
     expect(wrapper.find('StyledSelectControl[name="organization"]').prop('value')).toBe(
@@ -142,60 +147,55 @@ describe('ContextPickerModal', function() {
       {value: project.slug, label: project.slug},
       {value: project2.slug, label: project2.slug},
     ]);
+
+    await tick();
+    wrapper.unmount();
   });
 
-  it('can select org and project', async function() {
-    let spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    let api = MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/`,
+  it('can select org and project', async function () {
+    const organizations = [
+      {
+        ...org,
+        projects: [project],
+      },
+      {
+        ...org2,
+        projects: [project2, TestStubs.Project({slug: 'project3'})],
+      },
+    ];
+    const fetchProjectsForOrg = MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/projects/`,
+      body: organizations[1].projects,
     });
-    let wrapper = mount(
+
+    OrganizationsStore.load(organizations);
+
+    const wrapper = mountWithTheme(
       getComponent({
         needOrg: true,
         needProject: true,
         nextPath: '/test/:orgId/path/:projectId/',
-        organizations: [
-          {
-            ...org,
-            projects: [project],
-          },
-          {
-            ...org2,
-            projects: [project2],
-          },
-        ],
-      })
+        organizations,
+      }),
+      TestStubs.routerContext()
     );
+
+    await tick();
+    wrapper.update();
 
     // Should not have anything selected
-    expect(wrapper.find('StyledSelectControl[name="organization"]').prop('value')).toBe(
-      ''
-    );
-
-    spy.mockClear();
+    expect(
+      wrapper.find('StyledSelectControl[name="organization"]').prop('value')
+    ).toBeUndefined();
 
     // Select org2
-    wrapper
-      .find('StyledSelectControl[name="organization"]')
-      .simulate('change', {value: org2.slug, label: org2.slug});
+    selectByValue(wrapper, org2.slug, {control: true});
 
-    wrapper.find('StyledSelectControl[name="organization"] input').simulate('focus');
-    wrapper
-      .find('Select[name="organization"] Option')
-      .at(1)
-      .simulate('mouseDown');
-
-    expect(spy).toHaveBeenCalledWith('org2', {
-      setActive: true,
-      loadProjects: true,
-    });
-    expect(api).toHaveBeenCalled();
-
-    // org2 should have 2 projects, project2 and project3
-    wrapper.setProps({
-      latestContext: {organization: {...org2, projects: [project2, {slug: 'project3'}]}},
-    });
+    await tick();
     wrapper.update();
+
+    // <Projects> will fetch projects for org2
+    expect(fetchProjectsForOrg).toHaveBeenCalled();
 
     expect(wrapper.find('StyledSelectControl[name="project"]').prop('options')).toEqual([
       {value: project2.slug, label: project2.slug},
@@ -203,12 +203,11 @@ describe('ContextPickerModal', function() {
     ]);
 
     // Select project3
-    wrapper.find('StyledSelectControl[name="project"] input').simulate('focus');
-    wrapper
-      .find('Select[name="project"] Option')
-      .at(1)
-      .simulate('mouseDown');
+    selectByValue(wrapper, 'project3', {control: true, name: 'project'});
 
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project3/');
+
+    await tick();
+    wrapper.unmount();
   });
 });

@@ -15,9 +15,9 @@ def expand_events(rolled_up_events):
     Convert a list of rolled up events ('issue', etc) into a list of raw event
     types ('issue.created', etc.)
     """
-    return set(chain.from_iterable(
-        [EVENT_EXPANSION.get(event, [event]) for event in rolled_up_events]
-    ))
+    return set(
+        chain.from_iterable([EVENT_EXPANSION.get(event, [event]) for event in rolled_up_events])
+    )
 
 
 def consolidate_events(raw_events):
@@ -26,15 +26,17 @@ def consolidate_events(raw_events):
     rolled up events ('issue', etc).
     """
     return set(
-        name for (name, rolled_up_events) in six.iteritems(EVENT_EXPANSION)
+        name
+        for (name, rolled_up_events) in six.iteritems(EVENT_EXPANSION)
         if any(set(raw_events) & set(rolled_up_events))
     )
 
 
 class Creator(Mediator):
-    application = Param('sentry.models.ApiApplication', required=False)
-    actor = Param('sentry.db.models.BaseModel')
-    project = Param('sentry.models.Project')
+    application = Param("sentry.models.ApiApplication", required=False)
+    actor = Param("sentry.db.models.BaseModel")
+    organization = Param("sentry.models.Organization")
+    projects = Param(Iterable)
     events = Param(Iterable)
     url = Param(six.string_types)
 
@@ -45,11 +47,18 @@ class Creator(Mediator):
     def _create_service_hook(self):
         application_id = self.application.id if self.application else None
 
-        return ServiceHook.objects.create(
+        # nullable for sentry apps
+        project_id = self.projects[0].id if self.projects else None
+
+        hook = ServiceHook.objects.create(
             application_id=application_id,
             actor_id=self.actor.id,
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
+            project_id=project_id,
+            organization_id=self.organization.id,
             events=expand_events(self.events),
             url=self.url,
         )
+        for project in self.projects:
+            hook.add_project(project)
+
+        return hook

@@ -1,24 +1,20 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ToolbarHeader from 'app/components/toolbarHeader';
 
-describe('ToolbarHeader', function() {
-  let sandbox;
+describe('ToolbarHeader', function () {
+  beforeEach(function () {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
+  afterEach(function () {});
 
-  afterEach(function() {
-    sandbox.restore();
-  });
-
-  it('renders', function() {
-    let wrapper = shallow(
+  it('renders', function () {
+    const wrapper = mountWithTheme(
       <ToolbarHeader>
         <div />
       </ToolbarHeader>
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

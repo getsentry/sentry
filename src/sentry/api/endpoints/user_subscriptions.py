@@ -35,15 +35,20 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         if sub is None or not newsletter.is_enabled():
             return self.respond([])
 
-        return self.respond([{
-            'listId': x.get('list_id'),
-            'listDescription': x.get('list_description'),
-            'listName': x.get('list_name'),
-            'email': x.get('email'),
-            'subscribed': x.get('subscribed'),
-            'subscribedDate': x.get('subscribed_date'),
-            'unsubscribedDate': x.get('unsubscribed_date'),
-        } for x in sub['subscriptions']])
+        return self.respond(
+            [
+                {
+                    "listId": x.get("list_id"),
+                    "listDescription": x.get("list_description"),
+                    "listName": x.get("list_name"),
+                    "email": x.get("email"),
+                    "subscribed": x.get("subscribed"),
+                    "subscribedDate": x.get("subscribed_date"),
+                    "unsubscribedDate": x.get("unsubscribed_date"),
+                }
+                for x in sub["subscriptions"]
+            ]
+        )
 
     def put(self, request, user):
         """
@@ -56,22 +61,22 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         :param boolean subscribed: should be subscribed to newsletter
         :auth: required
         """
-        validator = NewsletterValidator(data=request.DATA)
+        validator = NewsletterValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
         email = UserEmail.get_primary_email(user)
 
         kwargs = {
-            'list_id': result['listId'],
-            'subscribed': result['subscribed'],
-            'verified': email.is_verified,
+            "list_id": result["listId"],
+            "subscribed": result["subscribed"],
+            "verified": email.is_verified,
         }
-        if not result['subscribed']:
-            kwargs['unsubscribed_date'] = timezone.now()
+        if not result["subscribed"]:
+            kwargs["unsubscribed_date"] = timezone.now()
         else:
-            kwargs['subscribed_date'] = timezone.now()
+            kwargs["subscribed_date"] = timezone.now()
 
         newsletter.create_or_update_subscription(user, **kwargs)
         return self.respond(status=204)
@@ -86,27 +91,25 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         :param boolean subscribed: should be subscribed to newsletter
         :auth: required
         """
-        validator = DefaultNewsletterValidator(data=request.DATA)
+        validator = DefaultNewsletterValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
         email = UserEmail.get_primary_email(user)
 
         kwargs = {
-            'subscribed': result['subscribed'],
-            'verified': email.is_verified,
-            'list_ids': newsletter.get_default_list_ids(),
+            "subscribed": result["subscribed"],
+            "verified": email.is_verified,
+            "list_ids": newsletter.get_default_list_ids(),
         }
-        if not result['subscribed']:
-            kwargs['unsubscribed_date'] = timezone.now()
+        if not result["subscribed"]:
+            kwargs["unsubscribed_date"] = timezone.now()
         else:
-            kwargs['subscribed_date'] = timezone.now()
+            kwargs["subscribed_date"] = timezone.now()
 
         newsletter.create_or_update_subscriptions(user, **kwargs)
 
-        user.update(
-            flags=F('flags').bitand(~User.flags.newsletter_consent_prompt),
-        )
+        user.update(flags=F("flags").bitand(~User.flags.newsletter_consent_prompt))
 
         return self.respond(status=204)

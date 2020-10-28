@@ -27,6 +27,8 @@ class SelectAsyncField extends SelectField {
      * Field ID
      */
     id: PropTypes.any,
+
+    deprecatedSelectControl: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -35,16 +37,15 @@ class SelectAsyncField extends SelectField {
   };
 
   onResults = data => {
-    let {name} = this.props;
-    let results = data && data[name];
+    const {name} = this.props;
+    const results = data && data[name];
 
     return (results && results.map(({id, text}) => ({value: id, label: text}))) || [];
   };
 
-  onQuery = query => {
+  onQuery = query =>
     // Used by legacy integrations
-    return {autocomplete_query: query, autocomplete_field: this.props.name};
-  };
+    ({autocomplete_query: query, autocomplete_field: this.props.name});
 
   getField() {
     // Callers should be able to override all props except onChange

@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 
-from sentry.testutils import TestCase
+from unittest import TestCase
 from sentry.utils.retries import TimedRetryPolicy, RetryException
 
 
 class TimedRetryPolicyTestCase(TestCase):
     def test_policy_success(self):
-        bomb = Exception('Boom!')
+        bomb = Exception("Boom!")
         callable = mock.MagicMock(side_effect=[bomb, mock.sentinel.OK])
 
         retry = TimedRetryPolicy(0.3, delay=lambda i: 0.1)
@@ -20,7 +20,7 @@ class TimedRetryPolicyTestCase(TestCase):
         assert callable.call_count == 2
 
     def test_policy_failure(self):
-        bomb = Exception('Boom!')
+        bomb = Exception("Boom!")
         callable = mock.MagicMock(side_effect=bomb)
 
         retry = TimedRetryPolicy(0.3, delay=lambda i: 0.1)
@@ -33,12 +33,12 @@ class TimedRetryPolicyTestCase(TestCase):
         except RetryException as exception:
             assert exception.exception is bomb
         else:
-            self.fail(u'Expected {!r}!'.format(RetryException))
+            self.fail(u"Expected {!r}!".format(RetryException))
 
         assert callable.call_count == 2
 
     def test_decorator(self):
-        bomb = Exception('Boom!')
+        bomb = Exception("Boom!")
         callable = mock.MagicMock(side_effect=[bomb, mock.sentinel.OK])
 
         @TimedRetryPolicy.wrap(0.3, delay=lambda i: 0.1)

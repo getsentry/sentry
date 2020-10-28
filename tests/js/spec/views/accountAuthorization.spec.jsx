@@ -1,23 +1,24 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
-import {shallow} from 'enzyme';
 import AccountAuthorizations from 'app/views/settings/account/accountAuthorizations';
 
-describe('AccountAuthorizations', function() {
-  beforeEach(function() {
+describe('AccountAuthorizations', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     Client.addMockResponse({
       url: '/api-authorizations/',
       method: 'GET',
       body: [],
     });
 
-    let wrapper = shallow(<AccountAuthorizations />, {
+    const wrapper = mountWithTheme(<AccountAuthorizations />, {
       context: {
         location: TestStubs.location(),
         router: TestStubs.router(),
@@ -28,6 +29,6 @@ describe('AccountAuthorizations', function() {
       },
     });
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

@@ -1,0 +1,110 @@
+---
+created: '2020-02-26T19:54:28.326044Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame
+            function (function name is not used if module or filename are available)
+              "_main"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start_internal"
+          frame
+            function (function name is not used if module or filename are available)
+              "___rust_maybe_catch_panic"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::panicking::try::do_call"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start::{{closure}}"
+          frame
+            function (function name is not used if module or filename are available)
+              "log_demo::main"
+          frame
+            function (function name is not used if module or filename are available)
+              "log::__private_api_log"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "<sentry::integrations::log::Logger as log::Log>::log"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "sentry::hub::Hub::with_active"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "sentry::hub::Hub::with"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "sentry::hub::Hub::with_active::{{closure}}"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "<unknown>"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+        type*
+          "log_demo"
+        value*
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+system:
+  hash: "3e0ae2ce25cce2fca3390f3416e6a82a"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame
+            function (function name is not used if module or filename are available)
+              "_main"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start_internal"
+          frame
+            function (function name is not used if module or filename are available)
+              "___rust_maybe_catch_panic"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::panicking::try::do_call"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start::{{closure}}"
+          frame
+            function (function name is not used if module or filename are available)
+              "log_demo::main"
+          frame
+            function (function name is not used if module or filename are available)
+              "log::__private_api_log"
+          frame
+            function (function name is not used if module or filename are available)
+              "<sentry::integrations::log::Logger as log::Log>::log"
+          frame
+            function (function name is not used if module or filename are available)
+              "sentry::hub::Hub::with_active"
+          frame
+            function (function name is not used if module or filename are available)
+              "sentry::hub::Hub::with"
+          frame
+            function (function name is not used if module or filename are available)
+              "sentry::hub::Hub::with_active::{{closure}}"
+          frame
+            function (function name is not used if module or filename are available)
+              "<unknown>"
+          frame
+            function (function name is not used if module or filename are available)
+              "<redacted>"
+        type*
+          "log_demo"
+        value*
+          "Holy shit everything is on fire!"

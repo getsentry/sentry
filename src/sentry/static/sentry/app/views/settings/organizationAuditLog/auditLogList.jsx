@@ -1,10 +1,9 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Pagination from 'app/components/pagination';
@@ -13,30 +12,47 @@ import SelectField from 'app/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
-const UserInfo = styled(Box)`
+const UserInfo = styled('div')`
   display: flex;
   line-height: 1.2;
   font-size: 13px;
   flex: 1;
 `;
 
-const NameContainer = styled.div`
+const NameContainer = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
 `;
 
-const Name = styled.div`
+const Name = styled('div')`
   font-weight: 600;
   font-size: 15px;
 `;
-const Note = styled.div`
+const Note = styled('div')`
   font-size: 13px;
+  word-break: break-word;
 `;
-const OverflowBox = styled.div`
+const OverflowBox = styled('div')`
   ${overflowEllipsis};
 `;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  display: grid;
+  grid-template-columns: 1fr 150px 130px 150px;
+  grid-column-gap: ${space(2)};
+  padding: ${space(2)};
+`;
+
+const StyledPanelItem = styled(PanelItem)`
+  display: grid;
+  grid-template-columns: 1fr 150px 130px 150px;
+  grid-column-gap: ${space(2)};
+  padding: ${space(2)};
+`;
+
 const avatarStyle = {
   width: 36,
   height: 36,
@@ -53,23 +69,24 @@ class AuditLogList extends React.Component {
   };
 
   render() {
-    let {pageLinks, entries, eventType, eventTypes, onEventSelect} = this.props;
-    let hasEntries = entries && entries.length > 0;
-    let ipv4Length = 15;
-    let options = [
+    const {pageLinks, entries, eventType, eventTypes, onEventSelect} = this.props;
+    const hasEntries = entries && entries.length > 0;
+    const ipv4Length = 15;
+    const options = [
       {value: '', label: t('Any action'), clearableVaue: false},
       ...eventTypes.map(type => ({label: type, value: type, clearableValue: false})),
     ];
 
-    let action = (
+    const action = (
       <form>
         <SelectField
+          deprecatedSelectControl
           name="event"
           onChange={onEventSelect}
           value={eventType}
           style={{width: 250}}
           options={options}
-          clearable={false}
+          clearable
         />
       </form>
     );
@@ -77,18 +94,13 @@ class AuditLogList extends React.Component {
     return (
       <div>
         <SettingsPageHeader title={t('Audit Log')} action={action} />
-
         <Panel>
-          <PanelHeader disablePadding>
-            <Box flex="1" pl={2}>
-              {t('Member')}
-            </Box>
-            <Box w={150}>{t('Action')}</Box>
-            <Box w={130}>{t('IP')}</Box>
-            <Box w={150} px={1}>
-              {t('Time')}
-            </Box>
-          </PanelHeader>
+          <StyledPanelHeader disablePadding>
+            <div>{t('Member')}</div>
+            <div>{t('Action')}</div>
+            <div>{t('IP')}</div>
+            <div>{t('Time')}</div>
+          </StyledPanelHeader>
 
           <PanelBody>
             {!hasEntries && (
@@ -96,42 +108,39 @@ class AuditLogList extends React.Component {
             )}
 
             {hasEntries &&
-              entries.map(entry => {
-                return (
-                  <PanelItem p={0} align="center" key={entry.id}>
-                    <UserInfo flex="1" p={2}>
-                      <div>
-                        {entry.actor.email && (
-                          <Avatar style={avatarStyle} user={entry.actor} />
-                        )}
-                      </div>
-                      <NameContainer>
-                        <Name data-test-id="actor-name">
-                          {entry.actor.isSuperuser
-                            ? t('%s (Sentry Staff)', entry.actor.name)
-                            : entry.actor.name}
-                        </Name>
-                        <Note>{entry.note}</Note>
-                      </NameContainer>
-                    </UserInfo>
-                    <Box w={150}>{entry.event}</Box>
-                    <Box w={130}>
-                      <Tooltip
-                        title={entry.ipAddress}
-                        disabled={entry.ipAddress && entry.ipAddress.length <= ipv4Length}
-                      >
-                        <OverflowBox>{entry.ipAddress}</OverflowBox>
-                      </Tooltip>
-                    </Box>
-                    <Box w={150} p={1}>
-                      <DateTime date={entry.dateCreated} />
-                    </Box>
-                  </PanelItem>
-                );
-              })}
+              entries.map(entry => (
+                <StyledPanelItem alignItems="center" key={entry.id}>
+                  <UserInfo>
+                    <div>
+                      {entry.actor.email && (
+                        <UserAvatar style={avatarStyle} user={entry.actor} />
+                      )}
+                    </div>
+                    <NameContainer>
+                      <Name data-test-id="actor-name">
+                        {entry.actor.isSuperuser
+                          ? t('%s (Sentry Staff)', entry.actor.name)
+                          : entry.actor.name}
+                      </Name>
+                      <Note>{entry.note}</Note>
+                    </NameContainer>
+                  </UserInfo>
+                  <div>{entry.event}</div>
+                  <div>
+                    <Tooltip
+                      title={entry.ipAddress}
+                      disabled={entry.ipAddress && entry.ipAddress.length <= ipv4Length}
+                    >
+                      <OverflowBox>{entry.ipAddress}</OverflowBox>
+                    </Tooltip>
+                  </div>
+                  <div>
+                    <DateTime date={entry.dateCreated} />
+                  </div>
+                </StyledPanelItem>
+              ))}
           </PanelBody>
         </Panel>
-
         {pageLinks && <Pagination pageLinks={pageLinks} {...this.props} />}
       </div>
     );

@@ -1,5 +1,5 @@
 import {defined, trim} from 'app/utils';
-import {trimPackage} from 'app/components/events/interfaces/frame';
+import {trimPackage} from 'app/components/events/interfaces/frame/utils';
 
 function getJavaScriptFrame(frame) {
   let result = '';
@@ -45,7 +45,7 @@ function getRubyFrame(frame) {
 }
 
 export function getPHPFrame(frame, idx) {
-  let funcName = frame.function === 'null' ? '{main}' : frame.function;
+  const funcName = frame.function === 'null' ? '{main}' : frame.function;
   return `#${idx} ${frame.filename || frame.module}(${frame.lineNo}): ${funcName}`;
 }
 
@@ -162,28 +162,10 @@ function getFrame(frame, frameIdx, platform) {
 }
 
 export default function render(data, platform, exception) {
-  let firstFrameOmitted, lastFrameOmitted;
-  let frames = [];
-
-  if (data.framesOmitted) {
-    firstFrameOmitted = data.framesOmitted[0];
-    lastFrameOmitted = data.framesOmitted[1];
-  } else {
-    firstFrameOmitted = null;
-    lastFrameOmitted = null;
-  }
+  const frames = [];
 
   data.frames.forEach((frame, frameIdx) => {
     frames.push(getFrame(frame, frameIdx, platform));
-    if (frameIdx === firstFrameOmitted) {
-      frames.push(
-        '.. frames ' +
-          firstFrameOmitted +
-          ' until ' +
-          lastFrameOmitted +
-          ' were omitted and not available ..'
-      );
-    }
   });
 
   if (platform !== 'python') {

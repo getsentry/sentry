@@ -1,29 +1,25 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PreviewFeature from 'app/components/previewFeature';
 import ReportUri, {
   getSecurityDsn,
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectExpectCtReports extends AsyncView {
-  static propTypes = {
-    setProjectNavSection: PropTypes.func,
-  };
-
-  componentWillMount() {
-    super.componentWillMount();
-    this.props.setProjectNavSection('settings');
+  getEndpoints() {
+    const {orgId, projectId} = this.props.params;
+    return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
   }
 
-  getEndpoints() {
-    let {orgId, projectId} = this.props.params;
-    return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
+  getTitle() {
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Certificate Transparency (Expect-CT)'), projectId, false);
   }
 
   getInstructions() {
@@ -41,7 +37,7 @@ export default class ProjectExpectCtReports extends AsyncView {
 
         <Panel>
           <PanelHeader>{'About'}</PanelHeader>
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <p>
               {tct(
                 `[link:Certificate Transparency]

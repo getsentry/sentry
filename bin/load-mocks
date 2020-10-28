@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 from sentry.runner import configure
+
 configure()
 
 import itertools
@@ -16,50 +17,67 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
-from loremipsum import Generator
 from pytz import utc
 
 from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
+from sentry.incidents.logic import (
+    AlertRuleNameAlreadyUsedError,
+    create_alert_rule,
+    create_alert_rule_trigger,
+    create_incident,
+)
+from sentry.incidents.models import IncidentType, AlertRuleThresholdType
 from sentry.models import (
-    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy, EventAttachment, Event,
-    Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
-    OrganizationAccessRequest, OrganizationMember, Project, Release,
-    ReleaseCommit, ReleaseEnvironment, ReleaseProjectEnvironment, ReleaseFile, Repository,
-    Team, TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
+    Activity,
+    Broadcast,
+    Commit,
+    CommitAuthor,
+    CommitFileChange,
+    Deploy,
+    EventAttachment,
+    Environment,
+    File,
+    Group,
+    GroupRelease,
+    GroupTombstone,
+    Organization,
+    OrganizationAccessRequest,
+    OrganizationMember,
+    Project,
+    Release,
+    ReleaseCommit,
+    ReleaseEnvironment,
+    ReleaseProjectEnvironment,
+    ReleaseFile,
+    Repository,
+    Team,
+    TOMBSTONE_FIELDS_FROM_GROUP,
+    User,
+    UserReport,
+    Monitor,
+    MonitorStatus,
+    MonitorType,
+    MonitorCheckIn,
+    CheckInStatus,
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
+from sentry.snuba.models import QueryAggregations
+from sentry.utils import loremipsum
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
 from sentry.utils.samples import generate_user
 
-loremipsum = Generator()
+PLATFORMS = itertools.cycle(["ruby", "php", "python", "java", "javascript"])
 
-PLATFORMS = itertools.cycle([
-    'ruby',
-    'php',
-    'python',
-    'java',
-    'javascript',
-])
+LEVELS = itertools.cycle(["error", "error", "error", "fatal", "warning"])
 
-LEVELS = itertools.cycle([
-    'error',
-    'error',
-    'error',
-    'fatal',
-    'warning',
-])
+ENVIRONMENTS = itertools.cycle(["production", "production", "staging", "alpha", "beta", ""])
 
-ENVIRONMENTS = itertools.cycle([
-    'production',
-    'production',
-    'staging',
-    'alpha',
-    'beta',
-    ''
-])
+MONITOR_NAMES = itertools.cycle(settings.CELERYBEAT_SCHEDULE.keys())
+
+MONITOR_SCHEDULES = itertools.cycle(["* * * * *", "0 * * * *", "0 0 * * *"])
 
 LONG_MESSAGE = """Code: 0.
 DB::Exception: String is too long for DateTime: 2018-10-26T19:14:18+00:00. Stack trace:
@@ -87,7 +105,7 @@ DB::Exception: String is too long for DateTime: 2018-10-26T19:14:18+00:00. Stack
 def make_sentence(words=None):
     if words is None:
         words = int(random.weibullvariate(8, 3))
-    return ' '.join(random.choice(loremipsum.words) for _ in range(words))
+    return " ".join(random.choice(loremipsum.words) for _ in range(words))
 
 
 def create_sample_event(*args, **kwargs):
@@ -105,30 +123,25 @@ def generate_commits(user):
     commits = []
     for i in range(random.randint(1, 20)):
         if i == 1:
-            filename = 'raven/base.py'
+            filename = "raven/base.py"
         else:
-            filename = random.choice(loremipsum.words) + '.js'
+            filename = random.choice(loremipsum.words) + ".js"
         if random.randint(0, 5) == 1:
             author = (user.name, user.email)
         else:
             author = (
-                '{} {}'.format(
-                    random.choice(loremipsum.words),
-                    random.choice(loremipsum.words),
-                ),
-                '{}@example.com'.format(
-                    random.choice(loremipsum.words),
-                ),
+                "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words)),
+                "{}@example.com".format(random.choice(loremipsum.words)),
             )
 
-        commits.append({
-            'key': sha1(uuid4().hex).hexdigest(),
-            'message': 'feat: Do something to {}\n{}'.format(filename, make_sentence()),
-            'author': author,
-            'files': [
-                (filename, 'M'),
-            ],
-        })
+        commits.append(
+            {
+                "key": sha1(uuid4().hex).hexdigest(),
+                "message": "feat: Do something to {}\n{}".format(filename, make_sentence()),
+                "author": author,
+                "files": [(filename, "M")],
+            }
+        )
     return commits
 
 
@@ -137,10 +150,13 @@ def generate_tombstones(project, user):
     # that it won't conflict with any group ids
     prev_group_id = 100000
     try:
-        prev_group_id = max(
-            GroupTombstone.objects.order_by('-previous_group_id')[0].previous_group_id,
-            prev_group_id
-        ) + 1
+        prev_group_id = (
+            max(
+                GroupTombstone.objects.order_by("-previous_group_id")[0].previous_group_id,
+                prev_group_id,
+            )
+            + 1
+        )
     except IndexError:
         pass
 
@@ -158,38 +174,52 @@ def create_system_time_series():
 
     for _ in xrange(60):
         count = randint(1, 10)
-        tsdb.incr_multi((
-            (tsdb.models.internal, 'client-api.all-versions.responses.2xx'),
-            (tsdb.models.internal, 'client-api.all-versions.requests'),
-        ), now, int(count * 0.9))
-        tsdb.incr_multi((
-            (tsdb.models.internal, 'client-api.all-versions.responses.4xx'),
-        ), now, int(count * 0.05))
-        tsdb.incr_multi((
-            (tsdb.models.internal, 'client-api.all-versions.responses.5xx'),
-        ), now, int(count * 0.1))
+        tsdb.incr_multi(
+            (
+                (tsdb.models.internal, "client-api.all-versions.responses.2xx"),
+                (tsdb.models.internal, "client-api.all-versions.requests"),
+            ),
+            now,
+            int(count * 0.9),
+        )
+        tsdb.incr_multi(
+            ((tsdb.models.internal, "client-api.all-versions.responses.4xx"),),
+            now,
+            int(count * 0.05),
+        )
+        tsdb.incr_multi(
+            ((tsdb.models.internal, "client-api.all-versions.responses.5xx"),),
+            now,
+            int(count * 0.1),
+        )
         now = now - timedelta(seconds=1)
 
     for _ in xrange(24 * 30):
         count = randint(100, 1000)
-        tsdb.incr_multi((
-            (tsdb.models.internal, 'client-api.all-versions.responses.2xx'),
-            (tsdb.models.internal, 'client-api.all-versions.requests'),
-        ), now, int(count * 4.9))
-        tsdb.incr_multi((
-            (tsdb.models.internal, 'client-api.all-versions.responses.4xx'),
-        ), now, int(count * 0.05))
-        tsdb.incr_multi((
-            (tsdb.models.internal, 'client-api.all-versions.responses.5xx'),
-        ), now, int(count * 0.1))
+        tsdb.incr_multi(
+            (
+                (tsdb.models.internal, "client-api.all-versions.responses.2xx"),
+                (tsdb.models.internal, "client-api.all-versions.requests"),
+            ),
+            now,
+            int(count * 4.9),
+        )
+        tsdb.incr_multi(
+            ((tsdb.models.internal, "client-api.all-versions.responses.4xx"),),
+            now,
+            int(count * 0.05),
+        )
+        tsdb.incr_multi(
+            ((tsdb.models.internal, "client-api.all-versions.responses.5xx"),),
+            now,
+            int(count * 0.1),
+        )
         now = now - timedelta(hours=1)
 
 
 def create_sample_time_series(event, release=None):
     if event is None:
         return
-
-    Event.objects.bind_nodes([event], 'data')
 
     group = event.group
 
@@ -200,67 +230,55 @@ def create_sample_time_series(event, release=None):
     now = datetime.utcnow().replace(tzinfo=utc)
 
     environment = Environment.get_or_create(
-        project=project,
-        name=Environment.get_name_or_default(event.get_tag('environment')),
+        project=project, name=Environment.get_name_or_default(event.get_tag("environment"))
     )
 
     if release:
         ReleaseEnvironment.get_or_create(
-            project=project,
-            release=release,
-            environment=environment,
-            datetime=now,
+            project=project, release=release, environment=environment, datetime=now
         )
 
         grouprelease = GroupRelease.get_or_create(
-            group=group,
-            release=release,
-            environment=environment,
-            datetime=now,
+            group=group, release=release, environment=environment, datetime=now
         )
 
     for _ in xrange(60):
         count = randint(1, 10)
-        tsdb.incr_multi((
-            (tsdb.models.project, project.id),
-            (tsdb.models.group, group.id),
-        ), now, count, environment_id=environment.id)
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_received, project.organization_id),
-            (tsdb.models.project_total_forwarded, project.id),
-            (tsdb.models.project_total_received, project.id),
-            (tsdb.models.key_total_received, key.id),
-        ), now, int(count * 1.1))
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_rejected, project.organization_id),
-            (tsdb.models.project_total_rejected, project.id),
-            (tsdb.models.key_total_rejected, key.id),
-        ), now, int(count * 0.1))
+        tsdb.incr_multi(
+            ((tsdb.models.project, project.id), (tsdb.models.group, group.id)),
+            now,
+            count,
+            environment_id=environment.id,
+        )
+        tsdb.incr_multi(
+            (
+                (tsdb.models.organization_total_received, project.organization_id),
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.key_total_received, key.id),
+            ),
+            now,
+            int(count * 1.1),
+        )
+        tsdb.incr(
+            tsdb.models.project_total_forwarded, project.id, now, int(count * 1.1),
+        )
+        tsdb.incr_multi(
+            (
+                (tsdb.models.organization_total_rejected, project.organization_id),
+                (tsdb.models.project_total_rejected, project.id),
+                (tsdb.models.key_total_rejected, key.id),
+            ),
+            now,
+            int(count * 0.1),
+        )
 
         frequencies = [
-            (tsdb.models.frequent_projects_by_organization, {
-                project.organization_id: {
-                    project.id: count,
-                },
-            }),
-            (tsdb.models.frequent_issues_by_project, {
-                project.id: {
-                    group.id: count,
-                },
-            }),
-            (tsdb.models.frequent_environments_by_group, {
-                group.id: {
-                    environment.id: count,
-                },
-            })
+            (tsdb.models.frequent_issues_by_project, {project.id: {group.id: count}}),
+            (tsdb.models.frequent_environments_by_group, {group.id: {environment.id: count}}),
         ]
         if release:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_group, {
-                    group.id: {
-                        grouprelease.id: count,
-                    },
-                })
+                (tsdb.models.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
             )
 
         tsdb.record_frequency_multi(frequencies, now)
@@ -269,45 +287,38 @@ def create_sample_time_series(event, release=None):
 
     for _ in xrange(24 * 30):
         count = randint(100, 1000)
-        tsdb.incr_multi((
-            (tsdb.models.project, group.project.id),
-            (tsdb.models.group, group.id),
-        ), now, count, environment_id=environment.id)
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_received, project.organization_id),
-            (tsdb.models.project_total_received, project.id),
-            (tsdb.models.key_total_received, key.id),
-        ), now, int(count * 1.1))
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_rejected, project.organization_id),
-            (tsdb.models.project_total_rejected, project.id),
-            (tsdb.models.key_total_rejected, key.id),
-        ), now, int(count * 0.1))
+        tsdb.incr_multi(
+            ((tsdb.models.project, group.project.id), (tsdb.models.group, group.id)),
+            now,
+            count,
+            environment_id=environment.id,
+        )
+        tsdb.incr_multi(
+            (
+                (tsdb.models.organization_total_received, project.organization_id),
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.key_total_received, key.id),
+            ),
+            now,
+            int(count * 1.1),
+        )
+        tsdb.incr_multi(
+            (
+                (tsdb.models.organization_total_rejected, project.organization_id),
+                (tsdb.models.project_total_rejected, project.id),
+                (tsdb.models.key_total_rejected, key.id),
+            ),
+            now,
+            int(count * 0.1),
+        )
 
         frequencies = [
-            (tsdb.models.frequent_projects_by_organization, {
-                project.organization_id: {
-                    project.id: count,
-                },
-            }),
-            (tsdb.models.frequent_issues_by_project, {
-                project.id: {
-                    group.id: count,
-                },
-            }),
-            (tsdb.models.frequent_environments_by_group, {
-                group.id: {
-                    environment.id: count,
-                },
-            })
+            (tsdb.models.frequent_issues_by_project, {project.id: {group.id: count}}),
+            (tsdb.models.frequent_environments_by_group, {group.id: {environment.id: count}}),
         ]
         if release:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_group, {
-                    group.id: {
-                        grouprelease.id: count,
-                    },
-                })
+                (tsdb.models.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
             )
 
         tsdb.record_frequency_multi(frequencies, now)
@@ -315,86 +326,95 @@ def create_sample_time_series(event, release=None):
         now = now - timedelta(hours=1)
 
 
-def main(num_events=1, extra_events=False):
+def main(num_events=1, extra_events=False, load_transactions=False):
     user = User.objects.filter(is_superuser=True)[0]
 
     dummy_user, _ = User.objects.get_or_create(
-        username='dummy@example.com',
-        defaults={
-            'email': 'dummy@example.com',
-        }
+        username="dummy@example.com", defaults={"email": "dummy@example.com"}
     )
-    dummy_user.set_password('dummy')
+    dummy_user.set_password("dummy")
     dummy_user.save()
 
     mocks = (
-        ('Massive Dynamic', ('Ludic Science',)),
-        ('Captain Planet', ('Earth', 'Fire', 'Wind', 'Water', 'Heart')),
+        ("Massive Dynamic", ("Ludic Science",)),
+        ("Captain Planet", ("Earth", "Fire", "Wind", "Water", "Heart")),
     )
 
     Broadcast.objects.create(
         title="Learn about Source Maps",
         message="Source maps are JSON files that contain information on how to map your transpiled source code back to their original source.",
-        link="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry",
+        link="https://docs.sentry.io/platforms/javascript/#source-maps",
     )
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         org = Organization.get_default()
-        print('Mocking org {}'.format(org.name))  # NOQA
+        print("Mocking org {}".format(org.name))  # NOQA
     else:
-        print('Mocking org {}'.format('Default'))  # NOQA
-        org, _ = Organization.objects.get_or_create(
-            slug='default',
-        )
+        print("Mocking org {}".format("Default"))  # NOQA
+        org, _ = Organization.objects.get_or_create(slug="default")
 
     OrganizationMember.objects.get_or_create(
-        user=user,
-        organization=org,
-        role=roles.get_top_dog().id,
+        user=user, organization=org, role=roles.get_top_dog().id
     )
 
     dummy_member, _ = OrganizationMember.objects.get_or_create(
-        user=dummy_user,
-        organization=org,
-        defaults={
-            'role': roles.get_default().id,
-        }
+        user=dummy_user, organization=org, defaults={"role": roles.get_default().id}
     )
 
     for team_name, project_names in mocks:
-        print('> Mocking team {}'.format(team_name))  # NOQA
-        team, _ = Team.objects.get_or_create(
-            name=team_name,
-            defaults={
-                'organization': org,
-            },
-        )
+        print("> Mocking team {}".format(team_name))  # NOQA
+        team, _ = Team.objects.get_or_create(name=team_name, defaults={"organization": org})
 
         for project_name in project_names:
-            print('  > Mocking project {}'.format(project_name))  # NOQA
+            print("  > Mocking project {}".format(project_name))  # NOQA
             project, _ = Project.objects.get_or_create(
                 name=project_name,
                 defaults={
-                    'organization': org,
-                    'first_event': timezone.now(),
-                    'flags': Project.flags.has_releases,
-                }
+                    "organization": org,
+                    "first_event": timezone.now(),
+                    "flags": Project.flags.has_releases,
+                },
             )
             project.add_team(team)
             if not project.first_event:
-                project.update(
-                    first_event=project.date_added,
-                )
+                project.update(first_event=project.date_added)
             if not project.flags.has_releases:
-                project.update(
-                    flags=F('flags').bitor(Project.flags.has_releases),
+                project.update(flags=F("flags").bitor(Project.flags.has_releases))
+
+            monitor, created = Monitor.objects.get_or_create(
+                name=next(MONITOR_NAMES),
+                project_id=project.id,
+                organization_id=org.id,
+                type=MonitorType.CRON_JOB,
+                defaults={
+                    "config": {"schedule": next(MONITOR_SCHEDULES)},
+                    "next_checkin": timezone.now() + timedelta(minutes=60),
+                    "last_checkin": timezone.now(),
+                },
+            )
+            if not created:
+                if not (monitor.config or {}).get("schedule"):
+                    monitor.config = {"schedule": next(MONITOR_SCHEDULES)}
+                monitor.update(
+                    config=monitor.config,
+                    status=MonitorStatus.OK if randint(0, 10) < 7 else MonitorStatus.ERROR,
+                    last_checkin=timezone.now(),
+                    next_checkin=monitor.get_next_scheduled_checkin(timezone.now()),
                 )
+
+            MonitorCheckIn.objects.create(
+                project_id=monitor.project_id,
+                monitor=monitor,
+                status=CheckInStatus.OK
+                if monitor.status == MonitorStatus.OK
+                else CheckInStatus.ERROR,
+            )
 
             with transaction.atomic():
                 has_release = Release.objects.filter(
                     version=sha1(uuid4().bytes).hexdigest(),
                     organization_id=project.organization_id,
-                    projects=project
+                    projects=project,
                 ).exists()
                 if not has_release:
                     release = Release.objects.filter(
@@ -404,7 +424,7 @@ def main(num_events=1, extra_events=False):
                     if not release:
                         release = Release.objects.create(
                             version=sha1(uuid4().bytes).hexdigest(),
-                            organization_id=project.organization_id
+                            organization_id=project.organization_id,
                         )
                     release.add_project(project)
 
@@ -412,75 +432,76 @@ def main(num_events=1, extra_events=False):
 
             raw_commits = generate_commits(user)
 
-            repo = Repository.objects.get_or_create(
-                organization_id=org.id,
-                provider='github',
-                external_id='example/example',
-                defaults={
-                    'name': 'Example Repo',
-                    'url': 'https://github.com/example/example',
-                }
-            )
+            try:
+                with transaction.atomic():
+                    repo, _ = Repository.objects.get_or_create(
+                        organization_id=org.id,
+                        provider="integrations:github",
+                        external_id="example/example",
+                        defaults={
+                            "name": "Example Repo",
+                            "url": "https://github.com/example/example",
+                        },
+                    )
+            except IntegrityError:
+                # for users with legacy github plugin
+                # upgrade to the new integration
+                repo = Repository.objects.get(
+                    organization_id=org.id,
+                    provider="github",
+                    external_id="example/example",
+                    name="Example Repo",
+                )
+                repo.provider = "integrations:github"
+                repo.save()
 
             authors = set()
 
             for commit_index, raw_commit in enumerate(raw_commits):
                 author = CommitAuthor.objects.get_or_create(
                     organization_id=org.id,
-                    email=raw_commit['author'][1],
-                    defaults={'name': raw_commit['author'][0]}
+                    email=raw_commit["author"][1],
+                    defaults={"name": raw_commit["author"][0]},
                 )[0]
                 commit = Commit.objects.get_or_create(
                     organization_id=org.id,
-                    repository_id=repo[0].id,
-                    key=raw_commit['key'],
-                    defaults={
-                        'author': author,
-                        'message': raw_commit['message'],
-                    },
+                    repository_id=repo.id,
+                    key=raw_commit["key"],
+                    defaults={"author": author, "message": raw_commit["message"]},
                 )[0]
                 authors.add(author)
 
-                for file in raw_commit['files']:
+                for file in raw_commit["files"]:
                     ReleaseFile.objects.get_or_create(
                         organization_id=project.organization_id,
                         release=release,
                         name=file[0],
                         file=File.objects.get_or_create(
-                            name=file[0],
-                            type='release.file',
-                            checksum='abcde' * 8,
-                            size=13043,
+                            name=file[0], type="release.file", checksum="abcde" * 8, size=13043
                         )[0],
-                        defaults={'organization_id': project.organization_id}
+                        defaults={"organization_id": project.organization_id},
                     )
 
                     CommitFileChange.objects.get_or_create(
-                        organization_id=org.id,
-                        commit=commit,
-                        filename=file[0],
-                        type=file[1],
+                        organization_id=org.id, commit=commit, filename=file[0], type=file[1]
                     )
 
                 ReleaseCommit.objects.get_or_create(
-                    organization_id=org.id,
-                    release=release,
-                    commit=commit,
-                    order=commit_index,
+                    organization_id=org.id, release=release, commit=commit, order=commit_index
                 )
 
             # create an unreleased commit
             Commit.objects.get_or_create(
                 organization_id=org.id,
-                repository_id=repo[0].id,
+                repository_id=repo.id,
                 key=sha1(uuid4().hex).hexdigest(),
                 defaults={
-                    'author': CommitAuthor.objects.get_or_create(
-                        organization_id=org.id,
-                        email=user.email,
-                        defaults={'name': user.name}
+                    "author": CommitAuthor.objects.get_or_create(
+                        organization_id=org.id, email=user.email, defaults={"name": user.name}
                     )[0],
-                    'message': 'feat: Do something to {}\n{}'.format(random.choice(loremipsum.words) + '.js', make_sentence()),
+                    "message": "feat: Do something to {}\n{}".format(
+                        random.choice(loremipsum.words) + ".js", make_sentence()
+                    ),
                 },
             )[0]
 
@@ -489,13 +510,10 @@ def main(num_events=1, extra_events=False):
                 project=project,
                 ident=release.version,
                 user=user,
-                data={'version': release.version},
+                data={"version": release.version},
             )
 
-            environment = Environment.get_or_create(
-                project=project,
-                name=six.next(ENVIRONMENTS)
-            )
+            environment = Environment.get_or_create(project=project, name=six.next(ENVIRONMENTS))
 
             deploy = Deploy.objects.create(
                 organization_id=project.organization_id,
@@ -515,7 +533,7 @@ def main(num_events=1, extra_events=False):
                 project=project,
                 environment=environment,
                 release=release,
-                defaults={'last_deploy_id': deploy.id}
+                defaults={"last_deploy_id": deploy.id},
             )
 
             Activity.objects.create(
@@ -523,9 +541,9 @@ def main(num_events=1, extra_events=False):
                 project=project,
                 ident=release.version,
                 data={
-                    'version': release.version,
-                    'deploy_id': deploy.id,
-                    'environment': environment.name
+                    "version": release.version,
+                    "deploy_id": deploy.id,
+                    "environment": environment.name,
                 },
                 datetime=deploy.date_finished,
             )
@@ -541,15 +559,53 @@ def main(num_events=1, extra_events=False):
                         release=release.version,
                         level=six.next(LEVELS),
                         environment=six.next(ENVIRONMENTS),
-                        message='This is a mostly useless example %s exception' % platform,
+                        message="This is a mostly useless example %s exception" % platform,
                         checksum=md5_text(platform + six.text_type(_)).hexdigest(),
                         user=generate_user(),
                     )
 
+            if load_transactions:
+                for day in range(14):
+                    for hour in range(24):
+                        timestamp = timezone.now() - timedelta(days=day, hours=hour)
+                        transaction_user = generate_user()
+                        transaction1 = create_sample_event(
+                            project=project,
+                            platform="javascript-transaction",
+                            event_id=uuid4().hex,
+                            user=transaction_user,
+                            timestamp=timestamp,
+                            # start_timestamp decreases based on day so that there's a trend
+                            start_timestamp=timestamp
+                            - timedelta(
+                                milliseconds=int(random.normalvariate(2000 - 50 * day, 250))
+                            ),
+                            measurements={
+                                "fp": {"value": max(random.normalvariate(2000, 200), 1000)},
+                                "fcp": {"value": max(random.normalvariate(2250, 200), 1000)},
+                                "lcp": {"value": max(random.normalvariate(2800, 400), 2000)},
+                                "fid": {"value": max(random.normalvariate(5, 2), 1)},
+                            },
+                        )
+                        create_sample_event(
+                            project=project,
+                            platform="transaction",
+                            event_id=uuid4().hex,
+                            user=transaction_user,
+                            timestamp=timestamp,
+                            # start_timestamp increases based on day so that there's a trend
+                            start_timestamp=timestamp
+                            - timedelta(
+                                milliseconds=int(random.normalvariate(2000 + 50 * day, 250))
+                            ),
+                            # match the trace from the javascript transaction
+                            trace=transaction1.get_tag("trace"),
+                        )
+
             for _ in range(num_events):
                 event1 = create_sample_event(
                     project=project,
-                    platform='python',
+                    platform="python",
                     release=release.version,
                     environment=six.next(ENVIRONMENTS),
                     user=generate_user(),
@@ -557,34 +613,30 @@ def main(num_events=1, extra_events=False):
 
                 EventAttachment.objects.create(
                     project_id=project.id,
-                    group_id=event1.group_id,
                     event_id=event1.event_id,
-                    name='example-logfile.txt',
+                    name="example-logfile.txt",
                     file=File.objects.get_or_create(
-                        name='example-logfile.txt',
-                        type='text/plain',
-                        checksum='abcde' * 8,
+                        name="example-logfile.txt",
+                        type="text/plain",
+                        checksum="abcde" * 8,
                         size=13043,
                     )[0],
                 )
 
                 event2 = create_sample_event(
                     project=project,
-                    platform='javascript',
+                    platform="javascript",
                     release=release.version,
                     environment=six.next(ENVIRONMENTS),
-                    sdk={
-                        'name': 'raven-js',
-                        'version': '2.1.0',
-                    },
+                    sdk={"name": "raven-js", "version": "2.1.0"},
                     user=generate_user(),
                 )
 
-                event3 = create_sample_event(project, 'java')
+                event3 = create_sample_event(project, "java")
 
                 event4 = create_sample_event(
                     project=project,
-                    platform='ruby',
+                    platform="ruby",
                     release=release.version,
                     environment=six.next(ENVIRONMENTS),
                     user=generate_user(),
@@ -592,7 +644,7 @@ def main(num_events=1, extra_events=False):
 
                 event5 = create_sample_event(
                     project=project,
-                    platform='cocoa',
+                    platform="cocoa",
                     release=release.version,
                     environment=six.next(ENVIRONMENTS),
                     user=generate_user(),
@@ -600,7 +652,7 @@ def main(num_events=1, extra_events=False):
 
                 create_sample_event(
                     project=project,
-                    platform='php',
+                    platform="php",
                     release=release.version,
                     environment=six.next(ENVIRONMENTS),
                     message=LONG_MESSAGE,
@@ -609,8 +661,8 @@ def main(num_events=1, extra_events=False):
 
                 create_sample_event(
                     project=project,
-                    platform='cocoa',
-                    sample_name='react-native',
+                    platform="cocoa",
+                    sample_name="react-native",
                     release=release.version,
                     environment=six.next(ENVIRONMENTS),
                     user=generate_user(),
@@ -618,7 +670,7 @@ def main(num_events=1, extra_events=False):
 
                 create_sample_event(
                     project=project,
-                    platform='pii',
+                    platform="pii",
                     release=release.version,
                     environment=six.next(ENVIRONMENTS),
                     user=generate_user(),
@@ -626,82 +678,89 @@ def main(num_events=1, extra_events=False):
             if event5:
                 Commit.objects.get_or_create(
                     organization_id=org.id,
-                    repository_id=repo[0].id,
+                    repository_id=repo.id,
                     key=sha1(uuid4().hex).hexdigest(),
                     defaults={
-                        'author': CommitAuthor.objects.get_or_create(
-                            organization_id=org.id,
-                            email=user.email,
-                            defaults={'name': user.name}
+                        "author": CommitAuthor.objects.get_or_create(
+                            organization_id=org.id, email=user.email, defaults={"name": user.name}
                         )[0],
-                        'message': 'Ooops!\nFixes {}'.format(event5.group.qualified_short_id),
+                        "message": "Ooops!\nFixes {}".format(event5.group.qualified_short_id),
                     },
                 )[0]
 
-            create_sample_event(
-                project=project,
-                environment=six.next(ENVIRONMENTS),
-                platform='csp',
-            )
+            create_sample_event(project=project, environment=six.next(ENVIRONMENTS), platform="csp")
 
-            with transaction.atomic():
-                if event1:
-                    try:
-                        GroupMeta.objects.create(
-                            group=event1.group,
-                            key='github:tid',
-                            value='134',
-                        )
-                    except IntegrityError:
-                        pass
             if event3:
                 UserReport.objects.create(
                     project=project,
                     event_id=event3.event_id,
                     group=event3.group,
-                    name='Jane Doe',
-                    email='jane@example.com',
+                    name="Jane Bloggs",
+                    email="jane@example.com",
                     comments=make_sentence(),
                 )
 
-            print('    > Loading time series data'.format(project_name))  # NOQA
+            try:
+                # Metric alerts
+                alert_rule = create_alert_rule(
+                    org,
+                    [project],
+                    "My Alert Rule",
+                    "level:error",
+                    "count()",
+                    10,
+                    AlertRuleThresholdType.ABOVE,
+                    1,
+                )
+                create_alert_rule_trigger(alert_rule, "critical", 10)
+                create_incident(
+                    org,
+                    type_=IncidentType.DETECTED,
+                    title="My Incident",
+                    date_started=datetime.utcnow().replace(tzinfo=utc),
+                    alert_rule=alert_rule,
+                    projects=[project],
+                )
+            except AlertRuleNameAlreadyUsedError:
+                pass
 
+            print("    > Loading time series data".format(project_name))  # NOQA
             create_sample_time_series(event1, release=release)
             create_sample_time_series(event2, release=release)
             create_sample_time_series(event3)
             create_sample_time_series(event4, release=release)
             create_sample_time_series(event5, release=release)
 
-            if hasattr(buffer, 'process_pending'):
-                print('    > Processing pending buffers')  # NOQA
+            if hasattr(buffer, "process_pending"):
+                print("    > Processing pending buffers")  # NOQA
                 buffer.process_pending()
 
             mocks_loaded.send(project=project, sender=__name__)
 
-        OrganizationAccessRequest.objects.create_or_update(
-            member=dummy_member,
-            team=team,
-        )
+        OrganizationAccessRequest.objects.create_or_update(member=dummy_member, team=team)
 
     Activity.objects.create(
         type=Activity.RELEASE,
         project=project,
-        ident='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+        ident="4f38b65c62c4565aa94bba391ff8946922a8eed4",
         user=user,
-        data={'version': '4f38b65c62c4565aa94bba391ff8946922a8eed4'},
+        data={"version": "4f38b65c62c4565aa94bba391ff8946922a8eed4"},
     )
 
     create_system_time_series()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     settings.CELERY_ALWAYS_EAGER = True
 
     from optparse import OptionParser
 
     parser = OptionParser()
-    parser.add_option('--events', dest='num_events', default=1, type=int)
-    parser.add_option('--extra-events', dest='extra_events', default=False, action='store_true')
+    parser.add_option("--events", dest="num_events", default=1, type=int)
+    parser.add_option("--extra-events", dest="extra_events", default=False, action="store_true")
+    parser.add_option(
+        "--load-transactions", dest="load_transactions", default=False, action="store_true"
+    )
 
     (options, args) = parser.parse_args()
 
@@ -709,6 +768,7 @@ if __name__ == '__main__':
         main(
             num_events=options.num_events,
             extra_events=options.extra_events,
+            load_transactions=options.load_transactions,
         )
     except Exception:
         # Avoid reporting any issues recursively back into Sentry

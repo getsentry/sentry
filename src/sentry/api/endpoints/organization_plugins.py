@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_plugin import OrganizationPluginSerializer
@@ -12,16 +12,15 @@ from sentry.models import ProjectOption
 
 class OrganizationPluginsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
-        all_plugins = dict([
-            (p.slug, p) for p in plugins.all()
-        ])
+        all_plugins = dict([(p.slug, p) for p in plugins.all()])
 
-        if 'plugins' in request.GET:
-            if request.GET.get('plugins') == '_all':
-                return Response(serialize([p for p in plugins.all()],
-                                          request.user, PluginSerializer()))
+        if "plugins" in request.GET:
+            if request.GET.get("plugins") == "_all":
+                return Response(
+                    serialize([p for p in plugins.all()], request.user, PluginSerializer())
+                )
 
-            desired_plugins = set(request.GET.getlist('plugins'))
+            desired_plugins = set(request.GET.getlist("plugins"))
         else:
             desired_plugins = set(all_plugins.keys())
 
@@ -31,16 +30,16 @@ class OrganizationPluginsEndpoint(OrganizationEndpoint):
         # Each tuple represents an enabled Plugin (of only the ones we care
         # about) and its corresponding Project.
         enabled_plugins = ProjectOption.objects.filter(
-            key__in=['%s:enabled' % slug for slug in desired_plugins],
+            key__in=["%s:enabled" % slug for slug in desired_plugins],
             project__organization=organization,
-        ).select_related('project')
+        ).select_related("project")
 
         resources = []
 
         for project_option in enabled_plugins:
             resources.append(
                 serialize(
-                    all_plugins[project_option.key.split(':')[0]],
+                    all_plugins[project_option.key.split(":")[0]],
                     request.user,
                     OrganizationPluginSerializer(project_option.project),
                 )

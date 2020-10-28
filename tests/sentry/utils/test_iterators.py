@@ -7,15 +7,9 @@ from six.moves import xrange
 
 
 def test_chunked():
-    assert list(chunked(range(5), 5)) == [
-        [0, 1, 2, 3, 4],
-    ]
+    assert list(chunked(range(5), 5)) == [[0, 1, 2, 3, 4]]
 
-    assert list(chunked(range(10), 4)) == [
-        [0, 1, 2, 3],
-        [4, 5, 6, 7],
-        [8, 9],
-    ]
+    assert list(chunked(range(10), 4)) == [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]]
 
 
 def test_advance():
@@ -30,8 +24,5 @@ def test_advance():
 
 
 def test_shingle():
-    assert list(shingle(5, 'x')) == []
-    assert list(shingle(2, ('foo', 'bar', 'baz'))) == [
-        ('foo', 'bar'),
-        ('bar', 'baz'),
-    ]
+    assert list(shingle(5, "x")) == []
+    assert list(shingle(2, ("foo", "bar", "baz"))) == [("foo", "bar"), ("bar", "baz")]

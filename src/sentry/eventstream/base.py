@@ -2,46 +2,74 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry.utils.services import Service
 from sentry.tasks.post_process import post_process_group
+from sentry.utils.services import Service
+from sentry.utils.cache import cache_key_for_event
 
 
 logger = logging.getLogger(__name__)
 
 
-class RelayNotRequired(NotImplementedError):
+class ForwarderNotRequired(NotImplementedError):
     """
-    Exception raised if this backend does not require a relay process to
+    Exception raised if this backend does not require a forwarder process to
     enqueue post-processing tasks.
     """
 
 
 class EventStream(Service):
     __all__ = (
-        'insert',
-        'start_delete_groups',
-        'end_delete_groups',
-        'start_merge',
-        'end_merge',
-        'start_unmerge',
-        'end_unmerge',
-        'relay',
+        "insert",
+        "start_delete_groups",
+        "end_delete_groups",
+        "start_merge",
+        "end_merge",
+        "start_unmerge",
+        "end_unmerge",
+        "start_delete_tag",
+        "end_delete_tag",
+        "requires_post_process_forwarder",
+        "run_post_process_forwarder",
     )
 
-    def insert(self, group, event, is_new, is_sample, is_regression,
-               is_new_group_environment, primary_hash, skip_consume=False):
+    def _dispatch_post_process_group_task(
+        self,
+        event,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        primary_hash,
+        skip_consume=False,
+    ):
         if skip_consume:
-            logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
+            logger.info("post_process.skip.raw_event", extra={"event_id": event.event_id})
         else:
+            cache_key = cache_key_for_event(
+                {"project": event.project_id, "event_id": event.event_id}
+            )
             post_process_group.delay(
-                group=group,
-                event=event,
                 is_new=is_new,
-                is_sample=is_sample,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 primary_hash=primary_hash,
+                cache_key=cache_key,
+                group_id=event.group_id,
             )
+
+    def insert(
+        self,
+        group,
+        event,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        primary_hash,
+        received_timestamp,  # type: float
+        skip_consume=False,
+    ):
+        self._dispatch_post_process_group_task(
+            event, is_new, is_regression, is_new_group_environment, primary_hash, skip_consume
+        )
 
     def start_delete_groups(self, project_id, group_ids):
         pass
@@ -61,6 +89,22 @@ class EventStream(Service):
     def end_unmerge(self, state):
         pass
 
-    def relay(self, consumer_group, commit_log_topic,
-              synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
-        raise RelayNotRequired
+    def start_delete_tag(self, project_id, tag):
+        pass
+
+    def end_delete_tag(self, state):
+        pass
+
+    def requires_post_process_forwarder(self):
+        return False
+
+    def run_post_process_forwarder(
+        self,
+        consumer_group,
+        commit_log_topic,
+        synchronize_commit_group,
+        commit_batch_size=100,
+        initial_offset_reset="latest",
+    ):
+        assert not self.requires_post_process_forwarder()
+        raise ForwarderNotRequired

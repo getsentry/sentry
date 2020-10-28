@@ -11,9 +11,21 @@ class AccountSettingsLayout extends React.Component {
     organization: SentryTypes.Organization,
   };
 
+  static childContextTypes = {
+    organization: SentryTypes.Organization,
+  };
+
+  getChildContext() {
+    return {
+      organization: this.props.organization,
+    };
+  }
+
   componentDidUpdate(prevProps) {
-    let {organization} = this.props;
-    if (prevProps.organization === organization) return;
+    const {organization} = this.props;
+    if (prevProps.organization === organization) {
+      return;
+    }
 
     // if there is no org in context, SidebarDropdown uses an org from `withLatestContext`
     // (which queries the org index endpoint instead of org details)
@@ -28,14 +40,12 @@ class AccountSettingsLayout extends React.Component {
 
   render() {
     return (
-      <div className="app">
-        <SettingsLayout
-          {...this.props}
-          renderNavigation={() => <AccountSettingsNavigation {...this.props} />}
-        >
-          {this.props.children}
-        </SettingsLayout>
-      </div>
+      <SettingsLayout
+        {...this.props}
+        renderNavigation={() => <AccountSettingsNavigation {...this.props} />}
+      >
+        {this.props.children}
+      </SettingsLayout>
     );
   }
 }

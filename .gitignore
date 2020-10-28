@@ -1,7 +1,9 @@
+.env
 .cache/
 .coverage
 .storybook-out/
 .DS_Store
+.venv
 *.egg-info
 *.pyc
 *.log
@@ -22,16 +24,15 @@ sentry-package.json
 /tmp
 /node_modules/
 /docs-ui/node_modules/
-example/db.sqlite
 /src/sentry/assets.json
 /src/sentry/static/version
 /src/sentry/static/sentry/dist/
 /src/sentry/static/sentry/vendor/
 /src/sentry/static/sentry/admin/
-/src/sentry/static/sentry/debug_toolbar/
 /src/sentry/static/sentry/rest_framework/
 /src/sentry/integration-docs
 /src/sentry/loader/_registry.json
+/tests/apidocs/openapi-derefed.json
 /wheelhouse
 /test_cli/
 Gemfile.lock
@@ -43,3 +44,7 @@ coverage.xml
 junit.xml
 *.codestyle.xml
 package-lock.json
+.webpack.meta
+pip-wheel-metadata/
+Brewfile.lock.json
+~/

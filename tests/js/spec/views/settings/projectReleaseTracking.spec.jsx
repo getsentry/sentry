@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectReleaseTrackingContainer, {
   ProjectReleaseTracking,
@@ -7,15 +8,15 @@ import ProjectReleaseTrackingContainer, {
 import {fetchPlugins} from 'app/actionCreators/plugins';
 
 jest.mock('app/actionCreators/plugins', () => ({
-  fetchPlugins: jest.fn(),
+  fetchPlugins: jest.fn().mockResolvedValue([]),
 }));
 
-describe('ProjectReleaseTracking', function() {
-  let org = TestStubs.Organization();
-  let project = TestStubs.Project();
-  let url = `/projects/${org.slug}/${project.slug}/releases/token/`;
+describe('ProjectReleaseTracking', function () {
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project();
+  const url = `/projects/${org.slug}/${project.slug}/releases/token/`;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
@@ -32,8 +33,8 @@ describe('ProjectReleaseTracking', function() {
     });
   });
 
-  it('renders with token', function() {
-    let wrapper = mount(
+  it('renders with token', function () {
+    const wrapper = mountWithTheme(
       <ProjectReleaseTracking
         organization={org}
         project={project}
@@ -46,8 +47,8 @@ describe('ProjectReleaseTracking', function() {
     expect(wrapper.find('TextCopyInput').prop('children')).toBe('token token token');
   });
 
-  it('can regenerate token', function(done) {
-    let wrapper = mount(
+  it('can regenerate token', function (done) {
+    const wrapper = mountWithTheme(
       <ProjectReleaseTracking
         organization={org}
         project={project}
@@ -57,7 +58,7 @@ describe('ProjectReleaseTracking', function() {
       TestStubs.routerContext()
     );
 
-    let mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url,
       method: 'POST',
     });
@@ -84,8 +85,8 @@ describe('ProjectReleaseTracking', function() {
     }, 1);
   });
 
-  it('fetches new plugins when project changes', function() {
-    let wrapper = mount(
+  it('fetches new plugins when project changes', function () {
+    const wrapper = mountWithTheme(
       <ProjectReleaseTrackingContainer
         organization={org}
         project={project}

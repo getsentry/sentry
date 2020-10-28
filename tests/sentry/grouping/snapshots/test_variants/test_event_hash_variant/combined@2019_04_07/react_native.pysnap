@@ -1,0 +1,494 @@
+---
+created: '2020-02-26T19:54:25.490329Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (less than 10% of frames are in-app)
+          frame (non app frame)
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js"
+            context-line*
+              "    return this.flushedQueue();"
+            function (function name is not used if context-line is available)
+              "value"
+            lineno (line number is not used if context-line is available)
+              119
+          frame (non app frame)
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js"
+            context-line*
+              "      this._inCall--;"
+            function (function name is not used if context-line is available)
+              "flushedQueue"
+            lineno (line number is not used if context-line is available)
+              318
+          frame (non app frame)
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js"
+            context-line*
+              "    return this.flushedQueue();"
+            function (function name is not used if context-line is available)
+              "_inCall"
+            lineno (line number is not used if context-line is available)
+              119
+          frame (non app frame)
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js"
+            context-line*
+              "    this._lastFlush = new Date().getTime();"
+            function (function name is not used if context-line is available)
+              "flushedQueue"
+            lineno (line number is not used if context-line is available)
+              357
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "      _receiveRootNodeIDEvent(index, eventTopLevelType, i);"
+            function (function name is not used if context-line is available)
+              "_lastFlush"
+            lineno (line number is not used if context-line is available)
+              1160
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "  batchedUpdates(function() {"
+            function (function name is not used if context-line is available)
+              "_receiveRootNodeIDEvent"
+            lineno (line number is not used if context-line is available)
+              1095
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "    return _batchedUpdates(fn, bookkeeping);"
+            function (function name is not used if context-line is available)
+              "batchedUpdates"
+            lineno (line number is not used if context-line is available)
+              1054
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "        return fn(a);"
+            function (function name is not used if context-line is available)
+              "_batchedUpdates"
+            lineno (line number is not used if context-line is available)
+              5928
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "      (forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
+            function (function name is not used if context-line is available)
+              "fn"
+            lineno (line number is not used if context-line is available)
+              1113
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "  Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
+            function (function name is not used if context-line is available)
+              "forEachAccumulated"
+            lineno (line number is not used if context-line is available)
+              219
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "[native code] forEach"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "        executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
+            function (function name is not used if context-line is available)
+              "D"
+            lineno (line number is not used if context-line is available)
+              235
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "  ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
+            function (function name is not used if context-line is available)
+              "executeDispatch"
+            lineno (line number is not used if context-line is available)
+              181
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "    ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "invokeGuardedCallbackAndCatchFirstError"
+            lineno (line number is not used if context-line is available)
+              54
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "    invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
+            function (function name is not used if context-line is available)
+              "apply"
+            lineno (line number is not used if context-line is available)
+              41
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "  var funcArgs = Array.prototype.slice.call(arguments, 3);"
+            function (function name is not used if context-line is available)
+              "apply"
+            lineno (line number is not used if context-line is available)
+              28
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Components/Touchable/Touchable.js"
+            context-line*
+              "  touchableHandleResponderRelease: function(e) {"
+            function (function name is not used if context-line is available)
+              "arguments"
+            lineno (line number is not used if context-line is available)
+              430
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Components/Touchable/Touchable.js"
+            context-line*
+              "      this._performSideEffectsForTransition(curState, nextState, signal, e);"
+            function (function name is not used if context-line is available)
+              "_receiveSignal"
+            lineno (line number is not used if context-line is available)
+              662
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Components/Touchable/Touchable.js"
+            context-line*
+              "        this.touchableHandlePress(e);"
+            function (function name is not used if context-line is available)
+              "_performSideEffectsForTransition"
+            lineno (line number is not used if context-line is available)
+              744
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android.js"
+            context-line*
+              "    this.props.onPress && this.props.onPress(e);"
+            function (function name is not used if context-line is available)
+              "this"
+            lineno (line number is not used if context-line is available)
+              175
+          frame*
+            module*
+              "App"
+            filename (module takes precedence)
+              "App.js"
+            context-line*
+              "        <Button"
+            function (function name is not used if context-line is available)
+              "onPress"
+            lineno (line number is not used if context-line is available)
+              143
+          frame*
+            module*
+              "App"
+            filename (module takes precedence)
+              "App.js"
+            context-line*
+              "        <Button"
+            function (function name is not used if context-line is available)
+              "Button"
+            lineno (line number is not used if context-line is available)
+              115
+        type*
+          "TypeError"
+        value*
+          "undefined is not a function (evaluating '({}).invalidFunction()')"
+--------------------------------------------------------------------------
+system:
+  hash: "f8f4d8cbe0c85758ed193d0f5d9955b3"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js"
+            context-line*
+              "    return this.flushedQueue();"
+            function (function name is not used if context-line is available)
+              "value"
+            lineno (line number is not used if context-line is available)
+              119
+          frame*
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js"
+            context-line*
+              "      this._inCall--;"
+            function (function name is not used if context-line is available)
+              "flushedQueue"
+            lineno (line number is not used if context-line is available)
+              318
+          frame*
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js"
+            context-line*
+              "    return this.flushedQueue();"
+            function (function name is not used if context-line is available)
+              "_inCall"
+            lineno (line number is not used if context-line is available)
+              119
+          frame*
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js"
+            context-line*
+              "    this._lastFlush = new Date().getTime();"
+            function (function name is not used if context-line is available)
+              "flushedQueue"
+            lineno (line number is not used if context-line is available)
+              357
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "      _receiveRootNodeIDEvent(index, eventTopLevelType, i);"
+            function (function name is not used if context-line is available)
+              "_lastFlush"
+            lineno (line number is not used if context-line is available)
+              1160
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "  batchedUpdates(function() {"
+            function (function name is not used if context-line is available)
+              "_receiveRootNodeIDEvent"
+            lineno (line number is not used if context-line is available)
+              1095
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "    return _batchedUpdates(fn, bookkeeping);"
+            function (function name is not used if context-line is available)
+              "batchedUpdates"
+            lineno (line number is not used if context-line is available)
+              1054
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "        return fn(a);"
+            function (function name is not used if context-line is available)
+              "_batchedUpdates"
+            lineno (line number is not used if context-line is available)
+              5928
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "      (forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
+            function (function name is not used if context-line is available)
+              "fn"
+            lineno (line number is not used if context-line is available)
+              1113
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "  Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
+            function (function name is not used if context-line is available)
+              "forEachAccumulated"
+            lineno (line number is not used if context-line is available)
+              219
+          frame
+            function (function name is not used if module or filename are available)
+              "[native code] forEach"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "        executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
+            function (function name is not used if context-line is available)
+              "D"
+            lineno (line number is not used if context-line is available)
+              235
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "  ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
+            function (function name is not used if context-line is available)
+              "executeDispatch"
+            lineno (line number is not used if context-line is available)
+              181
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "    ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "invokeGuardedCallbackAndCatchFirstError"
+            lineno (line number is not used if context-line is available)
+              54
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "    invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
+            function (function name is not used if context-line is available)
+              "apply"
+            lineno (line number is not used if context-line is available)
+              41
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js"
+            context-line*
+              "  var funcArgs = Array.prototype.slice.call(arguments, 3);"
+            function (function name is not used if context-line is available)
+              "apply"
+            lineno (line number is not used if context-line is available)
+              28
+          frame*
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Components/Touchable/Touchable.js"
+            context-line*
+              "  touchableHandleResponderRelease: function(e) {"
+            function (function name is not used if context-line is available)
+              "arguments"
+            lineno (line number is not used if context-line is available)
+              430
+          frame*
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Components/Touchable/Touchable.js"
+            context-line*
+              "      this._performSideEffectsForTransition(curState, nextState, signal, e);"
+            function (function name is not used if context-line is available)
+              "_receiveSignal"
+            lineno (line number is not used if context-line is available)
+              662
+          frame*
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Components/Touchable/Touchable.js"
+            context-line*
+              "        this.touchableHandlePress(e);"
+            function (function name is not used if context-line is available)
+              "_performSideEffectsForTransition"
+            lineno (line number is not used if context-line is available)
+              744
+          frame*
+            module*
+              "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
+            filename (module takes precedence)
+              "node_modules/react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android.js"
+            context-line*
+              "    this.props.onPress && this.props.onPress(e);"
+            function (function name is not used if context-line is available)
+              "this"
+            lineno (line number is not used if context-line is available)
+              175
+          frame*
+            module*
+              "App"
+            filename (module takes precedence)
+              "App.js"
+            context-line*
+              "        <Button"
+            function (function name is not used if context-line is available)
+              "onPress"
+            lineno (line number is not used if context-line is available)
+              143
+          frame*
+            module*
+              "App"
+            filename (module takes precedence)
+              "App.js"
+            context-line*
+              "        <Button"
+            function (function name is not used if context-line is available)
+              "Button"
+            lineno (line number is not used if context-line is available)
+              115
+        type*
+          "TypeError"
+        value (stacktrace and type take precedence)
+          "undefined is not a function (evaluating '({}).invalidFunction()')"

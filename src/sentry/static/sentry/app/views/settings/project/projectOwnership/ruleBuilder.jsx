@@ -1,14 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import memberListStore from 'app/stores/memberListStore';
 import Button from 'app/components/button';
 import SelectField from 'app/components/forms/selectField';
 import TextOverflow from 'app/components/textOverflow';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconAdd, IconChevron} from 'app/icons';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -17,10 +16,24 @@ import space from 'app/styles/space';
 
 const initialState = {
   text: '',
+  tagName: '',
   type: 'path',
   owners: [],
   isValid: false,
 };
+
+function getMatchPlaceholder(type) {
+  switch (type) {
+    case 'path':
+      return 'src/example/*';
+    case 'url':
+      return 'https://example.com/settings/*';
+    case 'tag':
+      return 'tag-value';
+    default:
+      return '';
+  }
+}
 
 class RuleBuilder extends React.Component {
   static propTypes = {
@@ -48,6 +61,10 @@ class RuleBuilder extends React.Component {
     this.checkIsValid();
   };
 
+  handleTagNameChangeValue = e => {
+    this.setState({tagName: e.target.value}, this.checkIsValid);
+  };
+
   handleChangeValue = e => {
     this.setState({text: e.target.value});
     this.checkIsValid();
@@ -59,23 +76,26 @@ class RuleBuilder extends React.Component {
   };
 
   handleAddRule = () => {
-    let {type, text, owners, isValid} = this.state;
+    const {type, text, tagName, owners, isValid} = this.state;
 
     if (!isValid) {
-      addErrorMessage('A Rule needs a type, a value, and one or more owners.');
+      addErrorMessage('A rule needs a type, a value, and one or more issue owners.');
       return;
     }
 
-    let ownerText = owners
-      .map(
-        owner =>
-          owner.actor.type === 'team'
-            ? `#${owner.actor.name}`
-            : memberListStore.getById(owner.actor.id).email
+    const ownerText = owners
+      .map(owner =>
+        owner.actor.type === 'team'
+          ? `#${owner.actor.name}`
+          : memberListStore.getById(owner.actor.id).email
       )
       .join(' ');
 
-    let rule = `${type}:${text} ${ownerText}`;
+    const quotedText = text.match(/\s/) ? `"${text}"` : text;
+
+    const rule = `${
+      type === 'tag' ? `tags.${tagName}` : type
+    }:${quotedText} ${ownerText}`;
     this.props.onAddRule(rule);
     this.setState(initialState);
   };
@@ -86,8 +106,8 @@ class RuleBuilder extends React.Component {
   };
 
   render() {
-    let {urls, paths, disabled, project, organization} = this.props;
-    let {type, text, owners, isValid} = this.state;
+    const {urls, paths, disabled, project, organization} = this.props;
+    const {type, text, tagName, owners, isValid} = this.state;
 
     return (
       <React.Fragment>
@@ -99,7 +119,7 @@ class RuleBuilder extends React.Component {
                   key={v}
                   onClick={() => this.handleSelectCandidate(v, 'path')}
                 >
-                  <AddIcon src="icon-circle-add" />
+                  <StyledIconAdd isCircled />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
                   <TypeHint>[PATH]</TypeHint>
                 </RuleCandidate>
@@ -110,7 +130,7 @@ class RuleBuilder extends React.Component {
                   key={v}
                   onClick={() => this.handleSelectCandidate(v, 'url')}
                 >
-                  <AddIcon src="icon-circle-add" />
+                  <StyledIconAdd isCircled />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
                   <TypeHint>[URL]</TypeHint>
                 </RuleCandidate>
@@ -119,26 +139,38 @@ class RuleBuilder extends React.Component {
         )}
         <BuilderBar>
           <BuilderSelect
+            deprecatedSelectControl
             name="select-type"
             value={type}
             showSearch={false}
             onChange={this.handleTypeChange}
-            options={[{value: 'path', label: t('Path')}, {value: 'url', label: t('URL')}]}
+            options={[
+              {value: 'path', label: t('Path')},
+              {value: 'tag', label: t('Tag')},
+              {value: 'url', label: t('URL')},
+            ]}
             style={{width: 140}}
             clearable={false}
             disabled={disabled}
           />
+          {type === 'tag' && (
+            <BuilderTagNameInput
+              controlled
+              value={tagName}
+              onChange={this.handleTagNameChangeValue}
+              disabled={disabled}
+              placeholder="tag-name"
+            />
+          )}
           <BuilderInput
             controlled
             value={text}
             onChange={this.handleChangeValue}
             disabled={disabled}
-            placeholder={
-              type === 'path' ? 'src/example/*' : 'https://example.com/settings/*'
-            }
+            placeholder={getMatchPlaceholder(type)}
           />
-          <Divider src="icon-chevron-right" />
-          <Flex flex="1" align="center" mr={1}>
+          <Divider direction="right" />
+          <SelectOwnersWrapper>
             <SelectOwners
               organization={organization}
               project={project}
@@ -146,13 +178,13 @@ class RuleBuilder extends React.Component {
               onChange={this.handleChangeOwners}
               disabled={disabled}
             />
-          </Flex>
+          </SelectOwnersWrapper>
 
           <AddButton
             priority="primary"
             disabled={!isValid}
             onClick={this.handleAddRule}
-            icon="icon-circle-add"
+            icon={<IconAdd size="xs" isCircled />}
             size="small"
           />
         </BuilderBar>
@@ -160,11 +192,11 @@ class RuleBuilder extends React.Component {
     );
   }
 }
-const Candidates = styled.div`
+const Candidates = styled('div')`
   margin-bottom: 10px;
 `;
 
-const TypeHint = styled.div`
+const TypeHint = styled('div')`
   color: ${p => p.theme.borderDark};
 `;
 
@@ -172,7 +204,7 @@ const StyledTextOverflow = styled(TextOverflow)`
   flex: 1;
 `;
 
-const RuleCandidate = styled.div`
+const RuleCandidate = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   border: 1px solid ${p => p.theme.borderDark};
   background-color: #f8fafd;
@@ -184,13 +216,13 @@ const RuleCandidate = styled.div`
   align-items: center;
 `;
 
-const AddIcon = styled(InlineSvg)`
+const StyledIconAdd = styled(IconAdd)`
   color: ${p => p.theme.borderDark};
   margin-right: 5px;
   flex-shrink: 0;
 `;
 
-const BuilderBar = styled.div`
+const BuilderBar = styled('div')`
   display: flex;
   height: 40px;
   align-items: center;
@@ -198,21 +230,34 @@ const BuilderBar = styled.div`
 `;
 
 const BuilderSelect = styled(SelectField)`
-  margin-right: 10px;
-  width: 80px;
+  margin-right: ${space(1.5)};
+  width: 50px;
   flex-shrink: 0;
 `;
 
 const BuilderInput = styled(Input)`
   padding: ${space(1)};
   line-height: 19px;
-  margin-right: 5px;
+  margin-right: ${space(0.5)};
 `;
 
-const Divider = styled(InlineSvg)`
+const BuilderTagNameInput = styled(Input)`
+  padding: ${space(1)};
+  line-height: 19px;
+  margin-right: ${space(0.5)};
+  width: 200px;
+`;
+
+const Divider = styled(IconChevron)`
   color: ${p => p.theme.borderDark};
   flex-shrink: 0;
   margin-right: 5px;
+`;
+
+const SelectOwnersWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-right: ${space(1)};
 `;
 
 const AddButton = styled(Button)`

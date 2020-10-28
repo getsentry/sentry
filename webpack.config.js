@@ -1,23 +1,73 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
+
+const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
-const babelConfig = require('./babel.config');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
-const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
+const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+
+const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
+const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
+const SentryInstrumentation = require('./build-utils/sentry-instrumentation');
+const LastBuiltPlugin = require('./build-utils/last-built-plugin');
+const babelConfig = require('./babel.config');
 
 const {env} = process;
 
+/**
+ * Environment configuration
+ */
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
-const WEBPACK_DEV_PORT = env.WEBPACK_DEV_PORT;
-const SENTRY_DEVSERVER_PORT = env.SENTRY_DEVSERVER_PORT;
-const USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
+// This is used to stop rendering dynamic content for tests/snapshots
+// We want it in the case where we are running tests and it is in CI,
+// this should not happen in local
+const IS_CI = !!env.CI || !!env.TRAVIS;
+const IS_ACCEPTANCE_TEST = IS_CI && !!env.VISUAL_SNAPSHOT_ENABLE;
+const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
+const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
+const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
+
+/**
+ * Environment variables that are used by other tooling and should
+ * not be user configurable.
+ */
+// Ports used by webpack dev server to proxy to backend and webpack
+const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
+const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
+// Used by sentry devserver runner to force using webpack-dev-server
+const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
+const HAS_WEBPACK_DEV_SERVER_CONFIG = SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
+
+/**
+ * User/tooling configurable environment variables
+ */
+const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
+const TS_FORK_WITH_ESLINT = !!env.TS_FORK_WITH_ESLINT; // Do not run eslint with fork-ts plugin
+const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
+const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
+
+// Deploy previews are built using zeit. We can check if we're in zeit's
+// build process by checking the existence of the PULL_REQUEST env var.
+const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
+  branch: env.NOW_GITHUB_COMMIT_REF,
+  commitSha: env.NOW_GITHUB_COMMIT_SHA,
+  githubOrg: env.NOW_GITHUB_COMMIT_ORG,
+  githubRepo: env.NOW_GITHUB_COMMIT_REPO,
+};
+
+// When deploy previews are enabled always enable experimental SPA mode --
+// deploy previews are served standalone. Otherwise fallback to the environment
+// configuration.
+const SENTRY_EXPERIMENTAL_SPA =
+  !DEPLOY_PREVIEW_CONFIG && !IS_UI_DEV_ONLY ? env.SENTRY_EXPERIMENTAL_SPA : true;
 
 // this is set by setup.py sdist
 const staticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
@@ -28,7 +78,7 @@ const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(staticPrefix, 'dist');
  */
 if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
   babelConfig.plugins.push([
-    'babel-gettext-extractor',
+    'module:babel-gettext-extractor',
     {
       fileName: 'build/javascript.po',
       baseDirectory: path.join(__dirname, 'src/sentry'),
@@ -57,7 +107,7 @@ if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
  *
  * A plugin is used to remove the locale chunks from the app entry's chunk
  * dependency list, so that our compiled bundle does not expect that *all*
- * locale chunks must be loadd
+ * locale chunks must be loaded
  */
 const localeCatalogPath = path.join(
   __dirname,
@@ -86,37 +136,38 @@ const localeChunkGroups = {};
 
 // No need to split the english locale out as it will be completely empty and
 // is not included in the django layout.html.
-supportedLocales.filter(l => l !== 'en').forEach(locale => {
-  const language = localeToLanguage(locale);
-  const group = `locale/${language}`;
+supportedLocales
+  .filter(l => l !== 'en')
+  .forEach(locale => {
+    const language = localeToLanguage(locale);
+    const group = `locale/${language}`;
 
-  // List of module path tests to group into locale chunks
-  const localeGroupTests = [
-    new RegExp(`locale\\/${locale}\\/.*\\.po$`),
-    new RegExp(`moment\\/locale\\/${language}\\.js$`),
-  ];
+    // List of module path tests to group into locale chunks
+    const localeGroupTests = [
+      new RegExp(`locale\\/${locale}\\/.*\\.po$`),
+      new RegExp(`moment\\/locale\\/${language}\\.js$`),
+    ];
 
-  // module test taken from [0] and modified to support testing against
-  // multiple expressions.
-  //
-  // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
-  const groupTest = module =>
-    localeGroupTests.some(
-      pattern =>
+    // module test taken from [0] and modified to support testing against
+    // multiple expressions.
+    //
+    // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
+    const groupTest = module =>
+      localeGroupTests.some(pattern =>
         module.nameForCondition && pattern.test(module.nameForCondition())
           ? true
           : Array.from(module.chunksIterable).some(c => c.name && pattern.test(c.name))
-    );
+      );
 
-  localeChunkGroups[group] = {
-    name: group,
-    test: groupTest,
-    enforce: true,
-  };
-});
+    localeChunkGroups[group] = {
+      name: group,
+      test: groupTest,
+      enforce: true,
+    };
+  });
 
 /**
- * Restirct translation files that are pulled in through app/translations.jsx
+ * Restrict translation files that are pulled in through app/translations.jsx
  * and through moment/locale/* to only those which we create bundles for via
  * locale/catalogs.json.
  */
@@ -134,40 +185,17 @@ const localeRestrictionPlugins = [
 ];
 
 /**
- * When our locales are codesplit into cache groups, webpack expects that all
- * chunks *must* be loaded before the main entrypoint can be executed. However,
- * since we will only be using one locale at a time we do not want to load all
- * locale chunks, just the one the user has enabled.
- *
- * This plugin removes the locale chunks from the app entrypoint's immediate
- * chunk dependants list, ensuring the the compiled entrypoint will execute
- * *without* all locale chunks loaded.
- */
-const pluginName = 'OptionalLocaleChunkPlugin';
-
-const clearLocaleChunks = chunks =>
-  chunks.filter(chunk => chunk.name !== 'app').forEach(chunk => {
-    const mainGroup = Array.from(chunk.groupsIterable)[0];
-    mainGroup.chunks = mainGroup.chunks.filter(
-      c => c.name && !c.name.startsWith('locale')
-    );
-  });
-
-class OptionalLocaleChunkPlugin {
-  apply(compiler) {
-    compiler.hooks.compilation.tap(pluginName, compilation =>
-      compilation.hooks.afterOptimizeChunks.tap(pluginName, clearLocaleChunks)
-    );
-  }
-}
-
-/**
  * Explicit codesplitting cache groups
  */
 const cacheGroups = {
   vendors: {
     name: 'vendor',
-    test: /[\\/]node_modules[\\/]/,
+    // This `platformicons` check is required otherwise it will get put into this chunk instead
+    // of `sentry.css` bundle
+    // TODO(platformicons): Simplify this if we move platformicons into repo
+    test: module =>
+      !/platformicons/.test(module.resource) &&
+      /[\\/]node_modules[\\/]/.test(module.resource),
     priority: -10,
     enforce: true,
     chunks: 'initial',
@@ -175,23 +203,47 @@ const cacheGroups = {
   ...localeChunkGroups,
 };
 
+const babelOptions = {...babelConfig, cacheDirectory: true};
+const babelLoaderConfig = {
+  loader: 'babel-loader',
+  options: babelOptions,
+};
+
 /**
  * Main Webpack config for Sentry React SPA.
  */
-const appConfig = {
+let appConfig = {
   mode: WEBPACK_MODE,
-  entry: {app: 'app'},
+  entry: {
+    /**
+     * Main Sentry SPA
+     */
+    app: 'app',
+
+    /**
+     * Legacy CSS Webpack appConfig for Django-powered views.
+     * This generates a single "sentry.css" file that imports ALL component styles
+     * for use on Django-powered pages.
+     */
+    sentry: 'less/sentry.less',
+
+    /**
+     * old plugins that use select2 when creating a new issue e.g. Trello, Teamwork*
+     */
+    select2: 'less/select2.less',
+  },
   context: staticPrefix,
   module: {
+    /**
+     * XXX: Modifying the order/contents of these rules may break `getsentry`
+     * Please remember to test it.
+     */
     rules: [
       {
-        test: /\.jsx?$/,
+        test: /\.[tj]sx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        use: {
-          loader: 'babel-loader',
-          options: {...babelConfig, cacheDirectory: true},
-        },
+        use: babelLoaderConfig,
       },
       {
         test: /\.po$/,
@@ -212,13 +264,18 @@ const appConfig = {
         use: ['style-loader', 'css-loader'],
       },
       {
-        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+        test: /\.less$/,
+        include: [staticPrefix],
+        use: [ExtractTextPlugin.loader, 'css-loader', 'less-loader'],
+      },
+      {
+        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
         exclude: /app\/icons\/.*\.svg$/,
         use: [
           {
             loader: 'file-loader',
             options: {
-              name: '[name].[ext]',
+              name: '[name].[hash:6].[ext]',
             },
           },
         ],
@@ -229,18 +286,12 @@ const appConfig = {
       /dist\/jquery\.js/,
       /jed\/jed\.js/,
       /marked\/lib\/marked\.js/,
+      /terser\/dist\/bundle\.min\.js/,
     ],
   },
   plugins: [
-    /**
-     * Used to make our lodash modules even smaller
-     */
-    new LodashModuleReplacementPlugin({
-      collections: true,
-      currying: true, // these are enabled to support lodash/fp/ features
-      flattening: true, // used by a dependency of react-mentions
-      shorthands: true,
-    }),
+    new CleanWebpackPlugin(),
+
     /**
      * jQuery must be provided in the global scope specifically and only for
      * bootstrap, as it will not import jQuery itself.
@@ -248,42 +299,77 @@ const appConfig = {
      * We discourage the use of global jQuery through eslint rules
      */
     new webpack.ProvidePlugin({jQuery: 'jquery'}),
+
     /**
      * Extract CSS into separate files.
      */
     new ExtractTextPlugin(),
+
     /**
-     * Defines environemnt specific flags.
+     * Defines environment specific flags.
      */
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
-        IS_PERCY: JSON.stringify(env.CI && !!env.PERCY_TOKEN && !!env.TRAVIS),
+        IS_ACCEPTANCE_TEST: JSON.stringify(IS_ACCEPTANCE_TEST),
+        DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
+        EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
+        SPA_DSN: JSON.stringify(env.SENTRY_SPA_DSN),
       },
     }),
+
     /**
      * See above for locale chunks. These plugins help with that
-     * funcationality.
+     * functionality.
      */
     new OptionalLocaleChunkPlugin(),
+
+    /**
+     * This removes empty js files for style only entries (e.g. sentry.less)
+     */
+    new FixStyleOnlyEntriesPlugin({silent: true}),
+
+    new SentryInstrumentation(),
+
+    ...(SHOULD_FORK_TS
+      ? [
+          new ForkTsCheckerWebpackPlugin({
+            eslint: TS_FORK_WITH_ESLINT,
+            tsconfig: path.resolve(__dirname, './config/tsconfig.build.json'),
+          }),
+        ]
+      : []),
+
     ...localeRestrictionPlugins,
   ],
   resolve: {
     alias: {
       app: path.join(staticPrefix, 'app'),
-      'app-test': path.join(__dirname, 'tests', 'js'),
+      '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
+      '@original-emotion/styled': path.join(
+        __dirname,
+        'node_modules',
+        '@emotion',
+        'styled'
+      ),
+
+      // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
+      // to be resolved
+      less: path.join(staticPrefix, 'less'),
+      'sentry-test': path.join(__dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
-      'integration-docs-platforms':
-        IS_TEST || IS_STORYBOOK
-          ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
-          : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
     },
+
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json'],
+    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },
   output: {
     path: distPath,
     filename: '[name].js',
+
+    // Rename global that is used to async load chunks
+    // Avoids 3rd party js from overwriting the default name (webpackJsonp)
+    jsonpFunction: 'sntryWpJsonp',
     sourceMapFilename: '[name].js.map',
   },
   optimization: {
@@ -297,54 +383,35 @@ const appConfig = {
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
 
-/**
- * Legacy CSS Webpack appConfig for Django-powered views.
- * This generates a single "sentry.css" file that imports ALL component styles
- * for use on Django-powered pages.
- */
-const legacyCssConfig = {
-  mode: WEBPACK_MODE,
-  entry: {
-    sentry: 'less/sentry.less',
+if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
+  appConfig.resolve.alias['integration-docs-platforms'] = path.join(
+    __dirname,
+    'tests/fixtures/integration-docs/_platforms.json'
+  );
+} else {
+  const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
+  appConfig.plugins.push(plugin);
+  appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
+}
 
-    // Below is for old plugins that use select2 when creating a new issue for a plugin
-    // e.g. Trello, Teamwork
-    select2: 'less/select2.less',
-  },
-  context: staticPrefix,
-  output: {
-    path: distPath,
-  },
-  plugins: [new ExtractTextPlugin()],
-  resolve: {
-    extensions: ['.less', '.js'],
-    modules: [staticPrefix, 'node_modules'],
-  },
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        include: [staticPrefix],
-        use: [ExtractTextPlugin.loader, 'css-loader', 'less-loader'],
-      },
-      {
-        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              name: '[name].[ext]',
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
+if (!IS_PRODUCTION) {
+  appConfig.plugins.push(new LastBuiltPlugin({basePath: __dirname}));
+}
 
 // Dev only! Hot module reloading
-if (USE_HOT_MODULE_RELOAD) {
-  appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
+if (
+  FORCE_WEBPACK_DEV_SERVER ||
+  (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER) ||
+  IS_UI_DEV_ONLY
+) {
+  if (SHOULD_HOT_MODULE_RELOAD) {
+    // Hot reload react components on save
+    // We include the library here as to not break docker/google cloud builds
+    // since we do not install devDeps there.
+    const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+    appConfig.plugins.push(new ReactRefreshWebpackPlugin());
+  }
+
   appConfig.devServer = {
     headers: {
       'Access-Control-Allow-Origin': '*',
@@ -356,12 +423,91 @@ if (USE_HOT_MODULE_RELOAD) {
     hot: true,
     // If below is false, will reload on errors
     hotOnly: true,
-    port: WEBPACK_DEV_PORT,
+    port: SENTRY_WEBPACK_PROXY_PORT,
+    stats: 'errors-only',
+    overlay: false,
+    watchOptions: {
+      ignored: ['node_modules'],
+    },
   };
 
-  // Required, without this we get this on updates:
-  // [HMR] Update failed: SyntaxError: Unexpected token < in JSON at position 12
-  appConfig.output.publicPath = `http://localhost:${WEBPACK_DEV_PORT}/`;
+  if (!IS_UI_DEV_ONLY) {
+    // This proxies to local backend server
+    const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
+    const relayAddress = 'http://127.0.0.1:7899';
+
+    appConfig.devServer = {
+      ...appConfig.devServer,
+      publicPath: '/_webpack',
+      // syntax for matching is using https://www.npmjs.com/package/micromatch
+      proxy: {
+        '/api/store/**': relayAddress,
+        '/api/{1..9}*({0..9})/**': relayAddress,
+        '/api/0/relays/outcomes/': relayAddress,
+        '!/_webpack': backendAddress,
+      },
+      before: app =>
+        app.use((req, _res, next) => {
+          req.url = req.url.replace(/^\/_static\/[^\/]+\/sentry\/dist/, '/_webpack');
+          next();
+        }),
+    };
+  }
+}
+
+// XXX(epurkhiser): Sentry (development) can be run in an experimental
+// pure-SPA mode, where ONLY /api* requests are proxied directly to the API
+// backend (in this case, sentry.io), otherwise ALL requests are rewritten
+// to a development index.html -- thus, completely separating the frontend
+// from serving any pages through the backend.
+//
+// THIS IS EXPERIMENTAL and has limitations (e.g. you can't use SSO)
+//
+// Various sentry pages still rely on django to serve html views.
+if (IS_UI_DEV_ONLY) {
+  appConfig.devServer = {
+    ...appConfig.devServer,
+    compress: true,
+    https: true,
+    publicPath: '/_assets/',
+    proxy: [
+      {
+        context: ['/api/', '/avatar/', '/organization-avatar/'],
+        target: 'https://sentry.io',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+        },
+      },
+    ],
+    historyApiFallback: {
+      rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
+    },
+  };
+}
+
+if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
+  appConfig.output.publicPath = '/_assets/';
+
+  /**
+   * Generate a index.html file used for running the app in pure client mode.
+   * This is currently used for PR deploy previews, where only the frontend
+   * is deployed.
+   */
+  const HtmlWebpackPlugin = require('html-webpack-plugin');
+  appConfig.plugins.push(
+    new HtmlWebpackPlugin({
+      // Local dev vs vercel slightly differs...
+      ...(IS_UI_DEV_ONLY
+        ? {devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`}
+        : {}),
+      favicon: path.resolve(staticPrefix, 'images', 'favicon_dev.png'),
+      template: path.resolve(staticPrefix, 'index.ejs'),
+      mobile: true,
+      title: 'Sentry',
+    })
+  );
 }
 
 const minificationPlugins = [
@@ -380,10 +526,15 @@ const minificationPlugins = [
 
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
-  minificationPlugins.forEach(function(plugin) {
+  minificationPlugins.forEach(function (plugin) {
     appConfig.plugins.push(plugin);
-    legacyCssConfig.plugins.push(plugin);
   });
 }
 
-module.exports = [appConfig, legacyCssConfig];
+if (env.MEASURE) {
+  const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+  const smp = new SpeedMeasurePlugin();
+  appConfig = smp.wrap(appConfig);
+}
+
+module.exports = appConfig;

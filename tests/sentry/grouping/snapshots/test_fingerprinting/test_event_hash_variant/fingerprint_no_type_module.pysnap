@@ -1,0 +1,40 @@
+---
+created: '2020-10-13T10:09:30.408662Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - '{{ type }}'
+    - '{{ module }}'
+    - '{{ function }}'
+    matchers:
+    - - function
+      - main
+  version: 1
+fingerprint:
+- '{{ type }}'
+- '{{ module }}'
+- '{{ function }}'
+title: <unlabeled event>
+variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - <no-type>
+    - <no-module>
+    - main
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

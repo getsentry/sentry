@@ -17,7 +17,7 @@ const getChoices = props => {
 export default class SelectField extends React.Component {
   static propTypes = {
     ...InputField.propTypes,
-    choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]).isRequired,
+    choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]),
     allowClear: PropTypes.bool,
     allowEmpty: PropTypes.bool,
     multiple: PropTypes.bool,
@@ -55,42 +55,19 @@ export default class SelectField extends React.Component {
   };
 
   render() {
-    let {multiple, allowClear, ...otherProps} = this.props;
+    const {multiple, allowClear, ...otherProps} = this.props;
     return (
       <InputField
         {...otherProps}
         alignRight={this.props.small}
-        field={({onChange, onBlur, disabled, required, ...props}) => {
-          // We remove the required property here since applying it to the
-          // DOM causes the native tooltip to render in strange places.
-          let choices = getChoices(props);
-
-          // Check if value quacks like mobx and get the raw array.
-          // Inside Form containers `value` can be a mobx observable
-          // which doesn't play nice with downstream code.
-          let val = props.value;
-          if (
-            multiple &&
-            Array.isArray(val) === false &&
-            typeof val.peek === 'function'
-          ) {
-            val = val.peek();
-          }
-          return (
-            <SelectControl
-              {...props}
-              clearable={allowClear}
-              multiple={multiple}
-              disabled={disabled}
-              onChange={this.handleChange.bind(this, onBlur, onChange)}
-              value={val}
-              options={choices.map(([value, label]) => ({
-                value,
-                label,
-              }))}
-            />
-          );
-        }}
+        field={({onChange, onBlur, required: _required, ...props}) => (
+          <SelectControl
+            {...props}
+            clearable={allowClear}
+            multiple={multiple}
+            onChange={this.handleChange.bind(this, onBlur, onChange)}
+          />
+        )}
       />
     );
   }

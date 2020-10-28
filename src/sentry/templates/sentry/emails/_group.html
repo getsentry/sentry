@@ -1,14 +1,12 @@
 {% load sentry_helpers %}
 
-{% url_with_referrer 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
-
 {% with type=group.get_event_type metadata=group.get_event_metadata transaction=group.culprit %}
 <div class="issue {% if group.is_resolved %}resolved{% endif %}">
   {% if type == "error" %}
     <div class="event-type error">
       <h3>
         {% if metadata.type %}
-          <a href="{% absolute_uri group_link %}">{{ metadata.type|truncatechars:40 }}</a>
+          <a href="{{group.get_absolute_url}}">{{metadata.type|truncatechars:40}}</a>
           {% if transaction %}
             <span class="event-subtitle">{{ transaction }}</span>
           {% endif %}
@@ -16,10 +14,11 @@
           {% if metadata.value %}
             <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
           {% endif %}
-        {% else %}
-          <a href="{% absolute_uri group_link %}">{{ metadata.value|truncatechars:40 }}</a><br />
+          {% else %}
+          <a href="{{group.get_absolute_url}}">{{metadata.value|truncatechars:40}}</a>
+          <br />
           {% if transaction %}
-            <span class="event-subtitle">{{ transaction }}</span>
+          <span class="event-subtitle">{{ transaction }}</span>
           {% endif %}
         {% endif %}
       </h3>
@@ -27,7 +26,8 @@
   {% elif type == "csp" %}
     <div class="event-type csp">
       <h3>
-        <a href="{% absolute_uri group_link %}">{{ metadata.directive|truncatechars:40 }}</a><br />
+        <a href="{{group.get_absolute_url}}">{{metadata.directive|truncatechars:40}}</a>
+        <br />
         {% if metadata.uri %}
           <span class="event-subtitle">{{ metadata.uri }}</span>
         {% endif %}
@@ -36,7 +36,8 @@
   {% else %}
     <div class="event-type default">
       <h3>
-        <a href="{% absolute_uri group_link %}">{{ group.title|truncatechars:40 }}</a><br />
+        <a href="{{group.get_absolute_url}}">{{group.title|truncatechars:40}}</a>
+        <br />
         {% if transaction %}
           <span class="event-subtitle">{{ transaction }}</span>
         {% endif %}

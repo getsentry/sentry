@@ -1,22 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
-import ApiMixin from 'app/mixins/apiMixin';
-import StackedBarChart from 'app/components/stackedBarChart';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import StackedBarChart from 'app/components/stackedBarChart';
+import withApi from 'app/utils/withApi';
 
-export default createReactClass({
-  displayName: 'apiChart',
-
+const ApiChart = createReactClass({
   propTypes: {
+    api: PropTypes.object.isRequired,
     since: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -41,14 +37,14 @@ export default createReactClass({
   },
 
   fetchData() {
-    let statNameList = [
+    const statNameList = [
       'client-api.all-versions.responses.2xx',
       'client-api.all-versions.responses.4xx',
       'client-api.all-versions.responses.5xx',
     ];
 
     statNameList.forEach(statName => {
-      this.api.request('/internal/stats/', {
+      this.props.api.request('/internal/stats/', {
         method: 'GET',
         data: {
           since: this.props.since,
@@ -57,14 +53,14 @@ export default createReactClass({
         },
         success: data => {
           this.setState(prevState => {
-            let rawData = prevState.rawData;
+            const rawData = prevState.rawData;
             rawData[statName] = data;
             return {
               rawData,
             };
           }, this.requestFinished);
         },
-        error: data => {
+        error: () => {
           this.setState({
             error: true,
           });
@@ -74,7 +70,7 @@ export default createReactClass({
   },
 
   requestFinished() {
-    let {rawData} = this.state;
+    const {rawData} = this.state;
     if (rawData['events.total'] && rawData['events.dropped']) {
       this.processOrgData();
     }
@@ -90,13 +86,11 @@ export default createReactClass({
   },
 
   processRawSeries(series) {
-    return series.map(item => {
-      return {x: item[0], y: item[1]};
-    });
+    return series.map(item => ({x: item[0], y: item[1]}));
   },
 
   getChartSeries() {
-    let {rawData} = this.state;
+    const {rawData} = this.state;
     return [
       {
         data: this.processRawSeries(rawData['client-api.all-versions.responses.4xx']),
@@ -118,8 +112,11 @@ export default createReactClass({
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
     return (
       <StackedBarChart
         series={this.getChartSeries()}
@@ -129,3 +126,5 @@ export default createReactClass({
     );
   },
 });
+
+export default withApi(ApiChart);

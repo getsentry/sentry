@@ -19,12 +19,14 @@
 
     .commit-avatar {
       position: absolute;
-      .square(19px);
+      width: 19px;
+      height: 19px;
       top: 2px;
       left: 0;
 
       .avatar {
-        .square(19px);
+        width: 19px;
+        height: 19px;
       }
     }
 
@@ -83,18 +85,6 @@
     padding: 3px 0 0;
   }
 
-  .avatar-grid {
-    margin-top: 7px;
-
-    .avatar-grid-item .avatar {
-      .square(20px);
-    }
-
-    .tip {
-      border-bottom: 0 !important;
-    }
-  }
-
   .deploy-heading {
     margin: 10px 0;
   }
@@ -108,69 +98,4 @@
       color: @70;
     }
   }
-
-  /** ISSUE LINK HAX **/
-  time {
-    padding-left: 0 !important;
-    color: inherit !important;
-  }
-  h3 {
-    color: @gray-darkest;
-    font-size: 14px;
-    margin: 0 0 5px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    line-height: 1.1;
-
-    em {
-      font-style: normal;
-      font-weight: 400;
-      color: @70;
-      font-size: 90%;
-    }
-  }
-  .event-message,
-  .event-meta {
-    line-height: 1.2;
-    font-size: 12px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-  .error-level,
-  .event-type {
-    padding: 0;
-    border-radius: 2px;
-    margin-right: 5px;
-    display: inline-block;
-    position: relative;
-    top: 3px;
-    .square(9px);
-    text-indent: -9999em;
-    display: inline-block;
-    border-radius: 9px;
-  }
-  .event-meta {
-    font-size: 80%;
-    margin-top: 6px;
-  }
-  .event-annotation {
-    display: inline-block;
-    margin: 0 0 5px 9px;
-    font-size: 13px;
-    line-height: 1;
-    border-left: 1px solid lighten(@trim, 6);
-    padding-left: 9px;
-    height: 13px;
-
-    a {
-      color: lighten(@gray, 12);
-
-      &:hover {
-        color: @gray;
-      }
-    }
-  }
-  /** /ISSUE GROUP HAX **/
 }

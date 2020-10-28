@@ -9,24 +9,26 @@ from sentry.runner import cli as root_command
 
 def get_opts(param):
     any_prefix_is_slash = []
+
     def _write(opts):
         rv, any_slashes = join_options(opts)
         if any_slashes:
             any_prefix_is_slash[:] = [True]
         if not param.is_flag and not param.count:
-            rv += ' ' + param.make_metavar()
+            rv += " " + param.make_metavar()
         return rv
+
     rv = [_write(param.opts)]
     if param.secondary_opts:
         rv.append(_write(param.secondary_opts))
-    return (any_prefix_is_slash and '; ' or ' / ').join(rv)
+    return (any_prefix_is_slash and "; " or " / ").join(rv)
 
 
 def write_page(out, data):
-    path = data['path']
-    filename = os.path.join(out, *path[1:]) + '/index.rst'
+    path = data["path"]
+    filename = os.path.join(out, *path[1:]) + "/index.rst"
     if len(path) == 1:
-        filename += '.inc'
+        filename += ".inc"
 
     dirname = os.path.dirname(filename)
     try:
@@ -34,41 +36,35 @@ def write_page(out, data):
     except OSError:
         pass
 
-    args = [x['metavar'] for x in data['arguments']]
-    title = '`%s`' % ' '.join(data['path'] + args)
-    body = [
-        title,
-        '-' * len(title),
-        '',
-        data['help'] or '',
-    ]
+    args = [x["metavar"] for x in data["arguments"]]
+    title = "`%s`" % " ".join(data["path"] + args)
+    body = [title, "-" * len(title), "", data["help"] or ""]
 
-    body.append('')
-    body.append('Options')
-    body.append('```````')
-    body.append('')
-    for opt in data['options']:
-        prefix = '- ``%s``: ' % opt['opt_string']
-        for line in click.wrap_text(
-                opt['help'], 74, prefix, '  ').splitlines() or ['']:
+    body.append("")
+    body.append("Options")
+    body.append("```````")
+    body.append("")
+    for opt in data["options"]:
+        prefix = "- ``%s``: " % opt["opt_string"]
+        for line in click.wrap_text(opt["help"], 74, prefix, "  ").splitlines() or [""]:
             body.append(line)
-    body.append('- ``--help``: print this help page.')
+    body.append("- ``--help``: print this help page.")
 
-    if data['subcommands']:
-        body.append('')
-        body.append('Subcommands')
-        body.append('```````````')
-        body.append('')
-        body.append('.. toctree::')
-        body.append(' :maxdepth: 1')
-        body.append('')
-        for subcmd in data['subcommands']:
-            body.append(' %s <%s/index>' % (subcmd, subcmd))
-        body.append('')
+    if data["subcommands"]:
+        body.append("")
+        body.append("Subcommands")
+        body.append("```````````")
+        body.append("")
+        body.append(".. toctree::")
+        body.append(" :maxdepth: 1")
+        body.append("")
+        for subcmd in data["subcommands"]:
+            body.append(" %s <%s/index>" % (subcmd, subcmd))
+        body.append("")
 
-    with open(filename, 'w') as f:
+    with open(filename, "w") as f:
         for line in body:
-            f.write('%s\n' % line.encode('utf-8'))
+            f.write("%s\n" % line.encode("utf-8"))
 
 
 class NoHelp(Exception):
@@ -79,29 +75,25 @@ def dump_command(out, cmd, path):
     if cmd.help is None:
         raise NoHelp
     data = {
-        'path': path,
-        'help': cmd.help.replace('\b', ''),
-        'options': [],
-        'arguments': [],
-        'subcommands': [],
+        "path": path,
+        "help": cmd.help.replace("\b", ""),
+        "options": [],
+        "arguments": [],
+        "subcommands": [],
     }
 
     for param in cmd.params:
         if isinstance(param, click.Option):
-            help_text = param.help or ''
+            help_text = param.help or ""
             if param.show_default:
-                help_text += '  [default: %s]' % (
-                         ', '.join('%s' % d for d in param.default)
-                         if isinstance(param.default, (list, tuple))
-                         else (param.default,))
-            data['options'].append({
-                'opt_string': get_opts(param),
-                'help': help_text,
-            })
+                help_text += "  [default: %s]" % (
+                    ", ".join("%s" % d for d in param.default)
+                    if isinstance(param.default, (list, tuple))
+                    else (param.default,)
+                )
+            data["options"].append({"opt_string": get_opts(param), "help": help_text})
         else:
-            data['arguments'].append({
-                'metavar': param.make_metavar(),
-            })
+            data["arguments"].append({"metavar": param.make_metavar()})
 
     if isinstance(cmd, click.Group):
         for child_name, child_cmd in six.iteritems(cmd.commands):
@@ -110,17 +102,16 @@ def dump_command(out, cmd, path):
             except NoHelp:
                 pass
             else:
-                data['subcommands'].append(child_name)
+                data["subcommands"].append(child_name)
 
     write_page(out, data)
 
 
 @click.command()
-@click.option('--output-path', 'out', type=click.Path(),
-              default='build/cli-help')
+@click.option("--output-path", "out", type=click.Path(), default="build/cli-help")
 def cli(out):
-    dump_command(out, root_command, ['sentry'])
+    dump_command(out, root_command, ["sentry"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

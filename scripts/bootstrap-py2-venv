@@ -1,0 +1,53 @@
+# This script is meant to be sourced by bash, not executed.
+# As such, don't use exit, use return.
+
+# This script is purely a python virtualenv bootstrap, not the entire development environment.
+# For the entire thing, you should still use make bootstrap.
+# Eventually, the goal would be to have an idempotent single script that does
+# everything make bootstrap does and more (system dependencies and so on).
+
+# This... doesn't quite work.
+# set -e
+# trap "echo 'bootstrap FAILED.' && trap - ERR && return" ERR
+
+# So just going to sprinkle returns everywhere.
+
+command -v pyenv >/dev/null || {
+    echo "You need to install pyenv. https://develop.sentry.dev/environment/#python"
+    return 1
+}
+
+command -v direnv >/dev/null || {
+    echo "You need to install direnv. https://develop.sentry.dev/environment/#direnv"
+    return 1
+}
+
+unset SENTRY_PYTHON3
+
+gitroot="$(git rev-parse --show-toplevel)"
+cd "$gitroot"
+
+if [[ -f .venv/bin/activate ]]; then
+    echo "You seem to have a virtualenv already. This script is meant to start one from scratch. Continue (y/N)?"
+    read resp
+    case "$resp" in
+      y|Y ) echo "Okay, let's do this." ;;
+      * ) echo "Aborted!"; return 1     ;;
+    esac
+fi
+
+deactivate 2>/dev/null || true
+rm -rf .venv/
+
+if ! [[ "$(python2.7 -V 2>&1)" = "Python $(awk -v ORS='' 'FNR == 1' .python-version)" ]]; then
+    abort "Your python2.7 version isn't as expected. Please run: make setup-pyenv"
+fi
+
+python2.7 -m pip install -U pip         || { echo "bootstrap failed!"; return 1; }
+python2.7 -m pip install -U virtualenv  || { echo "bootstrap failed!"; return 1; }
+python2.7 -m virtualenv .venv           || { echo "bootstrap failed!"; return 1; }
+source .venv/bin/activate               || { echo "bootstrap failed!"; return 1; }
+make setup-git                          || { echo "bootstrap failed!"; return 1; }
+make install-py-dev                     || { echo "bootstrap failed!"; return 1; }
+deactivate                              || { echo "bootstrap failed!"; return 1; }
+direnv allow                            || { echo "bootstrap failed!"; return 1; }

@@ -23,12 +23,15 @@ class SuperuserMiddleware(object):
         request.is_superuser = lambda: request.superuser.is_active
 
         if su.is_active:
-            logger.info('superuser.request', extra={
-                'url': request.build_absolute_uri(),
-                'method': request.method,
-                'ip_address': request.META['REMOTE_ADDR'],
-                'user_id': request.user.id,
-            })
+            logger.info(
+                "superuser.request",
+                extra={
+                    "url": request.build_absolute_uri(),
+                    "method": request.method,
+                    "ip_address": request.META["REMOTE_ADDR"],
+                    "user_id": request.user.id,
+                },
+            )
 
     def process_response(self, request, response):
         try:
@@ -36,7 +39,7 @@ class SuperuserMiddleware(object):
                 return response
         except AttributeError:
             pass
-        su = getattr(request, 'superuser', None)
+        su = getattr(request, "superuser", None)
         if su:
             su.on_response(response)
         return response

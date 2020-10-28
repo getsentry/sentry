@@ -5,6 +5,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
 from sentry.models import Organization, OrganizationStatus, User
 from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
 
 
 class UserPermission(SentryPermission):
@@ -12,6 +13,8 @@ class UserPermission(SentryPermission):
         if user is None:
             user = request.user
         if request.user == user:
+            return True
+        if is_system_auth(request.auth):
             return True
         if request.auth:
             return False
@@ -21,9 +24,7 @@ class UserPermission(SentryPermission):
 
 
 class OrganizationUserPermission(UserPermission):
-    scope_map = {
-        'DELETE': ['member:admin'],
-    }
+    scope_map = {"DELETE": ["member:admin"]}
 
     def has_org_permission(self, request, user):
         """
@@ -34,8 +35,7 @@ class OrganizationUserPermission(UserPermission):
 
         try:
             organization = Organization.objects.get(
-                status=OrganizationStatus.VISIBLE,
-                member_set__user=user
+                status=OrganizationStatus.VISIBLE, member_set__user=user
             )
 
             self.determine_access(request, organization)
@@ -51,22 +51,20 @@ class OrganizationUserPermission(UserPermission):
 
 
 class UserEndpoint(Endpoint):
-    permission_classes = (UserPermission, )
+    permission_classes = (UserPermission,)
 
     def convert_args(self, request, user_id, *args, **kwargs):
         try:
-            if user_id == 'me':
+            if user_id == "me":
                 if not request.user.is_authenticated():
                     raise ResourceDoesNotExist
                 user_id = request.user.id
 
-            user = User.objects.get(
-                id=user_id,
-            )
+            user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, user)
 
-        kwargs['user'] = user
+        kwargs["user"] = user
         return (args, kwargs)

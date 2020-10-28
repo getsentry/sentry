@@ -1,4 +1,4 @@
-let jq = {
+const jq = {
   tooltip: () => jq,
   on: () => jq,
   off: () => jq,

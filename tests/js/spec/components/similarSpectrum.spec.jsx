@@ -1,20 +1,16 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import SimilarSpectrum from 'app/components/similarSpectrum';
 
-describe('SimilarSpectrum', function() {
-  let sandbox;
+describe('SimilarSpectrum', function () {
+  beforeEach(function () {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
+  afterEach(function () {});
 
-  afterEach(function() {
-    sandbox.restore();
-  });
-
-  it('renders', function() {
-    let wrapper = shallow(<SimilarSpectrum />);
-    expect(wrapper).toMatchSnapshot();
+  it('renders', function () {
+    const wrapper = mountWithTheme(<SimilarSpectrum />);
+    expect(wrapper).toSnapshot();
   });
 });

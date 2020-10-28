@@ -1,0 +1,28 @@
+---
+created: '2020-10-13T11:56:18.763884Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_expectct.py
+---
+errors: null
+metadata:
+  message: XXX EXPECTCT MESSAGE NOT THROUGH RELAY XXX
+  origin: www.example.com
+title: XXX EXPECTCT MESSAGE NOT THROUGH RELAY XXX
+to_json:
+  date_time: '2014-04-06T13:00:50Z'
+  effective_expiration_date: '2014-05-01T12:40:50Z'
+  hostname: www.example.com
+  port: 443
+  scts:
+  - serialized_sct: ABCD==
+    source: embedded
+    status: invalid
+    version: 1
+  served_certificate_chain:
+  - '-----BEGIN CERTIFICATE-----
+
+    -----END CERTIFICATE-----'
+  validated_certificate_chain:
+  - '-----BEGIN CERTIFICATE-----
+
+    -----END CERTIFICATE-----'

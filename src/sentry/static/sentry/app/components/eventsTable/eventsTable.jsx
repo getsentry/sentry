@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 
 import {t} from 'app/locale';
 import CustomPropTypes from 'app/sentryTypes';
@@ -10,41 +9,40 @@ class EventsTable extends React.Component {
   static propTypes = {
     events: PropTypes.arrayOf(CustomPropTypes.Event),
     tagList: PropTypes.arrayOf(CustomPropTypes.Tag),
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    groupId: PropTypes.string.isRequired,
   };
 
   render() {
-    let {className, events, tagList} = this.props;
+    const {events, tagList, orgId, projectId, groupId} = this.props;
 
-    let cx = classNames('table events-table', className);
-    let hasUser = !!events.find(event => event.user);
-    let {orgId, projectId, groupId} = this.props.params;
+    const hasUser = !!events.find(event => event.user);
 
     return (
-      <table className={cx}>
+      <table className="table events-table">
         <thead>
           <tr>
             <th>{t('ID')}</th>
             {hasUser && <th>{t('User')}</th>}
 
-            {tagList.map(tag => {
-              return <th key={tag.key}>{tag.name}</th>;
-            })}
+            {tagList.map(tag => (
+              <th key={tag.key}>{tag.name}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {events.map(event => {
-            return (
-              <EventsTableRow
-                key={event.id}
-                event={event}
-                orgId={orgId}
-                projectId={projectId}
-                groupId={groupId}
-                tagList={tagList}
-                hasUser={hasUser}
-              />
-            );
-          })}
+          {events.map(event => (
+            <EventsTableRow
+              key={event.id}
+              event={event}
+              orgId={orgId}
+              projectId={projectId}
+              groupId={groupId}
+              tagList={tagList}
+              hasUser={hasUser}
+            />
+          ))}
         </tbody>
       </table>
     );

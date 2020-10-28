@@ -1,0 +1,68 @@
+---
+created: '2020-07-23T17:38:22.377941Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::start"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::crash"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value*
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      threads (thread has no stacktrace)
+--------------------------------------------------------------------------
+system:
+  hash: "c29439027eafcf7642f641554ab0f0ef"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::crash"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      threads (thread has no stacktrace)

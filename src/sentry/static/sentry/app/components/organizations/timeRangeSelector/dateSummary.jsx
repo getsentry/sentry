@@ -3,13 +3,10 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
+import moment from 'moment';
 
-import {
-  DEFAULT_DAY_END_TIME,
-  DEFAULT_DAY_START_TIME,
-  getFormattedDate,
-} from 'app/utils/dates';
+import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'app/utils/dates';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
@@ -30,18 +27,18 @@ class DateSummary extends React.Component {
      * React does not support `instanceOf` with null values
      */
     end: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-
-    utc: PropTypes.bool,
   };
 
+  getFormattedDate(date, format) {
+    return moment(date).local().format(format);
+  }
+
   formatDate(date) {
-    return getFormattedDate(date, 'll', {local: !this.props.utc});
+    return this.getFormattedDate(date, 'll');
   }
 
   formatTime(date, withSeconds = false) {
-    return getFormattedDate(date, `HH:mm${withSeconds ? ':ss' : ''}`, {
-      local: !this.props.utc,
-    });
+    return this.getFormattedDate(date, `HH:mm${withSeconds ? ':ss' : ''}`);
   }
 
   render() {

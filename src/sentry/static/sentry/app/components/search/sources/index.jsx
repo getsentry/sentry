@@ -1,4 +1,4 @@
-import {flatten} from 'lodash';
+import flatten from 'lodash/flatten';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -18,17 +18,17 @@ class SearchSources extends React.Component {
 
   // `allSources` will be an array of all result objects from each source
   renderResults(allSources) {
-    let {children} = this.props;
+    const {children} = this.props;
 
     // loading means if any result has `isLoading` OR any result is null
-    let isLoading = !!allSources.find(arg => arg.isLoading || arg.results === null);
+    const isLoading = !!allSources.find(arg => arg.isLoading || arg.results === null);
 
-    let foundResults = isLoading
+    const foundResults = isLoading
       ? []
       : flatten(allSources.map(({results}) => results || [])).sort(
           (a, b) => a.score - b.score
         );
-    let hasAnyResults = !!foundResults.length;
+    const hasAnyResults = !!foundResults.length;
 
     return children({
       isLoading,
@@ -41,7 +41,7 @@ class SearchSources extends React.Component {
     if (idx >= sources.length) {
       return this.renderResults(results);
     }
-    let Source = sources[idx];
+    const Source = sources[idx];
     return (
       <Source {...this.props}>
         {args => {
@@ -56,7 +56,7 @@ class SearchSources extends React.Component {
   }
 
   render() {
-    let {sources} = this.props;
+    const {sources} = this.props;
     return this.renderSources(sources, new Array(sources.length), 0);
   }
 }

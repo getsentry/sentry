@@ -1,16 +1,17 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import PullRequestLink from 'app/components/pullRequestLink';
 
-describe('PullRequestLink', function() {
-  it('renders no url on missing externalUrl', function() {
-    let repository = TestStubs.Repository({provider: null});
-    let pullRequest = TestStubs.PullRequest({
+describe('PullRequestLink', function () {
+  it('renders no url on missing externalUrl', function () {
+    const repository = TestStubs.Repository({provider: null});
+    const pullRequest = TestStubs.PullRequest({
       repository,
       externalUrl: null,
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
@@ -18,82 +19,78 @@ describe('PullRequestLink', function() {
     expect(wrapper.find('span').text()).toEqual('example/repo-name #3: Fix first issue');
   });
 
-  it('renders github links for integrations:github repositories', function() {
-    let repository = TestStubs.Repository({
+  it('renders github links for integrations:github repositories', function () {
+    const repository = TestStubs.Repository({
       provider: {
         id: 'integrations:github',
       },
     });
-    let pullRequest = TestStubs.PullRequest({repository});
-    let wrapper = mount(
+    const pullRequest = TestStubs.PullRequest({repository});
+    const wrapper = mount(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    let icon = wrapper.find('InlineSvg');
-    expect(icon).toHaveLength(1);
-    expect(icon.props().src).toEqual('icon-github');
+    const icon = wrapper.find('IconGithub').hostNodes();
+    expect(icon).toHaveLength(0);
 
-    let link = wrapper.find('a');
+    const link = wrapper.find('a');
     expect(link).toHaveLength(1);
     expect(link.text().trim()).toEqual('example/repo-name #3: Fix first issue');
   });
 
-  it('renders github links for github repositories', function() {
-    let repository = TestStubs.Repository({
+  it('renders github links for github repositories', function () {
+    const repository = TestStubs.Repository({
       provider: {
         id: 'github',
       },
     });
-    let pullRequest = TestStubs.PullRequest({repository});
-    let wrapper = mount(
+    const pullRequest = TestStubs.PullRequest({repository});
+    const wrapper = mount(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    let icon = wrapper.find('InlineSvg');
-    expect(icon).toHaveLength(1);
-    expect(icon.props().src).toEqual('icon-github');
+    const icon = wrapper.find('IconGithub').hostNodes();
+    expect(icon).toHaveLength(0);
 
-    let link = wrapper.find('a');
+    const link = wrapper.find('a');
     expect(link).toHaveLength(1);
     expect(link.text().trim()).toEqual('example/repo-name #3: Fix first issue');
   });
 
-  it('renders gitlab links for integrations:gitlab repositories', function() {
-    let repository = TestStubs.Repository({
+  it('renders gitlab links for integrations:gitlab repositories', function () {
+    const repository = TestStubs.Repository({
       provider: {
         id: 'integrations:gitlab',
       },
     });
-    let pullRequest = TestStubs.PullRequest({repository});
-    let wrapper = mount(
+    const pullRequest = TestStubs.PullRequest({repository});
+    const wrapper = mount(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    let icon = wrapper.find('InlineSvg');
-    expect(icon).toHaveLength(1);
-    expect(icon.props().src).toEqual('icon-gitlab');
+    const icon = wrapper.find('IconGitlab').hostNodes();
+    expect(icon).toHaveLength(0);
 
-    let link = wrapper.find('a');
+    const link = wrapper.find('a');
     expect(link).toHaveLength(1);
     expect(link.text().trim()).toEqual('example/repo-name #3: Fix first issue');
   });
 
-  it('renders github links for gitlab repositories', function() {
-    let repository = TestStubs.Repository({
+  it('renders github links for gitlab repositories', function () {
+    const repository = TestStubs.Repository({
       provider: {
         id: 'gitlab',
       },
     });
-    let pullRequest = TestStubs.PullRequest({repository});
-    let wrapper = mount(
+    const pullRequest = TestStubs.PullRequest({repository});
+    const wrapper = mount(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    let icon = wrapper.find('InlineSvg');
-    expect(icon).toHaveLength(1);
-    expect(icon.props().src).toEqual('icon-gitlab');
+    const icon = wrapper.find('IconGitlab').hostNodes();
+    expect(icon).toHaveLength(0);
 
-    let link = wrapper.find('a');
+    const link = wrapper.find('a');
     expect(link).toHaveLength(1);
     expect(link.text().trim()).toEqual('example/repo-name #3: Fix first issue');
   });

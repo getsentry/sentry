@@ -24,9 +24,11 @@ class PieChart extends React.Component {
   }
 
   componentDidMount() {
-    let {selectOnRender} = this.props;
+    const {selectOnRender} = this.props;
 
-    if (!selectOnRender) return;
+    if (!selectOnRender) {
+      return;
+    }
 
     // Timeout is because we need to wait for rendering animation to complete
     // And I haven't found a callback for this
@@ -39,7 +41,7 @@ class PieChart extends React.Component {
     return series.data.reduce(
       (acc, {name, value}) => ({
         ...acc,
-        [name]: Math.round(value / total * 10000) / 100,
+        [name]: Math.round((value / total) * 10000) / 100,
       }),
       {}
     );
@@ -48,7 +50,9 @@ class PieChart extends React.Component {
   // Select a series to highlight (e.g. shows details of series)
   // This is the same event as when you hover over a series in the chart
   highlight = dataIndex => {
-    if (!this.chart.current) return;
+    if (!this.chart.current) {
+      return;
+    }
 
     this.chart.current.getEchartsInstance().dispatchAction({
       type: 'highlight',
@@ -59,7 +63,9 @@ class PieChart extends React.Component {
 
   // Opposite of `highlight`
   downplay = dataIndex => {
-    if (!this.chart.current) return;
+    if (!this.chart.current) {
+      return;
+    }
 
     this.chart.current.getEchartsInstance().dispatchAction({
       type: 'downplay',
@@ -72,7 +78,7 @@ class PieChart extends React.Component {
   getSeriesPercentages = series => {
     const total = series.data.reduce((acc, {value}) => acc + value, 0);
     return series.data
-      .map(({name, value}) => [name, Math.round(value / total * 10000) / 100])
+      .map(({name, value}) => [name, Math.round((value / total) * 10000) / 100])
       .reduce(
         (acc, [name, value]) => ({
           ...acc,
@@ -84,7 +90,9 @@ class PieChart extends React.Component {
 
   render() {
     const {series, ...props} = this.props;
-    if (!series || !series.length) return null;
+    if (!series || !series.length) {
+      return null;
+    }
     if (series.length > 1) {
       // eslint-disable-next-line no-console
       console.warn('PieChart only uses the first series!');
@@ -109,8 +117,9 @@ class PieChart extends React.Component {
             !this.isInitialSelected ||
             !name ||
             firstSeries.data[this.selected].name === name
-          )
+          ) {
             return;
+          }
 
           // Unhighlight if not initial "highlight" event and
           // if name exists (i.e. not dispatched from cDM) and
@@ -119,8 +128,12 @@ class PieChart extends React.Component {
           this.isInitialSelected = false;
         }}
         onMouseOver={({dataIndex}) => {
-          if (!this.isInitialSelected) return;
-          if (dataIndex === this.selected) return;
+          if (!this.isInitialSelected) {
+            return;
+          }
+          if (dataIndex === this.selected) {
+            return;
+          }
           this.downplay(this.selected);
           this.isInitialSelected = false;
         }}
@@ -133,11 +146,12 @@ class PieChart extends React.Component {
             left: 10,
             top: 10,
             bottom: 10,
-            formatter: name => {
-              return `${name} ${typeof seriesPercentages[name] !== 'undefined'
-                ? `(${seriesPercentages[name]}%)`
-                : ''}`;
-            },
+            formatter: name =>
+              `${name} ${
+                typeof seriesPercentages[name] !== 'undefined'
+                  ? `(${seriesPercentages[name]}%)`
+                  : ''
+              }`,
           }),
         }}
         series={[
@@ -147,9 +161,7 @@ class PieChart extends React.Component {
             avoidLabelOverlap: false,
             label: {
               normal: {
-                formatter: ({name, percent, dataIndex}) => {
-                  return `${name}\n${percent}%`;
-                },
+                formatter: ({name, percent}) => `${name}\n${percent}%`,
                 show: false,
                 position: 'center',
               },

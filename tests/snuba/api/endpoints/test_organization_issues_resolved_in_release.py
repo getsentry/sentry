@@ -4,23 +4,15 @@ from uuid import uuid1
 
 import six
 
-from sentry.models import (
-    Commit,
-    GroupLink,
-    GroupResolution,
-    ReleaseCommit,
-    Repository,
-)
+from sentry.models import Commit, GroupLink, GroupResolution, ReleaseCommit, Repository
 
-from sentry.testutils import (
-    APITestCase,
-    SnubaTestCase,
-)
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.utils.compat import map
 
 
 class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase):
-    endpoint = 'sentry-api-0-organization-release-resolved'
-    method = 'get'
+    endpoint = "sentry-api-0-organization-release-resolved"
+    method = "get"
 
     def setUp(self):
         super(OrganizationIssuesResolvedInReleaseEndpointTest, self).setUp()
@@ -40,31 +32,18 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase
 
     def build_grouplink(self, group=None):
         group = self.group if group is None else group
-        repo = Repository.objects.create(
-            organization_id=self.org.id,
-            name=group.project.name,
-        )
+        repo = Repository.objects.create(organization_id=self.org.id, name=group.project.name)
         commit = Commit.objects.create(
-            organization_id=self.org.id,
-            repository_id=repo.id,
-            key=uuid1().hex,
+            organization_id=self.org.id, repository_id=repo.id, key=uuid1().hex
         )
         commit_2 = Commit.objects.create(
-            organization_id=self.org.id,
-            repository_id=repo.id,
-            key=uuid1().hex,
+            organization_id=self.org.id, repository_id=repo.id, key=uuid1().hex
         )
         ReleaseCommit.objects.create(
-            organization_id=self.org.id,
-            release=self.release,
-            commit=commit,
-            order=commit.id,
+            organization_id=self.org.id, release=self.release, commit=commit, order=commit.id
         )
         ReleaseCommit.objects.create(
-            organization_id=self.org.id,
-            release=self.release,
-            commit=commit_2,
-            order=commit_2.id,
+            organization_id=self.org.id, release=self.release, commit=commit_2, order=commit_2.id
         )
         GroupLink.objects.create(
             group_id=group.id,
@@ -84,18 +63,14 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase
     def run_test(self, expected_groups, project_ids=None, environment_names=None):
         params = {}
         if project_ids:
-            params['project'] = project_ids
+            params["project"] = project_ids
         if environment_names:
-            params['environment'] = environment_names
+            params["environment"] = environment_names
 
-        response = self.get_valid_response(
-            self.org.slug,
-            self.release.version,
-            **params
-        )
+        response = self.get_valid_response(self.org.slug, self.release.version, **params)
         assert len(response.data) == len(expected_groups)
         expected = set(map(six.text_type, [g.id for g in expected_groups]))
-        assert set([item['id'] for item in response.data]) == expected
+        assert set([item["id"] for item in response.data]) == expected
 
     def test_shows_issues_from_groupresolution(self):
         """
@@ -144,8 +119,7 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase
         self.run_test([self.group], project_ids=[self.group.project_id])
         self.run_test([self.group_2], project_ids=[self.group_2.project_id])
         self.run_test(
-            [self.group, self.group_2],
-            project_ids=[self.group.project_id, self.group_2.project_id],
+            [self.group, self.group_2], project_ids=[self.group.project_id, self.group_2.project_id]
         )
 
     def test_multiple_envs_projects(self):

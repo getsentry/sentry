@@ -1,12 +1,14 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
+
 import PercentageTableChart from 'app/components/charts/percentageTableChart';
 
-describe('PercentageTableChart', function() {
+describe('PercentageTableChart', function () {
   let wrapper;
 
-  describe('With Previous Data', function() {
-    beforeEach(function() {
+  describe('With Previous Data', function () {
+    beforeEach(function () {
       wrapper = mount(
         <PercentageTableChart
           title="User"
@@ -28,65 +30,39 @@ describe('PercentageTableChart', function() {
       );
     });
 
-    it('renders headers', function() {
+    it('renders headers', function () {
       expect(
-        wrapper.find('PanelHeader NameAndCountContainer').prop('children')
+        wrapper.find('TableHeader NameAndCountContainer').prop('children')
       ).toHaveLength(2);
 
-      expect(wrapper.find('PanelHeader').text()).toContain('User');
-      expect(wrapper.find('PanelHeader').text()).toContain('Count');
-      expect(wrapper.find('PanelHeader').text()).toContain('Percentage');
+      expect(wrapper.find('TableHeader').text()).toContain('User');
+      expect(wrapper.find('TableHeader').text()).toContain('Count');
+      expect(wrapper.find('TableHeader').text()).toContain('Percentage');
     });
 
-    it('renders data rows', function() {
+    it('renders data rows', function () {
       expect(wrapper.find('TableChartRow')).toHaveLength(2);
 
-      expect(
-        wrapper
-          .find('TableChartRow Name')
-          .at(0)
-          .text()
-      ).toBe('billy');
+      expect(wrapper.find('TableChartRow Name').at(0).text()).toBe('billy');
 
       expect(
-        wrapper
-          .find('TableChartRow CountColumn DeltaCaret')
-          .at(0)
-          .prop('direction')
-      ).toBeGreaterThan(0);
+        wrapper.find('TableChartRow CountColumn IconChevron').at(0).prop('direction')
+      ).toEqual('up');
+
+      expect(wrapper.find('TableChartRow Bar').at(0).prop('width')).toBe(40);
+
+      expect(wrapper.find('TableChartRow Name').at(1).text()).toBe('not billy');
 
       expect(
-        wrapper
-          .find('TableChartRow Bar')
-          .at(0)
-          .prop('width')
-      ).toBe(40);
+        wrapper.find('TableChartRow CountColumn IconChevron').at(1).prop('direction')
+      ).toEqual('down');
 
-      expect(
-        wrapper
-          .find('TableChartRow Name')
-          .at(1)
-          .text()
-      ).toBe('not billy');
-
-      expect(
-        wrapper
-          .find('TableChartRow CountColumn DeltaCaret')
-          .at(1)
-          .prop('direction')
-      ).toBeLessThan(0);
-
-      expect(
-        wrapper
-          .find('TableChartRow Bar')
-          .at(1)
-          .prop('width')
-      ).toBe(60);
+      expect(wrapper.find('TableChartRow Bar').at(1).prop('width')).toBe(60);
     });
   });
 
-  describe('Without Previous Data', function() {
-    beforeEach(function() {
+  describe('Without Previous Data', function () {
+    beforeEach(function () {
       wrapper = mount(
         <PercentageTableChart
           title="User"
@@ -106,38 +82,18 @@ describe('PercentageTableChart', function() {
       );
     });
 
-    it('renders data rows', function() {
+    it('renders data rows', function () {
       expect(wrapper.find('TableChartRow')).toHaveLength(2);
 
-      expect(
-        wrapper
-          .find('TableChartRow Name')
-          .at(0)
-          .text()
-      ).toBe('billy');
+      expect(wrapper.find('TableChartRow Name').at(0).text()).toBe('billy');
 
       expect(wrapper.find('TableChartRow CountColumn DeltaCaret')).toHaveLength(0);
 
-      expect(
-        wrapper
-          .find('TableChartRow Bar')
-          .at(0)
-          .prop('width')
-      ).toBe(40);
+      expect(wrapper.find('TableChartRow Bar').at(0).prop('width')).toBe(40);
 
-      expect(
-        wrapper
-          .find('TableChartRow Name')
-          .at(1)
-          .text()
-      ).toBe('not billy');
+      expect(wrapper.find('TableChartRow Name').at(1).text()).toBe('not billy');
 
-      expect(
-        wrapper
-          .find('TableChartRow Bar')
-          .at(1)
-          .prop('width')
-      ).toBe(60);
+      expect(wrapper.find('TableChartRow Bar').at(1).prop('width')).toBe(60);
     });
   });
 });

@@ -3,11 +3,14 @@ import React from 'react';
 import {sortArray} from 'app/utils';
 import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
+import {t} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
+
 import OrganizationRepositories from './organizationRepositories';
 
 export default class OrganizationRepositoriesContainer extends AsyncView {
   getEndpoints() {
-    let {orgId} = this.props.params;
+    const {orgId} = this.props.params;
     return [
       ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
       ['repoConfig', `/organizations/${orgId}/config/repos/`],
@@ -16,7 +19,7 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
 
   // Callback used by child component to signal state change
   onRepositoryChange = data => {
-    let itemList = this.state.itemList;
+    const itemList = this.state.itemList;
     itemList.forEach(item => {
       if (item.id === data.id) {
         item.status = data.status;
@@ -26,7 +29,7 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
   };
 
   onAddRepo = repo => {
-    let itemList = this.state.itemList;
+    const itemList = this.state.itemList;
     itemList.push(repo);
     this.setState({
       itemList: sortArray(itemList, item => item.name),
@@ -34,7 +37,8 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
   };
 
   getTitle() {
-    return 'Repositories';
+    const {orgId} = this.props.params;
+    return routeTitleGen(t('Repositories'), orgId, false);
   }
 
   renderBody() {

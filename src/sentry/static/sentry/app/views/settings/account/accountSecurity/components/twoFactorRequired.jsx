@@ -1,54 +1,28 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import PropTypes from 'prop-types';
-import {capitalize} from 'lodash';
-import {t} from 'app/locale';
+import {tct} from 'app/locale';
 import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
+import ExternalLink from 'app/components/links/externalLink';
+import {IconFlag} from 'app/icons';
 import space from 'app/styles/space';
+import getPendingInvite from 'app/utils/getPendingInvite';
 
-let StyledAlert = styled(Alert)`
+const TwoFactorRequired = () =>
+  !getPendingInvite() ? null : (
+    <StyledAlert data-test-id="require-2fa" type="error" icon={<IconFlag size="md" />}>
+      {tct(
+        'You have been invited to an organization that requires [link:two-factor authentication].' +
+          ' Setup two-factor authentication below to join your organization.',
+        {
+          link: <ExternalLink href="https://docs.sentry.io/accounts/require-2fa/" />,
+        }
+      )}
+    </StyledAlert>
+  );
+
+const StyledAlert = styled(Alert)`
   margin: ${space(3)} 0;
 `;
-
-class TwoFactorRequired extends AsyncComponent {
-  static propTypes = {
-    orgsRequire2fa: PropTypes.arrayOf(PropTypes.object).isRequired,
-  };
-
-  getEndpoints() {
-    return [];
-  }
-
-  renderBody() {
-    let {orgsRequire2fa} = this.props;
-    if (!orgsRequire2fa.length) {
-      return null;
-    }
-
-    // singular vs plural message
-    let plural = orgsRequire2fa.length > 1;
-    let require = plural ? t('organizations require') : t('organization requires');
-    let organizations = plural ? t('these organizations') : t('this organization');
-
-    let names = orgsRequire2fa.map(({name}) => capitalize(name));
-    let organizationNames = [names.slice(0, -1).join(', '), names.slice(-1)[0]].join(
-      plural ? ' and ' : ''
-    );
-
-    return (
-      <StyledAlert className="require-2fa" type="error" icon="icon-circle-exclamation">
-        {t(
-          'The %s %s all members to enable two-factor authentication.' +
-            ' You need to enable two-factor authentication to access projects under %s.',
-          organizationNames,
-          require,
-          organizations
-        )}
-      </StyledAlert>
-    );
-  }
-}
 
 export default TwoFactorRequired;

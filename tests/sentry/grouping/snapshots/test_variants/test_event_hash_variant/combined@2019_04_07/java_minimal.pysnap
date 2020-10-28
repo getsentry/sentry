@@ -1,0 +1,1019 @@
+---
+created: '2020-02-26T19:54:24.567267Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "java.lang.Thread"
+            filename (module takes precedence)
+              "Thread.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              844
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
+            filename (module takes precedence)
+              "TaskThread.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              61
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "java.util.concurrent.ThreadPoolExecutor$Worker"
+            filename (module takes precedence)
+              "ThreadPoolExecutor.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              641
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "java.util.concurrent.ThreadPoolExecutor"
+            filename (module takes precedence)
+              "ThreadPoolExecutor.java"
+            function*
+              "runWorker"
+            lineno (function takes precedence)
+              1167
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.tomcat.util.net.SocketProcessorBase"
+            filename (module takes precedence)
+              "SocketProcessorBase.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              49
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor"
+            filename (module takes precedence)
+              "NioEndpoint.java"
+            function*
+              "doRun"
+            lineno (function takes precedence)
+              1434
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.coyote.AbstractProtocol$ConnectionHandler"
+            filename (module takes precedence)
+              "AbstractProtocol.java"
+            function*
+              "process"
+            lineno (function takes precedence)
+              798
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.coyote.AbstractProcessorLight"
+            filename (module takes precedence)
+              "AbstractProcessorLight.java"
+            function*
+              "process"
+            lineno (function takes precedence)
+              66
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.coyote.http11.Http11Processor"
+            filename (module takes precedence)
+              "Http11Processor.java"
+            function*
+              "service"
+            lineno (function takes precedence)
+              783
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.connector.CoyoteAdapter"
+            filename (module takes precedence)
+              "CoyoteAdapter.java"
+            function*
+              "service"
+            lineno (function takes precedence)
+              349
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.StandardEngineValve"
+            filename (module takes precedence)
+              "StandardEngineValve.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              87
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.valves.ErrorReportValve"
+            filename (module takes precedence)
+              "ErrorReportValve.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              79
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.StandardHostValve"
+            filename (module takes precedence)
+              "StandardHostValve.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              140
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.authenticator.AuthenticatorBase"
+            filename (module takes precedence)
+              "AuthenticatorBase.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              474
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.StandardContextValve"
+            filename (module takes precedence)
+              "StandardContextValve.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              96
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.StandardWrapperValve"
+            filename (module takes precedence)
+              "StandardWrapperValve.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              198
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              192
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "OncePerRequestFilter.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              107
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.filter.CharacterEncodingFilter"
+            filename (module takes precedence)
+              "CharacterEncodingFilter.java"
+            function*
+              "doFilterInternal"
+            lineno (function takes precedence)
+              197
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              192
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "OncePerRequestFilter.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              107
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.filter.HiddenHttpMethodFilter"
+            filename (module takes precedence)
+              "HiddenHttpMethodFilter.java"
+            function*
+              "doFilterInternal"
+            lineno (function takes precedence)
+              81
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              192
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "OncePerRequestFilter.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              107
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.filter.HttpPutFormContentFilter"
+            filename (module takes precedence)
+              "HttpPutFormContentFilter.java"
+            function*
+              "doFilterInternal"
+            lineno (function takes precedence)
+              105
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              192
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "OncePerRequestFilter.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              107
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.filter.RequestContextFilter"
+            filename (module takes precedence)
+              "RequestContextFilter.java"
+            function*
+              "doFilterInternal"
+            lineno (function takes precedence)
+              99
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              192
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.tomcat.websocket.server.WsFilter"
+            filename (module takes precedence)
+              "WsFilter.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              52
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              230
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "javax.servlet.http.HttpServlet"
+            filename (module takes precedence)
+              "HttpServlet.java"
+            function*
+              "service"
+            lineno (function takes precedence)
+              729
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "FrameworkServlet.java"
+            function*
+              "service"
+            lineno (function takes precedence)
+              846
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "javax.servlet.http.HttpServlet"
+            filename (module takes precedence)
+              "HttpServlet.java"
+            function*
+              "service"
+            lineno (function takes precedence)
+              622
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "FrameworkServlet.java"
+            function*
+              "doGet"
+            lineno (function takes precedence)
+              861
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "FrameworkServlet.java"
+            function*
+              "processRequest"
+            lineno (function takes precedence)
+              970
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.servlet.DispatcherServlet"
+            filename (module takes precedence)
+              "DispatcherServlet.java"
+            function*
+              "doService"
+            lineno (function takes precedence)
+              897
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.servlet.DispatcherServlet"
+            filename (module takes precedence)
+              "DispatcherServlet.java"
+            function*
+              "doDispatch"
+            lineno (function takes precedence)
+              963
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"
+            filename (module takes precedence)
+              "AbstractHandlerMethodAdapter.java"
+            function*
+              "handle"
+            lineno (function takes precedence)
+              85
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
+            filename (module takes precedence)
+              "RequestMappingHandlerAdapter.java"
+            function*
+              "handleInternal"
+            lineno (function takes precedence)
+              738
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
+            filename (module takes precedence)
+              "RequestMappingHandlerAdapter.java"
+            function*
+              "invokeHandlerMethod"
+            lineno (function takes precedence)
+              827
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"
+            filename (module takes precedence)
+              "ServletInvocableHandlerMethod.java"
+            function*
+              "invokeAndHandle"
+            lineno (function takes precedence)
+              116
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.method.support.InvocableHandlerMethod"
+            filename (module takes precedence)
+              "InvocableHandlerMethod.java"
+            function*
+              "invokeForRequest"
+            lineno (function takes precedence)
+              133
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "org.springframework.web.method.support.InvocableHandlerMethod"
+            filename (module takes precedence)
+              "InvocableHandlerMethod.java"
+            function*
+              "doInvoke"
+            lineno (function takes precedence)
+              205
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "Method.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              564
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "jdk.internal.reflect.DelegatingMethodAccessorImpl"
+            filename (module takes precedence)
+              "DelegatingMethodAccessorImpl.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              43
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "NativeMethodAccessorImpl.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              62
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "NativeMethodAccessorImpl.java"
+            function*
+              "invoke0"
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "io.sentry.example.Application"
+            filename (module takes precedence)
+              "Application.java"
+            function*
+              "home"
+            lineno (function takes precedence)
+              30
+        type*
+          "ArithmeticException"
+        value (stacktrace and type take precedence)
+          "/ by zero"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  component:
+    default (exception of system takes precedence)
+      message (exception of system takes precedence)
+        "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause"
+--------------------------------------------------------------------------
+system:
+  hash: "ec87dd10e4f7512ecccb4a068c5774ae"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "java.lang.Thread"
+            filename (module takes precedence)
+              "Thread.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              844
+          frame*
+            module*
+              "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
+            filename (module takes precedence)
+              "TaskThread.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              61
+          frame*
+            module*
+              "java.util.concurrent.ThreadPoolExecutor$Worker"
+            filename (module takes precedence)
+              "ThreadPoolExecutor.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              641
+          frame*
+            module*
+              "java.util.concurrent.ThreadPoolExecutor"
+            filename (module takes precedence)
+              "ThreadPoolExecutor.java"
+            function*
+              "runWorker"
+            lineno (function takes precedence)
+              1167
+          frame*
+            module*
+              "org.apache.tomcat.util.net.SocketProcessorBase"
+            filename (module takes precedence)
+              "SocketProcessorBase.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              49
+          frame*
+            module*
+              "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor"
+            filename (module takes precedence)
+              "NioEndpoint.java"
+            function*
+              "doRun"
+            lineno (function takes precedence)
+              1434
+          frame*
+            module*
+              "org.apache.coyote.AbstractProtocol$ConnectionHandler"
+            filename (module takes precedence)
+              "AbstractProtocol.java"
+            function*
+              "process"
+            lineno (function takes precedence)
+              798
+          frame*
+            module*
+              "org.apache.coyote.AbstractProcessorLight"
+            filename (module takes precedence)
+              "AbstractProcessorLight.java"
+            function*
+              "process"
+            lineno (function takes precedence)
+              66
+          frame*
+            module*
+              "org.apache.coyote.http11.Http11Processor"
+            filename (module takes precedence)
+              "Http11Processor.java"
+            function*
+              "service"
+            lineno (function takes precedence)
+              783
+          frame*
+            module*
+              "org.apache.catalina.connector.CoyoteAdapter"
+            filename (module takes precedence)
+              "CoyoteAdapter.java"
+            function*
+              "service"
+            lineno (function takes precedence)
+              349
+          frame*
+            module*
+              "org.apache.catalina.core.StandardEngineValve"
+            filename (module takes precedence)
+              "StandardEngineValve.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              87
+          frame*
+            module*
+              "org.apache.catalina.valves.ErrorReportValve"
+            filename (module takes precedence)
+              "ErrorReportValve.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              79
+          frame*
+            module*
+              "org.apache.catalina.core.StandardHostValve"
+            filename (module takes precedence)
+              "StandardHostValve.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              140
+          frame*
+            module*
+              "org.apache.catalina.authenticator.AuthenticatorBase"
+            filename (module takes precedence)
+              "AuthenticatorBase.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              474
+          frame*
+            module*
+              "org.apache.catalina.core.StandardContextValve"
+            filename (module takes precedence)
+              "StandardContextValve.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              96
+          frame*
+            module*
+              "org.apache.catalina.core.StandardWrapperValve"
+            filename (module takes precedence)
+              "StandardWrapperValve.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              198
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              192
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "OncePerRequestFilter.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              107
+          frame*
+            module*
+              "org.springframework.web.filter.CharacterEncodingFilter"
+            filename (module takes precedence)
+              "CharacterEncodingFilter.java"
+            function*
+              "doFilterInternal"
+            lineno (function takes precedence)
+              197
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              192
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "OncePerRequestFilter.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              107
+          frame*
+            module*
+              "org.springframework.web.filter.HiddenHttpMethodFilter"
+            filename (module takes precedence)
+              "HiddenHttpMethodFilter.java"
+            function*
+              "doFilterInternal"
+            lineno (function takes precedence)
+              81
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              192
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "OncePerRequestFilter.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              107
+          frame*
+            module*
+              "org.springframework.web.filter.HttpPutFormContentFilter"
+            filename (module takes precedence)
+              "HttpPutFormContentFilter.java"
+            function*
+              "doFilterInternal"
+            lineno (function takes precedence)
+              105
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              192
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "OncePerRequestFilter.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              107
+          frame*
+            module*
+              "org.springframework.web.filter.RequestContextFilter"
+            filename (module takes precedence)
+              "RequestContextFilter.java"
+            function*
+              "doFilterInternal"
+            lineno (function takes precedence)
+              99
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              192
+          frame*
+            module*
+              "org.apache.tomcat.websocket.server.WsFilter"
+            filename (module takes precedence)
+              "WsFilter.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              52
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "doFilter"
+            lineno (function takes precedence)
+              165
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "ApplicationFilterChain.java"
+            function*
+              "internalDoFilter"
+            lineno (function takes precedence)
+              230
+          frame*
+            module*
+              "javax.servlet.http.HttpServlet"
+            filename (module takes precedence)
+              "HttpServlet.java"
+            function*
+              "service"
+            lineno (function takes precedence)
+              729
+          frame*
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "FrameworkServlet.java"
+            function*
+              "service"
+            lineno (function takes precedence)
+              846
+          frame*
+            module*
+              "javax.servlet.http.HttpServlet"
+            filename (module takes precedence)
+              "HttpServlet.java"
+            function*
+              "service"
+            lineno (function takes precedence)
+              622
+          frame*
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "FrameworkServlet.java"
+            function*
+              "doGet"
+            lineno (function takes precedence)
+              861
+          frame*
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "FrameworkServlet.java"
+            function*
+              "processRequest"
+            lineno (function takes precedence)
+              970
+          frame*
+            module*
+              "org.springframework.web.servlet.DispatcherServlet"
+            filename (module takes precedence)
+              "DispatcherServlet.java"
+            function*
+              "doService"
+            lineno (function takes precedence)
+              897
+          frame*
+            module*
+              "org.springframework.web.servlet.DispatcherServlet"
+            filename (module takes precedence)
+              "DispatcherServlet.java"
+            function*
+              "doDispatch"
+            lineno (function takes precedence)
+              963
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"
+            filename (module takes precedence)
+              "AbstractHandlerMethodAdapter.java"
+            function*
+              "handle"
+            lineno (function takes precedence)
+              85
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
+            filename (module takes precedence)
+              "RequestMappingHandlerAdapter.java"
+            function*
+              "handleInternal"
+            lineno (function takes precedence)
+              738
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
+            filename (module takes precedence)
+              "RequestMappingHandlerAdapter.java"
+            function*
+              "invokeHandlerMethod"
+            lineno (function takes precedence)
+              827
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"
+            filename (module takes precedence)
+              "ServletInvocableHandlerMethod.java"
+            function*
+              "invokeAndHandle"
+            lineno (function takes precedence)
+              116
+          frame*
+            module*
+              "org.springframework.web.method.support.InvocableHandlerMethod"
+            filename (module takes precedence)
+              "InvocableHandlerMethod.java"
+            function*
+              "invokeForRequest"
+            lineno (function takes precedence)
+              133
+          frame*
+            module*
+              "org.springframework.web.method.support.InvocableHandlerMethod"
+            filename (module takes precedence)
+              "InvocableHandlerMethod.java"
+            function*
+              "doInvoke"
+            lineno (function takes precedence)
+              205
+          frame*
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "Method.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              564
+          frame*
+            module*
+              "jdk.internal.reflect.DelegatingMethodAccessorImpl"
+            filename (module takes precedence)
+              "DelegatingMethodAccessorImpl.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              43
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "NativeMethodAccessorImpl.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              62
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "NativeMethodAccessorImpl.java"
+            function*
+              "invoke0"
+          frame*
+            module*
+              "io.sentry.example.Application"
+            filename (module takes precedence)
+              "Application.java"
+            function*
+              "home"
+            lineno (function takes precedence)
+              30
+        type*
+          "ArithmeticException"
+        value (stacktrace and type take precedence)
+          "/ by zero"

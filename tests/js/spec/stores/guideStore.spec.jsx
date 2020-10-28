@@ -1,136 +1,107 @@
-import React from 'react';
-import GuideStore from 'app/stores/guideStore';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
+import GuideStore from 'app/stores/guideStore';
 
-describe('GuideStore', function() {
-  let sandbox;
-  let anchor1 = <GuideAnchor target="target 1" type="text" />;
-  let anchor2 = <GuideAnchor target="target 2" type="text" />;
+jest.mock('app/utils/analytics');
+
+describe('GuideStore', function () {
   let data;
+  const user = {
+    id: '5',
+    isSuperuser: false,
+    dateJoined: new Date(2020, 0, 1),
+  };
 
-  beforeEach(function() {
+  beforeEach(function () {
+    trackAnalyticsEvent.mockClear();
     ConfigStore.config = {
-      user: {
-        isSuperuser: true,
-      },
+      user,
     };
     GuideStore.init();
-    sandbox = sinon.sandbox.create();
-    data = {
-      Guide1: {
-        cue: 'Click here for a tour of the issue page',
-        id: 1,
-        required_targets: ['target 1'],
-        steps: [
-          {message: 'Message 1', target: 'target 1', title: '1. Title 1'},
-          {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
-          {message: 'Message 3', target: 'target 3', title: '3. Title 3'},
-        ],
-        seen: true,
-      },
-      Guide2: {
-        cue: 'Some other guide here',
-        id: 2,
-        required_targets: ['target 1'],
-        steps: [
-          {message: 'Message 1', target: 'target 1', title: '1. Title 1'},
-          {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
-        ],
+    data = [
+      {
+        guide: 'issue',
         seen: false,
       },
-      alert_reminder_1: {
-        id: 3,
-        guide_type: 'tip',
-        required_targets: ['target 1'],
-        steps: [{message: 'Message 1', target: 'target 1', title: '1. Title 1'}],
-        seen: false,
-      },
-    };
-    GuideStore.onRegisterAnchor(anchor1);
-    GuideStore.onRegisterAnchor(anchor2);
-    MockApiClient.addMockResponse({
-      url: '/projects/org/proj/stats/',
-      body: [[1, 500], [2, 300], [3, 500]],
-    });
-    MockApiClient.addMockResponse({
-      url: '/projects/org/proj/rules/',
-      body: [],
-    });
+      {guide: 'issue_stream', seen: true},
+    ];
+    GuideStore.onRegisterAnchor('issue_title');
+    GuideStore.onRegisterAnchor('exception');
+    GuideStore.onRegisterAnchor('breadcrumbs');
+    GuideStore.onRegisterAnchor('issue_stream');
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
-
-  it('should move through the steps in the guide', async function() {
+  it('should move through the steps in the guide', function () {
     GuideStore.onFetchSucceeded(data);
-    await tick();
-    let guide = GuideStore.state.currentGuide;
     // Should pick the first non-seen guide in alphabetic order.
-    expect(guide.id).toEqual(2);
-    expect(guide.steps).toHaveLength(2);
+    expect(GuideStore.state.currentStep).toEqual(0);
+    expect(GuideStore.state.currentGuide.guide).toEqual('issue');
+    // Should prune steps that don't have anchors.
+    expect(GuideStore.state.currentGuide.steps).toHaveLength(3);
+
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(1);
+    GuideStore.onNextStep();
+    expect(GuideStore.state.currentStep).toEqual(2);
     GuideStore.onCloseGuide();
-    await tick();
-    guide = GuideStore.state.currentGuide;
-    // We don't have the alert reminder guide's data yet, so we can't show it.
-    expect(guide).toEqual(null);
+    expect(GuideStore.state.currentGuide).toEqual(null);
   });
 
-  it('should force show a guide', async function() {
+  it('should force show a guide with #assistant', function () {
+    data = [
+      {
+        guide: 'issue',
+        seen: true,
+      },
+      {guide: 'issue_stream', seen: false},
+    ];
+
     GuideStore.onFetchSucceeded(data);
-    await tick();
     window.location.hash = '#assistant';
     GuideStore.onURLChange();
-    await tick();
-    expect(GuideStore.state.currentGuide.id).toEqual(1);
-    // Should prune steps that don't have anchors.
-    expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
+    expect(GuideStore.state.currentGuide.guide).toEqual('issue');
     GuideStore.onCloseGuide();
-    await tick();
-    expect(GuideStore.state.currentGuide.id).toEqual(2);
+    expect(GuideStore.state.currentGuide.guide).toEqual('issue_stream');
     window.location.hash = '';
   });
 
-  it('should render tip', async function() {
-    GuideStore.onFetchSucceeded({
-      ...data,
-      Guide2: {
-        ...data.Guide2,
+  it('should record analytics events when guide is cued', function () {
+    const spy = jest.spyOn(GuideStore, 'recordCue');
+    GuideStore.onFetchSucceeded(data);
+    expect(spy).toHaveBeenCalledWith('issue');
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      guide: 'issue',
+      eventKey: 'assistant.guide_cued',
+      eventName: 'Assistant Guide Cued',
+      organization_id: null,
+      user_id: parseInt(user.id, 10),
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    GuideStore.updateCurrentGuide();
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    GuideStore.onNextStep();
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+
+  it('only shows guides with server data and content', function () {
+    data = [
+      {
+        guide: 'issue',
         seen: true,
       },
-    });
-    expect(GuideStore.state.currentGuide).toEqual(null);
-    let spy = jest.spyOn(GuideStore, 'isDefaultAlert').mockImplementation(() => true);
-    GuideStore.onSetActiveOrganization({id: 1, slug: 'org'});
-    GuideStore.onSetActiveProject({id: 1, slug: 'proj'});
-    await tick();
-    expect(GuideStore.state.currentGuide.id).toEqual(3);
-    spy.mockRestore();
-  });
-
-  it('should record analytics events when guide is cued', async function() {
-    let spy = jest.spyOn(GuideStore, 'recordCue');
+      {
+        guide: 'has_no_content',
+        seen: false,
+      },
+    ];
 
     GuideStore.onFetchSucceeded(data);
-    await tick();
-    expect(spy).toHaveBeenCalledWith(data.Guide2.id, data.Guide2.cue);
-    expect(spy).toHaveBeenCalledTimes(1);
-    spy.mockRestore();
-  });
-
-  it('should not send multiple cue analytics events for same guide', async function() {
-    let spy = jest.spyOn(GuideStore, 'recordCue');
-
-    GuideStore.onFetchSucceeded(data);
-    await tick();
-    expect(spy).toHaveBeenCalledWith(data.Guide2.id, data.Guide2.cue);
-    expect(spy).toHaveBeenCalledTimes(1);
-    GuideStore.updateCurrentGuide();
-    await tick();
-    expect(spy).toHaveBeenCalledTimes(1);
-    spy.mockRestore();
+    expect(GuideStore.state.guides.length).toBe(1);
+    expect(GuideStore.state.guides[0].guide).toBe(data[0].guide);
   });
 });

@@ -1,0 +1,30 @@
+{% extends "sentry/bases/modal.html" %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+{% block title %}{% trans "Register Okta" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <h3>{% trans "Register Okta" %}</h3>
+
+  <p>
+    As part of Okta SSO provisioning, you must to provide the Okta
+    identity provider Metadata URL to Sentry.
+  </p>
+
+  <form method="post" class="form-stacked">
+    {% csrf_token %}
+    {% include "sentry/partial/form_base.html" %}
+    <input type="hidden" name="provider" value="okta" />
+
+    <fieldset class="form-actions">
+      <button type="submit" class="btn btn-primary" name="action_save">{% trans "Continue" %}</button>
+      <a class="pull-right" style="margin-top: 7px" href="https://docs.sentry.io/learn/sso/#okta" target="_blank" rel="noopener">
+        Need help finding your Metadata URL?
+      </a>
+    </fieldset>
+  </form>
+{% endblock %}

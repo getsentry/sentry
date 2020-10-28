@@ -1,616 +1,16 @@
-"""
-sentry.interfaces.exception
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
-__all__ = ('Exception', 'Mechanism', 'normalize_mechanism_meta', 'upgrade_legacy_mechanism')
+__all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
 
 import re
 import six
 
-from django.conf import settings
+from sentry.interfaces.base import Interface
+from sentry.utils.json import prune_empty_keys
+from sentry.interfaces.stacktrace import Stacktrace
+from sentry.utils.safe import get_path
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
-from sentry.interfaces.schemas import validate_and_default_interface
-from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
-from sentry.utils import json
-from sentry.utils.safe import get_path, trim
-
-_type_value_re = re.compile('^(\w+):(.*)$')
-
-WELL_KNOWN_ERRNO = {
-    'linux': {
-        1: 'EPERM',  # Operation not permitted
-        2: 'ENOENT',  # No such file or directory
-        3: 'ESRCH',  # No such process
-        4: 'EINTR',  # Interrupted system call
-        5: 'EIO',  # I/O error
-        6: 'ENXIO',  # No such device or address
-        7: 'E2BIG',  # Argument list too long
-        8: 'ENOEXEC',  # Exec format error
-        9: 'EBADF',  # Bad file number
-        10: 'ECHILD',  # No child processes
-        11: 'EAGAIN',  # Try again
-        12: 'ENOMEM',  # Out of memory
-        13: 'EACCES',  # Permission denied
-        14: 'EFAULT',  # Bad address
-        15: 'ENOTBLK',  # Block device required
-        16: 'EBUSY',  # Device or resource busy
-        17: 'EEXIST',  # File exists
-        18: 'EXDEV',  # Cross-device link
-        19: 'ENODEV',  # No such device
-        20: 'ENOTDIR',  # Not a directory
-        21: 'EISDIR',  # Is a directory
-        22: 'EINVAL',  # Invalid argument
-        23: 'ENFILE',  # File table overflow
-        24: 'EMFILE',  # Too many open files
-        25: 'ENOTTY',  # Not a typewriter
-        26: 'ETXTBSY',  # Text file busy
-        27: 'EFBIG',  # File too large
-        28: 'ENOSPC',  # No space left on device
-        29: 'ESPIPE',  # Illegal seek
-        30: 'EROFS',  # Read-only file system
-        31: 'EMLINK',  # Too many links
-        32: 'EPIPE',  # Broken pipe
-        33: 'EDOM',  # Math argument out of domain of func
-        34: 'ERANGE',  # Math result not representable
-
-        35: 'EDEADLK',  # Resource deadlock would occur
-        36: 'ENAMETOOLONG',  # File name too long
-        37: 'ENOLCK',  # No record locks available
-
-        38: 'ENOSYS',  # Invalid system call number
-
-        39: 'ENOTEMPTY',  # Directory not empty
-        40: 'ELOOP',  # Too many symbolic links encountered
-        42: 'ENOMSG',  # No message of desired type
-        43: 'EIDRM',  # Identifier removed
-        44: 'ECHRNG',  # Channel number out of range
-        45: 'EL2NSYNC',  # Level 2 not synchronized
-        46: 'EL3HLT',  # Level 3 halted
-        47: 'EL3RST',  # Level 3 reset
-        48: 'ELNRNG',  # Link number out of range
-        49: 'EUNATCH',  # Protocol driver not attached
-        50: 'ENOCSI',  # No CSI structure available
-        51: 'EL2HLT',  # Level 2 halted
-        52: 'EBADE',  # Invalid exchange
-        53: 'EBADR',  # Invalid request descriptor
-        54: 'EXFULL',  # Exchange full
-        55: 'ENOANO',  # No anode
-        56: 'EBADRQC',  # Invalid request code
-        57: 'EBADSLT',  # Invalid slot
-
-        59: 'EBFONT',  # Bad font file format
-        60: 'ENOSTR',  # Device not a stream
-        61: 'ENODATA',  # No data available
-        62: 'ETIME',  # Timer expired
-        63: 'ENOSR',  # Out of streams resources
-        64: 'ENONET',  # Machine is not on the network
-        65: 'ENOPKG',  # Package not installed
-        66: 'EREMOTE',  # Object is remote
-        67: 'ENOLINK',  # Link has been severed
-        68: 'EADV',  # Advertise error
-        69: 'ESRMNT',  # Srmount error
-        70: 'ECOMM',  # Communication error on send
-        71: 'EPROTO',  # Protocol error
-        72: 'EMULTIHOP',  # Multihop attempted
-        73: 'EDOTDOT',  # RFS specific error
-        74: 'EBADMSG',  # Not a data message
-        75: 'EOVERFLOW',  # Value too large for defined data type
-        76: 'ENOTUNIQ',  # Name not unique on network
-        77: 'EBADFD',  # File descriptor in bad state
-        78: 'EREMCHG',  # Remote address changed
-        79: 'ELIBACC',  # Can not access a needed shared library
-        80: 'ELIBBAD',  # Accessing a corrupted shared library
-        81: 'ELIBSCN',  # .lib section in a.out corrupted
-        82: 'ELIBMAX',  # Attempting to link in too many shared libraries
-        83: 'ELIBEXEC',  # Cannot exec a shared library directly
-        84: 'EILSEQ',  # Illegal byte sequence
-        85: 'ERESTART',  # Interrupted system call should be restarted
-        86: 'ESTRPIPE',  # Streams pipe error
-        87: 'EUSERS',  # Too many users
-        88: 'ENOTSOCK',  # Socket operation on non-socket
-        89: 'EDESTADDRREQ',  # Destination address required
-        90: 'EMSGSIZE',  # Message too long
-        91: 'EPROTOTYPE',  # Protocol wrong type for socket
-        92: 'ENOPROTOOPT',  # Protocol not available
-        93: 'EPROTONOSUPPORT',  # Protocol not supported
-        94: 'ESOCKTNOSUPPORT',  # Socket type not supported
-        95: 'EOPNOTSUPP',  # Operation not supported on transport endpoint
-        96: 'EPFNOSUPPORT',  # Protocol family not supported
-        97: 'EAFNOSUPPORT',  # Address family not supported by protocol
-        98: 'EADDRINUSE',  # Address already in use
-        99: 'EADDRNOTAVAIL',  # Cannot assign requested address
-        100: 'ENETDOWN',  # Network is down
-        101: 'ENETUNREACH',  # Network is unreachable
-        102: 'ENETRESET',  # Network dropped connection because of reset
-        103: 'ECONNABORTED',  # Software caused connection abort
-        104: 'ECONNRESET',  # Connection reset by peer
-        105: 'ENOBUFS',  # No buffer space available
-        106: 'EISCONN',  # Transport endpoint is already connected
-        107: 'ENOTCONN',  # Transport endpoint is not connected
-        108: 'ESHUTDOWN',  # Cannot send after transport endpoint shutdown
-        109: 'ETOOMANYREFS',  # Too many references: cannot splice
-        110: 'ETIMEDOUT',  # Connection timed out
-        111: 'ECONNREFUSED',  # Connection refused
-        112: 'EHOSTDOWN',  # Host is down
-        113: 'EHOSTUNREACH',  # No route to host
-        114: 'EALREADY',  # Operation already in progress
-        115: 'EINPROGRESS',  # Operation now in progress
-        116: 'ESTALE',  # Stale file handle
-        117: 'EUCLEAN',  # Structure needs cleaning
-        118: 'ENOTNAM',  # Not a XENIX named type file
-        119: 'ENAVAIL',  # No XENIX semaphores available
-        120: 'EISNAM',  # Is a named type file
-        121: 'EREMOTEIO',  # Remote I/O error
-        122: 'EDQUOT',  # Quota exceeded
-
-        123: 'ENOMEDIUM',  # No medium found
-        124: 'EMEDIUMTYPE',  # Wrong medium type
-        125: 'ECANCELED',  # Operation Canceled
-        126: 'ENOKEY',  # Required key not available
-        127: 'EKEYEXPIRED',  # Key has expired
-        128: 'EKEYREVOKED',  # Key has been revoked
-        129: 'EKEYREJECTED',  # Key was rejected by service
-
-        130: 'EOWNERDEAD',  # Owner died
-        131: 'ENOTRECOVERABLE',  # State not recoverable
-
-        132: 'ERFKILL',  # Operation not possible due to RF-kill
-
-        133: 'EHWPOISON',  # Memory page has hardware error
-    },
-    'darwin': {
-        1: 'EPERM',  # Operation not permitted
-        2: 'ENOENT',  # No such file or directory
-        3: 'ESRCH',  # No such process
-        4: 'EINTR',  # Interrupted system call
-        5: 'EIO',  # Input/output error
-        6: 'ENXIO',  # Device not configured
-        7: 'E2BIG',  # Argument list too long
-        8: 'ENOEXEC',  # Exec format error
-        9: 'EBADF',  # Bad file descriptor
-        10: 'ECHILD',  # No child processes
-        11: 'EDEADLK',  # Resource deadlock avoided
-        12: 'ENOMEM',  # Cannot allocate memory
-        13: 'EACCES',  # Permission denied
-        14: 'EFAULT',  # Bad address
-        15: 'ENOTBLK',  # Block device required
-        16: 'EBUSY',  # Device / Resource busy
-        17: 'EEXIST',  # File exists
-        18: 'EXDEV',  # Cross-device link
-        19: 'ENODEV',  # Operation not supported by device
-        20: 'ENOTDIR',  # Not a directory
-        21: 'EISDIR',  # Is a directory
-        22: 'EINVAL',  # Invalid argument
-        23: 'ENFILE',  # Too many open files in system
-        24: 'EMFILE',  # Too many open files
-        25: 'ENOTTY',  # Inappropriate ioctl for device
-        26: 'ETXTBSY',  # Text file busy
-        27: 'EFBIG',  # File too large
-        28: 'ENOSPC',  # No space left on device
-        29: 'ESPIPE',  # Illegal seek
-        30: 'EROFS',  # Read-only file system
-        31: 'EMLINK',  # Too many links
-        32: 'EPIPE',  # Broken pipe
-
-        # math software
-        33: 'EDOM',  # Numerical argument out of domain
-        34: 'ERANGE',  # Result too large
-
-        # non - blocking and interrupt i / o
-        35: 'EAGAIN',  # Resource temporarily unavailable
-        36: 'EINPROGRESS',  # Operation now in progress
-        37: 'EALREADY',  # Operation already in progress
-
-        # ipc / network software - - argument errors
-        38: 'ENOTSOCK',  # Socket operation on non-socket
-        39: 'EDESTADDRREQ',  # Destination address required
-        40: 'EMSGSIZE',  # Message too long
-        41: 'EPROTOTYPE',  # Protocol wrong type for socket
-        42: 'ENOPROTOOPT',  # Protocol not available
-        43: 'EPROTONOSUPPORT',  # Protocol not supported
-        44: 'ESOCKTNOSUPPORT',  # Socket type not supported
-        45: 'ENOTSUP',  # Operation not supported
-
-        46: 'EPFNOSUPPORT',  # Protocol family not supported
-        47: 'EAFNOSUPPORT',  # Address family not supported by protocol family
-        48: 'EADDRINUSE',  # Address already in use
-        49: 'EADDRNOTAVAIL',  # Can't assign requested address
-
-        # ipc / network software - - operational errors
-        50: 'ENETDOWN',  # Network is down
-        51: 'ENETUNREACH',  # Network is unreachable
-        52: 'ENETRESET',  # Network dropped connection on reset
-        53: 'ECONNABORTED',  # Software caused connection abort
-        54: 'ECONNRESET',  # Connection reset by peer
-        55: 'ENOBUFS',  # No buffer space available
-        56: 'EISCONN',  # Socket is already connected
-        57: 'ENOTCONN',  # Socket is not connected
-        58: 'ESHUTDOWN',  # Can't send after socket shutdown
-        59: 'ETOOMANYREFS',  # Too many references: can't splice
-        60: 'ETIMEDOUT',  # Operation timed out
-        61: 'ECONNREFUSED',  # Connection refused
-
-        62: 'ELOOP',  # Too many levels of symbolic links
-        63: 'ENAMETOOLONG',  # File name too long
-
-        # should be rearranged
-        64: 'EHOSTDOWN',  # Host is down
-        65: 'EHOSTUNREACH',  # No route to host
-        66: 'ENOTEMPTY',  # Directory not empty
-
-        # quotas & mush
-        67: 'EPROCLIM',  # Too many processes
-        68: 'EUSERS',  # Too many users
-        69: 'EDQUOT',  # Disc quota exceeded
-
-        # Network File System
-        70: 'ESTALE',  # Stale NFS file handle
-        71: 'EREMOTE',  # Too many levels of remote in path
-        72: 'EBADRPC',  # RPC struct is bad
-        73: 'ERPCMISMATCH',  # RPC version wrong
-        74: 'EPROGUNAVAIL',  # RPC prog. not avail
-        75: 'EPROGMISMATCH',  # Program version wrong
-        76: 'EPROCUNAVAIL',  # Bad procedure for program
-
-        77: 'ENOLCK',  # No locks available
-        78: 'ENOSYS',  # Function not implemented
-
-        79: 'EFTYPE',  # Inappropriate file type or format
-        80: 'EAUTH',  # Authentication error
-        81: 'ENEEDAUTH',  # Need authenticator
-
-        # Intelligent device errors
-        82: 'EPWROFF',  # Device power is off
-        83: 'EDEVERR',  # Device error, e.g. paper out
-
-        84: 'EOVERFLOW',  # Value too large to be stored in data type
-
-        # Program loading errors
-        85: 'EBADEXEC',  # Bad executable
-        86: 'EBADARCH',  # Bad CPU type in executable
-        87: 'ESHLIBVERS',  # Shared library version mismatch
-        88: 'EBADMACHO',  # Malformed Macho file
-
-        89: 'ECANCELED',  # Operation canceled
-
-        90: 'EIDRM',  # Identifier removed
-        91: 'ENOMSG',  # No message of desired type
-        92: 'EILSEQ',  # Illegal byte sequence
-        93: 'ENOATTR',  # Attribute not found
-
-        94: 'EBADMSG',  # Bad message
-        95: 'EMULTIHOP',  # Reserved
-        96: 'ENODATA',  # No message available on STREAM
-        97: 'ENOLINK',  # Reserved
-        98: 'ENOSR',  # No STREAM resources
-        99: 'ENOSTR',  # Not a STREAM
-        100: 'EPROTO',  # Protocol error
-        101: 'ETIME',  # STREAM ioctl timeout
-
-        102: 'EOPNOTSUPP',  # Operation not supported on socket
-        103: 'ENOPOLICY',  # No such policy registered
-        104: 'ENOTRECOVERABLE',  # State not recoverable
-        105: 'EOWNERDEAD',  # Previous owner died
-        106: 'EQFULL',  # Interface output queue is full
-    },
-    'windows': {
-        1: 'EPERM',
-        2: 'ENOENT',
-        3: 'ESRCH',
-        4: 'EINTR',
-        5: 'EIO',
-        6: 'ENXIO',
-        7: 'E2BIG',
-        8: 'ENOEXEC',
-        9: 'EBADF',
-        10: 'ECHILD',
-        11: 'EAGAIN',
-        12: 'ENOMEM',
-        13: 'EACCES',
-        14: 'EFAULT',
-        16: 'EBUSY',
-        17: 'EEXIST',
-        18: 'EXDEV',
-        19: 'ENODEV',
-        20: 'ENOTDIR',
-        21: 'EISDIR',
-        23: 'ENFILE',
-        24: 'EMFILE',
-        25: 'ENOTTY',
-        27: 'EFBIG',
-        28: 'ENOSPC',
-        29: 'ESPIPE',
-        30: 'EROFS',
-        31: 'EMLINK',
-        32: 'EPIPE',
-        33: 'EDOM',
-        36: 'EDEADLK',
-        38: 'ENAMETOOLONG',
-        39: 'ENOLCK',
-        40: 'ENOSYS',
-        41: 'ENOTEMPTY',
-
-        # Error codes used in the Secure CRT functions
-        22: 'EINVAL',
-        34: 'ERANGE',
-        42: 'EILSEQ',
-        80: 'STRUNCATE',
-
-        # POSIX Supplement
-        100: 'EADDRINUSE',
-        101: 'EADDRNOTAVAIL',
-        102: 'EAFNOSUPPORT',
-        103: 'EALREADY',
-        104: 'EBADMSG',
-        105: 'ECANCELED',
-        106: 'ECONNABORTED',
-        107: 'ECONNREFUSED',
-        108: 'ECONNRESET',
-        109: 'EDESTADDRREQ',
-        110: 'EHOSTUNREACH',
-        111: 'EIDRM',
-        112: 'EINPROGRESS',
-        113: 'EISCONN',
-        114: 'ELOOP',
-        115: 'EMSGSIZE',
-        116: 'ENETDOWN',
-        117: 'ENETRESET',
-        118: 'ENETUNREACH',
-        119: 'ENOBUFS',
-        120: 'ENODATA',
-        121: 'ENOLINK',
-        122: 'ENOMSG',
-        123: 'ENOPROTOOPT',
-        124: 'ENOSR',
-        125: 'ENOSTR',
-        126: 'ENOTCONN',
-        127: 'ENOTRECOVERABLE',
-        128: 'ENOTSOCK',
-        129: 'ENOTSUP',
-        130: 'EOPNOTSUPP',
-        131: 'EOTHER',
-        132: 'EOVERFLOW',
-        133: 'EOWNERDEAD',
-        134: 'EPROTO',
-        135: 'EPROTONOSUPPORT',
-        136: 'EPROTOTYPE',
-        137: 'ETIME',
-        138: 'ETIMEDOUT',
-        139: 'ETXTBSY',
-        140: 'EWOULDBLOCK',
-    },
-}
-
-WELL_KNOWN_SIGNALS = {
-    # Linux signals have been taken from <uapi/asm-generic/signal.h>
-    'linux': {
-        1: 'SIGHUP',  # Hangup.
-        2: 'SIGINT',  # Terminal interrupt signal.
-        3: 'SIGQUIT',  # Terminal quit signal.
-        4: 'SIGILL',  # Illegal instruction.
-        5: 'SIGTRAP',
-        6: 'SIGABRT',  # Process abort signal.
-        7: 'SIGBUS',
-        8: 'SIGFPE',  # Erroneous arithmetic operation.
-        9: 'SIGKILL',  # Kill (cannot be caught or ignored).
-        10: 'SIGUSR1',  # User-defined signal 1.
-        11: 'SIGSEGV',  # Invalid memory reference.
-        12: 'SIGUSR2',  # User-defined signal 2.
-        13: 'SIGPIPE',  # Write on a pipe with no one to read it.
-        14: 'SIGALRM',  # Alarm clock.
-        15: 'SIGTERM',  # Termination signal.
-        16: 'SIGSTKFLT',
-        17: 'SIGCHLD',  # Child process terminated or stopped.
-        18: 'SIGCONT',  # Continue executing, if stopped.
-        19: 'SIGSTOP',  # Stop executing (cannot be caught or ignored).
-        20: 'SIGTSTP',  # Terminal stop signal.
-        21: 'SIGTTIN',  # Background process attempting read.
-        22: 'SIGTTOU',  # Background process attempting write.
-        23: 'SIGURG',  # High bandwidth data is available at a socket.
-        24: 'SIGXCPU',  # CPU time limit exceeded.
-        25: 'SIGXFSZ',  # File size limit exceeded.
-        26: 'SIGVTALRM',  # Virtual timer expired.
-        27: 'SIGPROF',  # Profiling timer expired.
-        28: 'SIGWINCH',
-        29: 'SIGIO',
-        30: 'SIGPWR',
-        31: 'SIGSYS',
-    },
-    'darwin': {
-        1: 'SIGHUP',  # hangup
-        2: 'SIGINT',  # interrupt
-        3: 'SIGQUIT',  # quit
-        4: 'SIGILL',  # illegal instruction (not reset when caught)
-        5: 'SIGTRAP',  # trace trap (not reset when caught)
-        6: 'SIGABRT',  # abort()
-        # if (defined(_POSIX_C_SOURCE) && !defined(_DARWIN_C_SOURCE))
-        7: 'SIGPOLL',  # pollable event ([XSR] generated, not supported)
-        # if (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE)
-        # 7: 'SIGEMT', # EMT instruction
-        8: 'SIGFPE',  # floating point exception
-        9: 'SIGKILL',  # kill (cannot be caught or ignored)
-        10: 'SIGBUS',  # bus error
-        11: 'SIGSEGV',  # segmentation violation
-        12: 'SIGSYS',  # bad argument to system call
-        13: 'SIGPIPE',  # write on a pipe with no one to read it
-        14: 'SIGALRM',  # alarm clock
-        15: 'SIGTERM',  # software termination signal from kill
-        16: 'SIGURG',  # urgent condition on IO channel
-        17: 'SIGSTOP',  # sendable stop signal not from tty
-        18: 'SIGTSTP',  # stop signal from tty
-        19: 'SIGCONT',  # continue a stopped process
-        20: 'SIGCHLD',  # to parent on child stop or exit
-        21: 'SIGTTIN',  # to readers pgrp upon background tty read
-        22: 'SIGTTOU',  # like TTIN for output if (tp->t_local&LTOSTOP)
-        23: 'SIGIO',  # input/output possible signal
-        24: 'SIGXCPU',  # exceeded CPU time limit
-        25: 'SIGXFSZ',  # exceeded file size limit
-        26: 'SIGVTALRM',  # virtual time alarm
-        27: 'SIGPROF',  # profiling time alarm
-        28: 'SIGWINCH',  # window size changes
-        29: 'SIGINFO',  # information request
-        30: 'SIGUSR1',  # user defined signal 1
-        31: 'SIGUSR2',  # user defined signal 2
-    },
-}
-
-# Codes for Darwin `si_code`
-WELL_KNOWN_SIGNAL_CODES = {
-    # Codes for SIGILL
-    4: {
-        0: 'ILL_NOOP',  # if only I knew...
-        1: 'ILL_ILLOPC',  # [XSI] illegal opcode
-        2: 'ILL_ILLTRP',  # [XSI] illegal trap
-        3: 'ILL_PRVOPC',  # [XSI] privileged opcode
-        4: 'ILL_ILLOPN',  # [XSI] illegal operand -NOTIMP
-        5: 'ILL_ILLADR',  # [XSI] illegal addressing mode -NOTIMP
-        6: 'ILL_PRVREG',  # [XSI] privileged register -NOTIMP
-        7: 'ILL_COPROC',  # [XSI] coprocessor error -NOTIMP
-        8: 'ILL_BADSTK',  # [XSI] internal stack error -NOTIMP
-    },
-
-    # Codes for SIGFPE
-    8: {
-        0: 'FPE_NOOP',  # if only I knew...
-        1: 'FPE_FLTDIV',  # [XSI] floating point divide by zero
-        2: 'FPE_FLTOVF',  # [XSI] floating point overflow
-        3: 'FPE_FLTUND',  # [XSI] floating point underflow
-        4: 'FPE_FLTRES',  # [XSI] floating point inexact result
-        5: 'FPE_FLTINV',  # [XSI] invalid floating point operation
-        6: 'FPE_FLTSUB',  # [XSI] subscript out of range -NOTIMP
-        7: 'FPE_INTDIV',  # [XSI] integer divide by zero
-        8: 'FPE_INTOVF',  # [XSI] integer overflow
-    },
-
-    # Codes for SIGSEGV
-    11: {
-        0: 'SEGV_NOOP',  # if only I knew...
-        1: 'SEGV_MAPERR',  # [XSI] address not mapped to object
-        2: 'SEGV_ACCERR',  # [XSI] invalid permission for mapped object
-    },
-
-    # Codes for SIGBUS
-    10: {
-        0: 'BUS_NOOP',  # if only I knew...
-        1: 'BUS_ADRALN',  # [XSI] Invalid address alignment
-        2: 'BUS_ADRERR',  # [XSI] Nonexistent physical address -NOTIMP
-        3: 'BUS_OBJERR',  # [XSI] Object-specific HW error - NOTIMP
-    },
-
-    # Codes for SIGTRAP
-    5: {
-        1: 'TRAP_BRKPT',  # [XSI] Process breakpoint -NOTIMP
-        2: 'TRAP_TRACE',  # [XSI] Process trace trap -NOTIMP
-    },
-
-    # Codes for SIGCHLD
-    20: {
-        0: 'CLD_NOOP',  # if only I knew...
-        1: 'CLD_EXITED',  # [XSI] child has exited
-        2: 'CLD_KILLED',  # [XSI] terminated abnormally, no core file
-        3: 'CLD_DUMPED',  # [XSI] terminated abnormally, core file
-        4: 'CLD_TRAPPED',  # [XSI] traced child has trapped
-        5: 'CLD_STOPPED',  # [XSI] child has stopped
-        6: 'CLD_CONTINUED',  # [XSI] stopped child has continued
-    },
-
-    # Codes for SIGPOLL
-    7: {
-        1: 'POLL_IN',  # [XSR] Data input available
-        2: 'POLL_OUT',  # [XSR] Output buffers available
-        3: 'POLL_MSG',  # [XSR] Input message available
-        4: 'POLL_ERR',  # [XSR] I/O error
-        5: 'POLL_PRI',  # [XSR] High priority input available
-        6: 'POLL_HUP',  # [XSR] Device disconnected
-    },
-}
-
-# Mach exception codes used in Darwin.
-WELL_KNOWN_MACH_EXCEPTIONS = {
-    1: 'EXC_BAD_ACCESS',  # Could not access memory
-    2: 'EXC_BAD_INSTRUCTION',  # Instruction failed
-    3: 'EXC_ARITHMETIC',  # Arithmetic exception
-    4: 'EXC_EMULATION',  # Emulation instruction
-    5: 'EXC_SOFTWARE',  # Software generated exception
-    6: 'EXC_BREAKPOINT',  # Trace, breakpoint, etc.
-    7: 'EXC_SYSCALL',  # System calls.
-    8: 'EXC_MACH_SYSCALL',  # Mach system calls.
-    9: 'EXC_RPC_ALERT',  # RPC alert
-    10: 'EXC_CRASH',  # Abnormal process exit
-    11: 'EXC_RESOURCE',  # Hit resource consumption limit
-    12: 'EXC_GUARD',  # Violated guarded resource protections
-    13: 'EXC_CORPSE_NOTIFY',  # Abnormal process exited to corpse state
-}
-
-
-def normalize_mechanism_errno(errno, sdk):
-    if not sdk:
-        return
-
-    if not errno.get('name'):
-        errnos = WELL_KNOWN_ERRNO.get(sdk, {})
-        name = errnos.get(errno['number'])
-        if name:
-            errno['name'] = name
-
-
-def normalize_mechanism_signal(signal, sdk):
-    if not sdk:
-        return
-
-    if not signal.get('name'):
-        signals = WELL_KNOWN_SIGNALS.get(sdk, {})
-        name = signals.get(signal['number'])
-        if name:
-            signal['name'] = name
-
-    if sdk != 'darwin':
-        return
-
-    if signal.get('code') is not None and not signal.get('code_name'):
-        codes = WELL_KNOWN_SIGNAL_CODES.get(signal['number'], {})
-        code_name = codes.get(signal['code'])
-        if code_name:
-            signal['code_name'] = code_name
-
-
-def normalize_mechanism_mach_exception(mach):
-    if not mach.get('name'):
-        name = WELL_KNOWN_MACH_EXCEPTIONS.get(mach['exception'])
-        if name:
-            mach['name'] = name
-
-
-def normalize_mechanism_meta(mechanism, sdk_info=None):
-    meta = get_path(mechanism, 'meta')
-    if not meta:
-        return
-
-    sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
-    if sdk_name in ('ios', 'watchos', 'tvos', 'macos'):
-        sdk = 'darwin'
-    elif sdk_name in ('linux', 'android'):
-        sdk = 'linux'
-    elif sdk_name in ('windows',):
-        sdk = 'windows'
-    else:
-        sdk = None
-
-    if 'errno' in meta:
-        normalize_mechanism_errno(meta['errno'], sdk)
-
-    if 'signal' in meta:
-        normalize_mechanism_signal(meta['signal'], sdk)
-
-    if 'mach_exception' in meta:
-        normalize_mechanism_mach_exception(meta['mach_exception'])
+_type_value_re = re.compile("^(\w+):(.*)$")
 
 
 def upgrade_legacy_mechanism(data):
@@ -661,38 +61,42 @@ def upgrade_legacy_mechanism(data):
 
     # Early exit for current protocol. We assume that when someone sends a
     # "type", we do not need to preprocess and can immediately validate
-    if data is None or data.get('type') is not None:
+    if data is None or data.get("type") is not None:
         return data
 
-    result = {'type': 'generic'}
+    result = {"type": "generic"}
 
     # "posix_signal" and "mach_exception" were optional root-level objects,
     # which have now moved to special keys inside "meta". We only create "meta"
     # if there is actual data to add.
 
-    posix_signal = data.pop('posix_signal', None)
-    if posix_signal and posix_signal.get('signal'):
-        result.setdefault('meta', {})['signal'] = prune_empty_keys({
-            'number': posix_signal.get('signal'),
-            'code': posix_signal.get('code'),
-            'name': posix_signal.get('name'),
-            'code_name': posix_signal.get('code_name'),
-        })
+    posix_signal = data.pop("posix_signal", None)
+    if posix_signal and posix_signal.get("signal"):
+        result.setdefault("meta", {})["signal"] = prune_empty_keys(
+            {
+                "number": posix_signal.get("signal"),
+                "code": posix_signal.get("code"),
+                "name": posix_signal.get("name"),
+                "code_name": posix_signal.get("code_name"),
+            }
+        )
 
-    mach_exception = data.pop('mach_exception', None)
+    mach_exception = data.pop("mach_exception", None)
     if mach_exception:
-        result.setdefault('meta', {})['mach_exception'] = prune_empty_keys({
-            'exception': mach_exception.get('exception'),
-            'code': mach_exception.get('code'),
-            'subcode': mach_exception.get('subcode'),
-            'name': mach_exception.get('exception_name'),
-        })
+        result.setdefault("meta", {})["mach_exception"] = prune_empty_keys(
+            {
+                "exception": mach_exception.get("exception"),
+                "code": mach_exception.get("code"),
+                "subcode": mach_exception.get("subcode"),
+                "name": mach_exception.get("exception_name"),
+            }
+        )
 
     # All remaining data has to be moved to the "data" key. We assume that even
     # if someone accidentally sent a corret top-level key (such as "handled"),
     # it will not pass our interface validation and should be moved to "data"
     # instead.
-    result.setdefault('data', {}).update(data)
+    result.setdefault("data", {}).update(data)
     return result
 
 
@@ -710,6 +114,7 @@ class Mechanism(Interface):
     >>>         "relevant_address": "0x1"
     >>>     },
     >>>     "handled": false,
+    >>>     "synthetic": false,
     >>>     "help_link": "https://developer.apple.com/library/content/qa/qa1367/_index.html",
     >>>     "meta": {
     >>>         "mach_exception": {
@@ -726,70 +131,70 @@ class Mechanism(Interface):
 
     @classmethod
     def to_python(cls, data):
-        data = upgrade_legacy_mechanism(data)
-        is_valid, errors = validate_and_default_interface(data, cls.path)
-        if not is_valid:
-            raise InterfaceValidationError("Invalid mechanism")
+        for key in ("type", "synthetic", "description", "help_link", "handled", "data", "meta"):
+            data.setdefault(key, None)
 
-        if not data.get('type'):
-            raise InterfaceValidationError("No 'type' present")
-
-        mechanism_meta = data.get('meta') or {}
-        mach_exception = mechanism_meta.get('mach_exception')
-        if mach_exception is not None:
-            mach_exception = prune_empty_keys({
-                'exception': mach_exception['exception'],
-                'code': mach_exception['code'],
-                'subcode': mach_exception['subcode'],
-                'name': mach_exception.get('name'),
-            })
-
-        signal = mechanism_meta.get('signal')
-        if signal is not None:
-            signal = prune_empty_keys({
-                'number': signal['number'],
-                'code': signal.get('code'),
-                'name': signal.get('name'),
-                'code_name': signal.get('code_name'),
-            })
-
-        errno = mechanism_meta.get('errno')
-        if errno is not None:
-            errno = prune_empty_keys({
-                'number': errno['number'],
-                'name': errno.get('name'),
-            })
-
-        kwargs = {
-            'type': trim(data['type'], 128),
-            'description': trim(data.get('description'), 1024),
-            'help_link': trim(data.get('help_link'), 1024),
-            'handled': data.get('handled'),
-            'data': trim(data.get('data'), 4096),
-            'meta': {
-                'errno': errno,
-                'mach_exception': mach_exception,
-                'signal': signal,
-            },
-        }
-
-        return cls(**kwargs)
+        return cls(**data)
 
     def to_json(self):
-        return prune_empty_keys({
-            'type': self.type,
-            'description': self.description,
-            'help_link': self.help_link,
-            'handled': self.handled,
-            'data': self.data or None,
-            'meta': prune_empty_keys(self.meta) or None,
-        })
+        return prune_empty_keys(
+            {
+                "type": self.type,
+                "synthetic": self.synthetic,
+                "description": self.description,
+                "help_link": self.help_link,
+                "handled": self.handled,
+                "data": self.data or None,
+                "meta": prune_empty_keys(self.meta) or None,
+            }
+        )
 
     def iter_tags(self):
         yield (self.path, self.type)
 
         if self.handled is not None:
-            yield ('handled', self.handled and 'yes' or 'no')
+            yield ("handled", self.handled and "yes" or "no")
+
+
+def uncontribute_non_stacktrace_variants(variants):
+    """If we have multiple variants and at least one has a stacktrace, we
+    want to mark all non stacktrace variants non contributing.  The reason
+    for this is that otherwise we end up in very generic grouping which has
+    some negative consequences for the quality of the groups.
+    """
+    if len(variants) <= 1:
+        return variants
+    any_stacktrace_contributes = False
+    non_contributing_components = []
+    stacktrace_variants = set()
+
+    # In case any of the variants has a contributing stacktrace, we want
+    # to make all other variants non contributing.  Thr e
+    for (key, component) in six.iteritems(variants):
+        if any(
+            s.contributes for s in component.iter_subcomponents(id="stacktrace", recursive=True)
+        ):
+            any_stacktrace_contributes = True
+            stacktrace_variants.add(key)
+        else:
+            non_contributing_components.append(component)
+
+    if any_stacktrace_contributes:
+        if len(stacktrace_variants) == 1:
+            hint_suffix = "but the %s variant does" % next(iter(stacktrace_variants))
+        else:
+            # this branch is basically dead because we only have two
+            # variants right now, but this is so this does not break in
+            # the future.
+            hint_suffix = "others do"
+        for component in non_contributing_components:
+            component.update(
+                contributes=False,
+                hint="ignored because this variant does not contain a "
+                "stacktrace, but %s" % hint_suffix,
+            )
+
+    return variants
 
 
 class SingleException(Interface):
@@ -811,66 +216,48 @@ class SingleException(Interface):
     >>>     }
     >>> }
     """
-    score = 2000
-    path = 'exception'
+
+    grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data, slim_frames=True):
-        is_valid, errors = validate_and_default_interface(data, cls.path)
-        if not is_valid:
-            raise InterfaceValidationError("Invalid exception")
-
-        if not (data.get('type') or data.get('value')):
-            raise InterfaceValidationError("No 'type' or 'value' present")
-
-        if get_path(data, 'stacktrace', 'frames', filter=True):
-            stacktrace = Stacktrace.to_python(
-                data['stacktrace'],
-                slim_frames=slim_frames,
-            )
+    def to_python(cls, data):
+        if get_path(data, "stacktrace", "frames", filter=True):
+            stacktrace = Stacktrace.to_python(data["stacktrace"])
         else:
             stacktrace = None
 
-        if get_path(data, 'raw_stacktrace', 'frames', filter=True):
-            raw_stacktrace = Stacktrace.to_python(
-                data['raw_stacktrace'], slim_frames=slim_frames, raw=True
-            )
+        if get_path(data, "raw_stacktrace", "frames", filter=True):
+            raw_stacktrace = Stacktrace.to_python(data["raw_stacktrace"], raw=True)
         else:
             raw_stacktrace = None
 
-        type = data.get('type')
-        value = data.get('value')
-        if isinstance(value, six.string_types):
-            if type is None:
-                m = _type_value_re.match(value)
-                if m:
-                    type = m.group(1)
-                    value = m.group(2).strip()
-        elif value is not None:
-            value = json.dumps(value)
+        type = data.get("type")
+        value = data.get("value")
 
-        value = trim(value, 4096)
-
-        if data.get('mechanism'):
-            mechanism = Mechanism.to_python(data['mechanism'])
+        if data.get("mechanism"):
+            mechanism = Mechanism.to_python(data["mechanism"])
         else:
             mechanism = None
 
         kwargs = {
-            'type': trim(type, 128),
-            'value': value,
-            'module': trim(data.get('module'), 128),
-            'mechanism': mechanism,
-            'stacktrace': stacktrace,
-            'thread_id': trim(data.get('thread_id'), 40),
-            'raw_stacktrace': raw_stacktrace,
+            "type": type,
+            "value": value,
+            "module": data.get("module"),
+            "mechanism": mechanism,
+            "stacktrace": stacktrace,
+            "thread_id": data.get("thread_id"),
+            "raw_stacktrace": raw_stacktrace,
         }
 
         return cls(**kwargs)
 
     def to_json(self):
-        mechanism = isinstance(self.mechanism, Mechanism) and \
-            self.mechanism.to_json() or self.mechanism or None
+        mechanism = (
+            isinstance(self.mechanism, Mechanism)
+            and self.mechanism.to_json()
+            or self.mechanism
+            or None
+        )
 
         if self.stacktrace:
             stacktrace = self.stacktrace.to_json()
@@ -882,69 +269,70 @@ class SingleException(Interface):
         else:
             raw_stacktrace = None
 
-        return prune_empty_keys({
-            'type': self.type,
-            'value': self.value,
-            'mechanism': mechanism,
-            'module': self.module,
-            'stacktrace': stacktrace,
-            'thread_id': self.thread_id,
-            'raw_stacktrace': raw_stacktrace,
-        })
+        return prune_empty_keys(
+            {
+                "type": self.type,
+                "value": self.value,
+                "mechanism": mechanism,
+                "module": self.module,
+                "stacktrace": stacktrace,
+                "thread_id": self.thread_id,
+                "raw_stacktrace": raw_stacktrace,
+            }
+        )
 
-    def get_api_context(self, is_public=False):
-        mechanism = isinstance(self.mechanism, Mechanism) and \
-            self.mechanism.get_api_context(is_public=is_public) or \
-            self.mechanism or None
+    def get_api_context(self, is_public=False, platform=None):
+        mechanism = (
+            isinstance(self.mechanism, Mechanism)
+            and self.mechanism.get_api_context(is_public=is_public, platform=platform)
+            or self.mechanism
+            or None
+        )
 
         if self.stacktrace:
-            stacktrace = self.stacktrace.get_api_context(is_public=is_public)
+            stacktrace = self.stacktrace.get_api_context(is_public=is_public, platform=platform)
         else:
             stacktrace = None
 
         if self.raw_stacktrace:
-            raw_stacktrace = self.raw_stacktrace.get_api_context(is_public=is_public)
+            raw_stacktrace = self.raw_stacktrace.get_api_context(
+                is_public=is_public, platform=platform
+            )
         else:
             raw_stacktrace = None
 
         return {
-            'type': self.type,
-            'value': six.text_type(self.value) if self.value else None,
-            'mechanism': mechanism,
-            'threadId': self.thread_id,
-            'module': self.module,
-            'stacktrace': stacktrace,
-            'rawStacktrace': raw_stacktrace,
+            "type": self.type,
+            "value": six.text_type(self.value) if self.value else None,
+            "mechanism": mechanism,
+            "threadId": self.thread_id,
+            "module": self.module,
+            "stacktrace": stacktrace,
+            "rawStacktrace": raw_stacktrace,
         }
 
-    def get_api_meta(self, meta, is_public=False):
-        mechanism_meta = self.mechanism.get_api_meta(meta['mechanism'], is_public=is_public) \
-            if isinstance(self.mechanism, Mechanism) and meta.get('mechanism') \
+    def get_api_meta(self, meta, is_public=False, platform=None):
+        mechanism_meta = (
+            self.mechanism.get_api_meta(meta["mechanism"], is_public=is_public, platform=platform)
+            if isinstance(self.mechanism, Mechanism) and meta.get("mechanism")
             else None
+        )
 
-        stacktrace_meta = self.stacktrace.get_api_meta(meta, is_public=is_public) \
-            if self.stacktrace and meta.get('stacktrace') \
+        stacktrace_meta = (
+            self.stacktrace.get_api_meta(meta, is_public=is_public, platform=platform)
+            if self.stacktrace and meta.get("stacktrace")
             else None
+        )
 
         return {
-            '': meta.get(''),
-            'type': meta.get('type'),
-            'value': meta.get('value'),
-            'mechanism': mechanism_meta,
-            'threadId': meta.get('thread_id'),
-            'module': meta.get('module'),
-            'stacktrace': stacktrace_meta,
+            "": meta.get(""),
+            "type": meta.get("type"),
+            "value": meta.get("value"),
+            "mechanism": mechanism_meta,
+            "threadId": meta.get("thread_id"),
+            "module": meta.get("module"),
+            "stacktrace": stacktrace_meta,
         }
-
-    def get_hash(self, platform=None):
-        output = None
-        if self.stacktrace:
-            output = self.stacktrace.get_hash(platform=platform)
-            if output and self.type:
-                output.append(self.type)
-        if not output:
-            output = [s for s in [self.type, self.value] if s]
-        return output
 
 
 class Exception(Interface):
@@ -981,129 +369,88 @@ class Exception(Interface):
     """
 
     score = 2000
+    grouping_variants = ["system", "app"]
 
-    def _values(self):
+    def exceptions(self):
         return get_path(self.values, filter=True)
 
     def __getitem__(self, key):
-        return self._values()[key]
+        return self.exceptions()[key]
 
     def __iter__(self):
-        return iter(self._values())
+        return iter(self.exceptions())
 
     def __len__(self):
-        return len(self._values())
+        return len(self.exceptions())
 
     @classmethod
     def to_python(cls, data):
-        if data and 'values' not in data and 'exc_omitted' not in data:
-            data = {"values": [data]}
-
-        values = get_path(data, 'values', default=[])
-        if not isinstance(values, list):
-            raise InterfaceValidationError("Invalid value for 'values'")
-
-        kwargs = {
-            'values': [
-                v and SingleException.to_python(v, slim_frames=False)
-                for v in values
+        return cls(
+            values=[
+                v and SingleException.to_python(v) for v in get_path(data, "values", default=[])
             ],
-        }
-
-        if data.get('exc_omitted'):
-            if len(data['exc_omitted']) != 2:
-                raise InterfaceValidationError("Invalid value for 'exc_omitted'")
-            kwargs['exc_omitted'] = data['exc_omitted']
-        else:
-            kwargs['exc_omitted'] = None
-
-        instance = cls(**kwargs)
-        # we want to wait to slim things til we've reconciled in_app
-        slim_exception_data(instance)
-        return instance
+            exc_omitted=data.get("exc_omitted"),
+        )
 
     # TODO(ja): Fix all following methods when to_python is refactored. All
     # methods below might throw if None exceptions are in ``values``.
 
     def to_json(self):
-        return prune_empty_keys({
-            'values': [v and v.to_json() for v in self.values] or None,
-            'exc_omitted': self.exc_omitted,
-        })
+        return prune_empty_keys(
+            {
+                "values": [v and v.to_json() for v in self.values] or None,
+                "exc_omitted": self.exc_omitted,
+            }
+        )
 
-    def compute_hashes(self, platform):
-        system_hash = self.get_hash(platform, system_frames=True)
-        if not system_hash:
-            return []
-
-        app_hash = self.get_hash(platform, system_frames=False)
-        if system_hash == app_hash or not app_hash:
-            return [system_hash]
-
-        return [system_hash, app_hash]
-
-    def get_hash(self, platform=None, system_frames=True):
-        # optimize around the fact that some exceptions might have stacktraces
-        # while others may not and we ALWAYS want stacktraces over values
-        output = []
-        for value in self._values():
-            if not value or not value.stacktrace:
-                continue
-            stack_hash = value.stacktrace.get_hash(
-                platform=platform,
-                system_frames=system_frames,
-            )
-            if stack_hash:
-                output.extend(stack_hash)
-                output.append(value.type)
-
-        if not output:
-            for value in self._values():
-                if value:
-                    output.extend(value.get_hash(platform=platform))
-
-        return output
-
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         return {
-            'values': [v.get_api_context(is_public=is_public) for v in self.values if v],
-            'hasSystemFrames':
-            any(v.stacktrace.get_has_system_frames() for v in self.values if v and v.stacktrace),
-            'excOmitted':
-            self.exc_omitted,
+            "values": [
+                v.get_api_context(is_public=is_public, platform=platform) for v in self.values if v
+            ],
+            "hasSystemFrames": any(
+                v.stacktrace.get_has_system_frames() for v in self.values if v and v.stacktrace
+            ),
+            "excOmitted": self.exc_omitted,
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         if not meta:
             return meta
 
         result = {}
-        values = meta.get('values', meta)
+        values = meta.get("values", meta)
         for index, value in six.iteritems(values):
             exc = self.values[int(index)]
-            result[index] = exc.get_api_meta(value, is_public=is_public)
+            if exc is not None:
+                result[index] = exc.get_api_meta(value, is_public=is_public, platform=platform)
 
-        return {'values': result}
+        return {"values": result}
 
     def to_string(self, event, is_public=False, **kwargs):
         if not self.values:
-            return ''
+            return ""
 
         output = []
         for exc in self.values:
-            output.append(u'{0}: {1}\n'.format(exc.type, exc.value))
+            if not exc:
+                continue
+
+            output.append(u"{0}: {1}\n".format(exc.type, exc.value))
             if exc.stacktrace:
                 output.append(
-                    exc.stacktrace.
-                    get_stacktrace(event, system_frames=False, max_frames=5, header=False) + '\n\n'
+                    exc.stacktrace.get_stacktrace(
+                        event, system_frames=False, max_frames=5, header=False
+                    )
+                    + "\n\n"
                 )
-        return (''.join(output)).strip()
+        return ("".join(output)).strip()
 
     def get_stacktrace(self, *args, **kwargs):
         exc = self.values[0]
         if exc.stacktrace:
             return exc.stacktrace.get_stacktrace(*args, **kwargs)
-        return ''
+        return ""
 
     def iter_tags(self):
         if not self.values or not self.values[0]:
@@ -1113,19 +460,3 @@ class Exception(Interface):
         if mechanism:
             for tag in mechanism.iter_tags():
                 yield tag
-
-
-def slim_exception_data(instance, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
-    """
-    Removes various excess metadata from middle frames which go beyond
-    ``frame_allowance``.
-    """
-    # TODO(dcramer): it probably makes sense to prioritize a certain exception
-    # rather than distributing allowance among all exceptions
-    frames = []
-    for exception in instance.values:
-        if exception is None or not exception.stacktrace:
-            continue
-        frames.extend(exception.stacktrace.frames)
-
-    slim_frame_data(frames, frame_allowance)

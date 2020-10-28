@@ -1,31 +1,32 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TextField from 'app/views/settings/components/forms/textField';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
 
-describe('FormField + model', function() {
+describe('FormField + model', function () {
   let model;
   let wrapper;
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
 
-  beforeEach(function() {
+  beforeEach(function () {
     model = new FormModel();
   });
 
-  it('renders with Form', function() {
-    wrapper = mount(
+  it('renders with Form', function () {
+    wrapper = mountWithTheme(
       <Form model={model}>
         <TextField name="fieldName" />
       </Form>,
       routerContext
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('sets initial data in model', function() {
-    wrapper = mount(
+  it('sets initial data in model', function () {
+    wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" />
       </Form>,
@@ -35,8 +36,8 @@ describe('FormField + model', function() {
     expect(model.initialData.fieldName).toBe('test');
   });
 
-  it('has `defaultValue` from field', function() {
-    wrapper = mount(
+  it('has `defaultValue` from field', function () {
+    wrapper = mountWithTheme(
       <Form model={model}>
         <TextField name="fieldName" defaultValue="foo" />
       </Form>,
@@ -47,8 +48,8 @@ describe('FormField + model', function() {
     expect(model.fields.get('fieldName')).toBe('foo');
   });
 
-  it('does not use `defaultValue` when there is initial data', function() {
-    wrapper = mount(
+  it('does not use `defaultValue` when there is initial data', function () {
+    wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" defaultValue="foo" />
       </Form>,
@@ -59,8 +60,8 @@ describe('FormField + model', function() {
     expect(model.fields.get('fieldName')).toBe('test');
   });
 
-  it('transforms `defaultValue` from field with `setValue`', function() {
-    wrapper = mount(
+  it('transforms `defaultValue` from field with `setValue`', function () {
+    wrapper = mountWithTheme(
       <Form model={model}>
         <TextField name="fieldName" defaultValue="foo" setValue={v => `${v}${v}`} />
       </Form>,
@@ -71,8 +72,8 @@ describe('FormField + model', function() {
     expect(model.fields.get('fieldName')).toBe('foofoo');
   });
 
-  it('sets field descriptor in model', function() {
-    wrapper = mount(
+  it('sets field descriptor in model', function () {
+    wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" required />
       </Form>,
@@ -82,8 +83,8 @@ describe('FormField + model', function() {
     expect(model.getDescriptor('fieldName', 'required')).toBe(true);
   });
 
-  it('removes field descriptor in model on unmount', function() {
-    wrapper = mount(
+  it('removes field descriptor in model on unmount', function () {
+    wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" required />
       </Form>,

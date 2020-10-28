@@ -1,0 +1,268 @@
+---
+created: '2020-08-11T09:14:55.221950Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (custom fingerprint takes precedence)
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.tasks.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "_wrapped"
+          frame*
+            module*
+              "sentry.tasks.store"
+            filename (module takes precedence)
+              "store.py"
+            function*
+              "process_event"
+          frame*
+            module*
+              "sentry.tasks.store"
+            filename (module takes precedence)
+              "store.py"
+            function*
+              "_do_process_event"
+          frame*
+            module*
+              "sentry.stacktraces"
+            filename (module takes precedence)
+              "stacktraces.py"
+            function*
+              "process_stacktraces"
+          frame*
+            module*
+              "sentry.lang.native.plugin"
+            filename (module takes precedence)
+              "plugin.py"
+            function*
+              "preprocess_step"
+          frame*
+            module*
+              "sentry.lang.native.symbolizer"
+            filename (module takes precedence)
+              "symbolizer.py"
+            function*
+              "__init__"
+          frame*
+            module*
+              "sentry.models.debugfile"
+            filename (module takes precedence)
+              "debugfile.py"
+            function*
+              "get_symcaches"
+          frame*
+            module*
+              "sentry.models.debugfile"
+            filename (module takes precedence)
+              "debugfile.py"
+            function*
+              "_load_cachefiles_via_fs"
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "file.py"
+            function*
+              "save_to"
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "file.py"
+            function*
+              "_get_chunked_blob"
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "file.py"
+            function*
+              "__init__"
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "file.py"
+            function*
+              "_prefetch"
+          frame (non app frame)
+            module*
+              "concurrent.futures._base"
+            filename (module takes precedence)
+              "_base.py"
+            function*
+              "__exit__"
+          frame (non app frame)
+            module*
+              "concurrent.futures.thread"
+            filename (module takes precedence)
+              "thread.py"
+            function*
+              "shutdown"
+          frame (non app frame)
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            function*
+              "join"
+          frame (non app frame)
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            function*
+              "wait"
+          frame (non app frame)
+            module*
+              "billiard.pool"
+            filename (module takes precedence)
+              "pool.py"
+            function*
+              "soft_timeout_sighandler"
+        type*
+          "SoftTimeLimitExceeded"
+        value (ignored because stacktrace takes precedence)
+          "SoftTimeLimitExceeded()"
+--------------------------------------------------------------------------
+custom-fingerprint:
+  hash: "f30afa00b85f5cac5ee0bce01b31f08d"
+  values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system (custom fingerprint takes precedence)
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.tasks.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "_wrapped"
+          frame*
+            module*
+              "sentry.tasks.store"
+            filename (module takes precedence)
+              "store.py"
+            function*
+              "process_event"
+          frame*
+            module*
+              "sentry.tasks.store"
+            filename (module takes precedence)
+              "store.py"
+            function*
+              "_do_process_event"
+          frame*
+            module*
+              "sentry.stacktraces"
+            filename (module takes precedence)
+              "stacktraces.py"
+            function*
+              "process_stacktraces"
+          frame*
+            module*
+              "sentry.lang.native.plugin"
+            filename (module takes precedence)
+              "plugin.py"
+            function*
+              "preprocess_step"
+          frame*
+            module*
+              "sentry.lang.native.symbolizer"
+            filename (module takes precedence)
+              "symbolizer.py"
+            function*
+              "__init__"
+          frame*
+            module*
+              "sentry.models.debugfile"
+            filename (module takes precedence)
+              "debugfile.py"
+            function*
+              "get_symcaches"
+          frame*
+            module*
+              "sentry.models.debugfile"
+            filename (module takes precedence)
+              "debugfile.py"
+            function*
+              "_load_cachefiles_via_fs"
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "file.py"
+            function*
+              "save_to"
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "file.py"
+            function*
+              "_get_chunked_blob"
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "file.py"
+            function*
+              "__init__"
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "file.py"
+            function*
+              "_prefetch"
+          frame*
+            module*
+              "concurrent.futures._base"
+            filename (module takes precedence)
+              "_base.py"
+            function*
+              "__exit__"
+          frame*
+            module*
+              "concurrent.futures.thread"
+            filename (module takes precedence)
+              "thread.py"
+            function*
+              "shutdown"
+          frame*
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            function*
+              "join"
+          frame*
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            function*
+              "wait"
+          frame*
+            module*
+              "billiard.pool"
+            filename (module takes precedence)
+              "pool.py"
+            function*
+              "soft_timeout_sighandler"
+        type*
+          "SoftTimeLimitExceeded"
+        value (ignored because stacktrace takes precedence)
+          "SoftTimeLimitExceeded()"

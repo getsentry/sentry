@@ -1,20 +1,25 @@
-import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import isString from 'lodash/isString';
+import isNumber from 'lodash/isNumber';
+import isArray from 'lodash/isArray';
+import styled from '@emotion/styled';
 
+import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {IconOpen, IconAdd, IconSubtract} from 'app/icons';
 import {isUrl} from 'app/utils';
+import ExternalLink from 'app/components/links/externalLink';
 
 function looksLikeObjectRepr(value) {
-  let a = value[0];
-  let z = value[value.length - 1];
-  if (a == '<' && z == '>') {
+  const a = value[0];
+  const z = value[value.length - 1];
+  if (a === '<' && z === '>') {
     return true;
-  } else if (a == '[' && z == ']') {
+  } else if (a === '[' && z === ']') {
     return true;
-  } else if (a == '(' && z == ')') {
+  } else if (a === '(' && z === ')') {
     return true;
-  } else if (z == ')' && value.match(/^[\w\d._-]+\(/)) {
+  } else if (z === ')' && value.match(/^[\w\d._-]+\(/)) {
     return true;
   }
   return false;
@@ -25,7 +30,7 @@ function looksLikeMultiLineString(value) {
 }
 
 function padNumbersInString(string) {
-  return string.replace(/(\d+)/g, function(num) {
+  return string.replace(/(\d+)/g, function (num) {
     let isNegative = false;
     num = parseInt(num, 10);
     if (num < 0) {
@@ -48,7 +53,7 @@ function naturalCaseInsensitiveSort(a, b) {
 }
 
 function analyzeStringForRepr(value) {
-  let rv = {
+  const rv = {
     repr: value,
     isString: true,
     isMultiLine: false,
@@ -70,74 +75,110 @@ function analyzeStringForRepr(value) {
   return rv;
 }
 
+class ToggleWrap extends React.Component {
+  static propTypes = {
+    highUp: PropTypes.bool,
+    wrapClassName: PropTypes.string,
+  };
+
+  state = {toggled: false};
+
+  render() {
+    if (React.Children.count(this.props.children) === 0) {
+      return null;
+    }
+
+    const {wrapClassName, children} = this.props;
+    const wrappedChildren = <span className={wrapClassName}>{children}</span>;
+
+    if (this.props.highUp) {
+      return wrappedChildren;
+    }
+
+    return (
+      <span>
+        <ToggleIcon
+          isOpen={this.state.toggled}
+          href="#"
+          onClick={evt => {
+            this.setState(state => ({toggled: !state.toggled}));
+            evt.preventDefault();
+          }}
+        >
+          {this.state.toggled ? (
+            <IconSubtract size="9px" color="white" />
+          ) : (
+            <IconAdd size="9px" color="white" />
+          )}
+        </ToggleIcon>
+        {this.state.toggled && wrappedChildren}
+      </span>
+    );
+  }
+}
+
 class ContextData extends React.Component {
   static propTypes = {
     data: PropTypes.any,
+    preserveQuotes: PropTypes.bool,
+    withAnnotatedText: PropTypes.bool,
+    meta: PropTypes.any,
   };
 
   static defaultProps = {
     data: null,
+    withAnnotatedText: false,
   };
 
-  renderValue = value => {
-    function toggle(evt) {
-      $(evt.target)
-        .parent()
-        .toggleClass('val-toggle-open');
-      evt.preventDefault();
-    }
+  renderValue(value) {
+    const {preserveQuotes, meta, withAnnotatedText} = this.props;
 
-    function makeToggle(highUp, childCount, children) {
-      if (childCount === 0) {
-        return null;
-      }
-      if (highUp) {
-        return children;
-      }
-      return (
-        <span className="val-toggle">
-          <a href="#" className="val-toggle-link" onClick={toggle} />
-          {children}
-        </span>
-      );
+    function getValueWithAnnotatedText(v, meta) {
+      return <AnnotatedText value={v} meta={meta} />;
     }
 
     /*eslint no-shadow:0*/
     function walk(value, depth) {
-      let i = 0,
-        children = [];
+      let i = 0;
+      const children = [];
       if (value === null) {
         return <span className="val-null">{'None'}</span>;
       } else if (value === true || value === false) {
         return <span className="val-bool">{value ? 'True' : 'False'}</span>;
-      } else if (_.isString(value)) {
-        let valueInfo = analyzeStringForRepr(value);
+      } else if (isString(value)) {
+        const valueInfo = analyzeStringForRepr(value);
 
-        let out = [
+        const valueToBeReturned = withAnnotatedText
+          ? getValueWithAnnotatedText(valueInfo.repr, meta)
+          : valueInfo.repr;
+
+        const out = [
           <span
             key="value"
             className={
-              (valueInfo.isString ? 'val-string' : 'val-repr') +
+              (valueInfo.isString ? 'val-string' : '') +
               (valueInfo.isStripped ? ' val-stripped' : '') +
               (valueInfo.isMultiLine ? ' val-string-multiline' : '')
             }
           >
-            {valueInfo.repr}
+            {preserveQuotes ? `"${valueToBeReturned}"` : valueToBeReturned}
           </span>,
         ];
 
         if (valueInfo.isString && isUrl(value)) {
           out.push(
-            <a key="external" href={value} className="external-icon">
-              <em className="icon-open" />
-            </a>
+            <ExternalLink key="external" href={value} className="external-icon">
+              <StyledIconOpen size="xs" />
+            </ExternalLink>
           );
         }
 
         return out;
-      } else if (_.isNumber(value)) {
-        return <span className="val-number">{value}</span>;
-      } else if (_.isArray(value)) {
+      } else if (isNumber(value)) {
+        const valueToBeReturned =
+          withAnnotatedText && meta ? getValueWithAnnotatedText(value, meta) : value;
+        return <span>{valueToBeReturned}</span>;
+      } else if (isArray(value)) {
         for (i = 0; i < value.length; i++) {
           children.push(
             <span className="val-array-item" key={i}>
@@ -151,25 +192,23 @@ class ContextData extends React.Component {
         return (
           <span className="val-array">
             <span className="val-array-marker">{'['}</span>
-            {makeToggle(
-              depth <= 2,
-              children.length,
-              <span className="val-array-items">{children}</span>
-            )}
+            <ToggleWrap highUp={depth <= 2} wrapClassName="val-array-items">
+              {children}
+            </ToggleWrap>
             <span className="val-array-marker">{']'}</span>
           </span>
         );
       } else if (React.isValidElement(value)) {
         return value;
       } else {
-        let keys = Object.keys(value);
+        const keys = Object.keys(value);
         keys.sort(naturalCaseInsensitiveSort);
         for (i = 0; i < keys.length; i++) {
-          let key = keys[i];
+          const key = keys[i];
           children.push(
             <span className="val-dict-pair" key={key}>
               <span className="val-dict-key">
-                <span className="val-string">{key}</span>
+                <span className="val-string">{preserveQuotes ? `"${key}"` : key}</span>
               </span>
               <span className="val-dict-col">{': '}</span>
               <span className="val-dict-value">
@@ -184,43 +223,63 @@ class ContextData extends React.Component {
         return (
           <span className="val-dict">
             <span className="val-dict-marker">{'{'}</span>
-            {makeToggle(
-              depth <= 1,
-              children.length,
-              <span className="val-dict-items">{children}</span>
-            )}
+            <ToggleWrap highUp={depth <= 1} wrapClassName="val-dict-items">
+              {children}
+            </ToggleWrap>
             <span className="val-dict-marker">{'}'}</span>
           </span>
         );
       }
     }
     return walk(value, 0);
-  };
-
-  renderKeyPosValue = value => {
-    if (_.isString(value)) {
-      return <span className="val-string">{value}</span>;
-    }
-    return this.renderValue(value);
-  };
+  }
 
   render() {
-    // XXX(dcramer): babel does not support this yet
-    // let {data, className, ...other} = this.props;
-    let data = this.props.data;
-    let className = this.props.className;
-    let other = {};
-    for (let key in this.props) {
-      if (key !== 'data' && key !== 'className') {
-        other[key] = this.props[key];
-      }
-    }
-    other.className = 'val ' + (className || '');
+    const {
+      data,
+      preserveQuotes: _preserveQuotes,
+      withAnnotatedText: _withAnnotatedText,
+      meta: _meta,
+      children,
+      ...other
+    } = this.props;
 
-    return <pre {...other}>{this.renderValue(data)}</pre>;
+    return (
+      <ContextValues {...other}>
+        {this.renderValue(data)}
+        {children}
+      </ContextValues>
+    );
   }
 }
 
 ContextData.displayName = 'ContextData';
+
+const StyledIconOpen = styled(IconOpen)`
+  position: relative;
+  top: 1px;
+`;
+
+const ToggleIcon = styled('a')`
+  display: inline-block;
+  position: relative;
+  top: 1px;
+  height: 11px;
+  width: 11px;
+  line-height: 1;
+  padding-left: 1px;
+  margin-left: 1px;
+  border-radius: 2px;
+
+  background: ${p => (p.isOpen ? p.theme.gray500 : p.theme.blue400)};
+  &:hover {
+    background: ${p => (p.isOpen ? p.theme.gray600 : p.theme.blue500)};
+  }
+`;
+
+const ContextValues = styled('pre')`
+  /* Not using theme to be consistent with less files */
+  color: #4e3fb4;
+`;
 
 export default ContextData;

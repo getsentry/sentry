@@ -1,16 +1,24 @@
 import React from 'react';
 
-import {AssigneeSelectorComponent} from 'app/components/assigneeSelector';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {
+  AssigneeSelectorComponent,
+  putSessionUserFirst,
+} from 'app/components/assigneeSelector';
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 
-describe('AssigneeSelector', function() {
-  let sandbox;
+jest.mock('app/actionCreators/modal', () => ({
+  openInviteMembersModal: jest.fn(),
+}));
+
+describe('AssigneeSelector', function () {
   let assigneeSelector;
   let assignMock;
   let openMenu;
@@ -19,13 +27,11 @@ describe('AssigneeSelector', function() {
   let PROJECT_1;
   let GROUP_1;
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-
+  beforeEach(function () {
     USER_1 = TestStubs.User({
       id: '1',
-      name: 'Jane Doe',
-      email: 'janedoe@example.com',
+      name: 'Jane Bloggs',
+      email: 'janebloggs@example.com',
     });
     USER_2 = TestStubs.User({
       id: '2',
@@ -56,10 +62,10 @@ describe('AssigneeSelector', function() {
       },
     });
 
-    sandbox.stub(MemberListStore, 'getAll').returns(null);
-    sandbox.stub(TeamStore, 'getAll').returns([TEAM_1]);
-    sandbox.stub(ProjectsStore, 'getAll').returns([PROJECT_1]);
-    sandbox.stub(GroupStore, 'get').returns(GROUP_1);
+    jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => null);
+    jest.spyOn(TeamStore, 'getAll').mockImplementation(() => [TEAM_1]);
+    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
+    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
     assignMock = Client.addMockResponse({
       method: 'PUT',
@@ -70,10 +76,10 @@ describe('AssigneeSelector', function() {
       },
     });
 
-    MemberListStore.items = null;
+    MemberListStore.state = [];
     MemberListStore.loaded = false;
 
-    assigneeSelector = mount(
+    assigneeSelector = mountWithTheme(
       <AssigneeSelectorComponent id={GROUP_1.id} />,
       TestStubs.routerContext()
     );
@@ -81,14 +87,13 @@ describe('AssigneeSelector', function() {
     openMenu = () => assigneeSelector.find('DropdownButton').simulate('click');
   });
 
-  afterEach(function() {
-    sandbox.restore();
+  afterEach(function () {
     Client.clearMockResponses();
   });
 
-  describe('render with props', function() {
-    it('renders members from the prop when present', async function() {
-      assigneeSelector = mount(
+  describe('render with props', function () {
+    it('renders members from the prop when present', async function () {
+      assigneeSelector = mountWithTheme(
         <AssigneeSelectorComponent id={GROUP_1.id} memberList={[USER_2, USER_3]} />,
         TestStubs.routerContext()
       );
@@ -97,87 +102,77 @@ describe('AssigneeSelector', function() {
 
       assigneeSelector.update();
       expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
-      expect(assigneeSelector.find('Avatar')).toHaveLength(3);
       expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
       expect(assigneeSelector.find('TeamAvatar')).toHaveLength(1);
 
-      let names = assigneeSelector
+      const names = assigneeSelector
         .find('MenuItemWrapper Label Highlight')
         .map(el => el.text());
       expect(names).toEqual([`#${TEAM_1.slug}`, USER_2.name, USER_3.name]);
     });
   });
 
-  describe('putSessionUserFirst()', function() {
-    const putSessionUserFirst = AssigneeSelectorComponent.putSessionUserFirst;
-    it('should place the session user at the top of the member list if present', function() {
-      sandbox
-        .stub(ConfigStore, 'get')
-        .withArgs('user')
-        .returns({
-          id: '2',
-          name: 'John Smith',
-          email: 'johnsmith@example.com',
-        });
+  describe('putSessionUserFirst()', function () {
+    it('should place the session user at the top of the member list if present', function () {
+      jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
+        id: '2',
+        name: 'John Smith',
+        email: 'johnsmith@example.com',
+      }));
       expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
+      ConfigStore.get.mockRestore();
     });
 
-    it("should return the same member list if the session user isn't present", function() {
-      sandbox
-        .stub(ConfigStore, 'get')
-        .withArgs('user')
-        .returns({
-          id: '555',
-          name: 'Here Comes a New Challenger',
-          email: 'guile@mail.us.af.mil',
-        });
+    it("should return the same member list if the session user isn't present", function () {
+      jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
+        id: '555',
+        name: 'Here Comes a New Challenger',
+        email: 'guile@mail.us.af.mil',
+      }));
 
       expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_1, USER_2]);
+      ConfigStore.get.mockRestore();
     });
   });
 
-  it('should initially have loading state', function() {
+  it('should initially have loading state', function () {
     openMenu();
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', async function() {
+  it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', async function () {
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
     expect(assigneeSelector.instance().assignableTeams()).toHaveLength(1);
 
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
-    expect(assigneeSelector.find('Avatar')).toHaveLength(3);
     expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
     expect(assigneeSelector.find('TeamAvatar')).toHaveLength(1);
   });
 
-  it('does NOT update member list after initial load', function() {
+  it('does NOT update member list after initial load', function () {
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
 
-    expect(assigneeSelector.find('Avatar')).toHaveLength(3);
+    expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
 
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
     assigneeSelector.update();
 
-    expect(assigneeSelector.find('Avatar')).toHaveLength(3);
+    expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
   });
 
-  it('successfully assigns users', async function() {
+  it('successfully assigns users', async function () {
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
 
-    assigneeSelector
-      .find('UserAvatar')
-      .first()
-      .simulate('click');
+    assigneeSelector.find('UserAvatar').first().simulate('click');
 
     expect(assignMock).toHaveBeenLastCalledWith(
       '/issues/1337/',
@@ -197,16 +192,13 @@ describe('AssigneeSelector', function() {
     expect(assigneeSelector.find('ActorAvatar')).toHaveLength(1);
   });
 
-  it('successfully assigns teams', async function() {
+  it('successfully assigns teams', async function () {
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
 
-    assigneeSelector
-      .find('TeamAvatar')
-      .first()
-      .simulate('click');
+    assigneeSelector.find('TeamAvatar').first().simulate('click');
 
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
@@ -226,16 +218,13 @@ describe('AssigneeSelector', function() {
     expect(assigneeSelector.find('ActorAvatar')).toHaveLength(1);
   });
 
-  it('successfully clears assignment', async function() {
+  it('successfully clears assignment', async function () {
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
 
     // Assign first item in list, which is TEAM_1
     assigneeSelector.update();
-    assigneeSelector
-      .find('Avatar')
-      .first()
-      .simulate('click');
+    assigneeSelector.find('TeamAvatar').first().simulate('click');
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
 
@@ -266,55 +255,21 @@ describe('AssigneeSelector', function() {
     );
   });
 
-  it('shows invite member button', async function() {
-    let routerContext = TestStubs.routerContext();
+  it('shows invite member button', async function () {
+    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
-    expect(
-      assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
-    ).toHaveLength(0);
-
-    assigneeSelector.unmount();
-    sandbox
-      .stub(ConfigStore, 'get')
-      .withArgs('invitesEnabled')
-      .returns(true);
-    assigneeSelector = mount(
-      <AssigneeSelectorComponent id={GROUP_1.id} />,
-      routerContext
-    );
-    await tick();
-    assigneeSelector.update();
-    openMenu();
-    expect(
-      assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
-    ).toHaveLength(1);
+    assigneeSelector
+      .find('InviteMemberLink[data-test-id="invite-member"]')
+      .simulate('click');
+    expect(openInviteMembersModal).toHaveBeenCalled();
+    ConfigStore.get.mockRestore();
   });
 
-  it('requires org:write to invite member', async function() {
-    MemberListStore.loadInitialData([USER_1, USER_2]);
-    sandbox
-      .stub(ConfigStore, 'get')
-      .withArgs('invitesEnabled')
-      .returns(true);
-
-    // Remove org:write access permission and make sure invite member button is not shown.
-    assigneeSelector.unmount();
-    assigneeSelector = mount(
-      <AssigneeSelectorComponent id={GROUP_1.id} />,
-      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
-    );
-    openMenu();
-    assigneeSelector.update();
-    expect(
-      assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
-    ).toHaveLength(0);
-  });
-
-  it('filters user by email and selects with keyboard', async function() {
+  it('filters user by email and selects with keyboard', async function () {
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
@@ -324,8 +279,8 @@ describe('AssigneeSelector', function() {
       .find('StyledInput')
       .simulate('change', {target: {value: 'JohnSmith@example.com'}});
 
-    expect(assigneeSelector.find('Avatar')).toHaveLength(1);
-    expect(assigneeSelector.find('Avatar').prop('user')).toEqual(USER_2);
+    expect(assigneeSelector.find('UserAvatar')).toHaveLength(1);
+    expect(assigneeSelector.find('UserAvatar').prop('user')).toEqual(USER_2);
 
     assigneeSelector.find('StyledInput').simulate('keyDown', {key: 'Enter'});
     assigneeSelector.update();

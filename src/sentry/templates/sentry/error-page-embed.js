@@ -17,8 +17,21 @@
   var template = /*{{ template }}*/'';
   var endpoint = /*{{ endpoint }}*/'';
 
-  var GENERIC_ERROR = '<p class="message-error">' + strings.generic_error + '</p>';
-  var FORM_ERROR = '<p class="message-error">' + strings.form_error + '</p>';
+  var setChild = function(target, child) {
+    target.innerHTML = '';
+    target.appendChild(child);
+  };
+
+  var buildMessage = function(className, message) {
+    var p = document.createElement('p');
+    p.className = className;
+    p.appendChild(document.createTextNode(message));
+    return p;
+  };
+
+  var GENERIC_ERROR = buildMessage('message-error', strings.generic_error);
+  var FORM_ERROR = buildMessage('message-error', strings.form_error);
+  var FORM_SUCCESS = buildMessage('message-success', strings.sent_message);
 
   // XMLHttpRequest.DONE does not exist in all browsers
   var XHR_DONE = 4;
@@ -117,7 +130,7 @@
         } else if (xhr.status == 400) {
           self.onFormError(JSON.parse(xhr.responseText));
         } else {
-          self._errorWrapper.innerHTML = GENERIC_ERROR;
+          setChild(self._errorWrapper, GENERIC_ERROR);
         }
         self._submitInProgress = false;
       }
@@ -129,7 +142,7 @@
 
   SentryErrorEmbed.prototype.onSuccess = function() {
     this._errorWrapper.innerHTML = '';
-    this._formContent.innerHTML = '<p class="message-success">' + strings.sent_message + '</p>';
+    setChild(this._formContent, FORM_SUCCESS);
     this._submitBtn.parentNode.removeChild(this._submitBtn);
   };
 
@@ -145,7 +158,7 @@
         node.className = node.className.replace(/form-errors/, '');
       }
     }
-    this._errorWrapper.innerHTML = FORM_ERROR;
+    setChild(this._errorWrapper, FORM_ERROR);
   };
 
   SentryErrorEmbed.prototype.attach = function(parent) {

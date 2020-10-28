@@ -1,22 +1,23 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import Access from 'app/components/acl/access';
 import ConfigStore from 'app/stores/configStore';
 
-describe('Access', function() {
+describe('Access', function () {
   const organization = TestStubs.Organization({
     access: ['project:write', 'project:read'],
   });
   const routerContext = TestStubs.routerContext([{organization}]);
 
-  describe('as render prop', function() {
-    let childrenMock = jest.fn().mockReturnValue(null);
-    beforeEach(function() {
+  describe('as render prop', function () {
+    const childrenMock = jest.fn().mockReturnValue(null);
+    beforeEach(function () {
       childrenMock.mockClear();
     });
 
-    it('has access when requireAll is false', function() {
+    it('has access when requireAll is false', function () {
       mount(
         <Access access={['project:write', 'project:read', 'org:read']} requireAll={false}>
           {childrenMock}
@@ -30,7 +31,7 @@ describe('Access', function() {
       });
     });
 
-    it('has accesss', function() {
+    it('has access', function () {
       mount(
         <Access access={['project:write', 'project:read']}>{childrenMock}</Access>,
         routerContext
@@ -42,7 +43,7 @@ describe('Access', function() {
       });
     });
 
-    it('has no access', function() {
+    it('has no access', function () {
       mount(<Access access={['org:write']}>{childrenMock}</Access>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -51,7 +52,7 @@ describe('Access', function() {
       });
     });
 
-    it('calls render function when no access', function() {
+    it('calls render function when no access', function () {
       const noAccessRenderer = jest.fn(() => null);
       mount(
         <Access access={['org:write']} renderNoAccessMessage={noAccessRenderer}>
@@ -64,7 +65,7 @@ describe('Access', function() {
       expect(noAccessRenderer).toHaveBeenCalled();
     });
 
-    it('can specify org from props', function() {
+    it('can specify org from props', function () {
       mount(
         <Access
           organization={TestStubs.Organization({access: ['org:write']})}
@@ -81,21 +82,32 @@ describe('Access', function() {
       });
     });
 
-    it('handles no org/project', function() {
-      mount(
-        <Access organization={null} project={null} access={['org:write']}>
-          {childrenMock}
-        </Access>,
-        routerContext
+    it('handles no org/project', function () {
+      mount(<Access access={['org:write']}>{childrenMock}</Access>, routerContext);
+
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasAccess: false,
+          hasSuperuser: false,
+        })
       );
+    });
+
+    it('handles no user', function () {
+      // Regression test for the share sheet.
+      ConfigStore.config = {
+        user: null,
+      };
+
+      mount(<Access>{childrenMock}</Access>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
-        hasAccess: false,
+        hasAccess: true,
         hasSuperuser: false,
       });
     });
 
-    it('is superuser', function() {
+    it('is superuser', function () {
       ConfigStore.config = {
         user: {isSuperuser: true},
       };
@@ -107,7 +119,7 @@ describe('Access', function() {
       });
     });
 
-    it('is not superuser', function() {
+    it('is not superuser', function () {
       ConfigStore.config = {
         user: {isSuperuser: false},
       };
@@ -120,10 +132,10 @@ describe('Access', function() {
     });
   });
 
-  describe('as React node', function() {
+  describe('as React node', function () {
     let wrapper;
 
-    it('has access', function() {
+    it('has access', function () {
       wrapper = mount(
         <Access access={['project:write']}>
           <div>The Child</div>
@@ -134,7 +146,7 @@ describe('Access', function() {
       expect(wrapper.find('Access div').text()).toBe('The Child');
     });
 
-    it('has superuser', function() {
+    it('has superuser', function () {
       ConfigStore.config = {
         user: {isSuperuser: true},
       };
@@ -148,7 +160,7 @@ describe('Access', function() {
       expect(wrapper.find('Access div').text()).toBe('The Child');
     });
 
-    it('has no access', function() {
+    it('has no access', function () {
       wrapper = mount(
         <Access access={['org:write']}>
           <div>The Child</div>
@@ -159,7 +171,7 @@ describe('Access', function() {
       expect(wrapper.find('Access div')).toHaveLength(0);
     });
 
-    it('has no superuser', function() {
+    it('has no superuser', function () {
       ConfigStore.config = {
         user: {isSuperuser: false},
       };

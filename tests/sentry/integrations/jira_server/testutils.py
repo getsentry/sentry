@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-EXAMPLE_PRIVATE_KEY = '''
------BEGIN RSA PRIVATE KEY-----
+EXAMPLE_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQC1cd9t8sA03awggLiX2gjZxyvOVUPJksLly1E662tttTeR3Wm9
 eo6onNeI8HRD+O4wubUp4h4Chc7DtLDmFEPhUZ8Qkwztiifm99Xo3s0nUq4Pygp5
 AU09KXTEPbzHLh1dnXLcxVLmGDE4drh0NWmYsd/Zp7XNIZq2TRQQ3NTdVQIDAQAB
@@ -15,10 +14,9 @@ a74fLYeGOws4hEQDpxfBJsmxO3dcSppbedS+slFTepKjNymZW/IYh/9tMwJAEL5E
 9DqGBn7x4y1x2//yESTbC7lvPqZzY+FXS/tg4NBkEGZxkoolPHg3NTnlyXhzGsHK
 M/04DicKipJYA85l7QJAJ3u67qZXecM/oWTtJToBDuyKGHfdY1564+RbyDEjJJRb
 vz4O/8FQQ1sGjdEBMMrRBCHEG8o3/XDTrB97t45TeA==
------END RSA PRIVATE KEY-----
-'''
+-----END RSA PRIVATE KEY-----"""
 
-EXAMPLE_ISSUE_SEARCH = '''
+EXAMPLE_ISSUE_SEARCH = """
 {
   "expand": "names,schema",
   "startAt": 0,
@@ -39,7 +37,7 @@ EXAMPLE_ISSUE_SEARCH = '''
     "The value 'splat' does not exist for the field 'Foo'."
   ]
 }
-'''
+"""
 
 EXAMPLE_USER_SEARCH_RESPONSE = """
 [

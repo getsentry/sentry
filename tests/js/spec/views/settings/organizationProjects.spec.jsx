@@ -1,18 +1,19 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationProjectsContainer from 'app/views/settings/organizationProjects';
 
-describe('OrganizationProjects', function() {
+describe('OrganizationProjects', function () {
   let org;
   let project;
   let projectsGetMock;
   let statsGetMock;
   let projectsPutMock;
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
 
-  beforeEach(function() {
+  beforeEach(function () {
     project = TestStubs.Project();
     org = TestStubs.Organization();
 
@@ -32,16 +33,16 @@ describe('OrganizationProjects', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     Client.clearMockResponses();
   });
 
-  it('Should render the projects in the store', function() {
-    let wrapper = mount(
-      <OrganizationProjectsContainer params={{orgId: org.slug}} />,
+  it('should render the projects in the store', function () {
+    const wrapper = mountWithTheme(
+      <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />,
       routerContext
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
 
     expect(wrapper.find('.project-name').text()).toBe('project-slug');
 
@@ -51,18 +52,18 @@ describe('OrganizationProjects', function() {
 
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
-    wrapper.find('.icon-star-outline').simulate('click');
-    expect(wrapper.find('.icon-star-solid')).toBeTruthy();
+    wrapper.find('BookmarkStar').simulate('click');
+    expect(wrapper.find('Star').prop('isBookmarked')).toBeTruthy();
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should search organization projects', async function() {
-    let searchMock = MockApiClient.addMockResponse({
+  it('should search organization projects', async function () {
+    const searchMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
-    let wrapper = mount(
-      <OrganizationProjectsContainer location={{}} params={{orgId: org.slug}} />,
+    const wrapper = mountWithTheme(
+      <OrganizationProjectsContainer location={{query: {}}} params={{orgId: org.slug}} />,
       routerContext
     );
 

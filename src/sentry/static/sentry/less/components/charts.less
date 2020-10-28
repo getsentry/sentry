@@ -21,6 +21,29 @@
         background: @purple;
         fill: @purple;
         border-color: transparent;
+
+        &.accepted {
+          background: @gray-light;
+          fill: @gray-light;
+        }
+
+        &.success {
+          background: @green;
+          fill: @green;
+        }
+
+        &.rate-limited,
+        &.dropped,
+        &.error {
+          background: @red-dark;
+          fill: @red-dark;
+        }
+
+        &.black-listed,
+        &.filtered {
+          background: @orange-dark;
+          fill: @orange-dark;
+        }
       }
     }
 
@@ -41,6 +64,29 @@
     > .barchart-rect {
       background: @gray-lighter;
       fill: @gray-lighter;
+
+      &.accepted {
+        background: @gray-lightest;
+        fill: @gray-lightest;
+      }
+
+      &.success {
+        background: @green-light;
+        fill: @green-light;
+      }
+
+      &.rate-limited,
+      &.dropped,
+      &.error {
+        background: @red;
+        fill: @red;
+      }
+
+      &.black-listed,
+      &.filtered {
+        background: @orange-light;
+        fill: @orange-light;
+      }
     }
   }
 }

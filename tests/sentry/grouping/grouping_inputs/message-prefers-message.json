@@ -1,0 +1,6 @@
+{
+  "logentry": {
+    "message": "Hello there %s!",
+    "formatted": "Hello there Peter!"
+  }
+}
