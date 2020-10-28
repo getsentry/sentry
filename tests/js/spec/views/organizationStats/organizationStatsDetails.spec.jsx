@@ -23,7 +23,7 @@ describe('OrganizationStats', function () {
     );
 
     expect(wrapper.find('PageHeading').text()).toBe('Organization Stats');
-    expect(wrapper.find('Panel[className="bar-chart"]').exists()).toBe(true);
+    expect(wrapper.find('MiniBarChart').exists()).toBe(true);
     expect(wrapper.find('ProjectTable').exists()).toBe(true);
     expect(wrapper.find('Alert[data-test-id="performance-usage"]').exists()).toBe(false);
   });
@@ -46,7 +46,7 @@ describe('OrganizationStats', function () {
     );
 
     expect(wrapper.find('PageHeading').text()).toBe('Organization Stats');
-    expect(wrapper.find('Panel[className="bar-chart"]').exists()).toBe(true);
+    expect(wrapper.find('MiniBarChart').exists()).toBe(true);
     expect(wrapper.find('ProjectTable').exists()).toBe(true);
     expect(wrapper.find('Alert[data-test-id="performance-usage"]').exists()).toBe(true);
   });

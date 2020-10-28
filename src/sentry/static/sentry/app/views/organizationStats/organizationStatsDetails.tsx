@@ -1,77 +1,53 @@
 import React from 'react';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {intcomma} from 'app/utils';
 import {t} from 'app/locale';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import ProjectTable from 'app/views/organizationStats/projectTable';
-import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import PageHeading from 'app/components/pageHeading';
 import {
   ProjectTableLayout,
   ProjectTableDataElement,
 } from 'app/views/organizationStats/projectTableLayout';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import {PageContent} from 'app/styles/organization';
 import PerformanceAlert from 'app/views/organizationStats/performanceAlert';
+import {Series} from 'app/types/echarts';
 import {Project, Organization} from 'app/types';
 
-import {Point, ProjectTotal, OrgTotal} from './types';
+import {ProjectTotal, OrgTotal} from './types';
 
 type Props = {
   organization: Organization;
   statsLoading: boolean;
   projectsLoading: boolean;
-  orgTotal: OrgTotal;
-  statsError: null | Error;
-  orgStats: Point[];
+  orgTotal: null | OrgTotal;
+  statsError: null | boolean;
+  orgSeries: null | Series[];
   projectMap: Record<string, Project>;
-  projectTotals: ProjectTotal[];
-  projectsError: null | Error;
-  pageLinks: string;
+  projectTotals: null | ProjectTotal[];
+  projectsError: null | boolean;
+  pageLinks: null | string;
 };
 
 class OrganizationStats extends React.Component<Props> {
-  renderTooltip(point: Point, _pointIdx, chart) {
-    const timeLabel = chart.getTimeLabel(point);
-    const [accepted, rejected, blacklisted] = point.y;
-
-    return (
-      <div style={{width: '150px'}}>
-        <div className="time-label">{timeLabel}</div>
-        <div className="value-label">
-          {intcomma(accepted)} accepted
-          {rejected > 0 && (
-            <React.Fragment>
-              <br />
-              {intcomma(rejected)} rate limited
-            </React.Fragment>
-          )}
-          {blacklisted > 0 && (
-            <React.Fragment>
-              <br />
-              {intcomma(blacklisted)} filtered
-            </React.Fragment>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   renderContent() {
     const {
       statsLoading,
       orgTotal,
       statsError,
-      orgStats,
+      orgSeries,
       projectsLoading,
       projectTotals,
       projectMap,
       projectsError,
       organization,
     } = this.props;
+
+    const colors = orgSeries?.map(series => series.color || '');
 
     return (
       <div>
@@ -89,7 +65,7 @@ class OrganizationStats extends React.Component<Props> {
               )}
             </TextBlock>
           </div>
-          {!statsLoading && (
+          {orgTotal && (
             <div className="col-md-3 stats-column">
               <h6 className="nav-header">{t('Events per minute')}</h6>
               <p className="count">{orgTotal.avgRate}</p>
@@ -103,17 +79,18 @@ class OrganizationStats extends React.Component<Props> {
           ) : statsError ? (
             <LoadingError />
           ) : (
-            <Panel className="bar-chart">
-              <StackedBarChart
-                points={orgStats}
-                height={150}
-                label="events"
-                className="standard-barchart b-a-0 m-b-0"
-                barClasses={['accepted', 'rate-limited', 'black-listed']}
-                minHeights={[2, 0, 0]}
-                gap={0.25}
-                tooltip={this.renderTooltip}
-              />
+            <Panel>
+              <PanelBody withPadding>
+                <MiniBarChart
+                  isGroupedByDate
+                  showTimeInTooltip
+                  labelYAxisExtents
+                  stacked
+                  height={150}
+                  colors={colors}
+                  series={orgSeries ?? undefined}
+                />
+              </PanelBody>
             </Panel>
           )}
         </div>
@@ -129,7 +106,7 @@ class OrganizationStats extends React.Component<Props> {
             </ProjectTableLayout>
           </PanelHeader>
           <PanelBody>
-            {statsLoading || projectsLoading ? (
+            {!orgTotal || !projectTotals || statsLoading || projectsLoading ? (
               <LoadingIndicator />
             ) : projectsError ? (
               <LoadingError />
