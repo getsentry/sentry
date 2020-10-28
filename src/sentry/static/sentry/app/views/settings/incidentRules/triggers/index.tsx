@@ -1,58 +1,44 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
-import {MetricAction} from 'app/types/alerts';
 import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {Trigger} from 'app/views/settings/incidentRules/types';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {t} from 'app/locale';
-import Button from 'app/components/button';
-import CircleIndicator from 'app/components/circleIndicator';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
-import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
+import ActionsPanel from 'app/views/settings/incidentRules/triggers/actionsPanel';
 
-type DeleteButtonProps = {
-  triggerIndex: number;
-  disabled: boolean;
-  onDelete: (triggerIndex: number, e: React.MouseEvent<Element>) => void;
-};
-
-/**
- * Button to delete a trigger
- */
-const DeleteButton: React.FC<DeleteButtonProps> = ({
-  triggerIndex,
-  onDelete,
-  disabled,
-}: DeleteButtonProps) => (
-  <Button
-    type="button"
-    icon="icon-trash"
-    size="xsmall"
-    aria-label={t('Delete Trigger')}
-    onClick={(e: React.MouseEvent<Element>) => onDelete(triggerIndex, e)}
-    disabled={disabled}
-  >
-    {t('Delete')}
-  </Button>
-);
+import {
+  AlertRuleThresholdType,
+  MetricActionTemplate,
+  Trigger,
+  UnsavedIncidentRule,
+  Action,
+} from '../types';
 
 type Props = {
   organization: Organization;
   projects: Project[];
-  incidentRuleId?: string;
+  ruleId?: string;
   triggers: Trigger[];
+  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
+  thresholdType: UnsavedIncidentRule['thresholdType'];
   currentProject: string;
-  availableActions: MetricAction[] | null;
+  availableActions: MetricActionTemplate[] | null;
   disabled: boolean;
 
   errors: Map<number, {[fieldName: string]: string}>;
 
-  onAdd: () => void;
-  onChange: (triggers: Trigger[]) => void;
+  onChange: (
+    triggers: Trigger[],
+    triggerIndex?: number,
+    changeObj?: Partial<Trigger>
+  ) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  onResolveThresholdChange: (
+    resolveThreshold: UnsavedIncidentRule['resolveThreshold']
+  ) => void;
 };
 
 /**
@@ -66,11 +52,39 @@ class Triggers extends React.Component<Props> {
     onChange(updatedTriggers);
   };
 
-  handleChangeTrigger = (triggerIndex: number, trigger: Trigger) => {
+  handleChangeTrigger = (
+    triggerIndex: number,
+    trigger: Trigger,
+    changeObj: Partial<Trigger>
+  ) => {
     const {triggers, onChange} = this.props;
     const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, trigger);
+    onChange(updatedTriggers, triggerIndex, changeObj);
+  };
 
-    onChange(updatedTriggers);
+  handleAddAction = (triggerIndex: number, action: Action) => {
+    const {onChange, triggers} = this.props;
+    const trigger = triggers[triggerIndex];
+    const actions = [...trigger.actions, action];
+    const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, {
+      ...trigger,
+      actions,
+    });
+    onChange(updatedTriggers, triggerIndex, {actions});
+  };
+
+  handleChangeActions = (
+    triggerIndex: number,
+    triggers: Trigger[],
+    actions: Action[]
+  ): void => {
+    const {onChange} = this.props;
+    const trigger = triggers[triggerIndex];
+    const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, {
+      ...trigger,
+      actions,
+    });
+    onChange(updatedTriggers, triggerIndex, {actions});
   };
 
   render() {
@@ -82,86 +96,48 @@ class Triggers extends React.Component<Props> {
       projects,
       triggers,
       disabled,
-      onAdd,
+      thresholdType,
+      resolveThreshold,
+      onThresholdTypeChange,
+      onResolveThresholdChange,
     } = this.props;
 
-    // Note we only support 2 triggers on UI - API can support many
+    // Note we only support 2 triggers max
     return (
       <React.Fragment>
-        {triggers.map((trigger, index) => {
-          const isCritical = index === 0;
-          const title = isCritical ? t('Critical Trigger') : t('Warning Trigger');
-          return (
-            <Panel key={index}>
-              <PanelHeader hasButtons={!isCritical}>
-                <Title>
-                  {isCritical ? <CriticalIndicator /> : <WarningIndicator />}
-                  {title}
-                </Title>
-                {!isCritical && (
-                  <DeleteButton
-                    disabled={disabled}
-                    triggerIndex={index}
-                    onDelete={this.handleDeleteTrigger}
-                  />
-                )}
-              </PanelHeader>
-              <PanelBody>
-                <TriggerForm
-                  disabled={disabled}
-                  isCritical={isCritical}
-                  error={errors && errors.get(index)}
-                  availableActions={availableActions}
-                  organization={organization}
-                  projects={projects}
-                  currentProject={currentProject}
-                  trigger={trigger}
-                  triggerIndex={index}
-                  onChange={this.handleChangeTrigger}
-                />
-              </PanelBody>
-            </Panel>
-          );
-        })}
+        <Panel>
+          <PanelHeader>{t('Set A Threshold')}</PanelHeader>
+          <PanelBody>
+            <TriggerForm
+              disabled={disabled}
+              errors={errors}
+              organization={organization}
+              projects={projects}
+              triggers={triggers}
+              resolveThreshold={resolveThreshold}
+              thresholdType={thresholdType}
+              onChange={this.handleChangeTrigger}
+              onThresholdTypeChange={onThresholdTypeChange}
+              onResolveThresholdChange={onResolveThresholdChange}
+            />
+          </PanelBody>
+        </Panel>
 
-        {triggers.length < 2 && (
-          <BorderlessPanel>
-            <FullWidthButton
-              type="button"
-              size="small"
-              icon="icon-circle-add"
-              onClick={onAdd}
-            >
-              {t('Add Warning Trigger')}
-            </FullWidthButton>
-          </BorderlessPanel>
-        )}
+        <ActionsPanel
+          disabled={disabled}
+          loading={availableActions === null}
+          error={false}
+          availableActions={availableActions}
+          currentProject={currentProject}
+          organization={organization}
+          projects={projects}
+          triggers={triggers}
+          onChange={this.handleChangeActions}
+          onAdd={this.handleAddAction}
+        />
       </React.Fragment>
     );
   }
 }
-
-const BorderlessPanel = styled(Panel)`
-  border: none;
-`;
-
-const FullWidthButton = styled(Button)`
-  width: 100%;
-`;
-
-const Title = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
-  align-items: center;
-`;
-
-const CriticalIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.redLight};
-`;
-
-const WarningIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.yellowDark};
-`;
 
 export default withProjects(Triggers);

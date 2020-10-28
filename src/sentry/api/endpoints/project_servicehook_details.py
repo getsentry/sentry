@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django.db import transaction
 from rest_framework import status
 
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -13,8 +12,6 @@ from sentry.models import AuditLogEntryEvent, ServiceHook
 
 
 class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
-
     def get(self, request, project, hook_id):
         """
         Retrieve a Service Hook

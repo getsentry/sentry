@@ -14,7 +14,7 @@ export const DATE_TIME = {
   UTC: 'utc',
 };
 
-export const DATE_TIME_KEYS = Object.values(DATE_TIME);
+export const DATE_TIME_KEYS = [...Object.values(DATE_TIME), 'statsPeriod'];
 
 export const LOCAL_STORAGE_KEY = 'global-selection';
 

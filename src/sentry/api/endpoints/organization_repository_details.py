@@ -7,8 +7,7 @@ from rest_framework.response import Response
 from uuid import uuid4
 from django.db import transaction
 
-from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationRepositoryPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
@@ -35,8 +34,7 @@ class RepositorySerializer(serializers.Serializer):
 
 
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
-    doc_section = DocSection.ORGANIZATIONS
-    permission_classes = (OrganizationRepositoryPermission,)
+    permission_classes = (OrganizationIntegrationsPermission,)
 
     def put(self, request, organization, repo_id):
         if not request.user.is_authenticated():

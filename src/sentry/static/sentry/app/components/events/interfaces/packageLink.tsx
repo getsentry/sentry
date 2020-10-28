@@ -4,14 +4,15 @@ import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
-import {trimPackage} from 'app/components/events/interfaces/frame';
-import InlineSvg from 'app/components/inlineSvg';
-import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus';
+import {trimPackage} from 'app/components/events/interfaces/frame/utils';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
-  packagePath: string;
   onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
-  isClickable: boolean;
+  withLeadHint: boolean;
+  includeSystemFrames: boolean;
+  packagePath: string | null;
+  isClickable?: boolean;
 };
 
 class PackageLink extends React.Component<Props> {
@@ -24,63 +25,68 @@ class PackageLink extends React.Component<Props> {
   };
 
   render() {
-    const {packagePath, isClickable, children} = this.props;
+    const {
+      packagePath,
+      isClickable,
+      withLeadHint,
+      children,
+      includeSystemFrames,
+    } = this.props;
 
     return (
-      <Package onClick={this.handleClick} isClickable={isClickable}>
+      <Package
+        onClick={this.handleClick}
+        isClickable={isClickable}
+        withLeadHint={withLeadHint}
+        includeSystemFrames={includeSystemFrames}
+      >
         {defined(packagePath) ? (
           <Tooltip title={packagePath}>
-            <PackageName>{trimPackage(packagePath)}</PackageName>
+            <PackageName
+              isClickable={isClickable}
+              withLeadHint={withLeadHint}
+              includeSystemFrames={includeSystemFrames}
+            >
+              {trimPackage(packagePath)}
+            </PackageName>
           </Tooltip>
         ) : (
-          <PackageName>{'<unknown>'}</PackageName>
+          <span>{'<unknown>'}</span>
         )}
         {children}
-        {isClickable && <LinkChevron src="icon-chevron-right" />}
       </Package>
     );
   }
 }
 
-const LinkChevron = styled(InlineSvg)`
-  opacity: 0;
-  transform: translateX(${space(0.25)});
-  transition: all 0.2s ease-in-out;
-`;
-
 const Package = styled('a')<Partial<Props>>`
   font-size: 13px;
   font-weight: bold;
-  max-width: 100%;
+  padding: 0 0 0 ${space(0.5)};
+  color: ${p => p.theme.gray700};
+  :hover {
+    color: ${p => p.theme.gray700};
+  }
+  cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
   display: flex;
   align-items: center;
-  flex-basis: 137px;
-  flex-grow: 0;
-  flex-shrink: 0;
-  padding: 0 0 0 ${space(0.5)};
-  color: ${p => p.theme.foreground};
-  cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
-  &:hover {
-    color: ${p => p.theme.foreground};
+  ${p =>
+    p.withLeadHint && (p.includeSystemFrames ? `max-width: 89px;` : `max-width: 76px;`)}
 
-    ${LinkChevron} {
-      opacity: 1;
-      transform: translateX(${space(0.5)});
-    }
-
-    &:hover ${PackageStatusIcon} {
-      opacity: 1;
-    }
+  @media (min-width: ${p => p.theme.breakpoints[2]}) and (max-width: ${p =>
+    p.theme.breakpoints[3]}) {
+    ${p =>
+      p.withLeadHint && (p.includeSystemFrames ? `max-width: 76px;` : `max-width: 63px;`)}
   }
 `;
 
-const PackageName = styled('span')`
-  display: block;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  max-width: 104px;
+const PackageName = styled('span')<
+  Pick<Props, 'isClickable' | 'withLeadHint' | 'includeSystemFrames'>
+>`
+  max-width: ${p =>
+    p.withLeadHint && p.isClickable && !p.includeSystemFrames ? '45px' : '104px'};
+  ${overflowEllipsis}
 `;
 
 export default PackageLink;

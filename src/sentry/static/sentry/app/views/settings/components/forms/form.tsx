@@ -6,14 +6,12 @@ import styled from '@emotion/styled';
 import {APIRequestMethod} from 'app/api';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import FormModel, {
-  FormOptions,
-  FieldValue,
-} from 'app/views/settings/components/forms/model';
+import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
 import Panel from 'app/components/panels/panel';
 import space from 'app/styles/space';
+import {isRenderFunc} from 'app/utils/isRenderFunc';
 
-type Data = {};
+type Data = Record<string, any>;
 
 type RenderProps = {
   model: FormModel;
@@ -21,20 +19,15 @@ type RenderProps = {
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-// Type guard for render func.
-function isRenderFunc(func: React.ReactNode | Function): func is RenderFunc {
-  return typeof func === 'function';
-}
-
 type Props = {
   apiMethod?: APIRequestMethod;
   apiEndpoint?: string;
-  children: React.ReactNode | RenderFunc;
+  children?: React.ReactNode | RenderFunc;
   className?: string;
   cancelLabel?: string;
   submitDisabled?: boolean;
   submitLabel?: string;
-  submitPriority?: Button['props']['priority'];
+  submitPriority?: React.ComponentProps<typeof Button>['priority'];
   footerClass?: string;
   footerStyle?: React.CSSProperties;
   extraButton?: React.ReactNode;
@@ -58,6 +51,7 @@ type Props = {
     e: React.FormEvent,
     model: FormModel
   ) => void;
+  onPreSubmit?: () => void;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
 type Context = {
@@ -156,6 +150,8 @@ export default class Form extends React.Component<Props> {
       return;
     }
 
+    this.props.onPreSubmit?.();
+
     if (this.props.onSubmit) {
       this.props.onSubmit(
         this.model.getData(),
@@ -212,7 +208,9 @@ export default class Form extends React.Component<Props> {
         className={className}
         data-test-id={this.props['data-test-id']}
       >
-        <div>{isRenderFunc(children) ? children({model: this.model}) : children}</div>
+        <div>
+          {isRenderFunc<RenderFunc>(children) ? children({model: this.model}) : children}
+        </div>
 
         {shouldShowFooter && (
           <StyledFooter
@@ -298,5 +296,3 @@ const DefaultButtons = styled('div')`
   justify-content: flex-end;
   flex: 1;
 `;
-
-export {FieldValue};

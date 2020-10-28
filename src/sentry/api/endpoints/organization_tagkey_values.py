@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.tagstore.base import TAG_KEY_RE
@@ -15,9 +15,8 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             return Response({"detail": 'Invalid tag key format for "%s"' % (key,)}, status=400)
 
         try:
-            filter_params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as exc:
-            return Response({"detail": exc.message}, status=400)
+            # still used by events v1 which doesn't require global views
+            filter_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             paginator = SequencePaginator([])
         else:
@@ -28,6 +27,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
                 filter_params["start"],
                 filter_params["end"],
                 query=request.GET.get("query"),
+                include_transactions=request.GET.get("includeTransactions") == "1",
             )
 
         return self.paginate(

@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+
 import Button from 'app/components/button';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
@@ -8,17 +9,16 @@ import {t} from 'app/locale';
 
 type Props = {
   onSubmit: () => void;
+  disabled?: boolean;
 };
 
-const MultipleSelectorSubmitRow: React.FC<Props> = ({onSubmit}) => {
-  return (
-    <SubmitButtonContainer>
-      <SubmitButton onClick={onSubmit} size="xsmall" priority="primary">
-        {t('Apply')}
-      </SubmitButton>
-    </SubmitButtonContainer>
-  );
-};
+const MultipleSelectorSubmitRow = ({onSubmit, disabled = false}: Props) => (
+  <SubmitButtonContainer>
+    <SubmitButton disabled={disabled} onClick={onSubmit} size="xsmall" priority="primary">
+      {t('Apply')}
+    </SubmitButton>
+  </SubmitButtonContainer>
+);
 
 MultipleSelectorSubmitRow.propTypes = {
   onSubmit: PropTypes.func.isRequired,

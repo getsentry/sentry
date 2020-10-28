@@ -114,7 +114,7 @@ def _migrate_from_south(verbosity):
             raise Exception(south_migration_required_error)
 
 
-def _upgrade(interactive, traceback, verbosity, repair):
+def _upgrade(interactive, traceback, verbosity, repair, with_nodestore):
     from django.core.management import call_command as dj_call_command
 
     # migrate legacy south history into new django migrations automatically
@@ -129,6 +129,11 @@ def _upgrade(interactive, traceback, verbosity, repair):
         merge=True,
         ignore_ghost_migrations=True,
     )
+
+    if with_nodestore:
+        from sentry import nodestore
+
+        nodestore.bootstrap()
 
     if repair:
         from sentry.runner import call_command
@@ -149,9 +154,10 @@ def _upgrade(interactive, traceback, verbosity, repair):
     help="Hold a global lock and limit upgrade to one concurrent.",
 )
 @click.option("--no-repair", default=False, is_flag=True, help="Skip repair step.")
+@click.option("--with-nodestore", default=False, is_flag=True, help="Bootstrap nodestore.")
 @configuration
 @click.pass_context
-def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair):
+def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, with_nodestore):
     "Perform any pending database migrations and upgrades."
 
     if lock:
@@ -161,8 +167,8 @@ def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair):
         lock = locks.get("upgrade", duration=0)
         try:
             with lock.acquire():
-                _upgrade(not noinput, traceback, verbosity, not no_repair)
+                _upgrade(not noinput, traceback, verbosity, not no_repair, with_nodestore)
         except UnableToAcquireLock:
             raise click.ClickException("Unable to acquire `upgrade` lock.")
     else:
-        _upgrade(not noinput, traceback, verbosity, not no_repair)
+        _upgrade(not noinput, traceback, verbosity, not no_repair, with_nodestore)

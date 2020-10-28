@@ -80,8 +80,9 @@ export class ApiTokens extends AsyncView {
       <div>
         <SettingsPageHeader title="Auth Tokens" action={action} />
         <AlertLink
-          to={`/settings/${(organization && organization.slug) ||
-            ''}/developer-settings/new-internal`}
+          to={`/settings/${
+            (organization && organization.slug) || ''
+          }/developer-settings/new-internal`}
         >
           {t(
             "Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using internal integrations to create/manage tokens tied to the organization instead."
@@ -96,7 +97,7 @@ export class ApiTokens extends AsyncView {
           {tct(
             'For more information on how to use the web API, see our [link:documentation].',
             {
-              link: <a href="https://docs.sentry.io/hosted/api/" />,
+              link: <a href="https://docs.sentry.io/api/" />,
             }
           )}
         </TextBlock>
@@ -117,15 +118,13 @@ export class ApiTokens extends AsyncView {
             )}
 
             {!isEmpty &&
-              tokenList.map(token => {
-                return (
-                  <ApiTokenRow
-                    key={token.token}
-                    token={token}
-                    onRemove={this.handleRemoveToken}
-                  />
-                );
-              })}
+              tokenList.map(token => (
+                <ApiTokenRow
+                  key={token.token}
+                  token={token}
+                  onRemove={this.handleRemoveToken}
+                />
+              ))}
           </PanelBody>
         </Panel>
       </div>

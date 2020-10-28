@@ -1,14 +1,15 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectUserFeedback from 'app/views/settings/project/projectUserFeedback';
 
-describe('ProjectUserFeedback', function() {
+describe('ProjectUserFeedback', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.ProjectDetails();
   const url = `/projects/${org.slug}/${project.slug}/`;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -22,12 +23,11 @@ describe('ProjectUserFeedback', function() {
     });
   });
 
-  it('can toggle sentry branding option', function() {
+  it('can toggle sentry branding option', function () {
     const wrapper = mountWithTheme(
       <ProjectUserFeedback
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         params={{orgId: org.slug, projectId: project.slug}}
       />,
       TestStubs.routerContext()

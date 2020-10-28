@@ -3,6 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
+import {IconSubtract} from 'app/icons';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
@@ -29,10 +30,14 @@ class ApiTokenRow extends React.Component {
         <Controls>
           <InputWrapper>
             <TextCopyInput>
-              {getDynamicText({value: token.token, fixed: 'PERCY_AUTH_TOKEN'})}
+              {getDynamicText({value: token.token, fixed: 'CI_AUTH_TOKEN'})}
             </TextCopyInput>
           </InputWrapper>
-          <Button size="small" onClick={this.handleRemove} icon="icon-circle-subtract">
+          <Button
+            size="small"
+            onClick={this.handleRemove}
+            icon={<IconSubtract isCircled size="xs" />}
+          >
             {t('Remove')}
           </Button>
         </Controls>
@@ -98,7 +103,7 @@ const Time = styled('time')`
 const Heading = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: uppercase;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   margin-bottom: ${space(1)};
 `;
 

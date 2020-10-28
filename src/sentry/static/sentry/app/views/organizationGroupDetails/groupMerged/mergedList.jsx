@@ -19,19 +19,17 @@ class MergedList extends React.Component {
     items: PropTypes.arrayOf(SentryTypes.Event),
     pageLinks: PropTypes.string,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    project: SentryTypes.Project.isRequired,
   };
 
-  renderEmpty = () => {
-    return (
-      <EmptyStateWarning>
-        <p>{t("There don't seem to be any hashes for this issue.")}</p>
-      </EmptyStateWarning>
-    );
-  };
+  renderEmpty = () => (
+    <EmptyStateWarning>
+      <p>{t("There don't seem to be any hashes for this issue.")}</p>
+    </EmptyStateWarning>
+  );
 
   render() {
-    const {items, pageLinks, onToggleCollapse, onUnmerge, orgId, projectId} = this.props;
+    const {items, pageLinks, onToggleCollapse, onUnmerge, orgId, project} = this.props;
     const itemsWithLatestEvent = items.filter(({latestEvent}) => !!latestEvent);
     const hasResults = itemsWithLatestEvent.length > 0;
 
@@ -50,13 +48,15 @@ class MergedList extends React.Component {
           onToggleCollapse={onToggleCollapse}
           onUnmerge={onUnmerge}
           orgId={orgId}
-          projectId={projectId}
+          project={project}
         />
 
         <MergedItems>
           {itemsWithLatestEvent.map(({id, latestEvent}) => (
             <MergedItem
               key={id}
+              orgId={orgId}
+              projectId={project.slug}
               disabled={items.length === 1}
               event={latestEvent}
               fingerprint={id}

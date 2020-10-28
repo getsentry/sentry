@@ -1,0 +1,234 @@
+//
+// Tooltips
+// --------------------------------------------------
+
+// Base class
+.tooltip {
+  position: absolute;
+  z-index: @zindex-tooltip;
+  display: block;
+  // Our parent element can be arbitrary since tooltips are by default inserted as a sibling of their target element.
+  // So reset our font and text properties to avoid inheriting weird values.
+  .reset-text();
+  font-size: @font-size-small;
+
+  .opacity(0);
+
+  &.in {
+    .opacity(@tooltip-opacity);
+  }
+  &.top {
+    padding: @tooltip-arrow-width 0;
+    margin-top: -3px;
+  }
+  &.right {
+    padding: 0 @tooltip-arrow-width;
+    margin-left: 3px;
+  }
+  &.bottom {
+    padding: @tooltip-arrow-width 0;
+    margin-top: 3px;
+  }
+  &.left {
+    padding: 0 @tooltip-arrow-width;
+    margin-left: -3px;
+  }
+
+  // Note: Deprecated .top-left, .top-right, .bottom-left, and .bottom-right as of v3.3.1
+  &.top .tooltip-arrow {
+    bottom: 0;
+    left: 50%;
+    margin-left: -@tooltip-arrow-width;
+    border-width: @tooltip-arrow-width @tooltip-arrow-width 0;
+    border-top-color: @tooltip-arrow-color;
+  }
+  &.top-left .tooltip-arrow {
+    right: @tooltip-arrow-width;
+    bottom: 0;
+    margin-bottom: -@tooltip-arrow-width;
+    border-width: @tooltip-arrow-width @tooltip-arrow-width 0;
+    border-top-color: @tooltip-arrow-color;
+  }
+  &.top-right .tooltip-arrow {
+    bottom: 0;
+    left: @tooltip-arrow-width;
+    margin-bottom: -@tooltip-arrow-width;
+    border-width: @tooltip-arrow-width @tooltip-arrow-width 0;
+    border-top-color: @tooltip-arrow-color;
+  }
+  &.right .tooltip-arrow {
+    top: 50%;
+    left: 0;
+    margin-top: -@tooltip-arrow-width;
+    border-width: @tooltip-arrow-width @tooltip-arrow-width @tooltip-arrow-width 0;
+    border-right-color: @tooltip-arrow-color;
+  }
+  &.left .tooltip-arrow {
+    top: 50%;
+    right: 0;
+    margin-top: -@tooltip-arrow-width;
+    border-width: @tooltip-arrow-width 0 @tooltip-arrow-width @tooltip-arrow-width;
+    border-left-color: @tooltip-arrow-color;
+  }
+  &.bottom .tooltip-arrow {
+    top: 0;
+    left: 50%;
+    margin-left: -@tooltip-arrow-width;
+    border-width: 0 @tooltip-arrow-width @tooltip-arrow-width;
+    border-bottom-color: @tooltip-arrow-color;
+  }
+  &.bottom-left .tooltip-arrow {
+    top: 0;
+    right: @tooltip-arrow-width;
+    margin-top: -@tooltip-arrow-width;
+    border-width: 0 @tooltip-arrow-width @tooltip-arrow-width;
+    border-bottom-color: @tooltip-arrow-color;
+  }
+  &.bottom-right .tooltip-arrow {
+    top: 0;
+    left: @tooltip-arrow-width;
+    margin-top: -@tooltip-arrow-width;
+    border-width: 0 @tooltip-arrow-width @tooltip-arrow-width;
+    border-bottom-color: @tooltip-arrow-color;
+  }
+}
+
+// Wrapper for the tooltip content
+.tooltip-inner {
+  max-width: @tooltip-max-width;
+  padding: 3px 8px;
+  color: @tooltip-color;
+  background-color: @tooltip-bg;
+  border-radius: @border-radius-base;
+}
+
+// Arrows
+.tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+}
+
+@tooltip-color: @white;
+@tooltip-max-width: 200px;
+
+.tooltip-content,
+.tooltip-inner {
+  font-weight: bold;
+  padding: 5px 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  overflow-wrap: break-word;
+
+  hr {
+    border: 0px;
+    margin: 10px auto;
+    width: 80px;
+    border-bottom: 2px solid @90;
+  }
+
+  dl {
+    margin: 0 !important;
+  }
+  dd,
+  dt {
+    padding: 0 !important;
+  }
+
+  .commit-list {
+    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .time-label {
+    font-size: 11px;
+    padding: 5px 0 6px;
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 3px 3px 0 0;
+    position: relative;
+
+    &:after {
+      display: block;
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 55px;
+      right: 55px;
+      height: 2px;
+      background: @90;
+    }
+  }
+
+  .value-label {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+  }
+
+  .legend {
+    padding: 3px 0;
+    position: relative;
+    line-height: 10px;
+
+    dt {
+      margin: 0;
+      position: absolute;
+      left: 0;
+      width: 8px;
+      margin-right: 5px;
+
+      &.active span {
+        background: @purple;
+      }
+
+      &.environment span {
+        background: @purple-lightest;
+      }
+
+      &.inactive span {
+        background: @gray-lightest;
+      }
+
+      span {
+        width: 9px;
+        height: 9px;
+        display: inline-block;
+        border-radius: 50%;
+      }
+    }
+
+    dd {
+      float: none;
+      text-align: left;
+      margin: 0 0 0 13px;
+
+      small {
+        color: @white-darker;
+        display: block;
+      }
+    }
+  }
+
+  .flat {
+    line-height: 12px;
+    padding: 0 5px !important;
+    position: relative;
+
+    dt {
+      text-align: left;
+      margin: 0;
+      position: absolute;
+      left: 5px;
+      width: 75px;
+      margin-right: 5px;
+    }
+    dd {
+      float: none;
+      text-align: right;
+      margin: 0 0 0 80px;
+    }
+  }
+}

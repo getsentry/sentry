@@ -90,6 +90,9 @@ class Creator(Mediator):
             "is_alertable": self.is_alertable,
             "verify_install": self.verify_install,
             "overview": self.overview,
+            "creator_user": self.user,
+            "creator_label": self.user.email
+            or self.user.username,  # email is not required for some users (sentry apps)
         }
 
         if self.is_internal:
@@ -112,7 +115,7 @@ class Creator(Mediator):
             with transaction.atomic():
                 IntegrationFeature.objects.create(sentry_app=self.sentry_app)
         except IntegrityError as e:
-            self.log(sentry_app=self.sentry_app.slug, error_message=e.message)
+            self.log(sentry_app=self.sentry_app.slug, error_message=six.text_type(e))
 
     def audit(self):
         from sentry.utils.audit import create_audit_entry

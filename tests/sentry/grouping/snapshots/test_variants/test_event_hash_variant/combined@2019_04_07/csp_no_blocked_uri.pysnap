@@ -1,15 +1,15 @@
 ---
-created: '2019-04-07T10:03:30.987667Z'
+created: '2020-02-26T19:52:17.976565Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
-  hash: 'efddf1cde918097259aa7d4904fb1942'
+  hash: "efddf1cde918097259aa7d4904fb1942"
   component:
     default*
       csp*
         salt* (a static salt)
-          u'script-src'
+          "script-src"
         violation (not a local script violation)
         uri*
           "'self'"

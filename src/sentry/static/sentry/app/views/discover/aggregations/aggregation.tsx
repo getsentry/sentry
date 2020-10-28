@@ -1,5 +1,5 @@
 import React from 'react';
-import {Value} from 'react-select';
+import {Value} from 'react-select-legacy';
 
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
@@ -19,7 +19,7 @@ type AggregationState = {
   isOpen: boolean;
 };
 
-const initalState = {
+const initialState = {
   inputValue: '',
   isOpen: false,
 };
@@ -28,7 +28,7 @@ export default class AggregationRow extends React.Component<
   AggregationProps,
   AggregationState
 > {
-  state = initalState;
+  state = initialState;
 
   // This is the ref of the inner react-select component
   private select: any;
@@ -144,6 +144,7 @@ export default class AggregationRow extends React.Component<
     return (
       <div>
         <SelectControl
+          deprecatedSelectControl
           ref={(ref: any) => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={

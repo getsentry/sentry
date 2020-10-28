@@ -1,28 +1,30 @@
+import {browserHistory} from 'react-router';
 import React, {MouseEvent} from 'react';
-import {Location, Query} from 'history';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
 import moment from 'moment';
-import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
+import {Location, Query} from 'history';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, SavedQuery} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconEllipsis} from 'app/icons';
+import {Organization, SavedQuery} from 'app/types';
+import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
+import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DropdownMenu from 'app/components/dropdownMenu';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import EventView from 'app/utils/discover/eventView';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
-import withApi from 'app/utils/withApi';
+import TimeSince from 'app/components/timeSince';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
-import EventView from './eventView';
-import QueryCard from './querycard';
-import MiniGraph from './miniGraph';
 import {getPrebuiltQueries} from './utils';
 import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
-import {generateDiscoverResultsRoute} from './results';
+import MiniGraph from './miniGraph';
+import QueryCard from './querycard';
 
 type Props = {
   api: Client;
@@ -35,6 +37,14 @@ type Props = {
 };
 
 class QueryList extends React.Component<Props> {
+  componentDidMount() {
+    /**
+     * We need to reset global selection here because the saved queries can define their own projects
+     * in the query. This can lead to mismatched queries for the project
+     */
+    resetGlobalSelection();
+  }
+
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -83,6 +93,14 @@ class QueryList extends React.Component<Props> {
     }
     cards = cards.concat(this.renderSavedQueries());
 
+    if (cards.filter(x => x).length === 0) {
+      return (
+        <StyledEmptyStateWarning>
+          <p>{t('No saved queries match that filter')}</p>
+        </StyledEmptyStateWarning>
+      );
+    }
+
     return cards;
   }
 
@@ -113,15 +131,7 @@ class QueryList extends React.Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
-      const to = {
-        pathname: generateDiscoverResultsRoute(organization.slug),
-        query: {
-          ...location.query,
-          // remove any landing page cursor
-          cursor: undefined,
-          ...eventView.generateQueryStringObject(),
-        },
-      };
+      const to = eventView.getResultsViewUrlTarget(organization.slug);
 
       return (
         <QueryCard
@@ -130,15 +140,14 @@ class QueryList extends React.Component<Props> {
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
-          renderGraph={() => {
-            return (
-              <MiniGraph
-                location={location}
-                eventView={eventView}
-                organization={organization}
-              />
-            );
-          }}
+          createdBy={eventView.createdBy}
+          renderGraph={() => (
+            <MiniGraph
+              location={location}
+              eventView={eventView}
+              organization={organization}
+            />
+          )}
           onEventClick={() => {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
@@ -168,59 +177,49 @@ class QueryList extends React.Component<Props> {
         moment(eventView.start).format('MMM D, YYYY h:mm A') +
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
-      const to = {
-        pathname: generateDiscoverResultsRoute(organization.slug),
-        query: {
-          ...location.query,
-          // remove any landing page cursor
-          cursor: undefined,
-          ...eventView.generateQueryStringObject(),
-        },
-      };
+
+      const to = eventView.getResultsViewUrlTarget(organization.slug);
+      const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
 
       return (
         <QueryCard
           key={`${index}-${eventView.id}`}
           to={to}
-          starred
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
+          createdBy={eventView.createdBy}
+          dateStatus={dateStatus}
           onEventClick={() => {
             trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
+              eventKey: 'discover_v2.saved_query_click',
+              eventName: 'Discoverv2: Click a saved query',
               organization_id: parseInt(this.props.organization.id, 10),
-              query_name: eventView.name,
             });
           }}
-          renderGraph={() => {
-            return (
-              <MiniGraph
-                location={location}
-                eventView={eventView}
-                organization={organization}
-              />
-            );
-          }}
-          renderContextMenu={() => {
-            return (
-              <ContextMenu>
-                <MenuItem
-                  href="#delete-query"
-                  onClick={this.handleDeleteQuery(eventView)}
-                >
-                  {t('Delete Query')}
-                </MenuItem>
-                <MenuItem
-                  href="#duplicate-query"
-                  onClick={this.handleDuplicateQuery(eventView)}
-                >
-                  {t('Duplicate Query')}
-                </MenuItem>
-              </ContextMenu>
-            );
-          }}
+          renderGraph={() => (
+            <MiniGraph
+              location={location}
+              eventView={eventView}
+              organization={organization}
+            />
+          )}
+          renderContextMenu={() => (
+            <ContextMenu>
+              <MenuItem
+                data-test-id="delete-query"
+                onClick={this.handleDeleteQuery(eventView)}
+              >
+                {t('Delete Query')}
+              </MenuItem>
+              <MenuItem
+                data-test-id="duplicate-query"
+                onClick={this.handleDuplicateQuery(eventView)}
+              >
+                {t('Duplicate Query')}
+              </MenuItem>
+            </ContextMenu>
+          )}
         />
       );
     });
@@ -231,12 +230,12 @@ class QueryList extends React.Component<Props> {
     return (
       <React.Fragment>
         <QueryGrid>{this.renderQueries()}</QueryGrid>
-        <Pagination
+        <PaginationRow
           pageLinks={pageLinks}
           onCursor={(cursor: string, path: string, query: Query, direction: number) => {
             const offset = Number(cursor.split(':')[1]);
 
-            const newQuery = {...query, cursor};
+            const newQuery: Query & {cursor?: string} = {...query, cursor};
             const isPrevious = direction === -1;
 
             if (offset <= 0 && isPrevious) {
@@ -254,6 +253,10 @@ class QueryList extends React.Component<Props> {
   }
 }
 
+const PaginationRow = styled(Pagination)`
+  margin-bottom: 20px;
+`;
+
 const QueryGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
@@ -268,59 +271,51 @@ const QueryGrid = styled('div')`
   }
 `;
 
-class ContextMenu extends React.Component {
-  render() {
-    const {children} = this.props;
+const ContextMenu = ({children}) => (
+  <DropdownMenu>
+    {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+      const topLevelCx = classNames('dropdown', {
+        'anchor-right': true,
+        open: isOpen,
+      });
 
-    return (
-      <DropdownMenu>
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-          const topLevelCx = classNames('dropdown', {
-            'pull-right': true,
-            'anchor-right': true,
-            open: isOpen,
-          });
+      return (
+        <MoreOptions
+          {...getRootProps({
+            className: topLevelCx,
+          })}
+        >
+          <DropdownTarget
+            {...getActorProps({
+              onClick: (event: MouseEvent) => {
+                event.stopPropagation();
+                event.preventDefault();
+              },
+            })}
+          >
+            <IconEllipsis data-test-id="context-menu" size="md" />
+          </DropdownTarget>
+          {isOpen && (
+            <ul {...getMenuProps({})} className={classNames('dropdown-menu')}>
+              {children}
+            </ul>
+          )}
+        </MoreOptions>
+      );
+    }}
+  </DropdownMenu>
+);
 
-          return (
-            <span
-              {...getRootProps({
-                className: topLevelCx,
-              })}
-            >
-              <ContextMenuButton
-                data-test-id="context-menu"
-                {...getActorProps({
-                  onClick: (event: MouseEvent) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                  },
-                }) as any}
-              >
-                <InlineSvg src="icon-ellipsis-filled" />
-              </ContextMenuButton>
+const MoreOptions = styled('span')`
+  display: flex;
+  color: ${p => p.theme.gray700};
+`;
 
-              {isOpen && (
-                <ul {...getMenuProps({}) as any} className={classNames('dropdown-menu')}>
-                  {children}
-                </ul>
-              )}
-            </span>
-          );
-        }}
-      </DropdownMenu>
-    );
-  }
-}
-
-const ContextMenuButton = styled('div')`
-  border-radius: 3px;
-  background-color: ${p => p.theme.offWhite};
-  padding-left: 8px;
-  padding-right: 8px;
-
-  &:hover {
-    background-color: ${p => p.theme.offWhite2};
-  }
+const DropdownTarget = styled('div')`
+  display: flex;
+`;
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  grid-column: 1 / 4;
 `;
 
 export default withApi(QueryList);

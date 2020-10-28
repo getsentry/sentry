@@ -1,13 +1,16 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import EventCause from 'app/components/events/eventCause';
+import CommitterStore from 'app/stores/committerStore';
 
-describe('EventCause', function() {
-  const event = TestStubs.Event();
+describe('EventCause', function () {
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
+  const event = TestStubs.Event();
+  const group = TestStubs.Group({firstRelease: {}});
 
   const context = {
     organization,
@@ -15,16 +18,15 @@ describe('EventCause', function() {
     group: TestStubs.Group(),
   };
 
-  afterEach(function() {
+  afterEach(function () {
     Client.clearMockResponses();
+    CommitterStore.reset();
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     Client.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${project.slug}/events/${
-        event.id
-      }/committers/`,
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [
           {
@@ -65,15 +67,20 @@ describe('EventCause', function() {
     });
   });
 
-  it('renders', async function() {
-    const wrapper = mount(
-      <EventCause event={event} orgId={organization.slug} projectId={project.slug} />,
-      {
-        context,
-      }
+  it('renders', async function () {
+    const wrapper = mountWithTheme(
+      <EventCause
+        organization={organization}
+        project={project}
+        event={event}
+        group={group}
+      />,
+      {context}
     );
 
     await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
     wrapper.update();
 
     expect(wrapper.find('CommitRow')).toHaveLength(1);
@@ -81,15 +88,20 @@ describe('EventCause', function() {
     expect(wrapper.find('Hovercard').exists()).toBe(false);
   });
 
-  it('expands', async function() {
-    const wrapper = mount(
-      <EventCause event={event} orgId={organization.slug} projectId={project.slug} />,
-      {
-        context,
-      }
+  it('expands', async function () {
+    const wrapper = mountWithTheme(
+      <EventCause
+        organization={organization}
+        project={project}
+        event={event}
+        group={group}
+      />,
+      {context}
     );
 
     await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
     wrapper.update();
 
     wrapper.find('ExpandButton').simulate('click');
@@ -102,12 +114,10 @@ describe('EventCause', function() {
     expect(wrapper.find('CommitRow')).toHaveLength(1);
   });
 
-  it('shows unassociated email warning', async function() {
+  it('shows unassociated email warning', async function () {
     Client.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${project.slug}/events/${
-        event.id
-      }/committers/`,
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [
           {
@@ -126,14 +136,19 @@ describe('EventCause', function() {
       },
     });
 
-    const wrapper = mount(
-      <EventCause event={event} orgId={organization.slug} projectId={project.slug} />,
-      {
-        context,
-      }
+    const wrapper = mountWithTheme(
+      <EventCause
+        organization={organization}
+        project={project}
+        event={event}
+        group={group}
+      />,
+      {context}
     );
 
     await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
     wrapper.update();
 
     expect(wrapper.find('CommitRow')).toHaveLength(1);

@@ -44,6 +44,7 @@ class PluginSerializer(Serializer):
             "metadata": obj.get_metadata(),
             "contexts": contexts,
             "status": obj.get_status(),
+            # TODO: remove assets since they are unused
             "assets": [
                 {"url": absolute_uri(get_asset_url(obj.asset_key or obj.slug, asset))}
                 for asset in obj.get_assets()
@@ -63,6 +64,16 @@ class PluginSerializer(Serializer):
 
         if obj.description:
             d["description"] = six.text_type(obj.description)
+
+        d["features"] = list(set(f.featureGate.value for f in obj.feature_descriptions))
+
+        d["featureDescriptions"] = [
+            {
+                "description": f.description.strip(),
+                "featureGate": obj.feature_flag_name(f.featureGate.value),
+            }
+            for f in obj.feature_descriptions
+        ]
 
         if obj.resource_links:
             d["resourceLinks"] = [

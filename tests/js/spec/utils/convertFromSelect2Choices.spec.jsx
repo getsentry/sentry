@@ -1,7 +1,7 @@
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
-describe('convertFromSelect2Choices', function() {
-  it('changes a flat array of strings into array of {label, value}', function() {
+describe('convertFromSelect2Choices', function () {
+  it('changes a flat array of strings into array of {label, value}', function () {
     expect(convertFromSelect2Choices(['a', 'b', 'c'])).toEqual([
       {
         label: 'a',
@@ -18,8 +18,14 @@ describe('convertFromSelect2Choices', function() {
     ]);
   });
 
-  it('changes a paired array of strings into array of {label, value}', function() {
-    expect(convertFromSelect2Choices([['a', 'A'], ['b', 'B'], ['c', 'C']])).toEqual([
+  it('changes a paired array of strings into array of {label, value}', function () {
+    expect(
+      convertFromSelect2Choices([
+        ['a', 'A'],
+        ['b', 'B'],
+        ['c', 'C'],
+      ])
+    ).toEqual([
       {
         label: 'A',
         value: 'a',
@@ -35,7 +41,7 @@ describe('convertFromSelect2Choices', function() {
     ]);
   });
 
-  it('returns null on invalid values', function() {
+  it('returns null on invalid values', function () {
     expect(convertFromSelect2Choices('test')).toEqual(null);
     expect(convertFromSelect2Choices(1)).toEqual(null);
     expect(convertFromSelect2Choices({})).toEqual(null);

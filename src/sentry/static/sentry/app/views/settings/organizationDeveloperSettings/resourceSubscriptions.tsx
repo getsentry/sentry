@@ -1,30 +1,28 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import SubscriptionBox from 'app/views/settings/organizationDeveloperSettings/subscriptionBox';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
 } from 'app/views/settings/organizationDeveloperSettings/constants';
-import styled from '@emotion/styled';
 import {WebhookEvent, Permissions} from 'app/types';
 import {Context} from 'app/components/forms/form';
 
 type Resource = typeof EVENT_CHOICES[number];
 
-type Props = {
-  permissions: Permissions;
-  events: WebhookEvent[];
-  onChange: (events: WebhookEvent[]) => void;
+type DefaultProps = {
   webhookDisabled: boolean;
 };
 
-export default class Subscriptions extends React.Component<Props> {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-    form: PropTypes.object,
-  };
+type Props = DefaultProps & {
+  permissions: Permissions;
+  events: WebhookEvent[];
+  onChange: (events: WebhookEvent[]) => void;
+};
 
+export default class Subscriptions extends React.Component<Props> {
   static propTypes = {
     permissions: PropTypes.object.isRequired,
     events: PropTypes.array.isRequired,
@@ -32,7 +30,12 @@ export default class Subscriptions extends React.Component<Props> {
     webhookDisabled: PropTypes.bool.isRequired,
   };
 
-  static defaultProps = {
+  static contextTypes = {
+    router: PropTypes.object.isRequired,
+    form: PropTypes.object,
+  };
+
+  static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };
 
@@ -41,7 +44,7 @@ export default class Subscriptions extends React.Component<Props> {
     this.context.form.setValue('events', this.props.events);
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     // if webhooks are disabled, unset the events
     if (nextProps.webhookDisabled && this.props.events.length) {
       this.save([]);
@@ -51,9 +54,9 @@ export default class Subscriptions extends React.Component<Props> {
   componentDidUpdate() {
     const {permissions, events} = this.props;
 
-    const permittedEvents = events.filter(resource => {
-      return permissions[PERMISSIONS_MAP[resource]] !== 'no-access';
-    });
+    const permittedEvents = events.filter(
+      resource => permissions[PERMISSIONS_MAP[resource]] !== 'no-access'
+    );
 
     if (JSON.stringify(events) !== JSON.stringify(permittedEvents)) {
       this.save(permittedEvents);

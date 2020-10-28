@@ -2,9 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {selectText} from 'app/utils/selectText';
+import {IconInfo, IconChevron, IconLock, IconCopy} from 'app/icons';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import Clipboard from 'app/components/clipboard';
 import ExternalLink from 'app/components/links/externalLink';
 import space from 'app/styles/space';
 import {CONFIG_DOCS_URL} from 'app/constants';
@@ -79,7 +81,13 @@ class FeatureDisabled extends React.Component<Props, State> {
           {message}
           {!hideHelpToggle && (
             <HelpButton
-              icon={showHelp ? 'icon-chevron-down' : 'icon-circle-info'}
+              icon={
+                showHelp ? (
+                  <IconChevron direction="down" size="xs" />
+                ) : (
+                  <IconInfo size="xs" />
+                )
+              }
               priority="link"
               size="xsmall"
               onClick={this.toggleHelp}
@@ -89,7 +97,12 @@ class FeatureDisabled extends React.Component<Props, State> {
           )}
         </FeatureDisabledMessage>
         {showDescription && (
-          <HelpDescription>
+          <HelpDescription
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
             <p>
               {tct(
                 `Enable this feature on your sentry installation by adding the
@@ -102,7 +115,20 @@ class FeatureDisabled extends React.Component<Props, State> {
                 }
               )}
             </p>
-            <pre onClick={e => selectText(e.target)}>
+            <Clipboard hideUnsupported value={installText(features, featureName)}>
+              <Button
+                borderless
+                size="xsmall"
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                icon={<IconCopy />}
+              >
+                {t('Copy to Clipboard')}
+              </Button>
+            </Clipboard>
+            <pre onClick={e => selectText(e.target as HTMLElement)}>
               <code>{installText(features, featureName)}</code>
             </pre>
           </HelpDescription>
@@ -121,7 +147,7 @@ class FeatureDisabled extends React.Component<Props, State> {
     const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
 
     return (
-      <AlertComponent type="warning" icon="icon-lock">
+      <AlertComponent type="warning" icon={<IconLock size="xs" />}>
         <AlertWrapper>{this.renderFeatureDisabled()}</AlertWrapper>
       </AlertComponent>
     );

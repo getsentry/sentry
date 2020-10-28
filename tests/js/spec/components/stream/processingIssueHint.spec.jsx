@@ -1,9 +1,10 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
 
-describe('ProcessingIssueHint', function() {
+describe('ProcessingIssueHint', function () {
   let issue, wrapper;
   const orgId = 'test-org';
   const projectId = 'test-project';
@@ -20,88 +21,88 @@ describe('ProcessingIssueHint', function() {
     };
   });
 
-  describe('numIssues state', function() {
+  describe('numIssues state', function () {
     beforeEach(() => {
       issue.numIssues = 9;
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ProcessingIssueHint issue={issue} orgId={orgId} projectId={projectId} />
       );
     });
 
-    it('displays a button', function() {
-      const button = wrapper.find('Link');
+    it('displays a button', function () {
+      const button = wrapper.find('Button');
       expect(button.length).toBe(1);
       expect(button.props().to).toEqual(
         `/settings/${orgId}/projects/${projectId}/processing-issues/`
       );
     });
 
-    it('displays an icon', function() {
-      const icon = wrapper.find('[className*="icon-alert"]');
+    it('displays an icon', function () {
+      const icon = wrapper.find('IconWarning');
       expect(icon.length).toBe(1);
     });
 
-    it('displays text', function() {
-      const text = wrapper.find('Container').text();
+    it('displays text', function () {
+      const text = wrapper.find('Wrapper').text();
       expect(text).toEqual(expect.stringContaining('issues blocking'));
     });
   });
 
-  describe('issuesProcessing state', function() {
+  describe('issuesProcessing state', function () {
     beforeEach(() => {
       issue.issuesProcessing = 9;
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ProcessingIssueHint issue={issue} orgId={orgId} projectId={projectId} />
       );
     });
 
-    it('does not display a button', function() {
-      const button = wrapper.find('Link');
+    it('does not display a button', function () {
+      const button = wrapper.find('Button');
       expect(button.length).toBe(0);
     });
 
-    it('displays an icon', function() {
-      const icon = wrapper.find('[className*="icon-processing"]');
+    it('displays an icon', function () {
+      const icon = wrapper.find('IconSettings');
       expect(icon.length).toBe(1);
     });
 
-    it('displays text', function() {
-      const text = wrapper.find('Container').text();
+    it('displays text', function () {
+      const text = wrapper.find('Wrapper').text();
       expect(text).toEqual(expect.stringContaining('Reprocessing'));
     });
   });
 
-  describe('resolvableIssues state', function() {
+  describe('resolvableIssues state', function () {
     beforeEach(() => {
       issue.resolveableIssues = 9;
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ProcessingIssueHint issue={issue} orgId={orgId} projectId={projectId} />
       );
     });
 
-    it('displays a button', function() {
-      const button = wrapper.find('Link');
+    it('displays a button', function () {
+      const button = wrapper.find('Button');
       expect(button.length).toBe(1);
       expect(button.props().to).toEqual(
         `/settings/${orgId}/projects/${projectId}/processing-issues/`
       );
     });
 
-    it('displays an icon', function() {
-      const icon = wrapper.find('[className*="icon-processing"]');
+    it('displays an icon', function () {
+      const icon = wrapper.find('IconSettings');
       expect(icon.length).toBe(1);
     });
 
-    it('displays text', function() {
-      const text = wrapper.find('Container').text();
+    it('displays text', function () {
+      const text = wrapper.find('Wrapper').text();
       expect(text).toEqual(expect.stringContaining('pending reprocessing'));
     });
   });
 
-  describe('showProject state', function() {
+  describe('showProject state', function () {
     beforeEach(() => {
       issue.numIssues = 9;
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ProcessingIssueHint
           showProject
           issue={issue}
@@ -110,8 +111,8 @@ describe('ProcessingIssueHint', function() {
         />
       );
     });
-    it('displays the project slug', function() {
-      const text = wrapper.find('Container').text();
+    it('displays the project slug', function () {
+      const text = wrapper.find('Wrapper').text();
       expect(text).toEqual(expect.stringContaining(projectId));
     });
   });

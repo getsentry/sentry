@@ -16,16 +16,20 @@ import AsyncView from 'app/views/asyncView';
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationAccessRequests from './organizationAccessRequests';
 
+type DefaultProps = {
+  inviteRequests: Member[];
+};
+
 type Props = {
   organization: Organization;
   requestList: AccessRequest[];
-  inviteRequests: Member[];
   teams: Team[];
   onUpdateInviteRequest: (id: string, data: Partial<Member>) => void;
   onRemoveInviteRequest: (id: string) => void;
   onRemoveAccessRequest: (id: string) => void;
   showInviteRequests: boolean;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{orgId: string}, {}> &
+  DefaultProps;
 
 type State = AsyncView['state'] & {
   inviteRequestBusy: {[key: string]: boolean};
@@ -40,7 +44,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     showInviteRequests: PropTypes.bool.isRequired,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     inviteRequests: [],
   };
 
@@ -52,8 +56,8 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     };
   }
 
-  componentWillMount() {
-    super.componentWillMount();
+  UNSAFE_componentWillMount() {
+    super.UNSAFE_componentWillMount();
     this.handleRedirect();
   }
 

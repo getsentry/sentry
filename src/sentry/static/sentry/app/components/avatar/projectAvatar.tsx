@@ -3,11 +3,12 @@ import React from 'react';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import PlatformList from 'app/components/platformList';
+import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
-import {Project} from 'app/types';
+import {AvatarProject} from 'app/types';
 
 type Props = {
-  project: Project;
+  project: AvatarProject;
 } & BaseAvatar['props'];
 
 class ProjectAvatar extends React.Component<Props> {
@@ -19,7 +20,7 @@ class ProjectAvatar extends React.Component<Props> {
     ...BaseAvatar.propTypes,
   };
 
-  getPlatforms = (project: Project) => {
+  getPlatforms = (project: AvatarProject) => {
     // `platform` is a user selectable option that is performed during the onboarding process. The reason why this
     // is not the default is because there currently is no way to update it. Fallback to this if project does not
     // have recent events with a platform.
@@ -31,9 +32,13 @@ class ProjectAvatar extends React.Component<Props> {
   };
 
   render() {
-    const {project, ...props} = this.props;
+    const {project, hasTooltip, tooltip, ...props} = this.props;
 
-    return <PlatformList platforms={this.getPlatforms(project)} {...props} max={1} />;
+    return (
+      <Tooltip disabled={!hasTooltip} title={tooltip}>
+        <PlatformList platforms={this.getPlatforms(project)} {...props} max={1} />
+      </Tooltip>
+    );
   }
 }
 export default ProjectAvatar;

@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t, tct} from 'app/locale';
@@ -13,15 +12,6 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectExpectCtReports extends AsyncView {
-  static propTypes = {
-    setProjectNavSection: PropTypes.func,
-  };
-
-  componentWillMount() {
-    super.componentWillMount();
-    this.props.setProjectNavSection('settings');
-  }
-
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
@@ -47,7 +37,7 @@ export default class ProjectExpectCtReports extends AsyncView {
 
         <Panel>
           <PanelHeader>{'About'}</PanelHeader>
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <p>
               {tct(
                 `[link:Certificate Transparency]

@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from sentry.utils.compat import zip
 
 __all__ = (
     "TestCase",
@@ -13,21 +14,23 @@ __all__ = (
     "AcceptanceTestCase",
     "IntegrationTestCase",
     "SnubaTestCase",
+    "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
     "SetRefsTestCase",
     "OrganizationDashboardWidgetTestCase",
 )
 
-import base64
-import contextlib
 import os
 import os.path
 import pytest
 import requests
 import six
-import types
-import mock
+import time
+import inspect
+from uuid import uuid4
+from contextlib import contextmanager
+from sentry.utils.compat import mock
 
 from click.testing import CliRunner
 from datetime import datetime
@@ -42,13 +45,17 @@ from django.http import HttpRequest
 from django.test import override_settings, TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from django.utils.functional import cached_property
+
 from exam import before, fixture, Exam
-from mock import patch
+from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
 from six.moves.urllib.parse import urlencode
 
 from sentry import auth
+from sentry import eventstore
+from sentry.auth.authenticators import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
     Superuser,
@@ -67,7 +74,6 @@ from sentry.models import (
     Repository,
     DeletedOrganization,
     Organization,
-    TotpInterface,
     Dashboard,
     ObjectStatus,
     WidgetDataSource,
@@ -78,18 +84,13 @@ from sentry.rules import EventState
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
+from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils.retries import TimedRetryPolicy
 
 from .fixtures import Fixtures
 from .factories import Factories
 from .skips import requires_snuba
-from .helpers import (
-    AuthProvider,
-    Feature,
-    get_auth_header,
-    TaskRunner,
-    override_options,
-    parse_queries,
-)
+from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -107,6 +108,25 @@ class BaseTestCase(Fixtures, Exam):
 
     def tasks(self):
         return TaskRunner()
+
+    @classmethod
+    @contextmanager
+    def capture_on_commit_callbacks(cls, using=DEFAULT_DB_ALIAS, execute=False):
+        """
+        Context manager to capture transaction.on_commit() callbacks.
+        Backported from Django:
+        https://github.com/django/django/pull/12944
+        """
+        callbacks = []
+        start_count = len(connections[using].run_on_commit)
+        try:
+            yield callbacks
+        finally:
+            run_on_commit = connections[using].run_on_commit[start_count:]
+            callbacks[:] = [func for sids, func in run_on_commit]
+            if execute:
+                for callback in callbacks:
+                    callback()
 
     def feature(self, names):
         """
@@ -159,6 +179,7 @@ class BaseTestCase(Fixtures, Exam):
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
     # a lot of tests changing
+    @TimedRetryPolicy.wrap(timeout=5)
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
@@ -221,141 +242,12 @@ class BaseTestCase(Fixtures, Exam):
     def _post_teardown(self):
         super(BaseTestCase, self)._post_teardown()
 
-    def _makeMessage(self, data):
-        return json.dumps(data).encode("utf-8")
-
-    def _makePostMessage(self, data):
-        return base64.b64encode(self._makeMessage(data))
-
-    def _postWithHeader(self, data, key=None, secret=None, protocol=None, **extra):
-        if key is None:
-            key = self.projectkey.public_key
-            secret = self.projectkey.secret_key
-
-        message = self._makePostMessage(data)
-        with self.tasks():
-            resp = self.client.post(
-                reverse("sentry-api-store"),
-                message,
-                content_type="application/octet-stream",
-                HTTP_X_SENTRY_AUTH=get_auth_header("_postWithHeader/0.0.0", key, secret, protocol),
-                **extra
-            )
-        return resp
-
-    def _postCspWithHeader(self, data, key=None, **extra):
-        if isinstance(data, dict):
-            body = json.dumps({"csp-report": data})
-        elif isinstance(data, six.string_types):
-            body = data
-        path = reverse("sentry-api-csp-report", kwargs={"project_id": self.project.id})
-        path += "?sentry_key=%s" % self.projectkey.public_key
-        with self.tasks():
-            return self.client.post(
-                path,
-                data=body,
-                content_type="application/csp-report",
-                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                **extra
-            )
-
-    def _postMinidumpWithHeader(
-        self, upload_file_minidump, data=None, key=None, raw=False, **extra
-    ):
-        if raw:
-            data = upload_file_minidump.read()
-            extra.setdefault("content_type", "application/octet-stream")
-        else:
-            data = dict(data or {})
-            data["upload_file_minidump"] = upload_file_minidump
-
-        path = reverse("sentry-api-minidump", kwargs={"project_id": self.project.id})
-        path += "?sentry_key=%s" % self.projectkey.public_key
-        with self.tasks():
-            return self.client.post(path, data=data, HTTP_USER_AGENT=DEFAULT_USER_AGENT, **extra)
-
-    def _postUnrealWithHeader(self, upload_unreal_crash, data=None, key=None, **extra):
-        path = reverse(
-            "sentry-api-unreal",
-            kwargs={"project_id": self.project.id, "sentry_key": self.projectkey.public_key},
-        )
-        with self.tasks():
-            return self.client.post(
-                path,
-                data=upload_unreal_crash,
-                content_type="application/octet-stream",
-                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                **extra
-            )
-
-    def _postEventAttachmentWithHeader(self, attachment, **extra):
-        path = reverse(
-            "sentry-api-event-attachment",
-            kwargs={"project_id": self.project.id, "event_id": self.event.event_id},
-        )
-
-        key = self.projectkey.public_key
-        secret = self.projectkey.secret_key
-
-        with self.tasks():
-            return self.client.post(
-                path,
-                attachment,
-                # HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                HTTP_X_SENTRY_AUTH=get_auth_header("_postWithHeader/0.0.0", key, secret, 7),
-                **extra
-            )
-
-    def _getWithReferer(self, data, key=None, referer="sentry.io", protocol="4"):
-        if key is None:
-            key = self.projectkey.public_key
-
-        headers = {}
-        if referer is not None:
-            headers["HTTP_REFERER"] = referer
-
-        message = self._makeMessage(data)
-        qs = {
-            "sentry_version": protocol,
-            "sentry_client": "raven-js/lol",
-            "sentry_key": key,
-            "sentry_data": message,
-        }
-        with self.tasks():
-            resp = self.client.get(
-                "%s?%s" % (reverse("sentry-api-store", args=(self.project.pk,)), urlencode(qs)),
-                **headers
-            )
-        return resp
-
-    def _postWithReferer(self, data, key=None, referer="sentry.io", protocol="4"):
-        if key is None:
-            key = self.projectkey.public_key
-
-        headers = {}
-        if referer is not None:
-            headers["HTTP_REFERER"] = referer
-
-        message = self._makeMessage(data)
-        qs = {"sentry_version": protocol, "sentry_client": "raven-js/lol", "sentry_key": key}
-        with self.tasks():
-            resp = self.client.post(
-                "%s?%s" % (reverse("sentry-api-store", args=(self.project.pk,)), urlencode(qs)),
-                data=message,
-                content_type="application/json",
-                **headers
-            )
-        return resp
-
     def options(self, options):
         """
         A context manager that temporarily sets a global option and reverts
         back to the original value when exiting the context.
         """
         return override_options(options)
-
-    _postWithSignature = _postWithHeader
-    _postWithNewSignature = _postWithHeader
 
     def assert_valid_deleted_log(self, deleted_log, original_object):
         assert deleted_log is not None
@@ -498,7 +390,7 @@ class TwoFactorAPITestCase(APITestCase):
         response = self.api_enable_org_2fa(organization, user)
         assert response.status_code == status_code
         if err_msg:
-            assert err_msg in response.content
+            assert err_msg.encode("utf-8") in response.content
         organization = Organization.objects.get(id=organization.id)
 
         if status_code >= 200 and status_code < 300:
@@ -654,7 +546,7 @@ class PluginTestCase(TestCase):
 
         # Old plugins, plugin is a class, new plugins, it's an instance
         # New plugins don't need to be registered
-        if isinstance(self.plugin, (type, types.ClassType)):
+        if inspect.isclass(self.plugin):
             plugins.register(self.plugin)
             self.addCleanup(plugins.unregister, self.plugin)
 
@@ -715,6 +607,20 @@ class AcceptanceTestCase(TransactionTestCase):
         # Forward session cookie to django client.
         self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
 
+    def dismiss_assistant(self, which=None):
+        if which is None:
+            which = ("issue", "issue_stream")
+        if isinstance(which, six.string_types):
+            which = [which]
+
+        for item in which:
+            res = self.client.put(
+                "/api/0/assistant/?v2",
+                content_type="application/json",
+                data=json.dumps({"guide": item, "status": "viewed", "useful": True}),
+            )
+            assert res.status_code == 201, res.content
+
 
 class IntegrationTestCase(TestCase):
     provider = None
@@ -740,12 +646,13 @@ class IntegrationTestCase(TestCase):
         self.setup_path = reverse(
             "sentry-extension-setup", kwargs={"provider_id": self.provider.key}
         )
+        self.configure_path = u"/extensions/{}/configure/".format(self.provider.key)
 
         self.pipeline.initialize()
         self.save_session()
 
     def assertDialogSuccess(self, resp):
-        assert "window.opener.postMessage(" in resp.content
+        assert b"window.opener.postMessage(" in resp.content
 
 
 @pytest.mark.snuba
@@ -761,24 +668,51 @@ class SnubaTestCase(BaseTestCase):
         super(SnubaTestCase, self).setUp()
         self.init_snuba()
 
+    @pytest.fixture(autouse=True)
+    def initialize(self, reset_snuba, call_snuba):
+        self.call_snuba = call_snuba
+
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/events/drop").status_code == 200
-        assert (
-            requests.post(settings.SENTRY_SNUBA + "/tests/groupedmessage/drop").status_code == 200
-        )
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/transactions/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
-        with contextlib.nested(
-            mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert)
-        ):
+        with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
             stored_event = Factories.store_event(*args, **kwargs)
             stored_group = stored_event.group
             if stored_group is not None:
                 self.store_group(stored_group)
             return stored_event
+
+    def wait_for_event_count(self, project_id, total, attempts=2):
+        """
+        Wait until the event count reaches the provided value or until attempts is reached.
+
+        Useful when you're storing several events and need to ensure that snuba/clickhouse
+        state has settled.
+        """
+        # Verify that events have settled in snuba's storage.
+        # While snuba is synchronous, clickhouse isn't entirely synchronous.
+        attempt = 0
+        snuba_filter = eventstore.Filter(project_ids=[project_id])
+        while attempt < attempts:
+            events = eventstore.get_events(snuba_filter)
+            if len(events) >= total:
+                break
+            attempt += 1
+            time.sleep(0.05)
+        if attempt == attempts:
+            assert False, "Could not ensure event was persisted within {} attempt(s)".format(
+                attempt
+            )
+
+    def store_session(self, session):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/sessions/insert", data=json.dumps([session])
+            ).status_code
+            == 200
+        )
 
     def store_group(self, group):
         data = [self.__wrap_group(group)]
@@ -788,21 +722,6 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
-
-    def __wrap_event(self, event, data, primary_hash):
-        # TODO: Abstract and combine this with the stream code in
-        #       getsentry once it is merged, so that we don't alter one
-        #       without updating the other.
-        return {
-            "group_id": event.group_id,
-            "event_id": event.event_id,
-            "project_id": event.project_id,
-            "message": event.real_message,
-            "platform": event.platform,
-            "datetime": event.datetime,
-            "data": dict(data),
-            "primary_hash": primary_hash,
-        }
 
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
@@ -871,6 +790,30 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+
+
+class BaseIncidentsTest(SnubaTestCase):
+    def create_event(self, timestamp, fingerprint=None, user=None):
+        event_id = uuid4().hex
+        if fingerprint is None:
+            fingerprint = event_id
+
+        data = {
+            "event_id": event_id,
+            "fingerprint": [fingerprint],
+            "timestamp": iso_format(timestamp),
+            "type": "error",
+            # This is necessary because event type error should not exist without
+            # an exception being in the payload
+            "exception": [{"type": "Foo"}],
+        }
+        if user:
+            data["user"] = user
+        return self.store_event(data=data, project_id=self.project.id)
+
+    @cached_property
+    def now(self):
+        return timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 @pytest.mark.snuba
@@ -1034,7 +977,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "groupby": ["time"],
             "rollup": 86400,
         }
-        self.geo_erorrs_query = {
+        self.geo_errors_query = {
             "name": "errorsByGeo",
             "fields": ["geo.country_code"],
             "conditions": [["geo.country_code", "IS NOT NULL", None]],

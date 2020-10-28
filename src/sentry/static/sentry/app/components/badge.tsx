@@ -1,13 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 const priorityColors = {
-  new: theme.red,
-  strong: theme.blue,
-  highlight: theme.green,
+  new: theme.red400,
+  strong: theme.blue400,
+  highlight: theme.green400,
 } as const;
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
@@ -16,7 +17,7 @@ type Props = React.HTMLProps<HTMLSpanElement> & {
   className?: string;
 };
 
-const Badge = styled(({priority, text, ...props}: Props) => (
+const Badge = styled(({priority: _priority, text, ...props}: Props) => (
   <span {...props}>{text}</span>
 ))<Props>`
   display: inline-block;
@@ -30,7 +31,7 @@ const Badge = styled(({priority, text, ...props}: Props) => (
   font-weight: 600;
   text-align: center;
   color: #fff;
-  background: ${p => (p.priority ? priorityColors[p.priority] : theme.gray1)};
+  background: ${p => (p.priority ? priorityColors[p.priority] : theme.gray400)};
   transition: background 100ms linear;
 
   position: relative;

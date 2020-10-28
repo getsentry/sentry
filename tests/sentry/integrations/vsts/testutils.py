@@ -95,7 +95,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         responses.add(
             responses.GET,
             u"https://{}.visualstudio.com/_apis/projects".format(self.vsts_account_name.lower()),
-            json={"value": [self.project_a, self.project_b]},
+            json={"value": [self.project_a, self.project_b], "count": 2},
         )
 
         responses.add(
@@ -169,7 +169,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
     def assert_account_selection(self, response, account_id=None):
         account_id = account_id or self.vsts_account_id
         assert response.status_code == 200
-        assert u'<option value="{}"'.format(account_id) in response.content
+        assert u'<option value="{}"'.format(account_id).encode("utf-8") in response.content
 
     def assert_installation(self):
         # Initial request to the installation URL for VSTS

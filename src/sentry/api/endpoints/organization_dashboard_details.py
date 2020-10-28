@@ -4,7 +4,6 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.dashboard import OrganizationDashboardEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -75,9 +74,6 @@ class DashboardWithWidgetsSerializer(serializers.Serializer):
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
-
-    doc_section = DocSection.ORGANIZATIONS
-
     def get(self, request, organization, dashboard):
         """
         Retrieve an Organization's Dashboard

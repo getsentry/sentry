@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 import six
 
 from django.core.urlresolvers import reverse
@@ -23,6 +23,7 @@ from sentry.models import (
     AuditLogEntryEvent,
 )
 from sentry.testutils import APITestCase
+from sentry.utils.compat import zip
 
 
 class ProjectDetailsTest(APITestCase):
@@ -207,10 +208,10 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 400, resp.content
 
     def test_platform(self):
-        resp = self.client.put(self.path, data={"platform": "cocoa"})
+        resp = self.client.put(self.path, data={"platform": "python"})
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=self.project.id)
-        assert project.platform == "cocoa"
+        assert project.platform == "python"
 
     def test_platform_invalid(self):
         resp = self.client.put(self.path, data={"platform": "lol"})
@@ -449,19 +450,11 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["storeCrashReports"] == 10
 
     def test_relay_pii_config(self):
-        with self.feature("organizations:datascrubbers-v2"):
-            value = '{"applications": {"freeform": []}}'
-            resp = self.client.put(self.path, data={"relayPiiConfig": value})
-            assert resp.status_code == 200, resp.content
-            assert self.project.get_option("sentry:relay_pii_config") == value
-            assert resp.data["relayPiiConfig"] == value
-
-    def test_relay_pii_config_forbidden(self):
         value = '{"applications": {"freeform": []}}'
         resp = self.client.put(self.path, data={"relayPiiConfig": value})
-        assert resp.status_code == 400
-        assert "feature" in resp.content
-        assert self.project.get_option("sentry:relay_pii_config") is None
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option("sentry:relay_pii_config") == value
+        assert resp.data["relayPiiConfig"] == value
 
     def test_sensitive_fields(self):
         resp = self.client.put(

@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import copy
-import mock
+from sentry.utils.compat import mock
 
+from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
@@ -21,7 +22,6 @@ from sentry.models import (
     ReleaseEnvironment,
     ReleaseFile,
     Team,
-    TotpInterface,
     User,
 )
 from sentry.testutils import TestCase

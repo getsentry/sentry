@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
+
 import {SidebarLabel} from '../styles';
 import {ReactSelectOption} from '../types';
 
@@ -62,6 +63,7 @@ export default class Orderby extends React.Component<OrderbyProps> {
         <Container>
           <OrderbyField>
             <SelectControl
+              deprecatedSelectControl
               name="orderbyField"
               options={columns}
               value={field}
@@ -71,8 +73,12 @@ export default class Orderby extends React.Component<OrderbyProps> {
           </OrderbyField>
           <OrderbyValue>
             <SelectControl
+              deprecatedSelectControl
               name="orderbyDirection"
-              options={[{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]}
+              options={[
+                {value: 'asc', label: 'asc'},
+                {value: 'desc', label: 'desc'},
+              ]}
               value={direction}
               onChange={(val: ReactSelectOption) => this.updateDirection(val.value)}
               disabled={disabled}

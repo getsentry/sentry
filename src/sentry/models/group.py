@@ -6,12 +6,12 @@ import re
 import warnings
 from collections import namedtuple
 from enum import Enum
-
 from datetime import timedelta
-from django.core.urlresolvers import reverse
+
+import six
 from django.db import models
 from django.utils import timezone
-from django.utils.http import urlencode
+from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventstore, eventtypes, tagstore
@@ -78,7 +78,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         getter = queryset.get
 
     if not (
-        isinstance(id_or_qualified_short_id, (long, int))  # noqa
+        isinstance(id_or_qualified_short_id, six.integer_types)  # noqa
         or id_or_qualified_short_id.isdigit()
     ):  # NOQA
         short_id = parse_short_id(id_or_qualified_short_id)
@@ -124,6 +124,10 @@ class GroupStatus(object):
     PENDING_DELETION = 3
     DELETION_IN_PROGRESS = 4
     PENDING_MERGE = 5
+
+    # The group's events are being re-processed and after that the group will
+    # be deleted. In this state no new events shall be added to the group.
+    REPROCESSING = 6
 
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
@@ -185,8 +189,10 @@ class GroupManager(BaseManager):
             return manager.save(project)
 
         # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as exc:
-            logger.info("discarded.hash", extra={"project_id": project, "description": exc.message})
+        except HashDiscarded as e:
+            logger.info(
+                "discarded.hash", extra={"project_id": project, "description": six.text_type(e)}
+            )
 
     def from_event_id(self, project, event_id):
         """
@@ -215,7 +221,7 @@ class GroupManager(BaseManager):
             filter=eventstore.Filter(
                 event_ids=event_ids, project_ids=project_ids, conditions=conditions
             ),
-            limit=len(project_ids),
+            limit=max(len(project_ids), 100),
             referrer="Group.filter_by_event_id",
         )
 
@@ -246,13 +252,18 @@ class Group(Model):
     __core__ = False
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
+    logger = models.CharField(
+        max_length=64, blank=True, default=six.text_type(DEFAULT_LOGGER_NAME), db_index=True
+    )
     level = BoundedPositiveIntegerField(
-        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
+        choices=[(key, six.text_type(val)) for key, val in sorted(LOG_LEVELS.items())],
+        default=logging.ERROR,
+        blank=True,
+        db_index=True,
     )
     message = models.TextField()
     culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column="view"
+        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column=u"view"
     )
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
@@ -315,9 +326,13 @@ class Group(Model):
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
-        url = reverse("sentry-organization-issue", args=[self.organization.slug, self.id])
-        if params:
-            url = url + "?" + urlencode(params)
+        # Built manually in preference to django.core.urlresolvers.reverse,
+        # because reverse has a measured performance impact.
+        url = u"organizations/{org}/issues/{id}/{params}".format(
+            org=urlquote(self.organization.slug),
+            id=self.id,
+            params="?" + urlencode(params) if params else "",
+        )
         return absolute_uri(url)
 
     @property
@@ -333,6 +348,9 @@ class Group(Model):
 
     def is_ignored(self):
         return self.get_status() == GroupStatus.IGNORED
+
+    def is_unresolved(self):
+        return self.get_status() == GroupStatus.UNRESOLVED
 
     # TODO(dcramer): remove in 9.0 / after plugins no long ref
     is_muted = is_ignored
@@ -457,13 +475,23 @@ class Group(Model):
         return ""
 
     def get_email_subject(self):
-        return "%s - %s" % (self.qualified_short_id.encode("utf-8"), self.title.encode("utf-8"))
+        return u"{} - {}".format(self.qualified_short_id, self.title)
 
     def count_users_seen(self):
-        return tagstore.get_groups_user_counts([self.project_id], [self.id], environment_ids=None)[
-            self.id
-        ]
+        return tagstore.get_groups_user_counts(
+            [self.project_id], [self.id], environment_ids=None, start=self.first_seen
+        )[self.id]
 
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
+
+    @staticmethod
+    def issues_mapping(group_ids, project_ids, organization):
+        """ Create a dictionary of group_ids to their qualified_short_ids """
+        return {
+            i.id: i.qualified_short_id
+            for i in Group.objects.filter(
+                id__in=group_ids, project_id__in=project_ids, project__organization=organization
+            )
+        }

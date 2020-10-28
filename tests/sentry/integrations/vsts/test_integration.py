@@ -3,11 +3,11 @@ from __future__ import absolute_import
 import pytest
 import six
 import responses
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 
-from sentry.identity.vsts import VSTSIdentityProvider
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
+from sentry.testutils.helpers import with_feature
 from sentry.models import (
     Integration,
     IntegrationExternalProject,
@@ -23,6 +23,9 @@ from tests.sentry.plugins.testutils import (
     VstsPlugin,
 )
 from .testutils import VstsIntegrationTestCase, CREATE_SUBSCRIPTION
+
+FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
+LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 
 
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):
@@ -45,7 +48,26 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert integration.name == self.vsts_account_name
 
         metadata = integration.metadata
-        assert metadata["scopes"] == list(VSTSIdentityProvider.oauth_scopes)
+        assert metadata["scopes"] == [
+            "vso.code",
+            "vso.graph",
+            "vso.serviceendpoint_manage",
+            "vso.work_write",
+        ]
+        assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
+        assert metadata["domain_name"] == self.vsts_base_url
+
+    @with_feature("organizations:integrations-vsts-limited-scopes")
+    def test_limited_scopes_flow(self):
+        self.assert_installation()
+
+        integration = Integration.objects.get(provider="vsts")
+
+        assert integration.external_id == self.vsts_account_id
+        assert integration.name == self.vsts_account_name
+
+        metadata = integration.metadata
+        assert metadata["scopes"] == LIMITED_SCOPES
         assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
         assert metadata["domain_name"] == self.vsts_base_url
 
@@ -147,9 +169,10 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         # OAuth redirect back to Sentry (identity_pipeline_view)
         resp = self.make_oauth_redirect_request(query["state"][0])
         assert resp.status_code == 200, resp.content
-        assert "No accounts found" in resp.content
+        assert b"No accounts found" in resp.content
 
-    def test_webhook_subscription_created_once(self):
+    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    def test_webhook_subscription_created_once(self, mock_get_scopes):
         self.assert_installation()
 
         state = {
@@ -174,7 +197,8 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             == data["metadata"]["subscription"]
         )
 
-    def test_fix_subscription(self):
+    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    def test_fix_subscription(self, mock_get_scopes):
         external_id = "1234567890"
         Integration.objects.create(metadata={}, provider="vsts", external_id=external_id)
         data = VstsIntegrationProvider().build_integration(
@@ -197,7 +221,8 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
 
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
-    def test_success(self):
+    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    def test_success(self, mock_get_scopes):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
@@ -220,11 +245,10 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         assert integration_dict["user_identity"]["type"] == "vsts"
         assert integration_dict["user_identity"]["external_id"] == self.vsts_account_id
-        assert integration_dict["user_identity"]["scopes"] == sorted(
-            VSTSIdentityProvider.oauth_scopes
-        )
+        assert integration_dict["user_identity"]["scopes"] == FULL_SCOPES
 
-    def test_create_subscription_forbidden(self):
+    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    def test_create_subscription_forbidden(self, mock_get_scopes):
         responses.replace(
             responses.POST,
             u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
@@ -258,7 +282,8 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
             integration.build_integration(state)
         assert "sufficient account access to create webhooks" in six.text_type(err)
 
-    def test_create_subscription_unauthorized(self):
+    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    def test_create_subscription_unauthorized(self, mock_get_scopes):
         responses.replace(
             responses.POST,
             u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
@@ -464,8 +489,9 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         comment = Mock()
         comment.data = {"text": comment_text}
 
-        installation.create_comment(1, self.user.id, comment)
+        work_item = installation.create_comment(1, self.user.id, comment)
 
+        assert work_item and work_item["id"]
         assert (
             mock_update_work_item.call_args[1]["comment"]
             == "Sentry Admin wrote:\n\n<blockquote>%s</blockquote>" % comment_text

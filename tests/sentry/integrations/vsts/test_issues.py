@@ -8,7 +8,7 @@ from exam import fixture
 from django.test import RequestFactory
 from time import time
 
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.vsts.integration import VstsIntegration
 
 from sentry.models import (
@@ -78,12 +78,17 @@ class VstsIssueSyncTest(VstsIssueBase):
     def test_create_issue(self):
         responses.add(
             responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Bug?api-version=3.0",
+            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task?api-version=3.0",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
 
-        form_data = {"title": "Hello", "description": "Fix this.", "project": "0987654321"}
+        form_data = {
+            "title": "Hello",
+            "description": "Fix this.",
+            "project": "0987654321",
+            "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
+        }
         assert self.integration.create_issue(form_data) == {
             "key": self.issue_id,
             "description": "Fix this.",
@@ -280,9 +285,9 @@ class VstsIssueSyncTest(VstsIssueBase):
             == "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
             % vsts_work_item_id
         )
-        assert (
-            req.body == '[{"path": "/fields/System.State", "value": "Resolved", "op": "replace"}]'
-        )
+        assert json.loads(req.body) == [
+            {"path": "/fields/System.State", "value": "Resolved", "op": "replace"}
+        ]
         assert responses.calls[2].response.status_code == 200
 
     def test_get_issue_url(self):
@@ -359,7 +364,8 @@ class VstsIssueFormTest(VstsIssueBase):
                 "value": [
                     {"id": "project-1-id", "name": "project_1"},
                     {"id": "project-2-id", "name": "project_2"},
-                ]
+                ],
+                "count": 2,
             },
         )
         min_ago = iso_format(before_now(minutes=1))
@@ -367,6 +373,64 @@ class VstsIssueFormTest(VstsIssueBase):
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.group = event.group
+
+    def mock_categories(self, project):
+        responses.add(
+            responses.GET,
+            u"https://fabrikam-fiber-inc.visualstudio.com/{}/_apis/wit/workitemtypecategories".format(
+                project
+            ),
+            json={
+                "value": [
+                    {
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
+                                    project
+                                ),
+                                "name": "Bug",
+                            }
+                        ],
+                    },
+                    {
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
+                                    project
+                                ),
+                                "name": "Issue Bug",
+                            },
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Some-Thing.GIssue".format(
+                                    project
+                                ),
+                                "name": "G Issue",
+                            },
+                        ],
+                    },
+                    {
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task".format(
+                                    project
+                                ),
+                                "name": "Task",
+                            }
+                        ],
+                    },
+                    {
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory".format(
+                                    project
+                                ),
+                                "name": "User Story",
+                            }
+                        ],
+                    },
+                ]
+            },
+        )
 
     def tearDown(self):
         responses.reset()
@@ -382,8 +446,14 @@ class VstsIssueFormTest(VstsIssueBase):
         assert project_field["defaultValue"] == default_value
         assert project_field["choices"] == choices
 
+    def assert_work_item_type_field(self, fields, default_value, choices):
+        project_field = [field for field in fields if field["name"] == "work_item_type"][0]
+        assert project_field["defaultValue"] == default_value
+        assert project_field["choices"] == choices
+
     @responses.activate
     def test_default_project(self):
+        self.mock_categories("project-2-id")
         self.update_issue_defaults({"project": "project-2-id"})
         fields = self.integration.get_create_issue_config(self.group)
 
@@ -392,7 +462,29 @@ class VstsIssueFormTest(VstsIssueBase):
         )
 
     @responses.activate
+    def test_default_project_and_category(self):
+        self.mock_categories("project-2-id")
+        self.update_issue_defaults({"project": "project-2-id", "work_item_type": "Task"})
+        fields = self.integration.get_create_issue_config(self.group)
+
+        self.assert_project_field(
+            fields, "project-2-id", [("project-1-id", "project_1"), ("project-2-id", "project_2")]
+        )
+
+        self.assert_work_item_type_field(
+            fields,
+            "Task",
+            [
+                ("Microsoft.VSTS.WorkItemTypes.Bug", "Bug"),
+                ("Some-Thing.GIssue", "G Issue"),
+                ("Microsoft.VSTS.WorkItemTypes.Task", "Task"),
+                ("Microsoft.VSTS.WorkItemTypes.UserStory", "User Story"),
+            ],
+        )
+
+    @responses.activate
     def test_default_project_default_missing_in_choices(self):
+        self.mock_categories("project-3-id")
         responses.add(
             responses.GET,
             "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/project-3-id",
@@ -441,7 +533,7 @@ class VstsIssueFormTest(VstsIssueBase):
         responses.add(
             responses.GET,
             "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",
-            json={"value": []},
+            json={"value": [], "count": 0},
         )
         fields = self.integration.get_create_issue_config(self.group)
 

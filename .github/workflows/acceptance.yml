@@ -1,0 +1,185 @@
+# TODO(billy): this workflow has not been re-named from `acceptance` because
+# Visual Snapshots compares against artifacts from the same workflow name (on main branch)
+# We should rename this when we have a more finalized naming scheme.
+#
+# Also note that this name *MUST* match the filename because GHA
+# only provides the workflow name (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
+# and GH APIs only support querying by workflow *FILENAME* (https://developer.github.com/v3/actions/workflows/#get-a-workflow)
+name: acceptance
+on:
+  push:
+    branches:
+      - master
+      - releases/**
+  # XXX: We are using `pull_request_target` instead of `pull_request` because we want
+  # Visual Snapshots to run on forks.  It allows forks to access secrets safely by
+  # only running workflows from the main branch. Prefer to use `pull_request` when possible.
+  #
+  # See https://github.com/getsentry/sentry/pull/21600 for more details
+  pull_request_target:
+
+jobs:
+  frontend:
+    name: frontend tests
+    runs-on: ubuntu-16.04
+    timeout-minutes: 20
+
+    env:
+      VISUAL_HTML_ENABLE: 1
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout sentry (pull_request_target)
+        if: github.event.pull_request.head.ref != ''
+        with:
+          # Note this is required because of `pull_request_target`, which allows
+          # forks to access secrets safely by only running workflows from the main branch.
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - uses: actions/checkout@v2
+        name: Checkout sentry (push)
+        if: github.event.pull_request.head.ref == ''
+
+      - uses: volta-cli/action@v1
+
+      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: jest
+        run: |
+          NODE_ENV=production yarn build-css
+          yarn test-ci --forceExit
+
+      - name: Save HTML artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: jest-html
+          path: .artifacts/visual-snapshots/jest
+
+      - name: Create Images from HTML
+        uses: getsentry/action-html-to-image@main
+        with:
+          base-path: .artifacts/visual-snapshots/jest
+          css-path: src/sentry/static/sentry/dist/sentry.css
+
+      - name: Save snapshots
+        if: always()
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          save-only: true
+          snapshot-path: .artifacts/visual-snapshots
+
+  acceptance:
+    # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
+    name: python2.7 acceptance
+    runs-on: ubuntu-16.04
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        instance: [0, 1, 2]
+
+    env:
+      VISUAL_SNAPSHOT_ENABLE: 1
+
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout sentry (pull_request_target)
+        if: github.event.pull_request.head.ref != ''
+        with:
+          # Note this is required because of `pull_request_target`, which allows
+          # forks to access secrets safely by only running workflows from the main branch.
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - uses: actions/checkout@v2
+        name: Checkout sentry (push)
+        if: github.event.pull_request.head.ref == ''
+
+      - uses: volta-cli/action@v1
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 2.7.17
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python: 2
+          snuba: true
+
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.setup.outputs.yarn-cache-dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install Javascript Dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: webpack
+        run: |
+          yarn webpack --display errors-only
+
+      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+        if: always()
+        run: |
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-tooltips
+          make run-acceptance
+        env:
+          PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
+          USE_SNUBA: 1
+
+      - name: Save snapshots
+        if: always()
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          save-only: true
+          snapshot-path: .artifacts/visual-snapshots
+
+  visual-diff:
+    if: ${{ github.ref != 'refs/heads/master' }}
+    needs: [acceptance, frontend]
+    runs-on: ubuntu-16.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

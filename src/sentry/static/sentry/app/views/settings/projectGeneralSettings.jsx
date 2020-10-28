@@ -26,7 +26,6 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
-import BetaTag from 'app/components/betaTag';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import marked from 'app/utils/marked';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -53,14 +52,12 @@ class ProjectGeneralSettings extends AsyncView {
 
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
-    const endpoints = [['data', `/projects/${orgId}/${projectId}/`]];
-    const {organization} = this.context;
-    const features = new Set(organization.features);
-    if (features.has('set-grouping-config') || features.has('tweak-grouping-config')) {
-      endpoints.push(['groupingConfigs', '/grouping-configs/']);
-      endpoints.push(['groupingEnhancementBases', '/grouping-enhancements/']);
-    }
-    return endpoints;
+
+    return [
+      ['data', `/projects/${orgId}/${projectId}/`],
+      ['groupingConfigs', '/grouping-configs/'],
+      ['groupingEnhancementBases', '/grouping-enhancements/'],
+    ];
   }
 
   handleTransferFieldChange = (id, value) => {
@@ -154,7 +151,7 @@ class ProjectGeneralSettings extends AsyncView {
       newData.groupingConfig = latestGroupingConfig.id;
     }
     if (latestEnhancementsBase) {
-      newData.groupingEnhancementBases = latestEnhancementsBase.id;
+      newData.groupingEnhancementsBase = latestEnhancementsBase.id;
     }
 
     let riskNote;
@@ -245,9 +242,7 @@ class ProjectGeneralSettings extends AsyncView {
     );
   }
 
-  isProjectAdmin = () => {
-    return new Set(this.context.organization.access).has('project:admin');
-  };
+  isProjectAdmin = () => new Set(this.context.organization.access).has('project:admin');
 
   renderRemoveProject() {
     const project = this.state.data;
@@ -442,49 +437,18 @@ class ProjectGeneralSettings extends AsyncView {
             fields={[fields.resolveAge]}
           />
 
-          {(jsonFormProps.features.has('set-grouping-config') ||
-            jsonFormProps.features.has('tweak-grouping-config')) && (
-            <JsonForm
-              {...jsonFormProps}
-              title={
-                <React.Fragment>
-                  {t('Grouping Settings')} <BetaTag />
-                </React.Fragment>
-              }
-              fields={[
-                fields.groupingConfig,
-                fields.groupingEnhancementsBase,
-                fields.groupingEnhancements,
-                fields.fingerprintingRules,
-              ]}
-              renderHeader={() => (
-                <React.Fragment>
-                  <PanelAlert type="warning">
-                    <TextBlock noMargin>
-                      {t(
-                        'This is an experimental feature. Changing the value here will only apply to future events and is likely to cause events to create different groups than before.'
-                      )}
-                    </TextBlock>
-                  </PanelAlert>
-                  {jsonFormProps.features.has('tweak-grouping-config') &&
-                    this.renderUpgradeGrouping()}
-                </React.Fragment>
-              )}
-            />
-          )}
-
           <JsonForm
             {...jsonFormProps}
-            title={t('Data Privacy')}
+            title={<React.Fragment>{t('Grouping Settings')}</React.Fragment>}
             fields={[
-              fields.dataScrubber,
-              fields.dataScrubberDefaults,
-              fields.scrubIPAddresses,
-              fields.sensitiveFields,
-              fields.safeFields,
-              fields.storeCrashReports,
-              fields.relayPiiConfig,
+              fields.groupingConfig,
+              fields.groupingEnhancementsBase,
+              fields.groupingEnhancements,
+              fields.fingerprintingRules,
             ]}
+            renderHeader={() => (
+              <React.Fragment>{this.renderUpgradeGrouping()}</React.Fragment>
+            )}
           />
 
           <JsonForm

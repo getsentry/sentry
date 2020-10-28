@@ -158,11 +158,6 @@ class UserEmailsEndpoint(UserEndpoint):
                 status=400,
             )
 
-        # update notification settings for those set to primary email with new primary email
-        alert_email = UserOption.objects.get_value(user=user, key="alert_email")
-        if alert_email == old_email:
-            UserOption.objects.set_value(user=user, key="alert_email", value=new_email)
-
         options = UserOption.objects.filter(user=user, key="mail:email")
         for option in options:
             if option.value != old_email:
@@ -175,6 +170,16 @@ class UserEmailsEndpoint(UserEndpoint):
 
         if has_new_username and not User.objects.filter(username__iexact=new_email).exists():
             update_kwargs["username"] = new_email
+
+        # NOTE(mattrobenolt): When changing your primary email address,
+        # we explicitly want to invalidate existing lost password hashes,
+        # so that in the event of a compromised inbox, an outstanding
+        # password hash can't be used to gain access. We also feel this
+        # is a large enough of a security concern to force logging
+        # out other current sessions.
+        user.clear_lost_passwords()
+        user.refresh_session_nonce(request._request)
+        update_kwargs["session_nonce"] = user.session_nonce
 
         user.update(**update_kwargs)
 

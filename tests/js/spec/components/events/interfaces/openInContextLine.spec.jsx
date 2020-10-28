@@ -1,10 +1,11 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
 
-import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
-
-describe('OpenInContextLine', function() {
+describe('OpenInContextLine', function () {
   const filename = '/sentry/app.py';
   const group = TestStubs.Group();
   const install = TestStubs.SentryAppInstallation();
@@ -14,9 +15,7 @@ describe('OpenInContextLine', function() {
       type: 'stacktrace-link',
       schema: {
         uri: '/redirection',
-        url: `http://localhost:5000/redirection?installationId=${
-          install.uuid
-        }&projectSlug=${group.project.slug}`,
+        url: `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${group.project.slug}`,
       },
       sentryApp: {
         uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
@@ -44,16 +43,14 @@ describe('OpenInContextLine', function() {
 
   const lineNo = 233;
 
-  describe('with stacktrace-link component', function() {
-    it('renders multiple buttons', function() {
+  describe('with stacktrace-link component', function () {
+    it('renders multiple buttons', function () {
       const wrapper = mountWithTheme(
         <OpenInContextLine filename={filename} lineNo={lineNo} components={components} />,
         TestStubs.routerContext()
       );
       expect(wrapper.props().components[0].schema.url).toEqual(
-        `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${
-          group.project.slug
-        }`
+        `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${group.project.slug}`
       );
       const baseUrl = 'http://localhost:5000/redirection';
       const queryParams = {
@@ -63,13 +60,14 @@ describe('OpenInContextLine', function() {
         filename,
       };
       const url = addQueryParamsToExistingUrl(baseUrl, queryParams);
-      expect(wrapper.find('a[data-test-id="stacktrace-link-foo"]').prop('href')).toEqual(
-        url
+      const stacktraceLinkFoo = wrapper.find(
+        'OpenInLink[data-test-id="stacktrace-link-foo"]'
       );
-      expect(wrapper.find('a[data-test-id="stacktrace-link-foo"]').text()).toEqual('Foo');
-      expect(wrapper.find('a[data-test-id="stacktrace-link-tesla"]').text()).toEqual(
-        'Tesla'
-      );
+      expect(stacktraceLinkFoo.prop('href')).toEqual(url);
+      expect(stacktraceLinkFoo.text()).toEqual('Foo');
+      expect(
+        wrapper.find('OpenInLink[data-test-id="stacktrace-link-tesla"]').text()
+      ).toEqual('Tesla');
     });
   });
 });

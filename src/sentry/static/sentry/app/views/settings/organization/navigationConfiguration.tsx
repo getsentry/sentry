@@ -21,6 +21,14 @@ const organizationNavigation: NavigationSection[] = [
         id: 'projects',
       },
       {
+        path: `${pathPrefix}/security-and-privacy/`,
+        title: t('Security & Privacy'),
+        description: t(
+          'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
+        ),
+        id: 'security-and-privacy',
+      },
+      {
         path: `${pathPrefix}/teams/`,
         title: t('Teams'),
         description: t("Manage an organization's teams"),
@@ -32,6 +40,13 @@ const organizationNavigation: NavigationSection[] = [
         show: ({access}) => access!.has('member:read'),
         description: t('Manage user membership for an organization'),
         id: 'members',
+      },
+      {
+        path: `${pathPrefix}/performance/`,
+        title: t('Performance'),
+        show: ({features}) => features!.has('performance-view'),
+        description: t('Manage performance settings'),
+        id: 'performance',
       },
       {
         path: `${pathPrefix}/auth/`,
@@ -62,6 +77,14 @@ const organizationNavigation: NavigationSection[] = [
         id: 'rate-limits',
       },
       {
+        path: `${pathPrefix}/relay/`,
+        title: t('Relay'),
+        show: ({access, features}) => features!.has('relay') && access!.has('org:write'),
+        description: t('Manage relays connected to the organization'),
+        id: 'relay',
+        badge: () => 'new',
+      },
+      {
         path: `${pathPrefix}/repos/`,
         title: t('Repositories'),
         description: t('Manage repositories connected to the organization'),
@@ -85,4 +108,5 @@ const organizationNavigation: NavigationSection[] = [
     ],
   },
 ];
+
 export default organizationNavigation;

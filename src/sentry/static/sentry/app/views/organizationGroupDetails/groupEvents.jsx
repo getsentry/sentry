@@ -34,11 +34,11 @@ class GroupEvents extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (this.props.location.search !== nextProps.location.search) {
       const queryParams = nextProps.location.query;
 

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from django.core.urlresolvers import reverse
 from django.core import mail
@@ -537,3 +537,11 @@ class OrganizationMemberListPostTest(APITestCase):
         assert om.inviter == self.owner_user
 
         assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.utils.ratelimits.for_organization_member_invite")
+    def test_rate_limited(self, mock_rate_limit):
+        mock_rate_limit.return_value = True
+
+        resp = self.get_response(self.org.slug, email="jane@gmail.com", role="member",)
+        assert resp.status_code == 429
+        assert not OrganizationMember.objects.filter(email="jane@gmail.com").exists()

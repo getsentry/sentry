@@ -2,8 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
-
-import InlineSvg from 'app/components/inlineSvg';
+import {IconEdit} from 'app/icons';
 import space from 'app/styles/space';
 
 type Props = {
@@ -43,8 +42,8 @@ type State = {
  */
 class InputInline extends React.Component<Props, State> {
   /**
-   * HACK(leedongwei): ContentEditable does not have the property, `value`. We
-   * coerce its `innerHtml` to `value` so it will have similar behaviour as a
+   * HACK(leedongwei): ContentEditable does not have the property `value`. We
+   * coerce its `innerText` to `value` so it will have similar behaviour as a
    * HTMLInputElement
    *
    * We probably need to attach this to every DOMAttribute event...
@@ -52,8 +51,11 @@ class InputInline extends React.Component<Props, State> {
   static setValueOnEvent(
     event: React.FormEvent<HTMLDivElement>
   ): React.FormEvent<HTMLInputElement> {
-    (event.target as any).value = (event.target as any).textContent;
-    (event.currentTarget as any).value = (event.currentTarget as any).textContent;
+    const text =
+      (event.target as any).innerText || (event.currentTarget as any).innerText;
+
+    (event.target as any).value = text;
+    (event.currentTarget as any).value = text;
     return event as React.FormEvent<HTMLInputElement>;
   }
 
@@ -149,6 +151,8 @@ class InputInline extends React.Component<Props, State> {
     const {value, placeholder, disabled} = this.props;
     const {isFocused} = this.state;
 
+    const innerText = value || placeholder || '';
+
     return (
       <Wrapper
         style={this.props.style}
@@ -159,8 +163,8 @@ class InputInline extends React.Component<Props, State> {
         <Input
           {...this.props} // Pass DOMAttributes props first, extend/overwrite below
           ref={this.refInput}
+          suppressContentEditableWarning
           contentEditable={!this.props.disabled}
-          dangerouslySetInnerHTML={{__html: value || placeholder || ''}}
           isHovering={this.state.isHovering}
           isDisabled={this.props.disabled}
           onBlur={this.onBlur}
@@ -169,10 +173,13 @@ class InputInline extends React.Component<Props, State> {
           onChange={this.onChangeUsingOnInput} // Overwrite onChange too, just to be 100% sure
           onKeyDown={this.onKeyDown}
           onKeyUp={this.onKeyUp}
-        />
+        >
+          {innerText}
+        </Input>
+
         {!isFocused && !disabled && (
           <div onClick={this.onClickIcon}>
-            <InputButton src="icon-edit-pencil" size="1em" />
+            <StyledIconEdit />
           </div>
         )}
       </Wrapper>
@@ -201,12 +208,12 @@ const Input = styled('div')<{
 
   &:focus,
   &:active {
-    border: 1px solid ${p => (p.isDisabled ? 'transparent' : p.theme.offWhite2)};
-    background-color: ${p => (p.isDisabled ? 'transparent' : p.theme.offWhite2)};
+    border: 1px solid ${p => (p.isDisabled ? 'transparent' : p.theme.borderLight)};
+    background-color: ${p => (p.isDisabled ? 'transparent' : p.theme.gray300)};
   }
 `;
-const InputButton = styled(InlineSvg)`
-  color: ${p => p.theme.gray2};
+const StyledIconEdit = styled(IconEdit)`
+  color: ${p => p.theme.gray500};
   margin-left: ${space(0.5)};
 
   &:hover {

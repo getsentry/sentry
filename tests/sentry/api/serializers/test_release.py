@@ -81,10 +81,52 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["commitCount"] == 1
         assert result["authors"] == [{"name": "stebe", "email": "stebe@sentry.io"}]
 
+        assert result["version"] == release.version
+        assert result["versionInfo"]["package"] is None
+        assert result["versionInfo"]["version"]["raw"] == release_version
+        assert result["versionInfo"]["buildHash"] == release_version
+        assert result["versionInfo"]["description"] == release_version[:12]
+
         result = serialize(release, user, project=project)
         assert result["newGroups"] == 1
         assert result["firstEvent"] == tagvalue1.first_seen
         assert result["lastEvent"] == tagvalue1.last_seen
+
+    def test_mobile_version(self):
+        user = self.create_user()
+        project = self.create_project()
+        release_version = "foo.bar.BazApp@1.0a+20200101100"
+
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=release_version
+        )
+        release.add_project(project)
+
+        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "release": release_version,
+                "environment": "prod",
+            },
+            project_id=project.id,
+        )
+
+        release = Release.objects.get(version=release_version)
+
+        result = serialize(release, user)
+        assert result["version"] == release.version
+        assert result["versionInfo"]["package"] == "foo.bar.BazApp"
+        assert result["versionInfo"]["version"]["raw"] == "1.0a+20200101100"
+        assert result["versionInfo"]["version"]["major"] == 1
+        assert result["versionInfo"]["version"]["minor"] == 0
+        assert result["versionInfo"]["version"]["patch"] == 0
+        assert result["versionInfo"]["version"]["pre"] == "a"
+        assert result["versionInfo"]["version"]["buildCode"] == "20200101100"
+        assert result["versionInfo"]["buildHash"] is None
+        assert result["versionInfo"]["description"] == "1.0-a (20200101100)"
+        assert result["versionInfo"]["version"]["components"] == 2
 
     def test_no_tag_data(self):
         user = self.create_user()
@@ -117,7 +159,9 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert not result["lastEvent"]
 
     def test_get_user_from_email(self):
-        user = User.objects.create(email="stebe@sentry.io")
+        user = User.objects.create(
+            email="Stebe@sentry.io"
+        )  # upper case so we can test case sensitivity
         UserEmail.get_primary_email(user=user)
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)

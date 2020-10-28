@@ -1,5 +1,5 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import DocumentTitle from 'react-document-title';
 
 import {getUserTimezone, getUtcToLocalDateObject} from 'app/utils/dates';
@@ -10,28 +10,26 @@ import withOrganization from 'app/utils/withOrganization';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import {GlobalSelection, Organization} from 'app/types';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
+import Redirect from 'app/utils/redirect';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
-
 import {
   getQueryFromQueryString,
   fetchSavedQuery,
   parseSavedQuery,
   getView,
 } from './utils';
-
 import {DiscoverWrapper} from './styles';
 import {SavedQuery} from './types';
-
-const AlertAsAny: any = Alert;
 
 type Props = {
   organization: Organization;
   selection: GlobalSelection;
   params: any;
   location: any;
-};
+} & Pick<WithRouterProps, 'router'>;
 
 type State = {
   isLoading: boolean;
@@ -134,9 +132,7 @@ class DiscoverContainer extends React.Component<Props, State> {
 
   private queryBuilder: any;
 
-  loadTags = () => {
-    return this.queryBuilder.load();
-  };
+  loadTags = () => this.queryBuilder.load();
 
   setGlobalSelectionDate(query: ReturnType<typeof getQueryFromQueryString> | null) {
     if (query) {
@@ -208,11 +204,18 @@ class DiscoverContainer extends React.Component<Props, State> {
     });
   };
 
-  renderNoAccess() {
-    return (
-      <AlertAsAny type="warning">{t("You don't have access to this feature")}</AlertAsAny>
-    );
-  }
+  renderNoAccess = () => {
+    const {router, organization} = this.props;
+
+    if (
+      organization.features.includes('discover-query') ||
+      organization.features.includes('discover-basic')
+    ) {
+      return <Redirect router={router} to={getDiscoverLandingUrl(organization)} />;
+    } else {
+      return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    }
+  };
 
   render() {
     const {isLoading, savedQuery, view} = this.state;

@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
+import {Theme} from 'app/utils/theme';
+
 const defaultProps = {
   enabled: true,
   size: 14,
@@ -10,10 +12,9 @@ type DefaultProps = Readonly<typeof defaultProps>;
 
 type Props = {
   color?: string;
-  theme?: any;
 } & Partial<DefaultProps>;
 
-const getBackgroundColor = (p: Props) => {
+const getBackgroundColor = (p: Props & {theme: Theme}) => {
   if (p.color) {
     return `background: ${p.color};`;
   }

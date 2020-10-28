@@ -60,7 +60,7 @@ const ApiChart = createReactClass({
             };
           }, this.requestFinished);
         },
-        error: data => {
+        error: () => {
           this.setState({
             error: true,
           });
@@ -86,9 +86,7 @@ const ApiChart = createReactClass({
   },
 
   processRawSeries(series) {
-    return series.map(item => {
-      return {x: item[0], y: item[1]};
-    });
+    return series.map(item => ({x: item[0], y: item[1]}));
   },
 
   getChartSeries() {

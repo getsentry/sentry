@@ -28,14 +28,13 @@ class Columns(Enum):
     RELEASE = Column(
         "events.tags[sentry:release]", "tags[sentry:release]", "release", "release", "release"
     )
+    DIST = Column("events.tags[sentry:dist]", "tags[sentry:dist]", "dist", "dist", "dist")
     TITLE = Column("events.title", "title", "transaction_name", "title", "title")
     TYPE = Column("events.type", "type", None, "type", "event.type")
     TAGS_KEY = Column("events.tags.key", "tags.key", "tags.key", "tags.key", "tags.key")
     TAGS_VALUE = Column("events.tags.value", "tags.value", "tags.value", "tags.value", "tags.value")
     TAGS_KEYS = Column("events.tags_key", "tags_key", "tags_key", "tags_key", "tags_key")
-    TAGS_VALUES = Column(
-        "events.tags_value", "tags_value", "tags_value", "tags_value", "tags_value"
-    )
+    TAGS_VALUES = Column("events.tags_value", "tags_value", "tags_value", None, "tags_value")
     TRANSACTION = Column(
         "events.transaction", "transaction", "transaction_name", "transaction", "transaction"
     )
@@ -44,51 +43,111 @@ class Columns(Enum):
     USER_EMAIL = Column("events.email", "email", "user_email", "email", "user.email")
     USER_USERNAME = Column("events.username", "username", "user_name", "username", "user.username")
     USER_IP_ADDRESS = Column(
-        "events.ip_address", "ip_address", "ip_address_v4", "ip_address", "user.ip"
+        "events.ip_address", "ip_address", "ip_address", "ip_address", "user.ip"
     )
-    SDK_NAME = Column("events.sdk_name", "sdk_name", None, "sdk_name", "sdk.name")
-    SDK_VERSION = Column("events.sdk_version", "sdk_version", None, "sdk_version", "sdk.version")
-    HTTP_METHOD = Column("events.http_method", "http_method", None, "http_method", "http.method")
-    HTTP_REFERER = Column("events.http_referer", "http_referer", None, "http_referer", "http.url")
-    OS_BUILD = Column("events.os_build", "os_build", None, "os_build", "os.build")
+    USER_DISPLAY = Column(None, None, None, "user.display", "user.display")
+    SDK_NAME = Column("events.sdk_name", "sdk_name", "sdk_name", "sdk_name", "sdk.name")
+    SDK_VERSION = Column(
+        "events.sdk_version", "sdk_version", "sdk_version", "sdk_version", "sdk.version"
+    )
+
+    HTTP_METHOD = Column(
+        "events.http_method", "http_method", "http_method", "http_method", "http.method",
+    )
+    HTTP_REFERER = Column(
+        "events.http_referer", "http_referer", "http_referer", "http_referer", "http.referer",
+    )
+    HTTP_URL = Column("events.tags[url]", "tags[url]", "tags[url]", "tags[url]", "http.url")
+    OS_BUILD = Column(
+        "events.contexts[os.build]",
+        "contexts[os.build]",
+        "contexts[os.build]",
+        "contexts[os.build]",
+        "os.build",
+    )
     OS_KERNEL_VERSION = Column(
-        "events.os_kernel_version",
-        "os_kernel_version",
-        None,
-        "os_kernel_version",
+        "events.contexts[os.kernel_version]",
+        "contexts[os.kernel_version]",
+        "contexts[os.kernel_version]",
+        "contexts[os.kernel_version]",
         "os.kernel_version",
     )
-    DEVICE_NAME = Column("events.device_name", "device_name", None, "device_name", "device.name")
-    DEVICE_BRAND = Column(
-        "events.device_brand", "device_brand", None, "device_brand", "device.brand"
+    DEVICE_ARCH = Column(
+        "events.contexts[device.arch]",
+        "contexts[device.arch]",
+        "contexts[device.arch]",
+        "contexts[device.arch]",
+        "device.arch",
     )
-    DEVICE_LOCALE = Column(
-        "events.device_locale", "device_locale", None, "device_locale", "device.locale"
-    )
-    DEVICE_UUID = Column("events.device_uuid", "device_uuid", None, "device_uuid", "device.uuid")
-    DEVICE_ARCH = Column("events.device_arch", "device_arch", None, "device_arch", "device.arch")
     DEVICE_BATTERY_LEVEL = Column(
-        "events.device_battery_level",
-        "device_battery_level",
-        None,
-        "device_battery_level",
+        "events.contexts[device.battery_level]",
+        "contexts[device.battery_level]",
+        "contexts[device.battery_level]",
+        "contexts[device.battery_level]",
         "device.battery_level",
     )
+    DEVICE_BRAND = Column(
+        "events.contexts[device.brand]",
+        "contexts[device.brand]",
+        "contexts[device.brand]",
+        "contexts[device.brand]",
+        "device.brand",
+    )
+    DEVICE_CHARGING = Column(
+        "events.contexts[device.charging]",
+        "contexts[device.charging]",
+        "contexts[device.charging]",
+        "contexts[device.charging]",
+        "device.charging",
+    )
+    DEVICE_LOCALE = Column(
+        "events.contexts[device.locale]",
+        "contexts[device.locale]",
+        "contexts[device.locale]",
+        "contexts[device.locale]",
+        "device.locale",
+    )
+    DEVICE_MODEL_ID = Column(
+        "events.contexts[device.model_id]",
+        "contexts[device.model_id]",
+        "contexts[device.model_id]",
+        "contexts[device.model_id]",
+        "device.model_id",
+    )
+    DEVICE_NAME = Column(
+        "events.contexts[device.name]",
+        "contexts[device.name]",
+        "contexts[device.name]",
+        "contexts[device.name]",
+        "device.name",
+    )
+    DEVICE_ONLINE = Column(
+        "events.contexts[device.online]",
+        "contexts[device.online]",
+        "contexts[device.online]",
+        "contexts[device.online]",
+        "device.online",
+    )
     DEVICE_ORIENTATION = Column(
-        "events.device_orientation",
-        "device_orientation",
-        None,
-        "device_orientation",
+        "events.contexts[device.orientation]",
+        "contexts[device.orientation]",
+        "contexts[device.orientation]",
+        "contexts[device.orientation]",
         "device.orientation",
     )
     DEVICE_SIMULATOR = Column(
-        "events.device_simulator", "device_simulator", None, "device_simulator", "device.simulator"
+        "events.contexts[device.simulator]",
+        "contexts[device.simulator]",
+        "contexts[device.simulator]",
+        "contexts[device.simulator]",
+        "device.simulator",
     )
-    DEVICE_ONLINE = Column(
-        "events.device_online", "device_online", None, "device_online", "device.online"
-    )
-    DEVICE_CHARGING = Column(
-        "events.device_charging", "device_charging", None, "device_charging", "device.charging"
+    DEVICE_UUID = Column(
+        "events.contexts[device.uuid]",
+        "contexts[device.uuid]",
+        "contexts[device.uuid]",
+        "contexts[device.uuid]",
+        "device.uuid",
     )
     GEO_COUNTRY_CODE = Column(
         "events.geo_country_code",
@@ -193,14 +252,10 @@ class Columns(Enum):
         "stack.stack_level",
     )
     CONTEXTS_KEY = Column(
-        "events.contexts.key", "contexts.key", "contexts.key", "contexts.key", "contexts.key"
+        "events.contexts.key", "contexts.key", "contexts.key", None, "contexts.key"
     )
     CONTEXTS_VALUE = Column(
-        "events.contexts.value",
-        "contexts.value",
-        "contexts.value",
-        "contexts.value",
-        "contexts.value",
+        "events.contexts.value", "contexts.value", "contexts.value", None, "contexts.value"
     )
     # Transactions specific columns
     TRANSACTION_OP = Column(None, None, "transaction_op", "transaction_op", "transaction.op")
@@ -208,12 +263,18 @@ class Columns(Enum):
     TRANSACTION_STATUS = Column(
         None, None, "transaction_status", "transaction_status", "transaction.status"
     )
+    MEASUREMENTS_KEYS = Column(
+        None, None, "measurements.key", "measurements.key", "measurements_key",
+    )
+    MEASUREMENTS_VALUES = Column(
+        None, None, "measurements.value", "measurements.value", "measurements_value",
+    )
     # Tracing context fields.
     TRACE_ID = Column(
         "events.contexts[trace.trace_id]",
         "contexts[trace.trace_id]",
         "trace_id",
-        "trace_id",
+        "contexts[trace.trace_id]",
         "trace",
     )
     SPAN_ID = Column(

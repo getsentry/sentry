@@ -9,6 +9,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
+import {IconAdd} from 'app/icons';
 
 import AllTeamsList from './allTeamsList';
 
@@ -54,7 +55,7 @@ class OrganizationTeams extends React.Component {
             organization,
           })
         }
-        icon="icon-circle-add"
+        icon={<IconAdd size="xs" isCircled />}
       >
         {t('Create Team')}
       </Button>
@@ -75,7 +76,6 @@ class OrganizationTeams extends React.Component {
           <PanelHeader>{t('Your Teams')}</PanelHeader>
           <PanelBody>
             <AllTeamsList
-              useCreateModal
               urlPrefix={urlPrefix}
               organization={org}
               teamList={activeTeams}
@@ -88,7 +88,6 @@ class OrganizationTeams extends React.Component {
           <PanelHeader>{t('Other Teams')}</PanelHeader>
           <PanelBody>
             <AllTeamsList
-              useCreateModal
               urlPrefix={urlPrefix}
               organization={org}
               teamList={otherTeams}

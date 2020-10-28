@@ -5,12 +5,11 @@ from distutils.version import LooseVersion
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry.net.http import Session
+from sentry.tasks.release_registry import SDK_INDEX_CACHE_KEY
 from sentry.utils.safe import get_path
+from sentry.utils.compat import zip
 
 logger = logging.getLogger(__name__)
-
-SDK_INDEX_CACHE_KEY = u"sentry:sdk-versions"
 
 
 class SdkSetupState(object):
@@ -328,27 +327,15 @@ SDK_SUPPORTED_MODULES = [
 
 
 def get_sdk_index():
-    value = cache.get(SDK_INDEX_CACHE_KEY)
-    if value is not None:
-        return value
+    """
+    Get the SDK index from cache, if available.
 
-    base_url = settings.SENTRY_RELEASE_REGISTRY_BASEURL
-    if not base_url:
+    The cache is filled by a regular background task (see sentry/tasks/release_registry)
+    """
+    if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
         return {}
 
-    url = "%s/sdks" % (base_url,)
-
-    try:
-        with Session() as session:
-            response = session.get(url, timeout=1)
-            response.raise_for_status()
-            json = response.json()
-    except Exception:
-        logger.exception("Failed to fetch version index from release registry")
-        json = {}
-
-    cache.set(SDK_INDEX_CACHE_KEY, json, 3600)
-    return json
+    return cache.get(SDK_INDEX_CACHE_KEY) or {}
 
 
 def get_sdk_versions():

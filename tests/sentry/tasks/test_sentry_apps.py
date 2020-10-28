@@ -6,14 +6,16 @@ import pytest
 from celery import Task
 from collections import namedtuple
 from django.core.urlresolvers import reverse
-from mock import patch
-from requests.exceptions import RequestException
+from sentry.utils.compat.mock import patch
+from requests.exceptions import Timeout
 
+from sentry.constants import SentryAppStatus
 from sentry.models import Rule, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.faux import faux
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.utils.http import absolute_uri
 from sentry.receivers.sentry_apps import *  # NOQA
 from sentry.utils import json
@@ -30,16 +32,28 @@ from sentry.tasks.sentry_apps import (
     send_webhooks,
 )
 
+
+def raiseStatuseFalse():
+    return False
+
+
+def raiseStatusTrue():
+    return True
+
+
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
-MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
-MockResponseInstance = MockResponse({}, {}, True, 200)
-MockFailureResponseInstance = MockResponse({}, {}, False, 400)
+MockResponse = namedtuple(
+    "MockResponse", ["headers", "content", "ok", "status_code", "raise_for_status"]
+)
+MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatuseFalse)
+MockFailureResponseInstance = MockResponse({}, {}, False, 400, raiseStatusTrue)
 MockResponseWithHeadersInstance = MockResponse(
     {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
     {},
     False,
     400,
+    raiseStatusTrue,
 )
 
 
@@ -57,7 +71,7 @@ class DictContaining(object):
 
     def _args_match(self, other):
         for key in self.args:
-            if key not in other.keys():
+            if key not in other:
                 return False
         return True
 
@@ -178,7 +192,11 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         with self.tasks():
             post_process_group(
-                event=event, is_new=True, is_regression=False, is_new_group_environment=False
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
             )
 
         data = json.loads(faux(safe_urlopen).kwargs["data"])
@@ -239,7 +257,11 @@ class TestProcessResourceChange(TestCase):
 
         with self.tasks():
             post_process_group(
-                event=event, is_new=False, is_regression=False, is_new_group_environment=False
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
             )
 
         data = json.loads(faux(safe_urlopen).kwargs["data"])
@@ -278,7 +300,11 @@ class TestProcessResourceChange(TestCase):
 
         with self.tasks():
             post_process_group(
-                event=event, is_new=False, is_regression=False, is_new_group_environment=False
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
             )
 
         assert not safe_urlopen.called
@@ -334,7 +360,7 @@ class TestWorkflowNotification(TestCase):
         assert faux(safe_urlopen).kwarg_equals("data.action", "resolved", format="json")
         assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "issue")
         assert faux(safe_urlopen).kwarg_equals(
-            "data.data.issue.id", six.binary_type(self.issue.id), format="json"
+            "data.data.issue.id", six.text_type(self.issue.id), format="json"
         )
 
     def test_sends_resolved_webhook_as_Sentry_without_user(self, safe_urlopen):
@@ -415,11 +441,12 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization.id
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", side_effect=RequestException("Timeout"))
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", side_effect=Timeout)
     def test_saves_error_for_request_timeout(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-
-        with self.assertRaises(RequestException):
+        self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
+        # we don't log errors for unpublished and internal apps
+        with self.assertRaises(Timeout):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )

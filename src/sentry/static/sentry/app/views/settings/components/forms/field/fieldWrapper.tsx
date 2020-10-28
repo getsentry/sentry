@@ -1,8 +1,13 @@
 import {css} from '@emotion/core';
-import space from 'app/styles/space';
 import styled from '@emotion/styled';
 
-type Props = {
+import space from 'app/styles/space';
+
+/**
+ * Using Parameters<typeof FieldWrapper> in the Field component somehow
+ * causes an infinite recursive depth so exporting the props is best workaround
+ */
+export type Props = {
   stacked?: boolean;
   inline?: boolean;
   hasControlState?: boolean;
@@ -56,7 +61,7 @@ const FieldWrapper = styled('div')<Props>`
         left: -1px;
         right: -1px;
         bottom: -1px;
-        border: 1px solid ${p.theme.purple};
+        border: 1px solid ${p.theme.purple400};
         pointer-events: none;
       }
     `}

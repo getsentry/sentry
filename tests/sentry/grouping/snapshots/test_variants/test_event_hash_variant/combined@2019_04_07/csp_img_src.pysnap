@@ -1,15 +1,15 @@
 ---
-created: '2019-04-07T10:03:30.979341Z'
+created: '2020-02-26T19:52:17.965049Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
-  hash: '1742101e08eb1608f569751dfedd0062'
+  hash: "1742101e08eb1608f569751dfedd0062"
   component:
     default*
       csp*
         salt* (a static salt)
-          u'img-src'
+          "img-src"
         violation (not a local script violation)
         uri*
-          u'ftp://example.com'
+          "ftp://example.com"

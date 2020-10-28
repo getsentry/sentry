@@ -4,7 +4,7 @@ import responses
 import six
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 
 from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.models import (
@@ -13,6 +13,7 @@ from sentry.models import (
     IdentityStatus,
     Integration,
     OrganizationIntegration,
+    Repository,
 )
 from sentry.testutils import IntegrationTestCase
 
@@ -137,6 +138,22 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert identity.status == IdentityStatus.VALID
         assert identity.data == {"access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
 
+    def test_goback_to_instructions(self):
+        # Go to instructions
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 200
+        self.assertContains(resp, "Step 1")
+
+        # Go to setup form
+        resp = self.client.get(self.init_path_without_guide)
+        assert resp.status_code == 200
+        self.assertContains(resp, "Step 2")
+
+        # Go to back to instructions
+        resp = self.client.get(self.init_path + "?goback=1")
+        assert resp.status_code == 200
+        self.assertContains(resp, "Step 1")
+
     @responses.activate
     def test_setup_missing_group(self):
         resp = self.client.get(self.init_path_without_guide)
@@ -178,3 +195,62 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         installation = integration.get_installation(self.organization.id)
         assert self.default_group_id == installation.get_group_id()
+
+    @responses.activate
+    def test_get_stacktrace_link(self):
+        self.assert_setup_flow()
+        external_id = 4
+        integration = Integration.objects.get(provider=self.provider.key)
+        instance = integration.metadata["instance"]
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Get Sentry / Example Repo",
+            external_id=u"{}:{}".format(instance, external_id),
+            url="https://gitlab.example.com/getsentry/projects/example-repo",
+            config={"project_id": external_id, "path": "getsentry/example-repo"},
+            provider="integrations:gitlab",
+            integration_id=integration.id,
+        )
+        installation = integration.get_installation(self.organization.id)
+
+        filepath = "README.md"
+        ref = "master"
+        responses.add(
+            responses.HEAD,
+            u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+                external_id, filepath, ref
+            ),
+        )
+        source_url = installation.get_stacktrace_link(repo, "README.md", "master")
+        assert (
+            source_url == "https://gitlab.example.com/getsentry/example-repo/blob/master/README.md"
+        )
+
+    @responses.activate
+    def test_get_stacktrace_link_file_doesnt_exist(self):
+        self.assert_setup_flow()
+        external_id = 4
+        integration = Integration.objects.get(provider=self.provider.key)
+        instance = integration.metadata["instance"]
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Get Sentry / Example Repo",
+            external_id=u"{}:{}".format(instance, external_id),
+            url="https://gitlab.example.com/getsentry/projects/example-repo",
+            config={"project_id": external_id, "path": "getsentry/example-repo"},
+            provider="integrations:gitlab",
+            integration_id=integration.id,
+        )
+        installation = integration.get_installation(self.organization.id)
+
+        filepath = "README.md"
+        ref = "master"
+        responses.add(
+            responses.HEAD,
+            u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+                external_id, filepath, ref
+            ),
+            status=404,
+        )
+        source_url = installation.get_stacktrace_link(repo, "README.md", "master")
+        assert not source_url

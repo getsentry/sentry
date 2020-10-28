@@ -4,23 +4,22 @@ import six
 
 from datetime import timedelta
 from django.utils import timezone
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from functools import partial
 
 
 from sentry import eventstore
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.event_search import get_filter
+from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.models import Group
 from sentry.search.utils import InvalidQuery, parse_query
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 
 class NoResults(Exception):
@@ -31,16 +30,7 @@ class GroupEventsError(Exception):
     pass
 
 
-@scenario("ListAvailableSamples")
-def list_available_samples_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method="GET", path="/issues/%s/events/" % group.id)
-
-
 class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
-    doc_section = DocSection.EVENTS
-
-    @attach_scenarios([list_available_samples_scenario])
     def get(self, request, group):
         """
         List an Issue's Events
@@ -66,13 +56,13 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)
-        except InvalidParams as exc:
-            return Response({"detail": exc.message}, status=400)
+        except InvalidParams as e:
+            raise ParseError(detail=six.text_type(e))
 
         try:
             return self._get_events_snuba(request, group, environments, query, tags, start, end)
         except GroupEventsError as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            raise ParseError(detail=six.text_type(exc))
 
     def _get_events_snuba(self, request, group, environments, query, tags, start, end):
         default_end = timezone.now()
@@ -80,6 +70,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         params = {
             "group_ids": [group.id],
             "project_id": [group.project_id],
+            "organization_id": group.project.organization_id,
             "start": start if start else default_start,
             "end": end if end else default_end,
         }
@@ -91,18 +82,14 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             params["environment"] = [env.name for env in environments]
 
         full = request.GET.get("full", False)
-        snuba_filter = get_filter(request.GET.get("query", None), params)
+        try:
+            snuba_filter = get_filter(request.GET.get("query", None), params)
+        except InvalidSearchQuery as e:
+            raise ParseError(detail=six.text_type(e))
+
         snuba_filter.conditions.append(["event.type", "!=", "transaction"])
 
-        snuba_cols = None if full else eventstore.full_columns
-
-        data_fn = partial(
-            eventstore.get_events,
-            additional_columns=snuba_cols,
-            referrer="api.group-events",
-            filter=snuba_filter,
-        )
-
+        data_fn = partial(eventstore.get_events, referrer="api.group-events", filter=snuba_filter)
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,

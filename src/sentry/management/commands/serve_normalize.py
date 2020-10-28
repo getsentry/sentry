@@ -7,12 +7,14 @@ import stat
 import sys
 import time
 import traceback
-import json
 import resource
 from optparse import make_option
 
+import six
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.encoding import force_str
+
+from sentry.utils import json
 
 
 class ForkingUnixStreamServer(SocketServer.ForkingMixIn, SocketServer.UnixStreamServer):
@@ -25,7 +27,7 @@ def catch_errors(f):
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            error = force_str(e.message) + " " + force_str(traceback.format_exc())
+            error = force_str(six.text_type(e)) + " " + force_str(traceback.format_exc())
 
         try:
             return encode({"result": None, "error": error, "metrics": None})
@@ -35,7 +37,9 @@ def catch_errors(f):
                 return encode(
                     {
                         "result": None,
-                        "error": force_str(e.message) + " " + force_str(traceback.format_exc()),
+                        "error": force_str(six.text_type(e))
+                        + " "
+                        + force_str(traceback.format_exc()),
                         "metrics": None,
                         "encoding_error": True,
                     }

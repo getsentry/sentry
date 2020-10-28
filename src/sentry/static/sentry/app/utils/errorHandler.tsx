@@ -1,9 +1,10 @@
 import React from 'react';
+
 import RouteError from 'app/views/routeError';
 
 type State = {
   hasError: boolean;
-  error: Error | null;
+  error: Error | undefined;
 };
 
 export default function errorHandler<P>(Component: React.ComponentType<P>) {
@@ -20,7 +21,7 @@ export default function errorHandler<P>(Component: React.ComponentType<P>) {
       // we are explicit if an error has been thrown since errors thrown are not guaranteed
       // to be truthy (e.g. throw null).
       hasError: false,
-      error: null,
+      error: undefined,
     };
 
     componentDidCatch(_error: Error, info: React.ErrorInfo) {

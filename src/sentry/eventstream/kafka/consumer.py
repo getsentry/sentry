@@ -174,9 +174,10 @@ class SynchronizedConsumer(object):
         self.__partition_state_manager = SynchronizedPartitionStateManager(
             self.__on_partition_state_change
         )
-        self.__commit_log_consumer, self.__commit_log_consumer_stop_request = (
-            self.__start_commit_log_consumer()
-        )
+        (
+            self.__commit_log_consumer,
+            self.__commit_log_consumer_stop_request,
+        ) = self.__start_commit_log_consumer()
 
         self.__positions = {}
 

@@ -1,10 +1,10 @@
 import getStacktraceBody from 'app/utils/getStacktraceBody';
 
-describe('getStacktraceBody', function() {
+describe('getStacktraceBody', function () {
   const eventException = TestStubs.EventStacktraceException({platform: 'python'});
   const eventMessage = TestStubs.EventStacktraceMessage({platform: 'python'});
 
-  it('formats with an exception', function() {
+  it('formats with an exception', function () {
     const result = getStacktraceBody(eventException);
     expect(result).toEqual([
       `Error: an error occurred
@@ -13,12 +13,12 @@ describe('getStacktraceBody', function() {
     ]);
   });
 
-  it('formats with a message', function() {
+  it('formats with a message', function () {
     const result = getStacktraceBody(eventMessage);
     expect(result).toEqual(['Something is broken']);
   });
 
-  it('returns empty array for empty event entries', function() {
+  it('returns empty array for empty event entries', function () {
     const result = getStacktraceBody({});
     expect(result).toEqual([]);
   });

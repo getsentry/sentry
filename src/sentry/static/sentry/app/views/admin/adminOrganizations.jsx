@@ -6,17 +6,15 @@ import ResultGrid from 'app/components/resultGrid';
 import {t} from 'app/locale';
 
 class AdminOrganizations extends React.Component {
-  getRow = row => {
-    return [
-      <td>
-        <strong>
-          <Link to={`/${row.slug}/`}>{row.name}</Link>
-        </strong>
-        <br />
-        <small>{row.slug}</small>
-      </td>,
-    ];
-  };
+  getRow = row => [
+    <td>
+      <strong>
+        <Link to={`/${row.slug}/`}>{row.name}</Link>
+      </strong>
+      <br />
+      <small>{row.slug}</small>
+    </td>,
+  ];
 
   render() {
     const columns = [<th>Organization</th>];

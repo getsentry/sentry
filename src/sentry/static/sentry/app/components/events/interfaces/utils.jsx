@@ -1,8 +1,7 @@
 import isEmpty from 'lodash/isEmpty';
 import isString from 'lodash/isString';
-import * as Sentry from '@sentry/browser';
-import queryString from 'query-string';
-import get from 'lodash/get';
+import * as queryString from 'query-string';
+import * as Sentry from '@sentry/react';
 
 import {FILTER_MASK} from 'app/constants';
 import {defined} from 'app/utils';
@@ -28,7 +27,7 @@ export function getCurlCommand(data) {
   }
 
   // sort headers
-  const headers = data.headers.sort(function(a, b) {
+  const headers = data.headers.sort(function (a, b) {
     return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
   });
 
@@ -117,7 +116,7 @@ export function objectToSortedTupleArray(obj) {
           : [[k, val]] // key has single value
       );
     }, [])
-    .sort(function([keyA, valA], [keyB, valB]) {
+    .sort(function ([keyA, valA], [keyB, valB]) {
       // if keys are identical, sort on value
       if (keyA === keyB) {
         return valA < valB ? -1 : 1;
@@ -154,11 +153,11 @@ export function getImageRange(image) {
   // The start address is normalized to a `0x` prefixed hex string. The event
   // schema also allows ingesting plain numbers, but this is converted during
   // ingestion.
-  const startAddress = parseAddress(get(image, 'image_addr'));
+  const startAddress = parseAddress(image?.image_addr);
 
   // The image size is normalized to a regular number. However, it can also be
   // `null`, in which case we assume that it counts up to the next image.
-  const endAddress = startAddress + (get(image, 'image_size') || 0);
+  const endAddress = startAddress + (image?.image_size || 0);
 
   return [startAddress, endAddress];
 }

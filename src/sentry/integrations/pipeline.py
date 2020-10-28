@@ -8,7 +8,7 @@ from django.utils.translation import ugettext as _
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline
 from sentry.web.helpers import render_to_response
@@ -48,10 +48,17 @@ class IntegrationPipeline(Pipeline):
                     "provider_key": self.provider.key,
                 },
             )
-            return self.error(e.message)
+            return self.error(six.text_type(e))
 
         response = self._finish_pipeline(data)
-        self.provider.post_install(self.integration, self.organization)
+
+        extra = data.get("post_install_data")
+        action = "upgrade" if extra else "install"
+        # to Slack
+        self.provider.create_audit_log_entry(
+            self.integration, self.organization, self.request, action, extra=extra
+        )
+        self.provider.post_install(self.integration, self.organization, extra=extra)
         self.clear_session()
         return response
 
@@ -62,7 +69,11 @@ class IntegrationPipeline(Pipeline):
             )
             self.integration.update(external_id=data["external_id"], status=ObjectStatus.VISIBLE)
             self.integration.get_installation(self.organization.id).reinstall()
-
+        if "integration_id" in data:
+            self.integration = Integration.objects.get(
+                provider=self.provider.integration_key, id=data["integration_id"]
+            )
+            self.integration.reauthorize(data)
         elif "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]
@@ -126,10 +137,10 @@ class IntegrationPipeline(Pipeline):
                             return self._dialog_response(
                                 {
                                     "error": _(
-                                        "The provided %s account is linked to a different Sentry user. "
-                                        "To continue linking the current Sentry user, please use a different %s account."
+                                        "The provided %(proper_name)s account is linked to a different Sentry user. "
+                                        "To continue linking the current Sentry user, please use a different %(proper_name)s account."
                                     )
-                                    % (proper_name, proper_name)
+                                    % ({"proper_name": proper_name})
                                 },
                                 False,
                             )
@@ -146,6 +157,9 @@ class IntegrationPipeline(Pipeline):
         org_integration = self.integration.add_organization(
             self.organization, self.request.user, default_auth_id=default_auth_id
         )
+        return self._dialog_success(org_integration)
+
+    def _dialog_success(self, org_integration):
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):

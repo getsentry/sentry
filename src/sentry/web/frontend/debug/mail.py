@@ -13,10 +13,9 @@ from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
-from loremipsum import Generator
 from random import Random
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -35,8 +34,9 @@ from sentry.models import (
     Rule,
     Team,
 )
-from sentry.event_manager import EventManager
-from sentry.plugins.sentry_mail.activity import emails
+from sentry.event_manager import EventManager, get_event_type
+from sentry.mail.activity import emails
+from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
@@ -47,8 +47,6 @@ from sentry.web.helpers import render_to_response, render_to_string
 from six.moves import xrange
 
 logger = logging.getLogger(__name__)
-
-loremipsum = Generator()
 
 
 def get_random(request):
@@ -95,7 +93,7 @@ def make_group_generator(random, project):
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
 
         culprit = make_culprit(random)
-        level = random.choice(LOG_LEVELS.keys())
+        level = random.choice(list(LOG_LEVELS.keys()))
         message = make_message(random)
 
         group = Group(
@@ -157,7 +155,7 @@ class ActivityMailPreview(object):
     def get_context(self):
         context = self.email.get_base_context()
         context["reason"] = get_random(self.request).choice(
-            GroupSubscriptionReason.descriptions.values()
+            list(GroupSubscriptionReason.descriptions.values())
         )
         context.update(self.email.get_context())
         add_unsubscribe_link(context)
@@ -192,14 +190,14 @@ class ActivityMailDebugView(View):
         event_manager = EventManager(data)
         event_manager.normalize()
         data = event_manager.get_data()
-        event_type = event_manager.get_event_type()
-
-        group.message = event_manager.get_search_message()
-        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+        event_type = get_event_type(data)
 
         event = eventstore.create_event(
             event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
         )
+
+        group.message = event.search_message
+        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
         activity = Activity(group=group, project=event.project, **self.get_activity(request, event))
 
@@ -237,20 +235,17 @@ def alert(request):
     event_manager.normalize()
     data = event_manager.get_data()
     event = event_manager.save(project.id)
-    # Prevent Percy screenshot from constantly changing
-    if options.get("store.use-django-event"):
-        event.datetime = datetime(2017, 9, 6, 0, 0)
-    else:
-        event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
-    event_type = event_manager.get_event_type()
+    # Prevent CI screenshot from constantly changing
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+    event_type = get_event_type(event.data)
 
-    group.message = event_manager.get_search_message()
+    group.message = event.search_message
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
     rule = Rule(label="An example rule")
 
     # XXX: this interface_list code needs to be the same as in
-    #      src/sentry/plugins/sentry_mail/models.py
+    #      src/sentry/mail/adapter.py
     interface_list = []
     for interface in six.itervalues(event.interfaces):
         body = interface.to_email_html(event)
@@ -361,7 +356,10 @@ def digest(request):
                 Record(
                     event.event_id,
                     Notification(
-                        event, random.sample(state["rules"], random.randint(1, len(state["rules"])))
+                        event,
+                        random.sample(
+                            list(state["rules"].keys()), random.randint(1, len(state["rules"]))
+                        ),
                     ),
                     to_timestamp(event.datetime),
                 )

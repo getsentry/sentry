@@ -6,6 +6,7 @@ from itertools import islice
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder
 
 
 _irrelevant_re = re.compile(
@@ -110,13 +111,20 @@ def trim_message_for_grouping(string):
 @strategy(id="message:v1", interfaces=["message"], variants=["default"], score=0)
 def message_v1(message_interface, **meta):
     return GroupingComponent(
-        id="message", values=[message_interface.message or message_interface.formatted]
+        id="message",
+        values=[message_interface.message or message_interface.formatted or u""],
+        similarity_encoder=text_shingle_encoder(5),
     )
 
 
 @strategy(id="message:v2", interfaces=["message"], variants=["default"], score=0)
 def message_v2(message_interface, **meta):
-    message_in = message_interface.message or message_interface.formatted
+    message_in = message_interface.message or message_interface.formatted or u""
     message_trimmed = trim_message_for_grouping(message_in)
     hint = "stripped common values" if message_in != message_trimmed else None
-    return GroupingComponent(id="message", values=[message_trimmed], hint=hint)
+    return GroupingComponent(
+        id="message",
+        values=[message_trimmed],
+        hint=hint,
+        similarity_encoder=text_shingle_encoder(5),
+    )

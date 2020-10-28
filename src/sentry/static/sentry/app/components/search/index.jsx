@@ -5,7 +5,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {analytics} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
 import ApiSource from 'app/components/search/sources/apiSource';
@@ -60,6 +60,10 @@ class Search extends React.Component {
     searchOptions: PropTypes.object,
     // Passed to the underlying AutoComplete component
     closeOnSelect: PropTypes.bool,
+    /**
+     * Adds a footer below the results when the search is complete
+     */
+    resultFooter: PropTypes.node,
   };
 
   static defaultProps = {
@@ -74,7 +78,10 @@ class Search extends React.Component {
   };
 
   componentDidMount() {
-    analytics(`${this.props.entryPoint}.open`);
+    trackAnalyticsEvent({
+      eventKey: `${this.props.entryPoint}.open`,
+      eventName: `${this.props.entryPoint} Open`,
+    });
   }
 
   handleSelect = (item, state) => {
@@ -82,7 +89,13 @@ class Search extends React.Component {
       return;
     }
 
-    analytics(`${this.props.entryPoint}.select`, {query: state && state.inputValue});
+    trackAnalyticsEvent({
+      eventKey: `${this.props.entryPoint}.select`,
+      eventName: `${this.props.entryPoint} Select`,
+      query: state && state.inputValue,
+      result_type: item.resultType,
+      source_type: item.sourceType,
+    });
 
     const {to, action} = item;
 
@@ -121,7 +134,11 @@ class Search extends React.Component {
     if (!query) {
       return;
     }
-    analytics(`${this.props.entryPoint}.query`, {query});
+    trackAnalyticsEvent({
+      eventKey: `${this.props.entryPoint}.query`,
+      eventName: `${this.props.entryPoint} Query`,
+      query,
+    });
   }, 200);
 
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
@@ -133,6 +150,7 @@ class Search extends React.Component {
     const itemProps = {
       ...getItemProps({
         item,
+        index,
       }),
     };
 
@@ -140,18 +158,15 @@ class Search extends React.Component {
       throw new Error('Invalid `renderItem`');
     }
 
-    return React.cloneElement(
-      renderItem({
-        item,
-        matches,
-        index,
-        highlighted,
-      }),
-      {
-        ...itemProps,
-        key,
-      }
-    );
+    const renderedItem = renderItem({
+      item,
+      matches,
+      index,
+      highlighted,
+      itemProps,
+    });
+
+    return React.cloneElement(renderedItem, {key});
   };
 
   render() {
@@ -164,6 +179,7 @@ class Search extends React.Component {
       renderInput,
       sources,
       closeOnSelect,
+      resultFooter,
     } = this.props;
 
     return (
@@ -208,16 +224,19 @@ class Search extends React.Component {
                         </LoadingWrapper>
                       )}
                       {!isLoading &&
-                        results.slice(0, maxResults).map((resultObj, index) => {
-                          return this.renderItem({
+                        results.slice(0, maxResults).map((resultObj, index) =>
+                          this.renderItem({
                             resultObj,
                             index,
                             highlightedIndex,
                             getItemProps,
-                          });
-                        })}
+                          })
+                        )}
                       {!isLoading && !hasAnyResults && (
                         <EmptyItem>{t('No results found')}</EmptyItem>
+                      )}
+                      {!isLoading && resultFooter && (
+                        <ResultFooter>{resultFooter}</ResultFooter>
                       )}
                     </DropdownBox>
                   )}
@@ -242,11 +261,19 @@ const DropdownBox = styled('div')`
   right: 0;
   width: 400px;
   border-radius: 5px;
-  overflow: hidden;
+  overflow: auto;
+  max-height: 60vh;
 `;
 
 const SearchWrapper = styled('div')`
   position: relative;
+`;
+
+const ResultFooter = styled('div')`
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
 `;
 
 const EmptyItem = styled(SearchResultWrapper)`

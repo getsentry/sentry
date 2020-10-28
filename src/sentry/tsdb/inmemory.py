@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.compat import map
 
 
 class InMemoryTSDB(BaseTSDB):
@@ -228,7 +229,7 @@ class InMemoryTSDB(BaseTSDB):
             for timestamp in series:
                 result.update(source[self.normalize_ts_to_rollup(timestamp, rollup)])
 
-        for key, counter in results.items():
+        for key, counter in list(results.items()):
             results[key] = counter.most_common(limit)
 
         return results

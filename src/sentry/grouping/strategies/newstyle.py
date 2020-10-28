@@ -1,13 +1,19 @@
 # coding: utf-8
 from __future__ import absolute_import
 
+
 import re
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
 from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, has_url_origin
 from sentry.grouping.strategies.message import trim_message_for_grouping
+from sentry.grouping.strategies.similarity_encoders import (
+    text_shingle_encoder,
+    ident_encoder,
+)
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.utils.iterators import shingle
 
 
 _ruby_erb_func = re.compile(r"__\d{4,}_\d{4,}$")
@@ -68,7 +74,9 @@ def get_filename_component(abs_path, filename, platform, allow_file_origin=False
     # Only use the platform independent basename for grouping and
     # lowercase it
     filename = _basename_re.split(filename)[-1].lower()
-    filename_component = GroupingComponent(id="filename", values=[filename])
+    filename_component = GroupingComponent(
+        id="filename", values=[filename], similarity_encoder=ident_encoder
+    )
 
     if has_url_origin(abs_path, allow_file_origin=allow_file_origin):
         filename_component.update(contributes=False, hint="ignored because frame points to a URL")
@@ -91,7 +99,9 @@ def get_module_component(abs_path, module, platform):
     if module is None:
         return GroupingComponent(id="module")
 
-    module_component = GroupingComponent(id="module", values=[module])
+    module_component = GroupingComponent(
+        id="module", values=[module], similarity_encoder=ident_encoder
+    )
 
     if platform == "javascript" and "/" in module and abs_path and abs_path.endswith(module):
         module_component.update(contributes=False, hint="ignored bad javascript module")
@@ -127,6 +137,7 @@ def get_function_component(
     context_line_available=False,
     raw_function=None,
     javascript_fuzzing=False,
+    php_detect_anonymous_classes=False,
 ):
     """
     Attempt to normalize functions by removing common platform outliers.
@@ -154,7 +165,9 @@ def get_function_component(
     if not func:
         return GroupingComponent(id="function")
 
-    function_component = GroupingComponent(id="function", values=[func])
+    function_component = GroupingComponent(
+        id="function", values=[func], similarity_encoder=ident_encoder
+    )
 
     if platform == "ruby":
         if func.startswith("block "):
@@ -167,8 +180,12 @@ def get_function_component(
                 )
 
     elif platform == "php":
-        if func.startswith("[Anonymous"):
+        if func.startswith(("[Anonymous", "class@anonymous\x00")):
             function_component.update(contributes=False, hint="ignored anonymous function")
+        if php_detect_anonymous_classes and func.startswith("class@anonymous"):
+            new_function = func.rsplit("::", 1)[-1]
+            if new_function != func:
+                function_component.update(values=[new_function], hint="anonymous class method")
 
     elif platform == "java":
         if func.startswith("lambda$"):
@@ -196,7 +213,9 @@ def get_function_component(
         # bad indicator for grouping.
         if sourcemap_used and context_line_available:
             function_component.update(
-                contributes=False, hint="ignored because sourcemap used and context line available"
+                contributes=False,
+                contributes_to_similarity=True,
+                hint="ignored because sourcemap used and context line available",
             )
 
     return function_component
@@ -213,6 +232,7 @@ def frame(frame, event, **meta):
 
     use_contextline = False
     javascript_fuzzing = False
+    php_detect_anonymous_classes = False
 
     # Version specific bugs
     legacy_function_logic = id == "frame:v1"
@@ -225,6 +245,11 @@ def frame(frame, event, **meta):
         # this assumes that we have sourcemaps available.
         use_contextline = platform in ("javascript", "node", "python", "php", "ruby")
 
+    # Starting with v4 we're adding support for anonymous classes
+    # detection
+    if id == "frame:v4":
+        php_detect_anonymous_classes = True
+
     return get_frame_component(
         frame,
         event,
@@ -233,6 +258,7 @@ def frame(frame, event, **meta):
         use_contextline=use_contextline,
         javascript_fuzzing=javascript_fuzzing,
         with_context_line_file_origin_bug=with_context_line_file_origin_bug,
+        php_detect_anonymous_classes=php_detect_anonymous_classes,
     )
 
 
@@ -246,7 +272,9 @@ def get_contextline_component(frame, platform, function, with_context_line_file_
     if not line:
         return GroupingComponent(id="context-line")
 
-    component = GroupingComponent(id="context-line", values=[line])
+    component = GroupingComponent(
+        id="context-line", values=[line], similarity_encoder=ident_encoder
+    )
     if line:
         if len(frame.context_line) > 120:
             component.update(hint="discarded because line too long", contributes=False)
@@ -270,6 +298,7 @@ def get_frame_component(
     use_contextline=False,
     javascript_fuzzing=False,
     with_context_line_file_origin_bug=False,
+    php_detect_anonymous_classes=False,
 ):
     platform = frame.platform or event.platform
 
@@ -284,7 +313,9 @@ def get_frame_component(
     # take precedence over the filename if it contributes
     module_component = get_module_component(frame.abs_path, frame.module, platform)
     if module_component.contributes and filename_component.contributes:
-        filename_component.update(contributes=False, hint="module takes precedence")
+        filename_component.update(
+            contributes=False, contributes_to_similarity=True, hint="module takes precedence"
+        )
 
     context_line_component = None
 
@@ -305,6 +336,7 @@ def get_frame_component(
         context_line_available=context_line_component and context_line_component.contributes,
         legacy_function_logic=legacy_function_logic,
         javascript_fuzzing=javascript_fuzzing,
+        php_detect_anonymous_classes=php_detect_anonymous_classes,
     )
 
     values = [module_component, filename_component, function_component]
@@ -385,8 +417,41 @@ def get_stacktrace_component(stacktrace, config, variant, meta):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
     return config.enhancements.assemble_stacktrace_component(
-        values, frames_for_filtering, meta["event"].platform
+        values,
+        frames_for_filtering,
+        meta["event"].platform,
+        similarity_self_encoder=_stacktrace_encoder,
     )
+
+
+def _stacktrace_encoder(id, stacktrace):
+    encoded_frames = []
+
+    for frame in stacktrace.values:
+        encoded = {}
+        for (component_id, shingle_label), features in frame.encode_for_similarity():
+            assert (
+                shingle_label == "ident-shingle"
+            ), "Frames cannot use anything other than ident shingles for now"
+
+            if not features:
+                continue
+
+            assert (
+                len(features) == 1 and component_id not in encoded
+            ), "Frames cannot use anything other than ident shingles for now"
+            encoded[component_id] = features[0]
+
+        if encoded:
+            # add frozen dict
+            encoded_frames.append(tuple(sorted(encoded.items())))
+
+    if len(encoded_frames) < 2:
+        if encoded_frames:
+            yield (id, "frames-ident"), encoded_frames
+        return
+
+    yield (id, "frames-pairs"), shingle(2, encoded_frames)
 
 
 def single_exception_common(exception, config, meta, with_value):
@@ -395,7 +460,11 @@ def single_exception_common(exception, config, meta, with_value):
     else:
         stacktrace_component = GroupingComponent(id="stacktrace")
 
-    type_component = GroupingComponent(id="type", values=[exception.type] if exception.type else [])
+    type_component = GroupingComponent(
+        id="type",
+        values=[exception.type] if exception.type else [],
+        similarity_encoder=ident_encoder,
+    )
 
     if exception.mechanism and exception.mechanism.synthetic:
         type_component.update(contributes=False, hint="ignored because exception is synthetic")
@@ -403,7 +472,7 @@ def single_exception_common(exception, config, meta, with_value):
     values = [stacktrace_component, type_component]
 
     if with_value:
-        value_component = GroupingComponent(id="value")
+        value_component = GroupingComponent(id="value", similarity_encoder=text_shingle_encoder(5))
 
         value_in = exception.value
         if value_in is not None:
@@ -414,7 +483,9 @@ def single_exception_common(exception, config, meta, with_value):
 
         if stacktrace_component.contributes and value_component.contributes:
             value_component.update(
-                contributes=False, hint="ignored because stacktrace takes precedence"
+                contributes=False,
+                contributes_to_similarity=True,
+                hint="ignored because stacktrace takes precedence",
             )
 
         values.append(value_component)

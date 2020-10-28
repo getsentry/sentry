@@ -1,13 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconFlag} from 'app/icons';
 import Button from 'app/components/button';
 
-type Props = {
+type DefaultProps = {
+  /**
+   * Hide support links in footer of error message
+   */
+  hideSupportLinks: boolean;
+};
+
+type Props = DefaultProps & {
   className?: string;
   /**
    * Error heading
@@ -20,11 +27,7 @@ type Props = {
   /**
    * Retry callback
    */
-  onRetry?: (e: React.MouseEvent) => void;
-  /**
-   * Hide support links in footer of error message
-   */
-  hideSupportLinks?: boolean;
+  onRetry?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 };
 
 function openFeedback(e: React.MouseEvent) {
@@ -41,7 +44,7 @@ class DetailedError extends React.Component<Props> {
     hideSupportLinks: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     hideSupportLinks: false,
   };
 
@@ -59,7 +62,7 @@ class DetailedError extends React.Component<Props> {
     return (
       <div className={cx}>
         <div className="detailed-error-icon">
-          <InlineSvg src="icon-circle-exclamation" />
+          <IconFlag size="lg" />
         </div>
         <div className="detailed-error-content">
           <h4>{heading}</h4>

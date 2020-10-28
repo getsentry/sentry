@@ -54,9 +54,9 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
     return wrapped
 
 
-def retry(func=None, on=(Exception,), exclude=()):
+def retry(func=None, on=(Exception,), exclude=(), ignore=()):
     """
-    >>> @retry(on=(Exception,), exclude=(AnotherException,))
+    >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))
     >>> def my_task():
     >>>     ...
     """
@@ -69,6 +69,8 @@ def retry(func=None, on=(Exception,), exclude=()):
         def wrapped(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
+            except ignore:
+                return
             except exclude:
                 raise
             except on as exc:
@@ -78,3 +80,26 @@ def retry(func=None, on=(Exception,), exclude=()):
         return wrapped
 
     return inner
+
+
+def track_group_async_operation(function):
+    def wrapper(*args, **kwargs):
+        from sentry.utils import snuba
+
+        try:
+            response = function(*args, **kwargs)
+            metrics.incr(
+                "group.update.async_response",
+                sample_rate=1.0,
+                tags={"status": 500 if response is False else 200},
+            )
+            return response
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.async_response", sample_rate=1.0, tags={"status": 429})
+            raise
+        except Exception:
+            metrics.incr("group.update.async_response", sample_rate=1.0, tags={"status": 500})
+            # Continue raising the error now that we've incr the metric
+            raise
+
+    return wrapper

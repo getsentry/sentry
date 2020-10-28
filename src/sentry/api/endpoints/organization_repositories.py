@@ -2,8 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationRepositoryPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -13,8 +12,7 @@ from sentry.utils.sdk import capture_exception
 
 
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
-    doc_section = DocSection.ORGANIZATIONS
-    permission_classes = (OrganizationRepositoryPermission,)
+    permission_classes = (OrganizationIntegrationsPermission,)
 
     def get(self, request, organization):
         """

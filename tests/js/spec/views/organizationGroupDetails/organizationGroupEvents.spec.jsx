@@ -1,17 +1,18 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {mount, shallow} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
+
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {GroupEvents} from 'app/views/organizationGroupDetails/groupEvents';
 
-const OrgnanizationGroupEvents = GroupEvents;
+const OrganizationGroupEvents = GroupEvents;
 
-describe('groupEvents', function() {
+describe('groupEvents', function () {
   let request;
   const routerContext = TestStubs.routerContext();
 
-  beforeEach(function() {
+  beforeEach(function () {
     request = MockApiClient.addMockResponse({
       url: '/issues/1/events/',
       body: [
@@ -50,9 +51,9 @@ describe('groupEvents', function() {
     browserHistory.push = jest.fn();
   });
 
-  it('renders', function() {
-    const component = mount(
-      <OrgnanizationGroupEvents
+  it('renders', function () {
+    const component = mountWithTheme(
+      <OrganizationGroupEvents
         api={new MockApiClient()}
         group={TestStubs.Group()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
@@ -61,12 +62,12 @@ describe('groupEvents', function() {
       routerContext
     );
 
-    expect(component.find('tr')).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
-  it('handles search', function() {
+  it('handles search', function () {
     const component = shallow(
-      <OrgnanizationGroupEvents
+      <OrganizationGroupEvents
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}
@@ -96,9 +97,9 @@ describe('groupEvents', function() {
     });
   });
 
-  it('handles environment filtering', function() {
+  it('handles environment filtering', function () {
     shallow(
-      <OrgnanizationGroupEvents
+      <OrganizationGroupEvents
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}

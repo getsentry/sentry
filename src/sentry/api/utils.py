@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 
+import six
 from django.utils import timezone
 
 from sentry.search.utils import parse_datetime_string, InvalidQuery
@@ -22,6 +23,12 @@ def get_datetime_from_stats_period(stats_period, now=None):
     if stats_period is None:
         raise InvalidParams("Invalid statsPeriod")
     return now - stats_period
+
+
+def default_start_end_dates(now=None):
+    if now is None:
+        now = timezone.now()
+    return now - MAX_STATS_PERIOD, now
 
 
 def get_date_range_from_params(params, optional=False):
@@ -46,8 +53,7 @@ def get_date_range_from_params(params, optional=False):
     """
     now = timezone.now()
 
-    end = now
-    start = now - MAX_STATS_PERIOD
+    start, end = default_start_end_dates(now)
 
     stats_period = params.get("statsPeriod")
     stats_period_start = params.get("statsPeriodStart")
@@ -68,8 +74,8 @@ def get_date_range_from_params(params, optional=False):
         try:
             start = parse_datetime_string(params["start"])
             end = parse_datetime_string(params["end"])
-        except InvalidQuery as exc:
-            raise InvalidParams(exc.message)
+        except InvalidQuery as e:
+            raise InvalidParams(six.text_type(e))
     elif optional:
         return None, None
 

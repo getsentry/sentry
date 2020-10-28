@@ -57,7 +57,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.status_code == 400, resp.content
         assert resp["Content-Type"] == "text/javascript"
         assert resp["X-Sentry-Context"] == '{"eventId":"Missing or invalid parameter."}'
-        assert resp.content == ""
+        assert resp.content == b""
 
     def test_missing_dsn(self):
         path = "%s?eventId=%s" % (self.path, quote(self.event_id))
@@ -68,7 +68,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.status_code == 404, resp.content
         assert resp["Content-Type"] == "text/javascript"
         assert resp["X-Sentry-Context"] == '{"dsn":"Missing or invalid parameter."}'
-        assert resp.content == ""
+        assert resp.content == b""
 
     def test_renders(self):
         resp = self.client.get(
@@ -88,7 +88,7 @@ class ErrorPageEmbedTest(TestCase):
         )
         assert resp.status_code == 200, resp.content
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
-        assert "Fermer" in resp.content  # Close
+        assert b"Fermer" in resp.content  # Close
 
     def test_xss(self):
         user_feedback_options = {}
@@ -107,7 +107,9 @@ class ErrorPageEmbedTest(TestCase):
             "labelClose",
         ]
         for key in option_keys:
-            user_feedback_options[key] = "<img src=x onerror=alert({0})>XSS_{0}".format(key)
+            user_feedback_options[key] = "<img src=x onerror=alert({0})>XSS_{0}".format(key).encode(
+                "utf-8"
+            )
 
         user_feedback_options_qs = urlencode(user_feedback_options)
         path_with_qs = "%s?eventId=%s&dsn=%s&%s" % (

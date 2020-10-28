@@ -1,13 +1,32 @@
 from __future__ import absolute_import
 
 import six
+from rest_framework import serializers
 
-from django.conf import settings
+from sentry_relay.auth import PublicKey
+from sentry_relay.exceptions import RelayError
 
 from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
+from sentry.api.serializers.models import UserSerializer
+from sentry.constants import (
+    LEGACY_RATE_LIMIT_OPTIONS,
+    PROJECT_RATE_LIMIT_DEFAULT,
+    ACCOUNT_RATE_LIMIT_DEFAULT,
+    REQUIRE_SCRUB_DATA_DEFAULT,
+    REQUIRE_SCRUB_DEFAULTS_DEFAULT,
+    SENSITIVE_FIELDS_DEFAULT,
+    SAFE_FIELDS_DEFAULT,
+    ATTACHMENTS_ROLE_DEFAULT,
+    DEBUG_FILES_ROLE_DEFAULT,
+    REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+    SCRAPE_JAVASCRIPT_DEFAULT,
+    JOIN_REQUESTS_DEFAULT,
+    EVENTS_MEMBER_ADMIN_DEFAULT,
+    APDEX_THRESHOLD_DEFAULT,
+)
+
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     ApiKey,
@@ -23,18 +42,59 @@ from sentry.models import (
     TeamStatus,
 )
 
-# org option default values
-PROJECT_RATE_LIMIT_DEFAULT = 100
-ACCOUNT_RATE_LIMIT_DEFAULT = 0
-REQUIRE_SCRUB_DATA_DEFAULT = False
-REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
-SENSITIVE_FIELDS_DEFAULT = None
-SAFE_FIELDS_DEFAULT = None
-ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
-REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
-SCRAPE_JAVASCRIPT_DEFAULT = True
-TRUSTED_RELAYS_DEFAULT = None
-JOIN_REQUESTS_DEFAULT = True
+_ORGANIZATION_SCOPE_PREFIX = "organizations:"
+
+
+class TrustedRelaySerializer(serializers.Serializer):
+    internal_external = (
+        (u"name", u"name"),
+        (u"description", u"description"),
+        (u"public_key", u"publicKey"),
+        (u"created", u"created"),
+        (u"last_modified", u"lastModified"),
+    )
+
+    def to_representation(self, instance):
+        ret_val = {}
+        for internal_key, external_key in TrustedRelaySerializer.internal_external:
+            val = instance.get(internal_key)
+            if val is not None:
+                ret_val[external_key] = val
+        return ret_val
+
+    def to_internal_value(self, data):
+        try:
+            key_name = data.get(u"name")
+            public_key = data.get(u"publicKey") or ""
+            description = data.get(u"description")
+        except AttributeError:
+            raise serializers.ValidationError("Bad structure received for Trusted Relays")
+
+        if key_name is None:
+            raise serializers.ValidationError("Relay key info with missing name in Trusted Relays")
+
+        key_name = key_name.strip()
+
+        if len(key_name) == 0:
+            raise serializers.ValidationError("Relay key info with empty name in Trusted Relays")
+
+        if len(public_key) == 0:
+            raise serializers.ValidationError(
+                "Missing public key for relay key info with name:'{}' in Trusted Relays".format(
+                    key_name
+                )
+            )
+
+        try:
+            PublicKey.parse(public_key)
+        except RelayError:
+            raise serializers.ValidationError(
+                "Invalid public key for relay key info with name:'{}' in Trusted Relays".format(
+                    key_name
+                )
+            )
+
+        return {u"public_key": public_key, u"name": key_name, u"description": description}
 
 
 @register(Organization)
@@ -64,15 +124,31 @@ class OrganizationSerializer(Serializer):
         status = OrganizationStatus(obj.status)
 
         # Retrieve all registered organization features
-        org_features = features.all(feature_type=OrganizationFeature).keys()
+        org_features = [
+            feature
+            for feature in features.all(feature_type=OrganizationFeature).keys()
+            if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
+        ]
         feature_list = set()
 
+        batch_features = features.batch_has(org_features, actor=user, organization=obj)
+
+        # batch_has has found some features
+        if batch_features:
+            for feature_name, active in batch_features.get(
+                "organization:{}".format(obj.id), {}
+            ).items():
+                if active:
+                    # Remove organization prefix
+                    feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+
+                # This feature_name was found via `batch_has`, don't check again using `has`
+                org_features.remove(feature_name)
+
         for feature_name in org_features:
-            if not feature_name.startswith("organizations:"):
-                continue
             if features.has(feature_name, obj, actor=user):
                 # Remove the organization scope prefix
-                feature_list.add(feature_name[len("organizations:") :])
+                feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 
         # Do not include the onboarding feature if OrganizationOptions exist
         if (
@@ -109,11 +185,23 @@ class OrganizationSerializer(Serializer):
 
 
 class OnboardingTasksSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        # Unique user list
+        users = {item.user for item in item_list if item.user}
+        serialized_users = serialize(users, user, UserSerializer())
+        user_map = {user["id"]: user for user in serialized_users}
+
+        data = {}
+        for item in item_list:
+            data[item] = {"user": user_map.get(six.text_type(item.user_id))}
+        return data
+
     def serialize(self, obj, attrs, user):
         return {
-            "task": obj.task,
-            "status": dict(OrganizationOnboardingTask.STATUS_CHOICES).get(obj.status).lower(),
-            "user": obj.user.name if obj.user else None,
+            "task": OrganizationOnboardingTask.TASK_KEY_MAP.get(obj.task),
+            "status": OrganizationOnboardingTask.STATUS_KEY_MAP.get(obj.status),
+            "user": attrs.get("user"),
+            "completionSeen": obj.completion_seen,
             "dateCompleted": obj.date_completed,
             "data": obj.data,
         }
@@ -180,6 +268,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "attachmentsRole": six.text_type(
                     obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
                 ),
+                "debugFilesRole": six.text_type(
+                    obj.get_option("sentry:debug_files_role", DEBUG_FILES_ROLE_DEFAULT)
+                ),
+                "eventsMemberAdmin": bool(
+                    obj.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT)
+                ),
                 "scrubIPAddresses": bool(
                     obj.get_option(
                         "sentry:require_scrub_ip_address", REQUIRE_SCRUB_IP_ADDRESS_DEFAULT
@@ -188,13 +282,21 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "scrapeJavaScript": bool(
                     obj.get_option("sentry:scrape_javascript", SCRAPE_JAVASCRIPT_DEFAULT)
                 ),
-                "trustedRelays": obj.get_option("sentry:trusted-relays", TRUSTED_RELAYS_DEFAULT)
-                or [],
                 "allowJoinRequests": bool(
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
+                "relayPiiConfig": six.text_type(obj.get_option("sentry:relay_pii_config") or u"")
+                or None,
+                "apdexThreshold": int(
+                    obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
+                ),
             }
         )
+
+        trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
+        # serialize trusted relays info into their external form
+        context["trustedRelays"] = [TrustedRelaySerializer(raw).data for raw in trusted_relays_raw]
+
         context["access"] = access.scopes
         if access.role is not None:
             context["role"] = access.role

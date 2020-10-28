@@ -1,44 +1,44 @@
 ---
-created: '2019-05-16T18:21:49.807173Z'
+created: '2020-02-26T19:54:42.858642Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             function*
-              u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
           frame (non app frame)
             function*
-              u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
           frame (non app frame)
             function*
-              u'<lambda>::operator()'
+              "<lambda>::operator()"
         type (ignored because exception is synthetic)
-          u'log_demo'
+          "log_demo"
         value*
-          u'Holy shit everything is on fire!'
+          "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: '61d21e6d53c0837718af047c20e5e7ea'
+  hash: "61d21e6d53c0837718af047c20e5e7ea"
   component:
     system*
       exception*
         stacktrace*
           frame*
             function*
-              u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
           frame*
             function*
-              u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
           frame*
             function*
-              u'<lambda>::operator()'
+              "<lambda>::operator()"
         type (ignored because exception is synthetic)
-          u'log_demo'
+          "log_demo"
         value (ignored because stacktrace takes precedence)
-          u'Holy shit everything is on fire!'
+          "Holy shit everything is on fire!"

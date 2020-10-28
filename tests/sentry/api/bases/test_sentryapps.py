@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.http import Http404
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.testutils import TestCase
 from sentry.api.bases.sentryapps import (

@@ -1,14 +1,19 @@
 import React from 'react';
+
 import {mount} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
 import {Tags} from 'app/views/eventsV2/tags';
-import EventView from 'app/views/eventsV2/eventView';
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import EventView from 'app/utils/discover/eventView';
 
-describe('Tags', function() {
+describe('Tags', function () {
+  function generateUrl(key, value) {
+    return `/endpoint/${key}/${value}`;
+  }
+
   const org = TestStubs.Organization();
-  beforeEach(function() {
+  beforeEach(function () {
     Client.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
       body: [
@@ -20,22 +25,19 @@ describe('Tags', function() {
           key: 'environment',
           topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
         },
+        {
+          key: 'color',
+          topValues: [{count: 2, value: 'red', name: 'red'}],
+        },
       ],
-    });
-
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/events-meta/`,
-      body: {
-        count: 2,
-      },
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     Client.clearMockResponses();
   });
 
-  it('renders', async function() {
+  it('renders', async function () {
     const api = new Client();
 
     const view = new EventView({
@@ -48,9 +50,12 @@ describe('Tags', function() {
       <Tags
         eventView={view}
         api={api}
+        totalValues={2}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
         location={{query: {}}}
+        generateUrl={generateUrl}
+        confirmedQuery={false}
       />
     );
 
@@ -64,7 +69,7 @@ describe('Tags', function() {
     expect(wrapper.find('StyledPlaceholder')).toHaveLength(0);
   });
 
-  it('environment tag is a dedicated query string', async function() {
+  it('creates URLs with generateUrl', async function () {
     const api = new Client();
 
     const view = new EventView({
@@ -85,8 +90,11 @@ describe('Tags', function() {
         eventView={view}
         api={api}
         organization={org}
+        totalValues={2}
         selection={{projects: [], environments: [], datetime: {}}}
         location={initialData.router.location}
+        generateUrl={generateUrl}
+        confirmedQuery={false}
       />,
       initialData.routerContext
     );
@@ -102,9 +110,7 @@ describe('Tags', function() {
 
     const environmentFacetMap = wrapper
       .find('TagDistributionMeter')
-      .filterWhere(component => {
-        return component.props().title === 'environment';
-      })
+      .filterWhere(component => component.props().title === 'environment')
       .first();
 
     const clickable = environmentFacetMap.find('Segment').first();
@@ -114,9 +120,6 @@ describe('Tags', function() {
     await tick();
     wrapper.update();
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {environment: 'abcd123'},
-    });
+    expect(initialData.router.push).toHaveBeenCalledWith('/endpoint/environment/abcd123');
   });
 });

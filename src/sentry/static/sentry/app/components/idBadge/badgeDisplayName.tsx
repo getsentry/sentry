@@ -3,13 +3,17 @@ import styled from '@emotion/styled';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-const BadgeDisplayName = styled('span')<{hideOverflow?: boolean}>`
-  ${p => p.hideOverflow && overflowEllipsis};
+const BadgeDisplayName = styled('span')<{hideOverflow?: string | boolean}>`
   ${p =>
     p.hideOverflow &&
-    `max-width: ${
-      typeof p.hideOverflow === 'string' ? p.hideOverflow : p.theme.settings.maxCrumbWidth
-    }`};
+    `
+      ${overflowEllipsis};
+      max-width: ${
+        typeof p.hideOverflow === 'string'
+          ? p.hideOverflow
+          : p.theme.settings.maxCrumbWidth
+      }
+  `};
   padding: ${space(0.25)} 0;
 `;
 

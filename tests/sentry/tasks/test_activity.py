@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.testutils import PluginTestCase

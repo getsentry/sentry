@@ -1,15 +1,12 @@
 from __future__ import absolute_import
 
 import six
-import pytest
-
-from django.conf import settings
 
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.eventstore.base import Filter
-
+from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 
@@ -78,32 +75,42 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         )
         assert len(events) == 5
         # Default sort is timestamp desc, event_id desc
-        assert events[0].id == "e" * 32
-        assert events[1].id == "d" * 32
-        assert events[2].id == "c" * 32
-        assert events[3].id == "b" * 32
-        assert events[4].id == "a" * 32
+        assert events[0].event_id == "e" * 32
+        assert events[1].event_id == "d" * 32
+        assert events[2].event_id == "c" * 32
+        assert events[3].event_id == "b" * 32
+        assert events[4].event_id == "a" * 32
 
         # No events found
         project = self.create_project()
         events = self.eventstore.get_events(filter=Filter(project_ids=[project.id]))
         assert events == []
 
+        # Test with a list of event IDs and project ID filters
+        events = self.eventstore.get_events(
+            filter=Filter(
+                project_ids=[self.project1.id, self.project2.id],
+                event_ids=["a" * 32, "b" * 32, "c" * 32, "x" * 32, "y" * 32, "z" * 32],
+            )
+        )
+        assert len(events) == 3
+        assert events[0].event_id == "c" * 32
+        assert events[1].event_id == "b" * 32
+        assert events[2].event_id == "a" * 32
+
+    @mock.patch("sentry.nodestore.get_multi")
+    def test_get_unfetched_events(self, get_multi):
+        events = self.eventstore.get_unfetched_events(filter=Filter(project_ids=[self.project1.id]))
+        assert len(events) == 1
+        assert get_multi.call_count == 0
+
     def test_get_event_by_id(self):
-        # Get event with default columns
+        # Get valid event
         event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
 
-        assert event.id == "a" * 32
         assert event.event_id == "a" * 32
         assert event.project_id == self.project1.id
-
-        # Get all columns
-        event = self.eventstore.get_event_by_id(
-            self.project2.id, "b" * 32, self.eventstore.full_columns
-        )
-        assert event.id == "b" * 32
-        assert event.event_id == "b" * 32
-        assert event.project_id == self.project2.id
+        assert event.group_id == event.group.id
 
         # Get non existent event
         event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
@@ -112,36 +119,18 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         # Get transaction
         event = self.eventstore.get_event_by_id(self.project2.id, self.transaction_event.event_id)
 
-        assert event.id == "d" * 32
+        assert event.event_id == "d" * 32
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
-
-    def test_get_event_by_id_nodestore(self):
-        options = settings.SENTRY_OPTIONS.copy()
-        options["eventstore.use-nodestore"] = True
-        with self.settings(SENTRY_OPTIONS=options):
-            event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
-            assert event
-            assert event.group_id == event.group.id
-
-            # Transaction event
-            event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
-            assert event
-            assert not event.group_id
-            assert not event.group
-
-            # Non existent event
-            event = self.eventstore.get_event_by_id(self.project.id, "f" * 32)
-            assert not event
 
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
-        filter = Filter(project_ids=[self.project1.id, self.project2.id])
+        _filter = Filter(project_ids=[self.project1.id, self.project2.id])
 
-        prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
 
-        next_event = self.eventstore.get_next_event_id(event, filter=filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
 
         assert prev_event == (six.text_type(self.project1.id), "a" * 32)
 
@@ -149,41 +138,40 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert next_event == (six.text_type(self.project2.id), "c" * 32)
 
         # Returns None if no event
-        assert self.eventstore.get_prev_event_id(None, filter=filter) is None
-        assert self.eventstore.get_next_event_id(None, filter=filter) is None
+        assert self.eventstore.get_prev_event_id(None, filter=_filter) is None
+        assert self.eventstore.get_next_event_id(None, filter=_filter) is None
 
     def test_get_latest_or_oldest_event_id(self):
         # Returns a latest/oldest event
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
-        filter = Filter(project_ids=[self.project1.id, self.project2.id])
-        oldest_event = self.eventstore.get_earliest_event_id(event, filter=filter)
-        latest_event = self.eventstore.get_latest_event_id(event, filter=filter)
+        _filter = Filter(project_ids=[self.project1.id, self.project2.id])
+        oldest_event = self.eventstore.get_earliest_event_id(event, filter=_filter)
+        latest_event = self.eventstore.get_latest_event_id(event, filter=_filter)
         assert oldest_event == (six.text_type(self.project1.id), "a" * 32)
         assert latest_event == (six.text_type(self.project2.id), "e" * 32)
 
         # Returns none when no latest/oldest event that meets conditions
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
-        filter = Filter(project_ids=[self.project1.id], group_ids=[self.event2.group_id])
-        oldest_event = self.eventstore.get_earliest_event_id(event, filter=filter)
-        latest_event = self.eventstore.get_latest_event_id(event, filter=filter)
+        _filter = Filter(project_ids=[self.project1.id], group_ids=[self.event2.group_id])
+        oldest_event = self.eventstore.get_earliest_event_id(event, filter=_filter)
+        latest_event = self.eventstore.get_latest_event_id(event, filter=_filter)
         assert oldest_event is None
         assert latest_event is None
 
-    @pytest.mark.skip(reason="Not yet implemented")
     def test_transaction_get_next_prev_event_id(self):
-        filter = Filter(
+        _filter = Filter(
             project_ids=[self.project1.id, self.project2.id],
-            conditions=[["type", "=", "transaction"]],
+            conditions=[["event.type", "=", "transaction"]],
         )
 
         event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)
-        prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
-        next_event = self.eventstore.get_next_event_id(event, filter=filter)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
         assert prev_event == (six.text_type(self.project2.id), "d" * 32)
         assert next_event is None
 
         event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
-        prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
-        next_event = self.eventstore.get_next_event_id(event, filter=filter)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
         assert prev_event is None
         assert next_event == (six.text_type(self.project2.id), "e" * 32)

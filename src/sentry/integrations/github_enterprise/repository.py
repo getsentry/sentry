@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from sentry.models import Integration
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 
 
@@ -12,7 +12,7 @@ WEBHOOK_EVENTS = ["push", "pull_request"]
 
 class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
     name = "GitHub Enterprise"
-    logger = logging.getLogger("sentry.plugins.github_enterprise")
+    logger = logging.getLogger("sentry.integrations.github_enterprise")
     repo_provider = "github_enterprise"
 
     def _validate_repo(self, client, installation, repo):

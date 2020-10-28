@@ -2,13 +2,11 @@
 
 from __future__ import absolute_import
 
-import mock
+import pytz
 import six
 
 from datetime import timedelta
-
 from django.utils import timezone
-from mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (
@@ -30,6 +28,8 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils.compat import mock
+from sentry.utils.compat.mock import patch
 
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
@@ -301,17 +301,18 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             )
 
         # Assert all events are in the same group
-        group_id, = set(e.group.id for e in events)
+        (group_id,) = set(e.group.id for e in events)
 
         group = Group.objects.get(id=group_id)
-        group.times_seen = 5
-        group.first_seen = self.week_ago
+        group.times_seen = 3
+        group.first_seen = self.week_ago - timedelta(days=5)
+        group.last_seen = self.week_ago
         group.save()
 
         # should use group columns when no environments arg passed
         result = serialize(group, serializer=GroupSerializerSnuba(environment_ids=[]))
-        assert result["count"] == "5"
-        assert result["lastSeen"] == group.last_seen
+        assert result["count"] == "3"
+        assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
         assert result["firstSeen"] == group.first_seen
 
         # update this to something different to make sure it's being used
@@ -332,8 +333,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert iso_format(group_env2.first_seen) > iso_format(group_env.first_seen)
         assert result["userCount"] == 3
 
-        # test userCount, count, lastSeen filtering correctly by time
-        # firstSeen should still be from GroupEnvironment
         result = serialize(
             group,
             serializer=GroupSerializerSnuba(
@@ -344,8 +343,15 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
         assert result["userCount"] == 1
         assert iso_format(result["lastSeen"]) == iso_format(self.week_ago)
-        assert iso_format(result["firstSeen"]) == iso_format(group_env.first_seen)
+        assert iso_format(result["firstSeen"]) == iso_format(self.week_ago)
         assert result["count"] == "1"
+
+    def test_get_start_from_seen_stats(self):
+        for days, expected in [(None, 30), (0, 14), (1000, 90)]:
+            last_seen = None if days is None else before_now(days=days).replace(tzinfo=pytz.UTC)
+            start = GroupSerializerSnuba._get_start_from_seen_stats({"": {"last_seen": last_seen}})
+
+            assert iso_format(start) == iso_format(before_now(days=expected))
 
 
 class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):

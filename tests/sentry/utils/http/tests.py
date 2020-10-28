@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 import unittest
 
 from exam import fixture
@@ -19,13 +19,6 @@ from sentry.utils.http import (
     origin_from_request,
     heuristic_decode,
 )
-from sentry.utils.data_filters import (
-    is_valid_ip,
-    is_valid_release,
-    is_valid_error_message,
-    FilterTypes,
-)
-from sentry.relay.config import get_project_config
 
 
 class AbsoluteUriTest(unittest.TestCase):
@@ -224,7 +217,7 @@ class IsValidOriginTestCase(unittest.TestCase):
         assert result is True
         result = self.isValidOrigin(u"http://l\xf8calhost", [u"*.xn--lcalhost-54a"])
         assert result is True
-        result = self.isValidOrigin("http://l\xc3\xb8calhost", [u"*.xn--lcalhost-54a"])
+        result = self.isValidOrigin(b"http://l\xc3\xb8calhost", [u"*.xn--lcalhost-54a"])
         assert result is True
         result = self.isValidOrigin("http://xn--lcalhost-54a", [u"l\xf8calhost"])
         assert result is True
@@ -250,84 +243,6 @@ class IsValidOriginTestCase(unittest.TestCase):
         assert result is False
         result = self.isValidOrigin("foo://a", ["foo://*"])
         assert result is True
-
-
-class IsValidIPTestCase(TestCase):
-    def is_valid_ip(self, ip, inputs):
-        self.project.update_option("sentry:blacklisted_ips", inputs)
-        project_config = get_project_config(self.project)
-        return is_valid_ip(project_config, ip)
-
-    def test_not_in_blacklist(self):
-        assert self.is_valid_ip("127.0.0.1", [])
-        assert self.is_valid_ip("127.0.0.1", ["0.0.0.0", "192.168.1.1", "10.0.0.0/8"])
-
-    def test_match_blacklist(self):
-        assert not self.is_valid_ip("127.0.0.1", ["127.0.0.1"])
-        assert not self.is_valid_ip("127.0.0.1", ["0.0.0.0", "127.0.0.1", "192.168.1.1"])
-
-    def test_match_blacklist_range(self):
-        assert not self.is_valid_ip("127.0.0.1", ["127.0.0.0/8"])
-        assert not self.is_valid_ip("127.0.0.1", ["0.0.0.0", "127.0.0.0/8", "192.168.1.0/8"])
-
-    def test_garbage_input(self):
-        assert self.is_valid_ip("127.0.0.1", ["lol/bar"])
-
-
-class IsValidReleaseTestCase(TestCase):
-    def is_valid_release(self, value, inputs):
-        self.project.update_option(u"sentry:{}".format(FilterTypes.RELEASES), inputs)
-        project_config = get_project_config(self.project)
-        return is_valid_release(project_config, value)
-
-    def test_release_not_in_list(self):
-        assert self.is_valid_release("1.2.3", None)
-        assert self.is_valid_release("1.2.3", [])
-        assert self.is_valid_release("1.2.3", ["1.1.1", "1.1.2", "1.2.1"])
-
-    def test_release_match_list(self):
-        assert not self.is_valid_release("1.2.3", ["1.2.3"])
-        assert not self.is_valid_release("1.2.3", ["1.2.*", "1.3.0", "1.3.1"])
-        assert not self.is_valid_release("1.2.3", ["1.3.0", "1.*", "1.3.1"])
-
-    def test_garbage_data(self):
-        assert self.is_valid_release(1, ["1.2.3"])
-
-
-class IsValidErrorMessageTestCase(TestCase):
-    def is_valid_error_message(self, value, inputs):
-        self.project.update_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES), inputs)
-        project_config = get_project_config(self.project)
-        return is_valid_error_message(project_config, value)
-
-    def test_error_class_not_in_list(self):
-        assert self.is_valid_error_message(
-            "ZeroDivisionError: integer division or modulo by zero", None
-        )
-        assert self.is_valid_error_message(
-            "ZeroDivisionError: integer division or modulo by zero", []
-        )
-        assert self.is_valid_error_message(
-            "ZeroDivisionError: integer division or modulo by zero",
-            ["TypeError*", "*: cannot import name*"],
-        )
-
-    def test_error_class_match_list(self):
-        assert not self.is_valid_error_message(
-            "ImportError: cannot import name is_valid", ["*: cannot import name*"]
-        )
-        assert not self.is_valid_error_message(
-            "ZeroDivisionError: divided by 0", ["ImportError*", "TypeError*", "*: divided by 0"]
-        )
-
-    def test_garbage_data(self):
-        assert self.is_valid_error_message(1, ["ImportError*"])
-        assert self.is_valid_error_message(None, ["ImportError*"])
-        assert self.is_valid_error_message({}, ["ImportError*"])
-
-    def test_bad_characters_in_pattern(self):
-        patterns = [u"*google_tag_manager['GTM-3TL3'].macro(...)*"]
-        assert self.is_valid_error_message("it bad", patterns)
 
 
 class OriginFromRequestTestCase(TestCase):

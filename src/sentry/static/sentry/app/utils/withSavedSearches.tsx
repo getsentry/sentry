@@ -1,6 +1,7 @@
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import SavedSearchesStore from 'app/stores/savedSearchesStore';
 import getDisplayName from 'app/utils/getDisplayName';
@@ -10,10 +11,10 @@ type InjectedSavedSearchesProps = {
   savedSearches: SavedSearch[];
   savedSearchLoading: boolean;
   savedSearch: SavedSearch | null;
-};
+} & RouteComponentProps<{searchId?: string}, {}>;
 
 type State = {
-  SavedSearchs: SavedSearch;
+  savedSearches: SavedSearch[];
   isLoading: boolean;
 };
 
@@ -39,10 +40,16 @@ const withSavedSearches = <P extends InjectedSavedSearchesProps>(
     },
 
     render() {
-      const {params, location} = this.props;
+      const {
+        params,
+        location,
+        savedSearchLoading,
+        savedSearch: savedSearchProp,
+        savedSearches: savedSearchesProp,
+      } = this.props as P;
       const {searchId} = params;
-      const {savedSearches, isLoading} = this.state;
-      let savedSearch = null;
+      const {savedSearches, isLoading} = this.state as State;
+      let savedSearch: SavedSearch | null = null;
 
       // Switch to the current saved search or pinned result if available
       if (!isLoading && savedSearches) {
@@ -63,10 +70,10 @@ const withSavedSearches = <P extends InjectedSavedSearchesProps>(
 
       return (
         <WrappedComponent
-          savedSearches={savedSearches as SavedSearch[]}
-          savedSearchLoading={isLoading as boolean}
-          savedSearch={savedSearch as SavedSearch | null}
-          {...this.props as P}
+          {...(this.props as P)}
+          savedSearches={savedSearchesProp ?? savedSearches}
+          savedSearchLoading={savedSearchLoading ?? isLoading}
+          savedSearch={savedSearchProp ?? savedSearch}
         />
       );
     },

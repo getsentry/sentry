@@ -3,6 +3,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import Onboarding, {stepPropTypes} from 'app/views/onboarding/onboarding';
 import ProjectsStore from 'app/stores/projectsStore';
 
@@ -50,8 +51,8 @@ const MOCKED_STEPS = [
   },
 ];
 
-describe('Onboarding', function() {
-  it('redirects to first step if invalid step ID present', function() {
+describe('Onboarding', function () {
+  it('redirects to first step if invalid step ID present', function () {
     browserHistory.replace = jest.fn();
 
     const params = {
@@ -67,7 +68,7 @@ describe('Onboarding', function() {
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
   });
 
-  it('renders one step', function() {
+  it('renders one step', function () {
     const params = {
       step: 'step1',
       orgId: 'org-bar',
@@ -87,15 +88,10 @@ describe('Onboarding', function() {
 
     // Validate that the progress bar is displayed and active
     expect(wrapper.find('ProgressStep')).toHaveLength(3);
-    expect(
-      wrapper
-        .find('ProgressStep')
-        .first()
-        .props().active
-    ).toBe(true);
+    expect(wrapper.find('ProgressStep').first().props().active).toBe(true);
   });
 
-  it('moves to next step on complete', function() {
+  it('moves to next step on complete', function () {
     browserHistory.replace = jest.fn();
 
     const params = {
@@ -112,7 +108,7 @@ describe('Onboarding', function() {
     expect(browserHistory.push).toHaveBeenCalledWith('/onboarding/org-bar/step2/');
   });
 
-  it('renders first and second step', function() {
+  it('renders first and second step', function () {
     const params = {
       step: 'step2',
       orgId: 'org-bar',
@@ -126,33 +122,16 @@ describe('Onboarding', function() {
     // Validate both steps exist
     expect(wrapper.find('ProgressStatus').text()).toEqual('Step Two');
     expect(wrapper.find('#step_name')).toHaveLength(2);
-    expect(
-      wrapper
-        .find('#step_name')
-        .at(1)
-        .text()
-    ).toEqual('step_2');
+    expect(wrapper.find('#step_name').at(1).text()).toEqual('step_2');
 
     // First step is not active
-    expect(
-      wrapper
-        .find('MockStep')
-        .at(0)
-        .find('#active')
-        .exists()
-    ).toBe(false);
+    expect(wrapper.find('MockStep').at(0).find('#active').exists()).toBe(false);
 
     // Second step is active
-    expect(
-      wrapper
-        .find('MockStep')
-        .at(1)
-        .find('#active')
-        .exists()
-    ).toBe(false);
+    expect(wrapper.find('MockStep').at(1).find('#active').exists()).toBe(false);
   });
 
-  it('returns to step one when onReturnToStep is triggered', function() {
+  it('returns to step one when onReturnToStep is triggered', function () {
     browserHistory.replace = jest.fn();
 
     const params = {
@@ -165,14 +144,11 @@ describe('Onboarding', function() {
       TestStubs.routerContext()
     );
 
-    wrapper
-      .find('#return')
-      .at(0)
-      .simulate('click');
+    wrapper.find('#return').at(0).simulate('click');
     expect(browserHistory.push).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
   });
 
-  it('passes the first existing project', function() {
+  it('passes the first existing project', function () {
     const {organization, projects, routerContext} = initializeOrg({
       // Multiple projects with different creation dates, to ensure it picks
       // the oldest project

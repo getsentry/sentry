@@ -1,9 +1,7 @@
 from __future__ import absolute_import
 
-from six import string_types
+from six import string_types, binary_type
 import psycopg2 as Database
-
-import django
 
 # Some of these imports are unused, but they are inherited from other engines
 # and should be available as part of the backend ``base.py`` namespace.
@@ -31,6 +29,8 @@ def remove_null(value):
     # somewhat legible rather than error. Considering this is better
     # behavior than the database truncating, seems good to do this
     # rather than attempting to sanitize all data inputs now manually.
+    if type(value) is bytes:
+        return value.replace(b"\x00", b"")
     return value.replace("\x00", "")
 
 
@@ -49,7 +49,7 @@ def remove_surrogates(value):
 def clean_bad_params(params):
     params = list(params)
     for idx, param in enumerate(params):
-        if isinstance(param, string_types):
+        if isinstance(param, (string_types, binary_type)):
             params[idx] = remove_null(remove_surrogates(param))
     return params
 
@@ -96,10 +96,7 @@ class DatabaseWrapper(DatabaseWrapper):
 
     @auto_reconnect_connection
     def _cursor(self, *args, **kwargs):
-        cursor = super(DatabaseWrapper, self)._cursor()
-        if django.VERSION[:2] < (1, 11):
-            return CursorWrapper(self, cursor)
-        return cursor
+        return super(DatabaseWrapper, self)._cursor()
 
     # We're overriding this internal method that's present in Django 1.11+, because
     # things were shuffled around since 1.10 resulting in not constructing a django CursorWrapper

@@ -2,9 +2,33 @@ from __future__ import absolute_import, print_function
 
 import os
 from sentry import eventstore, nodestore
-from sentry.models import Event, EventAttachment, UserReport
+from sentry.eventstore.models import Event
+from sentry import models
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
+
+
+GROUP_RELATED_MODELS = (
+    # prioritize GroupHash
+    models.GroupHash,
+    models.GroupAssignee,
+    models.GroupCommitResolution,
+    models.GroupLink,
+    models.GroupBookmark,
+    models.GroupMeta,
+    models.GroupEnvironment,
+    models.GroupRelease,
+    models.GroupRedirect,
+    models.GroupResolution,
+    models.GroupRuleStatus,
+    models.GroupSeen,
+    models.GroupShare,
+    models.GroupSnooze,
+    models.GroupEmailThread,
+    models.GroupSubscription,
+    models.UserReport,
+    models.EventAttachment,
+)
 
 
 class EventDataDeletionTask(BaseDeletionTask):
@@ -33,7 +57,7 @@ class EventDataDeletionTask(BaseDeletionTask):
                 ]
             )
 
-        events = eventstore.get_events(
+        events = eventstore.get_unfetched_events(
             filter=eventstore.Filter(
                 conditions=conditions, project_ids=[self.project_id], group_ids=[self.group_id]
             ),
@@ -51,47 +75,32 @@ class EventDataDeletionTask(BaseDeletionTask):
         node_ids = [Event.generate_node_id(self.project_id, event.event_id) for event in events]
         nodestore.delete_multi(node_ids)
 
-        # Remove EventAttachment and UserReport
+        from sentry.reprocessing2 import delete_unprocessed_events
+
+        delete_unprocessed_events(events)
+
+        # Remove EventAttachment and UserReport *again* as those may not have a
+        # group ID, therefore there may be dangling ones after "regular" model
+        # deletion.
         event_ids = [event.event_id for event in events]
-        EventAttachment.objects.filter(event_id__in=event_ids, project_id=self.project_id).delete()
-        UserReport.objects.filter(event_id__in=event_ids, project_id=self.project_id).delete()
+        models.EventAttachment.objects.filter(
+            event_id__in=event_ids, project_id=self.project_id
+        ).delete()
+        models.UserReport.objects.filter(
+            event_id__in=event_ids, project_id=self.project_id
+        ).delete()
 
         return True
 
 
 class GroupDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry import models
-        from sentry.incidents.models import IncidentGroup
 
         relations = []
 
-        model_list = (
-            # prioritize GroupHash
-            models.GroupHash,
-            models.GroupAssignee,
-            models.GroupCommitResolution,
-            models.GroupLink,
-            models.GroupBookmark,
-            models.GroupMeta,
-            models.GroupEnvironment,
-            models.GroupRelease,
-            models.GroupRedirect,
-            models.GroupResolution,
-            models.GroupRuleStatus,
-            models.GroupSeen,
-            models.GroupShare,
-            models.GroupSnooze,
-            models.GroupEmailThread,
-            models.GroupSubscription,
-            models.UserReport,
-            models.EventAttachment,
-            IncidentGroup,
-            # Event is last as its the most time consuming
-            models.Event,
+        relations.extend(
+            [ModelRelation(m, {"group_id": instance.id}) for m in GROUP_RELATED_MODELS]
         )
-
-        relations.extend([ModelRelation(m, {"group_id": instance.id}) for m in model_list])
 
         # Skip EventDataDeletionTask if this is being called from cleanup.py
         if not os.environ.get("_SENTRY_CLEANUP"):
@@ -107,10 +116,10 @@ class GroupDeletionTask(ModelDeletionTask):
         return relations
 
     def delete_instance(self, instance):
-        from sentry.similarity import features
+        from sentry import similarity
 
-        if not self.skip_models or features not in self.skip_models:
-            features.delete(instance)
+        if not self.skip_models or similarity not in self.skip_models:
+            similarity.delete(None, instance)
 
         return super(GroupDeletionTask, self).delete_instance(instance)
 

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import functools
 import logging
-import mock
+from sentry.utils.compat import mock
 import pytest
 
 from sentry.exceptions import InvalidConfiguration
@@ -14,6 +14,7 @@ from sentry.utils.redis import (
     _RedisCluster,
     logger,
 )
+from django.utils.functional import SimpleLazyObject
 
 # Silence connection warnings
 logger.setLevel(logging.ERROR)
@@ -39,9 +40,9 @@ class ClusterManagerTestCase(TestCase):
         with pytest.raises(KeyError):
             manager.get("invalid")
 
-    @mock.patch("sentry.utils.redis.RetryingStrictRedisCluster")
+    @mock.patch("sentry.utils.redis.RetryingRedisCluster")
     @mock.patch("sentry.utils.redis.StrictRedis")
-    def test_specific_cluster(self, StrictRedis, RetryingStrictRedisCluster):
+    def test_specific_cluster(self, StrictRedis, RetryingRedisCluster):
         manager = make_manager(cluster_type=_RedisCluster)
 
         # We wrap the cluster in a Simple Lazy Object, force creation of the
@@ -50,12 +51,28 @@ class ClusterManagerTestCase(TestCase):
         # cluster foo is fine since it's a single node
         assert manager.get("foo")._setupfunc() is StrictRedis.return_value
         # baz works becasue it's explicitly is_redis_cluster
-        assert manager.get("baz")._setupfunc() is RetryingStrictRedisCluster.return_value
+        assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value
 
         # bar is not a valid redis or redis cluster definition
         # becasue it is two hosts, without explicitly saying is_redis_cluster
         with pytest.raises(KeyError):
             manager.get("bar")
+
+    def test_multiple_retrieval_do_not_setup_lazy_object(self):
+        class TestClusterType:
+            def supports(self, config):
+                return True
+
+            def factory(self, **config):
+                def setupfunc():
+                    assert False, "setupfunc should not be called"
+
+                return SimpleLazyObject(setupfunc)
+
+        manager = make_manager(cluster_type=TestClusterType)
+        manager.get("foo")
+        # repeated retrieval should not trigger call to setupfunc
+        manager.get("foo")
 
 
 def test_get_cluster_from_options():

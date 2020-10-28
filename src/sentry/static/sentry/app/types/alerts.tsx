@@ -1,3 +1,21 @@
+export type IssueAlertRuleFormField =
+  | {
+      type: 'choice';
+      choices?: [string, string][];
+      initial?: string;
+      placeholder?: string;
+    }
+  | {
+      type: 'string';
+      initial?: string;
+      placeholder?: string;
+    }
+  | {
+      type: 'number';
+      placeholder?: number | string;
+      initial?: string;
+    };
+
 /**
  * These templates that tell the UI how to render the action or condition
  * and what fields it needs
@@ -5,22 +23,10 @@
 export type IssueAlertRuleActionTemplate = {
   id: string;
   label: string;
+  prompt: string;
   enabled: boolean;
   formFields?: {
-    [key: string]:
-      | {
-          type: 'choice';
-          choices: [string, string][];
-          placeholder?: string;
-        }
-      | {
-          type: 'string';
-          placeholder?: string;
-        }
-      | {
-          type: 'number';
-          placeholder?: number | string;
-        };
+    [key: string]: IssueAlertRuleFormField;
   };
 };
 export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
@@ -45,43 +51,39 @@ export type IssueAlertRuleCondition = Omit<
 };
 
 export type UnsavedIssueAlertRule = {
-  actionMatch: 'all' | 'any';
+  /** When an issue matches [actionMatch] of the following */
+  actionMatch: 'all' | 'any' | 'none';
+  /** If that issue has [filterMatch] of these properties */
+  filterMatch: 'all' | 'any' | 'none';
   actions: IssueAlertRuleAction[];
   conditions: IssueAlertRuleCondition[];
-  environment: null | string;
+  filters: IssueAlertRuleCondition[];
+  environment?: null | string;
   frequency: number;
   name: string;
 };
+
 // Issue-based alert rule
 export type IssueAlertRule = UnsavedIssueAlertRule & {
   dateCreated: string;
+  createdBy: {id: number; email: string; name: string} | null;
+  projects: string[];
   id: string;
 };
 
-/**
- * This is an Action that is associated to a Trigger in a Metric Alert Rule
- */
-export type MetricAction = {
-  /**
-   * The integration type e.g. 'email'
-   */
-  type: string;
+export enum MailActionTargetType {
+  IssueOwners = 'IssueOwners',
+  Team = 'Team',
+  Member = 'Member',
+}
 
-  /**
-   * e.g.
-   * - `user` - user id,
-   * - `team` - team id
-   * - `specific` - free text
-   */
-  allowedTargetTypes: Array<'user' | 'team' | 'specific'>;
+export enum AssigneeTargetType {
+  Unassigned = 'Unassigned',
+  Team = 'Team',
+  Member = 'Member',
+}
 
-  /**
-   * Name of the integration. This is a text field that differentiates integrations from the same provider from each other
-   */
-  integrationName: string;
-
-  /**
-   * Integration id for this `type`, should be passed to backend as `integrationId` when creating an action
-   */
-  integrationId: number;
+export type NoteType = {
+  text: string;
+  mentions: string[];
 };

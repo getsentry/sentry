@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {LightWeightOrganization} from 'app/types';
+import {OrganizationSummary} from 'app/types';
 import {explodeSlug} from 'app/utils';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import SentryTypes from 'app/sentryTypes';
 
 type Props = {
-  organization: LightWeightOrganization;
+  organization?: OrganizationSummary;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
 class OrganizationAvatar extends React.Component<Props> {

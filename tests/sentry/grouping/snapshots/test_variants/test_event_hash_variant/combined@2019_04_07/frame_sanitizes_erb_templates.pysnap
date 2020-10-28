@@ -1,26 +1,26 @@
 ---
-created: '2019-04-07T10:03:31.278758Z'
+created: '2020-02-26T19:52:18.899211Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           filename*
-            u'foo.html.erb'
+            "foo.html.erb"
           function* (trimmed integer suffix)
-            u'_foo_html_erb__<anon>_<anon>'
+            "_foo_html_erb__<anon>_<anon>"
 --------------------------------------------------------------------------
 system:
-  hash: '140d61119ffa316766cf0f710bf1e7f1'
+  hash: "140d61119ffa316766cf0f710bf1e7f1"
   component:
     system*
       stacktrace*
         frame*
           filename*
-            u'foo.html.erb'
+            "foo.html.erb"
           function* (trimmed integer suffix)
-            u'_foo_html_erb__<anon>_<anon>'
+            "_foo_html_erb__<anon>_<anon>"

@@ -64,9 +64,7 @@ class InternalStatChart extends React.Component {
   }
 
   getChartPoints() {
-    return this.state.data.map(([x, y]) => {
-      return {x, y};
-    });
+    return this.state.data.map(([x, y]) => ({x, y}));
   }
 
   render() {

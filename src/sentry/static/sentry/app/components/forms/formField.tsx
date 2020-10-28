@@ -4,9 +4,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {defined} from 'app/utils';
-import InlineSvg from 'app/components/inlineSvg';
-import Tooltip from 'app/components/tooltip';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {Context} from 'app/components/forms/form';
+import {Meta} from 'app/types';
 
 type Value = string | number | boolean;
 
@@ -24,18 +24,13 @@ type FormFieldProps = {
   onChange?: (value: Value) => void;
   error?: string;
   value?: Value;
-  meta: any;
+  meta?: Meta;
 };
 
 type FormFieldState = {
   error: string | null;
   value: Value;
 };
-
-const StyledInlineSvg = styled(InlineSvg)`
-  display: block;
-  color: ${p => p.theme.gray3};
-`;
 
 export default class FormField<
   Props extends FormFieldProps = FormFieldProps,
@@ -66,14 +61,14 @@ export default class FormField<
     meta: PropTypes.any, // eslint-disable-line react/no-unused-prop-types
   };
 
+  static contextTypes = {
+    form: PropTypes.object,
+  };
+
   static defaultProps = {
     hideErrorMessage: false,
     disabled: false,
     required: false,
-  };
-
-  static contextTypes = {
-    form: PropTypes.object,
   };
 
   constructor(props: Props, context: Context) {
@@ -86,7 +81,7 @@ export default class FormField<
 
   componentDidMount() {}
 
-  componentWillReceiveProps(nextProps: Props, nextContext: Context) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props, nextContext: Context) {
     const newError = this.getError(nextProps, nextContext);
     if (newError !== this.state.error) {
       this.setState({error: newError});
@@ -174,11 +169,7 @@ export default class FormField<
     if (!disabledReason) {
       return null;
     }
-    return (
-      <Tooltip title={disabledReason}>
-        <StyledInlineSvg src="icon-circle-question" size="18px" />
-      </Tooltip>
-    );
+    return <QuestionTooltip title={disabledReason} position="top" size="sm" />;
   }
 
   render() {
@@ -198,9 +189,14 @@ export default class FormField<
           {this.getField()}
           {this.renderDisabledReason()}
           {defined(help) && <p className="help-block">{help}</p>}
-          {shouldShowErrorMessage && <p className="error">{error}</p>}
+          {shouldShowErrorMessage && <ErrorMessage>{error}</ErrorMessage>}
         </div>
       </div>
     );
   }
 }
+
+const ErrorMessage = styled('p')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.red400};
+`;

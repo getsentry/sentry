@@ -11,7 +11,8 @@ import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import SentryTypes from 'app/sentryTypes';
-import Tag from 'app/views/settings/components/tag';
+import {IconLock} from 'app/icons';
+import Tag from 'app/components/tagDeprecated';
 import {descopeFeatureName} from 'app/utils';
 
 export default class ProviderItem extends React.PureComponent {
@@ -32,7 +33,7 @@ export default class ProviderItem extends React.PureComponent {
   renderDisabledLock = p => <LockedFeature provider={p.provider} features={p.features} />;
 
   renderInstallButton = ({provider, hasFeature}) => (
-    <Access access={['org:admin']}>
+    <Access access={['org:write']}>
       {({hasAccess}) => (
         <Button
           type="submit"
@@ -69,7 +70,11 @@ export default class ProviderItem extends React.PureComponent {
         {({hasFeature, features, renderDisabled, renderInstallButton}) => (
           <PanelItem alignItems="center">
             <ProviderInfo>
-              <ProviderLogo className={`provider-logo ${provider.name.toLowerCase()}`} />
+              <ProviderLogo
+                className={`provider-logo ${provider.name
+                  .replace(/\s/g, '-')
+                  .toLowerCase()}`}
+              />
               <div>
                 <ProviderName>{provider.name}</ProviderName>
                 <ProviderDescription>
@@ -125,7 +130,7 @@ const FeatureBadge = styled('div')`
 `;
 
 const ActiveIndicator = styled(p => <div className={p.className}>{t('Active')}</div>)`
-  background: ${p => p.theme.green};
+  background: ${p => p.theme.green400};
   color: #fff;
   padding: 8px 12px;
   border-radius: 2px;
@@ -148,7 +153,7 @@ const LockedFeature = ({provider, features, className}) => (
       />
     }
   >
-    <Tag icon="icon-lock">disabled</Tag>
+    <Tag icon={<IconLock size="xs" />}>disabled</Tag>
   </DisabledHovercard>
 );
 

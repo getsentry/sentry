@@ -84,7 +84,7 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
         )
     }
 
-    projects_by_user = get_user_project_ids(users.values())
+    projects_by_user = get_user_project_ids(list(users.values()))
 
     groups_assigned = []
     for group in affected_groups:
@@ -243,4 +243,4 @@ class GroupAssignee(Model):
     def assigned_actor(self):
         from sentry.api.fields.actor import Actor
 
-        return Actor.from_actor_id(self.assigned_actor_id())
+        return Actor.from_actor_identifier(self.assigned_actor_id())

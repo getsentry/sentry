@@ -1,19 +1,17 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import time
+import sentry_sdk
 
-from django.conf import settings
 
 from sentry import features
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
-from sentry.signals import event_processed
+from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import set_current_project, bind_organization_context
 
 logger = logging.getLogger("sentry")
 
@@ -80,22 +78,6 @@ def _capture_stats(event, is_new):
             metrics.incr("events.platform_mismatch", tags=tags)
 
 
-def check_event_already_post_processed(event):
-    cluster_key = getattr(settings, "SENTRY_POST_PROCESSING_LOCK_REDIS_CLUSTER", None)
-    if cluster_key is None:
-        return
-
-    client = redis_clusters.get(cluster_key)
-    result = client.set(
-        u"pp:{}/{}".format(event.project_id, event.event_id),
-        u"{:.0f}".format(time.time()),
-        ex=60 * 60,
-        nx=True,
-    )
-
-    return not result
-
-
 def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
@@ -114,29 +96,67 @@ def handle_owner_assignment(project, group, event):
         GroupAssignee.objects.assign(group, owner)
 
 
+def update_existing_attachments(event):
+    """
+    Attaches the group_id to all event attachments that were ingested prior to
+    the event via the standalone attachment endpoint.
+    """
+    from sentry.models import EventAttachment
+
+    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
+        group_id=event.group_id
+    )
+
+
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
-def post_process_group(event, is_new, is_regression, is_new_group_environment, **kwargs):
+def post_process_group(
+    is_new, is_regression, is_new_group_environment, cache_key, group_id=None, **kwargs
+):
     """
     Fires post processing hooks for a group.
     """
+    from sentry.eventstore.models import Event
+    from sentry.eventstore.processing import event_processing_store
     from sentry.utils import snuba
+    from sentry.reprocessing2 import is_reprocessed_event
 
     with snuba.options_override({"consistent": True}):
-        if check_event_already_post_processed(event):
+        # We use the data being present/missing in the processing store
+        # to ensure that we don't duplicate work should the forwarding consumers
+        # need to rewind history.
+        data = event_processing_store.get(cache_key)
+        if not data:
+            logger.info(
+                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"},
+            )
+            return
+        event = Event(
+            project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
+        )
+
+        if is_reprocessed_event(event.data):
             logger.info(
                 "post_process.skipped",
                 extra={
                     "project_id": event.project_id,
                     "event_id": event.event_id,
-                    "reason": "duplicate",
+                    "reason": "reprocessed",
                 },
             )
             return
 
+        set_current_project(event.project_id)
+
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import Project, Organization, EventDict
+        from sentry.models import (
+            Project,
+            Organization,
+            EventDict,
+            GroupInboxReason,
+        )
+        from sentry.models.groupinbox import add_group_to_inbox
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
@@ -146,20 +166,18 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         event.data = EventDict(event.data, skip_renormalization=True)
 
         if event.group_id:
-            # Re-bind Group since we're pickling the whole Event object
-            # which may contain a stale Project.
+            # Re-bind Group since we're reading the Event object
+            # from cache, which may contain a stale group and project
             event.group, _ = get_group_with_redirect(event.group_id)
             event.group_id = event.group.id
 
-        with configure_scope() as scope:
-            scope.set_tag("project", event.project_id)
-
-        # Re-bind Project and Org since we're pickling the whole Event object
-        # which may contain stale parent models.
+        # Re-bind Project and Org since we're reading the Event object
+        # from cache which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
         event.project._organization_cache = Organization.objects.get_from_cache(
             id=event.project.organization_id
         )
+        bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
 
@@ -167,6 +185,11 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
             has_reappeared = False if is_new else process_snoozes(event.group)
+            if not has_reappeared:  # If true, we added the .UNIGNORED reason already
+                if is_new:
+                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
+                elif is_regression:
+                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
             handle_owner_assignment(event.project, event.group, event)
 
@@ -178,7 +201,10 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             # objects back and forth isn't super efficient
             for callback, futures in rp.apply():
                 has_alert = True
-                safe_execute(callback, event, futures)
+                with sentry_sdk.start_transaction(
+                    op="post_process_group", name="rule_processor_apply", sampled=True
+                ):
+                    safe_execute(callback, event, futures)
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])
@@ -203,6 +229,9 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
                     action="created", sender="Group", instance_id=event.group_id
                 )
 
+            # Patch attachments that were ingested on the standalone path.
+            update_existing_attachments(event)
+
             from sentry.plugins.base import plugins
 
             for plugin in plugins.for_project(event.project):
@@ -216,6 +245,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             event=event,
             primary_hash=kwargs.get("primary_hash"),
         )
+        with metrics.timer("tasks.post_process.delete_event_cache"):
+            event_processing_store.delete_by_key(cache_key)
 
 
 def process_snoozes(group):
@@ -223,7 +254,12 @@ def process_snoozes(group):
     Return True if the group is transitioning from "resolved" to "unresolved",
     otherwise return False.
     """
-    from sentry.models import GroupSnooze, GroupStatus
+    from sentry.models import (
+        GroupSnooze,
+        GroupStatus,
+        GroupInboxReason,
+        add_group_to_inbox,
+    )
 
     key = GroupSnooze.get_cache_key(group.id)
     snooze = cache.get(key)
@@ -238,8 +274,23 @@ def process_snoozes(group):
         return False
 
     if not snooze.is_valid(group, test_rates=True):
+        snooze_details = {
+            "until": snooze.until,
+            "count": snooze.count,
+            "window": snooze.window,
+            "user_count": snooze.user_count,
+            "user_window": snooze.user_window,
+        }
+        add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
+        issue_unignored.send_robust(
+            project=group.project,
+            user=None,
+            group=group,
+            transition_type="automatic",
+            sender="process_snoozes",
+        )
         return True
 
     return False
@@ -253,8 +304,7 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    with configure_scope() as scope:
-        scope.set_tag("project", event.project_id)
+    set_current_project(event.project_id)
 
     from sentry.plugins.base import plugins
 

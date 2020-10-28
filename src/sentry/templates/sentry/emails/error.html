@@ -3,7 +3,7 @@
 {% load sentry_avatars %}
 {% load sentry_helpers %}
 {% load sentry_features %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block preheader %}
   New alert from {{ project_label }}.
@@ -145,6 +145,21 @@
             {% for rule_label, rule_link in rules %}
                 <a href="{% absolute_uri rule_link %}">{{ rule_label }}</a>{% if not forloop.last %}, {% endif %}
             {% endfor %}
+        </p>
+    {% endif %}
+
+    {% if not has_integrations %}
+        <div class="logo-container">
+            <img src="{% static 'sentry/images/logos/logo-slack.svg' %}" class="logo" alt="Slack"/>
+            <img src="{% static 'sentry/images/logos/logo-pagerduty.svg' %}" class="logo" alt="PagerDuty"/>
+            <img src="{% static 'sentry/images/logos/logo-msteams.svg' %}" class="logo" alt="MS Teams"/>
+            <img src="{% static 'sentry/images/logos/logo-opsgenie.svg' %}" class="logo" alt="OpsGenie"/>
+            <img src="{% static 'sentry/images/logos/logo-twilio.svg' %}" class="logo" alt="Twilio"/>
+            <img src="{% static 'sentry/images/logos/logo-victorops.svg' %}" class="logo" alt="VictorOps"/>
+            <img src="{% static 'sentry/images/logos/logo-amixr.svg' %}" class="logo" alt="Amixr"/>
+        </div>
+        <p class="align-center">
+            <a href="{% absolute_uri 'settings/{}/integrations/?referrer=alert_email' group.project.organization.slug %}">{{ "Get this alert wherever you work" }}</a>
         </p>
     {% endif %}
 

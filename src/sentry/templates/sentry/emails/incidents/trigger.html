@@ -5,32 +5,76 @@
 {% load sentry_assets %}
 
 {% block activity %}
+  <div class="alert-title">
     <h3>
-        <a href="{{ link }}">Alert Rule Trigger {{ status }} on Incident {{ incident_name }}.</a>
+      <a class="alert-title-link" href="{{ link }}">{{ incident_name }}</a>
     </h3>
-
+    <p>
+      Triggered on {{ triggered_at }}
+    </p>
+  </div>
 
   {% if enhanced_privacy %}
     <div class="notice">
-      Details about this incident alert are not shown in this email since enhanced privacy
-      controls are enabled. For more details about this incident, <a href="{{ link }}">view on Sentry.</a>
+      Details about this alert are not shown in this email since enhanced privacy
+      controls are enabled. For more details about this alert, <a href="{{ link }}">view on Sentry.</a>
     </div>
-
   {% else %}
-      <table >
+    <div class="alert-info-container alert-container-{{ status_key }}">
+      <h4>
+        <span class="alert-badge">{{ status }} alert</span>
+      </h4>
+      <table class="alert-rule-table">
+        <thead>
+          <th>
+            Threshold
+          </th>
+          <th>
+            Metric
+          </th>
+          <th>
+            Environment
+          </th>
+        </thead>
+
+        <tbody>
         <tr>
-            <td>Rule: <a href="{{ rule_link }}">{{ rule_link }}</a></td>
-        </tr>
+          <td>
+            {{ threshold_direction_string }} {{ threshold }}
+          </td>
+          <td>
+            {{ aggregate }}
+          </td>
+          <td>
+            {{ environment }}
+          </td>
+        </tbody>
+
+        <thead>
+          <th>
+            Time Interval
+          </th>
+          <th>
+            Filter
+          </th>
+          <th>
+            Project
+          </th>
+        </thead>
+
+        <tbody>
         <tr>
-          <td>Aggregate: {{ aggregate }} </td>
-        </tr>
-        <tr>
-          <td>Query: {{ query }}</td>
-        </tr>
-        <tr>
-          <td>Threshold: {{ threshold }}</td>
-        </tr>
-        </tr>
+          <td>
+            {{ time_window }}
+          </td>
+          <td>
+            {{ query }}
+          </td>
+          <td>
+            {{ project_slug }}
+          </td>
+        </tbody>
       </table>
+    </div>
   {% endif %}
 {% endblock %}

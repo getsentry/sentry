@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 
 from social_auth.models import UserSocialAuth
 
@@ -13,8 +13,7 @@ from sentry.testutils import TestCase
 
 class GetAuthForUserTest(TestCase):
     def _get_mock_user(self):
-        user = mock.Mock(spec=User())
-        user.id = 1
+        user = mock.Mock(spec=User(id=1))
         user.is_authenticated.return_value = False
         return user
 

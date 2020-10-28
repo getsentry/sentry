@@ -6,7 +6,7 @@ import pytest
 import tempfile
 
 from django.core.exceptions import SuspiciousOperation
-from mock import patch
+from sentry.utils.compat.mock import patch
 from urllib3.util.connection import HAS_IPV6
 
 from sentry import http
@@ -83,5 +83,5 @@ def test_fetch_file():
     result = http.fetch_file(url="http://example.com", domain_lock_enabled=False, outfile=temp)
     temp.seek(0)
     assert result.body is None
-    assert temp.read() == "foo bar"
+    assert temp.read() == b"foo bar"
     temp.close()

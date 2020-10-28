@@ -1,9 +1,10 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationAccessRequests from 'app/views/settings/organizationMembers/organizationAccessRequests';
 
-describe('OrganizationAccessRequests', function() {
+describe('OrganizationAccessRequests', function () {
   const orgId = 'org-slug';
   const accessRequest = TestStubs.AccessRequest();
   const requester = TestStubs.User({
@@ -14,7 +15,7 @@ describe('OrganizationAccessRequests', function() {
   });
   const requestList = [accessRequest, TestStubs.AccessRequest({id: '4', requester})];
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     const wrapper = mountWithTheme(
       <OrganizationAccessRequests
         orgId={orgId}
@@ -26,7 +27,7 @@ describe('OrganizationAccessRequests', function() {
     expect(wrapper.find('OrganizationAccessRequests').exists()).toBe(true);
   });
 
-  it('renders list', function() {
+  it('renders list', function () {
     const wrapper = mountWithTheme(
       <OrganizationAccessRequests
         orgId={orgId}
@@ -42,9 +43,7 @@ describe('OrganizationAccessRequests', function() {
         .first()
         .text()
         .includes(
-          `${accessRequest.member.user.name} requests access to the #${
-            accessRequest.team.slug
-          } team`
+          `${accessRequest.member.user.name} requests access to the #${accessRequest.team.slug} team`
         )
     ).toBe(true);
     expect(
@@ -53,14 +52,12 @@ describe('OrganizationAccessRequests', function() {
         .last()
         .text()
         .includes(
-          `${requester.name} requests to add ${accessRequest.member.user.name} to the #${
-            accessRequest.team.slug
-          } team`
+          `${requester.name} requests to add ${accessRequest.member.user.name} to the #${accessRequest.team.slug} team`
         )
     ).toBe(true);
   });
 
-  it('can approve', async function() {
+  it('can approve', async function () {
     const onUpdateRequestListMock = jest.fn();
     const approveMock = MockApiClient.addMockResponse({
       url: `/organizations/${orgId}/access-requests/${accessRequest.id}/`,
@@ -75,10 +72,7 @@ describe('OrganizationAccessRequests', function() {
       />
     );
 
-    wrapper
-      .find('button[aria-label="Approve"]')
-      .first()
-      .simulate('click');
+    wrapper.find('button[aria-label="Approve"]').first().simulate('click');
 
     await tick();
 
@@ -93,7 +87,7 @@ describe('OrganizationAccessRequests', function() {
     expect(onUpdateRequestListMock).toHaveBeenCalledWith(accessRequest.id);
   });
 
-  it('can deny', async function() {
+  it('can deny', async function () {
     const onUpdateRequestListMock = jest.fn();
     const denyMock = MockApiClient.addMockResponse({
       url: `/organizations/${orgId}/access-requests/${accessRequest.id}/`,
@@ -108,10 +102,7 @@ describe('OrganizationAccessRequests', function() {
       />
     );
 
-    wrapper
-      .find('button[aria-label="Deny"]')
-      .first()
-      .simulate('click');
+    wrapper.find('button[aria-label="Deny"]').first().simulate('click');
 
     await tick();
 

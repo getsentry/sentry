@@ -2,7 +2,11 @@ import React from 'react';
 
 import Feature from 'app/components/acl/feature';
 
-const IncidentRules: React.FC = ({children}) => (
+type Props = {
+  children: React.ReactNode;
+};
+
+const IncidentRules = ({children}: Props) => (
   <Feature features={['incidents']} renderDisabled>
     {children}
   </Feature>

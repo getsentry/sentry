@@ -76,7 +76,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
     def get(self, request, project, monitor, checkin):
         """
         Retrieve a check-in
-        ``````````````````
+        ```````````````````
 
         :pparam string monitor_id: the id of the monitor.
         :pparam string checkin_id: the id of the check-in.

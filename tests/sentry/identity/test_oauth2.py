@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import responses
 from exam import fixture
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 from requests.exceptions import SSLError
 
 import sentry.identity

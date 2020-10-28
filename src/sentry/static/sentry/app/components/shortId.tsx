@@ -1,12 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import isPropValid from '@emotion/is-prop-valid';
 
 import AutoSelectText from 'app/components/autoSelectText';
 
 type Props = {
   shortId: string;
   avatar?: React.ReactNode;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 };
 
 export default class ShortId extends React.Component<Props> {
@@ -14,12 +16,6 @@ export default class ShortId extends React.Component<Props> {
     shortId: PropTypes.string.isRequired,
     avatar: PropTypes.node,
   };
-
-  preventPropagation(e: React.MouseEvent) {
-    // this is a hack for the stream so the click handler doesn't
-    // affect this element
-    e.stopPropagation();
-  }
 
   render() {
     const {shortId, avatar} = this.props;
@@ -29,7 +25,7 @@ export default class ShortId extends React.Component<Props> {
     }
 
     return (
-      <StyledShortId onClick={this.preventPropagation} {...this.props}>
+      <StyledShortId {...this.props}>
         {avatar}
         <StyledAutoSelectText avatar={!!avatar}>{shortId}</StyledAutoSelectText>
       </StyledShortId>
@@ -44,7 +40,7 @@ const StyledShortId = styled('div')`
   justify-content: flex-end;
 `;
 
-const StyledAutoSelectText = styled(AutoSelectText)<{
+const StyledAutoSelectText = styled(AutoSelectText, {shouldForwardProp: isPropValid})<{
   avatar: boolean;
 }>`
   margin-left: ${p => p.avatar && '0.5em'};

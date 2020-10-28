@@ -2,15 +2,16 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 
-describe('AddIntegration', function() {
+describe('AddIntegration', function () {
   const provider = TestStubs.GitHubIntegrationProvider();
   const integration = TestStubs.GitHubIntegration();
 
   const routerContext = TestStubs.routerContext();
 
-  it('Adds an integration on dialog completion', function() {
+  it('Adds an integration on dialog completion', function () {
     const onAdd = jest.fn();
 
     const focus = jest.fn();

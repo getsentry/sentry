@@ -2,48 +2,25 @@ from __future__ import absolute_import
 
 import six
 
-import contextlib
 import threading
 from time import time
-from binascii import crc32
 
 from datetime import datetime
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import force_bytes
+from django.utils.encoding import force_bytes, force_text
 
 from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr, process_pending
 from sentry.utils import json, metrics
-from sentry.utils.compat import pickle
+from sentry.utils.compat import pickle, crc32
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import get_cluster_from_options
 
 _local_buffers = None
 _local_buffers_lock = threading.Lock()
-
-
-@contextlib.contextmanager
-def batch_buffers_incr():
-    global _local_buffers
-
-    with _local_buffers_lock:
-        assert _local_buffers is None
-        _local_buffers = {}
-
-    try:
-        yield
-    finally:
-        from sentry.app import buffer
-
-        with _local_buffers_lock:
-            buffers_to_flush = _local_buffers
-            _local_buffers = None
-
-            for (filters, model), (columns, extra) in buffers_to_flush.items():
-                buffer.incr(model=model, columns=columns, filters=dict(filters), extra=extra)
 
 
 class PendingBuffer(object):
@@ -162,7 +139,7 @@ class RedisBuffer(Buffer):
     def _load_value(self, payload):
         (type_, value) = payload
         if type_ == "s":
-            return value
+            return force_text(value)
         elif type_ == "d":
             return datetime.fromtimestamp(float(value)).replace(tzinfo=timezone.utc)
         elif type_ == "i":
@@ -172,32 +149,16 @@ class RedisBuffer(Buffer):
         else:
             raise TypeError("invalid type: {}".format(type_))
 
-    def incr(self, model, columns, filters, extra=None):
+    def incr(self, model, columns, filters, extra=None, signal_only=None):
         """
         Increment the key by doing the following:
 
         - Insert/update a hashmap based on (model, columns)
             - Perform an incrby on counters
             - Perform a set (last write wins) on extra
+            - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
         """
-
-        if _local_buffers is not None:
-            with _local_buffers_lock:
-                if _local_buffers is not None:
-                    frozen_filters = tuple(sorted(filters.items()))
-                    key = (frozen_filters, model)
-
-                    stored_columns, stored_extra = _local_buffers.get(key, ({}, None))
-
-                    for k, v in columns.items():
-                        stored_columns[k] = stored_columns.get(k, 0) + v
-
-                    if extra is not None:
-                        stored_extra = extra
-
-                    _local_buffers[key] = stored_columns, stored_extra
-                    return
 
         # TODO(dcramer): longer term we'd rather not have to serialize values
         # here (unless it's to JSON)
@@ -225,8 +186,12 @@ class RedisBuffer(Buffer):
                 # (this is to ensure a zero downtime deploy where we can transition event processing)
                 pipe.hset(key, "e+" + column, pickle.dumps(value))
                 # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
+
+        if signal_only is True:
+            pipe.hset(key, "s", "1")
+
         pipe.expire(key, self.key_expire)
-        pipe.zadd(pending_key, time(), key)
+        pipe.zadd(pending_key, {key: time()})
         pipe.execute()
 
         metrics.incr(
@@ -265,7 +230,7 @@ class RedisBuffer(Buffer):
                         continue
                     keycount += len(keys)
                     for key in keys:
-                        pending_buffer.append(key)
+                        pending_buffer.append(key.decode("utf-8"))
                         if pending_buffer.full():
                             process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
                     conn.target([host_id]).zrem(pending_key, *keys)
@@ -308,30 +273,42 @@ class RedisBuffer(Buffer):
             pipe.delete(key)
             values = pipe.execute()[0]
 
+            # XXX(python3): In python2 this isn't as important since redis will
+            # return string tyes (be it, byte strings), but in py3 we get bytes
+            # back, and really we just want to deal with keys as strings.
+            values = {force_text(k): v for k, v in six.iteritems(values)}
+
             if not values:
                 metrics.incr("buffer.revoked", tags={"reason": "empty"}, skip_internal=False)
                 self.logger.debug("buffer.revoked.empty", extra={"redis_key": key})
                 return
 
-            model = import_string(values.pop("m"))
-            if values["f"].startswith("{"):
-                filters = self._load_values(json.loads(values.pop("f")))
+            # XXX(py3): Note that ``import_string`` explicitly wants a str in
+            # python2, so we'll decode (for python3) and then translate back to
+            # a byte string (in python2) for import_string.
+            model = import_string(str(values.pop("m").decode("utf-8")))  # NOQA
+
+            if values["f"].startswith(b"{"):
+                filters = self._load_values(json.loads(values.pop("f").decode("utf-8")))
             else:
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                 filters = pickle.loads(values.pop("f"))
 
             incr_values = {}
             extra_values = {}
+            signal_only = None
             for k, v in six.iteritems(values):
                 if k.startswith("i+"):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith("e+"):
-                    if v.startswith("["):
-                        extra_values[k[2:]] = self._load_value(json.loads(v))
+                    if v.startswith(b"["):
+                        extra_values[k[2:]] = self._load_value(json.loads(v.decode("utf-8")))
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                         extra_values[k[2:]] = pickle.loads(v)
+                elif k == "s":
+                    signal_only = bool(int(v))  # Should be 1 if set
 
-            super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+            super(RedisBuffer, self).process(model, incr_values, filters, extra_values, signal_only)
         finally:
             client.delete(lock_key)

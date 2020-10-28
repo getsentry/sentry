@@ -1,41 +1,39 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
-import {Location} from 'history';
-import {t} from 'app/locale';
-import * as Sentry from '@sentry/browser';
+import {Location, LocationDescriptor} from 'history';
+import * as Sentry from '@sentry/react';
 
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Client} from 'app/api';
+import {fetchTagFacets, Tag, TagSegment} from 'app/actionCreators/events';
 import SentryTypes from 'app/sentryTypes';
+import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {IconWarning} from 'app/icons';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {SectionHeading} from './styles';
-
-import {
-  fetchTagFacets,
-  fetchTotalCount,
-  getEventTagSearchUrl,
-  Tag,
-  TagTopValue,
-} from './utils';
-import EventView, {isAPIPayloadSimilar} from './eventView';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 
 type Props = {
   api: Client;
   organization: Organization;
   eventView: EventView;
   location: Location;
+  totalValues: null | number;
+  confirmedQuery?: boolean;
+  generateUrl: (key: string, value: string) => LocationDescriptor;
 };
 
 type State = {
   loading: boolean;
   tags: Tag[];
   totalValues: null | number;
+  error: string;
 };
 
 class Tags extends React.Component<Props, State> {
@@ -44,20 +42,25 @@ class Tags extends React.Component<Props, State> {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
     eventView: PropTypes.object.isRequired,
+    confirmedQuery: PropTypes.bool,
   };
 
   state: State = {
     loading: true,
     tags: [],
     totalValues: null,
+    error: '',
   };
 
   componentDidMount() {
-    this.fetchData();
+    this.fetchData(true);
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.shouldRefetchData(prevProps)) {
+    if (
+      this.shouldRefetchData(prevProps) ||
+      prevProps.confirmedQuery !== this.props.confirmedQuery
+    ) {
       this.fetchData();
     }
   }
@@ -69,31 +72,31 @@ class Tags extends React.Component<Props, State> {
     return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
 
-  fetchData = async () => {
-    const {api, organization, eventView, location} = this.props;
+  fetchData = async (forceFetchData = false) => {
+    const {api, organization, eventView, location, confirmedQuery} = this.props;
+    this.setState({loading: true, error: '', tags: []});
 
-    this.setState({loading: true, tags: [], totalValues: null});
+    // Fetch should be forced after mounting as confirmedQuery isn't guaranteed
+    // since this component can mount/unmount via show/hide tags separate from
+    // data being loaded for the rest of the page.
+    if (!forceFetchData && confirmedQuery === false) {
+      return;
+    }
 
-    const facetPromise = fetchTagFacets(
-      api,
-      organization.slug,
-      eventView.getFacetsAPIPayload(location)
-    );
-    const totalValuePromise = fetchTotalCount(
-      api,
-      organization.slug,
-      eventView.getEventsAPIPayload(location)
-    );
-    Promise.all([facetPromise, totalValuePromise])
-      .then(values => {
-        this.setState({loading: false, tags: values[0], totalValues: values[1]});
-      })
-      .catch(err => {
-        Sentry.captureException(err);
-      });
+    try {
+      const tags = await fetchTagFacets(
+        api,
+        organization.slug,
+        eventView.getFacetsAPIPayload(location)
+      );
+      this.setState({loading: false, tags});
+    } catch (err) {
+      Sentry.captureException(err);
+      this.setState({loading: false, error: err});
+    }
   };
 
-  onTagClick = (tag: string) => {
+  handleTagClick = (tag: string) => {
     const {organization} = this.props;
     // metrics
     trackAnalyticsEvent({
@@ -105,23 +108,28 @@ class Tags extends React.Component<Props, State> {
   };
 
   renderTag(tag: Tag) {
-    const {location} = this.props;
-    const {totalValues} = this.state;
+    const {generateUrl, totalValues} = this.props;
 
-    const segments: TagTopValue[] = tag.topValues.map(segment => {
-      segment.url = getEventTagSearchUrl(tag.key, segment.value, location);
+    const segments: TagSegment[] = tag.topValues.map(segment => {
+      segment.url = generateUrl(tag.key, segment.value);
 
       return segment;
     });
-
+    // Ensure we don't show >100% if there's a slight mismatch between the facets
+    // endpoint and the totals endpoint
+    const maxTotalValues =
+      segments.length > 0
+        ? Math.max(Number(totalValues), segments[0].count)
+        : totalValues;
     return (
       <TagDistributionMeter
         key={tag.key}
         title={tag.key}
         segments={segments}
-        totalValues={totalValues}
+        totalValues={Number(maxTotalValues)}
         renderLoading={() => <StyledPlaceholder height="16px" />}
-        onTagClick={this.onTagClick}
+        onTagClick={this.handleTagClick}
+        showReleasePackage
       />
     );
   }
@@ -139,26 +147,44 @@ class Tags extends React.Component<Props, State> {
     );
   }
 
+  renderBody = () => {
+    const {loading, error, tags} = this.state;
+    if (loading) {
+      return this.renderPlaceholders();
+    }
+    if (error) {
+      return <EmptyStateWarning small />;
+    }
+    if (tags.length > 0) {
+      return tags.map(tag => this.renderTag(tag));
+    } else {
+      return (
+        <StyledError>
+          <StyledIconWarning color="gray500" size="lg" />
+          {t('No tags found')}
+        </StyledError>
+      );
+    }
+  };
+
   render() {
     return (
-      <TagSection>
-        <StyledHeading>{t('Event Tag Summary')}</StyledHeading>
-        {this.state.loading && this.renderPlaceholders()}
-        {this.state.tags.length > 0 && this.state.tags.map(tag => this.renderTag(tag))}
-        {!this.state.loading && !this.state.tags.length && (
-          <EmptyStateWarning small>{t('No tags')}</EmptyStateWarning>
-        )}
-      </TagSection>
+      <React.Fragment>
+        <SectionHeading>{t('Tag Summary')}</SectionHeading>
+        {this.renderBody()}
+      </React.Fragment>
     );
   }
 }
 
-const StyledHeading = styled(SectionHeading)`
-  margin: 0 0 ${space(1.5)} 0;
+const StyledError = styled('div')`
+  color: ${p => p.theme.gray500};
+  display: flex;
+  align-items: center;
 `;
 
-const TagSection = styled('div')`
-  margin: ${space(2)} 0;
+const StyledIconWarning = styled(IconWarning)`
+  margin-right: ${space(1)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

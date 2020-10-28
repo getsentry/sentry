@@ -4,7 +4,6 @@ from base64 import b64encode
 import collections
 import logging
 import six
-import warnings
 from uuid import uuid4
 
 from django.db.models.signals import post_delete
@@ -108,7 +107,6 @@ class NodeData(collections.MutableMapping):
             return self._node_data
 
         elif self.id:
-            warnings.warn("You should populate node data before accessing it.")
             self.bind_data(nodestore.get(self.id) or {})
             return self._node_data
 
@@ -164,9 +162,6 @@ class NodeField(GzippedDictField):
         self.ref_version = kwargs.pop("ref_version", None)
         self.wrapper = kwargs.pop("wrapper", None)
         self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes))
-        # We only automatically save data to nodestore for RawEvent
-        # Event performs saving node data as a separate step
-        self.skip_nodestore_save = kwargs.pop("skip_nodestore_save", False)
         super(NodeField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
@@ -236,6 +231,5 @@ class NodeField(GzippedDictField):
         if value.id is None:
             value.id = self.id_func()
 
-        if not self.skip_nodestore_save:
-            value.save()
+        value.save()
         return compress(pickle.dumps({"node_id": value.id}))

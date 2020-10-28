@@ -25,7 +25,7 @@ def get_project(value):
         if "/" not in value:
             return None
         org, proj = value.split("/", 1)
-        return Project.objects.get_from_cache(organization__slug=org, slug=proj).id
+        return Project.objects.get(organization__slug=org, slug=proj).id
     except Project.DoesNotExist:
         return None
 
@@ -65,14 +65,13 @@ def multiprocess_worker(task_queue):
 
             skip_models = [
                 # Handled by other parts of cleanup
-                models.Event,
                 models.EventAttachment,
                 models.UserReport,
                 models.Group,
                 models.GroupEmailThread,
                 models.GroupRuleStatus,
                 # Handled by TTL
-                similarity.features,
+                similarity,
             ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
 
             configured = True
@@ -155,6 +154,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
     from sentry import models
+    from sentry.data_export.models import ExportedData
 
     if timed:
         import time
@@ -175,7 +175,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
     # (model, datetime_field, order_by)
     BULK_QUERY_DELETES = [
-        (models.EventAttachment, "date_added", None),
         (models.UserReport, "date_added", None),
         (models.GroupEmailThread, "date", None),
         (models.GroupRuleStatus, "date_added", None),
@@ -183,7 +182,10 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
-    DELETES = ((models.Event, "datetime", "datetime"), (models.Group, "last_seen", "last_seen"))
+    DELETES = [
+        (models.EventAttachment, "date_added", "date_added"),
+        (models.Group, "last_seen", "last_seen"),
+    ]
 
     if not silent:
         click.echo("Removing expired values for LostPasswordHash")
@@ -226,6 +228,17 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 queryset = queryset.filter(sentry_app_installation__isnull=True)
 
             queryset.delete()
+
+    if not silent:
+        click.echo("Removing expired files associated with ExportedData")
+
+    if is_filtered(ExportedData):
+        if not silent:
+            click.echo(">> Skipping ExportedData files")
+    else:
+        queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
+        for item in queryset:
+            item.delete_file()
 
     project_id = None
     if project:

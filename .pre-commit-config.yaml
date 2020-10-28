@@ -12,6 +12,12 @@ exclude: >
         ^src/sentry/data/
     )
 repos:
+-   repo: https://github.com/ambv/black
+    rev: 19.10b0
+    hooks:
+    - id: black
+      types: [python]
+      exclude: (migrations/)
 -   repo: local
     hooks:
     - id: flake8
@@ -20,14 +26,10 @@ repos:
       language: python
       files: \.py$
       log_file: '.artifacts/flake8.pycodestyle.log'
--   repo: https://github.com/ambv/black
-    rev: 19.3b0
-    hooks:
-    - id: black
-      types: [python]
-      exclude: (south_migrations/|migrations/)
+      additional_dependencies:
+      - sentry-flake8==0.4.0
 -   repo: git://github.com/pre-commit/pre-commit-hooks
-    rev: v1.3.0
+    rev: v2.5.0
     hooks:
     - id: check-case-conflict
     - id: check-executables-have-shebangs

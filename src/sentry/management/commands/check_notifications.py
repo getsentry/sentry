@@ -2,23 +2,15 @@ from __future__ import absolute_import, print_function
 
 from django.core.management.base import BaseCommand, CommandError
 
-from sentry.models import User
+from sentry.mail import mail_adapter
+from sentry.models import Project, Organization, User
+from sentry.utils.email import get_email_addresses
 
 
-def find_mail_plugin():
-    from sentry.plugins.base import plugins
-
-    for plugin in plugins.all():
-        if type(plugin).__name__.endswith("MailPlugin"):
-            return plugin
-    assert False, "MailPlugin cannot be found"
-
-
-def handle_project(plugin, project, stream):
+def handle_project(project, stream):
     stream.write("# Project: %s\n" % project)
-    from sentry.utils.email import get_email_addresses
 
-    user_ids = plugin.get_sendable_users(project)
+    user_ids = mail_adapter.get_sendable_users(project)
     users = User.objects.in_bulk(user_ids)
     for user_id, email in get_email_addresses(user_ids, project).items():
         stream.write(u"{}: {}\n".format(users[user_id].username, email))
@@ -39,15 +31,11 @@ class Command(BaseCommand):
         if not (options["project"] or options["organization"]):
             raise CommandError("Must specify either a project or organization")
 
-        from sentry.models import Project, Organization
-
         if options["organization"]:
             projects = list(Organization.objects.get(pk=options["organization"]).project_set.all())
         else:
             projects = [Project.objects.get(pk=options["project"])]
 
-        plugin = find_mail_plugin()
-
         for project in projects:
-            handle_project(plugin, project, self.stdout)
+            handle_project(project, self.stdout)
             self.stdout.write("\n")

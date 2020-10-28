@@ -22,10 +22,7 @@ const commonFields = {
     name: 'id',
     type: 'hidden',
     required: true,
-    defaultValue: () =>
-      Math.random()
-        .toString(36)
-        .substring(2),
+    defaultValue: () => Math.random().toString(36).substring(2),
   },
   name: {
     name: 'name',

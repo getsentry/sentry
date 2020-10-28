@@ -128,23 +128,13 @@ class Mediator(object):
     # class.
     _params_prepared = False
 
-    def __new__(cls, *args, **kwargs):
-        """
-        When the Mediator type is created, we turn all of it's Param
-        declarations into actual properties.
-        """
-        if sentry.mediators.mediator.Mediator in cls.__bases__ and not cls._params_prepared:
-            cls._prepare_params()
-            cls._params_prepared = True
-
-        return super(Mediator, cls).__new__(cls, *args, **kwargs)
-
     @classmethod
     def _prepare_params(cls):
-        params = [(k, v) for k, v in six.iteritems(cls.__dict__) if isinstance(v, Param)]
-
-        for name, param in params:
-            param.setup(cls, name)
+        if sentry.mediators.mediator.Mediator in cls.__bases__ and not cls._params_prepared:
+            params = [(k, v) for k, v in six.iteritems(cls.__dict__) if isinstance(v, Param)]
+            for name, param in params:
+                param.setup(cls, name)
+            cls._params_prepared = True
 
     @classmethod
     def run(cls, *args, **kwargs):
@@ -155,11 +145,13 @@ class Mediator(object):
                 result = obj.call()
                 obj.audit()
                 obj.record_analytics()
-                return result
+        obj.post_commit()
+        return result
 
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs
         self.logger = kwargs.get("logger", logging.getLogger(self._logging_name))
+        self._prepare_params()
         self._validate_params(**kwargs)
 
     def audit(self):
@@ -168,6 +160,10 @@ class Mediator(object):
 
     def record_analytics(self):
         # used to record data to Amplitude
+        pass
+
+    def post_commit(self):
+        # used to call any hooks that have to happen after the transaction has been committed
         pass
 
     def call(self):

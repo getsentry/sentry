@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
-from sentry import http, tagstore
+from sentry import tagstore
 from sentry.plugins.bases import notify
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
+from .client import SlackApiClient
 from sentry_plugins.base import CorePluginMixin
 
 LEVEL_TO_COLOR = {
@@ -21,6 +23,17 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
     slug = "slack"
     description = "Post notifications to a Slack channel."
     conf_key = "slack"
+    required_field = "webhook"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Configure rule based Slack notifications to automatically be posted into a
+            specific channel. Want any error that's happening more than 100 times a
+            minute to be posted in `#critical-errors`? Setup a rule for it!
+            """,
+            IntegrationFeatures.ALERT_RULE,
+        )
+    ]
 
     def is_configured(self, project):
         return bool(self.get_option("webhook", project))
@@ -137,18 +150,13 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
             return None
         return set(tag.strip().lower() for tag in option.split(","))
 
-    def notify(self, notification):
+    def notify(self, notification, raise_exception=False):
         event = notification.event
         group = event.group
         project = group.project
 
         if not self.is_configured(project):
             return
-
-        webhook = self.get_option("webhook", project)
-        username = (self.get_option("username", project) or "Sentry").strip()
-        icon_url = self.get_option("icon_url", project)
-        channel = (self.get_option("channel", project) or "").strip()
 
         title = event.title.encode("utf-8")
         # TODO(dcramer): we'd like this to be the event culprit, but Sentry
@@ -215,11 +223,10 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
                         "short": True,
                     }
                 )
-
         payload = {
             "attachments": [
                 {
-                    "fallback": "[%s] %s" % (project_name, title),
+                    "fallback": b"[%s] %s" % (project_name, title),
                     "title": title,
                     "title_link": group.get_absolute_url(params={"referrer": "slack"}),
                     "color": self.color_for_event(event),
@@ -227,18 +234,25 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
                 }
             ]
         }
+        client = self.get_client(project)
 
-        if username:
-            payload["username"] = username.encode("utf-8")
+        if client.username:
+            payload["username"] = client.username.encode("utf-8")
 
-        if channel:
-            payload["channel"] = channel
+        if client.channel:
+            payload["channel"] = client.channel
 
-        if icon_url:
-            payload["icon_url"] = icon_url
+        if client.icon_url:
+            payload["icon_url"] = client.icon_url
 
         values = {"payload": json.dumps(payload)}
+        client.request(values)
 
+    def get_client(self, project):
+        webhook = self.get_option("webhook", project).strip()
         # Apparently we've stored some bad data from before we used `URLField`.
-        webhook = webhook.strip(" ")
-        return http.safe_urlopen(webhook, method="POST", data=values, timeout=5)
+        username = (self.get_option("username", project) or "Sentry").strip()
+        icon_url = self.get_option("icon_url", project)
+        channel = (self.get_option("channel", project) or "").strip()
+
+        return SlackApiClient(webhook, username, icon_url, channel)

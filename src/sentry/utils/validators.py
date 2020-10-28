@@ -4,6 +4,8 @@ import ipaddress
 import six
 import uuid
 
+from django.utils.encoding import force_text
+
 
 def validate_ip(value, required=True):
     if not required and not value:
@@ -24,7 +26,7 @@ def is_float(var):
 
 def normalize_event_id(value):
     try:
-        return uuid.UUID(value).hex
+        return uuid.UUID(force_text(value)).hex
     except (TypeError, AttributeError, ValueError):
         return None
 

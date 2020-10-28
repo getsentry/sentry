@@ -1,9 +1,9 @@
 import React from 'react';
 
 import {Form, FormState} from 'app/components/forms';
-import DefaultIssuePlugin from 'app/plugins/defaultIssuePlugin';
+import DefaultIssueActions from 'app/plugins/components/issueActions';
 
-class IssueActions extends DefaultIssuePlugin.DefaultIssueActions {
+class IssueActions extends DefaultIssueActions {
   changeField(action, name, value) {
     const key = action + 'FormData';
     const formData = {
@@ -88,9 +88,7 @@ class IssueActions extends DefaultIssuePlugin.DefaultIssueActions {
             </div>
           );
         };
-        const isRequired = f => {
-          return f.required !== null ? f.required : true;
-        };
+        const isRequired = f => (f.required !== null ? f.required : true);
 
         const fields = this.state.createFieldList;
         const requiredFields = fields.filter(f => isRequired(f)).map(f => renderField(f));

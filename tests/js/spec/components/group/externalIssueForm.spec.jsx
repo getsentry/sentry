@@ -1,23 +1,22 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ExternalIssueForm from 'app/components/group/externalIssueForm';
 
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
-  const mockDebounce = (fn, timeout) => {
-    return (...args) => {
-      if (debounceMap.has(fn)) {
-        clearTimeout(debounceMap.get(fn));
-      }
-      debounceMap.set(
-        fn,
-        setTimeout(() => {
-          fn.apply(fn, args);
-          debounceMap.delete(fn);
-        }, timeout)
-      );
-    };
+  const mockDebounce = (fn, timeout) => (...args) => {
+    if (debounceMap.has(fn)) {
+      clearTimeout(debounceMap.get(fn));
+    }
+    debounceMap.set(
+      fn,
+      setTimeout(() => {
+        fn.apply(fn, args);
+        debounceMap.delete(fn);
+      }, timeout)
+    );
   };
   return mockDebounce;
 });
@@ -59,7 +58,7 @@ describe('ExternalIssueForm', () => {
     });
     it('renders', () => {
       wrapper = generateWrapper();
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
   describe('link', () => {
@@ -85,7 +84,10 @@ describe('ExternalIssueForm', () => {
             name: 'repo',
             default: 'scefali/test',
             updatesForm: true,
-            choices: [['scefali/test', 'test'], ['scefali/ZeldaBazaar', 'ZeldaBazaar']],
+            choices: [
+              ['scefali/test', 'test'],
+              ['scefali/ZeldaBazaar', 'ZeldaBazaar'],
+            ],
             type: 'select',
             label: 'GitHub Repository',
           },
@@ -128,7 +130,7 @@ describe('ExternalIssueForm', () => {
     });
     it('renders', () => {
       wrapper = generateWrapper('link');
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
     it('load options', async () => {
       wrapper = generateWrapper('link');

@@ -1,8 +1,7 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -20,25 +19,14 @@ type RouteParams = {
   orgId: string;
   projectId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}> & {
-  setProjectNavSection: (section: string) => void;
-};
+type Props = RouteComponentProps<RouteParams, {}>;
 
 class ProjectUserFeedbackSettings extends AsyncView<Props> {
-  static propTypes = {
-    setProjectNavSection: PropTypes.func,
-  };
-
-  componentWillMount() {
-    super.componentWillMount();
-    this.props.setProjectNavSection('settings');
-  }
-
   componentDidMount() {
-    window.sentryEmbedCallback = function(embed) {
+    window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
-      embed.submit = function(_body) {
+      embed.submit = function (_body) {
         this._submitInProgress = true;
         setTimeout(() => {
           this._submitInProgress = false;

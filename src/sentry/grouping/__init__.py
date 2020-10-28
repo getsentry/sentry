@@ -25,7 +25,7 @@ to annotate the inputs into the hashing function so that they can be shown
 to the user.  These values are not persisted, but the configuration inputs are
 stored in the event.
 
-For reproducability an event config is persisted in the event dictionary
+For reproducibility an event config is persisted in the event dictionary
 consisting of two main sources of configuration: event enhancers and the
 version of the grouping config.  Enhancers are custom rules applied to the
 default grouping algorithm (specifically the stacktrace) and the base version

@@ -55,17 +55,24 @@ type Props = {
   identifier?: string;
   displayName?: string;
   round?: boolean;
+  forwardedRef?: React.Ref<SVGSVGElement>;
 };
 
-type LetterAvatarProps = Omit<React.HTMLProps<SVGSVGElement>, keyof Props> & Props;
+type LetterAvatarProps = React.ComponentProps<'svg'> & Props;
 
 /**
  * Also see avatar.py. Anything changed in this file (how colors are selected,
  * the svg, etc) will also need to be changed there.
  */
 const LetterAvatar = styled(
-  ({identifier, displayName, round, ...props}: LetterAvatarProps) => (
-    <svg viewBox="0 0 120 120" {...props}>
+  ({
+    identifier,
+    displayName,
+    round: _round,
+    forwardedRef,
+    ...props
+  }: LetterAvatarProps) => (
+    <svg ref={forwardedRef} viewBox="0 0 120 120" {...props}>
       <rect
         x="0"
         y="0"
@@ -101,4 +108,6 @@ LetterAvatar.defaultProps = {
   round: false,
 };
 
-export default LetterAvatar;
+export default React.forwardRef<SVGSVGElement, Props>((props, ref) => (
+  <LetterAvatar forwardedRef={ref} {...props} />
+));

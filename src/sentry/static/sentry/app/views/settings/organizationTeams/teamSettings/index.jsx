@@ -1,4 +1,3 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -8,6 +7,7 @@ import {removeTeam, updateTeamSuccess} from 'app/actionCreators/teams';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import {IconDelete} from 'app/icons';
 import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
@@ -81,9 +81,7 @@ export default class TeamSettings extends AsyncView {
             slug: team.slug,
           }}
         >
-          <Box>
-            <JsonForm access={access} location={location} forms={teamSettingsFields} />
-          </Box>
+          <JsonForm access={access} location={location} forms={teamSettingsFields} />
         </Form>
 
         <Panel>
@@ -103,9 +101,8 @@ export default class TeamSettings extends AsyncView {
                 })}
               >
                 <Button
-                  icon="icon-trash"
+                  icon={<IconDelete />}
                   priority="danger"
-                  title={t('Remove Team')}
                   disabled={!access.has('team:admin')}
                 >
                   {t('Remove Team')}

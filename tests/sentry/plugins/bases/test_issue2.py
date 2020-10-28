@@ -2,8 +2,6 @@
 
 from __future__ import absolute_import
 
-import json
-import mock
 
 from social_auth.models import UserSocialAuth
 
@@ -12,15 +10,17 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils import json
+from sentry.utils.compat import mock
 
 
-class TestPluginWithFields(IssueTrackingPlugin2):
+class PluginWithFields(IssueTrackingPlugin2):
     slug = "test-plugin-with-fields"
     conf_key = slug
     issue_fields = frozenset(["id", "title", "url"])
 
 
-class TestPluginWithoutFields(IssueTrackingPlugin2):
+class PluginWithoutFields(IssueTrackingPlugin2):
     slug = "test-plugin-without-fields"
     conf_key = slug
     issue_fields = None
@@ -28,17 +28,17 @@ class TestPluginWithoutFields(IssueTrackingPlugin2):
 
 class IssueTrackingPlugin2Test(TestCase):
     def test_issue_label_as_dict(self):
-        plugin = TestPluginWithFields()
+        plugin = PluginWithFields()
         result = plugin.get_issue_label(mock.Mock(), {"id": "1"})
         assert result == "#1"
 
     def test_issue_label_legacy(self):
-        plugin = TestPluginWithoutFields()
+        plugin = PluginWithoutFields()
         result = plugin.get_issue_label(mock.Mock(), "1")
         assert result == "#1"
 
     def test_issue_field_map_with_fields(self):
-        plugin = TestPluginWithFields()
+        plugin = PluginWithFields()
         result = plugin.get_issue_field_map()
         assert result == {
             "id": "test-plugin-with-fields:issue_id",
@@ -47,15 +47,14 @@ class IssueTrackingPlugin2Test(TestCase):
         }
 
     def test_issue_field_map_without_fields(self):
-        plugin = TestPluginWithoutFields()
+        plugin = PluginWithoutFields()
         result = plugin.get_issue_field_map()
         assert result == {"id": "test-plugin-without-fields:tid"}
 
 
 class GetAuthForUserTest(TestCase):
     def _get_mock_user(self):
-        user = mock.Mock(spec=User())
-        user.id = 1
+        user = mock.Mock(spec=User(id=1))
         user.is_authenticated.return_value = False
         return user
 

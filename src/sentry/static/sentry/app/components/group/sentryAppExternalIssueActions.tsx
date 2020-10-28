@@ -5,10 +5,10 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconAdd, IconClose} from 'app/icons';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {IntegrationLink} from 'app/components/issueSyncListElement';
-import SentryAppIcon from 'app/components/sentryAppIcon';
+import {SentryAppIcon} from 'app/components/sentryAppIcon';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
 import NavTabs from 'app/components/navTabs';
 import {t, tct} from 'app/locale';
@@ -148,11 +148,9 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
             {displayName}
           </IntegrationLink>
         </IssueLink>
-        <AddRemoveIcon
-          src="icon-close"
-          isLinked={!!externalIssue}
-          onClick={this.onAddRemoveClick}
-        />
+        <StyledIcon onClick={this.onAddRemoveClick}>
+          {!!externalIssue ? <IconClose /> : <IconAdd />}
+        </StyledIcon>
       </IssueLinkContainer>
     );
   }
@@ -161,9 +159,10 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
     const {sentryAppComponent, sentryAppInstallation, group} = this.props;
     const {action, showModal} = this.state;
     const name = sentryAppComponent.sentryApp.name;
+    const config = sentryAppComponent.schema[action];
 
     return (
-      <Modal show={showModal} onHide={this.hideModal} animation={false}>
+      <Modal show={showModal} backdrop="static" onHide={this.hideModal} animation={false}>
         <Modal.Header closeButton>
           <Modal.Title>{tct('[name] Issue', {name})}</Modal.Title>
         </Modal.Header>
@@ -180,7 +179,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
             group={group}
             sentryAppInstallation={sentryAppInstallation}
             appName={name}
-            config={sentryAppComponent.schema}
+            config={config}
             action={action}
             onSubmitSuccess={this.onSubmitSuccess}
             event={this.props.event}
@@ -200,9 +199,8 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
   }
 }
 
-// @ts-ignore ; TS2589: Type instantiation is excessively deep and possibly infinite.
 const StyledSentryAppIcon = styled(SentryAppIcon)`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   width: ${space(3)};
   height: ${space(3)};
   cursor: pointer;
@@ -223,15 +221,9 @@ const IssueLinkContainer = styled('div')`
   margin-bottom: 16px;
 `;
 
-const AddRemoveIcon = styled(InlineSvg)<{isLinked: boolean}>`
-  height: ${space(1.5)};
-  color: ${p => p.theme.gray4};
-  transition: 0.2s transform;
+const StyledIcon = styled('span')`
+  color: ${p => p.theme.gray700};
   cursor: pointer;
-  box-sizing: content-box;
-  padding: ${space(1)};
-  margin: -${space(1)};
-  ${p => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.9);')};
 `;
 
 export default withApi(SentryAppExternalIssueActions);

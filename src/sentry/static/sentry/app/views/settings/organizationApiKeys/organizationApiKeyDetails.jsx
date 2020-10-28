@@ -1,14 +1,15 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import ApiForm from 'app/components/forms/apiForm';
 import MultipleCheckboxField from 'app/components/forms/multipleCheckboxField';
 import AsyncView from 'app/views/asyncView';
 import SentryTypes from 'app/sentryTypes';
-import SplitLayout from 'app/components/splitLayout';
 import TextField from 'app/components/forms/textField';
 import TextareaField from 'app/components/forms/textareaField';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -28,7 +29,7 @@ class OrganizationApiKeyDetails extends AsyncView {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (
       nextProps.location.search !== this.props.location.search ||
       nextProps.params.orgId !== this.props.params.orgId
@@ -77,9 +78,7 @@ class OrganizationApiKeyDetails extends AsyncView {
 
         <ApiForm
           apiMethod="PUT"
-          apiEndpoint={`/organizations/${this.props.params.orgId}/api-keys/${
-            this.props.params.apiKey
-          }/`}
+          apiEndpoint={`/organizations/${this.props.params.orgId}/api-keys/${this.props.params.apiKey}/`}
           initialData={this.state.apiKey}
           onSubmitSuccess={this.handleSubmitSuccess}
           onSubmitError={this.handleSubmitError}
@@ -93,13 +92,12 @@ class OrganizationApiKeyDetails extends AsyncView {
             )
           }
         >
-          <SplitLayout splitWidth={15}>
+          <SplitInput>
             <TextField label={t('Label')} name="label" />
             <TextField label={t('API Key')} name="key" disabled />
-          </SplitLayout>
+          </SplitInput>
 
           <MultipleCheckboxField
-            className="api-key-details"
             name="scope_list"
             label={t('Scopes')}
             required
@@ -117,5 +115,11 @@ class OrganizationApiKeyDetails extends AsyncView {
     );
   }
 }
+
+const SplitInput = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: ${space(2)};
+`;
 
 export default OrganizationApiKeyDetails;

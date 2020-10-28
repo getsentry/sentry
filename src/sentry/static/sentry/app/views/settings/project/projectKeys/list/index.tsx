@@ -1,16 +1,14 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
+import React from 'react';
+
 import {
   addLoadingMessage,
   addErrorMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-
-import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
-
 import {Organization, Project} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
-
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -22,6 +20,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
+import {IconAdd, IconFlag} from 'app/icons';
 
 import KeyRow from './keyRow';
 
@@ -51,15 +50,11 @@ class ProjectKeys extends AsyncView<Props, State> {
   handleRemoveKey = async (data: ProjectKey) => {
     const oldKeyList = [...this.state.keyList];
 
-    addLoadingMessage(t('Revoking key..'));
+    addLoadingMessage(t('Revoking key\u2026'));
 
-    this.setState(state => {
-      return {
-        keyList: state.keyList.filter(key => {
-          return key.id !== data.id;
-        }),
-      };
-    });
+    this.setState(state => ({
+      keyList: state.keyList.filter(key => key.id !== data.id),
+    }));
 
     const {orgId, projectId} = this.props.params;
 
@@ -79,7 +74,7 @@ class ProjectKeys extends AsyncView<Props, State> {
   handleToggleKey = async (isActive: boolean, data: ProjectKey) => {
     const oldKeyList = [...this.state.keyList];
 
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     this.setState(state => {
       const keyList = state.keyList.map(key => {
@@ -120,11 +115,9 @@ class ProjectKeys extends AsyncView<Props, State> {
         }
       );
 
-      this.setState(state => {
-        return {
-          keyList: [...state.keyList, data],
-        };
-      });
+      this.setState(state => ({
+        keyList: [...state.keyList, data],
+      }));
       addSuccessMessage(t('Created a new key.'));
     } catch (_err) {
       addErrorMessage(t('Unable to create new key. Please try again.'));
@@ -135,7 +128,7 @@ class ProjectKeys extends AsyncView<Props, State> {
     return (
       <Panel>
         <EmptyMessage
-          icon="icon-circle-exclamation"
+          icon={<IconFlag size="xl" />}
           description={t('There are no keys active for this project.')}
         />
       </Panel>
@@ -149,23 +142,21 @@ class ProjectKeys extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        {this.state.keyList.map(key => {
-          return (
-            <KeyRow
-              api={this.api}
-              access={access}
-              key={key.id}
-              orgId={orgId}
-              projectId={`${projectId}`}
-              data={key}
-              onToggle={this.handleToggleKey}
-              onRemove={this.handleRemoveKey}
-              routes={routes}
-              location={location}
-              params={params}
-            />
-          );
-        })}
+        {this.state.keyList.map(key => (
+          <KeyRow
+            api={this.api}
+            access={access}
+            key={key.id}
+            orgId={orgId}
+            projectId={`${projectId}`}
+            data={key}
+            onToggle={this.handleToggleKey}
+            onRemove={this.handleRemoveKey}
+            routes={routes}
+            location={location}
+            params={params}
+          />
+        ))}
         <Pagination pageLinks={this.state.keyListPageLinks} />
       </React.Fragment>
     );
@@ -185,7 +176,7 @@ class ProjectKeys extends AsyncView<Props, State> {
                 onClick={this.handleCreateKey}
                 size="small"
                 priority="primary"
-                icon="icon-circle-add"
+                icon={<IconAdd size="xs" isCircled />}
               >
                 {t('Generate New Key')}
               </Button>

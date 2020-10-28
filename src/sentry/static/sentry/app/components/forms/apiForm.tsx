@@ -1,10 +1,14 @@
 import PropTypes from 'prop-types';
 
-import {Client, APIRequestMethod} from 'app/api';
-import IndicatorStore from 'app/stores/indicatorStore';
+import {APIRequestMethod, Client} from 'app/api';
+import {
+  addLoadingMessage,
+  clearIndicators,
+  addErrorMessage,
+} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
 import Form from 'app/components/forms/form';
 import FormState from 'app/components/forms/state';
-import {t} from 'app/locale';
 
 type Props = Form['props'] & {
   onSubmit?: (data: object) => void;
@@ -29,7 +33,7 @@ export default class ApiForm extends Form<Props> {
   static defaultProps = {
     ...Form.defaultProps,
     submitErrorMessage: t('There was an error saving your changes.'),
-    submitLoadingMessage: t('Saving changes..'),
+    submitLoadingMessage: t('Saving changes\u2026'),
   };
 
   componentWillUnmount() {
@@ -51,17 +55,16 @@ export default class ApiForm extends Form<Props> {
         state: FormState.SAVING,
       },
       () => {
-        const loadingIndicator = IndicatorStore.add(this.props.submitLoadingMessage);
+        addLoadingMessage(this.props.submitLoadingMessage);
         this.api.request(this.props.apiEndpoint, {
           method: this.props.apiMethod,
           data,
           success: result => {
-            IndicatorStore.remove(loadingIndicator);
+            clearIndicators();
             this.onSubmitSuccess(result);
           },
           error: error => {
-            IndicatorStore.remove(loadingIndicator);
-            IndicatorStore.add(this.props.submitErrorMessage, 'error');
+            addErrorMessage(this.props.submitErrorMessage);
             this.onSubmitError(error);
           },
         });

@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
-import mock
-import pickle
 import pytest
 
-from sentry import eventstore, nodestore
+from sentry.utils.compat import pickle
 from sentry.db.models.fields.node import NodeData
 from sentry.eventstore.models import Event
 from sentry.models import Environment
@@ -29,7 +27,7 @@ class EventTest(TestCase):
         # When we pickle an event we need to make sure our canonical code
         # does not appear here or it breaks old workers.
         data = pickle.dumps(event, protocol=2)
-        assert "canonical" not in data
+        assert b"canonical" not in data
 
         # For testing we remove the backwards compat support in the
         # `NodeData` as well.
@@ -201,7 +199,24 @@ class EventTest(TestCase):
             project_id=self.project.id,
             event_id="a" * 32,
             snuba_data=snuba.raw_query(
-                selected_columns=[col.value.event_name for col in eventstore.full_columns],
+                selected_columns=[
+                    "event_id",
+                    "project_id",
+                    "group_id",
+                    "timestamp",
+                    "culprit",
+                    "location",
+                    "message",
+                    "title",
+                    "type",
+                    "transaction",
+                    "tags.key",
+                    "tags.value",
+                    "email",
+                    "ip_address",
+                    "user_id",
+                    "username",
+                ],
                 filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
             )["data"][0],
         )
@@ -228,30 +243,10 @@ class EventTest(TestCase):
         assert not event_from_nodestore.group_id
         assert not event_from_nodestore.group
 
-    def test_bind_node_data(self):
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "test",
-                "timestamp": iso_format(before_now(seconds=1)),
-                "type": "error",
-            },
-            project_id=self.project.id,
-        )
-        group_id = event.group.id
-
-        e1 = Event(self.project.id, "a" * 32, group_id=group_id)
-        e1.bind_node_data()
-
-        with mock.patch.object(nodestore, "get") as mock_get:
-            event.bind_node_data()
-            event.bind_node_data()
-            assert mock_get.call_count == 0
-
 
 @pytest.mark.django_db
 def test_renormalization(monkeypatch, factories, task_runner, default_project):
-    from semaphore.processing import StoreNormalizer
+    from sentry_relay.processing import StoreNormalizer
 
     old_normalize = StoreNormalizer.normalize_event
     normalize_mock_calls = []
@@ -260,7 +255,7 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
         normalize_mock_calls.append(1)
         return old_normalize(*args, **kwargs)
 
-    monkeypatch.setattr("semaphore.processing.StoreNormalizer.normalize_event", normalize)
+    monkeypatch.setattr("sentry_relay.processing.StoreNormalizer.normalize_event", normalize)
 
     with task_runner():
         factories.store_event(

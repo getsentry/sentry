@@ -17,14 +17,14 @@ type WithPluginProps = {
 };
 
 type InjectedPluginProps = {
-  plugins: Plugin[];
+  plugins: {plugins: Plugin[]; loading: boolean};
 };
 
 /**
  * Higher order component that fetches list of plugins and
  * passes PluginsStore to component as `plugins`
  */
-const withPlugins = <P extends InjectedPluginProps>(
+const withPlugins = <P extends WithPluginProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
   withOrganization(
@@ -83,8 +83,8 @@ const withPlugins = <P extends InjectedPluginProps>(
         render() {
           return (
             <WrappedComponent
-              {...this.props as P}
-              plugins={this.state.store as Plugin[]}
+              {...(this.props as P & WithPluginProps)}
+              plugins={this.state.store}
             />
           );
         },

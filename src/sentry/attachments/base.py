@@ -14,6 +14,10 @@ ATTACHMENT_DATA_CHUNK_KEY = u"{key}:a:{id}:{chunk_index}"
 UNINITIALIZED_DATA = object()
 
 
+class MissingAttachmentChunks(Exception):
+    pass
+
+
 class CachedAttachment(object):
     def __init__(
         self,
@@ -25,6 +29,9 @@ class CachedAttachment(object):
         data=UNINITIALIZED_DATA,
         chunks=None,
         cache=None,
+        rate_limited=None,
+        size=None,
+        **kwargs
     ):
         self.key = key
         self.id = id
@@ -33,6 +40,14 @@ class CachedAttachment(object):
         self.content_type = content_type
         self.type = type or "event.attachment"
         assert isinstance(self.type, string_types), self.type
+        self.rate_limited = rate_limited
+
+        if size is not None:
+            self.size = size
+        elif data not in (None, UNINITIALIZED_DATA):
+            self.size = len(data)
+        else:
+            self.size = 0
 
         self._data = data
         self.chunks = chunks
@@ -78,6 +93,8 @@ class CachedAttachment(object):
                 "content_type": self.content_type,
                 "type": self.type,
                 "chunks": self.chunks,
+                "size": self.size or None,  # None for backwards compatibility
+                "rate_limited": self.rate_limited,
             }
         )
 
@@ -142,7 +159,10 @@ class BaseAttachmentCache(object):
         data = []
 
         for key in attachment.chunk_keys:
-            data.append(zlib.decompress(self.inner.get(key, raw=True)))
+            raw_data = self.inner.get(key, raw=True)
+            if raw_data is None:
+                raise MissingAttachmentChunks()
+            data.append(zlib.decompress(raw_data))
 
         return b"".join(data)
 

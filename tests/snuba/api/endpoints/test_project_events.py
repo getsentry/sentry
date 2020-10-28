@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import map
 
 
 class ProjectEventsTest(APITestCase, SnubaTestCase):

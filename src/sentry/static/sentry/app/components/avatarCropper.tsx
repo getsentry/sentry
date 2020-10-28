@@ -17,11 +17,13 @@ const resizerPositions = {
 
 type Position = keyof typeof resizerPositions;
 
+type Model = Pick<AvatarUser, 'avatar'>;
+
 type Props = {
-  model: AvatarUser;
+  model: Model;
   updateDataUrlState: (opts: {savedDataUrl?: string | null; dataUrl?: string}) => void;
   type: 'user' | 'team' | 'organization' | 'project';
-  savedDataUrl: string;
+  savedDataUrl?: string;
 };
 
 type State = {
@@ -57,8 +59,10 @@ class AvatarCropper extends React.Component<Props, State> {
   image = React.createRef<HTMLImageElement>();
   cropContainer = React.createRef<HTMLDivElement>();
 
+  // These values must be synced with the avatar endpoint in backend.
   MIN_DIMENSION = 256;
   MAX_DIMENSION = 1024;
+  ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
 
   onSelectFile = (ev: React.ChangeEvent<HTMLInputElement>) => {
     const file = ev.target.files && ev.target.files[0];
@@ -194,21 +198,14 @@ class AvatarCropper extends React.Component<Props, State> {
 
   // Normalize diff across dimensions so that negative diffs are always making
   // the cropper smaller and positive ones are making the cropper larger
-  getDiffNW = (yDiff: number, xDiff: number) => {
-    return (yDiff - yDiff * 2 + (xDiff - xDiff * 2)) / 2;
-  };
+  getDiffNW = (yDiff: number, xDiff: number) =>
+    (yDiff - yDiff * 2 + (xDiff - xDiff * 2)) / 2;
 
-  getDiffNE = (yDiff: number, xDiff: number) => {
-    return (yDiff - yDiff * 2 + xDiff) / 2;
-  };
+  getDiffNE = (yDiff: number, xDiff: number) => (yDiff - yDiff * 2 + xDiff) / 2;
 
-  getDiffSW = (yDiff: number, xDiff: number) => {
-    return (yDiff + (xDiff - xDiff * 2)) / 2;
-  };
+  getDiffSW = (yDiff: number, xDiff: number) => (yDiff + (xDiff - xDiff * 2)) / 2;
 
-  getDiffSE = (yDiff: number, xDiff: number) => {
-    return (yDiff + xDiff) / 2;
-  };
+  getDiffSE = (yDiff: number, xDiff: number) => (yDiff + xDiff) / 2;
 
   getNewDimensions = (container: HTMLDivElement, yDiff: number, xDiff: number) => {
     const {resizeDimensions: oldDimensions, resizeDirection} = this.state;
@@ -341,7 +338,7 @@ class AvatarCropper extends React.Component<Props, State> {
 
   get imageSrc() {
     const {savedDataUrl, model, type} = this.props;
-    const uuid = model && model.avatar && model.avatar.avatarUuid;
+    const uuid = model.avatar?.avatarUuid;
     const photoUrl = uuid && `/${AVATAR_URL_MAP[type] || 'avatar'}/${uuid}/`;
 
     return savedDataUrl || this.state.objectURL || photoUrl;
@@ -409,7 +406,7 @@ class AvatarCropper extends React.Component<Props, State> {
           <UploadInput
             ref={this.file}
             type="file"
-            accept="image/gif,image/jpeg,image/png"
+            accept={this.ALLOWED_MIMETYPES}
             onChange={this.onSelectFile}
           />
         </div>
@@ -446,7 +443,7 @@ const CropContainer = styled('div')`
 
 const Cropper = styled('div')`
   position: absolute;
-  border: 2px dashed ${p => p.theme.gray2};
+  border: 2px dashed ${p => p.theme.gray500};
 `;
 
 const Resizer = styled('div')<{position: Position}>`
@@ -454,7 +451,7 @@ const Resizer = styled('div')<{position: Position}>`
   width: 10px;
   height: 10px;
   position: absolute;
-  background-color: ${p => p.theme.gray2};
+  background-color: ${p => p.theme.gray500};
   cursor: ${p => `${p.position}-resize`};
   ${p => resizerPositions[p.position].map(pos => `${pos}: -5px;`)}
 `;

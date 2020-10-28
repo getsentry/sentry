@@ -4,27 +4,38 @@ import logging
 
 from celery.task import current
 from django.core.urlresolvers import reverse
-from requests.exceptions import RequestException
+from requests.exceptions import (
+    ConnectionError,
+    RequestException,
+    Timeout,
+)
 
+from sentry.api.serializers import serialize, AppPlatformEvent
+from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
-from sentry.tasks.base import instrumented_task, retry
-from sentry.utils import metrics
-from sentry.utils.http import absolute_uri
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
-from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
-    SentryAppInstallation,
-    EventCommon,
     Group,
-    Project,
     Organization,
-    User,
+    Project,
+    SentryApp,
+    SentryAppInstallation,
     ServiceHook,
     ServiceHookProject,
-    SentryApp,
+    User,
 )
-from sentry.models.sentryapp import VALID_EVENTS
+from sentry.models.sentryapp import VALID_EVENTS, track_response_code
+from sentry.shared_integrations.exceptions import (
+    ApiHostError,
+    ApiTimeoutError,
+    IgnorableSentryAppError,
+)
+from sentry.tasks.base import instrumented_task, retry
+from sentry.utils import metrics
+from sentry.utils.compat import filter
+from sentry.utils.http import absolute_uri
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+
 
 logger = logging.getLogger("sentry.tasks.sentry_apps")
 
@@ -32,6 +43,11 @@ TASK_OPTIONS = {
     "queue": "app_platform",
     "default_retry_delay": (60 * 5),  # Five minutes.
     "max_retries": 3,
+}
+
+RETRY_OPTIONS = {
+    "on": (RequestException, ApiHostError, ApiTimeoutError),
+    "ignore": (IgnorableSentryAppError,),
 }
 
 # We call some models by a different name, publicly, than their class name.
@@ -69,8 +85,15 @@ def _webhook_event_data(event, group_id, project_id):
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
-@retry(on=(RequestException,))
+@retry(**RETRY_OPTIONS)
 def send_alert_event(event, rule, sentry_app_id):
+    """
+    When an incident alert is triggered, send incident data to the SentryApp's webhook.
+    :param event: The `Event` for which to build a payload.
+    :param rule: The AlertRule that was triggered.
+    :param sentry_app_id: The SentryApp to notify.
+    :return:
+    """
     group = event.group
     project = Project.objects.get_from_cache(id=group.project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
@@ -90,7 +113,9 @@ def send_alert_event(event, rule, sentry_app_id):
 
     try:
         install = SentryAppInstallation.objects.get(
-            organization=organization.id, sentry_app=sentry_app
+            organization=organization.id,
+            sentry_app=sentry_app,
+            status=SentryAppInstallationStatus.INSTALLED,
         )
     except SentryAppInstallation.DoesNotExist:
         logger.info("event_alert_webhook.missing_installation", extra=extra)
@@ -104,7 +129,7 @@ def send_alert_event(event, rule, sentry_app_id):
         resource="event_alert", action="triggered", install=install, data=data
     )
 
-    send_and_save_webhook_request(sentry_app.webhook_url, sentry_app, request_data)
+    send_and_save_webhook_request(sentry_app, request_data)
 
 
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
@@ -112,7 +137,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     model = TYPES[sender]
     # The Event model has different hooks for the different event types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
-    if issubclass(model, EventCommon):
+    if issubclass(model, Event):
         if not kwargs.get("instance"):
             extra = {"sender": sender, "action": action, "event_id": instance_id}
             logger.info("process_resource_change.event_missing_event", extra=extra)
@@ -131,7 +156,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
     try:
-        if issubclass(model, EventCommon):
+        if issubclass(model, Event):
             # XXX:(Meredith): Passing through the entire event was an intentional choice
             # to avoid having to query NodeStore again for data we had previously in
             # post_process. While this is not ideal, changing this will most likely involve
@@ -151,19 +176,19 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     org = None
 
-    if isinstance(instance, Group) or issubclass(model, EventCommon):
+    if isinstance(instance, Group) or isinstance(instance, Event):
         org = Organization.objects.get_from_cache(
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
 
     installations = filter(
         lambda i: event in i.sentry_app.events,
-        org.sentry_app_installations.select_related("sentry_app"),
+        SentryAppInstallation.get_installed_for_org(org.id).select_related("sentry_app"),
     )
 
     for installation in installations:
         data = {}
-        if issubclass(model, EventCommon):
+        if isinstance(instance, Event):
             data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
             send_webhooks(installation, event, data=data)
         else:
@@ -174,25 +199,25 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
 
 @instrumented_task("sentry.tasks.process_resource_change", **TASK_OPTIONS)
-@retry()
+@retry(**RETRY_OPTIONS)
 def process_resource_change(action, sender, instance_id, *args, **kwargs):
     _process_resource_change(action, sender, instance_id, *args, **kwargs)
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
-@retry()
+@retry(**RETRY_OPTIONS)
 def process_resource_change_bound(self, action, sender, instance_id, *args, **kwargs):
     _process_resource_change(action, sender, instance_id, retryer=self, *args, **kwargs)
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **TASK_OPTIONS)
-@retry(on=(RequestException,))
+@retry(**RETRY_OPTIONS)
 def installation_webhook(installation_id, user_id, *args, **kwargs):
     from sentry.mediators.sentry_app_installations import InstallationNotifier
 
     extra = {"installation_id": installation_id, "user_id": user_id}
-
     try:
+        # we should send the webhook for pending installations on the install event in case that's part of the workflow
         install = SentryAppInstallation.objects.get(id=installation_id)
     except SentryAppInstallation.DoesNotExist:
         logger.info("installation_webhook.missing_installation", extra=extra)
@@ -208,12 +233,14 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
-@retry(on=(RequestException,))
+@retry(**RETRY_OPTIONS)
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
     extra = {"installation_id": installation_id, "issue_id": issue_id}
 
     try:
-        install = SentryAppInstallation.objects.get(id=installation_id)
+        install = SentryAppInstallation.objects.get(
+            id=installation_id, status=SentryAppInstallationStatus.INSTALLED
+        )
     except SentryAppInstallation.DoesNotExist:
         logger.info("workflow_notification.missing_installation", extra=extra)
         return
@@ -286,35 +313,79 @@ def send_webhooks(installation, event, **kwargs):
         kwargs["install"] = installation
 
         request_data = AppPlatformEvent(**kwargs)
-
         send_and_save_webhook_request(
-            servicehook.sentry_app.webhook_url, installation.sentry_app, request_data
+            installation.sentry_app, request_data, servicehook.sentry_app.webhook_url,
         )
 
 
-def send_and_save_webhook_request(url, sentry_app, app_platform_event):
+def ignore_unpublished_app_errors(func):
+    def wrapper(sentry_app, app_platform_event, url=None):
+        try:
+            return func(sentry_app, app_platform_event, url)
+        except Exception:
+            if sentry_app.is_published:
+                raise
+            else:
+                raise IgnorableSentryAppError("unpublished or internal app")
+
+    return wrapper
+
+
+@ignore_unpublished_app_errors
+def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
+    """
+    Notify a SentryApp's webhook about an incident and log response on redis.
+
+    :param sentry_app: The SentryApp to notify via a webhook.
+    :param app_platform_event: Incident data. See AppPlatformEvent.
+    :param url: The URL to hit for this webhook if it is different from `sentry_app.webhook_url`.
+    :return: Webhook response
+    """
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
     org_id = app_platform_event.install.organization_id
     event = "{}.{}".format(app_platform_event.resource, app_platform_event.action)
+    slug = sentry_app.slug_for_metrics
+    url = url or sentry_app.webhook_url
 
     try:
         resp = safe_urlopen(
             url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
         )
-    except RequestException:
+
+    except (Timeout, ConnectionError) as e:
+        error_type = e.__class__.__name__.lower()
+        logger.info(
+            "send_and_save_webhook_request.timeout",
+            extra={
+                "error_type": error_type,
+                "organization_id": org_id,
+                "integration_slug": sentry_app.slug,
+            },
+        )
+        track_response_code(error_type, slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
-    buffer.add_request(
-        response_code=resp.status_code,
-        org_id=org_id,
-        event=event,
-        url=url,
-        error_id=resp.headers.get("Sentry-Hook-Error"),
-        project_id=resp.headers.get("Sentry-Hook-Project"),
-    )
+    else:
+        track_response_code(resp.status_code, slug, event)
+        buffer.add_request(
+            response_code=resp.status_code,
+            org_id=org_id,
+            event=event,
+            url=url,
+            error_id=resp.headers.get("Sentry-Hook-Error"),
+            project_id=resp.headers.get("Sentry-Hook-Project"),
+        )
 
-    return resp
+        if resp.status_code == 503:
+            raise ApiHostError.from_request(resp.request)
+
+        elif resp.status_code == 504:
+            raise ApiTimeoutError.from_request(resp.request)
+
+        resp.raise_for_status()
+
+        return resp

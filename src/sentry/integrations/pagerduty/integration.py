@@ -7,6 +7,7 @@ from django.db import transaction
 from sentry import options
 
 from sentry.utils import json
+from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.integrations.base import (
     IntegrationInstallation,
@@ -15,6 +16,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
     FeatureDescription,
 )
+from sentry.shared_integrations.exceptions import IntegrationError
 
 from sentry.models import OrganizationIntegration, PagerDutyService
 
@@ -29,11 +31,17 @@ incidents triggered from Sentry alerts.
 FEATURES = [
     FeatureDescription(
         """
+        Manage incidents and outages by sending Sentry notifications to PagerDuty.
+        """,
+        IntegrationFeatures.INCIDENT_MANAGEMENT,
+    ),
+    FeatureDescription(
+        """
         Configure rule based PagerDuty alerts to automatically be triggered in a specific
         service - or in multiple services!
         """,
         IntegrationFeatures.ALERT_RULE,
-    )
+    ),
 ]
 
 setup_alert = {
@@ -66,6 +74,7 @@ class PagerDutyIntegration(IntegrationInstallation):
                 "addButtonText": "",
                 "columnLabels": {"service": "Service", "integration_key": "Integration Key"},
                 "columnKeys": ["service", "integration_key"],
+                "confirmDeleteMessage": "Any alert rules associated with this service will stop working. The rules will still exist but will show a `removed` service.",
             }
         ]
 
@@ -73,20 +82,38 @@ class PagerDutyIntegration(IntegrationInstallation):
 
     def update_organization_config(self, data):
         if "service_table" in data:
-            with transaction.atomic():
-                PagerDutyService.objects.filter(
-                    organization_integration=self.org_integration
-                ).delete()
-                for item in data["service_table"]:
-                    service_name = item["service"]
-                    key = item["integration_key"]
+            service_rows = data["service_table"]
+            # validate fields
+            bad_rows = filter(lambda x: not x["service"] or not x["integration_key"], service_rows)
+            if bad_rows:
+                raise IntegrationError("Name and key are required")
 
-                    if key and service_name:
-                        PagerDutyService.objects.create(
-                            organization_integration=self.org_integration,
-                            service_name=service_name,
-                            integration_key=key,
-                        )
+            with transaction.atomic():
+                exising_service_items = PagerDutyService.objects.filter(
+                    organization_integration=self.org_integration
+                )
+
+                for service_item in exising_service_items:
+                    # find the matching row from the input
+                    matched_rows = filter(lambda x: x["id"] == service_item.id, service_rows)
+                    if matched_rows:
+                        matched_row = matched_rows[0]
+                        service_item.integration_key = matched_row["integration_key"]
+                        service_item.service_name = matched_row["service"]
+                        service_item.save()
+                    else:
+                        service_item.delete()
+
+                # new rows don't have an id
+                new_rows = filter(lambda x: not x["id"], service_rows)
+                for row in new_rows:
+                    service_name = row["service"]
+                    key = row["integration_key"]
+                    PagerDutyService.objects.create(
+                        organization_integration=self.org_integration,
+                        service_name=service_name,
+                        integration_key=key,
+                    )
 
     def get_config_data(self):
         service_list = []
@@ -107,7 +134,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     key = "pagerduty"
     name = "PagerDuty"
     metadata = metadata
-    features = frozenset([IntegrationFeatures.ALERT_RULE])
+    features = frozenset([IntegrationFeatures.ALERT_RULE, IntegrationFeatures.INCIDENT_MANAGEMENT])
     integration_cls = PagerDutyIntegration
 
     setup_dialog_config = {"width": 600, "height": 900}
@@ -115,7 +142,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         return [PagerDutyInstallationRedirect()]
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         services = integration.metadata["services"]
         try:
             org_integration = OrganizationIntegration.objects.get(
@@ -137,7 +164,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         account = config["account"]
         # PagerDuty gives us integration keys for various things, some of which
         # are not services. For now we only care about services.
-        services = filter(lambda x: x["type"] == "service", config["integration_keys"])
+        services = [x for x in config["integration_keys"] if x["type"] == "service"]
 
         return {
             "name": account["name"],
@@ -155,7 +182,7 @@ class PagerDutyInstallationRedirect(PipelineView):
         setup_url = absolute_uri("/extensions/pagerduty/setup/")
 
         return (
-            u"https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=1"
+            u"https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=2"
             % (account_name, app_id, setup_url)
         )
 

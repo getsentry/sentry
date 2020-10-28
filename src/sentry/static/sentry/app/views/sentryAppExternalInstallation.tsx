@@ -1,26 +1,26 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import React from 'react';
 import styled from '@emotion/styled';
-import get from 'lodash/get';
 
-import {t, tct} from 'app/locale';
-import Alert from 'app/components/alert';
-import AsyncView from 'app/views/asyncView';
-import Field from 'app/views/settings/components/forms/field';
-import IndicatorStore from 'app/stores/indicatorStore';
-import NarrowLayout from 'app/components/narrowLayout';
-import SelectControl from 'app/components/forms/selectControl';
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
-import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import {
   LightWeightOrganization,
   Organization,
   SentryApp,
   SentryAppInstallation,
 } from 'app/types';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
+import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
+import AsyncView from 'app/views/asyncView';
+import Field from 'app/views/settings/components/forms/field';
+import {IconFlag} from 'app/icons';
+import NarrowLayout from 'app/components/narrowLayout';
+import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
+import SelectControl from 'app/components/forms/selectControl';
+import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
@@ -33,10 +33,6 @@ type State = AsyncView['state'] & {
 };
 
 export default class SentryAppExternalInstallation extends AsyncView<Props, State> {
-  componentDidMount() {
-    recordInteraction(this.sentryAppSlug, 'sentry_app_viewed');
-  }
-
   getDefaultState() {
     const state = super.getDefaultState();
     return {
@@ -77,7 +73,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     //if the app is unpublished for a different org
     return (
       selectedOrgSlug &&
-      get(sentryApp, 'owner.slug') !== selectedOrgSlug &&
+      sentryApp?.owner?.slug !== selectedOrgSlug &&
       sentryApp.status === 'unpublished'
     );
   }
@@ -101,7 +97,34 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     if (!organization || !sentryApp) {
       return undefined;
     }
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.installation_start',
+        eventName: 'Integrations: Installation Start',
+        integration_type: 'sentry_app',
+        integration: sentryApp.slug,
+        view: 'external_install',
+        integration_status: sentryApp.status,
+      },
+      organization
+    );
+
     const install = await installSentryApp(this.api, organization.slug, sentryApp);
+    //installation is complete if the status is installed
+    if (install.status === 'installed') {
+      trackIntegrationEvent(
+        {
+          eventKey: 'integrations.installation_complete',
+          eventName: 'Integrations: Installation Complete',
+          integration_type: 'sentry_app',
+          integration: sentryApp.slug,
+          view: 'external_install',
+          integration_status: sentryApp.status,
+        },
+        organization
+      );
+    }
+
     if (sentryApp.redirectUrl) {
       const queryParams = {
         installationId: install.uuid,
@@ -128,13 +151,12 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
       const isInstalled = installations
         .map(install => install.app.slug)
         .includes(this.sentryAppSlug);
-      this.setState({organization, isInstalled});
+      //all state fields should be set at the same time so analytics in SentryAppDetailsModal works properly
+      this.setState({organization, isInstalled, reloading: false});
     } catch (err) {
-      IndicatorStore.addError(
-        t('Failed to retrieve organization or integration details')
-      );
+      addErrorMessage(t('Failed to retrieve organization or integration details'));
+      this.setState({reloading: false});
     }
-    this.setState({reloading: false});
   };
 
   onRequestSuccess = ({stateKey, data}) => {
@@ -157,7 +179,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
   renderInternalAppError() {
     const {sentryApp} = this.state;
     return (
-      <Alert type="error" icon="icon-circle-exclamation">
+      <Alert type="error" icon={<IconFlag size="md" />}>
         {tct(
           'Integration [sentryAppName] is an internal integration. Internal integrations are automatically installed',
           {
@@ -172,7 +194,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     const {organization, selectedOrgSlug, isInstalled, sentryApp} = this.state;
     if (selectedOrgSlug && organization && !this.hasAccess(organization)) {
       return (
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           <p>
             {tct(
               `You do not have permission to install integrations in
@@ -187,7 +209,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     }
     if (isInstalled && organization) {
       return (
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           {tct('Integration [sentryAppName] already installed for [organization]', {
             organization: <strong>{organization.name}</strong>,
             sentryAppName: <strong>{sentryApp.name}</strong>,
@@ -198,9 +220,9 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
 
     if (this.isSentryAppUnavailableForOrg) {
       // use the slug of the owner if we have it, otherwise use 'another organization'
-      const ownerSlug = get(sentryApp, 'owner.slug', 'another organization');
+      const ownerSlug = sentryApp?.owner?.slug ?? 'another organization';
       return (
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           {tct(
             'Integration [sentryAppName] is an unpublished integration for [otherOrg]. An unpublished integration can only be installed on the organization which created it.',
             {
@@ -231,6 +253,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
         <Field label={t('Organization')} inline={false} stacked required>
           {() => (
             <SelectControl
+              deprecatedSelectControl
               onChange={({value}) => this.onSelectOrg(value)}
               value={selectedOrgSlug}
               placeholder={t('Select an organization')}
@@ -273,7 +296,6 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
             onInstall={this.onInstall}
             closeModal={this.onClose}
             isInstalled={this.disableInstall}
-            closeOnInstall={false}
           />
         )}
       </div>

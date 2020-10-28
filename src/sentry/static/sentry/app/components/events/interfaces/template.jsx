@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
-import Frame from 'app/components/events/interfaces/frame';
+import Line from 'app/components/events/interfaces/frame/line';
 import {t} from 'app/locale';
 
 class TemplateInterface extends React.Component {
@@ -21,7 +22,7 @@ class TemplateInterface extends React.Component {
       >
         <div className="traceback no-exception">
           <ul>
-            <Frame data={this.props.data} isExpanded />
+            <Line data={this.props.data} isExpanded />
           </ul>
         </div>
       </EventDataSection>

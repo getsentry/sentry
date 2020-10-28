@@ -92,6 +92,7 @@ register_strategy_config(
     changelog="""
         * Better rules for when to take context lines into account for
           JavaScript platforms for grouping purposes.
+        * Better support for PHP7 anonymous classes.
     """,
 )
 
@@ -152,6 +153,18 @@ register_strategy_config(
     changelog="""
         * Uses `newstyle:2019-04-05` for native platforms
         * Uses `legacy:2019-03-12` for all other platforms
+    """,
+    hidden=True,
+)
+
+
+# Grouping strategy for similarity
+register_strategy_config(
+    id="similarity:2020-07-23",
+    base="newstyle:2019-10-29",
+    risk=RISK_LEVEL_HIGH,
+    changelog="""
+        * Initial version
     """,
     hidden=True,
 )

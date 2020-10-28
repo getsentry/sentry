@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from mock import patch
+from sentry.utils.compat.mock import patch
 import pytest
 import pytz
 
@@ -42,7 +42,7 @@ class EventTest(TestCase):
             "data": {"id": 1, "map": {"key": "value"}, "optional": False},
             "type": "example",
             "timestamp": 987552000,
-            "uuid": "AAEC",
+            "uuid": b"AAEC",
         }
 
     def test_optional_is_optional(self):

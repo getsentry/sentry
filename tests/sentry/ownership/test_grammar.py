@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import pytest
+
 from sentry.ownership.grammar import Rule, Matcher, Owner, parse_rules, dump_schema, load_schema
 
 fixture_data = """
@@ -10,6 +12,9 @@ fixture_data = """
 
   url:http://google.com/* #backend
 path:src/sentry/*       david@sentry.io
+
+tags.foo:bar             tagperson@sentry.io
+tags.foo:"bar baz"       tagperson@sentry.io
 """
 
 
@@ -18,6 +23,8 @@ def test_parse_rules():
         Rule(Matcher("path", "*.js"), [Owner("team", "frontend"), Owner("user", "m@robenolt.com")]),
         Rule(Matcher("url", "http://google.com/*"), [Owner("team", "backend")]),
         Rule(Matcher("path", "src/sentry/*"), [Owner("user", "david@sentry.io")]),
+        Rule(Matcher("tags.foo", "bar"), [Owner("user", "tagperson@sentry.io")]),
+        Rule(Matcher("tags.foo", "bar baz"), [Owner("user", "tagperson@sentry.io")]),
     ]
 
 
@@ -102,3 +109,19 @@ def test_matcher_test_stacktrace():
     assert not Matcher("path", "*.jsx").test(data)
     assert not Matcher("url", "*.py").test(data)
     assert not Matcher("path", "*.py").test({})
+
+
+def test_matcher_test_tags():
+    data = {
+        "tags": [["foo", "foo_value"], ["bar", "barval"]],
+    }
+
+    assert Matcher("tags.foo", "foo_value").test(data)
+    assert Matcher("tags.bar", "barval").test(data)
+    assert not Matcher("tags.barz", "barval").test(data)
+
+
+@pytest.mark.parametrize("data", [{}, {"tags": None}, {"tags": [None]}])
+def test_matcher_test_tags_without_tag_data(data):
+    assert not Matcher("tags.foo", "foo_value").test(data)
+    assert not Matcher("tags.bar", "barval").test(data)

@@ -9,18 +9,19 @@ import petname
 import random
 import six
 import warnings
+from binascii import hexlify
+from hashlib import sha1
+from uuid import uuid4
 from importlib import import_module
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
-from hashlib import sha1
-from loremipsum import Generator
-from uuid import uuid4
+from django.utils.encoding import force_text
 
 from sentry.event_manager import EventManager
-from sentry.constants import SentryAppStatus
+from sentry.constants import SentryAppStatus, SentryAppInstallationStatus
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -30,10 +31,12 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
-    IncidentGroup,
+    IncidentTrigger,
+    IncidentActivity,
     IncidentProject,
     IncidentSeen,
-    IncidentActivity,
+    IncidentType,
+    TriggerStatus,
 )
 from sentry.mediators import (
     sentry_apps,
@@ -65,14 +68,15 @@ from sentry.models import (
     EventAttachment,
     UserReport,
     PlatformExternalIssue,
+    ExternalIssue,
+    GroupLink,
     ReleaseFile,
+    Rule,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
-from sentry.snuba.models import QueryAggregations
-from sentry.utils import json
-
-loremipsum = Generator()
+from sentry.snuba.models import QueryDatasets
+from sentry.utils import loremipsum, json
 
 
 def get_fixture_path(name):
@@ -267,8 +271,12 @@ class Factories(object):
     @staticmethod
     def create_environment(project, **kwargs):
         name = kwargs.get("name", petname.Generate(3, " ", letters=10)[:64])
+
+        organization = kwargs.get("organization")
+        organization_id = organization.id if organization else project.organization_id
+
         env = Environment.objects.create(
-            organization_id=project.organization_id, project_id=project.id, name=name
+            organization_id=organization_id, project_id=project.id, name=name
         )
         env.add_project(project, is_hidden=kwargs.get("is_hidden"))
         return env
@@ -298,22 +306,68 @@ class Factories(object):
         return ProjectBookmark.objects.create(project_id=project.id, user=user)
 
     @staticmethod
+    def create_project_rule(project, action_data=None, condition_data=None):
+        action_data = action_data or [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "name": "Send a notification (for all legacy integrations)",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "mail",
+                "name": "Send a notification via mail",
+            },
+        ]
+        condition_data = condition_data or [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            },
+            {
+                "id": "sentry.rules.conditions.every_event.EveryEventCondition",
+                "name": "The event occurs",
+            },
+        ]
+        return Rule.objects.create(
+            project=project,
+            data={"conditions": condition_data, "actions": action_data, "action_match": "all"},
+        )
+
+    @staticmethod
+    def create_slack_project_rule(project, integration_id, channel_id=None, channel_name=None):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event.SlackNotifyServiceAction",
+                "name": "Send a Slack notification",
+                "workspace": integration_id,
+                "channel_id": channel_id or "123453",
+                "channel": channel_name or "#general",
+            }
+        ]
+        return Factories.create_project_rule(project, action_data)
+
+    @staticmethod
     def create_project_key(project):
         return project.key_set.get_or_create()[0]
 
     @staticmethod
-    def create_release(project, user=None, version=None, date_added=None):
+    def create_release(project, user=None, version=None, date_added=None, additional_projects=None):
         if version is None:
-            version = os.urandom(20).encode("hex")
+            version = force_text(hexlify(os.urandom(20)))
 
         if date_added is None:
             date_added = timezone.now()
+
+        if additional_projects is None:
+            additional_projects = []
 
         release = Release.objects.create(
             version=version, organization_id=project.organization_id, date_added=date_added
         )
 
         release.add_project(project)
+        for additional_project in additional_projects:
+            release.add_project(additional_project)
 
         Activity.objects.create(
             type=Activity.RELEASE,
@@ -394,7 +448,7 @@ class Factories(object):
         commit = Commit.objects.get_or_create(
             organization_id=repo.organization_id,
             repository_id=repo.id,
-            key=key or sha1(uuid4().hex).hexdigest(),
+            key=key or sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             defaults={
                 "message": message or make_sentence(),
                 "author": author
@@ -466,10 +520,10 @@ class Factories(object):
         return useremail
 
     @staticmethod
-    def store_event(data, project_id, assert_no_errors=True):
+    def store_event(data, project_id, assert_no_errors=True, sent_at=None):
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
-        manager = EventManager(data)
+        manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
         if assert_no_errors:
             errors = manager.get_data().get("errors")
@@ -517,7 +571,11 @@ class Factories(object):
             )
 
         return EventAttachment.objects.create(
-            project_id=event.project_id, event_id=event.event_id, file=file, **kwargs
+            project_id=event.project_id,
+            event_id=event.event_id,
+            file=file,
+            type=file.type,
+            **kwargs
         )
 
     @staticmethod
@@ -558,6 +616,7 @@ class Factories(object):
             object_name=object_name,
             cpu_name=cpu_name or "x86_64",
             file=file,
+            checksum=file.checksum,
             data=data,
             **kwargs
         )
@@ -612,17 +671,20 @@ class Factories(object):
         return _kwargs
 
     @staticmethod
-    def create_sentry_app_installation(organization=None, slug=None, user=None):
+    def create_sentry_app_installation(organization=None, slug=None, user=None, status=None):
         if not organization:
             organization = Factories.create_organization()
 
         Factories.create_project(organization=organization)
 
-        return sentry_app_installations.Creator.run(
-            slug=(slug or Factories.create_sentry_app().slug),
+        install = sentry_app_installations.Creator.run(
+            slug=(slug or Factories.create_sentry_app(organization=organization).slug),
             organization=organization,
             user=(user or Factories.create_user()),
         )
+        install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
+        install.save()
+        return install
 
     @staticmethod
     def create_issue_link_schema():
@@ -737,6 +799,22 @@ class Factories(object):
         )
 
     @staticmethod
+    def create_integration_external_issue(group=None, integration=None, key=None):
+        external_issue = ExternalIssue.objects.create(
+            organization_id=group.organization.id, integration_id=integration.id, key=key
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        return external_issue
+
+    @staticmethod
     def create_incident(
         organization,
         projects,
@@ -747,27 +825,29 @@ class Factories(object):
         date_started=None,
         date_detected=None,
         date_closed=None,
-        groups=None,
         seen_by=None,
+        alert_rule=None,
     ):
         if not title:
             title = petname.Generate(2, " ", letters=10).title()
+        if alert_rule is None:
+            alert_rule = Factories.create_alert_rule(
+                organization, projects, query=query, time_window=1
+            )
 
         incident = Incident.objects.create(
             organization=organization,
             detection_uuid=detection_uuid,
             status=status,
             title=title,
-            query=query,
+            alert_rule=alert_rule,
             date_started=date_started or timezone.now(),
             date_detected=date_detected or timezone.now(),
-            date_closed=date_closed or timezone.now(),
+            date_closed=timezone.now() if date_closed is not None else date_closed,
+            type=IncidentType.ALERT_TRIGGERED.value,
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
-        if groups:
-            for group in groups:
-                IncidentGroup.objects.create(incident=incident, group=group)
         if seen_by:
             for user in seen_by:
                 IncidentSeen.objects.create(incident=incident, user=user, last_seen=timezone.now())
@@ -785,12 +865,18 @@ class Factories(object):
         projects,
         name=None,
         query="level:error",
-        aggregation=QueryAggregations.TOTAL,
+        aggregate="count()",
         time_window=10,
         threshold_period=1,
         include_all_projects=False,
+        environment=None,
         excluded_projects=None,
         date_added=None,
+        dataset=QueryDatasets.EVENTS,
+        threshold_type=AlertRuleThresholdType.ABOVE,
+        resolve_threshold=None,
+        user=None,
+        event_types=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -800,11 +886,17 @@ class Factories(object):
             projects,
             name,
             query,
-            aggregation,
+            aggregate,
             time_window,
+            threshold_type,
             threshold_period,
+            resolve_threshold=resolve_threshold,
+            dataset=dataset,
+            environment=environment,
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
+            user=user,
+            event_types=event_types,
         )
 
         if date_added is not None:
@@ -813,18 +905,19 @@ class Factories(object):
         return alert_rule
 
     @staticmethod
-    def create_alert_rule_trigger(
-        alert_rule,
-        label=None,
-        threshold_type=AlertRuleThresholdType.ABOVE,
-        alert_threshold=100,
-        resolve_threshold=10,
-    ):
+    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
             label = petname.Generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(
-            alert_rule, label, threshold_type, alert_threshold, resolve_threshold
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
+
+    @staticmethod
+    def create_incident_trigger(incident, alert_rule_trigger, status=None):
+        if status is None:
+            status = TriggerStatus.ACTIVE.value
+
+        return IncidentTrigger.objects.create(
+            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status
         )
 
     @staticmethod
@@ -834,7 +927,8 @@ class Factories(object):
         target_type=AlertRuleTriggerAction.TargetType.USER,
         target_identifier=None,
         integration=None,
+        sentry_app=None,
     ):
         return create_alert_rule_trigger_action(
-            trigger, type, target_type, target_identifier, integration
+            trigger, type, target_type, target_identifier, integration, sentry_app
         )

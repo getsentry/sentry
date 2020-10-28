@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from mock import MagicMock, patch
+from django.utils import timezone
+
+from sentry.utils.compat.mock import MagicMock, patch
 
 from sentry.testutils.cases import RuleTestCase
 from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
@@ -62,3 +64,25 @@ class NotifyEventServiceActionTest(RuleTestCase):
         assert plugin.should_notify.call_count == 1
         assert results[0].callback is notify_sentry_app
         assert results[1].callback is plugin.rule_notify
+
+    def test_sentry_app_installed(self):
+        event = self.get_event()
+
+        self.create_sentry_app(
+            organization=event.organization, name="Test Application", is_alertable=True
+        )
+
+        self.install = self.create_sentry_app_installation(
+            slug="test-application", organization=event.organization
+        )
+
+        rule = self.get_rule(data={"service": "test-application"})
+
+        results = rule.get_services()
+        assert len(results) == 1
+
+        self.install.date_deleted = timezone.now()
+        self.install.save()
+
+        results = rule.get_services()
+        assert len(results) == 0

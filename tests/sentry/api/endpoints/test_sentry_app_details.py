@@ -4,9 +4,9 @@ from django.core.urlresolvers import reverse
 from sentry.constants import SentryAppStatus
 from sentry.models import SentryApp, OrganizationMember
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import Feature, with_feature
 from sentry.utils import json
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -122,6 +122,12 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
+            "featureData": [
+                {
+                    "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                    "featureGate": "integrations-api",
+                }
+            ],
         }
 
     def test_update_unpublished_app(self):
@@ -222,10 +228,11 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     def test_cannot_add_error_created_hook_without_flag(self):
         self.login_as(user=self.user)
-        app = self.create_sentry_app(name="SampleApp", organization=self.org)
-        url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
-        response = self.client.put(url, data={"events": ("error",)}, format="json")
-        assert response.status_code == 403
+        with Feature({"organizations:integrations-event-hooks": False}):
+            app = self.create_sentry_app(name="SampleApp", organization=self.org)
+            url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
+            response = self.client.put(url, data={"events": ("error",)}, format="json")
+            assert response.status_code == 403
 
     @with_feature("organizations:integrations-event-hooks")
     def test_can_add_error_created_hook_with_flag(self):

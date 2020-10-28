@@ -7,6 +7,7 @@ from sentry.api.event_search import (
     event_search_grammar,
     InvalidSearchQuery,
     SearchFilter,
+    AggregateFilter,
     SearchKey,
     SearchValue,
     SearchVisitor,
@@ -18,6 +19,7 @@ from sentry.search.utils import (
     parse_release,
     parse_status_value,
 )
+from sentry.utils.compat import map
 
 
 class IssueSearchVisitor(SearchVisitor):
@@ -82,7 +84,7 @@ def parse_search_query(query):
                 "This is commonly caused by unmatched-parentheses. Enclose any text in double quotes.",
             )
         )
-    return IssueSearchVisitor().visit(tree)
+    return IssueSearchVisitor(allow_boolean=False).visit(tree)
 
 
 def convert_actor_value(value, projects, user, environments):
@@ -129,6 +131,12 @@ def convert_query_values(search_filters, projects, user, environments):
             converter = value_converters[search_filter.key.name]
             new_value = converter(search_filter.value.raw_value, projects, user, environments)
             search_filter = search_filter._replace(value=SearchValue(new_value))
+        elif isinstance(search_filter, AggregateFilter):
+            raise InvalidSearchQuery(
+                u"Aggregate filters ({}) are not supported in issue searches.".format(
+                    search_filter.key.name
+                )
+            )
         return search_filter
 
     return map(convert_search_filter, search_filters)

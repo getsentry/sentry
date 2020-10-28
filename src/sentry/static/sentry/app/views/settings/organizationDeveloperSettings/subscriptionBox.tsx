@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {
   DESCRIPTIONS,
   EVENT_CHOICES,
 } from 'app/views/settings/organizationDeveloperSettings/constants';
-import styled from '@emotion/styled';
 import Checkbox from 'app/components/checkbox';
 import Tooltip from 'app/components/tooltip';
 import withOrganization from 'app/utils/withOrganization';
@@ -15,10 +15,13 @@ import {Organization} from 'app/types';
 
 type Resource = typeof EVENT_CHOICES[number];
 
-type Props = {
+type DefaultProps = {
+  webhookDisabled: boolean;
+};
+
+type Props = DefaultProps & {
   resource: Resource;
   disabledFromPermissions: boolean;
-  webhookDisabled: boolean;
   checked: boolean;
   onChange: (resource: Resource, checked: boolean) => void;
   organization: Organization;
@@ -34,7 +37,7 @@ export class SubscriptionBox extends React.Component<Props> {
     organization: SentryTypes.Organization,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };
 
@@ -97,7 +100,7 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  background: ${p => p.theme.whiteDark};
+  background: ${p => p.theme.gray100};
   opacity: ${({disabled}: {disabled: boolean}) => (disabled ? 0.3 : 1)};
   border-radius: 3px;
   flex: 1;
@@ -113,7 +116,7 @@ const SubscriptionGridItemWrapper = styled('div')`
 const SubscriptionDescription = styled('div')`
   font-size: 12px;
   line-height: 1;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   white-space: nowrap;
 `;
 

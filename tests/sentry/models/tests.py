@@ -139,13 +139,12 @@ class EventNodeStoreTest(TestCase):
         event.data._node_data = None
 
         with pytest.raises(NodeIntegrityFailure):
-            event.bind_node_data()
+            eventstore.bind_nodes([event])
 
     def test_accepts_valid_ref(self):
         self.store_event(data={"event_id": "a" * 32}, project_id=self.project.id)
         event = Event(project_id=self.project.id, event_id="a" * 32)
         event.data.bind_ref(event)
-        event.bind_node_data()
         assert event.data.ref == event.project.id
 
     def test_basic_ref_binding(self):

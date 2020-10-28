@@ -7,11 +7,11 @@ import IssueActions from './components/issueActions';
 
 class Jira extends DefaultIssuePlugin {
   renderSettings(props) {
-    return <Settings plugin={this} {...props} />;
+    return <Settings plugin={this.plugin} {...props} />;
   }
 
   renderGroupActions(props) {
-    return <IssueActions plugin={this} {...props} />;
+    return <IssueActions plugin={this.plugin} {...props} />;
   }
 }
 

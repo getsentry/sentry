@@ -1,30 +1,34 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import InlineSvg from 'app/components/inlineSvg';
+
+import {SentryAppComponent} from 'app/types';
+import {
+  IconClickup,
+  IconClubhouse,
+  IconRookout,
+  IconTeamwork,
+  IconLinear,
+  IconGeneric,
+} from 'app/icons';
 
 type Props = {
-  slug: string;
-} & Omit<React.ComponentPropsWithoutRef<typeof InlineSvg>, 'src'>;
+  slug: SentryAppComponent['sentryApp']['slug'];
+};
 
-export default class SentryAppIcon extends React.Component<Props> {
-  static propTypes = {
-    slug: PropTypes.string.isRequired,
-  };
-
-  iconExists() {
-    try {
-      require(`../icons/icon-${this.props.slug}.svg`);
-      return true;
-    } catch (err) {
-      return false;
-    }
+const SentryAppIcon = ({slug}: Props) => {
+  switch (slug) {
+    case 'clickup':
+      return <IconClickup size="md" />;
+    case 'clubhouse':
+      return <IconClubhouse size="md" />;
+    case 'rookout':
+      return <IconRookout size="md" />;
+    case 'teamwork':
+      return <IconTeamwork size="md" />;
+    case 'linear':
+      return <IconLinear size="md" />;
+    default:
+      return <IconGeneric size="md" />;
   }
+};
 
-  render() {
-    let icon = 'icon-generic-box';
-    if (this.iconExists()) {
-      icon = `icon-${this.props.slug}`;
-    }
-    return <InlineSvg {...this.props} src={icon} />;
-  }
-}
+export {SentryAppIcon};

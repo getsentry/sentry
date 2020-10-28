@@ -43,6 +43,7 @@ class GroupIntegrationsTest(APITestCase):
                 "status": integration.get_status_display(),
                 "provider": {
                     "key": provider.key,
+                    "slug": provider.key,
                     "name": provider.name,
                     "canAdd": provider.can_add,
                     "canDisable": provider.can_disable,

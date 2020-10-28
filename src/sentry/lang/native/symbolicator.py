@@ -12,21 +12,23 @@ from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 from six.moves.urllib.parse import urljoin
 
+import sentry_sdk
+
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.utils import json, metrics
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
+from sentry.models import Organization
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
-SYMBOLICATOR_TIMEOUT = 5
 
 logger = logging.getLogger(__name__)
 
 
-VALID_LAYOUTS = ("native", "symstore", "symstore_index2", "ssqp")
+VALID_LAYOUTS = ("native", "symstore", "symstore_index2", "ssqp", "unified", "debuginfod")
 
 VALID_FILE_TYPES = ("pe", "pdb", "mach_debug", "mach_code", "elf_debug", "elf_code", "breakpad")
 
@@ -109,7 +111,7 @@ class Symbolicator(object):
             url=base_url,
             project_id=six.text_type(project.id),
             event_id=six.text_type(event_id),
-            timeout=SYMBOLICATOR_TIMEOUT,
+            timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
         )
 
@@ -117,7 +119,7 @@ class Symbolicator(object):
 
     def _process(self, create_task):
         task_id = default_cache.get(self.task_id_cache_key)
-        json = None
+        json_response = None
 
         with self.sess:
             try:
@@ -125,15 +127,15 @@ class Symbolicator(object):
                     # Processing has already started and we need to poll
                     # symbolicator for an update. This in turn may put us back into
                     # the queue.
-                    json = self.sess.query_task(task_id)
+                    json_response = self.sess.query_task(task_id)
 
-                if json is None:
+                if json_response is None:
                     # This is a new task, so we compute all request parameters
                     # (potentially expensive if we need to pull minidumps), and then
                     # upload all information to symbolicator. It will likely not
                     # have a response ready immediately, so we start polling after
                     # some timeout.
-                    json = create_task()
+                    json_response = create_task()
             except ServiceUnavailable:
                 # 503 can indicate that symbolicator is restarting. Wait for a
                 # reboot, then try again. This overrides the default behavior of
@@ -144,20 +146,25 @@ class Symbolicator(object):
 
             metrics.incr(
                 "events.symbolicator.response",
-                tags={"response": json.get("status") or "null", "project_id": self.sess.project_id},
+                tags={"response": json_response.get("status") or "null"},
             )
 
             # Symbolication is still in progress. Bail out and try again
             # after some timeout. Symbolicator keeps the response for the
             # first one to poll it.
-            if json["status"] == "pending":
-                default_cache.set(self.task_id_cache_key, json["request_id"], REQUEST_CACHE_TIMEOUT)
-                raise RetrySymbolication(retry_after=json["retry_after"])
+            if json_response["status"] == "pending":
+                default_cache.set(
+                    self.task_id_cache_key, json_response["request_id"], REQUEST_CACHE_TIMEOUT
+                )
+                raise RetrySymbolication(retry_after=json_response["retry_after"])
             else:
                 # Once we arrive here, we are done processing. Clean up the
                 # task id from the cache.
                 default_cache.delete(self.task_id_cache_key)
-                return json
+                metrics.timing(
+                    "events.symbolicator.response.completed.size", len(json.dumps(json_response))
+                )
+                return json_response
 
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump))
@@ -225,7 +232,7 @@ def parse_sources(config):
     try:
         sources = json.loads(config)
     except BaseException as e:
-        raise InvalidSourcesError(e.message)
+        raise InvalidSourcesError(six.text_type(e))
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
@@ -249,6 +256,12 @@ def get_sources_for_project(project):
     """
 
     sources = []
+
+    if not getattr(project, "_organization_cache", False):
+        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+            project._organization_cache = Organization.objects.get_from_cache(
+                id=project.organization_id
+            )
 
     # The symbolicator evaluates sources in the order they are declared. Always
     # try to download symbols from Sentry first.
@@ -314,8 +327,6 @@ class SymbolicatorSession(object):
         self.timeout = timeout
         self.session = None
 
-        self._query_params = {"timeout": timeout, "scope": project_id}
-
     def __enter__(self):
         self.open()
         return self
@@ -350,7 +361,12 @@ class SymbolicatorSession(object):
 
         while True:
             try:
-                response = self.session.request(method, url, **kwargs)
+                with metrics.timer(
+                    "events.symbolicator.session.request", tags={"attempt": attempts}
+                ):
+                    response = self.session.request(
+                        method, url, timeout=settings.SYMBOLICATOR_POLL_TIMEOUT + 1, **kwargs
+                    )
 
                 metrics.incr(
                     "events.symbolicator.status_code",
@@ -377,7 +393,15 @@ class SymbolicatorSession(object):
                     json = {"status": "failed", "message": "internal server error"}
 
                 return json
-            except (IOError, RequestException):
+            except (IOError, RequestException) as e:
+                metrics.incr(
+                    "events.symbolicator.request_error",
+                    tags={
+                        "exc": ".".join([e.__class__.__module__, e.__class__.__name__]),
+                        "attempt": attempts,
+                    },
+                )
+
                 attempts += 1
                 # Any server error needs to be treated as a failure. We can
                 # retry a couple of times, but ultimately need to bail out.
@@ -390,35 +414,43 @@ class SymbolicatorSession(object):
                 time.sleep(wait)
                 wait *= 2.0
 
+    def _create_task(self, path, **kwargs):
+        params = {"timeout": self.timeout, "scope": self.project_id}
+        with metrics.timer("events.symbolicator.create_task", tags={"path": path}):
+            return self._request(method="post", path=path, params=params, **kwargs)
+
     def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
         json = {"sources": self.sources, "stacktraces": stacktraces, "modules": modules}
 
         if signal:
             json["signal"] = signal
 
-        return self._request("post", "symbolicate", params=self._query_params, json=json)
+        return self._create_task("symbolicate", json=json)
 
     def upload_minidump(self, minidump):
-        return self._request(
-            method="post",
+        return self._create_task(
             path="minidump",
-            params=self._query_params,
             data={"sources": json.dumps(self.sources)},
             files={"upload_file_minidump": minidump},
         )
 
     def upload_applecrashreport(self, report):
-        return self._request(
-            method="post",
+        return self._create_task(
             path="applecrashreport",
-            params=self._query_params,
             data={"sources": json.dumps(self.sources)},
             files={"apple_crash_report": report},
         )
 
     def query_task(self, task_id):
         task_url = "requests/%s" % (task_id,)
-        return self._request("get", task_url, params=self._query_params)
+
+        params = {
+            "timeout": 0,  # Only wait when creating, but not when querying tasks
+            "scope": self.project_id,
+        }
+
+        with metrics.timer("events.symbolicator.query_task"):
+            return self._request("get", task_url, params=params)
 
     def healthcheck(self):
         return self._request("get", "healthcheck")

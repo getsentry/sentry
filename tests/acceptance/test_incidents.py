@@ -5,11 +5,8 @@ import pytz
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.incidents.logic import create_incident
-from sentry.incidents.models import IncidentType
-from sentry.snuba.models import QueryAggregations
 
-FEATURE_NAME = "organizations:incidents"
+FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
@@ -18,7 +15,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationIncidentsListTest, self).setUp()
         self.login_as(self.user)
-        self.path = u"/organizations/{}/incidents/".format(self.organization.slug)
+        self.path = u"/organizations/{}/alerts/".format(self.organization.slug)
 
     def test_empty_incidents(self):
         with self.feature(FEATURE_NAME):
@@ -27,23 +24,24 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("incidents - empty state")
 
     def test_incidents_list(self):
-        incident = create_incident(
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(
             self.organization,
-            type=IncidentType.CREATED,
             title="Incident #1",
-            query="",
-            aggregation=QueryAggregations.TOTAL,
             date_started=timezone.now(),
+            date_detected=timezone.now(),
             projects=[self.project],
-            groups=[self.group],
+            alert_rule=alert_rule,
         )
+
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.wait_until_test_id("incident-sparkline")
             self.browser.snapshot("incidents - list")
 
-            details_url = u'[href="/organizations/{}/incidents/{}/'.format(
+            details_url = u'[href="/organizations/{}/alerts/{}/'.format(
                 self.organization.slug, incident.identifier
             )
             self.browser.wait_until(details_url)
@@ -52,4 +50,5 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_test_id("incident-title")
 
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.browser.blur()
             self.browser.snapshot("incidents - details")

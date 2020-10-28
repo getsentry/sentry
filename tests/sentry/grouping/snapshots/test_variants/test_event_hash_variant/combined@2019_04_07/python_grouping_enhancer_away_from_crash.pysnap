@@ -1,246 +1,246 @@
 ---
-created: '2019-09-03T07:26:06.609215Z'
+created: '2020-02-26T19:54:25.404612Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '79f7443afa4022bb3e5093e765e755bb'
+  hash: "79f7443afa4022bb3e5093e765e755bb"
   component:
     app*
       exception*
         stacktrace*
           frame (non app frame)
             module*
-              u'django.core.handlers.base'
+              "django.core.handlers.base"
             filename (module takes precedence)
-              u'django/core/handlers/base.py'
+              "django/core/handlers/base.py"
             context-line*
-              u'                    response = wrapped_callback(request, *callback_args, **callback_kwargs)'
+              "                    response = wrapped_callback(request, *callback_args, **callback_kwargs)"
             function (function name is not used if context-line is available)
-              u'get_response'
+              "get_response"
             lineno (line number is not used if context-line is available)
               112
           frame (non app frame)
             module*
-              u'django.views.generic.base'
+              "django.views.generic.base"
             filename (module takes precedence)
-              u'django/views/generic/base.py'
+              "django/views/generic/base.py"
             context-line*
-              u'            return self.dispatch(request, *args, **kwargs)'
+              "            return self.dispatch(request, *args, **kwargs)"
             function (function name is not used if context-line is available)
-              u'view'
+              "view"
             lineno (line number is not used if context-line is available)
               69
           frame (non app frame)
             module*
-              u'django.utils.decorators'
+              "django.utils.decorators"
             filename (module takes precedence)
-              u'django/utils/decorators.py'
+              "django/utils/decorators.py"
             context-line*
-              u'            return bound_func(*args, **kwargs)'
+              "            return bound_func(*args, **kwargs)"
             function (function name is not used if context-line is available)
-              u'_wrapper'
+              "_wrapper"
             lineno (line number is not used if context-line is available)
               29
           frame (non app frame)
             module*
-              u'django.views.decorators.csrf'
+              "django.views.decorators.csrf"
             filename (module takes precedence)
-              u'django/views/decorators/csrf.py'
+              "django/views/decorators/csrf.py"
             context-line*
-              u'        return view_func(*args, **kwargs)'
+              "        return view_func(*args, **kwargs)"
             function (function name is not used if context-line is available)
-              u'wrapped_view'
+              "wrapped_view"
             lineno (line number is not used if context-line is available)
               57
           frame (non app frame)
             module*
-              u'django.utils.decorators'
+              "django.utils.decorators"
             filename (module takes precedence)
-              u'django/utils/decorators.py'
+              "django/utils/decorators.py"
             context-line*
-              u'                return func(self, *args2, **kwargs2)'
+              "                return func(self, *args2, **kwargs2)"
             function (function name is not used if context-line is available)
-              u'bound_func'
+              "bound_func"
             lineno (line number is not used if context-line is available)
               25
           frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
-              u'sentry.web.frontend.release_webhook'
+              "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
-              u'sentry/web/frontend/release_webhook.py'
+              "sentry/web/frontend/release_webhook.py"
             context-line*
-              u'        return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)'
+              "        return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
             function (function name is not used if context-line is available)
-              u'dispatch'
+              "dispatch"
             lineno (line number is not used if context-line is available)
               37
           frame (non app frame)
             module*
-              u'django.views.generic.base'
+              "django.views.generic.base"
             filename (module takes precedence)
-              u'django/views/generic/base.py'
+              "django/views/generic/base.py"
             context-line*
-              u'        return handler(request, *args, **kwargs)'
+              "        return handler(request, *args, **kwargs)"
             function (function name is not used if context-line is available)
-              u'dispatch'
+              "dispatch"
             lineno (line number is not used if context-line is available)
               87
           frame*
             module*
-              u'sentry.web.frontend.release_webhook'
+              "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
-              u'sentry/web/frontend/release_webhook.py'
+              "sentry/web/frontend/release_webhook.py"
             context-line*
-              u'            hook.handle(request)'
+              "            hook.handle(request)"
             function (function name is not used if context-line is available)
-              u'post'
+              "post"
             lineno (line number is not used if context-line is available)
               127
           frame*
             module*
-              u'sentry_plugins.heroku.plugin'
+              "sentry_plugins.heroku.plugin"
             filename (module takes precedence)
-              u'sentry_plugins/heroku/plugin.py'
+              "sentry_plugins/heroku/plugin.py"
             context-line*
-              u"        email = request.POST['user']"
+              "        email = request.POST['user']"
             function (function name is not used if context-line is available)
-              u'handle'
+              "handle"
             lineno (line number is not used if context-line is available)
               17
           frame (non app frame)
             module*
-              u'django.utils.datastructures'
+              "django.utils.datastructures"
             filename (module takes precedence)
-              u'django/utils/datastructures.py'
+              "django/utils/datastructures.py"
             context-line*
-              u'            raise MultiValueDictKeyError(repr(key))'
+              "            raise MultiValueDictKeyError(repr(key))"
             function (function name is not used if context-line is available)
-              u'__getitem__'
+              "__getitem__"
             lineno (line number is not used if context-line is available)
               301
         type*
-          u'MultiValueDictKeyError'
+          "MultiValueDictKeyError"
         value (stacktrace and type take precedence)
-          u'"\'user\'"'
+          "\"'user'\""
 --------------------------------------------------------------------------
 system:
-  hash: '5586fbb54ed18866eea266e91cee7f8b'
+  hash: "5586fbb54ed18866eea266e91cee7f8b"
   component:
     system*
       exception*
         stacktrace*
           frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
-              u'django.core.handlers.base'
+              "django.core.handlers.base"
             filename (module takes precedence)
-              u'django/core/handlers/base.py'
+              "django/core/handlers/base.py"
             context-line*
-              u'                    response = wrapped_callback(request, *callback_args, **callback_kwargs)'
+              "                    response = wrapped_callback(request, *callback_args, **callback_kwargs)"
             function (function name is not used if context-line is available)
-              u'get_response'
+              "get_response"
             lineno (line number is not used if context-line is available)
               112
           frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
-              u'django.views.generic.base'
+              "django.views.generic.base"
             filename (module takes precedence)
-              u'django/views/generic/base.py'
+              "django/views/generic/base.py"
             context-line*
-              u'            return self.dispatch(request, *args, **kwargs)'
+              "            return self.dispatch(request, *args, **kwargs)"
             function (function name is not used if context-line is available)
-              u'view'
+              "view"
             lineno (line number is not used if context-line is available)
               69
           frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
-              u'django.utils.decorators'
+              "django.utils.decorators"
             filename (module takes precedence)
-              u'django/utils/decorators.py'
+              "django/utils/decorators.py"
             context-line*
-              u'            return bound_func(*args, **kwargs)'
+              "            return bound_func(*args, **kwargs)"
             function (function name is not used if context-line is available)
-              u'_wrapper'
+              "_wrapper"
             lineno (line number is not used if context-line is available)
               29
           frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
-              u'django.views.decorators.csrf'
+              "django.views.decorators.csrf"
             filename (module takes precedence)
-              u'django/views/decorators/csrf.py'
+              "django/views/decorators/csrf.py"
             context-line*
-              u'        return view_func(*args, **kwargs)'
+              "        return view_func(*args, **kwargs)"
             function (function name is not used if context-line is available)
-              u'wrapped_view'
+              "wrapped_view"
             lineno (line number is not used if context-line is available)
               57
           frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
-              u'django.utils.decorators'
+              "django.utils.decorators"
             filename (module takes precedence)
-              u'django/utils/decorators.py'
+              "django/utils/decorators.py"
             context-line*
-              u'                return func(self, *args2, **kwargs2)'
+              "                return func(self, *args2, **kwargs2)"
             function (function name is not used if context-line is available)
-              u'bound_func'
+              "bound_func"
             lineno (line number is not used if context-line is available)
               25
           frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
-              u'sentry.web.frontend.release_webhook'
+              "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
-              u'sentry/web/frontend/release_webhook.py'
+              "sentry/web/frontend/release_webhook.py"
             context-line*
-              u'        return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)'
+              "        return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
             function (function name is not used if context-line is available)
-              u'dispatch'
+              "dispatch"
             lineno (line number is not used if context-line is available)
               37
           frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
-              u'django.views.generic.base'
+              "django.views.generic.base"
             filename (module takes precedence)
-              u'django/views/generic/base.py'
+              "django/views/generic/base.py"
             context-line*
-              u'        return handler(request, *args, **kwargs)'
+              "        return handler(request, *args, **kwargs)"
             function (function name is not used if context-line is available)
-              u'dispatch'
+              "dispatch"
             lineno (line number is not used if context-line is available)
               87
           frame*
             module*
-              u'sentry.web.frontend.release_webhook'
+              "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
-              u'sentry/web/frontend/release_webhook.py'
+              "sentry/web/frontend/release_webhook.py"
             context-line*
-              u'            hook.handle(request)'
+              "            hook.handle(request)"
             function (function name is not used if context-line is available)
-              u'post'
+              "post"
             lineno (line number is not used if context-line is available)
               127
           frame*
             module*
-              u'sentry_plugins.heroku.plugin'
+              "sentry_plugins.heroku.plugin"
             filename (module takes precedence)
-              u'sentry_plugins/heroku/plugin.py'
+              "sentry_plugins/heroku/plugin.py"
             context-line*
-              u"        email = request.POST['user']"
+              "        email = request.POST['user']"
             function (function name is not used if context-line is available)
-              u'handle'
+              "handle"
             lineno (line number is not used if context-line is available)
               17
           frame*
             module*
-              u'django.utils.datastructures'
+              "django.utils.datastructures"
             filename (module takes precedence)
-              u'django/utils/datastructures.py'
+              "django/utils/datastructures.py"
             context-line*
-              u'            raise MultiValueDictKeyError(repr(key))'
+              "            raise MultiValueDictKeyError(repr(key))"
             function (function name is not used if context-line is available)
-              u'__getitem__'
+              "__getitem__"
             lineno (line number is not used if context-line is available)
               301
         type*
-          u'MultiValueDictKeyError'
+          "MultiValueDictKeyError"
         value (stacktrace and type take precedence)
-          u'"\'user\'"'
+          "\"'user'\""

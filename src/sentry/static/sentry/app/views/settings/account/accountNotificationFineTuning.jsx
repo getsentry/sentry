@@ -1,4 +1,3 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -21,7 +20,11 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
     title: 'Project Alerts',
     description: t('Control alerts that you receive per project.'),
     type: 'select',
-    choices: [[-1, t('Default')], [1, t('On')], [0, t('Off')]],
+    choices: [
+      [-1, t('Default')],
+      [1, t('On')],
+      [0, t('Off')],
+    ],
     defaultValue: -1,
     defaultFieldName: 'subscribeByDefault',
   },
@@ -63,7 +66,10 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
     type: 'select',
     // API only saves organizations that have this disabled, so we should default to "On"
     defaultValue: 1,
-    choices: [[1, t('On')], [0, t('Off')]],
+    choices: [
+      [1, t('On')],
+      [0, t('Off')],
+    ],
     defaultFieldName: 'weeklyReports',
   },
 
@@ -111,48 +117,41 @@ class AccountNotificationsByProject extends React.Component {
     const {projects, field} = this.props;
     const projectsByOrg = groupByOrganization(projects);
 
-    // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {title, description, ...fieldConfig} = field;
 
     // Display as select box in this view regardless of the type specified in the config
-    return Object.values(projectsByOrg).map(org => {
-      return {
-        name: org.organization.name,
-        projects: org.projects.map(project => {
-          return {
-            ...fieldConfig,
-            // `name` key refers to field name
-            // we use project.id because slugs are not unique across orgs
-            name: project.id,
-            label: project.slug,
-          };
-        }),
-      };
-    });
+    return Object.values(projectsByOrg).map(org => ({
+      name: org.organization.name,
+      projects: org.projects.map(project => ({
+        ...fieldConfig,
+        // `name` key refers to field name
+        // we use project.id because slugs are not unique across orgs
+        name: project.id,
+        label: project.slug,
+      })),
+    }));
   }
 
   render() {
     const data = this.getFieldData();
 
-    return data.map(({name, projects: projectFields}) => {
-      return (
-        <div key={name}>
-          <PanelHeader>{name}</PanelHeader>
-          {projectFields.map(field => {
-            return (
-              <PanelBodyLineItem key={field.name}>
-                <SelectField
-                  defaultValue={field.defaultValue}
-                  name={field.name}
-                  choices={field.choices}
-                  label={field.label}
-                />
-              </PanelBodyLineItem>
-            );
-          })}
-        </div>
-      );
-    });
+    return data.map(({name, projects: projectFields}) => (
+      <div key={name}>
+        <PanelHeader>{name}</PanelHeader>
+        {projectFields.map(field => (
+          <PanelBodyLineItem key={field.name}>
+            <SelectField
+              deprecatedSelectControl
+              defaultValue={field.defaultValue}
+              name={field.name}
+              choices={field.choices}
+              label={field.label}
+            />
+          </PanelBodyLineItem>
+        ))}
+      </div>
+    ));
   }
 }
 
@@ -164,19 +163,17 @@ class AccountNotificationsByOrganization extends React.Component {
 
   getFieldData() {
     const {field, organizations} = this.props;
-    // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {title, description, ...fieldConfig} = field;
 
     // Display as select box in this view regardless of the type specified in the config
-    return organizations.map(org => {
-      return {
-        ...fieldConfig,
-        // `name` key refers to field name
-        // we use org.id to remain consistent project.id use (which is required because slugs are not unique across orgs)
-        name: org.id,
-        label: org.slug,
-      };
-    });
+    return organizations.map(org => ({
+      ...fieldConfig,
+      // `name` key refers to field name
+      // we use org.id to remain consistent project.id use (which is required because slugs are not unique across orgs)
+      name: org.id,
+      label: org.slug,
+    }));
   }
 
   render() {
@@ -184,18 +181,17 @@ class AccountNotificationsByOrganization extends React.Component {
 
     return (
       <React.Fragment>
-        {orgFields.map(field => {
-          return (
-            <PanelBodyLineItem key={field.name}>
-              <SelectField
-                defaultValue={field.defaultValue}
-                name={field.name}
-                choices={field.choices}
-                label={field.label}
-              />
-            </PanelBodyLineItem>
-          );
-        })}
+        {orgFields.map(field => (
+          <PanelBodyLineItem key={field.name}>
+            <SelectField
+              deprecatedSelectControl
+              defaultValue={field.defaultValue}
+              name={field.name}
+              choices={field.choices}
+              label={field.label}
+            />
+          </PanelBodyLineItem>
+        ))}
       </React.Fragment>
     );
   }
@@ -283,15 +279,15 @@ export default class AccountNotificationFineTuning extends AsyncView {
         <Panel>
           <PanelBody>
             <PanelHeader hasButtons={isProject}>
-              <Box flex="1">{isProject ? t('Projects') : t('Organizations')}</Box>
-              <Box>
+              <Heading>{isProject ? t('Projects') : t('Organizations')}</Heading>
+              <div>
                 {isProject &&
                   this.renderSearchInput({
                     placeholder: t('Search Projects'),
                     url,
                     stateKey,
                   })}
-              </Box>
+              </div>
             </PanelHeader>
 
             <Form
@@ -325,3 +321,7 @@ export default class AccountNotificationFineTuning extends AsyncView {
     );
   }
 }
+
+const Heading = styled('div')`
+  flex: 1;
+`;

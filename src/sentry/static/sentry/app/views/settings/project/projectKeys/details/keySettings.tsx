@@ -18,6 +18,7 @@ import DateTime from 'app/components/dateTime';
 import ExternalLink from 'app/components/links/externalLink';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
+import {IconFlag} from 'app/icons';
 import KeyRateLimitsForm from 'app/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -57,7 +58,7 @@ class KeySettings extends React.Component<Props, State> {
       return;
     }
 
-    addLoadingMessage(t('Revoking key..'));
+    addLoadingMessage(t('Revoking key\u2026'));
     const {api, onRemove, params} = this.props;
     const {keyId, orgId, projectId} = params;
 
@@ -153,6 +154,7 @@ class KeySettings extends React.Component<Props, State> {
                     </TextCopyInput>
                   </Field>
                   <SelectField
+                    deprecatedSelectControl
                     name="browserSdkVersion"
                     choices={data.browserSdk ? data.browserSdk.choices : []}
                     placeholder={t('4.x')}
@@ -169,7 +171,7 @@ class KeySettings extends React.Component<Props, State> {
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
-                <PanelAlert type="info" icon="icon-circle-exclamation">
+                <PanelAlert type="info" icon={<IconFlag size="md" />}>
                   {t(
                     'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
                   )}

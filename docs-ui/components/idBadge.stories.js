@@ -1,5 +1,4 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
@@ -19,46 +18,59 @@ const Header = styled('h2')`
 `;
 Header.displayName = 'Header';
 
-storiesOf('UI|IdBadge', module).add(
-  'all',
-  withInfo({
-    text:
-      'These are identification badges for certain models in Sentry: Organization, Project, Team, and User.',
-    propTablesExclude: [Item, Header, React.Fragment],
-  })(() => {
-    const user = {
-      name: 'Chrissy',
-      email: 'chris.clark@sentry.io',
-    };
-    const team = {
-      slug: 'team-slug',
-    };
-    const project = {
-      slug: 'project-slug',
-    };
-    const organization = {
-      slug: 'organization-slug',
-    };
+export default {
+  title: 'Core/Badges+Tags/IdBadge',
+};
 
-    return (
-      <React.Fragment>
-        <Header>User Badge</Header>
-        <Item>
-          <IdBadge user={user} />
-        </Item>
-        <Header>Team Badge</Header>
-        <Item>
-          <IdBadge team={team} />
-        </Item>
-        <Header>Project Badge</Header>
-        <Item>
-          <IdBadge project={project} />
-        </Item>
-        <Header>Organization Badge</Header>
-        <Item>
-          <IdBadge organization={organization} />
-        </Item>
-      </React.Fragment>
-    );
-  })
-);
+export const All = withInfo({
+  text:
+    'These are identification badges for certain models in Sentry: Organization, Project, Team, and User.',
+  propTablesExclude: [Item, Header, React.Fragment],
+})(() => {
+  const user = {
+    name: 'Chrissy',
+    email: 'chris.clark@sentry.io',
+  };
+  const team = {
+    slug: 'team-slug',
+  };
+  const project = {
+    slug: 'project-slug',
+  };
+  const organization = {
+    slug: 'organization-slug',
+  };
+  const member = {
+    name: 'Pending Member',
+    email: 'member@example.org',
+  };
+
+  return (
+    <React.Fragment>
+      <Header>User Badge</Header>
+      <Item>
+        <IdBadge user={user} />
+      </Item>
+      <Header>Member Badge</Header>
+      <Item>
+        <IdBadge member={member} />
+      </Item>
+      <Header>Team Badge</Header>
+      <Item>
+        <IdBadge team={team} />
+      </Item>
+      <Header>Project Badge</Header>
+      <Item>
+        <IdBadge project={project} />
+      </Item>
+      <Header>Organization Badge</Header>
+      <Item>
+        <IdBadge organization={organization} />
+      </Item>
+    </React.Fragment>
+  );
+});
+
+All.story = {
+  name: 'all',
+};

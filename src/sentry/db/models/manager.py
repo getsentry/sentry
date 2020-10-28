@@ -20,6 +20,7 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
+from sentry.utils.compat import zip
 
 __all__ = ("BaseManager", "OptionManager")
 
@@ -66,6 +67,10 @@ class BaseQuerySet(QuerySet):
         raise NotImplementedError("Use ``values_list`` instead [performance].")
 
     def only(self, *args, **kwargs):
+        # In rare cases Django can use this if a field is unexpectedly deferred. This
+        # mostly can happen if a field is added to a model, and then an old pickle is
+        # passed to a process running the new code. So if you see this error after a
+        # deploy of a model with a new field, it'll likely fix itself post-deploy.
         raise NotImplementedError("Use ``values_list`` instead [performance].")
 
 
@@ -76,6 +81,12 @@ class BaseManager(Manager):
     _queryset_class = BaseQuerySet
 
     def __init__(self, *args, **kwargs):
+        #: Model fields for which we should build up a cache to be used with
+        #: Model.objects.get_from_cache(fieldname=value)`.
+        #:
+        #: Note that each field by its own needs to be a potential primary key
+        #: (uniquely identify a row), so for example organization slug is ok,
+        #: project slug is not.
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
         self._cache_version = kwargs.pop("cache_version", None)
@@ -261,7 +272,7 @@ class BaseManager(Manager):
         the cache key is cleared on save.
         """
         if not self.cache_fields or len(kwargs) > 1:
-            return self.get(**kwargs)
+            raise ValueError("We cannot cache this query. Just hit the database.")
 
         key, value = next(six.iteritems(kwargs))
         pk_name = self.model._meta.pk.name
@@ -317,13 +328,22 @@ class BaseManager(Manager):
 
             return retval
         else:
-            return self.get(**kwargs)
+            raise ValueError("We cannot cache this query. Just hit the database.")
 
     def get_many_from_cache(self, values, key="pk"):
         """
         Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
         the intermediate value.  Callee is responsible for making sure the
         cache key is cleared on save.
+
+        NOTE: We can only query by primary key or some other unique identifier.
+        It is not possible to e.g. run `Project.objects.get_many_from_cache([1,
+        2, 3], key="organization_id")` and get back all projects belonging to
+        those orgs. The length of the return value is bounded by the length of
+        `values`.
+
+        For most models, if one attempts to use a non-PK value this will just
+        degrade to a DB query, like with `get_from_cache`.
         """
 
         pk_name = self.model._meta.pk.name
@@ -336,7 +356,7 @@ class BaseManager(Manager):
             key = key.split("__exact", 1)[0]
 
         if key not in self.cache_fields and key != pk_name:
-            return self.filter(**{key + "__in": values})
+            raise ValueError("We cannot cache this query. Just hit the database.")
 
         final_results = []
         cache_lookup_cache_keys = []

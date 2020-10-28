@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.test import RequestFactory
 from exam import fixture
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.middleware.health import HealthCheck
 from sentry.status_checks import Problem

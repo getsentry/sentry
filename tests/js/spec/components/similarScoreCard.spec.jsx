@@ -1,19 +1,21 @@
 import React from 'react';
-import {shallow} from 'sentry-test/enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import SimilarScoreCard from 'app/components/similarScoreCard';
 
-describe('SimilarScoreCard', function() {
-  beforeEach(function() {});
+describe('SimilarScoreCard', function () {
+  beforeEach(function () {});
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  it('renders', function() {
-    const wrapper = shallow(<SimilarScoreCard />);
-    expect(wrapper).toMatchSnapshot();
+  it('renders', function () {
+    const wrapper = mountWithTheme(<SimilarScoreCard />);
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders with score list', function() {
-    const wrapper = shallow(
+  it('renders with score list', function () {
+    const wrapper = mountWithTheme(
       <SimilarScoreCard
         scoreList={[
           ['exception,message,character-shingles', null],
@@ -23,6 +25,6 @@ describe('SimilarScoreCard', function() {
         ]}
       />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

@@ -4,25 +4,36 @@ from six.moves.urllib.parse import urlencode
 from django.test import RequestFactory
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.auth.helper import handle_new_user
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 from sentry.testutils import TestCase
-from sentry.auth.helper import handle_new_user
+from sentry.utils.compat import mock
 
 
 class HandleNewUserTest(TestCase):
-    def test_simple(self):
+    @mock.patch("sentry.analytics.record")
+    def test_simple(self, mock_record):
+        provider = "dummy"
         request = RequestFactory().post("/auth/sso/")
         request.user = AnonymousUser()
 
-        provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider=provider
+        )
         identity = {"id": "1234", "email": "test@example.com", "name": "Morty"}
 
-        auth_identity = handle_new_user(provider, self.organization, request, identity)
+        auth_identity = handle_new_user(auth_provider, self.organization, request, identity)
+        user = auth_identity.user
 
-        assert auth_identity.user.email == identity["email"]
-        assert OrganizationMember.objects.filter(
-            organization=self.organization, user=auth_identity.user
-        ).exists()
+        assert user.email == identity["email"]
+        assert OrganizationMember.objects.filter(organization=self.organization, user=user).exists()
+
+        signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
+        assert signup_record == [
+            mock.call(
+                "user.signup", user_id=user.id, source="sso", provider=provider, referrer="in-app"
+            )
+        ]
 
     def test_associated_existing_member_invite_by_email(self):
         request = RequestFactory().post("/auth/sso/")

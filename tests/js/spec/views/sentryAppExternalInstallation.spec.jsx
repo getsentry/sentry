@@ -11,7 +11,7 @@ describe('SentryAppExternalInstallation', () => {
     getOrgsMock,
     getOrgMock,
     getAppMock,
-    getInstalltionsMock,
+    getInstallationsMock,
     getFeaturesMock,
     getMountedComponent,
     org1,
@@ -70,7 +70,7 @@ describe('SentryAppExternalInstallation', () => {
         url: `/organizations/${org1.slug}/`,
         body: org1,
       });
-      getInstalltionsMock = MockApiClient.addMockResponse({
+      getInstallationsMock = MockApiClient.addMockResponse({
         url: `/organizations/${org1.slug}/sentry-app-installations/`,
         body: [],
       });
@@ -82,7 +82,7 @@ describe('SentryAppExternalInstallation', () => {
       expect(getAppMock).toHaveBeenCalled();
       expect(getOrgsMock).toHaveBeenCalled();
       expect(getOrgMock).toHaveBeenCalled();
-      expect(getInstalltionsMock).toHaveBeenCalled();
+      expect(getInstallationsMock).toHaveBeenCalled();
       expect(getFeaturesMock).toHaveBeenCalled();
       expect(wrapper.state('organization')).toBe(org1);
       expect(wrapper.find('.Select-multi-value-wrapper')).toHaveLength(0);
@@ -118,9 +118,7 @@ describe('SentryAppExternalInstallation', () => {
       );
 
       expect(window.location.assign).toHaveBeenCalledWith(
-        `https://google.com/?code=${install.code}&installationId=${
-          install.uuid
-        }&orgSlug=${org1.slug}`
+        `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}`
       );
       window.location.assign.mockRestore();
     });
@@ -147,7 +145,7 @@ describe('SentryAppExternalInstallation', () => {
         body: org2,
       });
 
-      getInstalltionsMock = MockApiClient.addMockResponse({
+      getInstallationsMock = MockApiClient.addMockResponse({
         url: `/organizations/${org2.slug}/sentry-app-installations/`,
         body: [],
       });
@@ -166,7 +164,7 @@ describe('SentryAppExternalInstallation', () => {
       expect(wrapper.state('selectedOrgSlug')).toBe(org2.slug);
       expect(wrapper.state('organization')).toBe(org2);
       expect(getOrgMock).toHaveBeenCalled();
-      expect(getInstalltionsMock).toHaveBeenCalled();
+      expect(getInstallationsMock).toHaveBeenCalled();
       expect(getFeaturesMock).toHaveBeenCalled();
     });
   });

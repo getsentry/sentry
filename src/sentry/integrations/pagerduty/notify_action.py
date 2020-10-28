@@ -3,13 +3,14 @@ Used for notifying a *specific* plugin
 """
 from __future__ import absolute_import
 
+import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _
-from sentry.constants import ObjectStatus
 
+from sentry.constants import ObjectStatus
 from sentry.rules.actions.base import EventAction
-from sentry.models import Integration, PagerDutyService
-from sentry.integrations.exceptions import ApiError
+from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.shared_integrations.exceptions import ApiError
 from .client import PagerDutyClient
 
 
@@ -64,6 +65,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
 class PagerDutyNotifyServiceAction(EventAction):
     form_cls = PagerDutyNotifyServiceForm
     label = "Send a notification to PagerDuty account {account} and service {service}"
+    prompt = "Send a PagerDuty notification"
 
     def __init__(self, *args, **kwargs):
         super(PagerDutyNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -79,9 +81,6 @@ class PagerDutyNotifyServiceAction(EventAction):
         return self.get_integrations().exists()
 
     def after(self, event, state):
-        if event.group.is_ignored():
-            return
-
         integration_id = self.get_option("account")
         service_id = self.get_option("service")
 
@@ -104,12 +103,29 @@ class PagerDutyNotifyServiceAction(EventAction):
         def send_notification(event, futures):
             client = PagerDutyClient(integration_key=service.integration_key)
             try:
-                client.send_trigger(event)
+                resp = client.send_trigger(event)
             except ApiError as e:
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
-                    extra={"error": e.message, "service": service.service_name},
+                    extra={
+                        "error": six.text_type(e),
+                        "service_name": service.service_name,
+                        "service_id": service.id,
+                    },
                 )
+                raise e
+
+            # TODO(meredith): Maybe have a generic success log statements for
+            # first-party integrations similar to plugin `notification.dispatched`
+            self.logger.info(
+                "rule.success.pagerduty_trigger",
+                extra={
+                    "status_code": resp.status_code,
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                    "service_id": service.id,
+                },
+            )
 
         key = u"pagerduty:{}".format(integration.id)
         yield self.future(send_notification, key=key)
@@ -124,15 +140,16 @@ class PagerDutyNotifyServiceAction(EventAction):
         return integrations
 
     def get_services(self):
+        organization = self.project.organization
         integrations = Integration.objects.filter(
-            provider="pagerduty",
-            organizations=self.project.organization,
-            status=ObjectStatus.VISIBLE,
+            provider="pagerduty", organizations=organization, status=ObjectStatus.VISIBLE
         )
         services = []
         for integration in integrations:
             service_list = PagerDutyService.objects.filter(
-                organization_integration_id__in=integration.organizationintegration_set.all()
+                organization_integration_id=OrganizationIntegration.objects.get(
+                    organization=organization, integration=integration
+                )
             ).values_list("id", "service_name")
             services += service_list
         return services

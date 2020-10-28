@@ -6,14 +6,16 @@ import styled from '@emotion/styled';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
-import EventsRequest from 'app/views/events/utils/eventsRequest';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
 import {getInterval} from 'app/components/charts/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {axisLabelFormatter} from 'app/utils/discover/charts';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingContainer from 'app/components/loading/loadingContainer';
-
-import EventView from './eventView';
+import {IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
+import EventView from 'app/utils/discover/eventView';
 
 type Props = {
   organization: Organization;
@@ -39,10 +41,8 @@ class MiniGraph extends React.Component<Props> {
     const apiPayload = eventView.getEventsAPIPayload(location);
 
     const query = apiPayload.query;
-    const start = apiPayload.start
-      ? getUtcToLocalDateObject(apiPayload.start)
-      : undefined;
-    const end = apiPayload.end ? getUtcToLocalDateObject(apiPayload.end) : undefined;
+    const start = apiPayload.start ? getUtcToLocalDateObject(apiPayload.start) : null;
+    const end = apiPayload.end ? getUtcToLocalDateObject(apiPayload.end) : null;
     const period: string | undefined = apiPayload.statsPeriod as any;
 
     return {
@@ -54,6 +54,7 @@ class MiniGraph extends React.Component<Props> {
       period,
       project: eventView.project,
       environment: eventView.environment,
+      yAxis: eventView.getYAxis(),
     };
   }
 
@@ -67,7 +68,9 @@ class MiniGraph extends React.Component<Props> {
       organization,
       project,
       environment,
+      yAxis,
     } = this.getRefreshProps(this.props);
+    const colors = theme.charts.getColorPalette(1);
 
     return (
       <EventsRequest
@@ -81,28 +84,35 @@ class MiniGraph extends React.Component<Props> {
         project={project as number[]}
         environment={environment as string[]}
         includePrevious={false}
+        yAxis={yAxis}
       >
-        {({loading, timeseriesData}) => {
+        {({loading, timeseriesData, errored}) => {
+          if (errored) {
+            return (
+              <StyledGraphContainer>
+                <IconWarning color="gray500" size="md" />
+              </StyledGraphContainer>
+            );
+          }
           if (loading) {
             return (
-              <StyledLoadingContainer>
+              <StyledGraphContainer>
                 <LoadingIndicator mini />
-              </StyledLoadingContainer>
+              </StyledGraphContainer>
             );
           }
 
-          const data = (timeseriesData || []).map(series => {
-            return {
-              ...series,
-              areaStyle: {
-                opacity: 0.4,
-              },
-              lineStyle: {
-                opacity: 0,
-              },
-              smooth: true,
-            };
-          });
+          const data = (timeseriesData || []).map(series => ({
+            ...series,
+            areaStyle: {
+              color: colors[0],
+              opacity: 1,
+            },
+            lineStyle: {
+              opacity: 0,
+            },
+            smooth: true,
+          }));
 
           return (
             <AreaChart
@@ -115,7 +125,24 @@ class MiniGraph extends React.Component<Props> {
                 },
               }}
               yAxis={{
-                show: false,
+                show: true,
+                axisLine: {
+                  show: false,
+                },
+                axisLabel: {
+                  color: theme.gray400,
+                  fontFamily: theme.text.family,
+                  fontSize: 12,
+                  formatter: (value: number) => axisLabelFormatter(value, yAxis, true),
+                  inside: true,
+                  showMinLabel: false,
+                  showMaxLabel: false,
+                },
+                splitNumber: 3,
+                splitLine: {
+                  show: false,
+                },
+                zlevel: theme.zIndex.header,
               }}
               tooltip={{
                 show: false,
@@ -130,7 +157,6 @@ class MiniGraph extends React.Component<Props> {
                 bottom: 0,
                 containLabel: false,
               }}
-              colors={['#6d5fc7']}
               options={{
                 hoverAnimation: false,
               }}
@@ -142,9 +168,9 @@ class MiniGraph extends React.Component<Props> {
   }
 }
 
-const StyledLoadingContainer = styled(props => {
-  return <LoadingContainer {...props} maskBackgroundColor="transparent" />;
-})`
+const StyledGraphContainer = styled(props => (
+  <LoadingContainer {...props} maskBackgroundColor="transparent" />
+))`
   height: 100px;
 
   display: flex;

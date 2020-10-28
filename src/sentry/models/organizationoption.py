@@ -6,6 +6,7 @@ from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
 from sentry.utils.cache import cache
+from sentry.tasks.relay import schedule_update_config_cache
 
 
 class OrganizationOptionManager(OptionManager):
@@ -27,11 +28,11 @@ class OrganizationOptionManager(OptionManager):
         except self.model.DoesNotExist:
             return
         inst.delete()
-        self.reload_cache(organization.id)
+        self.reload_cache(organization.id, "organizationoption.unset_value")
 
     def set_value(self, organization, key, value):
         self.create_or_update(organization=organization, key=key, values={"value": value})
-        self.reload_cache(organization.id)
+        self.reload_cache(organization.id, "organizationoption.set_value")
 
     def get_all_values(self, organization):
         if isinstance(organization, models.Model):
@@ -43,12 +44,17 @@ class OrganizationOptionManager(OptionManager):
         if cache_key not in self._option_cache:
             result = cache.get(cache_key)
             if result is None:
-                result = self.reload_cache(organization_id)
+                result = self.reload_cache(organization_id, "organizationoption.get_all_values")
             else:
                 self._option_cache[cache_key] = result
         return self._option_cache.get(cache_key, {})
 
-    def reload_cache(self, organization_id):
+    def reload_cache(self, organization_id, update_reason):
+        if update_reason != "organizationoption.get_all_values":
+            schedule_update_config_cache(
+                organization_id=organization_id, generate=False, update_reason=update_reason
+            )
+
         cache_key = self._make_key(organization_id)
         result = dict((i.key, i.value) for i in self.filter(organization=organization_id))
         cache.set(cache_key, result)
@@ -56,10 +62,10 @@ class OrganizationOptionManager(OptionManager):
         return result
 
     def post_save(self, instance, **kwargs):
-        self.reload_cache(instance.organization_id)
+        self.reload_cache(instance.organization_id, "organizationoption.post_save")
 
     def post_delete(self, instance, **kwargs):
-        self.reload_cache(instance.organization_id)
+        self.reload_cache(instance.organization_id, "organizationoption.post_delete")
 
 
 class OrganizationOption(Model):

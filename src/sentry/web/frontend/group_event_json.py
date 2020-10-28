@@ -2,7 +2,7 @@ from __future__ import absolute_import, division
 
 from django.http import Http404, HttpResponse
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.models import Group, GroupMeta, get_group_with_redirect
 
 from sentry.utils import json
@@ -27,9 +27,6 @@ class GroupEventJsonView(OrganizationView):
 
         if event is None:
             raise Http404
-
-        if event_id_or_latest != "latest" and not options.get("eventstore.use-nodestore"):
-            event.bind_node_data()
 
         GroupMeta.objects.populate_cache([group])
 

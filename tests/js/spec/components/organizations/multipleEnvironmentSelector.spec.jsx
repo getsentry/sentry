@@ -1,10 +1,11 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 
-describe('MultipleEnvironmentSelector', function() {
+describe('MultipleEnvironmentSelector', function () {
   let wrapper;
   const onChange = jest.fn();
   const onUpdate = jest.fn();
@@ -36,7 +37,7 @@ describe('MultipleEnvironmentSelector', function() {
     },
   ]);
 
-  beforeEach(function() {
+  beforeEach(function () {
     onChange.mockReset();
     onUpdate.mockReset();
     wrapper = mountWithTheme(
@@ -52,7 +53,7 @@ describe('MultipleEnvironmentSelector', function() {
     );
   });
 
-  it('can select and change environments', async function() {
+  it('can select and change environments', async function () {
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
 
     // Select all envs
@@ -72,7 +73,7 @@ describe('MultipleEnvironmentSelector', function() {
     expect(onUpdate).toHaveBeenCalledWith();
   });
 
-  it('selects multiple environments and uses chevron to update', async function() {
+  it('selects multiple environments and uses chevron to update', async function () {
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
 
     await wrapper
@@ -95,13 +96,13 @@ describe('MultipleEnvironmentSelector', function() {
     expect(onUpdate).toHaveBeenCalledWith();
   });
 
-  it('does not update when there are no changes', async function() {
+  it('does not update when there are no changes', async function () {
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     wrapper.find('MultipleEnvironmentSelector StyledChevron').simulate('click');
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
-  it('updates environment options when projects selection changes', async function() {
+  it('updates environment options when projects selection changes', async function () {
     // project 2 only has 1 environment.
     wrapper.setProps({selectedProjects: [2]});
     wrapper.update();
@@ -112,7 +113,7 @@ describe('MultipleEnvironmentSelector', function() {
     expect(items.at(0).text()).toBe('dev');
   });
 
-  it('shows non-member project environments when selected', async function() {
+  it('shows non-member project environments when selected', async function () {
     wrapper.setProps({selectedProjects: [3]});
     wrapper.update();
 
@@ -123,7 +124,7 @@ describe('MultipleEnvironmentSelector', function() {
     expect(items.at(0).text()).toBe('no-env');
   });
 
-  it('shows member project environments when there are no projects selected', async function() {
+  it('shows member project environments when there are no projects selected', async function () {
     wrapper.setProps({selectedProjects: []});
     wrapper.update();
 
@@ -136,7 +137,7 @@ describe('MultipleEnvironmentSelector', function() {
     expect(items.at(2).text()).toBe('dev');
   });
 
-  it('shows all project environments when "all projects" is selected', async function() {
+  it('shows all project environments when "all projects" is selected', async function () {
     wrapper.setProps({selectedProjects: [ALL_ACCESS_PROJECTS]});
     wrapper.update();
 
@@ -150,7 +151,7 @@ describe('MultipleEnvironmentSelector', function() {
     expect(items.at(3).text()).toBe('no-env');
   });
 
-  it('shows the distinct union of environments across all projects', async function() {
+  it('shows the distinct union of environments across all projects', async function () {
     wrapper.setProps({selectedProjects: [1, 2]});
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');

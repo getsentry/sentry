@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import math
 
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 
 from sentry.utils.cursors import build_cursor, Cursor
 
@@ -23,7 +23,7 @@ def test_build_cursor():
     results = [event1, event2, event3]
 
     def item_key(key, for_prev=False):
-        return math.floor(key.id)
+        return int(math.floor(key.id))
 
     cursor_kwargs = {"key": item_key, "limit": 1}
 

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.integrations.client import ApiClient
-from sentry.models import EventCommon
+from sentry.eventstore.models import Event
 from sentry.api.serializers import serialize, ExternalEventSerializer
 
 LEVEL_SEVERITY_MAP = {
@@ -30,18 +30,18 @@ class PagerDutyClient(ApiClient):
 
     def send_trigger(self, data):
         # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
-        # for now, only construct the payload if data is an event
-        if isinstance(data, EventCommon):
+        if isinstance(data, Event):
             source = data.transaction or data.culprit or "<unknown>"
             group = data.group
             level = data.get_tag("level") or "error"
             custom_details = serialize(data, None, ExternalEventSerializer())
+            summary = (data.message or data.title)[:1024]
             payload = {
                 "routing_key": self.integration_key,
                 "event_action": "trigger",
                 "dedup_key": group.qualified_short_id,
                 "payload": {
-                    "summary": data.message or data.title,
+                    "summary": summary,
                     "severity": LEVEL_SEVERITY_MAP[level],
                     "source": source,
                     "component": group.project.slug,
@@ -56,6 +56,10 @@ class PagerDutyClient(ApiClient):
                     }
                 ],
             }
+        else:
+            # the payload is for a metric alert
+            payload = data
+
         return self.post("/", data=payload)
 
     def send_acknowledge(self, data):

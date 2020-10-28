@@ -13,8 +13,8 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationStatus
-from sentry.signals import join_request_link_viewed
+from sentry.models import AuthProvider, Organization, OrganizationStatus, OrganizationMember
+from sentry.signals import join_request_link_viewed, user_signup
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 from sentry.utils import auth, metrics
@@ -73,7 +73,12 @@ class AuthLoginView(BaseView):
 
     def get_register_form(self, request, initial=None):
         op = request.POST.get("op")
-        return RegistrationForm(request.POST if op == "register" else None, initial=initial)
+        return RegistrationForm(
+            request.POST if op == "register" else None,
+            initial=initial,
+            # Custom auto_id to avoid ID collision with AuthenticationForm.
+            auto_id="id_registration_%s",
+        )
 
     def can_register(self, request):
         return bool(auth.has_user_registration() or request.session.get("can_register"))
@@ -123,6 +128,9 @@ class AuthLoginView(BaseView):
         if can_register and register_form.is_valid():
             user = register_form.save()
             user.send_confirm_emails(is_new_user=True)
+            user_signup.send_robust(
+                sender=self, user=user, source="register-form", referrer="in-app"
+            )
 
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
@@ -135,6 +143,17 @@ class AuthLoginView(BaseView):
 
             # Attempt to directly accept any pending invites
             invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self)
+
+            # In single org mode, associate the user to the only organization.
+            #
+            # XXX: Only do this if there isn't a pending invitation. The user
+            # may need to configure 2FA in which case, we don't want to make
+            # the association for them.
+            if settings.SENTRY_SINGLE_ORGANIZATION and not invite_helper:
+                organization = Organization.get_default()
+                OrganizationMember.objects.create(
+                    organization=organization, role=organization.default_role, user=user
+                )
 
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()

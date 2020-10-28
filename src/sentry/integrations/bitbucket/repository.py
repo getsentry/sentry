@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
+import logging
 import six
+
 from sentry.app import locks
 from sentry.models import OrganizationOption
 from sentry.plugins import providers
 from sentry.models import Integration
 from sentry.utils.http import absolute_uri
 
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.models.apitoken import generate_token
 
 from .webhook import parse_raw_user_email, parse_raw_user_name
@@ -15,6 +17,7 @@ from .webhook import parse_raw_user_email, parse_raw_user_name
 
 class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = "Bitbucket"
+    logger = logging.getLogger("sentry.integrations.bitbucket")
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:

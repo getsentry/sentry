@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
-import mock
+import sys
+
 import pytest
-import thread
-from Queue import Full
+from six.moves.queue import Full
+from six.moves import _thread
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from threading import Event
 
+from sentry.utils.compat import mock
 from sentry.utils.concurrent import (
     FutureSet,
     SynchronousExecutor,
@@ -17,8 +19,9 @@ from sentry.utils.concurrent import (
 )
 
 
+@pytest.mark.skipif(sys.version_info[0] == 3, reason="TODO(python3): stalls on python3")
 def test_execute():
-    assert execute(thread.get_ident).result() != thread.get_ident()
+    assert execute(_thread.get_ident).result() != _thread.get_ident()
 
     with pytest.raises(Exception):
         assert execute(mock.Mock(side_effect=Exception("Boom!"))).result()
@@ -157,13 +160,13 @@ def test_synchronous_executor():
     assert executor.submit(lambda: mock.sentinel.RESULT).result() is mock.sentinel.RESULT
 
     def callable():
-        raise Exception(mock.sentinel.MESSAGE)
+        raise Exception(mock.sentinel.EXCEPTION)
 
     future = executor.submit(callable)
     try:
         future.result()
     except Exception as e:
-        assert e.message is mock.sentinel.MESSAGE
+        assert e.args[0] == mock.sentinel.EXCEPTION
     else:
         assert False, "expected future to raise"
 

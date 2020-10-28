@@ -1,5 +1,3 @@
-import {Box, Flex} from 'reflexbox';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -10,24 +8,10 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import ReportUri from 'app/views/settings/projectSecurityHeaders/reportUri';
-import PreviewFeature from 'app/components/previewFeature';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-const HeaderName = styled('span')`
-  font-size: 1.2em;
-`;
-
 export default class ProjectSecurityHeaders extends AsyncView {
-  static propTypes = {
-    setProjectNavSection: PropTypes.func,
-  };
-
-  componentWillMount() {
-    super.componentWillMount();
-    this.props.setProjectNavSection('settings');
-  }
-
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
@@ -60,13 +44,11 @@ export default class ProjectSecurityHeaders extends AsyncView {
       <div>
         <SettingsPageHeader title={t('Security Header Reports')} />
 
-        <PreviewFeature />
-
         <ReportUri keyList={this.state.keyList} params={this.props.params} />
 
         <Panel>
           <PanelHeader>{t('Additional Configuration')}</PanelHeader>
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <TextBlock style={{marginBottom: 20}}>
               {tct(
                 'In addition to the [key_param] parameter, you may also pass the following within the querystring for the report URI:',
@@ -97,17 +79,13 @@ export default class ProjectSecurityHeaders extends AsyncView {
         <Panel>
           <PanelHeader>{t('Supported Formats')}</PanelHeader>
           <PanelBody>
-            {this.getReports().map(({name, description, url}) => (
-              <PanelItem key={url} p={0} flexDirection="column">
-                <Flex flex="1" p={2} alignItems="center">
-                  <Box flex="1">
-                    <HeaderName>{name}</HeaderName>
-                  </Box>
-                  <Button to={url} priority="primary">
-                    {t('Instructions')}
-                  </Button>
-                </Flex>
-              </PanelItem>
+            {this.getReports().map(({name, url}) => (
+              <ReportItem key={url}>
+                <HeaderName>{name}</HeaderName>
+                <Button to={url} priority="primary">
+                  {t('Instructions')}
+                </Button>
+              </ReportItem>
             ))}
           </PanelBody>
         </Panel>
@@ -115,3 +93,12 @@ export default class ProjectSecurityHeaders extends AsyncView {
     );
   }
 }
+
+const ReportItem = styled(PanelItem)`
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const HeaderName = styled('span')`
+  font-size: 1.2em;
+`;

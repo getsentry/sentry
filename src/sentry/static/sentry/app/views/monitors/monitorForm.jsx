@@ -17,7 +17,10 @@ import withOrganization from 'app/utils/withOrganization';
 
 import MonitorModel from './monitorModel';
 
-const SCHEDULE_TYPES = [['crontab', 'Crontab'], ['interval', 'Interval']];
+const SCHEDULE_TYPES = [
+  ['crontab', 'Crontab'],
+  ['interval', 'Interval'],
+];
 
 const MONITOR_TYPES = [['cron_job', 'Cron Job']];
 
@@ -114,9 +117,7 @@ class MonitorForm extends Component {
                   disabled={!hasAccess}
                   choices={this.props.organization.projects
                     .filter(p => p.isMember)
-                    .map(p => {
-                      return [p.slug, p.slug];
-                    })}
+                    .map(p => [p.slug, p.slug])}
                   required
                 />
                 <TextField
@@ -178,7 +179,7 @@ class MonitorForm extends Component {
                               name="config.schedule"
                               label={t('Schedule')}
                               disabled={!hasAccess}
-                              placeholder="*/5 * * *"
+                              placeholder="*/5 * * * *"
                               required
                               help={tct(
                                 'Changes to the schedule will apply on the next check-in. See [link:Wikipedia] for crontab syntax.',
@@ -209,6 +210,7 @@ class MonitorForm extends Component {
                               required
                             />
                             <SelectField
+                              deprecatedSelectControl
                               name="config.schedule.interval"
                               label={t('Interval')}
                               disabled={!hasAccess}

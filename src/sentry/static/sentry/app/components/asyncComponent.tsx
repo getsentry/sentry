@@ -1,25 +1,21 @@
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
-import {metric} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
+import {metric} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-type AsyncComponentProps = {
-  // optional sentry APM profiling
-  // Note we don't decorate `AsyncComponent` but rather the subclass
-  // so we can get its component name
-  finishProfile?: () => void;
-} & Partial<RouteComponentProps<{}, {}>>;
+type AsyncComponentProps = Partial<RouteComponentProps<{}, {}>>;
 
 type AsyncComponentState = {
   loading: boolean;
@@ -34,7 +30,7 @@ type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
 
 type RenderSearchInputArgs = Omit<
   SearchInputProps,
-  'api' | 'onSuccess' | 'onError' | 'url'
+  'api' | 'onSuccess' | 'onError' | 'url' | keyof WithRouterProps
 > & {
   stateKey?: string;
   url?: SearchInputProps['url'];
@@ -111,11 +107,11 @@ export default class AsyncComponent<
       hasMeasured: false,
     };
     if (props.routes && props.routes) {
-      metric.mark(`async-component-${getRouteStringFromRoutes(props.routes)}`);
+      metric.mark({name: `async-component-${getRouteStringFromRoutes(props.routes)}`});
     }
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.api = new Client();
     this.fetchData();
 
@@ -124,8 +120,8 @@ export default class AsyncComponent<
     }
   }
 
-  // Compatiblity shim for child classes that call super on this hook.
-  componentWillReceiveProps(_newProps: P, _newContext: any) {}
+  // Compatibility shim for child classes that call super on this hook.
+  UNSAFE_componentWillReceiveProps(_newProps: P, _newContext: any) {}
 
   componentDidUpdate(prevProps: P, prevContext: any) {
     const isRouterInContext = !!prevContext.router;
@@ -163,11 +159,6 @@ export default class AsyncComponent<
         },
       });
       this._measurement.hasMeasured = true;
-
-      // sentry apm profiling
-      if (typeof this.props.finishProfile === 'function') {
-        this.props.finishProfile();
-      }
     }
 
     // Re-fetch data when router params change.
@@ -378,7 +369,7 @@ export default class AsyncComponent<
    *   ['stateKeyName', '/endpoint/', {optional: 'query params'}, {options}]
    * ]
    */
-  getEndpoints(): [string, string, any?, any?][] {
+  getEndpoints(): Array<[string, string, any?, any?]> {
     const endpoint = this.getEndpoint();
     if (!endpoint) {
       return [];
@@ -405,7 +396,7 @@ export default class AsyncComponent<
     );
   }
 
-  renderLoading() {
+  renderLoading(): React.ReactNode {
     return <LoadingIndicator />;
   }
 
@@ -453,10 +444,8 @@ export default class AsyncComponent<
     return (
       <RouteError
         error={error}
-        component={this}
         disableLogSentry={!shouldLogSentry}
         disableReport={disableReport}
-        onRetry={this.remountComponent}
       />
     );
   }

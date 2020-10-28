@@ -5,8 +5,9 @@ import re
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.models import Project, ProjectStatus
+from sentry.discover.models import KeyTransaction, MAX_KEY_TRANSACTIONS
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -73,8 +74,8 @@ class DiscoverQuerySerializer(serializers.Serializer):
                 },
                 optional=True,
             )
-        except InvalidParams as exc:
-            raise serializers.ValidationError(exc.message)
+        except InvalidParams as e:
+            raise serializers.ValidationError(six.text_type(e))
 
         if start is None or end is None:
             raise serializers.ValidationError("Either start and end dates or range is required")
@@ -161,25 +162,22 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     query = serializers.CharField(required=False, allow_null=True)
     widths = ListField(child=serializers.CharField(), required=False, allow_null=True)
     yAxis = serializers.CharField(required=False, allow_null=True)
+    display = serializers.CharField(required=False, allow_null=True)
 
     disallowed_fields = {
-        1: set(["environment", "query", "yAxis"]),
+        1: set(["environment", "query", "yAxis", "display"]),
         2: set(["groupby", "rollup", "aggregations", "conditions", "limit"]),
     }
 
     def validate_projects(self, projects):
-        organization = self.context["organization"]
-
         projects = set(projects)
-        if projects == ALL_ACCESS_PROJECTS:
+
+        # Don't need to check all projects or my projects
+        if projects == ALL_ACCESS_PROJECTS or len(projects) == 0:
             return projects
 
-        org_projects = set(
-            Project.objects.filter(
-                organization=organization, id__in=projects, status=ProjectStatus.VISIBLE
-            ).values_list("id", flat=True)
-        )
-        if projects != org_projects:
+        # Check that there aren't projects in the query the user doesn't have access to
+        if len(projects - set(self.context["params"]["project_id"])) > 0:
             raise PermissionDenied
 
         return projects
@@ -199,6 +197,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "limit",
             "widths",
             "yAxis",
+            "display",
         ]
 
         for key in query_keys:
@@ -214,6 +213,12 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if data["projects"] == ALL_ACCESS_PROJECTS:
             data["projects"] = []
             query["all_projects"] = True
+
+        if "query" in query:
+            try:
+                get_filter(query["query"], self.context["params"])
+            except InvalidSearchQuery as err:
+                raise serializers.ValidationError("Cannot save invalid query: {}".format(err))
 
         return {
             "name": data["name"],
@@ -231,5 +236,19 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if bad_fields:
             raise serializers.ValidationError(
                 "You cannot use the %s attribute(s) with the selected version"
-                % ", ".join(bad_fields)
+                % ", ".join(sorted(bad_fields))
             )
+
+
+class KeyTransactionSerializer(serializers.Serializer):
+    transaction = serializers.CharField(required=True, max_length=200)
+
+    def validate(self, data):
+        data = super(KeyTransactionSerializer, self).validate(data)
+        base_filter = self.context.copy()
+        # Limit the number of key transactions
+        if KeyTransaction.objects.filter(**base_filter).count() >= MAX_KEY_TRANSACTIONS:
+            raise serializers.ValidationError(
+                "At most {} Key Transactions can be added".format(MAX_KEY_TRANSACTIONS)
+            )
+        return data

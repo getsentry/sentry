@@ -2,10 +2,11 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select';
+
 import ConfigStore from 'app/stores/configStore';
 import InviteMembers from 'app/views/onboarding/projectSetup/inviteMembers';
 
-describe('InviteMembers', function() {
+describe('InviteMembers', function () {
   const email = 'test@someDomain.com';
   ConfigStore.loadInitialData({user: {email, options: {}}});
 
@@ -20,7 +21,7 @@ describe('InviteMembers', function() {
     body: {roles: [{id: 'admin', name: 'Admin', desc: 'User Admin'}]},
   });
 
-  it('displays an example email using their domain', function() {
+  it('displays an example email using their domain', function () {
     const wrapper = mountWithTheme(
       <InviteMembers project={project} organization={org} />,
       TestStubs.routerContext()
@@ -31,7 +32,7 @@ describe('InviteMembers', function() {
     );
   });
 
-  it('adds a new team member', async function() {
+  it('adds a new team member', async function () {
     const addMemberApi = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'POST',

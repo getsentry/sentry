@@ -3,11 +3,15 @@
 from __future__ import unicode_literals, print_function
 
 import os
+import types
 from datetime import timedelta, datetime
 
 from django.db import migrations
+from django.utils import timezone
 
-from sentry import options
+from sentry import nodestore, options
+from sentry.eventstore.models import Event as NewEvent
+from sentry.utils.dates import to_timestamp
 
 
 def backfill_eventstream(apps, schema_editor):
@@ -32,7 +36,7 @@ def backfill_eventstream(apps, schema_editor):
     retention_days = options.get("system.event-retention-days") or DEFAULT_RETENTION
 
     def get_events(last_days):
-        to_date = datetime.now()
+        to_date = timezone.now()
         from_date = to_date - timedelta(days=last_days)
         return Event.objects.filter(
             datetime__gte=from_date, datetime__lte=to_date, group_id__isnull=False
@@ -50,6 +54,10 @@ def backfill_eventstream(apps, schema_editor):
         for event in _events:
             event.project = projects.get(event.project_id)
             event.group = groups.get(event.group_id)
+            # When migrating old data from Sentry 9.0.0 to 9.1.2 to 10 in rapid succession, the event timestamp may be
+            # missing. This adds it back
+            if "timestamp" not in event.data.data:
+                event.data.data['timestamp'] = to_timestamp(event.datetime)
         eventstore.bind_nodes(_events, "data")
 
     if skip_backfill:
@@ -66,24 +74,54 @@ def backfill_eventstream(apps, schema_editor):
     print("Events to process: {}\n".format(count))
 
     processed = 0
-    for event in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
+    for e in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
+        event = NewEvent(
+            project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data
+        )
         primary_hash = event.get_primary_hash()
-        if event.project is None or event.group is None:
-            print("Skipped {} as group or project information is invalid.\n".format(event))
+        if event.project is None or event.group is None or len(event.data) == 0:
+            print("Skipped {} as group, project or node data information is invalid.\n".format(event))
             continue
 
-        eventstream.insert(
-            group=event.group,
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            primary_hash=primary_hash,
-            skip_consume=True,
-        )
-        processed += 1
+        try:
+            eventstream.insert(
+                group=event.group,
+                event=event,
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                primary_hash=primary_hash,
+                received_timestamp=event.data.get("received")
+                or float(event.datetime.strftime("%s")),
+                skip_consume=True,
+            )
 
-    print("Event migration done. Processed {} of {} events.\n".format(processed, count))
+            # The node ID format was changed in Sentry 9.1.0
+            # (https://github.com/getsentry/sentry/commit/f73a4039d16a5c4f88bde37f6464cac21deb50e1)
+            # If we are migrating from older versions of Sentry (i.e. 9.0.0 and earlier)
+            # we need to resave the node using the new node ID scheme and delete the old
+            # node.
+            old_node_id = e.data.id
+            new_node_id = event.data.id
+            if old_node_id != new_node_id:
+                event.data.save()
+                nodestore.delete(old_node_id)
+
+
+            processed += 1
+        except Exception as error:
+            print(
+                "An error occured while trying to migrate the following event: {}\n.----\n{}".format(
+                    event, error
+                )
+            )
+
+    if processed == 0:
+        raise Exception(
+            "Cannot migrate any event. If this is okay, re-run migrations with SENTRY_SKIP_EVENTS_BACKFILL_FOR_10 environment variable set to skip this step."
+        )
+
+    print("Event migration done. Migrated {} of {} events.\n".format(processed, count))
 
 
 class Migration(migrations.Migration):

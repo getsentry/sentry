@@ -10,6 +10,7 @@ from django.utils.encoding import force_text
 
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
+from sentry.utils.compat import filter
 
 
 def safe_execute(func, *args, **kwargs):
@@ -17,7 +18,6 @@ def safe_execute(func, *args, **kwargs):
     # side if we execute a query)
     _with_transaction = kwargs.pop("_with_transaction", True)
     expected_errors = kwargs.pop("expected_errors", None)
-    _passthrough_errors = kwargs.pop("_passthrough_errors", None)
     try:
         if _with_transaction:
             with transaction.atomic():
@@ -25,8 +25,6 @@ def safe_execute(func, *args, **kwargs):
         else:
             result = func(*args, **kwargs)
     except Exception as e:
-        if _passthrough_errors and isinstance(e, _passthrough_errors):
-            raise
         if hasattr(func, "im_class"):
             cls = func.im_class
         else:
@@ -73,7 +71,7 @@ def trim(
     elif isinstance(value, dict):
         result = {}
         _size += 2
-        for k in sorted(value.keys()):
+        for k in sorted(value.keys(), key=lambda x: (len(force_text(value[x])), x)):
             v = value[k]
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
@@ -143,13 +141,13 @@ def get_path(data, *path, **kwargs):
     for p in path:
         if isinstance(data, collections.Mapping) and p in data:
             data = data[p]
-        elif isinstance(data, (list, tuple)) and -len(data) <= p < len(data):
+        elif isinstance(data, (list, tuple)) and isinstance(p, int) and -len(data) <= p < len(data):
             data = data[p]
         else:
             return default
 
     if f and data and isinstance(data, (list, tuple)):
-        data = list(filter((lambda x: x is not None) if f is True else f, data))
+        data = filter((lambda x: x is not None) if f is True else f, data)
 
     return data if data is not None else default
 

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 from uuid import uuid4
 
 from sentry.models import (
@@ -65,10 +65,12 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         UserReport.objects.create(
             event_id=self.event.event_id, project_id=self.event.project_id, name="With event id"
         )
+        file = File.objects.create(name="hello.png", type="image/png")
         EventAttachment.objects.create(
             event_id=self.event.event_id,
             project_id=self.event.project_id,
-            file=File.objects.create(name="hello.png", type="image/png"),
+            file=file,
+            type=file.type,
             name="hello.png",
         )
         GroupAssignee.objects.create(group=group, project=self.project, user=self.user)

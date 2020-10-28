@@ -1,17 +1,18 @@
 import React from 'react';
+
 import {mount} from 'sentry-test/enzyme';
 
 import Projects from 'app/utils/projects';
 import ProjectsStore from 'app/stores/projectsStore';
 import ProjectActions from 'app/actions/projectActions';
 
-describe('utils.projects', function() {
+describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
 
   const createWrapper = props =>
     mount(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
 
-  beforeEach(function() {
+  beforeEach(function () {
     renderer.mockClear();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([
@@ -20,13 +21,13 @@ describe('utils.projects', function() {
     ]);
   });
 
-  afterEach(async function() {
+  afterEach(async function () {
     ProjectsStore.loadInitialData([]);
     await tick();
   });
 
-  describe('with predefined list of slugs', function() {
-    it('gets projects that are in the ProjectsStore ', async function() {
+  describe('with predefined list of slugs', function () {
+    it('gets projects that are in the ProjectsStore ', async function () {
       const wrapper = createWrapper({slugs: ['foo', 'bar']});
 
       // This is initial state
@@ -70,7 +71,7 @@ describe('utils.projects', function() {
       );
     });
 
-    it('fetches projects from API if not found in store', async function() {
+    it('fetches projects from API if not found in store', async function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         query: {
@@ -142,7 +143,7 @@ describe('utils.projects', function() {
       );
     });
 
-    it('only has partial results from API', async function() {
+    it('only has partial results from API', async function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
@@ -207,10 +208,10 @@ describe('utils.projects', function() {
     });
   });
 
-  describe('with no pre-defined projects', function() {
+  describe('with no pre-defined projects', function () {
     let request;
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
@@ -233,7 +234,7 @@ describe('utils.projects', function() {
       await tick();
     });
 
-    it('fetches projects from API', async function() {
+    it('fetches projects from API', async function () {
       const wrapper = createWrapper();
 
       // This is initial state
@@ -275,7 +276,7 @@ describe('utils.projects', function() {
       );
     });
 
-    it('queries API for more projects and replaces results', async function() {
+    it('queries API for more projects and replaces results', async function () {
       const myRenderer = jest.fn(({onSearch}) => (
         <input onChange={({target}) => onSearch(target.value)} />
       ));
@@ -342,7 +343,7 @@ describe('utils.projects', function() {
       );
     });
 
-    it('queries API for more projects and appends results', async function() {
+    it('queries API for more projects and appends results', async function () {
       const myRenderer = jest.fn(({onSearch}) => (
         <input onChange={({target}) => onSearch(target.value, {append: true})} />
       ));
@@ -437,12 +438,12 @@ describe('utils.projects', function() {
     });
   });
 
-  describe('with all projects prop', function() {
+  describe('with all projects prop', function () {
     const loadProjects = jest.spyOn(ProjectActions, 'loadProjects');
     let mockProjects;
     let request;
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       mockProjects = [
         TestStubs.Project({
           id: '100',
@@ -469,7 +470,7 @@ describe('utils.projects', function() {
       ProjectsStore.reset();
     });
 
-    it('can query for a list of all projects and save it to the store', async function() {
+    it('can query for a list of all projects and save it to the store', async function () {
       const wrapper = createWrapper({allProjects: true});
       // This is initial state
       expect(renderer).toHaveBeenCalledWith(
@@ -504,7 +505,7 @@ describe('utils.projects', function() {
       expect(loadProjects).toHaveBeenCalledWith(mockProjects);
     });
 
-    it('does not refetch projects that are already loaded in the store', async function() {
+    it('does not refetch projects that are already loaded in the store', async function () {
       ProjectsStore.loadInitialData(mockProjects);
 
       const wrapper = createWrapper({allProjects: true});

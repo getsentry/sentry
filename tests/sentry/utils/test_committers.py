@@ -4,7 +4,7 @@ import unittest
 
 from datetime import timedelta
 from django.utils import timezone
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 from uuid import uuid4
 
 from sentry.models import Commit, CommitAuthor, CommitFileChange, Release, Repository
@@ -18,6 +18,7 @@ from sentry.utils.committers import (
     get_previous_releases,
     score_path_match_length,
     tokenize_path,
+    dedupe_commits,
 )
 
 # TODO(lb): Tests are still needed for _get_committers and _get_event_file_commiters
@@ -445,3 +446,21 @@ class GetEventFileCommitters(CommitTestCase):
 
         with self.assertRaises(Commit.DoesNotExist):
             get_serialized_event_file_committers(self.project, event)
+
+
+class DedupeCommits(CommitTestCase):
+    def setUp(self):
+        super(DedupeCommits, self).setUp()
+
+    def test_dedupe_with_same_commit(self):
+        commit = self.create_commit().__dict__
+        commits = [commit, commit, commit]
+        result = dedupe_commits(commits)
+        assert len(result) == 1
+
+    def test_dedupe_with_different_commit(self):
+        same_commit = self.create_commit().__dict__
+        diff_commit = self.create_commit().__dict__
+        commits = [same_commit, diff_commit, same_commit]
+        result = dedupe_commits(commits)
+        assert len(result) == 2

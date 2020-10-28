@@ -1,14 +1,12 @@
 import {Link} from 'react-router';
+import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
-import {css} from '@emotion/core';
-
 import isPropValid from '@emotion/is-prop-valid';
-import pickBy from 'lodash/pickBy';
+import styled from '@emotion/styled';
 
+import {Theme} from 'app/utils/theme';
 import ExternalLink from 'app/components/links/externalLink';
-import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 
 /**
@@ -20,30 +18,34 @@ type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type Props = {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success';
-  size?: 'zero' | 'micro' | 'small' | 'xsmall' | 'xxsmall' | 'large';
+  size?: 'zero' | 'xsmall' | 'small';
   align?: 'center' | 'left' | 'right';
   disabled?: boolean;
   busy?: boolean;
   to?: string | object;
   href?: string;
-  icon?: string;
-  iconSize?: string;
+  icon?: React.ReactNode;
   title?: string;
   external?: boolean;
   borderless?: boolean;
   label?: string;
   tooltipProps?: any;
   onClick?: (e: React.MouseEvent) => void;
+  forwardRef?: React.Ref<ButtonElement>;
+  name?: string;
+
+  // This is only used with `<ButtonBar>`
+  barId?: string;
 };
 
-type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> & Props;
+type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
 class Button extends React.Component<ButtonProps, {}> {
   static propTypes: any = {
     priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
-    size: PropTypes.oneOf(['zero', 'micro', 'small', 'xxsmall', 'xsmall', 'large']),
+    size: PropTypes.oneOf(['zero', 'xsmall', 'small']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
     /**
@@ -55,9 +57,9 @@ class Button extends React.Component<ButtonProps, {}> {
      */
     href: PropTypes.string,
     /**
-     * Path to an icon svg that will be displayed to left of button label
+     * A react node to use as the icons. Generally pulled from app/icons
      */
-    icon: PropTypes.string,
+    icon: PropTypes.node,
     /**
      * Tooltip text
      */
@@ -85,6 +87,8 @@ class Button extends React.Component<ButtonProps, {}> {
     tooltipProps: PropTypes.object,
 
     onClick: PropTypes.func,
+
+    forwardRef: PropTypes.any,
   };
 
   static defaultProps: ButtonProps = {
@@ -98,6 +102,8 @@ class Button extends React.Component<ButtonProps, {}> {
 
     // Don't allow clicks when disabled or busy
     if (disabled || busy) {
+      e.preventDefault();
+      e.stopPropagation();
       return;
     }
 
@@ -118,7 +124,6 @@ class Button extends React.Component<ButtonProps, {}> {
       href,
       title,
       icon,
-      iconSize,
       children,
       label,
       borderless,
@@ -129,8 +134,7 @@ class Button extends React.Component<ButtonProps, {}> {
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
-      // eslint-disable-next-line no-unused-vars
-      onClick,
+      onClick: _onClick,
       ...buttonProps
     } = this.props;
     // For `aria-label`
@@ -162,16 +166,7 @@ class Button extends React.Component<ButtonProps, {}> {
         >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
-              <StyledInlineSvg
-                src={icon}
-                size={
-                  iconSize
-                    ? iconSize
-                    : (size && size.endsWith('small')) || size === 'micro'
-                    ? '12px'
-                    : '14px'
-                }
-              />
+              {icon}
             </Icon>
           )}
           {children}
@@ -192,19 +187,23 @@ class Button extends React.Component<ButtonProps, {}> {
   }
 }
 
-export default Button;
+const ButtonForwardRef = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
+  <Button forwardRef={ref} {...props} />
+));
 
-type StyledButtonProps = ButtonProps & {theme?: any};
+// Some components use Button's propTypes
+ButtonForwardRef.propTypes = Button.propTypes;
+ButtonForwardRef.displayName = 'forwardRef<Button>';
+
+export default ButtonForwardRef;
+
+type StyledButtonProps = ButtonProps & {theme: Theme};
 
 const getFontSize = ({size, theme}: StyledButtonProps) => {
   switch (size) {
-    case 'micro':
     case 'xsmall':
-    case 'xxsmall':
     case 'small':
       return theme.fontSizeSmall;
-    case 'large':
-      return theme.fontSizeLarge;
     default:
       return theme.fontSizeMedium;
   }
@@ -263,37 +262,35 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
 };
 
 const StyledButton = styled(
-  // While props is the conventional name, we're using `prop` to trick
-  // eslint as using `props` results in unfixable 'missing proptypes` warnings.
-  React.forwardRef<ButtonElement, ButtonProps>((prop, ref) => {
-    const forwardProps = pickBy(
-      prop,
-      (_value, key) => key !== 'disabled' && isPropValid(key)
-    );
-
+  ({forwardRef, external, ...props}) => {
     // Get component to use based on existence of `to` or `href` properties
     // Can be react-router `Link`, `a`, or `button`
-    if (prop.to) {
-      return <Link ref={ref} to={prop.to} {...forwardProps} />;
+    if (props.to) {
+      return <Link ref={forwardRef} {...props} />;
     }
 
-    if (!prop.href) {
-      return <button ref={ref} {...forwardProps} />;
+    if (!props.href) {
+      return <button ref={forwardRef} {...props} />;
     }
 
-    if (prop.external && prop.href) {
-      return <ExternalLink ref={ref} href={prop.href} {...forwardProps} />;
+    if (external && props.href) {
+      return <ExternalLink ref={forwardRef} {...props} />;
     }
 
-    return <a ref={ref} {...forwardProps} />;
-  })
+    return <a ref={forwardRef} {...props} />;
+  },
+  {
+    shouldForwardProp: prop =>
+      prop === 'forwardRef' ||
+      prop === 'external' ||
+      (isPropValid(prop) && prop !== 'disabled'),
+  }
 )<Props>`
   display: inline-block;
   line-height: 1;
   border-radius: ${p => p.theme.button.borderRadius};
   padding: 0;
   text-transform: none;
-
   ${getFontWeight};
   font-size: ${getFontSize};
   ${getColors};
@@ -314,34 +311,32 @@ const StyledButton = styled(
 /**
  * Get label padding determined by size
  */
-const getLabelPadding = ({size, priority, borderless}: StyledButtonProps) => {
+const getLabelPadding = ({
+  size,
+  priority,
+}: Pick<StyledButtonProps, 'size' | 'priority' | 'borderless'>) => {
   if (priority === 'link') {
     return '0';
   }
 
   switch (size) {
-    case 'micro':
     case 'zero':
       return '0';
-    case 'xxsmall':
-      return borderless ? '1px 2px' : '2px 4px';
     case 'xsmall':
-      return borderless ? '4px 6px' : '6px 10px';
+      return '5px 8px';
     case 'small':
-      return borderless ? '6px 8px' : '8px 12px';
-    case 'large':
-      return borderless ? '8px 10px' : '14px 20px';
-
+      return '9px 12px';
     default:
-      return borderless ? '6px 10px' : '12px 16px';
+      return '12px 16px';
   }
 };
 
+const buttonLabelPropKeys = ['size', 'priority', 'borderless', 'align'];
 type ButtonLabelProps = Pick<ButtonProps, 'size' | 'priority' | 'borderless' | 'align'>;
 
-const ButtonLabel = styled(
-  ({size, priority, borderless, align, ...props}: ButtonLabelProps) => <span {...props} />
-)<Props>`
+const ButtonLabel = styled('span', {
+  shouldForwardProp: prop => isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
+})<ButtonLabelProps>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
@@ -349,7 +344,7 @@ const ButtonLabel = styled(
   padding: ${getLabelPadding};
 `;
 
-type IconProps = Omit<React.HTMLProps<HTMLSpanElement>, 'size'> & {
+type IconProps = {
   size?: ButtonProps['size'];
   hasChildren?: boolean;
 };
@@ -363,10 +358,9 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
   return size && size.endsWith('small') ? '6px' : '8px';
 };
 
-const Icon = styled(({hasChildren, ...props}: IconProps) => <span {...props} />)`
+const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
+  display: flex;
+  align-items: center;
   margin-right: ${getIconMargin};
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  display: block;
+  height: ${getFontSize};
 `;

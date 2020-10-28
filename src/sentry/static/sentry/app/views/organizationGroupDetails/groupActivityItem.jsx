@@ -13,15 +13,15 @@ class GroupActivityItem extends React.Component {
   static propTypes = {
     author: PropTypes.node,
     item: PropTypes.object,
-    orgId: PropTypes.string,
+    orgSlug: PropTypes.string,
     projectId: PropTypes.string,
   };
 
   render() {
-    const {author, item, orgId, projectId} = this.props;
+    const {author, item, orgSlug, projectId} = this.props;
     const {data} = item;
 
-    const issuesLink = `/organizations/${orgId}/issues/`;
+    const issuesLink = `/organizations/${orgSlug}/issues/`;
 
     switch (item.type) {
       case 'note':
@@ -36,7 +36,9 @@ class GroupActivityItem extends React.Component {
         return data.version
           ? t('%(author)s marked this issue as resolved in %(version)s', {
               author,
-              version: <Version version={data.version} orgId={orgId} />,
+              version: (
+                <Version version={data.version} projectId={projectId} tooltipRawVersion />
+              ),
             })
           : t('%s marked this issue as resolved in the upcoming release', author);
       case 'set_resolved_in_commit':
@@ -108,7 +110,7 @@ class GroupActivityItem extends React.Component {
           ? t('%(author)s marked this issue as a regression in %(version)s', {
               author,
               version: (
-                <Version version={data.version} orgId={orgId} projectId={projectId} />
+                <Version version={data.version} projectId={projectId} tooltipRawVersion />
               ),
             })
           : t('%s marked this issue as a regression', author);
@@ -178,6 +180,11 @@ class GroupActivityItem extends React.Component {
           '%2$s merged %1$s issues into this issue',
           data.issues.length,
           author
+        );
+      case 'reprocess':
+        return t(
+          '%(author)s reprocessed this issue, some events may have moved into new issues',
+          {author}
         );
       default:
         return ''; // should never hit (?)

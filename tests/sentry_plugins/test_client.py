@@ -3,10 +3,10 @@ from __future__ import absolute_import
 import pytest
 import responses
 
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 from sentry.testutils import TestCase
 
-from sentry_plugins.exceptions import (
+from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
     ApiUnauthorized,

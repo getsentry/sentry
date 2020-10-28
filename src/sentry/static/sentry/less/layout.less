@@ -1,19 +1,8 @@
-html {
-  height: 100%;
-}
-
 body {
-  margin: 0;
-  font-size: 16px;
-  line-height: 24px;
-  color: @gray-darker;
-  background: @white-dark;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  min-height: 100vh;
-
   &.body-sidebar {
-    padding-left: @sidebar-expanded-width;
+    @media (min-width: 993px) {
+      padding-left: @sidebar-expanded-width;
+    }
 
     &.collapsed {
       padding-left: @sidebar-collapsed-width;
@@ -29,6 +18,12 @@ body {
     footer {
       display: none;
     }
+  }
+
+  &.scroll-lock {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
   }
 }
 
@@ -47,7 +42,6 @@ body {
 
 body.narrow {
   padding: 0;
-
   background: #fff;
 
   &.body-sidebar {
@@ -427,6 +421,24 @@ footer {
   }
 }
 
+@media (max-width: 992px) {
+  body {
+    &.body-sidebar {
+      padding-left: 0;
+      padding-top: @sidebar-mobile-height;
+
+      &.collapsed {
+        padding-left: 0;
+      }
+    }
+  }
+
+  .messages-container {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}
+
 /**
 * Responsive small screens
 * ============================================================================
@@ -441,25 +453,11 @@ footer {
 
     // Account for there being no footer on mobile
     padding-bottom: 20px;
-
-    &.body-sidebar {
-      padding-left: 0;
-      padding-top: @sidebar-mobile-height;
-
-      &.collapsed {
-        padding-left: 0;
-      }
-    }
   }
 
   .app {
     overflow-x: hidden;
     overflow-y: hidden;
-  }
-
-  .messages-container {
-    margin-top: 0;
-    margin-bottom: 0;
   }
 
   .container {

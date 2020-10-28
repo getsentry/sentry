@@ -1,8 +1,8 @@
+import PropTypes from 'prop-types';
+import React from 'react';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
-import React from 'react';
 
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {getInterval} from 'app/components/charts/utils';
@@ -10,6 +10,7 @@ import {getPeriod} from 'app/utils/getPeriod';
 import {parsePeriodToHours} from 'app/utils/dates';
 import SentryTypes from 'app/sentryTypes';
 import createQueryBuilder from 'app/views/discover/queryBuilder';
+import withProjects from 'app/utils/withProjects';
 
 // Note: Limit max releases so that chart is still a bit readable
 const MAX_RECENT_RELEASES = 20;
@@ -44,17 +45,10 @@ class DiscoverQuery extends React.Component {
     releases: PropTypes.arrayOf(SentryTypes.Release),
   };
 
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      results: null,
-      reloading: null,
-    };
-
-    // Query builders based on `queries`
-    this.queryBuilders = [];
-  }
+  state = {
+    results: null,
+    reloading: null,
+  };
 
   componentDidMount() {
     this.createQueryBuilders();
@@ -116,6 +110,9 @@ class DiscoverQuery extends React.Component {
     this.queryBuilders = [];
   }
 
+  // Query builders based on `queries`
+  queryBuilders = [];
+
   // Checks queries for any that are dependent on recent releases
   doesRequireReleases = memoize(
     queries =>
@@ -125,7 +122,7 @@ class DiscoverQuery extends React.Component {
   );
 
   createQueryBuilders() {
-    const {organization, queries} = this.props;
+    const {organization, projects, queries} = this.props;
 
     this.queryBuilders = [];
 
@@ -144,11 +141,13 @@ class DiscoverQuery extends React.Component {
             createReleaseFieldCondition(this.props.releases.map(({version}) => version)),
         };
         this.queryBuilders.push(
-          createQueryBuilder(this.getQuery(newQuery), organization)
+          createQueryBuilder(this.getQuery(newQuery), organization, projects)
         );
         this.fetchData();
       } else {
-        this.queryBuilders.push(createQueryBuilder(this.getQuery(query), organization));
+        this.queryBuilders.push(
+          createQueryBuilder(this.getQuery(query), organization, projects)
+        );
       }
     });
   }
@@ -221,4 +220,21 @@ class DiscoverQuery extends React.Component {
   }
 }
 
-export default DiscoverQuery;
+function DiscoverQueryContainer({loadingProjects, children, ...props}) {
+  if (loadingProjects) {
+    return children({
+      queries: [],
+      results: null,
+      reloading: null,
+    });
+  }
+  return <DiscoverQuery {...props}>{children}</DiscoverQuery>;
+}
+
+DiscoverQueryContainer.propTypes = {
+  ...DiscoverQuery.propTypes,
+  loadingProjects: PropTypes.bool,
+  projects: PropTypes.arrayOf(SentryTypes.Project),
+};
+
+export default withProjects(DiscoverQueryContainer);

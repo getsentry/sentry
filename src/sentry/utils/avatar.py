@@ -15,6 +15,7 @@ from six.moves.urllib.parse import urlencode
 
 from sentry.utils.hashlib import md5_text
 from sentry.http import safe_urlopen
+from sentry.utils.compat import map
 
 
 def get_gravatar_url(email, size=None, default="mm"):

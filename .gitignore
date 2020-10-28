@@ -1,3 +1,4 @@
+.env
 .cache/
 .coverage
 .storybook-out/
@@ -31,6 +32,7 @@ sentry-package.json
 /src/sentry/static/sentry/rest_framework/
 /src/sentry/integration-docs
 /src/sentry/loader/_registry.json
+/tests/apidocs/openapi-derefed.json
 /wheelhouse
 /test_cli/
 Gemfile.lock
@@ -44,3 +46,5 @@ junit.xml
 package-lock.json
 .webpack.meta
 pip-wheel-metadata/
+Brewfile.lock.json
+~/

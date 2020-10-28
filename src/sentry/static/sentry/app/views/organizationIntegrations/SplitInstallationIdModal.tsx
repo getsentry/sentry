@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import Button from 'app/components/button';
 
+import Button from 'app/components/button';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import IndicatorStore from 'app/stores/indicatorStore';
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 
 type Props = {
   installationId: string;
@@ -12,7 +12,7 @@ type Props = {
 };
 
 /**
- * This component is a short term hack for Split.
+ * This component is a hack for Split.
  * It will display the installation ID after installation so users can copy it and paste it in Split's website.
  * We also have a link for users to click so they can go to Split's website.
  */
@@ -22,15 +22,14 @@ export default class SplitInstallationIdModal extends React.Component<Props> {
     closeModal: PropTypes.func.isRequired,
   };
 
-  onCopy = async () => {
+  onCopy = async () =>
     //This hack is needed because the normal copying methods with TextCopyInput do not work correctly
-    return await navigator.clipboard.writeText(this.props.installationId);
-  };
+    await navigator.clipboard.writeText(this.props.installationId);
 
   handleContinue = () => {
     const delay = 2000;
     this.onCopy();
-    IndicatorStore.add('Copied to clipboard', 'success', {duration: delay});
+    addSuccessMessage('Copied to clipboard');
     setTimeout(() => {
       window.open('https://app.split.io/org/admin/integrations');
     }, delay);

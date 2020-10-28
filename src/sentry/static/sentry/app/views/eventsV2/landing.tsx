@@ -1,40 +1,46 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
-import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
-import pick from 'lodash/pick';
+import PropTypes from 'prop-types';
+import React from 'react';
+import * as ReactRouter from 'react-router';
+import {stringify} from 'query-string';
 import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
+import styled from '@emotion/styled';
+import {Location} from 'history';
 
+import {Organization, SavedQuery, SelectValue} from 'app/types';
+import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import SentryTypes from 'app/sentryTypes';
-import {Organization, SavedQuery} from 'app/types';
-import localStorage from 'app/utils/localStorage';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import Banner from 'app/components/banner';
 import Button from 'app/components/button';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import ConfigStore from 'app/stores/configStore';
+import Feature from 'app/components/acl/feature';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SearchBar from 'app/components/searchBar';
-import NoProjectMessage from 'app/components/noProjectMessage';
-
-import {PageContent} from 'app/styles/organization';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import EventView from 'app/utils/discover/eventView';
+import {decodeScalar} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
 
-import EventView from './eventView';
 import {DEFAULT_EVENT_VIEW} from './data';
+import {getPrebuiltQueries, isBannerHidden, setBannerHidden} from './utils';
 import QueryList from './queryList';
-import {getPrebuiltQueries, decodeScalar} from './utils';
-import {generateDiscoverResultsRoute} from './results';
+import Banner from './banner';
 
-const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
-
-function checkIsBannerHidden(): boolean {
-  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
-}
+const SORT_OPTIONS: SelectValue<string>[] = [
+  {label: t('My Queries'), value: 'myqueries'},
+  {label: t('Recently Edited'), value: '-dateUpdated'},
+  {label: t('Query Name (A-Z)'), value: 'name'},
+  {label: t('Date Created (Newest)'), value: '-dateCreated'},
+  {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+  {label: t('Most Outdated'), value: 'dateUpdated'},
+];
 
 type Props = {
   organization: Organization;
@@ -45,6 +51,7 @@ type Props = {
 
 type State = {
   isBannerHidden: boolean;
+  isSmallBanner: boolean;
   savedQueries: SavedQuery[];
   savedQueriesPageLinks: string;
 } & AsyncComponent['state'];
@@ -56,6 +63,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     router: PropTypes.object.isRequired,
   };
 
+  mq = window.matchMedia?.(`(max-width: ${theme.breakpoints[1]})`);
+
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -64,9 +73,28 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     errors: [],
 
     // local component state
-    isBannerHidden: checkIsBannerHidden(),
+    isBannerHidden: isBannerHidden(),
+    isSmallBanner: this.mq?.matches,
     savedQueries: [],
     savedQueriesPageLinks: '',
+  };
+
+  componentDidMount() {
+    if (this.mq) {
+      this.mq.addListener(this.handleMediaQueryChange);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.mq) {
+      this.mq.removeListener(this.handleMediaQueryChange);
+    }
+  }
+
+  handleMediaQueryChange = (changed: MediaQueryListEvent) => {
+    this.setState({
+      isSmallBanner: changed.matches,
+    });
   };
 
   shouldReload = true;
@@ -75,6 +103,13 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const {location} = this.props;
 
     return String(decodeScalar(location.query.query) || '').trim();
+  }
+
+  getActiveSort() {
+    const {location} = this.props;
+
+    const urlSort = location.query.sort ? decodeScalar(location.query.sort) : 'myqueries';
+    return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
   getEndpoints(): [string, string, any][] {
@@ -113,7 +148,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       cursor,
       query: `version:2 name:"${searchQuery}"`,
       per_page: perPage,
-      sortBy: '-dateUpdated',
+      sortBy: this.getActiveSort().value,
     };
     if (!cursor) {
       delete queryParams.cursor;
@@ -131,15 +166,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const isBannerHidden = checkIsBannerHidden();
-    if (isBannerHidden !== this.state.isBannerHidden) {
+    const isHidden = isBannerHidden();
+    if (isHidden !== this.state.isBannerHidden) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({
-        isBannerHidden,
+        isBannerHidden: isHidden,
       });
     }
-
-    const PAYLOAD_KEYS = ['cursor', 'query'] as const;
+    const PAYLOAD_KEYS = ['sort', 'cursor', 'query'] as const;
 
     const payloadKeysChanged = !isEqual(
       pick(prevProps.location.query, PAYLOAD_KEYS),
@@ -157,8 +191,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     this.fetchData({reloading: true});
   };
 
-  handleClick = () => {
-    localStorage.setItem(BANNER_DISMISSED_KEY, 'true');
+  handleBannerClick = () => {
+    setBannerHidden(true);
     this.setState({isBannerHidden: true});
   };
 
@@ -174,132 +208,173 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     });
   };
 
+  handleSortChange = (value: string) => {
+    const {location} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.change_sort',
+      eventName: 'Discoverv2: Sort By Changed',
+      organization_id: parseInt(this.props.organization.id, 10),
+      sort: value,
+    });
+    ReactRouter.browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        sort: value,
+      },
+    });
+  };
+
   renderBanner() {
     const bannerDismissed = this.state.isBannerHidden;
 
     if (bannerDismissed) {
       return null;
     }
-
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-
-    const to = {
-      pathname: `/organizations/${organization.slug}/eventsV2/results`,
-      query: {
-        ...eventView.generateQueryStringObject(),
-      },
-    };
+    const to = eventView.getResultsViewUrlTarget(organization.slug);
+    const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
 
     return (
       <Banner
-        title={t('Discover')}
-        subtitle={t('Customize your query searches')}
-        onCloseClick={this.handleClick}
-      >
-        <Button
-          to={to}
-          onClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: parseInt(this.props.organization.id, 10),
-              query_name: eventView.name,
-            });
-          }}
-        >
-          {t('Build a new query')}
-        </Button>
-      </Banner>
+        organization={organization}
+        resultsUrl={resultsUrl}
+        isSmallBanner={this.state.isSmallBanner}
+        onHideBanner={this.handleBannerClick}
+      />
     );
   }
 
   renderActions() {
-    const {location, organization} = this.props;
-
-    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-
-    const to = {
-      pathname: generateDiscoverResultsRoute(organization.slug),
-      query: {
-        ...eventView.generateQueryStringObject(),
-      },
-    };
+    const activeSort = this.getActiveSort();
 
     return (
       <StyledActions>
         <StyledSearchBar
           defaultQuery=""
           query={this.getSavedQuerySearchQuery()}
-          placeholder={t('Search for saved queries')}
+          placeholder={t('Search saved queries')}
           onSearch={this.handleSearchQuery}
         />
-        <StyledOr>or</StyledOr>
-        <StyledButton data-test-id="build-new-query" to={to} priority="primary">
-          {t('Build a new query')}
-        </StyledButton>
+        <DropdownControl buttonProps={{prefix: t('Sort By')}} label={activeSort.label}>
+          {SORT_OPTIONS.map(({label, value}) => (
+            <DropdownItem
+              key={value}
+              onSelect={this.handleSortChange}
+              eventKey={value}
+              isActive={value === activeSort.value}
+            >
+              {label}
+            </DropdownItem>
+          ))}
+        </DropdownControl>
       </StyledActions>
     );
   }
 
-  render() {
-    let body;
+  onGoLegacyDiscover = () => {
+    localStorage.setItem('discover:version', '1');
+    const user = ConfigStore.get('user');
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.opt_out',
+      eventName: 'Discoverv2: Go to discover',
+      organization_id: parseInt(this.props.organization.id, 10),
+      user_id: parseInt(user.id, 10),
+    });
+  };
+
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
+  renderBody() {
     const {location, organization} = this.props;
-    const {loading, savedQueries, savedQueriesPageLinks, error} = this.state;
-    if (loading) {
-      body = this.renderLoading();
-    } else if (error) {
-      body = this.renderError();
-    } else {
-      body = (
-        <PageContent>
-          <StyledPageHeader>{t('Discover')}</StyledPageHeader>
-          {this.renderBanner()}
-          {this.renderActions()}
-          <QueryList
-            pageLinks={savedQueriesPageLinks}
-            savedQueries={savedQueries}
-            savedQuerySearchQuery={this.getSavedQuerySearchQuery()}
-            location={location}
-            organization={organization}
-            onQueryChange={this.handleQueryChange}
-          />
-        </PageContent>
-      );
-    }
+    const {savedQueries, savedQueriesPageLinks} = this.state;
 
     return (
-      <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
-        <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
-          <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
-        </React.Fragment>
-      </SentryDocumentTitle>
+      <QueryList
+        pageLinks={savedQueriesPageLinks}
+        savedQueries={savedQueries}
+        savedQuerySearchQuery={this.getSavedQuerySearchQuery()}
+        location={location}
+        organization={organization}
+        onQueryChange={this.handleQueryChange}
+      />
+    );
+  }
+
+  render() {
+    const {location, organization} = this.props;
+    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
+    const to = eventView.getResultsViewUrlTarget(organization.slug);
+
+    return (
+      <Feature
+        organization={organization}
+        features={['discover-query']}
+        renderDisabled={this.renderNoAccess}
+      >
+        <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
+          <StyledPageContent>
+            <LightWeightNoProjectMessage organization={organization}>
+              <PageContent>
+                <StyledPageHeader>
+                  {t('Discover')}
+                  <StyledButton
+                    data-test-id="build-new-query"
+                    to={to}
+                    priority="primary"
+                    onClick={() => {
+                      trackAnalyticsEvent({
+                        eventKey: 'discover_v2.build_new_query',
+                        eventName: 'Discoverv2: Build a new Discover Query',
+                        organization_id: parseInt(this.props.organization.id, 10),
+                      });
+                    }}
+                  >
+                    {t('Build a new query')}
+                  </StyledButton>
+                </StyledPageHeader>
+                {this.renderBanner()}
+                {this.renderActions()}
+                {this.renderComponent()}
+              </PageContent>
+            </LightWeightNoProjectMessage>
+          </StyledPageContent>
+        </SentryDocumentTitle>
+      </Feature>
     );
   }
 }
 
-const StyledPageHeader = styled('div')`
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
+
+export const StyledPageHeader = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
-  height: 40px;
-  margin-bottom: ${space(1)};
+  color: ${p => p.theme.gray800};
+  justify-content: space-between;
+  margin-bottom: ${space(2)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-const StyledOr = styled('span')`
-  color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0 ${space(1.5)};
-`;
-
 const StyledActions = styled('div')`
-  display: flex;
+  display: grid;
+  grid-gap: ${space(2)};
+  grid-template-columns: auto min-content;
+
   align-items: center;
   margin-bottom: ${space(3)};
 `;

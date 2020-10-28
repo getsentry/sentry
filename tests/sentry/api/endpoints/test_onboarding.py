@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase
 
 
 class SkipOnboardingTaskTest(APITestCase):
-    def test_skip_onboarding_task(self):
+    def test_update_onboarding_task(self):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)
@@ -16,7 +16,9 @@ class SkipOnboardingTaskTest(APITestCase):
             kwargs={"organization_slug": organization.slug},
         )
 
-        resp = self.client.post(url, data={"task": "9", "status": "skipped"}, format="json")
+        resp = self.client.post(
+            url, data={"task": "setup_issue_tracker", "status": "skipped"}, format="json"
+        )
         assert resp.status_code == 204
 
         oot = OrganizationOnboardingTask.objects.get(

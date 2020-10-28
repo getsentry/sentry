@@ -24,6 +24,8 @@ from sentry.signals import (
     issue_assigned,
     issue_resolved,
     issue_ignored,
+    issue_unresolved,
+    issue_unignored,
     issue_deleted,
     member_joined,
     ownership_rule_created,
@@ -36,6 +38,7 @@ from sentry.signals import (
     team_created,
     user_feedback_received,
 )
+from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
 
 DEFAULT_TAGS = frozenset(
@@ -202,6 +205,24 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
     )
 
 
+@issue_unresolved.connect(weak=False)
+def record_issue_unresolved(project, user, group, transition_type, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        "issue.unresolved",
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+        transition_type=transition_type,
+    )
+
+
 @advanced_search.connect(weak=False)
 def record_advanced_search(project, **kwargs):
     FeatureAdoption.objects.record(
@@ -254,8 +275,10 @@ def record_inbound_filter_toggled(project, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project, rule, **kwargs):
-    if rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
+def record_alert_rule_created(
+    user, project, rule, rule_type, referrer=None, session_id=None, **kwargs
+):
+    if rule_type == "issue" and rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
         return
 
     FeatureAdoption.objects.record(
@@ -273,8 +296,11 @@ def record_alert_rule_created(user, project, rule, **kwargs):
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
+        project_id=project.id,
         rule_id=rule.id,
-        actions=[a["id"] for a in rule.data.get("actions", [])],
+        rule_type=rule_type,
+        referrer=referrer,
+        session_id=session_id,
     )
 
 
@@ -391,6 +417,24 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
         )
 
 
+@issue_unignored.connect(weak=False)
+def record_issue_unignored(project, user, group, transition_type, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        "issue.unignored",
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+        transition_type=transition_type,
+    )
+
+
 @team_created.connect(weak=False)
 def record_team_created(organization, user, team, **kwargs):
     if user and user.is_authenticated():
@@ -422,6 +466,9 @@ def record_integration_added(integration, organization, user, **kwargs):
         organization_id=organization.id,
         provider=integration.provider,
         id=integration.id,
+    )
+    metrics.incr(
+        "integration.added", sample_rate=1.0, tags={"integration_slug": integration.provider},
     )
 
 

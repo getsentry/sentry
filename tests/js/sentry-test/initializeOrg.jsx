@@ -20,7 +20,13 @@ export function initializeOrg({
     projects,
     ...additionalOrg,
   });
-  const router = TestStubs.router(additionalRouter);
+  const router = TestStubs.router({
+    ...additionalRouter,
+    params: {
+      orgId: organization.slug,
+      ...additionalRouter?.params,
+    },
+  });
 
   const routerContext = TestStubs.routerContext([
     {

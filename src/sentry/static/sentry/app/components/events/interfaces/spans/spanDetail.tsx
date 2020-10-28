@@ -1,27 +1,33 @@
 import React from 'react';
-import styled from '@emotion/styled';
-import get from 'lodash/get';
 import map from 'lodash/map';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import DateTime from 'app/components/dateTime';
-import Pills from 'app/components/pills';
-import Pill from 'app/components/pill';
-import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
+import {Organization, SentryTransactionEvent} from 'app/types';
 import {Client} from 'app/api';
-import Button from 'app/components/button';
-import {
-  generateEventSlug,
-  generateEventDetailsRoute,
-} from 'app/views/eventsV2/eventDetails/utils';
-import EventView from 'app/views/eventsV2/eventView';
-import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
+import {IconWarning} from 'app/icons';
 import {assert} from 'app/types/utils';
+import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
+import DiscoverButton from 'app/components/discoverButton';
+import DateTime from 'app/components/dateTime';
+import EventView from 'app/utils/discover/eventView';
+import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pill from 'app/components/pill';
+import Pills from 'app/components/pills';
+import space from 'app/styles/space';
+import getDynamicText from 'app/utils/getDynamicText';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import withApi from 'app/utils/withApi';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 
-import {ProcessedSpanType, RawSpanType, ParsedTraceType} from './types';
-import {isGapSpan, getTraceDateTimeRange} from './utils';
+import {ProcessedSpanType, RawSpanType, ParsedTraceType, rawSpanKeys} from './types';
+import {isGapSpan, isOrphanSpan, getTraceDateTimeRange} from './utils';
+import * as SpanEntryContext from './context';
+import InlineDocs from './inlineDocs';
 
 type TransactionResult = {
   'project.name': string;
@@ -32,10 +38,13 @@ type TransactionResult = {
 type Props = {
   api: Client;
   orgId: string;
+  organization: Organization;
+  event: Readonly<SentryTransactionEvent>;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
-  eventView: EventView;
   trace: Readonly<ParsedTraceType>;
+  totalNumberOfErrors: number;
+  spanErrors: TableDataRow[];
 };
 
 type State = {
@@ -56,11 +65,7 @@ class SpanDetail extends React.Component<Props, State> {
 
     this.fetchSpanDescendents(span.span_id, span.trace_id)
       .then(response => {
-        if (
-          !response.data ||
-          !Array.isArray(response.data) ||
-          response.data.length <= 0
-        ) {
+        if (!response.data || !Array.isArray(response.data)) {
           return;
         }
 
@@ -68,15 +73,22 @@ class SpanDetail extends React.Component<Props, State> {
           transactionResults: response.data,
         });
       })
-      .catch(_error => {
-        // don't do anything
+      .catch(error => {
+        Sentry.captureException(error);
       });
   }
 
   fetchSpanDescendents(spanID: string, traceID: string): Promise<any> {
-    const {api, orgId, trace} = this.props;
+    const {api, organization, trace, event} = this.props;
 
-    const url = `/organizations/${orgId}/eventsv2/`;
+    // Skip doing a request if the results will be behind a disabled button.
+    if (!organization.features.includes('discover-basic')) {
+      return new Promise(resolve => {
+        resolve({data: []});
+      });
+    }
+
+    const url = `/organizations/${organization.slug}/eventsv2/`;
 
     const {start, end} = getParams(
       getTraceDateTimeRange({
@@ -89,6 +101,9 @@ class SpanDetail extends React.Component<Props, State> {
       field: ['transaction', 'id', 'trace.span'],
       sort: ['-id'],
       query: `event.type:transaction trace:${traceID} trace.parent_span:${spanID}`,
+      project: organization.features.includes('global-views')
+        ? [ALL_ACCESS_PROJECTS]
+        : [Number(event.projectID)],
       start,
       end,
     };
@@ -100,40 +115,41 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderTraversalButton(): React.ReactNode {
-    if (!this.state.transactionResults || this.state.transactionResults.length <= 0) {
-      return null;
+    if (!this.state.transactionResults) {
+      // TODO: Amend size to use theme when we evetually refactor LoadingIndicator
+      // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
+      return (
+        <StyledDiscoverButton size="xsmall" disabled>
+          <StyledLoadingIndicator size={12} />
+        </StyledDiscoverButton>
+      );
     }
 
-    const {span, orgId, trace} = this.props;
+    if (this.state.transactionResults.length <= 0) {
+      return (
+        <StyledDiscoverButton size="xsmall" disabled>
+          {t('No Children')}
+        </StyledDiscoverButton>
+      );
+    }
+
+    const {span, orgId, trace, event, organization} = this.props;
 
     assert(!isGapSpan(span));
 
     if (this.state.transactionResults.length === 1) {
-      const {eventView} = this.props;
-
-      const parentTransactionLink = generateEventDetailsRoute({
-        eventSlug: generateSlug(this.state.transactionResults[0]),
-        orgSlug: this.props.orgId,
-      });
-
-      const to = {
-        pathname: parentTransactionLink,
-        query: eventView.generateQueryStringObject(),
-      };
-
-      return (
-        <StyledButton size="xsmall" to={to}>
-          {t('View Child')}
-        </StyledButton>
-      );
+      // Note: This is rendered by this.renderSpanChild() as a dedicated row
+      return null;
     }
+
+    const orgFeatures = new Set(organization.features);
 
     const {start, end} = getTraceDateTimeRange({
       start: trace.traceStartTimestamp,
       end: trace.traceEndTimestamp,
     });
 
-    const eventView = EventView.fromSavedQuery({
+    const childrenEventView = EventView.fromSavedQuery({
       id: undefined,
       name: `Children from Span ID ${span.span_id}`,
       fields: [
@@ -144,30 +160,69 @@ class SpanDetail extends React.Component<Props, State> {
         'timestamp',
       ],
       orderby: '-timestamp',
-      query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${
-        span.span_id
-      }`,
-      tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
-      projects: [],
+      query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
+      projects: orgFeatures.has('global-views')
+        ? [ALL_ACCESS_PROJECTS]
+        : [Number(event.projectID)],
       version: 2,
       start,
       end,
     });
 
-    const to = {
-      pathname: generateDiscoverResultsRoute(orgId),
-      query: eventView.generateQueryStringObject(),
-    };
+    return (
+      <StyledDiscoverButton
+        data-test-id="view-child-transactions"
+        size="xsmall"
+        to={childrenEventView.getResultsViewUrlTarget(orgId)}
+      >
+        {t('View Children')}
+      </StyledDiscoverButton>
+    );
+  }
+
+  renderSpanChild(): React.ReactNode {
+    if (!this.state.transactionResults || this.state.transactionResults.length !== 1) {
+      return null;
+    }
+
+    const eventSlug = generateSlug(this.state.transactionResults[0]);
+
+    const viewChildButton = (
+      <SpanEntryContext.Consumer>
+        {({getViewChildTransactionTarget}) => {
+          const to = getViewChildTransactionTarget({
+            ...this.state.transactionResults![0],
+            eventSlug,
+          });
+
+          if (!to) {
+            return null;
+          }
+
+          return (
+            <StyledDiscoverButton
+              data-test-id="view-child-transaction"
+              size="xsmall"
+              to={to}
+            >
+              {t('View Span')}
+            </StyledDiscoverButton>
+          );
+        }}
+      </SpanEntryContext.Consumer>
+    );
+
+    const results = this.state.transactionResults[0];
 
     return (
-      <StyledButton size="xsmall" to={to}>
-        {t('View Children')}
-      </StyledButton>
+      <Row title="Child Span" extra={viewChildButton}>
+        {`${results['trace.span']} - ${results.transaction} (${results['project.name']})`}
+      </Row>
     );
   }
 
   renderTraceButton() {
-    const {span, orgId, trace} = this.props;
+    const {span, orgId, organization, trace, event} = this.props;
 
     const {start, end} = getTraceDateTimeRange({
       start: trace.traceStartTimestamp,
@@ -178,7 +233,9 @@ class SpanDetail extends React.Component<Props, State> {
       return null;
     }
 
-    const eventView = EventView.fromSavedQuery({
+    const orgFeatures = new Set(organization.features);
+
+    const traceEventView = EventView.fromSavedQuery({
       id: undefined,
       name: `Transactions with Trace ID ${span.trace_id}`,
       fields: [
@@ -190,38 +247,216 @@ class SpanDetail extends React.Component<Props, State> {
       ],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id}`,
-      tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
-      projects: [],
+      projects: orgFeatures.has('global-views')
+        ? [ALL_ACCESS_PROJECTS]
+        : [Number(event.projectID)],
       version: 2,
       start,
       end,
     });
 
-    const to = {
-      pathname: generateDiscoverResultsRoute(orgId),
-      query: eventView.generateQueryStringObject(),
-    };
-
     return (
-      <StyledButton size="xsmall" to={to}>
+      <StyledDiscoverButton
+        size="xsmall"
+        to={traceEventView.getResultsViewUrlTarget(orgId)}
+      >
         {t('Search by Trace')}
-      </StyledButton>
+      </StyledDiscoverButton>
     );
   }
 
-  render() {
+  renderOrphanSpanMessage() {
     const {span} = this.props;
+
+    if (!isOrphanSpan(span)) {
+      return null;
+    }
+
+    return (
+      <Alert system type="info" icon={<IconWarning size="md" />}>
+        {t(
+          'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
+        )}
+      </Alert>
+    );
+  }
+
+  renderSpanErrorMessage() {
+    const {
+      orgId,
+      spanErrors,
+      totalNumberOfErrors,
+      span,
+      trace,
+      organization,
+      event,
+    } = this.props;
+
+    if (spanErrors.length === 0 || totalNumberOfErrors === 0 || isGapSpan(span)) {
+      return null;
+    }
+
+    // invariant: spanErrors.length <= totalNumberOfErrors
+
+    const eventSlug = generateEventSlug(spanErrors[0]);
+
+    const {start, end} = getTraceDateTimeRange({
+      start: trace.traceStartTimestamp,
+      end: trace.traceEndTimestamp,
+    });
+
+    const orgFeatures = new Set(organization.features);
+
+    const errorsEventView = EventView.fromSavedQuery({
+      id: undefined,
+      name: `Error events associated with span ${span.span_id}`,
+      fields: ['title', 'project', 'issue', 'timestamp'],
+      orderby: '-timestamp',
+      query: `event.type:error trace:${span.trace_id} trace.span:${span.span_id}`,
+      projects: orgFeatures.has('global-views')
+        ? [ALL_ACCESS_PROJECTS]
+        : [Number(event.projectID)],
+      version: 2,
+      start,
+      end,
+    });
+
+    const target =
+      spanErrors.length === 1
+        ? {
+            pathname: eventDetailsRoute({
+              orgSlug: orgId,
+              eventSlug,
+            }),
+          }
+        : errorsEventView.getResultsViewUrlTarget(orgId);
+
+    const message =
+      totalNumberOfErrors === 1 ? (
+        <Link to={target}>
+          <span>{t('An error event occurred in this span.')}</span>
+        </Link>
+      ) : spanErrors.length === totalNumberOfErrors ? (
+        <div>
+          {tct('[link] occurred in this span.', {
+            link: (
+              <Link to={target}>
+                <span>{t('%d error events', totalNumberOfErrors)}</span>
+              </Link>
+            ),
+          })}
+        </div>
+      ) : (
+        <div>
+          {tct('[link] occurred in this span.', {
+            link: (
+              <Link to={target}>
+                <span>
+                  {t('%d out of %d error events', spanErrors.length, totalNumberOfErrors)}
+                </span>
+              </Link>
+            ),
+          })}
+        </div>
+      );
+
+    return (
+      <Alert system type="error" icon={<IconWarning size="md" />}>
+        {message}
+      </Alert>
+    );
+  }
+
+  renderSpanDetails() {
+    const {span, event, organization} = this.props;
+
+    if (isGapSpan(span)) {
+      return (
+        <SpanDetails>
+          <InlineDocs
+            platform={event.sdk?.name || ''}
+            orgSlug={organization.slug}
+            projectSlug={event.projectSlug}
+          />
+        </SpanDetails>
+      );
+    }
 
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
 
     const duration = (endTimestamp - startTimestamp) * 1000;
-    const durationString = `${duration.toFixed(3)}ms`;
+    const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
 
-    if (isGapSpan(span)) {
-      return null;
-    }
+    const unknownKeys = Object.keys(span).filter(key => {
+      return !rawSpanKeys.has(key as any);
+    });
 
+    return (
+      <React.Fragment>
+        {this.renderOrphanSpanMessage()}
+        {this.renderSpanErrorMessage()}
+        <SpanDetails>
+          <table className="table key-value">
+            <tbody>
+              <Row title="Span ID" extra={this.renderTraversalButton()}>
+                {span.span_id}
+              </Row>
+              <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
+              {this.renderSpanChild()}
+              <Row title="Trace ID" extra={this.renderTraceButton()}>
+                {span.trace_id}
+              </Row>
+              <Row title="Description">{span?.description ?? ''}</Row>
+              <Row title="Status">{span.status || ''}</Row>
+              <Row title="Start Date">
+                {getDynamicText({
+                  fixed: 'Mar 16, 2020 9:10:12 AM UTC',
+                  value: (
+                    <React.Fragment>
+                      <DateTime date={startTimestamp * 1000} />
+                      {` (${startTimestamp})`}
+                    </React.Fragment>
+                  ),
+                })}
+              </Row>
+              <Row title="End Date">
+                {getDynamicText({
+                  fixed: 'Mar 16, 2020 9:10:13 AM UTC',
+                  value: (
+                    <React.Fragment>
+                      <DateTime date={endTimestamp * 1000} />
+                      {` (${endTimestamp})`}
+                    </React.Fragment>
+                  ),
+                })}
+              </Row>
+              <Row title="Duration">{durationString}</Row>
+              <Row title="Operation">{span.op || ''}</Row>
+              <Row title="Same Process as Parent">
+                {span.same_process_as_parent !== undefined
+                  ? String(span.same_process_as_parent)
+                  : null}
+              </Row>
+              <Tags span={span} />
+              {map(span?.data ?? {}, (value, key) => (
+                <Row title={key} key={key}>
+                  {JSON.stringify(value, null, 4) || ''}
+                </Row>
+              ))}
+              {unknownKeys.map(key => (
+                <Row title={key} key={key}>
+                  {JSON.stringify(span[key], null, 4) || ''}
+                </Row>
+              ))}
+            </tbody>
+          </table>
+        </SpanDetails>
+      </React.Fragment>
+    );
+  }
+
+  render() {
     return (
       <SpanDetailContainer
         data-component="span-detail"
@@ -230,65 +465,39 @@ class SpanDetail extends React.Component<Props, State> {
           event.stopPropagation();
         }}
       >
-        <table className="table key-value">
-          <tbody>
-            <Row title="Span ID" extra={this.renderTraversalButton()}>
-              {span.span_id}
-            </Row>
-            <Row title="Trace ID" extra={this.renderTraceButton()}>
-              {span.trace_id}
-            </Row>
-            <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
-            <Row title="Description">{get(span, 'description', '')}</Row>
-            <Row title="Start Date">
-              <React.Fragment>
-                <DateTime date={startTimestamp * 1000} />
-                {` (${startTimestamp})`}
-              </React.Fragment>
-            </Row>
-            <Row title="End Date">
-              <React.Fragment>
-                <DateTime date={endTimestamp * 1000} />
-                {` (${endTimestamp})`}
-              </React.Fragment>
-            </Row>
-            <Row title="Duration">{durationString}</Row>
-            <Row title="Operation">{span.op || ''}</Row>
-            <Row title="Same Process as Parent">
-              {String(!!span.same_process_as_parent)}
-            </Row>
-            <Tags span={span} />
-            {map(get(span, 'data', {}), (value, key) => {
-              return (
-                <Row title={key} key={key}>
-                  {JSON.stringify(value, null, 4) || ''}
-                </Row>
-              );
-            })}
-          </tbody>
-        </table>
+        {this.renderSpanDetails()}
       </SpanDetailContainer>
     );
   }
 }
 
-const StyledButton = styled(Button)`
+const StyledDiscoverButton = styled(DiscoverButton)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};
 `;
 
-const SpanDetailContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.gray1};
-  padding: ${space(2)};
+export const SpanDetailContainer = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.borderDark};
   cursor: auto;
+`;
+
+export const SpanDetails = styled('div')`
+  padding: ${space(2)};
 `;
 
 const ValueTd = styled('td')`
   position: relative;
 `;
 
-const Row = ({
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: flex;
+  align-items: center;
+  height: ${space(2)};
+  margin: 0;
+`;
+
+export const Row = ({
   title,
   keep,
   children,
@@ -296,7 +505,7 @@ const Row = ({
 }: {
   title: string;
   keep?: boolean;
-  children: JSX.Element | string;
+  children: JSX.Element | string | null;
   extra?: React.ReactNode;
 }) => {
   if (!keep && !children) {
@@ -316,8 +525,8 @@ const Row = ({
   );
 };
 
-const Tags = ({span}: {span: RawSpanType}) => {
-  const tags: {[tag_name: string]: string} | undefined = get(span, 'tags');
+export const Tags = ({span}: {span: RawSpanType}) => {
+  const tags: {[tag_name: string]: string} | undefined = span?.tags;
 
   if (!tags) {
     return null;
@@ -334,9 +543,9 @@ const Tags = ({span}: {span: RawSpanType}) => {
       <td className="key">Tags</td>
       <td className="value">
         <Pills style={{padding: '8px'}}>
-          {keys.map((key, index) => {
-            return <Pill key={index} name={key} value={String(tags[key]) || ''} />;
-          })}
+          {keys.map((key, index) => (
+            <Pill key={index} name={key} value={String(tags[key]) || ''} />
+          ))}
         </Pills>
       </td>
     </tr>

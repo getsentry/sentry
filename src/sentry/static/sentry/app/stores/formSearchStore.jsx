@@ -1,4 +1,5 @@
 import Reflux from 'reflux';
+
 import FormSearchActions from 'app/actions/formSearchActions';
 
 /**

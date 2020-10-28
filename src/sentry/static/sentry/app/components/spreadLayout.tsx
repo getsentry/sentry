@@ -11,13 +11,13 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
 //
 // Intended for children.length === 2
 // "responsive" will change flex-direction to be column on small widths
-const SpreadLayout: React.FC<Props> = ({
+const SpreadLayout = ({
   responsive = false,
   center = true,
   children,
   className,
   ...props
-}) => {
+}: Props) => {
   const cx = classNames('spread-layout', className, {
     center,
     'allow-responsive': responsive,

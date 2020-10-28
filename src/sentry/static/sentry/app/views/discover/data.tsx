@@ -58,6 +58,7 @@ export const COLUMNS = [
   {name: 'contexts.key', type: TYPES.STRING},
   {name: 'contexts.value', type: TYPES.STRING},
   {name: 'http.method', type: TYPES.STRING},
+  {name: 'http.referer', type: TYPES.STRING},
   {name: 'http.url', type: TYPES.STRING},
   {name: 'os.build', type: TYPES.STRING},
   {name: 'os.kernel_version', type: TYPES.STRING},
@@ -90,7 +91,7 @@ export const COLUMNS = [
   {name: 'stack.stack_level', type: TYPES.NUMBER},
 ];
 
-export const NON_SNUBA_FIELDS = ['project.name'];
+export const NON_SNUBA_FIELDS = ['project.name', 'issue'];
 
 export const NON_CONDITIONS_FIELDS = [...NON_SNUBA_FIELDS, 'project.id'];
 
