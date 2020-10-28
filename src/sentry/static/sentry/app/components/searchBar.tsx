@@ -105,14 +105,14 @@ class SearchBar extends React.PureComponent<Props, State> {
             />
             <StyledIconSearch className="search-input-icon" size="sm" color="gray500" />
             {this.state.query !== this.props.defaultQuery && (
-              <SearchClearForm
+              <SearchClearButton
                 type="button"
                 className="search-clear-form"
                 priority="link"
                 onClick={this.clearSearch}
                 size="xsmall"
                 icon={<IconClose />}
-                aria-label={t('Clear')}
+                label={t('Clear')}
               />
             )}
           </div>
@@ -133,7 +133,7 @@ const StyledIconSearch = styled(IconSearch)`
   left: 14px;
 `;
 
-const SearchClearForm = styled(Button)`
+const SearchClearButton = styled(Button)`
   position: absolute;
   top: 50%;
   height: 16px;
