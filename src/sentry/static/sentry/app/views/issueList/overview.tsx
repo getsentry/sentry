@@ -605,7 +605,7 @@ class IssueListOverview extends React.Component<Props, State> {
     if (this.state.issuesLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
-      body = <LoadingError isPanel message={this.state.error} onRetry={this.fetchData} />;
+      body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     } else if (this.state.groupIds.length > 0) {
       body = this.renderGroupNodes(this.state.groupIds, this.getGroupStatsPeriod());
     } else {
