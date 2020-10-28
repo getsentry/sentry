@@ -96,7 +96,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        name: Checkout sentry (pull_request)
+        name: Checkout sentry (pull_request_target)
         if: github.event.pull_request.head.ref != ''
         with:
           # Note this is required because of `pull_request_target`, which allows
