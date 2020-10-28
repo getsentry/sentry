@@ -723,7 +723,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
             query += u" first_seen:" + iso_format(before_now(seconds=500))
 
             self.login_as(user=self.user)
-            response = self.get_response(sort_by="date", limit=10, query=query)
+            response = self.get_response(
+                sort_by="date", limit=10, query=query, expand=["group_inbox"]
+            )
 
             assert response.status_code == 200
             assert len(response.data) == 1
@@ -740,7 +742,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 "user_window": 5,
             }
             add_group_to_inbox(event.group, GroupInboxReason.UNIGNORED, snooze_details)
-            response = self.get_response(sort_by="date", limit=10, query=query)
+            response = self.get_response(
+                sort_by="date", limit=10, query=query, expand=["group_inbox"]
+            )
 
             assert response.status_code == 200
             assert len(response.data) == 1
