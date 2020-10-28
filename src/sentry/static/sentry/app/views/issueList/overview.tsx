@@ -2,12 +2,12 @@ import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import Cookies from 'js-cookie';
 import React from 'react';
-import classNames from 'classnames';
 import isEqual from 'lodash/isEqual';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -85,6 +85,7 @@ type State = {
   queryMaxCount: number;
   error: string | null;
   isSidebarVisible: boolean;
+  renderSidebar: boolean;
   issuesLoading: boolean;
   tagsLoading: boolean;
   memberList: ReturnType<typeof indexMembersByProject>;
@@ -121,6 +122,7 @@ class IssueListOverview extends React.Component<Props, State> {
       queryMaxCount: 0,
       error: null,
       isSidebarVisible: false,
+      renderSidebar: false,
       issuesLoading: true,
       tagsLoading: true,
       memberList: {},
@@ -509,6 +511,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const {organization} = this.props;
     this.setState({
       isSidebarVisible: !this.state.isSidebarVisible,
+      renderSidebar: true,
     });
     analytics('issue.search_sidebar_clicked', {
       org_id: parseInt(organization.id, 10),
@@ -661,30 +664,36 @@ class IssueListOverview extends React.Component<Props, State> {
     if (this.props.savedSearchLoading) {
       return this.renderLoading();
     }
-    const classes = ['stream-row'];
-    if (this.state.isSidebarVisible) {
-      classes.push('show-sidebar');
-    }
 
-    const {organization, savedSearch, savedSearches, tags} = this.props;
+    const {
+      renderSidebar,
+      isSidebarVisible,
+      tagsLoading,
+      pageLinks,
+      queryCount,
+      realtimeActive,
+      groupIds,
+      queryMaxCount,
+    } = this.state;
+    const {organization, savedSearch, savedSearches, tags, selection} = this.props;
     const query = this.getQuery();
 
     return (
-      <div className={classNames(classes)}>
-        <div className="stream-content">
+      <StreamRow>
+        <StreamContent showSidebar={isSidebarVisible}>
           <IssueListFilters
             organization={organization}
             query={query}
             savedSearch={savedSearch}
             sort={this.getSort()}
-            queryCount={this.state.queryCount}
-            queryMaxCount={this.state.queryMaxCount}
+            queryCount={queryCount}
+            queryMaxCount={queryMaxCount}
             onSortChange={this.onSortChange}
             onSearch={this.onSearch}
             onSavedSearchSelect={this.onSavedSearchSelect}
             onSavedSearchDelete={this.onSavedSearchDelete}
             onSidebarToggle={this.onSidebarToggle}
-            isSearchDisabled={this.state.isSidebarVisible}
+            isSearchDisabled={isSidebarVisible}
             savedSearchList={savedSearches}
             tagValueLoader={this.tagValueLoader}
             tags={tags}
@@ -694,36 +703,42 @@ class IssueListOverview extends React.Component<Props, State> {
             <IssueListActions
               organization={organization}
               orgId={organization.slug}
-              selection={this.props.selection}
+              selection={selection}
               query={query}
-              queryCount={this.state.queryCount}
+              queryCount={queryCount}
               onSelectStatsPeriod={this.onSelectStatsPeriod}
               onRealtimeChange={this.onRealtimeChange}
-              realtimeActive={this.state.realtimeActive}
+              realtimeActive={realtimeActive}
               statsPeriod={this.getGroupStatsPeriod()}
-              groupIds={this.state.groupIds}
+              groupIds={groupIds}
               allResultsVisible={this.allResultsVisible()}
             />
             <PanelBody>
               <ProcessingIssueList
-                organization={this.props.organization}
-                projectIds={this.props.selection?.projects?.map(p => p.toString())}
+                organization={organization}
+                projectIds={selection?.projects?.map(p => p.toString())}
                 showProject
               />
               {this.renderStreamBody()}
             </PanelBody>
           </Panel>
-          <Pagination pageLinks={this.state.pageLinks} onCursor={this.onCursorChange} />
-        </div>
-        <IssueListSidebar
-          loading={this.state.tagsLoading}
-          tags={tags}
-          query={query}
-          onQueryChange={this.onIssueListSidebarSearch}
-          orgId={organization.slug}
-          tagValueLoader={this.tagValueLoader}
-        />
-      </div>
+          <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
+        </StreamContent>
+
+        <SidebarContainer showSidebar={isSidebarVisible}>
+          {/* Avoid rendering sidebar until first accessed */}
+          {renderSidebar && (
+            <IssueListSidebar
+              loading={tagsLoading}
+              tags={tags}
+              query={query}
+              onQueryChange={this.onIssueListSidebarSearch}
+              orgId={organization.slug}
+              tagValueLoader={this.tagValueLoader}
+            />
+          )}
+        </SidebarContainer>
+      </StreamRow>
     );
   }
 }
@@ -733,4 +748,32 @@ export default withApi(
     withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
   )
 );
+
 export {IssueListOverview};
+
+const StreamRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+`;
+
+const StreamContent = styled('div')<{showSidebar: boolean}>`
+  width: ${p => (p.showSidebar ? '75%' : '100%')};
+  transition: width 0.2s ease-in-out;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
+  }
+`;
+
+const SidebarContainer = styled('div')<{showSidebar: boolean}>`
+  display: ${p => (p.showSidebar ? 'block' : 'none')};
+  overflow: ${p => (p.showSidebar ? 'visible' : 'hidden')};
+  height: ${p => (p.showSidebar ? 'auto' : 0)};
+  width: ${p => (p.showSidebar ? '25%' : 0)};
+  transition: width 0.2s ease-in-out;
+  margin-left: 20px;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
