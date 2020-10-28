@@ -29,6 +29,7 @@ function GroupTombstoneRow({data, onUndiscard}: RowProps) {
           includeLink={false}
           hideIcons
           className="truncate"
+          size="normal"
           data={data}
         />
       </StyledBox>
