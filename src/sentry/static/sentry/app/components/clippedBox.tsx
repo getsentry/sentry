@@ -142,7 +142,7 @@ const ClipWrapper = styled('div', {
   margin-left: -${space(3)};
   margin-right: -${space(3)};
   padding: ${space(2)} ${space(3)} 0;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   transition: all 5s ease-in-out;
 
   /* For "Show More" animation */

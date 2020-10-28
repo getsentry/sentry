@@ -195,7 +195,7 @@ export const GridBodyCell = styled('td')`
   padding: ${space(1)} ${space(2)};
 
   background-color: ${p => p.theme.white};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 
   font-size: ${p => p.theme.fontSizeMedium};
 
