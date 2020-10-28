@@ -1,36 +1,33 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
-import Frame from './frame';
-import {t} from '../../../locale';
 
-const TemplateInterface = React.createClass({
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
-  },
+import EventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import Line from 'app/components/events/interfaces/frame/line';
+import {t} from 'app/locale';
 
-  getInitialState() {
-    return {};
-  },
+class TemplateInterface extends React.Component {
+  static propTypes = {
+    event: SentryTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+  };
 
   render() {
     return (
-      <GroupEventDataSection
-        group={this.props.group}
+      <EventDataSection
         event={this.props.event}
         type={this.props.type}
-        title={<div>{t('Template')}</div>}>
+        title={<div>{t('Template')}</div>}
+      >
         <div className="traceback no-exception">
           <ul>
-            <Frame data={this.props.data} isExpanded={true} />
+            <Line data={this.props.data} isExpanded />
           </ul>
         </div>
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
-});
+}
 
 export default TemplateInterface;

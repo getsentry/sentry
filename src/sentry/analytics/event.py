@@ -1,11 +1,16 @@
 from __future__ import absolute_import, print_function
+from sentry.utils.compat import map
 
-__all__ = ('Attribute', 'Event', 'Map')
+__all__ = ("Attribute", "Event", "Map")
 
 import six
+from uuid import uuid1
+from base64 import b64encode
 
 from collections import Mapping
 from django.utils import timezone
+
+from sentry.utils.dates import to_timestamp
 
 
 class Attribute(object):
@@ -39,9 +44,7 @@ class Map(Attribute):
         if not isinstance(value, Mapping):
             new_value = {}
             for attr in self.attributes:
-                new_value[attr.name] = attr.extract(
-                    getattr(value, attr.name, None)
-                )
+                new_value[attr.name] = attr.extract(getattr(value, attr.name, None))
             items = new_value
         else:
             # ensure we dont mutate the original
@@ -53,63 +56,58 @@ class Map(Attribute):
         for attr in self.attributes:
             nv = items.pop(attr.name, None)
             if attr.required and nv is None:
-                raise ValueError(u'{} is required (cannot be None)'.format(
-                    attr.name,
-                ))
+                raise ValueError(u"{} is required (cannot be None)".format(attr.name))
 
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError(u'Unknown attributes: {}'.format(
-                ', '.join(map(six.text_type, six.iterkeys(items))),
-            ))
+            raise ValueError(
+                u"Unknown attributes: {}".format(", ".join(map(six.text_type, six.iterkeys(items))))
+            )
 
         return data
 
 
 class Event(object):
-    __slots__ = ['attributes', 'data', 'datetime', 'type']
+    __slots__ = ["uuid", "data", "datetime"]
 
     type = None
 
     attributes = ()
 
     def __init__(self, type=None, datetime=None, **items):
+        self.uuid = uuid1()
+
         self.datetime = datetime or timezone.now()
         if type is not None:
             self.type = type
 
         if self.type is None:
-            raise ValueError('Event is missing type')
+            raise ValueError("Event is missing type")
 
         data = {}
         for attr in self.attributes:
             nv = items.pop(attr.name, None)
             if attr.required and nv is None:
-                raise ValueError(u'{} is required (cannot be None)'.format(
-                    attr.name,
-                ))
+                raise ValueError(u"{} is required (cannot be None)".format(attr.name))
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError(u'Unknown attributes: {}'.format(
-                ', '.join(six.iterkeys(items)),
-            ))
+            raise ValueError(u"Unknown attributes: {}".format(", ".join(six.iterkeys(items))))
 
         self.data = data
 
     def serialize(self):
-        return dict({
-            'timestamp': int(self.datetime.isoformat('%s')),
-            'type': self.type,
-        }, **self.data)
+        return {
+            "uuid": b64encode(self.uuid.bytes),
+            "timestamp": to_timestamp(self.datetime),
+            "type": self.type,
+            "data": self.data,
+        }
 
     @classmethod
     def from_instance(cls, instance, **kwargs):
         values = {}
         for attr in cls.attributes:
-            values[attr.name] = (
-                kwargs.get(attr.name) or
-                getattr(instance, attr.name, None)
-            )
+            values[attr.name] = kwargs.get(attr.name, getattr(instance, attr.name, None))
         return cls(**values)

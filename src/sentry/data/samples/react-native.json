@@ -4201,17 +4201,21 @@
         "frames_omitted": null
       },
       "mechanism": {
-        "type": "generic",
-        "posix_signal": {
-          "signal": 5,
-          "code": 0
+        "type": "mach",
+        "meta": {
+          "signal": {
+            "number": 5,
+            "code": 0
+          },
+          "mach_exception": {
+            "subcode": 8,
+            "code": 6425112,
+            "exception": 6,
+            "name": "EXC_BREAKPOINT"
+          }
         },
-        "relevant_address": "0x100620a18",
-        "mach_exception": {
-          "subcode": 8,
-          "code": 6425112,
-          "exception": 6,
-          "exception_name": "EXC_BREAKPOINT"
+        "data": {
+          "relevant_address": "0x100620a18"
         }
       },
       "type": "EXC_BREAKPOINT",

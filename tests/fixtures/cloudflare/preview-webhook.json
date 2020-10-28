@@ -1,0 +1,180 @@
+{
+  "nonce": "fPg41GY7uMDz",
+  "timestamp": 1504893617,
+  "app": {
+    "color": "",
+    "termsOfServiceURL": "",
+    "screenshots": null,
+    "id": "",
+    "userVisible": false,
+    "title": "",
+    "tagline": "",
+    "categoryIds": null,
+    "source": "",
+    "agreements": null,
+    "products": null,
+    "instructions": "",
+    "infoVersion": "",
+    "installable": false,
+    "website": "",
+    "privacyPolicyURL": "",
+    "codeVersion": "",
+    "longDescription": "",
+    "tileImage": "",
+    "icon": "",
+    "shortDescription": "",
+    "adminVisible": false,
+    "created": null,
+    "author": "",
+    "alias": "",
+    "points": 0,
+    "orgId": "",
+    "supportEmail": ""
+  },
+  "site": {
+    "active": false,
+    "orgId": "",
+    "id": "",
+    "name": ""
+  },
+  "version": {
+    "files": [],
+    "definition": {
+      "hooks": [
+        {
+          "failure": {
+            "action": "notify",
+            "message": "There was an error communicating with Sentry."
+          },
+          "endpoint": "https://fizzbuzz-123.ngrok.io/extensions/cloudflare/webhook/",
+          "events": [
+            "option-change:account",
+            "option-change:organization",
+            "option-change:project",
+            "preview",
+            "oauth-login",
+            "account-logout",
+            "new-install",
+            "update-install",
+            "before-new-install",
+            "before-update-install",
+            "delete-install"
+          ],
+          "block": true,
+          "authenticate": [
+            "account"
+          ]
+        }
+      ],
+      "preview": {
+        "hide": true
+      },
+      "options": {
+        "properties": {
+          "account": {
+            "services": [
+              "sentry-qa-dcramer"
+            ],
+            "title": "Sentry Account",
+            "type": "object",
+            "order": 0,
+            "format": "account"
+          }
+        }
+      },
+      "resources": {
+        "body": [
+          {
+            "src": "./source/sentry.js",
+            "type": "script"
+          },
+          {
+            "src": "./source/app.js",
+            "type": "script"
+          }
+        ]
+      }
+    },
+    "creatorUserId": "",
+    "hasCode": true,
+    "created": null,
+    "manual": true,
+    "moderationStatus": "",
+    "source": "",
+    "tag": "FBxPSIbK5-6S",
+    "appId": "local",
+    "fileHandle": "local/FBxPSIbK5-6S",
+    "installable": false
+  },
+  "user": {
+    "username": "f5a54c9c5b86f45095b559369b4e0f18",
+    "firstName": "",
+    "created": null,
+    "lastName": "",
+    "email": "sentry@example.com",
+    "personalOrgId": "",
+    "id": "f5a54c9c5b86f45095b559369b4e0f18",
+    "developer": false
+  },
+  "install": {
+    "installerUserId": "",
+    "versionTag": "FBxPSIbK5-6S",
+    "created": null,
+    "deleted": false,
+    "deactivatedAt": null,
+    "metadata": {
+      "userId": "f5a54c9c5b86f45095b559369b4e0f18"
+    },
+    "id": "UyQXS8EkJIz9",
+    "refundedAt": null,
+    "amount": 0,
+    "siteId": "preview",
+    "pastDue": false,
+    "appId": "local",
+    "active": true,
+    "subscriptionId": "",
+    "productId": "",
+    "options": {},
+    "schema": {
+      "properties": {
+        "dsn": {
+          "description": "Your automatically configured DSN for communicating with Sentry.",
+          "title": "DSN",
+          "placeholder": "https://public_key@sentry.io/1",
+          "readonly": true,
+          "type": "string",
+          "order": 3
+        },
+        "organization": {
+          "enum": [],
+          "type": "string",
+          "order": 1,
+          "title": "Sentry Organization"
+        },
+        "account": {
+          "services": [
+            "sentry-qa-dcramer"
+          ],
+          "title": "Sentry Account",
+          "type": "object",
+          "order": 0,
+          "format": "account"
+        },
+        "project": {
+          "enum": [],
+          "type": "string",
+          "order": 2,
+          "title": "Sentry Project"
+        }
+      }
+    }
+  },
+  "org": {
+    "username": "",
+    "personal": false,
+    "created": null,
+    "id": "",
+    "title": ""
+  },
+  "event": "preview"
+}

@@ -38,6 +38,18 @@ system.secret-key: '%(secret_key)s'
 # The ``redis.clusters`` setting is used, unsurprisingly, to configure Redis
 # clusters. These clusters can be then referred to by name when configuring
 # backends such as the cache, digests, or TSDB backend.
+#
+# Two types of clusters are currently supported:
+#
+#   rb.Cluster
+#   A redis blaster cluster is the traditional cluster used by most services
+#   within sentry. This is the default type cluster type.
+#
+#   rediscluster.StrictRedisCluster
+#   An official Redis Cluster can be configured by marking the named group with
+#   the ``is_redis_cluster: True`` flag. In future versions of Sentry more
+#   services will require this type of cluster.
+#
 redis.clusters:
   default:
     hosts:
@@ -50,11 +62,17 @@ redis.clusters:
 ################
 
 # Uploaded media uses these `filestore` settings. The available
-# backends are either `filesystem` or `s3`.
+# backends are: `filesystem`, `gcs`, and `s3`.
 
 filestore.backend: 'filesystem'
 filestore.options:
   location: '/tmp/sentry-files'
+
+# NOTE: See docs/filestore for instructions on configuring the shell environment
+#       with authentication credentials for Google Cloud.
+# filestore.backend: 'gcs'
+# filestore.options:
+#   bucket_name: 's3-bucket-name'
 
 # filestore.backend: 's3'
 # filestore.options:

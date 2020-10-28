@@ -18,9 +18,9 @@ def get_backend_path(backend):
     return backend
 
 
-backend = LazyServiceWrapper(Analytics,
-                             get_backend_path(options.get('analytics.backend')),
-                             options.get('analytics.options'))
+backend = LazyServiceWrapper(
+    Analytics, get_backend_path(options.get("analytics.backend")), options.get("analytics.options")
+)
 backend.expose(locals())
 
 register = default_manager.register

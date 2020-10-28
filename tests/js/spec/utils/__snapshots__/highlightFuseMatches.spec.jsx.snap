@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`highlightFuseMatches matches whole word 1`] = `
+Array [
+  <mark>
+    foo
+  </mark>,
+]
+`;
+
+exports[`highlightFuseMatches renders a highlighted string 1`] = `
+Array [
+  <span>
+    Auth
+  </span>,
+  <mark>
+    ent
+  </mark>,
+  <span>
+    icati
+  </span>,
+  <mark>
+    on
+  </mark>,
+  <span>
+     
+  </span>,
+  <mark>
+    to
+  </mark>,
+  <span>
+    kens allow you to perform actions
+  </span>,
+]
+`;

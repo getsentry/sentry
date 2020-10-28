@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+/* eslint no-console:0 import/no-nodejs-modules:0 */
+/* global process */
+const fs = require('fs');
+const CLIEngine = require('eslint').CLIEngine;
+
+const argv = process.argv.slice(2);
+
+const cli = new CLIEngine({
+  fix: false,
+  extensions: argv[1].split(','),
+  configFile: '.eslintrc.relax.js',
+});
+
+// Lint all files
+const report = cli.executeOnFiles(argv.slice(3));
+
+// get the default formatter
+const consoleFormatter = cli.getFormatter();
+
+const otherFormatterType = argv.indexOf('--format=checkstyle') > -1 ? 'checkstyle' : null;
+
+// output to console
+console.log(consoleFormatter(report.results));
+
+// Output to checkstyle format for zeus
+if (otherFormatterType) {
+  const otherFormatter = cli.getFormatter(otherFormatterType);
+
+  fs.writeFile(
+    '.artifacts/eslint.checkstyle.xml',
+    otherFormatter(report.results),
+    'utf8',
+    () => {
+      process.exit(report.errorCount);
+    }
+  );
+}

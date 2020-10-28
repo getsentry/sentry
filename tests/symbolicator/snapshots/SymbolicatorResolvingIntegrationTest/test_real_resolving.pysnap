@@ -1,0 +1,78 @@
+---
+created: '2020-07-23T19:33:42.975020Z'
+creator: sentry
+source: tests/symbolicator/test_payload_full.py
+---
+contexts: null
+debug_meta:
+  images:
+  - arch: x86_64
+    code_file: Foo.app/Contents/Foo
+    debug_id: 502fc0a5-1ec1-3e47-9998-684fa139dca7
+    debug_status: found
+    features:
+      has_debug_info: true
+      has_sources: false
+      has_symbols: true
+      has_unwind_info: false
+    image_addr: '0x100000000'
+    image_size: 4096
+    image_vmaddr: '0x100000000'
+    type: macho
+  sdk_info:
+    sdk_name: macOS
+    version_major: 10
+    version_minor: 12
+    version_patchlevel: 4
+errors: []
+exception:
+  values:
+  - raw_stacktrace:
+      frames:
+      - data:
+          orig_in_app: -1
+          symbolicator_status: null
+        function: hi
+        in_app: false
+        instruction_addr: null
+        lineno: null
+        package: null
+        symbol: null
+        trust: null
+      - data:
+          orig_in_app: -1
+          symbolicator_status: null
+        function: unknown
+        in_app: true
+        instruction_addr: '0x100000fa0'
+        lineno: null
+        package: Foo.app/Contents/Foo
+        symbol: null
+        trust: null
+    stacktrace:
+      frames:
+      - data:
+          orig_in_app: -1
+          symbolicator_status: null
+        function: hi
+        in_app: false
+        instruction_addr: null
+        lineno: null
+        package: null
+        symbol: null
+        trust: null
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: main
+        in_app: true
+        instruction_addr: '0x100000fa0'
+        lineno: 1
+        package: Foo.app/Contents/Foo
+        symbol: main
+        trust: null
+    type: Fail
+    value: fail
+stacktrace: null
+threads:
+  values: []

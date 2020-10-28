@@ -33,10 +33,7 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
 
         """
         try:
-            search = SavedSearch.objects.get(
-                project=project,
-                id=search_id,
-            )
+            search = SavedSearch.objects.get(project=project, id=search_id)
         except SavedSearch.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -57,46 +54,42 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
 
         """
         try:
-            search = SavedSearch.objects.get(
-                project=project,
-                id=search_id,
-            )
+            search = SavedSearch.objects.get(project=project, id=search_id)
         except SavedSearch.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if request.access.has_team_scope(project.team, 'project:write'):
-            serializer = SavedSearchSerializer(data=request.DATA, partial=True)
+        has_team_scope = any(
+            request.access.has_team_scope(team, "project:write") for team in project.teams.all()
+        )
+        if has_team_scope:
+            serializer = SavedSearchSerializer(data=request.data, partial=True)
         else:
-            serializer = LimitedSavedSearchSerializer(data=request.DATA, partial=True)
+            serializer = LimitedSavedSearchSerializer(data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         kwargs = {}
-        if result.get('name'):
-            kwargs['name'] = result['name']
-        if result.get('query'):
-            kwargs['query'] = result['query']
-        if result.get('isDefault'):
-            kwargs['is_default'] = result['isDefault']
+        if result.get("name"):
+            kwargs["name"] = result["name"]
+        if result.get("query"):
+            kwargs["query"] = result["query"]
+        if result.get("isDefault"):
+            kwargs["is_default"] = result["isDefault"]
 
         if kwargs:
             search.update(**kwargs)
 
-        if result.get('isDefault'):
-            SavedSearch.objects.filter(
-                project=project,
-            ).exclude(id=search_id).update(is_default=False)
+        if result.get("isDefault"):
+            SavedSearch.objects.filter(project=project).exclude(id=search_id).update(
+                is_default=False
+            )
 
-        if result.get('isUserDefault'):
+        if result.get("isUserDefault"):
             SavedSearchUserDefault.objects.create_or_update(
-                user=request.user,
-                project=project,
-                values={
-                    'savedsearch': search,
-                }
+                user=request.user, project=project, values={"savedsearch": search}
             )
 
         return Response(serialize(search, request.user))
@@ -111,13 +104,18 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
 
         """
         try:
-            search = SavedSearch.objects.get(
-                project=project,
-                id=search_id,
-            )
+            search = SavedSearch.objects.get(project=project, id=search_id)
         except SavedSearch.DoesNotExist:
             raise ResourceDoesNotExist
 
-        search.delete()
+        is_search_owner = request.user and request.user == search.owner
 
-        return Response(status=204)
+        if request.access.has_scope("project:write"):
+            if not search.owner or is_search_owner:
+                search.delete()
+                return Response(status=204)
+        elif is_search_owner:
+            search.delete()
+            return Response(status=204)
+
+        return Response(status=403)

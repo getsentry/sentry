@@ -1,0 +1,289 @@
+5,Érvénytelen eljáráshívás vagy argumentum
+6,Túlcsordulás
+7,Kevés a memória.
+9,Az index kívül esik a tartományon.
+10,Ez a tömb rögzített vagy ideiglenesen zárolva van.
+11,Nullával való osztás
+13,Típuseltérés
+14,A karakterlánc túl hosszú.
+17,A megadott művelet nem hajtható végre.
+28,Nincs elég veremmemória.
+35,Nem definiált Sub vagy Function
+48,Hiba lépett fel a DLL betöltése közben.
+51,Belső hiba
+52,Helytelen fájlnév vagy -szám
+53,A fájl nem található.
+54,Helytelen fájlmód
+55,A fájl már meg van nyitva.
+57,Eszköz I/O-hibája
+58,A fájl már létezik.
+61,A lemez megtelt.
+62,A bevitel túllépte a fájl végét.
+67,Túl sok fájl
+68,Az eszköz nem áll készen.
+70,Engedély megtagadva
+71,A lemez nem áll készen.
+74,Az átnevezés nem vonatkozhat a meghajtó betűjelére.
+75,A fájlt vagy könyvtárat nem lehet elérni.
+76,Az elérési út nem található.
+91,Az objektumváltozó vagy a With blokk változója nincs beállítva.
+92,A For ciklus nincs inicializálva.
+94,A Null szabálytalan használata
+322,A szükséges ideiglenes fájl nem hozható létre.
+424,Az objektumot kötelező megadni.
+429,Az automatizálható szolgáltató nem tudja létrehozni az objektumot.
+430,Az osztály nem automatizálható.
+432,A fájlnév vagy objektumnév nem található az automatizálási művelet közben.
+438,Az objektum nem támogatja ezt a tulajdonságot vagy metódust.
+440,Automatizálási hiba
+445,Az objektum nem támogatja a műveletet.
+446,Az objektum nem támogatja az elnevezett argumentumokat.
+447,Az objektum nem támogatja az aktuális területi beállításokat.
+448,Az elnevezett argumentum nem található.
+449,Az argumentumot kötelező megadni.
+450,Nem megfelelő számú argumentum, vagy érvénytelen tulajdonság-hozzárendelés.
+451,Az objektum nem gyűjtemény.
+453,A megadott DLL nem található.
+458,A JavaScript nem támogatja a változó által használt automatizálási típust
+462,A távoli kiszolgáló számítógép nem létezik vagy nem érhető el.
+501,Nem rendelhető változóhoz.
+502,Az objektum nem használható biztonságosan szkriptben.
+503,Az objektum nem inicializálható biztonságosan.
+504,Az objektumot nem lehet biztonságosan létrehozni.
+507,Kivétel történt.
+1001,Kevés a memória.
+1002,Szintaktikai hiba
+1003,A várt elem ':'
+1004,A várt elem ';'
+1005,A várt elem '('
+1006,A várt elem ')'
+1007,A várt elem ']'
+1008,A várt elem '{'
+1009,A várt elem '}'
+1010,A várt elem azonosító
+1011,A várt elem '='
+1012,A várt elem '/'
+1013,Érvénytelen szám
+1014,Érvénytelen karakter
+1015,Lezáratlan karakterlánckonstans
+1016,Lezáratlan megjegyzés
+1018,Függvényen kívüli 'return' utasítás
+1019,A 'break' utasítás nem szerepelhet cikluson kívül.
+1020,A 'continue' utasítás nem szerepelhet cikluson kívül.
+1023,A várt elem hexadecimális szám
+1024,A várt elem 'while'
+1025,A címke újra lett definiálva.
+1026,A címke nem található.
+1027,A 'default' utasítás csak egyszer szerepelhet egy 'switch' blokkon belül.
+1028,A várt elem azonosító, karakterlánc vagy szám
+1029,A várt elem '@end'
+1030,A feltételes fordítás ki van kapcsolva.
+1031,A várt elem konstans
+1032,A várt elem '@'
+1033,A várt elem 'catch'
+1034,A várt elem 'var'
+1035,A "throw" utasítás után a forrás ugyanazon sorában kifejezésnek kell szerepelnie
+1037,A "with" utasítás nem engedélyezett szigorú üzemmódban
+1038,Az ismétlődő formális paraméternevek nem engedélyezettek szigorú üzemmódban
+1039,Az oktális numerikus konstansok és escape-karakterek nem engedélyezettek szigorú üzemmódban
+1041,Az eval használata érvénytelen szigorú üzemmódban
+1042,Az 'arguments' használata érvénytelen szigorú üzemmódban
+1045,A delete függvény nem hívható meg kifejezésben szigorú üzemmód esetén
+1046,Egy tulajdonság nem definiálható többször szigorú üzemmód esetén
+1047,Szigorú üzemmódban a függvénydeklarációk nem ágyazhatók be egy utasításba vagy blokkba. Csak a legfelső szinten vagy közvetlenül a függvénytörzsben jelenhetnek meg.
+1048,Kulcsszó használata azonosítóként érvénytelen
+1049,Leendő foglalt kulcsszó használata azonosítóként érvénytelen
+1050,Leendő foglalt kulcsszó használata azonosítóként érvénytelen. Az azonosító neve szigorú üzemmódban foglalt.
+1051,A beállító függvényeknek egy argumentumuk lehet
+4096,JavaScript - fordítási hiba
+4097,JavaScript - futásidejű hiba
+4098,Ismeretlen futásidejű hiba
+5000,Nem rendelhető a 'this' objektumhoz.
+5001,A várt elem szám
+5002,A várt elem függvény
+5003,Nem rendelhető függvényeredményhez.
+5004,Az objektum nem indexelhető.
+5005,A várt elem karakterlánc
+5006,A várt elem dátumobjektum
+5007,A várt elem objektum
+5008,Érvénytelen a hozzárendelés bal oldala
+5009,Nem definiált azonosító
+5010,A várt elem logikai változó
+5011,Felszabadított szkriptben nem hajtható végre kód.
+5012,A várt elem objektumtag
+5013,A várt elem VBArray
+5014,A várt elem JavaScript-objektum
+5015,A várt elem enumerátorobjektum
+5016,A várt elem reguláris kifejezés
+5017,Szintaktikai hiba a reguláris kifejezésben
+5018,Váratlan ismétlődésleíró
+5019,Hiányzó ']' a reguláris kifejezésben
+5020,Hiányzó ')' a reguláris kifejezésben
+5021,Érvénytelen tartomány a karakterkészletben
+5022,Kezeletlen kivétel.
+5023,A függvénynek nincs érvényes prototípusa.
+5024,A kódolandó URI érvénytelen karaktert tartalmaz
+5025,A dekódolandó URI kódolása érvénytelen.
+5026,A tizedesjegyek száma nincs a megengedett tartományban
+5027,A tizedespontosság nincs a megengedett tartományban
+5028,A várt elem tömb vagy argumentumobjektum
+5029,A tömb hossza csak véges pozitív egész szám lehet.
+5030,A tömb hossza csak véges pozitív számként adható meg.
+5031,A várt elem tömbobjektum
+5034,A körkörös hivatkozás érték argumentumnál nem támogatott
+5035,Érvénytelen lecserélő argumentum
+5038,Az argumentumlista túl hosszú, ezért nem alkalmazható
+5039,Újra meg lett határozva a const tulajdonság
+5041,Az objektumtag nem konfigurálható
+5042,A változó nincs meghatározva szigorú üzemmódban
+5043,A függvények vagy argumentumobjektumok caller tulajdonságának lekérdezése nem engedélyezett szigorú üzemmódban
+5044,Az argumentumobjektumok callee tulajdonságának lekérdezése nem engedélyezett szigorú üzemmódban
+5045,A csak olvasható tulajdonságok értékadása nem engedélyezett szigorú üzemmódban
+5046,Nem hozható létre tulajdonság egy nem kiterjeszthető objektum esetén
+5047,A várt elem objektum
+5048,A várt elem objektum
+5049,A várt elem objektum
+5050,A várt elem objektum
+5051,A várt elem függvény
+5052,A várt elem függvény
+5053,A tulajdonságnak nem lehet egyszerre értéke és elérője is
+5054,'this' értéke null vagy nincs meghatározva
+5055,A várt elem objektum
+5056,A várt elem függvény
+5057,A várt elem karakterlánc
+5058,A várt elem logikai változó
+5059,A várt elem dátum
+5060,A várt elem szám
+5061,A várt elem VBArray
+5062,A várt elem JavaScript-objektum
+5063,A várt elem enumerátorobjektum
+5064,A várt elem reguláris kifejezés objektum
+5065,Érvénytelen függvényargumentum
+5066,A várt elem objektum
+5067,A várt elem JavaScript-objektum
+5068,A várt elem függvény
+5069,A várt elem VBArray
+5070,A várt elem objektum
+5071,A várt elem objektum
+5072,Érvénytelen length tulajdonság
+5073,A várt elem tömb vagy argumentumobjektum
+5074,Érvénytelen operandus
+5075,Érvénytelen operandus
+5076,Érvénytelen a tulajdonság leírója
+5077,Nem lehet meghatározni a tulajdonságot: az objektum nem kiterjeszthető
+5078,Nem lehet újra meghatározni a nem konfigurálható tulajdonságot
+5079,Nem lehet módosítani a nem írható tulajdonságot
+5080,Nem lehet módosítani a tulajdonságot: a "length" nem írható
+5081,Nem lehet definiálni a tulajdonságot
+5082,A típusos tömb konstruktorargumentuma érvénytelen
+5083,A 'this' nem típusos tömb objektum
+5084,A program a típusos tömb létrehozásakor érvénytelen eltolást vagy hosszt talált
+5085,Egy típusos tömb tömbrészképző metódusa érvénytelen kezdő vagy befejező értéket kapott
+5086,Érvénytelen a forrás a típusostömb-készletben
+5087,A 'this' nem DataView objektum
+5088,Érvénytelen argumentumok a DataView objektumban
+5089,A DataView műveletei túlnyúlnak a megadott pufferhosszúságon
+5090,Érvénytelen argumentumok a DataView objektumban
+5091,érvénytelen függvényaláírás
+5092,érvénytelen tulajdonság-aláírás
+5093,érvénytelen bemenetiparaméter-típus
+5094,érvénytelen kimenetiparaméter-típus
+5095,A függvények arguments tulajdonságának lekérdezése nem engedélyezett szigorú üzemmódban
+5096,A program vizsgálható objektumot várt
+5097,Nem sikerült az argumentum 'char' típusúvá konvertálása
+5098,Nem sikerült az argumentum 'GUID' típusúvá konvertálása
+5099,A program IInspectable elemet várt
+5100,Nem sikerült az objektum struktúrává konvertálása: az objektumból hiányzik egy várt tulajdonság
+5101,Ismeretlen típus
+5102,A függvény túl kevés argumentummal lett meghívva
+5103,Ez nem példányosítható típus
+5104,Nem sikerült az érték PropertyValue típusúvá konvertálása: a típust a PropertyValue osztály nem támogatja
+5105,Nem sikerült az érték IInspectable típusúvá konvertálása: a típust az IInspectable osztály nem támogatja
+5106,Nem sikerült a dátum Windows.Foundation.DateTime típusúvá konvertálása: az érték kívül esik az érvényes tartományon
+5107,Nem sikerült az érték Windows.Foundation.TimeSpan típusúvá konvertálása: az érték kívül esik az érvényes tartományon
+5108,Érvénytelen hozzáférés a már felszabadított vizsgálható objektumhoz
+5109,Nem szabadítható fel a már felszabadított vizsgálható objektum
+5110,A 'this' nem várt típus
+5111,Szabálytalan a tömb megadott hossza és mérete
+5112,Váratlan hiba történt a metaadat-információ beszerzése során
+5200,Az állapot "error", de a getResults metódus nem adott vissza hibát
+5201,A program hiányzó vagy érvénytelen állapotparamétert adott át a befejezést kezelő leírónak
+5202,A program hiányzó vagy érvénytelen, küldőre vonatkozó paramétert adott át a befejezést kezelő leírónak
+6000,Végtelen
+6001,-Végtelen
+10438,Az objektum nem támogatja a következő tulajdonságot vagy metódust: '%s'
+10449,A(z) '%s' függvénynek kötelező argumentumot adni
+15001,'%s' nem szám
+15002,'%s' nem függvény
+15004,'%s' nem indexelhető objektum
+15005,'%s' nem karakterlánc
+15006,'%s' nem dátumobjektum
+15007,'%s' értéke NULL, vagy nem objektum
+15008,Nem lehet hozzárendelni a következőhöz: '%s'
+15009,'%s' nincs definiálva
+15010,'%s' nem logikai változó
+15012,'%s' nem törölhető
+15013,'%s' nem VBArray
+15014,A(z) '%s' nem JavaScript-objektum
+15015,'%s' nem enumerátorobjektum
+15016,'%s' nem reguláris kifejezés
+15028,%s nem tömb vagy argumentumobjektum
+15031,%s nem tömbobjektum
+15036,A tulajdonságleíró '%s' attribútuma nem állítható be "True" értékre ehhez az objektumhoz
+15037,A tulajdonságleíró '%s' attribútuma nem állítható be "False" értékre ehhez az objektumhoz
+15039,Újra meg lett határozva a(z) '%s' konstans
+15041,%s esetében nem hívható delete függvény szigorú üzemmódban
+15047,Nem lehet beállítani a(z) %s tulajdonságot, amelyhez nem definiált vagy null értékű hivatkozás tartozik
+15048,Nem lehet lekérni a(z) %s tulajdonságot, amelyhez nem definiált vagy null értékű hivatkozás tartozik
+15049,Nem lehet törölni a(z) %s tulajdonságot, amelyhez nem definiált vagy null értékű hivatkozás tartozik
+15050,Nem érhető el a(z) '%s' tulajdonság: VarDate típus esetén nem használható felhasználó által meghatározott tulajdonság
+15051,A(z) '%s' tulajdonság értéke nem függvényobjektum
+15052,A(z) '%s' tulajdonság értéke null vagy nincs meghatározva, nem pedig függvényobjektum
+15054,%s: 'this' null értékű vagy nincs meghatározva
+15055,%s: 'this' nem objektum
+15056,%s: 'this' nem függvényobjektum
+15057,%s: 'this' nem karakterlánc-objektum
+15058,%s: 'this' nem logikai objektum
+15059,%s: 'this' nem dátumobjektum
+15060,%s: 'this' nem numerikus objektum
+15061,%s: 'this' nem VBArray-objektum
+15062,%s: 'this' nem JavaScript-objektum
+15063,%s: 'this' nem enumerátorobjektum
+15064,%s: 'this' nem reguláris kifejezés objektum
+15065,%s: érvénytelen argumentum
+15066,%s: az argumentum nem objektum
+15067,%s: az argumentum nem JavaScript-objektum
+15068,%s: az argumentum nem függvényobjektum
+15069,%s: az argumentum nem VBArray-objektum
+15070,%s: az argumentum null értékű vagy nincs meghatározva
+15071,%s: az argumentum nem objektum és nem null értékű
+15072,%s: az argumentumnak nincs érvényes "length" tulajdonsága
+15073,%s: a várt elem tömb vagy argumentumobjektum
+15074,Érvénytelen a(z) '%s' operandusa: a várt elem objektum
+15075,Érvénytelen a(z) '%s' operandusa: a várt elem függvény
+15076,Érvénytelen a(z) '%s' tulajdonság leírója
+15077,Nem lehet meghatározni a(z) '%s' tulajdonságot: az objektum nem kiterjeszthető
+15078,Nem lehet újra meghatározni a(z) '%s' nem konfigurálható tulajdonságot
+15079,Nem lehet módosítani a(z) '%s' nem írható tulajdonságot
+15080,Nem lehet módosítani a(z) '%s' tulajdonságot: a "length" nem írható
+15081,Nem definiálható a(z) '%s' tulajdonság
+15088,Nincs megadva a DataView metódus kötelező %s argumentuma
+15090,Érvénytelen a DataView %s konstruktorargumentuma
+15091,A(z) %s függvény aláírása érvénytelen, és a függvény nem hívható
+15092,A(z) %s tulajdonság aláírása érvénytelen, és a tulajdonság nem kérdezhető le
+15093,A Windows.Foundation.IPropertyValue alapértelmezett felületű %s futásidejű osztályt a program nem támogatja bemenetiparaméter-típusként
+15094,A(z) %s futásidejűosztály-névvel rendelkező Windows.Foundation.IPropertyValue felületű objektumot a program nem támogatja kimeneti paraméterként
+15096,%s: a 'this' nem vizsgálható objektum
+15097,%s: nem sikerült az argumentum 'char' típusúvá konvertálása
+15098,%s: nem sikerült az argumentum 'GUID' típusúvá konvertálása
+15099,%s: nem sikerült a visszatérési érték IInspectable típusúvá konvertálása
+15100,Nem sikerült az objektum struktúrává konvertálása: az objektumból hiányzik a következő várt tulajdonság: '%s'
+15101,Nem található a(z) '%s' típus
+15102,%s: a függvény túl kevés argumentummal lett meghívva
+15103,%s: ez nem példányosítható típus
+15104,Nem sikerült az érték PropertyValue típusúvá konvertálása: a(z) %s típust a PropertyValue osztály nem támogatja
+15105,Nem sikerült az érték IInspectable típusúvá konvertálása: a(z) %s típust az IInspectable osztály nem támogatja
+15108,%s: a 'this' vizsgálható objektum fel van szabadítva és nem érhető el
+15110,A 'this' nem várt típus: %s
+15112,%s: váratlan hiba történt a metaadat-információ beszerzése során
+32812,A megadott dátum nem található az aktuális nyelv naptárában

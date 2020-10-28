@@ -1,183 +1,196 @@
+import {browserHistory} from 'react-router';
+import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+import 'prismjs/themes/prism-tomorrow.css';
 
-import ApiMixin from '../../mixins/apiMixin';
-import LanguageNav from './languageNav';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import NotFound from '../../components/errors/notFound';
-import Link from '../../components/link';
-import {t, tct} from '../../locale';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {loadDocs} from 'app/actionCreators/projects';
+import {t, tct} from 'app/locale';
+import Button from 'app/components/button';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NotFound from 'app/components/errors/notFound';
+import Projects from 'app/utils/projects';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import platforms from 'app/data/platforms';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
-const ProjectInstallPlatform = React.createClass({
-  propTypes: {
-    platformData: React.PropTypes.object.isRequired
-  },
+class ProjectInstallPlatform extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState(props) {
-    props = props || this.props;
-    let params = props.params;
-    let key = params.platform;
-    let integration;
-    let platform;
-
-    props.platformData.platforms.forEach(p_item => {
-      if (integration) {
-        return;
-      }
-      integration = p_item.integrations.filter(i_item => {
-        return i_item.id == key;
-      })[0];
-      if (integration) {
-        platform = p_item;
-      }
-    });
-
-    return {
-      loading: true,
-      error: false,
-      integration: integration,
-      platform: platform,
-      html: null
-    };
-  },
+  state = {
+    loading: true,
+    error: false,
+    html: null,
+  };
 
   componentDidMount() {
     this.fetchData();
-    $(window).scrollTop(0);
-  },
+    window.scrollTo(0, 0);
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.params.platform !== this.props.params.platform) {
-      this.setState(this.getInitialState(nextProps), this.fetchData);
-      $(window).scrollTop(0);
+    const {platform} = this.props.params;
+
+    //redirect if platform is not known.
+    if (!platform || platform === 'other') {
+      this.redirectToNeutralDocs();
     }
-  },
+  }
 
-  isGettingStarted() {
-    return location.href.indexOf('getting-started') > 0;
-  },
+  get isGettingStarted() {
+    return window.location.href.indexOf('getting-started') > 0;
+  }
 
-  fetchData() {
-    let {orgId, projectId, platform} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/docs/${platform}/`, {
-      success: data => {
-        this.setState({
-          loading: false,
-          error: false,
-          html: data.html
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true
-        });
-      }
-    });
-  },
+  fetchData = async () => {
+    const {api, params} = this.props;
+    const {orgId, projectId, platform} = params;
 
-  getPlatformLink(platform, display) {
-    let {orgId, projectId} = this.props.params;
-    return (
-      <Link
-        key={platform}
-        to={`/${orgId}/${projectId}/settings/install/${platform}/`}
-        className="list-group-item">
-        {display || platform}
-      </Link>
-    );
-  },
+    this.setState({loading: true});
 
-  renderSidebar() {
-    let platform = this.state.platform;
-    return (
-      <div className="install-sidebar col-md-2">
-        {this.props.platformData.platforms.map(p_item => {
-          return (
-            <LanguageNav
-              key={p_item.id}
-              name={p_item.name}
-              active={platform && platform.id === p_item.id}>
-              {p_item.integrations.map(i_item => {
-                return this.getPlatformLink(
-                  i_item.id,
-                  i_item.id === p_item.id ? t('Generic') : i_item.name
-                );
-              })}
-            </LanguageNav>
-          );
-        })}
-      </div>
-    );
-  },
+    try {
+      const {html} = await loadDocs(api, orgId, projectId, platform);
+      this.setState({html});
+    } catch (error) {
+      this.setState({error});
+    }
 
-  renderBody() {
-    let {integration, platform} = this.state;
-    let {orgId, projectId} = this.props.params;
+    this.setState({loading: false});
+  };
 
-    if (!integration || !platform) {
+  redirectToNeutralDocs() {
+    const {orgId, projectId} = this.props.params;
+
+    const url = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+
+    browserHistory.push(url);
+  }
+
+  render() {
+    const {params} = this.props;
+    const {orgId, projectId} = params;
+
+    const platform = platforms.find(p => p.id === params.platform);
+
+    if (!platform) {
       return <NotFound />;
     }
 
+    const issueStreamLink = `/organizations/${orgId}/issues/`;
+    const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+
     return (
-      <div className="box">
-        <div className="box-header">
-          <div className="pull-right">
-            <a href={integration.link} className="btn btn-sm btn-default">
+      <Panel>
+        <PanelHeader hasButtons>
+          {t('Configure %(platform)s', {platform: platform.name})}
+          <Actions>
+            <Button size="small" to={gettingStartedLink}>
+              {t('< Back')}
+            </Button>
+            <Button size="small" href={platform.link} external>
               {t('Full Documentation')}
-            </a>
-          </div>
+            </Button>
+          </Actions>
+        </PanelHeader>
 
-          <h3>{t('Configure %(integration)s', {integration: integration.name})}</h3>
-        </div>
-        <div className="box-content with-padding">
-          <p>
-            {tct(
-              `
+        <PanelAlert type="info">
+          {tct(
+            `
              This is a quick getting started guide. For in-depth instructions
-             on integrating Sentry with [integration], view
-             [docLink:our complete documentation].
-            `,
-              {
-                integration: integration.name,
-                docLink: <a href={integration.link} />
-              }
-            )}
-          </p>
+             on integrating Sentry with [platform], view
+             [docLink:our complete documentation].`,
+            {
+              platform: platform.name,
+              docLink: <a href={platform.link} />,
+            }
+          )}
+        </PanelAlert>
 
-          {this.state.loading
-            ? <LoadingIndicator />
-            : this.state.error
-                ? <LoadingError onRetry={this.fetchData} />
-                : <div dangerouslySetInnerHTML={{__html: this.state.html}} />}
+        <PanelBody withPadding>
+          {this.state.loading ? (
+            <LoadingIndicator />
+          ) : this.state.error ? (
+            <LoadingError onRetry={this.fetchData} />
+          ) : (
+            <React.Fragment>
+              <SentryDocumentTitle
+                title={`${t('Configure')} ${platform.name}`}
+                objSlug={projectId}
+              />
+              <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
+            </React.Fragment>
+          )}
 
-          {this.isGettingStarted() &&
-            // Using <a /> instead of <Link /> as hashchange events are not
-            // triggered when switching views within React Router
-            <p>
-              <Link
-                to={`/${orgId}/${projectId}/#welcome`}
-                className="btn btn-primary btn-lg">
-                {t('Got it! Take me to the Issue Stream.')}
-              </Link>
-            </p>}
-        </div>
-      </div>
-    );
-  },
+          {this.isGettingStarted && (
+            <Projects
+              key={`${orgId}-${projectId}`}
+              orgId={orgId}
+              slugs={[projectId]}
+              passthroughPlaceholderProject={false}
+            >
+              {({projects, initiallyLoaded, fetching, fetchError}) => {
+                const projectsLoading = !initiallyLoaded && fetching;
+                const issueStreamLinkQuery =
+                  !projectsLoading && !fetchError && projects.length
+                    ? {
+                        project: projects[0].id,
+                      }
+                    : {};
 
-  render() {
-    return (
-      <div className="install row">
-        <div className="install-content col-md-10">
-          {this.renderBody()}
-        </div>
-        {this.renderSidebar()}
-      </div>
+                return (
+                  <Button
+                    priority="primary"
+                    busy={projectsLoading}
+                    to={{
+                      pathname: issueStreamLink,
+                      query: issueStreamLinkQuery,
+                      hash: '#welcome',
+                    }}
+                    style={{marginTop: 20}}
+                  >
+                    {t('Got it! Take me to the Issue Stream.')}
+                  </Button>
+                );
+              }}
+            </Projects>
+          )}
+        </PanelBody>
+      </Panel>
     );
   }
-});
+}
 
-export default ProjectInstallPlatform;
+const DocumentationWrapper = styled('div')`
+  .gatsby-highlight {
+    margin-bottom: ${space(3)};
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .alert {
+    margin-bottom: ${space(3)};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+
+  p {
+    line-height: 1.5;
+  }
+  pre {
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+`;
+
+const Actions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+`;
+
+export {ProjectInstallPlatform};
+export default withApi(withOrganization(ProjectInstallPlatform));

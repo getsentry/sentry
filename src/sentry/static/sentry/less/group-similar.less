@@ -1,0 +1,84 @@
+// For interface for merging/unmerging events/issues
+// Shares CSS with "stream.less" so some defs are in there
+.similar-list-container {
+  h2 {
+    font-size: 18px;
+    text-transform: uppercase;
+    color: #968ba0;
+    margin-top: 20px;
+    margin-bottom: 10px;
+  }
+
+  .event-details {
+    overflow: hidden;
+  }
+
+  .event-count-header {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .event-count {
+    padding: 0;
+  }
+}
+
+.similar-list {
+  line-height: 16px;
+
+  .group {
+    padding-right: 0;
+  }
+
+  .event-details {
+    padding: 12px 12px 12px 0;
+  }
+
+  .fingerprint {
+    padding: 12px;
+  }
+
+  .action-column {
+    text-align: center;
+    width: 54px;
+  }
+
+  .event-extra {
+    ul {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.similar-toolbar-actions {
+  margin-left: 20px;
+  padding: 5px 0;
+}
+
+.similar-score-columns {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 300px;
+  width: 300px;
+}
+
+.similar-score-column {
+  flex: 1;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  padding: 5px 0;
+}
+
+.similar-issue.busy {
+  opacity: 0.3;
+}
+
+@media (max-width: 629px) {
+  .similar-list-container {
+    .event-count-header {
+      padding-right: 12px;
+    }
+  }
+}

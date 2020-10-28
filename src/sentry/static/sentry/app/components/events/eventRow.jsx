@@ -1,40 +1,43 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import Router from 'react-router';
-import EventStore from '../../stores/eventStore';
-import Avatar from '../avatar';
-import TimeSince from '../timeSince';
+import {Link} from 'react-router';
 
-const EventRow = React.createClass({
-  propTypes: {
-    id: React.PropTypes.string.isRequired,
-    orgSlug: React.PropTypes.string.isRequired,
-    projectSlug: React.PropTypes.string.isRequired
-  },
+import EventStore from 'app/stores/eventStore';
+import UserAvatar from 'app/components/avatar/userAvatar';
+import TimeSince from 'app/components/timeSince';
 
-  getInitialState() {
-    return {
-      event: EventStore.get(this.props.id)
+class EventRow extends React.Component {
+  static propTypes = {
+    id: PropTypes.string.isRequired,
+    orgSlug: PropTypes.string.isRequired,
+    projectSlug: PropTypes.string.isRequired,
+  };
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      event: EventStore.get(this.props.id),
     };
-  },
+  }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.id != this.props.id) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    if (nextProps.id !== this.props.id) {
       this.setState({
-        event: EventStore.get(this.props.id)
+        event: EventStore.get(this.props.id),
       });
     }
-  },
+  }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(_nextProps, _nextState) {
     return false;
-  },
+  }
 
   render() {
-    let event = this.state.event;
-    let eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/issues/${event.groupID}/events/${event.id}/`;
+    const event = this.state.event;
+    const eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/issues/${event.groupID}/events/${event.id}/`;
 
-    let tagList = [];
-    for (let key in event.tags) {
+    const tagList = [];
+    for (const key in event.tags) {
       tagList.push([key, event.tags[key]]);
     }
 
@@ -42,21 +45,25 @@ const EventRow = React.createClass({
       <tr>
         <td>
           <h5>
-            <Router.Link to={eventLink}>{event.message}</Router.Link>
+            <Link to={eventLink}>{event.title || event.message}</Link>
           </h5>
           <small className="tagList">
-            {tagList.map(tag => {
-              return <span key={tag[0]}>{tag[0]} = {tag[1]} </span>;
-            })}
+            {tagList.map(tag => (
+              <span key={tag[0]}>
+                {tag[0]} = {tag[1]}{' '}
+              </span>
+            ))}
           </small>
         </td>
         <td className="event-user table-user-info">
-          {event.user
-            ? <div>
-                <Avatar user={event.user} size={64} className="avatar" />
-                {event.user.email}
-              </div>
-            : <span>—</span>}
+          {event.user ? (
+            <div>
+              <UserAvatar user={event.user} size={64} className="avatar" />
+              {event.user.email}
+            </div>
+          ) : (
+            <span>—</span>
+          )}
         </td>
         <td className="align-right">
           <TimeSince date={event.dateCreated} />
@@ -64,6 +71,6 @@ const EventRow = React.createClass({
       </tr>
     );
   }
-});
+}
 
 export default EventRow;

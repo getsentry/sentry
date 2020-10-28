@@ -1,0 +1,96 @@
+---
+created: '2020-02-26T19:54:28.432813Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "../macos/main.cpp"
+            function*
+              "main"
+            lineno (function takes precedence)
+              47
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "../macos/main.cpp"
+            symbol*
+              "_ZN12_GLOBAL__N_15startEv"
+            function (symbol takes precedence)
+              "(anonymous namespace)::start()"
+            lineno (symbol takes precedence)
+              40
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "../macos/main.cpp"
+            symbol*
+              "_ZN12_GLOBAL__N_15crashEii"
+            function (symbol takes precedence)
+              "(anonymous namespace)::crash(int, int)"
+            lineno (symbol takes precedence)
+              36
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "../macos/main.cpp"
+            symbol*
+              "_ZN12_GLOBAL__N_19something6nested3FooINSt3__13mapINS3_12basic_stringIcNS3_11char_traitsIcEENS3_9allocatorIcEEEESA_NS3_4lessISA_EENS8_INS3_4pairIKSA_SA_EEEEEEE5crashEii"
+            function (symbol takes precedence)
+              "(anonymous namespace)::something::nested::Foo<std::__1::map<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::less<std:..."
+            lineno (symbol takes precedence)
+              28
+        type*
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (stacktrace and type take precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      threads (thread has no stacktrace)
+--------------------------------------------------------------------------
+system:
+  hash: "7b28306805da7fea54ee3441e8e1dc1a"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "../macos/main.cpp"
+            function*
+              "main"
+            lineno (function takes precedence)
+              47
+          frame*
+            filename*
+              "../macos/main.cpp"
+            symbol*
+              "_ZN12_GLOBAL__N_15startEv"
+            function (symbol takes precedence)
+              "(anonymous namespace)::start()"
+            lineno (symbol takes precedence)
+              40
+          frame*
+            filename*
+              "../macos/main.cpp"
+            symbol*
+              "_ZN12_GLOBAL__N_15crashEii"
+            function (symbol takes precedence)
+              "(anonymous namespace)::crash(int, int)"
+            lineno (symbol takes precedence)
+              36
+          frame*
+            filename*
+              "../macos/main.cpp"
+            symbol*
+              "_ZN12_GLOBAL__N_19something6nested3FooINSt3__13mapINS3_12basic_stringIcNS3_11char_traitsIcEENS3_9allocatorIcEEEESA_NS3_4lessISA_EENS8_INS3_4pairIKSA_SA_EEEEEEE5crashEii"
+            function (symbol takes precedence)
+              "(anonymous namespace)::something::nested::Foo<std::__1::map<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::less<std:..."
+            lineno (symbol takes precedence)
+              28
+        type*
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (stacktrace and type take precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      threads (thread has no stacktrace)

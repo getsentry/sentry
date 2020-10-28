@@ -3,8 +3,17 @@
 {% load i18n %}
 
 {% block main %}
-    <h3>Request for Access</h3>
-    <p><strong>{{ name }}</strong> is requesting access to the {{ team.name }} team on Sentry.</p>
+  <h3>Request for Access</h3>
 
-    <p>Accept or decline this request in the <a href="{{ url }}">pending requests panel</a>.</p>
+  {% if requester %}
+    <p>{{ requester }} is requesting to add <strong>{{ name }}</strong> to the <strong>#{{ team.slug }}</strong> team.</p>
+  {% else %}
+     <p><strong>{{ name }}</strong> is requesting access to the #{{ team.slug }} team on Sentry.</p>
+  {% endif %}
+
+  <p>Accept or decline this request in the <a href="{{ url }}">pending requests panel</a>.</p>
+
+  <p class="via">
+    You are receiving this email because you're listed as an administrator of the #{{ team.slug }} team.
+  </p>
 {% endblock %}

@@ -1,0 +1,77 @@
+{
+  "sentry.interfaces.Exception": {
+    "exc_omitted": null,
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "Ace.Raxx.Handler.init/1",
+              "module": "Elixir.Ace.Raxx.Handler",
+              "in_app": false
+            },
+            {
+              "function": ":proc_lib.init_p_do_apply/3",
+              "abs_path": "proc_lib.erl",
+              "module": "proc_lib",
+              "in_app": false,
+              "lineno": 247,
+              "filename": "proc_lib.erl"
+            },
+            {
+              "function": ":gen_server.handle_msg/5",
+              "abs_path": "gen_server.erl",
+              "module": "gen_server",
+              "in_app": false,
+              "lineno": 667,
+              "filename": "gen_server.erl"
+            },
+            {
+              "function": ":gen_server.try_dispatch/4",
+              "abs_path": "gen_server.erl",
+              "module": "gen_server",
+              "in_app": false,
+              "lineno": 601,
+              "filename": "gen_server.erl"
+            },
+            {
+              "function": "Ace.Raxx.Handler.handle_request/4",
+              "abs_path": "lib/ace/raxx/handler.ex",
+              "module": "Elixir.Ace.Raxx.Handler",
+              "in_app": false,
+              "lineno": 67,
+              "filename": "lib/ace/raxx/handler.ex"
+            },
+            {
+              "function": "HelloHTTP2.WWW.handle_request/2",
+              "abs_path": "lib/hello_http2/www.ex",
+              "pre_context": [
+                "  Raxx.Static.serve_dir(\"./public\")",
+                "",
+                "  def handle_request(request, _) do"
+              ],
+              "module": "Elixir.HelloHTTP2.WWW",
+              "filename": "lib/hello_http2/www.ex",
+              "post_context": [
+                "    Response.ok(\"Hello, World!\", [{\"content-length\", \"13\"}])",
+                "  end",
+                "end"
+              ],
+              "in_app": false,
+              "context_line": "    1 / 0",
+              "lineno": 9
+            }
+          ],
+          "registers": null,
+          "frames_omitted": null
+        },
+        "mechanism": null,
+        "raw_stacktrace": null,
+        "value": "** (exit) :badarith",
+        "thread_id": null,
+        "module": "Elixir.Ace.Raxx.Handler",
+        "type": "exit"
+      }
+    ]
+  }
+}

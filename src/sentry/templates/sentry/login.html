@@ -2,77 +2,144 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
-{% load sentry_auth %}
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block auth_main %}
-  <ul class="nav nav-tabs auth-toggle border-bottom">
-    <li{% if op == "login" %} class="active"{% endif %}>
-      <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
-    </li>
-    {% if CAN_REGISTER %}
-      <li{% if op == "register" %} class="active"{% endif %}>
-        <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
-      </li>
-    {% endif %}
-    <li{% if op == "sso" %} class="active"{% endif %}>
-      <a href="#sso" data-toggle="tab">{% trans "Single Sign-On" %}</a>
-    </li>
-  </ul>
+{% block auth_container %}
+  {% if banner %}
+    <h4>{{ banner }}</h4>
+  {% endif %}
 
+  <div class="auth-container p-t-1 border-bottom">
+    <h3>{% trans "Sign in to continue" %}</h3>
+    <ul class="nav nav-tabs auth-toggle m-b-0">
+      <li{% if op == "login" %} class="active"{% endif %}>
+        <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
+      </li>
+      {% if CAN_REGISTER %}
+        <li{% if op == "register" %} class="active"{% endif %}>
+          <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+        </li>
+      {% endif %}
+      <li{% if op == "sso" %} class="active"{% endif %}>
+        <a href="#sso" data-toggle="tab">{% trans "Single Sign-On" %}</a>
+      </li>
+    </ul>
+  </div>
   <div class="tab-content">
     <div class="tab-pane{% if op == "login" %} active{% endif %}" id="login">
-      <form class="form-stacked" action="" method="post" autocomplete="off">
-        {% csrf_token %}
+      <div class="auth-container">
+        <div class="auth-form-column">
+          <form class="form-stacked" action="" method="post" autocomplete="off">
+            {% csrf_token %}
 
-        <input type="hidden" name="op" value="login" />
+            <input type="hidden" name="op" value="login" />
 
-        {{ login_form|as_crispy_errors }}
+            {{ login_form|as_crispy_errors }}
 
-        {% for field in login_form %}
-          {{ field|as_crispy_field }}
-        {% endfor %}
+            {% for field in login_form %}
+              {{ field|as_crispy_field }}
+            {% endfor %}
 
-        <fieldset class="form-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 7px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
-        </fieldset>
-      </form>
+            <div class="auth-footer m-t-1">
+              <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+              <a class="secondary" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+            </div>
+          </form>
+        </div>
+        {% if github_login_link or vsts_login_link or google_login_link %}
+          <div class="auth-provider-column">
+            {% if google_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-google" href="{{ google_login_link }}" style="display: block">
+                  <span class="provider-logo google"></span> Sign in with Google
+                </a>
+              </p>
+            {% endif %}
+
+            {% if github_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="display: block">
+                  <span class="provider-logo github"></span> Sign in with GitHub
+                </a>
+              </p>
+            {% endif %}
+
+            {% if vsts_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-vsts" href="{{ vsts_login_link }}" style="display: block">
+                  <span class="provider-logo vsts"></span> Sign in with Azure DevOps
+                </a>
+              </p>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
     </div>
     <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">
-      <form class="form-stacked" action="" method="post" autocomplete="off">
-        {% csrf_token %}
+      <div class="auth-container">
+        <div class="auth-form-column">
+          <form class="form-stacked" action="" method="post" autocomplete="off">
+            {% csrf_token %}
 
-        <input type="hidden" name="op" value="register" />
+            <input type="hidden" name="op" value="register" />
 
-        {{ register_form|as_crispy_errors }}
+            {{ register_form|as_crispy_errors }}
 
-        {% for field in register_form %}
-          {{ field|as_crispy_field }}
-        {% endfor %}
+            {% for field in register_form %}
+              {% if not field.name == 'subscribe' %}
+                {{ field|as_crispy_field }}
+              {% endif %}
+            {% endfor %}
 
-        <fieldset class="form-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
-        </fieldset>
-      </form>
+            {% if register_form.subscribe %}
+              {% with register_form.subscribe as field %}
+                <fieldset class="{% if field.errors %}is-invalid{% endif %} boolean-radio-select">
+                  <label> {{ field.label }}</label>
+                  <div class="help-block">{{ field.help_text }}</div>
+                  <div class="inputs-list radio">
+                    {{ field }}
+                    {% if field.errors %}
+                      {% for error in field.errors %}
+                        <p class="form-text"><small>{{ error }}</small></p>
+                      {% endfor %}
+                    {% endif %}
+                  </div>
+                </fieldset>
+              {% endwith %}
+            {% endif %}
+
+            <div class="auth-footer m-t-1">
+              <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+              <a class="secondary" href="https://sentry.io/privacy/" target="_blank">
+                {% trans "Privacy Policy" %}
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
     <div class="tab-pane{% if op == "sso" %} active{% endif %}" id="sso">
-      <form class="form-stacked" method="post">
-        {% csrf_token %}
+      <div class="auth-container">
+        <div class="auth-form-column">
+          <form class="form-stacked" method="post">
+            {% csrf_token %}
 
-        <input type="hidden" name="op" value="sso" />
+            <input type="hidden" name="op" value="sso" />
 
-        <div class="control-group">
-          <div class="controls">
-            <label style="display: block">SSO URL</label>
-            <span style="padding: 7px 0; font-size: 15px">{{ server_hostname }}/</span> <input style="width: 240px; margin: 0 0 4px; padding: 5px 8px; display: inline" type="text" class="form-control" name="organization" placeholder="acme">
-            <p class="help-block">Enter your organization's ID and we'll get things started.</p>
-          </div>
+            <div class="control-group required">
+              <div class="controls">
+                <label class="control-label">{% trans "Organization ID" %}</label>
+                <input type="text" class="form-control" name="organization" placeholder="acme" required>
+                <p class="help-block">Your ID is the slug after the hostname. e.g. <code>{{ server_hostname }}/<strong>acme</strong>/</code> is <code>acme</code>.</p>
+              </div>
+            </div>
+            <div class="auth-footer m-t-1">
+              <button class="btn btn-primary">{% trans "Continue" %}</button>
+            </div>
+          </form>
         </div>
-        <div class="form-actions" style="margin-top: 25px">
-          <button class="btn btn-primary">Sign in</button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 {% endblock %}

@@ -4,74 +4,145 @@
 {% load i18n %}
 {% load sentry_assets %}
 
+{% block scripts %}
+{{ block.super }}
+
+<script>
+  SentryApp.passwordStrength.load(function(passwordStrength) {
+    $(function() {
+      passwordStrength.attachTo({
+        input: document.querySelector('#id_registration_password'),
+        element: document.querySelector('.password-strength'),
+      });
+    })
+  })
+</script>
+{% endblock %}
+
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block auth_main %}
-<div style="padding-bottom: 10px">
-  <div class="align-center">
-    <img src="{% asset_url "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
-
+{% block auth_container %}
+<div>
+  <div class="align-center p-t-2">
+    <img src="{% asset_url "sentry" "images/logos/default-organization-logo.png" %}" class="org-avatar">
     <h3>{{ organization.name }}</h3>
   </div>
 
   {% if provider_name %}
-    <form class="form-stacked" action="" method="post" autocomplete="off">
+    <form class="form-stacked m-b-2" action="" method="post" autocomplete="off">
       {% csrf_token %}
+      <input type="hidden" name="init" value="1" />
 
       <div class="align-center">
-        <p>Sign in with your {{ provider_name }} account to continue.</p>
+        <p>
+          {% if authenticated %}
+          <b>{{ organization.name }}</b> requires signing in with {{ provider_name }}.
+          {% else %}
+          Sign in with your {{ provider_name }} account to continue.
+          {% endif %}
+        </p>
 
         <p><button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
-          <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
+          <span class="provider-logo {{ provider_key }}"></span> Login with {{ provider_name }}
         </button></p>
       </div>
     </form>
   {% else %}
-    <ul class="nav nav-tabs auth-toggle">
-      <li{% if op == "login" %} class="active"{% endif %}>
-        <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
-      </li>
-      {% if CAN_REGISTER %}
-        <li{% if op == "register" %} class="active"{% endif %}>
-          <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+    <div class="auth-container p-t-0 border-bottom">
+      <ul class="nav nav-tabs auth-toggle m-b-0">
+        <li{% if op == "login" %} class="active"{% endif %}>
+          <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
         </li>
-      {% endif %}
-    </ul>
+        {% if CAN_REGISTER %}
+          <li{% if op == "register" %} class="active"{% endif %}>
+            <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+          </li>
+        {% endif %}
+        {% if join_request_link %}
+          <li class="join-request">
+            <a href="{{ join_request_link }}">
+              {% include "sentry/partial/megaphone.html" %}
+              {% trans "Request to Join" %}
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
 
     <div class="tab-content basic-login">
       <div class="tab-pane{% if op == "login" %} active{% endif %}" id="login">
-        <form class="form-stacked" action="" method="post" autocomplete="off">
-          {% csrf_token %}
+        <div class="auth-container">
+          <div class="auth-form-column">
+            <form class="form-stacked" action="" method="post" autocomplete="off">
+              {% csrf_token %}
 
-          <input type="hidden" name="op" value="login" />
+              <input type="hidden" name="op" value="login" />
 
-          {{ login_form|as_crispy_errors }}
+              {{ login_form|as_crispy_errors }}
 
-          {% for field in login_form %}
-            {{ field|as_crispy_field }}
-          {% endfor %}
+              {% for field in login_form %}
+                {{ field|as_crispy_field }}
+              {% endfor %}
 
-          <fieldset class="form-actions">
-            <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
-          </fieldset>
-        </form>
+              <div class="auth-footer m-t-1">
+                <button type="submit" class="btn btn-primary">{% trans "Login" %}</button>
+                <a class="secondary" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+              </div>
+            </form>
+          </div>
+          {% if google_login_link or github_login_link or vsts_login_link %}
+          <div class="auth-provider-column">
+            {% if google_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-google" href="{{ google_login_link }}" style="display: block">
+                  <span class="provider-logo google"></span> Sign in with Google
+                </a>
+              </p>
+            {% endif %}
+
+            {% if github_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="display: block">
+                  <span class="provider-logo github"></span> Sign in with GitHub
+                </a>
+              </p>
+            {% endif %}
+
+            {% if vsts_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-vsts" href="{{ vsts_login_link }}" style="display: block">
+                  <span class="provider-logo vsts"></span> Sign in with Azure DevOps
+                </a>
+              </p>
+            {% endif %}
+          </div>
+        {% endif %}
+        </div>
       </div>
       <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">
-        <form class="form-stacked" action="" method="post" autocomplete="off">
-          {% csrf_token %}
+        <div class="auth-container">
+          <div class="auth-form-column">
+            <form class="form-stacked" action="" method="post" autocomplete="off">
+              {% csrf_token %}
 
-          <input type="hidden" name="op" value="register" />
+              <input type="hidden" name="op" value="register" />
 
-          {{ register_form|as_crispy_errors }}
+              {{ register_form|as_crispy_errors }}
 
-          {% for field in register_form %}
-            {{ field|as_crispy_field }}
-          {% endfor %}
+              {% for field in register_form %}
+                {{ field|as_crispy_field }}
+              {% endfor %}
 
-          <fieldset class="form-actions">
-            <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
-          </fieldset>
-        </form>
+              <div class="password-strength"></div>
+              <div class="auth-footer m-t-1">
+                <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
+                <a class="secondary" href="https://sentry.io/privacy/" target="_blank">
+                  {% trans "Privacy Policy" %}
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   {% endif %}

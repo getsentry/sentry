@@ -1,0 +1,30 @@
+[
+  {
+    "abs_path": "http://example.com/test.min.js",
+    "filename": "test.min.js",
+    "lineno": 1,
+    "colno": 64,
+    "function": "e"
+  },
+  {
+    "abs_path": "http://example.com/test.min.js",
+    "filename": "test.min.js",
+    "lineno": 1,
+    "colno": 136,
+    "function": "r"
+  },
+  {
+    "abs_path": "http://example.com/test.min.js",
+    "filename": "test.min.js",
+    "lineno": 1,
+    "colno": 183,
+    "function": "i"
+  },
+  {
+    "abs_path": "http://example.com/index.html",
+    "filename": "index.html",
+    "lineno": 6,
+    "colno": 7,
+    "function": "produceStack"
+  }
+]

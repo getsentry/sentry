@@ -2,29 +2,59 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import datetime
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
-from sentry.testutils import APITestCase
 
+class GroupEventsOldestEndpointTest(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super(GroupEventsOldestEndpointTest, self).setUp()
 
-class GroupEventsOldestTest(APITestCase):
-    def test_simple(self):
         self.login_as(user=self.user)
+        project = self.create_project()
 
-        group = self.create_group()
-        event_1 = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 25),
+        self.event_a = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": "development",
+                "timestamp": iso_format(before_now(days=1)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
         )
-        self.create_event(
-            event_id='b',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 26),
+        self.event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": "production",
+                "timestamp": iso_format(before_now(minutes=5)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        self.event_c = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "environment": "staging",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
         )
 
-        url = '/api/0/issues/{}/events/oldest/'.format(group.id)
-        response = self.client.get(url, format='json')
+    def test_get_simple(self):
+        url = u"/api/0/issues/{}/events/oldest/".format(self.event_a.group.id)
+        response = self.client.get(url, format="json")
 
-        assert response.status_code == 200
-        assert response.data['id'] == six.text_type(event_1.id)
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(self.event_a.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] == six.text_type(self.event_b.event_id)
+
+    def test_get_with_environment(self):
+        url = u"/api/0/issues/{}/events/oldest/".format(self.event_a.group.id)
+        response = self.client.get(url, format="json", data={"environment": ["production"]})
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(self.event_b.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] is None

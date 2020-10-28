@@ -7,7 +7,8 @@
     display: none;
   }
 
-  a {
+  a,
+  g {
     position: relative;
     float: left;
     height: 20px;
@@ -15,9 +16,34 @@
     cursor: default;
 
     &:hover {
-      > span {
+      > span,
+      > .barchart-rect {
         background: @purple;
+        fill: @purple;
         border-color: transparent;
+
+        &.accepted {
+          background: @gray-light;
+          fill: @gray-light;
+        }
+
+        &.success {
+          background: @green;
+          fill: @green;
+        }
+
+        &.rate-limited,
+        &.dropped,
+        &.error {
+          background: @red-dark;
+          fill: @red-dark;
+        }
+
+        &.black-listed,
+        &.filtered {
+          background: @orange-dark;
+          fill: @orange-dark;
+        }
       }
     }
 
@@ -27,53 +53,40 @@
       bottom: 0;
       left: 1px;
       right: 1px;
-      min-width: 1px;
       height: 0;
       overflow: hidden;
       text-indent: -9999px;
       text-align: left;
       min-height: 1px;
+    }
 
+    > span,
+    > .barchart-rect {
       background: @gray-lighter;
-    }
-  }
+      fill: @gray-lighter;
 
-  .chart-marker {
-    display: block;
-    position: relative;
-    float: left;
-    width: 0;
-
-    &:hover {
-      > span {
-        background-color: gray;
-        border-color: #fff;
+      &.accepted {
+        background: @gray-lightest;
+        fill: @gray-lightest;
       }
-    }
 
-    &.first-seen > span {
-      background: @pink;
-      left: -13px;
-    }
+      &.success {
+        background: @green-light;
+        fill: @green-light;
+      }
 
-    &.last-seen > span {
-      background: @green;
-    }
+      &.rate-limited,
+      &.dropped,
+      &.error {
+        background: @red;
+        fill: @red;
+      }
 
-    > span {
-      z-index: 2;
-      position: absolute;
-      bottom: -5px;
-      left: -5px;
-      border: 2px solid #fff;
-      .square(10px);
-      background: gray;
-      border-radius: 8px;
-    }
-
-    &.first-seen > span {
-    }
-    &.last-seen > span {
+      &.black-listed,
+      &.filtered {
+        background: @orange-light;
+        fill: @orange-light;
+      }
     }
   }
 }
@@ -104,5 +117,9 @@
 }
 
 .box > .standard-barchart {
-    border: 0;
+  border: 0;
+}
+
+.chart-wrapper {
+  margin-bottom: 20px;
 }

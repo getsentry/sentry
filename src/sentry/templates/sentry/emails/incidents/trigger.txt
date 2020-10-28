@@ -1,0 +1,24 @@
+{% spaceless %}
+{% autoescape off %}
+# Alert Rule Trigger on {{ incident_name }}.
+
+{% if enhanced_privacy %}
+Details about this alert are not shown in this email since enhanced privacy
+controls are enabled. For more details about this alert alert, view on Sentry:
+{{ incident_link }}.
+{% else %}
+Alert: {{ link }}
+Rule: {{ rule_link }}
+Status: {{ status }}
+Project: {{ project_slug }}
+
+Metric: {{ aggregate }}
+Environment: {{ environment }}
+Threshold: {{ threshold_direction_string }} {{ threshold }}
+Time Interval: {{ time_window }}
+Query: {{ query }}
+
+{% endif %}
+
+{% endautoescape %}
+{% endspaceless %}

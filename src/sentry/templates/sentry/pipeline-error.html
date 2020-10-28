@@ -1,0 +1,32 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block wrapperclass %}narrow{% endblock %}
+{% block title %}{% trans "Setup Error" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+<div class="align-center">
+  <div style="font-size:28px;margin-bottom:10px">
+    <span class="icon-exclamation"></span>
+  </div>
+
+  <p>Whoops! Looks like something went wrong! Give that another try.</p>
+
+  <pre>{{ error }}</pre>
+</div>
+{% endblock %}
+
+{% block scripts_bottom %}
+  {{ block.super }}
+  <script>
+  // Integrations often use dialog windows for the pipeline flow. If this is a
+  // dialog window, resize it to nicely fit the error modal.
+  if (window.opener) {
+    var ele = document.getElementsByClassName('container')[0];
+    var newHeight = ele.clientHeight + 180;
+    window.resizeTo(window.innerWidth, newHeight);
+    window.moveTo(window.screenX, newHeight / 2 + window.screenY);
+  }
+  </script>
+{% endblock %}

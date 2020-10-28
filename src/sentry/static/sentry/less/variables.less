@@ -2,64 +2,63 @@
 // Start with Bootstrap variables
 //
 
-@import (reference) "~bootstrap/less/variables.less";
+@import (reference) './includes/bootstrap/variables.less';
 
 //
 // Import Sentry palette, override bootstrap colors
 //
 
-@import "./palette.less";
+@import './palette.less';
 
 //== Form states and alerts
 //
 //## Define colors for form feedback states and, by default, alerts.
 
-@state-success-text:             darken(#3c763d, 14);
-@state-success-bg:               @alert-success-bg-color;
-@state-success-border:           @alert-success-border-color;
+@state-success-text: darken(#3c763d, 14);
+@state-success-bg: @alert-success-bg-color;
+@state-success-border: @alert-success-border-color;
 
-@state-info-text:                darken(@blue-dark, 24);
-@state-info-bg:                  @alert-info-bg-color;
-@state-info-border:              @alert-info-border-color;
+@state-info-text: darken(@blue-dark, 24);
+@state-info-bg: @alert-info-bg-color;
+@state-info-border: @alert-info-border-color;
 
-@state-warning-text:             darken(#8a6d3b, 12);
-@state-warning-bg:               @alert-warning-bg-color;
-@state-warning-border:           @alert-warning-border-color;
+@state-warning-text: darken(#8a6d3b, 12);
+@state-warning-bg: @alert-warning-bg-color;
+@state-warning-border: @alert-warning-border-color;
 
-@state-danger-text:              darken(#a94442, 18);
-@state-danger-bg:                @alert-danger-bg-color;
-@state-danger-border:            @alert-danger-border-color;
+@state-danger-text: darken(#a94442, 18);
+@state-danger-bg: @alert-danger-bg-color;
+@state-danger-border: @alert-danger-border-color;
 
 // Sidebar
 //
 // Sets up sidebar offsets
 
-@sidebar-width: 60px;
+@sidebar-collapsed-width: 70px;
+@sidebar-expanded-width: 220px;
 @sidebar-panel-width: 320px;
-@sidebar-panel-header-height: 62px;
+@sidebar-mobile-height: 54px;
 
 // Tables
 //
 // Overrides Bootstrap defaults
 
-@table-cell-padding:      15px 20px;
-@table-border-color:      lighten(@trim, 6);
-@table-bg-hover:          @white-dark;
+@table-cell-padding: 15px 20px;
+@table-border-color: lighten(@trim, 6);
+@table-bg-hover: @white-dark;
 
 // Panels
 //
 // Overrides Bootstrap defaults
 
-@panel-default-heading-bg:    @white-dark;
-@panel-footer-bg:             @white-dark;
-@panel-default-border:        @trim;
-@panel-inner-border:          @trim;
-@panel-body-padding:          20px;
-@panel-heading-padding:       10px 20px;
+@panel-default-heading-bg: @white-dark;
+@panel-footer-bg: @white-dark;
+@panel-default-border: @trim;
+@panel-inner-border: @trim;
+@panel-body-padding: 20px;
+@panel-heading-padding: 10px 20px;
 
-// List Group
-//
-// Bootstrap overrides
-
-@list-group-border:             @trim;
-@list-group-hover-bg:           #fbfbfa;
+// Z-Index
+@zindex-dropdown-backdrop: 990;
+@zindex-sidebar-panel: 100;
+@zindex-sticky-bar: 1000;

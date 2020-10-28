@@ -1,86 +1,95 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import ConfigStore from '../../../stores/configStore';
-import GroupEventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
-import {t} from '../../../locale';
-import CrashHeader from './crashHeader';
-import CrashContent from './crashContent';
+
+import ConfigStore from 'app/stores/configStore';
+import EventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
+import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
+import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
+import CrashContent from 'app/components/events/interfaces/crashContent';
 
 export function isStacktraceNewestFirst() {
-  let user = ConfigStore.get('user');
+  const user = ConfigStore.get('user');
   // user may not be authenticated
-  let options = user ? user.options : {};
+  const options = user ? user.options : {};
   switch (options.stacktraceOrder) {
-    case 'newestFirst':
+    case 2:
       return true;
-    case 'newestLast':
+    case 1:
       return false;
-    case 'default': // is "default" a valid value? or bad case statement
+    case -1:
     default:
       return true;
   }
 }
 
-const StacktraceInterface = React.createClass({
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string
-  },
+class StacktraceInterface extends React.Component {
+  static propTypes = {
+    event: SentryTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    projectId: PropTypes.string.isRequired,
+    hideGuide: PropTypes.bool,
+  };
 
-  getInitialState() {
-    return {
+  static defaultProps = {
+    hideGuide: false,
+  };
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
       stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
-      newestFirst: isStacktraceNewestFirst()
+      newestFirst: isStacktraceNewestFirst(),
     };
-  },
+  }
 
-  toggleStack(value) {
+  toggleStack = value => {
     this.setState({
-      stackView: value
+      stackView: value,
     });
-  },
+  };
+
+  handleChange = newState => {
+    this.setState(newState);
+  };
 
   render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let data = this.props.data;
-    let stackView = this.state.stackView;
-    let newestFirst = this.state.newestFirst;
+    const {projectId, event, data, hideGuide} = this.props;
+    const {stackView, newestFirst} = this.state;
 
-    let title = (
-      <CrashHeader
-        title={t('Stacktrace')}
-        group={group}
-        platform={evt.platform}
-        stacktrace={data}
-        stackView={stackView}
-        newestFirst={newestFirst}
-        onChange={newState => {
-          this.setState(newState);
-        }}
-      />
-    );
+    const commonCrashHeaderProps = {
+      newestFirst,
+      hideGuide,
+      onChange: this.handleChange,
+    };
 
     return (
-      <GroupEventDataSection
-        group={group}
-        event={evt}
+      <EventDataSection
+        event={event}
         type={this.props.type}
-        title={title}
-        wrapTitle={false}>
+        title={<CrashTitle title={t('Stacktrace')} {...commonCrashHeaderProps} />}
+        actions={
+          <CrashActions
+            stackView={stackView}
+            platform={event.platform}
+            stacktrace={data}
+            {...commonCrashHeaderProps}
+          />
+        }
+        wrapTitle={false}
+      >
         <CrashContent
-          group={group}
-          event={evt}
+          projectId={projectId}
+          event={event}
           stackView={stackView}
           newestFirst={newestFirst}
           stacktrace={data}
         />
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
-});
+}
 
 export default StacktraceInterface;

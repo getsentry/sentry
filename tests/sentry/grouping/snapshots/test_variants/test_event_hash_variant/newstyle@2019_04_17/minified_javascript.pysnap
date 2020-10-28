@@ -1,0 +1,330 @@
+---
+created: '2020-02-26T19:54:35.752369Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "M"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "S/<"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "i"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "b"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "n"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "g/</t[e]"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "h/p._invoke</<"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "W"
+          frame (non app frame)
+            module*
+              "sentry/dist/app"
+            filename (ignored because frame points to a URL)
+              "app.js"
+            function*
+              "e/<"
+          frame (non app frame)
+            module*
+              "sentry/dist/app"
+            filename (ignored because frame points to a URL)
+              "app.js"
+            function*
+              "e/</a</<"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "t.exports/<"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "L"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "t.exports/</<"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "c"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "n"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "g/</t[e]"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "h/p._invoke</<"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "W"
+          frame (non app frame)
+            module*
+              "sentry/dist/app"
+            filename (ignored because frame points to a URL)
+              "app.js"
+            function*
+              "e/<"
+          frame (non app frame)
+            module*
+              "sentry/dist/app"
+            filename (ignored because frame points to a URL)
+              "app.js"
+            function*
+              "componentPromise"
+          frame (non app frame)
+            module*
+              "sentry/dist/app"
+            filename (ignored because frame points to a URL)
+              "app.js"
+            function*
+              "o.e"
+          frame (non app frame)
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "Pt</t.prototype.wrapTimeFunction/<"
+        type*
+          "NS_ERROR_NOT_INITIALIZED"
+--------------------------------------------------------------------------
+system:
+  hash: "074e2ed5d89f602d31be5742ac107fef"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "M"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "S/<"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "i"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "b"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "n"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "g/</t[e]"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "h/p._invoke</<"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "W"
+          frame*
+            module*
+              "sentry/dist/app"
+            filename (ignored because frame points to a URL)
+              "app.js"
+            function*
+              "e/<"
+          frame*
+            module*
+              "sentry/dist/app"
+            filename (ignored because frame points to a URL)
+              "app.js"
+            function*
+              "e/</a</<"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "t.exports/<"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "L"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "t.exports/</<"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "c"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "n"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "g/</t[e]"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "h/p._invoke</<"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "W"
+          frame*
+            module*
+              "sentry/dist/app"
+            filename (ignored because frame points to a URL)
+              "app.js"
+            function*
+              "e/<"
+          frame*
+            module*
+              "sentry/dist/app"
+            filename (ignored because frame points to a URL)
+              "app.js"
+            function*
+              "componentPromise"
+          frame*
+            module*
+              "sentry/dist/app"
+            filename (ignored because frame points to a URL)
+              "app.js"
+            function*
+              "o.e"
+          frame*
+            module*
+              "sentry/dist/vendor"
+            filename (ignored because frame points to a URL)
+              "vendor.js"
+            function*
+              "Pt</t.prototype.wrapTimeFunction/<"
+        type*
+          "NS_ERROR_NOT_INITIALIZED"

@@ -1,3 +1,6 @@
 **/dist/**/*
 **/vendor/**/*
-**/tests/sentry/lang/javascript/fixtures/**/*
+**/tests/**/lang/javascript/fixtures/**/*
+**/tests/**/lang/javascript/example-project/**/*
+/examples/
+/scripts/

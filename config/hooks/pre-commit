@@ -6,38 +6,21 @@ import sys
 
 from glob import glob
 
-from sentry.lint.engine import check_files, js_format, yarn_check
-
-text_type = type(u'')
+text_type = type(u"")
 
 # git usurbs your bin path for hooks and will always run system python
-if 'VIRTUAL_ENV' in os.environ:
-    site_packages = glob(
-        '%s/lib/*/site-packages' % os.environ['VIRTUAL_ENV'])[0]
+if "VIRTUAL_ENV" in os.environ:
+    site_packages = glob("%s/lib/*/site-packages" % os.environ["VIRTUAL_ENV"])[0]
     sys.path.insert(0, site_packages)
 
 
 def main():
-    from flake8.hooks import run
+    from sentry.lint.engine import get_modified_files, run
 
-    gitcmd = "git diff-index --cached --name-only HEAD"
+    files_modified = [text_type(f) for f in get_modified_files(os.getcwd()) if os.path.exists(f)]
 
-    _, files_modified, _ = run(gitcmd)
-
-    files_modified = [
-        text_type(f)
-        for f in files_modified
-        if os.path.exists(f)
-    ]
-
-    # Prettier formatting must take place before linting
-    js_format(files_modified)
-
-    if yarn_check(files_modified):
-        return True
-
-    return check_files(files_modified)
+    return run(files_modified, test=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

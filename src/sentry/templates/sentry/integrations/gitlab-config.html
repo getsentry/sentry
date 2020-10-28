@@ -1,0 +1,76 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block css %}
+  <style>
+    ol li {
+      padding:10px 0px;
+    }
+    .code-list {
+      padding: 10px;
+      background-color: #f7f8f9;
+      margin-top: 10px;
+      border-radius: 3px;
+    }
+    .code-list li {
+      font-size: 90%;
+    }
+  </style>
+{% endblock %}
+
+{% block wrapperclass %} narrow auth {% endblock %}
+{% block modal_header_signout %} {% endblock %}
+
+{% block title %} {% trans "GitLab Setup" %} | {{ block.super }} {% endblock %}
+
+{% block main %}
+{% if form %}
+<h3>{% trans "Step 2: Connect Sentry with your App" %}</h3>
+  <p>{% trans "Add your GitLab App credentials to Sentry." %}</p>
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <input type="hidden" name="provider" value="gitlab" />
+
+    {{ form|as_crispy_errors }}
+
+    {% for field in form %}
+    {{ field|as_crispy_field }}
+    {% endfor %}
+
+    <fieldset class="form-actions clearfix">
+      <div class="pull-right">
+        <a class="btn btn-default" href="{% url "sentry-extension-setup" "gitlab" %}?goback=1">{% trans "Back to instructions" %}</a>
+        <button type="submit" class="btn btn-primary" name="save_mappings" value="url">{% trans "Submit" %}</button>
+      </div>
+    </fieldset>
+  </form>
+{% else %}
+<h3>{% trans "Step 1: Create a Sentry App in GitLab" %}</h3>
+  <p>{% trans "To configure GitLab with Sentry, you will need to create a Sentry app in your GitLab instance." %}</p>
+  <p>{% trans "You'll also need to be a maintainer or owner in GitLab. Projects owned by users are not supported." %}</p>
+  <ol>
+    <li>{% trans "Navigate to the User Settings section of your GitLab instance." %} </li>
+    <li>{% trans "In the sidebar, select 'Applications'.<br /> Or go to the <code>/profile/applications</code> path in your GitLab instance." %}</li>
+    <li>{% trans "In the resulting form, enter the following information:" %}
+      <ul class="list-unstyled code-list">
+        {% for val in setup_values %}
+          <li class="p-a-0">{{ val.label }}: {{ val.value }}</li>
+        {% endfor %}
+      </ul>
+    </li>
+    <li>{% trans "Click Save Application." %}</li>
+    <li>{% trans "In the resulting page, you'll see the Application ID and Secret. You'll need those for the next phase of setup." %}</li>
+  </ol>
+  <p class="alert alert-block flex">
+    <i class="icon icon-exclamation"></i>
+    {% trans "You must complete the above steps in GitLab to connect GitLab with Sentry." %}
+  </p>
+  <div class="form-actions clearfix">
+    <div class="pull-right">
+        <a class="btn btn-primary" href="{{ next_url }}">{% trans "Next" %}</a>
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}

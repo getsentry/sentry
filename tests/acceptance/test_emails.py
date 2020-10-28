@@ -1,176 +1,82 @@
 from __future__ import absolute_import
 
+import six
+import os.path
+
 from six.moves.urllib.parse import urlencode
+from os.path import join, dirname
 
 from sentry.testutils import AcceptanceTestCase
+
+EMAILS = (
+    ("/debug/mail/assigned/", "assigned"),
+    ("/debug/mail/assigned/self/", "assigned self"),
+    ("/debug/mail/note/", "note"),
+    ("/debug/mail/regression/", "regression"),
+    ("/debug/mail/regression/release/", "regression with version"),
+    ("/debug/mail/new-release/", "release"),
+    ("/debug/mail/resolved/", "resolved"),
+    ("/debug/mail/resolved-in-release/", "resolved in release"),
+    ("/debug/mail/resolved-in-release/upcoming/", "resolved in release upcoming"),
+    ("/debug/mail/unassigned/", "unassigned"),
+    ("/debug/mail/unable-to-fetch-commits/", "unable to fetch commits"),
+    ("/debug/mail/unable-to-delete-repo/", "unable to delete repo"),
+    ("/debug/mail/alert/", "alert"),
+    ("/debug/mail/digest/", "digest"),
+    ("/debug/mail/invalid-identity/", "invalid identity"),
+    ("/debug/mail/invitation/", "invitation"),
+    ("/debug/mail/report/", "report"),
+    ("/debug/mail/mfa-added/", "mfa added"),
+    ("/debug/mail/mfa-removed/", "mfa removed"),
+    ("/debug/mail/recovery-codes-regenerated/", "recovery codes regenerated"),
+    ("/debug/mail/password-changed/", "password changed"),
+    ("/debug/mail/sso-linked", "sso linked"),
+    ("/debug/mail/sso-unlinked", "sso unlinked"),
+    ("/debug/mail/sso-unlinked/no-password", "sso unlinked without password"),
+)
+
+
+def read_txt_email_fixture(name):
+    # XXX(python3): We have different fixtures for python2 vs python3 tests
+    # because of the differences in how the random module works betwen 2 and 3.
+    # NOTE that we _cannot_ just set the version of the seed, as there are more
+    # differences. See [0].
+    #
+    # [0]: https://stackoverflow.com/questions/55647936/random-randint-shows-different-output-in-python-2-x-and-python-3-x-with-same-see/55648073
+    version_suffix = "_py2" if six.PY2 else ""
+
+    # "sso unlinked without password"
+    # => "sso_unlinked_without_password.txt"
+    filename = name.replace(" ", "_") + version_suffix + ".txt"
+    path = join(dirname(__file__), os.pardir, "fixtures", "emails", filename)
+
+    fixture = None
+    with open(path, "r") as f:
+        fixture = f.read()
+    return fixture
 
 
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self):
         super(EmailTestCase, self).setUp()
-        self.user = self.create_user('foo@example.com')
+        self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
-    def build_url(self, path, format='html'):
-        return u'{}?{}'.format(
-            path,
-            urlencode({
-                'format': format,
-                'seed': '123',
-            }),
-        )
+    def build_url(self, path, format="html"):
+        return u"{}?{}".format(path, urlencode({"format": format, "seed": b"123"}))
 
-    def test_assigned_html(self):
-        self.browser.get(self.build_url('/debug/mail/assigned/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('assigned email html')
+    def test_emails(self):
+        for url, name in EMAILS:
+            # HTML output is captured as a snapshot
+            self.browser.get(self.build_url(url, "html"))
+            self.browser.wait_until("#preview")
+            self.browser.snapshot(u"{} email html".format(name))
 
-    def test_assigned_txt(self):
-        self.browser.get(self.build_url('/debug/mail/assigned/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('assigned email txt')
+            # Text output is asserted against static fixture files
+            self.browser.get(self.build_url(url, "txt"))
+            self.browser.wait_until("#preview")
+            elem = self.browser.find_element_by_css_selector("#preview pre")
+            text_src = elem.get_attribute("innerHTML")
 
-    def test_assigned_self_html(self):
-        self.browser.get(self.build_url('/debug/mail/assigned/self/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('assigned_self email html')
-
-    def test_assigned_self_txt(self):
-        self.browser.get(self.build_url('/debug/mail/assigned/self/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('assigned_self email txt')
-
-    def test_note_html(self):
-        self.browser.get(self.build_url('/debug/mail/note/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('note email html')
-
-    def test_note_txt(self):
-        self.browser.get(self.build_url('/debug/mail/note/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('note email txt')
-
-    def test_regression_html(self):
-        self.browser.get(self.build_url('/debug/mail/regression/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('regression email html')
-
-    def test_regression_txt(self):
-        self.browser.get(self.build_url('/debug/mail/regression/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('regression email txt')
-
-    def test_regression_with_version_html(self):
-        self.browser.get(self.build_url('/debug/mail/regression/release/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('regression_with_version email html')
-
-    def test_regression_with_version_txt(self):
-        self.browser.get(self.build_url('/debug/mail/regression/release/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('regression_with_version email txt')
-
-    def test_release_html(self):
-        self.browser.get(self.build_url('/debug/mail/new-release/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('release email html')
-
-    def test_release_txt(self):
-        self.browser.get(self.build_url('/debug/mail/new-release/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('release email txt')
-
-    def test_resolved_html(self):
-        self.browser.get(self.build_url('/debug/mail/resolved/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved email html')
-
-    def test_resolved_txt(self):
-        self.browser.get(self.build_url('/debug/mail/resolved/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved email txt')
-
-    def test_resolved_in_release_html(self):
-        self.browser.get(self.build_url('/debug/mail/resolved-in-release/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved_in_release email html')
-
-    def test_resolved_in_release_txt(self):
-        self.browser.get(self.build_url('/debug/mail/resolved-in-release/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved_in_release email txt')
-
-    def test_resolved_in_release_upcoming_html(self):
-        self.browser.get(self.build_url('/debug/mail/resolved-in-release/upcoming/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved_in_release_upcoming email html')
-
-    def test_resolved_in_release_upcoming_txt(self):
-        self.browser.get(self.build_url('/debug/mail/resolved-in-release/upcoming/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('resolved_in_release_upcoming email txt')
-
-    def test_unassigned_html(self):
-        self.browser.get(self.build_url('/debug/mail/unassigned/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('unassigned email html')
-
-    def test_unassigned_txt(self):
-        self.browser.get(self.build_url('/debug/mail/unassigned/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('unassigned email txt')
-
-    def test_new_event_html(self):
-        self.browser.get(self.build_url('/debug/mail/alert/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('new event email html')
-
-    def test_new_event_txt(self):
-        self.browser.get(self.build_url('/debug/mail/alert/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('new event email txt')
-
-    def test_digest_html(self):
-        self.browser.get(self.build_url('/debug/mail/digest/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('digest email html')
-
-    def test_digest_txt(self):
-        self.browser.get(self.build_url('/debug/mail/digest/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('digest email txt')
-
-    def test_report_html(self):
-        self.browser.get(self.build_url('/debug/mail/report/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('report email html')
-
-    def test_mfa_added_html(self):
-        self.browser.get(self.build_url('/debug/mail/mfa-added/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('mfa added email html')
-
-    def test_mfa_added_txt(self):
-        self.browser.get(self.build_url('/debug/mail/mfa-added/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('mfa added email txt')
-
-    def test_mfa_removed_html(self):
-        self.browser.get(self.build_url('/debug/mail/mfa-removed/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('mfa removed email html')
-
-    def test_mfa_removed_text(self):
-        self.browser.get(self.build_url('/debug/mail/mfa-removed/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('mfa removed email txt')
-
-    def test_password_changed_html(self):
-        self.browser.get(self.build_url('/debug/mail/password-changed/'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('password changed email html')
-
-    def test_password_changed_text(self):
-        self.browser.get(self.build_url('/debug/mail/password-changed/', 'txt'))
-        self.browser.wait_until('#preview')
-        self.browser.snapshot('password changed email txt')
+            fixture_src = read_txt_email_fixture(name)
+            assert fixture_src == text_src

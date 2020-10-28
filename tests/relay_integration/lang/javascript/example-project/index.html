@@ -1,0 +1,11 @@
+<!doctype html>
+<script type=text/javascript src=test.min.js></script>
+<script>
+  function produceStack() {
+    try {
+      makeAFailure();
+    } catch (e) {
+      return e.stack;
+    }
+  }
+</script>

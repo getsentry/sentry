@@ -1,0 +1,289 @@
+5,Virheellinen toimintosarjakutsu tai argumentti
+6,Ylivuoto
+7,Muisti ei riitä
+9,Viittaus alueen ulkopuolelle
+10,Taulukko on kiinteä tai tilapäisesti lukittu
+11,Jako nollalla
+13,Tyyppivirhe
+14,Merkkijonon tila ei riitä
+17,Toimintoa ei voi suorittaa
+28,Pinotila ei riitä
+35,Sub- tai Function-toimintosarjaa ei ole määritetty
+48,Virhe ladattaessa DLL-kirjastoa
+51,Sisäinen virhe
+52,Virheellinen tiedostonimi tai numero
+53,Tiedostoa ei löydy
+54,Virheellinen tiedostomuoto
+55,Tiedosto on jo avoinna
+57,Laitteen I/O-virhe
+58,Tiedosto on jo olemassa
+61,Levy on täynnä
+62,Syöte tiedoston lopun jälkeen
+67,Liian monta tiedostoa
+68,Laite ei ole käytettävissä
+70,Ei käyttöoikeutta
+71,Levy ei ole valmiina
+74,Uudelleennimettäessä ei voi vaihtaa asemaa
+75,Polkua tai tiedostoa ei voi käyttää
+76,Polkua ei löydy
+91,Object-tyyppistä muuttujaa tai With-lohkomuuttujaa ei ole asetettu
+92,For-silmukkaa ei ole alustettu
+94,Null-arvon virheellinen käyttö
+322,Tarvittavan tilapäistiedoston luominen ei onnistu
+424,Objekti puuttuu
+429,ActiveX-komponentti ei pysty luomaan objektia
+430,Luokka ei tue automaatiota
+432,Tiedoston tai luokan nimeä ei löytynyt automaatiotoiminnon aikana
+438,Objekti ei tue tätä ominaisuutta tai menetelmää
+440,Automaation virhe
+445,Objekti ei tue tätä toimintoa
+446,Objekti ei tue nimettyjä argumentteja
+447,Objekti ei tue käytössä olevia maakohtaisia asetuksia
+448,Nimettyä argumenttia ei löydy
+449,Argumentti on pakollinen
+450,Argumenttien määrä tai ominaisuusasetus ei kelpaa
+451,Objekti ei ole kokoelma
+453,Määritettyä DLL-funktiota ei löydy
+458,Muuttuja käyttää automaatiotyyppiä, jota JavaScriptissä ei tueta
+462,Etäpalvelinkonetta ei ole tai sitä ei voi käyttää
+501,Ei liitettävissä muuttujaan
+502,Objektiin ei ole turvallista liittää komentokieltä
+503,Objektia ei ole turvallista alustaa
+504,Objektia ei ole turvallista luoda
+507,On tapahtunut poikkeus
+1001,Muisti ei riitä
+1002,Syntaksivirhe
+1003,Tarvitaan ':'
+1004,Tarvitaan ';'
+1005,Tarvitaan '('
+1006,Tarvitaan ')'
+1007,Tarvitaan ']'
+1008,Tarvitaan '{'
+1009,Tarvitaan '}'
+1010,Tarvitaan tunniste
+1011,Tarvitaan '='
+1012,Tarvitaan '/'
+1013,Luku ei kelpaa
+1014,Merkki ei kelpaa
+1015,Päättymätön merkkijonovakio
+1016,Päättymätön kommentti
+1018,'return'-lause funktion ulkopuolella
+1019,'break'-lausetta ei voi käyttää silmukan ulkopuolella
+1020,'continue'-lausetta ei voi käyttää silmukan ulkopuolella
+1023,Tarvitaan heksadesimaalinumero
+1024,Tarvitaan 'while'
+1025,Nimi on määritetty uudelleen
+1026,Nimeä ei löydy
+1027,'switch'-lauseessa voi olla vain yksi 'default'-määre
+1028,Tarvitaan tunniste, merkkijono tai numero
+1029,Tarvitaan '@end'
+1030,Ehdollinen kääntäminen on poistettu käytöstä
+1031,Tarvitaan vakio
+1032,Tarvitaan '@'
+1033,Tarvitaan 'catch'
+1034,Tarvitaan 'var'
+1035,throw-kohdetta pitää seurata lauseke samalla lähderivillä
+1037,with-lausekkeita ei sallita tarkassa tilassa
+1038,Muodollisten parametrien nimien kaksoiskappaleita ei sallita tarkassa tilassa
+1039,Numeerisia oktaaliliteraaleja ja ohjausmerkkejä ei sallita tarkassa tilassa
+1041,Virheellinen eval-kohteen käyttö tarkassa tilassa
+1042,Virheellinen arguments-kohteen käyttö tarkassa tilassa
+1045,Delete-kutsun tekemistä lausekkeelle ei sallita tarkassa tilassa
+1046,Ominaisuuden useita määrityksiä ei sallita tarkassa tilassa
+1047,Tarkassa tilassa funktioiden kuvaukset eivät voi olla lausekkeen tai lohkon sisällä, vaan niitä voidaan määrittää ainoastaan päätasolla tai suoraan funktion runko-osassa.
+1048,Avainsanan käyttäminen tunnuksena ei kelpaa
+1049,Varatun sanan käyttäminen tunnuksena ei kelpaa
+1050,Varatun sanan käyttäminen tunnuksena ei kelpaa. Tunnuksen nimi on varattu tarkassa tilassa.
+1051,Setter-funktioilla on oltava yksi argumentti
+4096,JavaScript-käännösvirhe
+4097,Suorituksenaikainen JavaScript-virhe
+4098,Tuntematon suorituksenaikainen virhe
+5000,Ei liitettävissä 'this'-lauseeseen
+5001,Arvoksi on annettava luku
+5002,Tarvitaan funktio
+5003,Ei liitettävissä funktion tulokseen
+5004,Objektia ei voi indeksoida
+5005,Tarvitaan merkkijono
+5006,Arvoksi on annettava päivämääräobjekti
+5007,Arvoksi on annettava objekti
+5008,Virheellinen vasemmanpuoleinen osa määrityksessä
+5009,Tunnistetta ei ole määritetty
+5010,Arvoksi on annettava totuusarvo
+5011,Vapaan komentosarjan koodia ei voi suorittaa
+5012,Arvoksi on annettava objektin jäsen
+5013,Arvoksi on annettava VBArray-taulukko
+5014,Arvoksi on annettava JScript-objekti
+5015,Arvoksi on annettava laskuriobjekti
+5016,Tarvitaan lausekeobjekti
+5017,Säännöllisessä lausekkeessa on syntaksivirhe
+5018,Odottamaton rajoitin
+5019,Säännölliseen lausekkeeseen kuuluu ']'
+5020,Säännölliseen lausekkeeseen kuuluu ')'
+5021,Merkistön arvoalue ei kelpaa
+5022,Keskeytys havaittu muttei käsitelty
+5023,Funktion prototyyppiobjekti ei kelpaa
+5024,Koodattava URI sisältää merkin, joka ei kelpaa
+5025,URIn purettava koodi ei kelpaa
+5026,Murtolukujen määrä on määritettyjen rajojen ulkopuolella
+5027,Tarkkuus on määritettyjen rajojen ulkopuolella
+5028,Tarvitaan array- tai arguments-objekti
+5029,Taulukon pituuden arvon on oltava äärellinen positiivinen kokonaisluku
+5030,Taulukon pituuden arvoksi on määritettävä äärellinen positiivinen kokonaisluku
+5031,Tarvitaan taulukko-objekti
+5034,Arvoargumentin kehäviittauksia ei tueta
+5035,Korvaava argumentti ei kelpaa
+5038,Argumenttiluettelo on liian suuri otettavaksi käyttöön
+5039,Const-ominaisuuden uudelleenmääritys
+5041,Objektijäsentä ei voi määrittää
+5042,Muuttajaa ei ole määritetty tarkassa tilassa
+5043,Funktion tai argumenttiobjektin caller-ominaisuuden käyttöä ei sallita tarkassa tilassa
+5044,Argumenttiobjektin callee-ominaisuuden käyttöä ei sallita tarkassa tilassa
+5045,Vain luku -ominaisuuksiin määritystä ei sallita tarkassa tilassa
+5046,Ominaisuutta ei voi luoda objektille, jota ei voi laajentaa
+5047,Arvoksi on annettava objekti
+5048,Arvoksi on annettava objekti
+5049,Arvoksi on annettava objekti
+5050,Arvoksi on annettava objekti
+5051,Arvoksi on annettava funktio
+5052,Arvoksi on annettava funktio
+5053,Ominaisuudella ei voi olla sekä käyttömenetelmää että arvoa
+5054,this-kohde on tyhjäarvoinen, tai sitä ei ole määritetty
+5055,Arvoksi on annettava objekti
+5056,Arvoksi on annettava funktio
+5057,Arvoksi on annettava merkkijono
+5058,Arvoksi on annettava totuusarvo
+5059,Arvoksi on annettava päivämäärä
+5060,Arvoksi on annettava luku
+5061,Arvoksi on annettava VBArray
+5062,Arvoksi on annettava JScript-objekti
+5063,Arvoksi on annettava laskuriobjekti
+5064,Arvoksi on annettava RegExp-objekti
+5065,Virheellinen funktion argumentti
+5066,Arvoksi on annettava objekti
+5067,Arvoksi on annettava JScript-objekti
+5068,Arvoksi on annettava funktio
+5069,Arvoksi on annettava VBArray
+5070,Arvoksi on annettava objekti
+5071,Arvoksi on annettava objekti
+5072,Virheellinen length-ominaisuus
+5073,Arvoksi on annettava array- tai arguments-objekti
+5074,Virheellinen operandi
+5075,Virheellinen operandi
+5076,Virheellinen ominaisuuskuvaus
+5077,Ominaisuutta ei voi määrittää: objekti ei ole laajennettavissa
+5078,Ei määritettävissä olevaa ominaisuutta ei voi määrittää uudelleen
+5079,Ei kirjoitettavissa olevaa ominaisuutta ei voi muokata
+5080,Ominaisuutta ei voi muokata: length-kohde ei ole kirjoitettavissa
+5081,Ominaisuutta ei voi määrittää
+5082,Tyyppimääritetyn taulukon konstruktoriargumentti ei kelpaa
+5083,"This" ei ole tyyppimääritetyn taulukon objekti
+5084,Virheellinen siirtymä tai pituus tyyppimääritetyn taulukon luonnissa
+5085,Virheellinen alku- tai loppuarvo tyyppimääritetyn taulukon alitaulukkomenetelmässä
+5086,Virheellinen lähde tyyppimääritetyssä taulukkojoukossa
+5087,"This" ei ole DataView-objekti
+5088,DataView sisältää virheellisiä argumentteja
+5089,DataView-toiminto ylittää määritetyn puskuripituuden
+5090,DataView sisältää virheellisiä argumentteja
+5091,virheellinen funktion allekirjoitus
+5092,virheellinen ominaisuuden allekirjoitus
+5093,virheellinen syöteparametrin laji
+5094,virheellinen tulosparametri
+5095,Funktion arguments-ominaisuuden käyttö ei ole sallittua tarkassa tilassa
+5096,Odotettiin tarkastettavaa objektia
+5097,Argumentin muunnos char-tyypiksi ei onnistunut
+5098,Argumentin muunnos GUID-tyypiksi ei onnistunut
+5099,Odotettiin: IInspectable
+5100,Objektin muunnos struct-rakenteeksi ei onnistunut: odotettu ominaisuus puuttuu objektista
+5101,Tuntematon tyyppi
+5102,Funktiokutsussa ei ole riittävästi argumentteja
+5103,Tyyppi ei ole konstruoitava
+5104,Arvon muuntaminen PropertyValue-arvoksi ei onnistunut: PropertyValue ei tue tyyppiä
+5105,Arvon muuntaminen IInspectable-arvoksi ei onnistunut: IInspectable ei tue tyyppiä
+5106,Päivämääräarvon muuntaminen Windows.Foundation.DateTime-arvoksi ei onnistunut: arvo on kelvollisen alueen ulkopuolella
+5107,Arvon muuntaminen Windows.Foundation.TimeSpan-arvoksi ei onnistunut: arvo on kelvollisen alueen ulkopuolella
+5108,Virheellinen vapautetun tarkastettavan objektin käyttö
+5109,Vapautettua tarkastettavaa objektia ei voi vapauttaa
+5110,this-lause ei ole odotettua tyyppiä
+5111,Taulukolle määritetty pituus ja koko ovat virheelliset
+5112,Odottamaton virhe yritettäessä hankkia metatietotietoja
+5200,Tila on virhe, mutta getResults-funktio ei palauttanut virhettä
+5201,Suoritetulle käsittelijälle välitettiin puuttuva tai virheellinen tilan parametri
+5202,Suoritetulle käsittelijälle välitettiin puuttuva tai virheellinen lähettäjän parametri
+6000,Ääretön
+6001,-Ääretön
+10438,Objekti ei tue ominaisuutta tai menetelmää %s
+10449,Funktion %s argumentti on pakollinen
+15001,%s ei ole luku
+15002,%s ei ole funktio
+15004,%s ei ole indeksoitavissa oleva objekti
+15005,%s ei ole merkkijono
+15006,%s ei ole päivämääräobjekti
+15007,%s on tyhjäarvoinen, tai se ei ole objekti
+15008,Kohteeseen %s ei voi määrittää
+15009,%s ei ole määritetty
+15010,%s ei ole totuusarvo
+15012,Kohdetta %s ei voi poistaa
+15013,%s ei ole VBArray-kohde
+15014,%s ei ole JavaScript-objekti
+15015,%s ei ole luettelointiobjekti
+15016,%s ei ole säännöllisen lausekkeen objekti
+15028,%s ei ole Array- tai arguments-objekti
+15031,%s ei ole Array-objekti
+15036,Ominaisuuskuvaimen määritteen %s arvoksi ei voi määrittää true tälle objektille
+15037,Ominaisuuskuvaimen määritteen %s arvoksi ei voi määrittää false tälle objektille
+15039,Const-kohteen %s uudelleenmääritys
+15041,Poistokutsun tekemistä kohteelle %s ei sallita tarkassa tilassa
+15047,Määrittämättömän tai tyhjän viittauksen ominaisuutta %s ei voi määrittää
+15048,Määrittämättömän tai tyhjän viittauksen ominaisuutta %s ei voi noutaa
+15049,Määrittämättömän tai tyhjän viittauksen ominaisuutta %s ei voi poistaa
+15050,Ominaisuutta %s ei voi käyttää: tyyppi VarDate ei tue käyttäjän määrittämiä ominaisuuksia
+15051,Ominaisuuden %s arvo ei ole Function-objekti
+15052,Ominaisuuden %s arvo ei ole Function-objekti, vaan se on tyhjäarvoinen, tai sitä ei ole määritetty
+15054,%s: this-kohde on tyhjäarvoinen, tai sitä ei ole määritetty
+15055,%s: this-kohde ei ole objekti
+15056,%s: this-kohde ei ole Function-objekti
+15057,%s: this-kohde ei ole String-objekti
+15058,%s: this-kohde ei ole Boolean-objekti
+15059,%s: this-kohde ei ole Date-objekti
+15060,%s: this-kohde ei ole Number-objekti
+15061,%s: this-kohde ei ole VBArray-objekti
+15062,%s: this-kohde ei ole JavaScript-objekti
+15063,%s: this-kohde ei ole Enumerator-objekti
+15064,%s: this-kohde ei ole RegExp-objekti
+15065,%s: virheellinen argumentti
+15066,%s: argumentti ei ole objekti
+15067,%s: argumentti ei ole JavaScript-objekti
+15068,%s: argumentti ei ole Function-objekti
+15069,%s: argumentti ei ole VBArray-objekti
+15070,%s: argumentti on tyhjäarvoinen, tai sitä ei ole määritetty
+15071,%s: argumentti ei ole objekti, eikä se ole tyhjäarvoinen
+15072,%s: argumentilla ei ole kelvollista length-ominaisuutta
+15073,%s: arvoksi on annettava Array- tai arguments-objekti
+15074,Virheellinen operandi kohteelle %s: odotetaan objektia
+15075,Virheellinen operandi kohteelle %s: odotetaan funktiota
+15076,Virheellinen kuvain ominaisuudelle %s
+15077,Ominaisuutta %s ei voi määrittää: objekti ei ole laajennettavissa
+15078,Ei määritettävissä olevaa ominaisuutta %s ei voi määrittää uudelleen
+15079,Ei kirjoitettavissa olevaa ominaisuutta %s ei voi muokata
+15080,Ominaisuutta %s ei voi muokata: length-kohde ei ole kirjoitettavissa
+15081,Ominaisuutta %s ei voi määrittää
+15088,DataView-menetelmän pakollista argumenttia %s ei ole määritetty
+15090,DataView-konstruktorin argumentti %s on virheellinen
+15091,Toiminnon %s allekirjoitus on virheellinen. Toimintoa ei voi kutsua
+15092,Ominaisuuden %s allekirjoitus on virheellinen. Ominaisuutta ei voi käyttää
+15093,Ajonaikainen luokka %s, jonka oletusliittymäksi on määritetty Windows.Foundation.IPropertyValue, ei ole tuettu syöteparametrilajina
+15094,Objekti, jonka liittymäksi on määritetty Windows.Foundation.IPropertyValue ja jonka ajonaikainen luokkanimi on %s, ei ole tuettu tulosparametrina
+15096,%s: "this" ei ole tarkastettava objekti
+15097,%s: argumentin muuntaminen char-tyypiksi ei onnistunut
+15098,%s: argumentin muuntaminen GUID-tyypiksi ei onnistunut
+15099,%s: paluuarvon muuntaminen IInspectable-arvoksi ei onnistunut
+15100,Objektin muuntaminen struct-rakenteeksi ei onnistunut: objektista puuttuu odotettu ominaisuus %s
+15101,Tyyppiä %s ei löytynyt
+15102,%s: funktiokutsussa on liian vähän argumentteja
+15103,%s: tyyppi ei ole konstruoitava
+15104,Arvon muunnos PropertyValue-arvoksi epäonnistui: %s ei ole tuettu PropertyValue-arvo
+15105,Arvon muunnos IInspectable-arvoksi epäonnistui: %s ei ole tuettu IInspectable-arvo
+15108,%s: tarkastettava objekti "this" on vapautettu, eikä objektia voi käyttää
+15110,this-lause ei ole odotettua tyyppiä: %s
+15112,%s: odottamaton virhe yritettäessä hankkia metatietotietoja
+32812,Määritettyä päivämäärää ei ole käytössä olevassa maakohtaisessa kalenterissa.

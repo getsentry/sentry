@@ -8,11 +8,11 @@ from sentry.models import User
 from sentry.utils.auth import find_users
 
 
-class UserField(serializers.WritableField):
-    def to_native(self, obj):
-        return obj.username
+class UserField(serializers.Field):
+    def to_representation(self, value):
+        return value.username
 
-    def from_native(self, data):
+    def to_internal_value(self, data):
         if not data:
             return None
 
@@ -25,4 +25,4 @@ class UserField(serializers.WritableField):
         try:
             return find_users(data)[0]
         except IndexError:
-            raise serializers.ValidationError('Unable to find user')
+            raise serializers.ValidationError("Unable to find user")

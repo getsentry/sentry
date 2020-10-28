@@ -12,6 +12,10 @@
   .form-actions {
     margin-top: 20px;
   }
+
+  .form-actions-samlidp {
+    margin: 10px 0;
+  }
 }
 
 section.org-login {
@@ -19,7 +23,8 @@ section.org-login {
     margin: 0 0 20px;
   }
   .org-avatar {
-    .square(56px);
+    width: 56px;
+    height: 56px;
     border-radius: 3px;
     margin-bottom: 20px;
   }
@@ -27,78 +32,58 @@ section.org-login {
 
 .provider-logo {
   display: inline-block;
-  .square(16px);
+  width: 16px;
+  height: 16px;
   vertical-align: text-top;
   margin-right: 4px;
   border-radius: 2px;
   position: relative;
   top: 1px;
+  background-size: cover;
 
   &.google {
-    background: url(../images/auth-providers/google.png);
-    background-size: cover;
+    background-image: url(../images/logos/logo-google.svg);
   }
 
   &.github {
-    background: url(../images/auth-providers/github.jpg);
-    background-size: cover;
+    background-image: url(../images/logos/logo-github.svg);
   }
 
   &.onelogin {
-    background: url(../images/auth-providers/onelogin.png);
-    background-size: cover;
+    background-image: url(../images/logos/logo-onelogin.svg);
+  }
+
+  &.auth0 {
+    background-image: url(../images/logos/logo-auth0.svg);
   }
 
   &.okta {
-    background: url(../images/auth-providers/okta.png);
-    background-size: cover;
+    background-image: url(../images/logos/logo-okta.svg);
+  }
+
+  &.rippling {
+    background-image: url(../images/logos/logo-rippling.svg);
+  }
+
+  &.active-directory {
+    background-image: url(../images/logos/logo-microsoft.svg);
+  }
+
+  &.saml2 {
+    background-image: url(../images/logos/logo-saml2.svg);
+  }
+
+  &.slack {
+    background-image: url(../images/logos/logo-slack.svg);
+  }
+
+  &.vsts {
+    background-image: url(../images/logos/logo-azure.svg);
   }
 }
 
-// Toggle SSO
-
-.sso-toggle-container {
-  margin-top: 2px;
-  font-size: 15px;
-
-  .go-back {
-    display: none;
-    position: relative;
-  }
-
-  a {
-    color: lighten(@gray, 30);
-
-    &:hover {
-      color: lighten(@gray, 10);
-    }
-  }
-
-  .icon-arrow-left {
-    position: absolute;
-    background: 0;
-    font-size: 18px;
-    left: -20px;
-  }
-}
-
-.show-sso {
-
-  .sso-link {
-    display: none;
-  }
-
-  .go-back {
-    display: block;
-  }
-
-  #standard {
-    display: none;
-  }
-
-  #sso {
-    display: block;
-  }
+.btn-default > .provider-logo {
+  margin-right: 8px;
 }
 
 .sso-link {
@@ -122,13 +107,14 @@ section.org-login {
       bottom: 6px;
       right: 6px;
       color: #fff;
-      background: rgba(0,0,0, .4);
-      .square(20px);
+      background: rgba(0, 0, 0, 0.4);
+      width: 20px;
+      height: 20px;
       border-radius: 3px;
       text-align: center;
       line-height: 20px;
       font-size: 12px;
-      .transition(.1s opacity linear);
+      .transition(0.1s opacity linear);
     }
 
     &:hover {
@@ -144,7 +130,8 @@ section.org-login {
     right: 0;
 
     .avatar {
-      .square(118px);
+      width: 118px;
+      height: 118px;
       border-radius: 3px;
     }
   }
@@ -170,15 +157,12 @@ section.org-login {
       margin-top: -4px;
     }
 
-    .icon-trash {
-      margin-left: -2px;
-    }
-
     &.enrolled {
       h4:after {
         display: inline-block;
-        content: "";
-        .square(14px);
+        content: '';
+        width: 14px;
+        height: 14px;
         border-radius: 14px;
         margin-left: 10px;
         background: @green;
@@ -197,7 +181,7 @@ div.u2f-box {
   div.device-animation-frame {
     margin: 0 auto;
     border-radius: 50%;
-    box-shadow: 0 1px 2px rgba(0,0,0, .08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     border: 1px solid darken(@trim, 5);
     width: 100px;
     height: 100px;
@@ -212,7 +196,7 @@ div.u2f-box {
     margin-left: -25px;
     margin-top: -9px;
     opacity: 0;
-    .transition(all ease-in .4s);
+    .transition(all ease-in 0.4s);
 
     .dot {
       display: inline-block;
@@ -229,11 +213,11 @@ div.u2f-box {
       animation-fill-mode: both;
 
       &:nth-child(2) {
-        animation-delay: .4s;
+        animation-delay: 0.4s;
       }
 
       &:nth-child(3) {
-        animation-delay: .8s;
+        animation-delay: 0.8s;
       }
 
       &:last-child {
@@ -243,11 +227,11 @@ div.u2f-box {
   }
 
   div.device-animation {
-    background: url(../images/auth/u2f-small.gif);
+    background: url(../images/spot/u2f-small.gif);
     background-size: 100px 100px;
     width: 100px;
     height: 100px;
-    .transition(opacity .3s);
+    .transition(opacity 0.3s);
   }
 
   div.device-failed {
@@ -259,7 +243,7 @@ div.u2f-box {
     text-align: center;
     margin-left: -50px;
     &:after {
-      content: ":-(";
+      content: ':-(';
     }
     font-size: 46px;
     font-weight: bold;
@@ -305,13 +289,13 @@ div.u2f-box {
 }
 
 @keyframes blink {
-    0% {
-      opacity: .1;
-    }
-    30% {
-      opacity: 1;
-    }
-    100% {
-      opacity: .1;
-    }
+  0% {
+    opacity: 0.1;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.1;
+  }
 }

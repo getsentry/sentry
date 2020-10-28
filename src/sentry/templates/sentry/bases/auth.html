@@ -3,16 +3,26 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block global_sidebar %}{% endblock %}
-{% block sub-header %}{% endblock %}
-
 {% block wrapperclass %}narrow auth org-login{% endblock %}
 
-{% block main %}
-  <div class="pattern-bg"></div>
+{% block content %}
+<div class="pattern-bg"></div>
+
+<div class="box">
+  <div class="auth-sidebar">
+    <a href="/">
+      <span class="icon-sentry-logo"></span>
+    </a>
+  </div>
   <section class="org-login">
-    {% block auth_main %}{% endblock %}
+    {% block auth_container %}
+      <div class="auth-container p-y-2">
+        {% block auth_main %}{% endblock %}
+      </div>
+    {% endblock %}
   </section>
+</div>
+
 {% endblock %}
 
 {% block footer %}

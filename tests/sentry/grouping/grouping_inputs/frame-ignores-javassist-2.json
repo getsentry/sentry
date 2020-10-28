@@ -1,0 +1,11 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "fn",
+        "module": "com.example.api.entry.EntriesResource_$$_javassist_74"
+      }
+    ]
+  },
+  "platform": "java"
+}

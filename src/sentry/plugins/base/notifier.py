@@ -1,14 +1,6 @@
-"""
-sentry.plugins.base.notifier
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import, print_function
 
-__all__ = ('Notifier',)
+__all__ = ("Notifier",)
 
 from sentry import ratelimits
 
@@ -25,19 +17,12 @@ class Notifier(object):
         """
 
     def should_notify(self, group, event):
-        if group.is_ignored():
-            return False
-
         project = group.project
 
-        rate_limited = ratelimits.is_limited(
-            project=project,
-            key=self.get_conf_key(),
-            limit=10,
-        )
+        rate_limited = ratelimits.is_limited(project=project, key=self.get_conf_key(), limit=10)
 
         if rate_limited:
-            self.logger.info('notification.rate_limited', extra={'project_id': project.id})
+            self.logger.info("notification.rate_limited", extra={"project_id": project.id})
 
         return not rate_limited
 

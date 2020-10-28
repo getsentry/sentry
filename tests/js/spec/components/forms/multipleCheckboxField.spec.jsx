@@ -1,37 +1,46 @@
 import React from 'react';
-import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {MultipleCheckboxField} from 'app/components/forms';
 
-describe('MultipleCheckboxField', function() {
-  describe('render()', function() {
-    it('renders without form context', function() {
-      let wrapper = shallow(
+describe('MultipleCheckboxField', function () {
+  describe('render()', function () {
+    it('renders without form context', function () {
+      const wrapper = mountWithTheme(
         <MultipleCheckboxField
           name="fieldName"
-          choices={[['1', 'On'], ['2', 'Off']]}
+          choices={[
+            ['1', 'On'],
+            ['2', 'Off'],
+          ]}
           value={['1']}
         />
       );
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
-    it('renders with form context', function() {
-      let wrapper = shallow(
-        <MultipleCheckboxField name="fieldName" choices={[['1', 'On'], ['2', 'Off']]} />,
+    it('renders with form context', function () {
+      const wrapper = mountWithTheme(
+        <MultipleCheckboxField
+          name="fieldName"
+          choices={[
+            ['1', 'On'],
+            ['2', 'Off'],
+          ]}
+        />,
         {
           context: {
             form: {
               data: {
-                fieldName: ['1']
+                fieldName: ['1'],
               },
-              errors: {}
-            }
-          }
+              errors: {},
+            },
+          },
         }
       );
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

@@ -1,0 +1,64 @@
+---
+created: '2020-02-26T19:54:25.348795Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function* (isolated function)
+              "(anonymous namespace)::start"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function* (isolated function)
+              "(anonymous namespace)::crash"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function* (isolated function)
+              "(anonymous namespace)::something::nested::Foo"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      threads (thread has no stacktrace)
+--------------------------------------------------------------------------
+system:
+  hash: "282d9d4e85027e073026ace9ad3d05fd"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function* (isolated function)
+              "(anonymous namespace)::start"
+          frame*
+            filename*
+              "main.cpp"
+            function* (isolated function)
+              "(anonymous namespace)::crash"
+          frame*
+            filename*
+              "main.cpp"
+            function* (isolated function)
+              "(anonymous namespace)::something::nested::Foo"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      threads (thread has no stacktrace)

@@ -9,9 +9,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.app import locks
-from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -19,7 +17,7 @@ class Deploy(Model):
     __core__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
-    release = FlexibleForeignKey('sentry.Release')
+    release = FlexibleForeignKey("sentry.Release")
     environment_id = BoundedPositiveIntegerField(db_index=True)
     date_finished = models.DateTimeField(default=timezone.now)
     date_started = models.DateTimeField(null=True, blank=True)
@@ -28,12 +26,12 @@ class Deploy(Model):
     notified = models.NullBooleanField(null=True, db_index=True, default=False)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_deploy'
+        app_label = "sentry"
+        db_table = "sentry_deploy"
 
     @staticmethod
     def get_lock_key(deploy_id):
-        return 'deploy-notify:%s' % deploy_id
+        return "deploy-notify:%s" % deploy_id
 
     @classmethod
     def notify_if_ready(cls, deploy_id, fetch_complete=False):
@@ -46,22 +44,18 @@ class Deploy(Model):
         lock_key = cls.get_lock_key(deploy_id)
         lock = locks.get(lock_key, duration=30)
         with TimedRetryPolicy(10)(lock.acquire):
-            deploy = cls.objects.filter(
-                id=deploy_id,
-            ).select_related('release').get()
+            deploy = cls.objects.filter(id=deploy_id).select_related("release").get()
             if deploy.notified:
                 return
 
             release = deploy.release
             environment = Environment.objects.get(
-                organization_id=deploy.organization_id,
-                id=deploy.environment_id,
+                organization_id=deploy.organization_id, id=deploy.environment_id
             )
 
             if not fetch_complete:
                 release_has_commits = ReleaseCommit.objects.filter(
-                    organization_id=release.organization_id,
-                    release=release,
+                    organization_id=release.organization_id, release=release
                 ).exists()
 
                 if not release_has_commits:
@@ -69,8 +63,7 @@ class Deploy(Model):
                     # would indicate that we're waiting for
                     # fetch_commits to complete
                     if ReleaseHeadCommit.objects.filter(
-                        organization_id=release.organization_id,
-                        release=release,
+                        organization_id=release.organization_id, release=release
                     ).exists():
                         return
 
@@ -79,11 +72,11 @@ class Deploy(Model):
                 activity = Activity.objects.create(
                     type=Activity.DEPLOY,
                     project=project,
-                    ident=release.version,
+                    ident=Activity.get_version_ident(release.version),
                     data={
-                        'version': release.version,
-                        'deploy_id': deploy.id,
-                        'environment': environment.name,
+                        "version": release.version,
+                        "deploy_id": deploy.id,
+                        "environment": environment.name,
                     },
                     datetime=deploy.date_finished,
                 )

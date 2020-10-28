@@ -1,28 +1,28 @@
 import React from 'react';
-import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {TextField} from 'app/components/forms';
 
-describe('TextField', function() {
-  describe('render()', function() {
-    it('renders without form context', function() {
-      let wrapper = shallow(<TextField name="fieldName" />);
-      expect(toJson(wrapper)).toMatchSnapshot();
+describe('TextField', function () {
+  describe('render()', function () {
+    it('renders without form context', function () {
+      const wrapper = mountWithTheme(<TextField name="fieldName" />);
+      expect(wrapper).toSnapshot();
     });
 
-    it('renders with form context', function() {
-      let wrapper = shallow(<TextField name="fieldName" />, {
+    it('renders with form context', function () {
+      const wrapper = mountWithTheme(<TextField name="fieldName" />, {
         context: {
           form: {
             data: {
-              fieldName: 'fieldValue'
+              fieldName: 'fieldValue',
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

@@ -1,0 +1,7 @@
+---
+created: '2019-03-14T17:12:35.606666Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_geo.py
+---
+errors: null
+to_json: null

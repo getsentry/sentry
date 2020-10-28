@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-__all__ = ('ApiClient',)
+__all__ = ("ApiClient",)
 
 from django.core.urlresolvers import resolve
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from sentry.auth.superuser import Superuser
 from sentry.utils import json
 from sentry.utils.compat import implements_to_string
 
@@ -16,24 +17,37 @@ class ApiError(Exception):
         self.body = body
 
     def __str__(self):
-        return u'status={} body={}'.format(self.status_code, self.body)
+        return u"status={} body={}".format(self.status_code, self.body)
 
     def __repr__(self):
-        return u'<ApiError: {}>'.format(self)
+        return u"<ApiError: {}>".format(self)
 
 
 class ApiClient(object):
-    prefix = '/api/0'
+    prefix = "/api/0"
 
     ApiError = ApiError
 
-    def request(self, method, path, user=None, auth=None, params=None, data=None,
-                is_sudo=None, is_superuser=None, request=None):
-        full_path = self.prefix + path
+    def request(
+        self,
+        method,
+        path,
+        user=None,
+        auth=None,
+        params=None,
+        data=None,
+        is_sudo=None,
+        is_superuser=None,
+        request=None,
+    ):
+        if self.prefix not in path:
+            full_path = self.prefix + path
+        else:
+            full_path = path
 
         # we explicitly do not allow you to override the request *and* the user
         # as then other checks like is_superuser would need overwritten
-        assert not (request and (user or auth)), 'use either request or auth'
+        assert not (request and (user or auth)), "use either request or auth"
 
         resolver_match = resolve(full_path)
         callback, callback_args, callback_kwargs = resolver_match
@@ -48,29 +62,31 @@ class ApiClient(object):
         mock_request.__from_api_client__ = True
 
         if request:
-            mock_request.auth = getattr(request, 'auth', None)
+            mock_request.auth = getattr(request, "auth", None)
             mock_request.user = request.user
 
             if is_sudo is None:
                 mock_request.is_sudo = lambda: request.is_sudo()
             else:
                 mock_request.is_sudo = lambda: is_sudo
+            mock_request.session = request.session
 
             if is_superuser is None:
-                mock_request.is_superuser = lambda: request.is_superuser()
+                mock_request.superuser = request.superuser
             else:
-                mock_request.is_superuser = lambda: is_superuser
-            mock_request.session = request.session
+                mock_request.superuser = Superuser(mock_request)
         else:
             mock_request.auth = auth
             mock_request.user = user
             mock_request.is_sudo = lambda: is_sudo
-            mock_request.is_superuser = lambda: is_superuser
             mock_request.session = {}
+            mock_request.superuser = Superuser(mock_request)
+
+        mock_request.is_superuser = lambda: mock_request.superuser.is_active
 
         if request:
             # superuser checks require access to IP
-            mock_request.META['REMOTE_ADDR'] = request.META['REMOTE_ADDR']
+            mock_request.META["REMOTE_ADDR"] = request.META["REMOTE_ADDR"]
 
         force_authenticate(mock_request, user, auth)
 
@@ -91,13 +107,13 @@ class ApiClient(object):
         raise self.ApiError(response.status_code, response.data)
 
     def get(self, *args, **kwargs):
-        return self.request('GET', *args, **kwargs)
+        return self.request("GET", *args, **kwargs)
 
     def post(self, *args, **kwargs):
-        return self.request('POST', *args, **kwargs)
+        return self.request("POST", *args, **kwargs)
 
     def put(self, *args, **kwargs):
-        return self.request('PUT', *args, **kwargs)
+        return self.request("PUT", *args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        return self.request('DELETE', *args, **kwargs)
+        return self.request("DELETE", *args, **kwargs)

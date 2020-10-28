@@ -8,7 +8,7 @@
 
 {% block activity %}
     <h2 style="margin-bottom: 10px">
-        Version {{ release.short_version }} was deployed to {{ environment }}
+        Version {{ release.version }} was deployed to {{ environment }}
     </h2>
     <p class="muted"><small><strong style="color: #72697d;">{{ deploy.date_finished }}</strong> <span class="divider">&nbsp;</span>  {{ commit_count }} commit{{ commit_count|pluralize }}, {{ author_count }} author{{ author_count|pluralize }}, and {{ file_count }} file{{ file_count|pluralize }} changed across {{ project_count }} project{{ project_count|pluralize }}</small></p>
 
@@ -22,7 +22,7 @@
             <tr>
               <td>
                 <h5 style="margin-bottom: 0">
-                  <a href="{{ release_link }}">{{ project.name }}</a>
+                  <a href="{{ release_link }}">{{ project.slug }}</a>
                 </h5>
                 <p class="muted" style="margin-bottom: 0">
                   {% if resolved_issue_count %}
@@ -58,14 +58,14 @@
               <td class="avatar-column">
                 {% if user %}
                   {% if user.get_avatar_type == 'upload' %}
-                    <img class="avatar" src="{% profile_photo_url user.id size 36 %}">
+                    <img class="avatar" src="{% profile_photo_url user.id 36 %}">
                   {% elif user.get_avatar_type == 'letter_avatar' %}
-                    {% email_avatar user.get_display_name user.get_label size 36 try_gravatar False %}
+                    {% email_avatar user.get_display_name user.get_label 36 False %}
                   {% else %}
-                    {% email_avatar user.get_display_name user.get_label size 36 %}
+                    {% email_avatar user.get_display_name user.get_label 36 %}
                   {% endif %}
                 {% elif commit.author %}
-                  {% email_avatar commit.author.name commit.author.get_label size 36 %}
+                  {% email_avatar commit.author.name commit.author.get_label 36 %}
                 {% else %}
                     <div class="placeholder-avatar">?</div>
                 {% endif %}

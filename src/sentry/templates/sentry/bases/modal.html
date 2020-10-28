@@ -3,23 +3,24 @@
 {% load i18n %}
 
 {% block wrapperclass %}{{ block.super }} narrow{% endblock %}
-{% block global_sidebar %}{% endblock %}
-{% block sub-header %}{% endblock %}
 
 {% block content %}
 <div class="pattern-bg"></div>
 <section class="org-login">
   <div class="box box-modal">
     <div class="box-header">
-      {% block modal_header%}
+      {% block modal_header %}
         {% block modal_header_signout %}
           {% if request.user.is_authenticated %}
             <div class="pull-right">
-              <a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a>
+              <a href="#" onclick="document.modalLogoutForm.submit()">{% trans "Sign out" %}</a>
+              <form style="display:none;" name="modalLogoutForm" action="{% url 'sentry-logout' %}?next={{ request.get_full_path|urlencode }}" method="POST">
+                {% csrf_token %}
+              </form>
             </div>
           {% endif %}
         {% endblock %}
-        <a href="{% block modal_header_link %}/{% endblock %}">
+        <a class="logo-with-action" href="{% block modal_header_link %}/{% endblock %}">
           {% if request.user.is_authenticated %}
             <span class="icon-sentry-logo"></span>
           {% else %}

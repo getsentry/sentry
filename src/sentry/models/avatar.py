@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from django.utils.encoding import force_bytes
 from django.db import models, transaction
 from PIL import Image
 from six import BytesIO
@@ -13,16 +14,18 @@ from sentry.utils.cache import cache
 
 class AvatarBase(Model):
     """
-    Base class for UserAvatar and OrganizationAvatar models, which
-    associate users/orgs with their avatar preferences/files.
+    Base class for UserAvatar, OrganizationAvatar, TeamAvatar,
+    and ProjectAvatar models. Associates those entities with their
+    avatar preferences/files.
     """
+
     __core__ = False
 
     ALLOWED_SIZES = (20, 32, 36, 48, 52, 64, 80, 96, 120)
 
     FILE_TYPE = None
 
-    file = FlexibleForeignKey('sentry.File', unique=True, null=True, on_delete=models.SET_NULL)
+    file = FlexibleForeignKey("sentry.File", unique=True, null=True, on_delete=models.SET_NULL)
     ident = models.CharField(max_length=32, unique=True, db_index=True)
 
     class Meta:
@@ -54,9 +57,9 @@ class AvatarBase(Model):
         if photo is None:
             photo_file = self.file.getfile()
             with Image.open(photo_file) as image:
-                image = image.resize((size, size))
+                image = image.resize((size, size), Image.LANCZOS)
                 image_file = BytesIO()
-                image.save(image_file, 'PNG')
+                image.save(image_file, "PNG")
                 photo = image_file.getvalue()
                 cache.set(cache_key, photo)
         return photo
@@ -67,12 +70,11 @@ class AvatarBase(Model):
 
         if avatar:
             with transaction.atomic():
-                photo = File.objects.create(
-                    name=filename,
-                    type=cls.FILE_TYPE,
-                )
+                photo = File.objects.create(name=filename, type=cls.FILE_TYPE)
+                # XXX: Avatar may come in as a string instance in python2
+                # if it's not wrapped in BytesIO.
                 if isinstance(avatar, six.string_types):
-                    avatar = BytesIO(avatar)
+                    avatar = BytesIO(force_bytes(avatar))
                 photo.putfile(avatar)
         else:
             photo = None
@@ -86,10 +88,7 @@ class AvatarBase(Model):
                 instance.file = photo
                 instance.ident = uuid4().hex
 
-            instance.avatar_type = [
-                i for i, n in cls.AVATAR_TYPES
-                if n == type
-            ][0]
+            instance.avatar_type = [i for i, n in cls.AVATAR_TYPES if n == type][0]
 
             instance.save()
 

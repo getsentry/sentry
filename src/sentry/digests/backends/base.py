@@ -5,17 +5,14 @@ import logging
 from sentry.utils.imports import import_string
 from sentry.utils.services import Service
 
-
-logger = logging.getLogger('sentry.digests')
+logger = logging.getLogger("sentry.digests")
 
 
 def load(options):
-    return import_string(options['path'])(**options.get('options', {}))
+    return import_string(options["path"])(**options.get("options", {}))
 
 
-DEFAULT_CODEC = {
-    'path': 'sentry.digests.codecs.CompressedPickleCodec',
-}
+DEFAULT_CODEC = {"path": "sentry.digests.codecs.CompressedPickleCodec"}
 
 
 class InvalidState(Exception):
@@ -29,7 +26,7 @@ class Backend(Service):
     """
     A digest backend coordinates the addition of records to timelines, as well
     as scheduling their digestion (processing.) This allows for summarizations
-    of activity that was recorded as having occurrred during a window of time.
+    of activity that was recorded as having occurred during a window of time.
 
     A timeline is the central abstraction for digests. A timeline is a
     reverse-chronological set of records. Timelines are identified by a unique
@@ -57,36 +54,34 @@ class Backend(Service):
     be preempted by a new record being added to the timeline, requiring it to
     be transitioned to "waiting" instead.)
     """
-    __all__ = (
-        'add', 'delete', 'digest', 'enabled', 'maintenance', 'schedule',
-        'validate'
-    )
+
+    __all__ = ("add", "delete", "digest", "enabled", "maintenance", "schedule", "validate")
 
     def __init__(self, **options):
         # The ``minimum_delay`` option defines the default minimum amount of
         # time (in seconds) to wait between scheduling digests for delivery
         # after the initial scheduling.
-        self.minimum_delay = options.pop('minimum_delay', 60 * 5)
+        self.minimum_delay = options.pop("minimum_delay", 60 * 5)
 
         # The ``maximum_delay`` option defines the default maximum amount of
         # time (in seconds) to wait between scheduling digests for delivery.
-        self.maximum_delay = options.pop('maximum_delay', 60 * 30)
+        self.maximum_delay = options.pop("maximum_delay", 60 * 30)
 
         # The ``increment_delay`` option defines how long each observation of
         # an event should delay scheduling (up until the ``maximum_delay``
         # after the last time a digest was processed.)
-        self.increment_delay = options.pop('increment_delay', 30)
+        self.increment_delay = options.pop("increment_delay", 30)
 
         # The ``codec`` option provides the strategy for encoding and decoding
         # records in the timeline.
-        self.codec = load(options.pop('codec', DEFAULT_CODEC))
+        self.codec = load(options.pop("codec", DEFAULT_CODEC))
 
         # The ``capacity`` option defines the maximum number of items that
         # should be contained within a timeline. (Whether this is a hard or
         # soft limit is backend dependent -- see the ``truncation_chance`` option.)
-        self.capacity = options.pop('capacity', None)
+        self.capacity = options.pop("capacity", None)
         if self.capacity is not None and self.capacity < 1:
-            raise ValueError('Timeline capacity must be at least 1 if used.')
+            raise ValueError("Timeline capacity must be at least 1 if used.")
 
         # The ``truncation_chance`` option defines the probability that an
         # ``add`` operation will trigger a truncation of the timeline to keep
@@ -98,10 +93,12 @@ class Backend(Service):
         # truncation, which is a potentially expensive operation, especially on
         # large data sets.)
         if self.capacity:
-            self.truncation_chance = options.pop('truncation_chance', 1.0 / self.capacity)
+            self.truncation_chance = options.pop("truncation_chance", 1.0 / self.capacity)
         else:
-            if options.get('truncation_chance') is not None:
-                raise TypeError('No timeline capacity has been set, "truncation_chance" must be None.')
+            if options.get("truncation_chance") is not None:
+                raise TypeError(
+                    'No timeline capacity has been set, "truncation_chance" must be None.'
+                )
             else:
                 self.truncation_chance = 0.0
 
@@ -178,13 +175,13 @@ class Backend(Service):
 
         This method moves all timelines that are in the ready state back to the
         waiting state if their schedule time is prior to the deadline. (This
-        does not reschdule any tasks directly, and should generally be
+        does not reschedule any tasks directly, and should generally be
         performed as part of the scheduler task, before the ``schedule``
         call.)
 
         This is designed to handle the situation where task execution is
         managed by a separate system such as RabbitMQ & Celery from scheduling.
-        A digest task may not be able to be succesfully retried after a failure
+        A digest task may not be able to be successfully retried after a failure
         (e.g. if the process executing the task can no longer communicate with
         the messaging broker) which can result in a task remaining in the ready
         state without an execution plan.
@@ -194,7 +191,7 @@ class Backend(Service):
         "ready" state that were scheduled for execution prior to the deadline
         may still have outstanding tasks associated with them -- remember that
         without the ability to interrogate the queue, we are unable to identify
-        if these tasks have finished but were unable to bea removed from the
+        if these tasks have finished but were unable to be removed from the
         schedule, failed outright, or are still pending. As part of
         maintenance, those timelines are moved back to the "waiting" state for
         rescheduling, and if a pending task for a timeline that was previously

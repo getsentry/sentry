@@ -1,4 +1,4 @@
-Some events failed to process in your project "{{ project.name }}".
+Some events failed to process in your project "{{ project.slug }}".
 
 {% if reprocessing_active %}Since reprocessing is enabled, these events
 will not show up in Sentry until the processing issues are resolved.
@@ -9,10 +9,5 @@ will not show up in Sentry until the processing issues are resolved.
   ({{ issue.extra_info }}){% endif %}
 {% endfor %}
 
-{% if not reprocessing_active %}Since reprocessing is disabled, we won't
-send you additional notifications about issues like this. However, we
-recommend enabling reprocessing in project settings to improve your
-debugging experience on Sentry.
-
-{{ info_url }}{% else %}You can fix these issues here:
-  {{ info_url }}{% endif %}
+You can fix these issues here:
+  {{ info_url }}

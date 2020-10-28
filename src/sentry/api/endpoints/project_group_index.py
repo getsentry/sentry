@@ -1,244 +1,55 @@
 from __future__ import absolute_import, division, print_function
 
-from datetime import timedelta
-import logging
-from uuid import uuid4
+import functools
 
 import six
-from django.db import transaction
-from django.utils import timezone
-from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import search
-from sentry.api.base import DocSection
+from sentry import analytics, eventstore, search
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
-from sentry.api.fields import UserField
+from sentry.api.helpers.group_index import (
+    build_query_params_from_request,
+    delete_groups,
+    get_by_short_id,
+    update_groups,
+    ValidationError,
+)
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import (
-    SUBSCRIPTION_REASON_MAP, StreamGroupSerializer
-)
-from sentry.constants import DEFAULT_SORT_OPTION
-from sentry.db.models.query import create_or_update
-from sentry.models import (
-    Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
-    GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupSubscriptionReason, Release, TagKey, UserOption
-)
-from sentry.models.event import Event
-from sentry.models.group import looks_like_short_id
-from sentry.receivers import DEFAULT_SAVED_SEARCHES
-from sentry.search.utils import InvalidQuery, parse_query
-from sentry.signals import advanced_search, issue_resolved_in_release
-from sentry.tasks.deletion import delete_group
-from sentry.tasks.merge import merge_group
-from sentry.utils.apidocs import attach_scenarios, scenario
-from sentry.utils.cursors import Cursor
-from sentry.utils.functional import extract_lazy_object
-
-delete_logger = logging.getLogger('sentry.deletions.api')
-
+from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.models import Environment, Group, GroupStatus
+from sentry.signals import advanced_search
+from sentry.utils.cursors import CursorResult
+from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
-SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
 
 
-@scenario('BulkUpdateIssues')
-def bulk_update_issues_scenario(runner):
-    project = runner.default_project
-    group1, group2 = Group.objects.filter(project=project)[:2]
-    runner.request(
-        method='PUT',
-        path='/projects/%s/%s/issues/?id=%s&id=%s' % (
-            runner.org.slug, project.slug, group1.id, group2.id),
-        data={'status': 'unresolved', 'isPublic': False}
-    )
-
-
-@scenario('BulkRemoveIssuess')
-def bulk_remove_issues_scenario(runner):
-    with runner.isolated_project('Amazing Plumbing') as project:
-        group1, group2 = Group.objects.filter(project=project)[:2]
-        runner.request(
-            method='DELETE',
-            path='/projects/%s/%s/issues/?id=%s&id=%s' % (
-                runner.org.slug, project.slug, group1.id, group2.id),
-        )
-
-
-@scenario('ListProjectIssuess')
-def list_project_issues_scenario(runner):
-    project = runner.default_project
-    runner.request(
-        method='GET',
-        path='/projects/%s/%s/issues/?statsPeriod=24h' % (
-            runner.org.slug, project.slug),
-    )
-
-
-STATUS_CHOICES = {
-    'resolved': GroupStatus.RESOLVED,
-    'unresolved': GroupStatus.UNRESOLVED,
-    'ignored': GroupStatus.IGNORED,
-    'resolvedInNextRelease': GroupStatus.UNRESOLVED,
-
-    # TODO(dcramer): remove in 9.0
-    'muted': GroupStatus.IGNORED,
-}
-
-
-class ValidationError(Exception):
-    pass
-
-
-class StatusDetailsValidator(serializers.Serializer):
-    inNextRelease = serializers.BooleanField()
-    inRelease = serializers.CharField()
-    ignoreDuration = serializers.IntegerField()
-    ignoreCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24)
-    ignoreUserCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24)
-
-    def validate_inRelease(self, attrs, source):
-        value = attrs[source]
-        project = self.context['project']
-        if value == 'latest':
-            try:
-                attrs[source] = Release.objects.filter(
-                    projects=project,
-                    organization_id=project.organization_id,
-                ).order_by('-date_added')[0]
-            except IndexError:
-                raise serializers.ValidationError('No release data present in the system to form a basis for \'Next Release\'')
-        else:
-            try:
-                attrs[source] = Release.objects.get(
-                    projects=project,
-                    organization_id=project.organization_id,
-                    version=value,
-                )
-            except Release.DoesNotExist:
-                raise serializers.ValidationError('Unable to find a release with the given version.')
-        return attrs
-
-    def validate_inNextRelease(self, attrs, source):
-        project = self.context['project']
-        if not Release.objects.filter(
-            projects=project,
-            organization_id=project.organization_id,
-        ).exists():
-            raise serializers.ValidationError('No release data present in the system to form a basis for \'Next Release\'')
-        return attrs
-
-
-class GroupValidator(serializers.Serializer):
-    status = serializers.ChoiceField(choices=zip(
-        STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
-    ))
-    statusDetails = StatusDetailsValidator()
-    hasSeen = serializers.BooleanField()
-    isBookmarked = serializers.BooleanField()
-    isPublic = serializers.BooleanField()
-    isSubscribed = serializers.BooleanField()
-    merge = serializers.BooleanField()
-    ignoreDuration = serializers.IntegerField()
-    ignoreCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24)
-    ignoreUserCount = serializers.IntegerField()
-    # in hours, max of one week
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24)
-    assignedTo = UserField()
-
-    # TODO(dcramer): remove in 9.0
-    snoozeDuration = serializers.IntegerField()
-
-    def validate_assignedTo(self, attrs, source):
-        value = attrs[source]
-        if value and not self.context['project'].member_set.filter(user=value).exists():
-            raise serializers.ValidationError('Cannot assign to non-team member')
-        return attrs
-
-
-class ProjectGroupIndexEndpoint(ProjectEndpoint):
-    doc_section = DocSection.EVENTS
-
+class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectEventPermission,)
 
-    def _build_query_params_from_request(self, request, project):
-        query_kwargs = {
-            'project': project,
-        }
-
-        if request.GET.get('status'):
-            try:
-                query_kwargs['status'] = STATUS_CHOICES[request.GET['status']]
-            except KeyError:
-                raise ValidationError('invalid status')
-
-        if request.user.is_authenticated() and request.GET.get('bookmarks'):
-            query_kwargs['bookmarked_by'] = request.user
-
-        if request.user.is_authenticated() and request.GET.get('assigned'):
-            query_kwargs['assigned_to'] = request.user
-
-        sort_by = request.GET.get('sort')
-        if sort_by is None:
-            sort_by = DEFAULT_SORT_OPTION
-
-        query_kwargs['sort_by'] = sort_by
-
-        tags = {}
-        for tag_key in TagKey.objects.all_keys(project):
-            if request.GET.get(tag_key):
-                tags[tag_key] = request.GET[tag_key]
-        if tags:
-            query_kwargs['tags'] = tags
-
-        limit = request.GET.get('limit')
-        if limit:
-            try:
-                query_kwargs['limit'] = int(limit)
-            except ValueError:
-                raise ValidationError('invalid limit')
-
-        # TODO: proper pagination support
-        cursor = request.GET.get('cursor')
-        if cursor:
-            query_kwargs['cursor'] = Cursor.from_string(cursor)
-
-        query = request.GET.get('query', 'is:unresolved').strip()
-        if query:
-            try:
-                query_kwargs.update(parse_query(project, query, request.user))
-            except InvalidQuery as e:
-                raise ValidationError(u'Your search query could not be parsed: {}'.format(e.message))
-
-        return query_kwargs
-
-    def _subscribe_and_assign_issue(self, acting_user, group, result):
-        if acting_user:
-            GroupSubscription.objects.subscribe(
-                user=acting_user,
-                group=group,
-                reason=GroupSubscriptionReason.status_change,
+    def _search(self, request, project, extra_query_kwargs=None):
+        try:
+            environment = self._get_environment_from_request(request, project.organization_id)
+        except Environment.DoesNotExist:
+            # XXX: The 1000 magic number for `max_hits` is an abstraction leak
+            # from `sentry.api.paginator.BasePaginator.get_result`.
+            result = CursorResult([], None, None, hits=0, max_hits=1000)
+            query_kwargs = {}
+        else:
+            environments = [environment] if environment is not None else environment
+            query_kwargs = build_query_params_from_request(
+                request, project.organization, [project], environments
             )
-            self_assign_issue = UserOption.objects.get_value(
-                user=acting_user,
-                key='self_assign_issue',
-                default='0'
-            )
-            if self_assign_issue == '1' and not group.assignee_set.exists():
-                result['assignedTo'] = extract_lazy_object(acting_user)
+            if extra_query_kwargs is not None:
+                assert "environment" not in extra_query_kwargs
+                query_kwargs.update(extra_query_kwargs)
 
-    # bookmarks=0/1
-    # status=<x>
-    # <tag>=<value>
+            query_kwargs["environments"] = environments
+            result = search.query(**query_kwargs)
+        return result, query_kwargs
+
     # statsPeriod=24h
-    @attach_scenarios([list_project_issues_scenario])
     def get(self, request, project):
         """
         List a Project's Issues
@@ -252,8 +63,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         results).
 
         The ``statsPeriod`` parameter can be used to select the timeline
-        stats which should be present. Possible values are: '' (disable),
-        '24h', '14d'
+        stats which should be present. Possible values are: ``""`` (disable),
+        ``"24h"``, ``"14d"``
 
         :qparam string statsPeriod: an optional stat period (can be one of
                                     ``"24h"``, ``"14d"``, and ``""``).
@@ -266,97 +77,109 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:unresolved"`` is assumed.)
+        :qparam string environment: this restricts the issues to ones containing
+                                    events from this environment
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :auth: required
         """
-        stats_period = request.GET.get('statsPeriod')
-        if stats_period not in (None, '', '24h', '14d'):
+        stats_period = request.GET.get("statsPeriod")
+        if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
             # default
-            stats_period = '24h'
-        elif stats_period == '':
+            stats_period = "24h"
+        elif stats_period == "":
             # disable stats
             stats_period = None
 
-        query = request.GET.get('query', '').strip()
+        serializer = functools.partial(
+            StreamGroupSerializer,
+            environment_func=self._get_environment_func(request, project.organization_id),
+            stats_period=stats_period,
+        )
 
+        query = request.GET.get("query", "").strip()
         if query:
             matching_group = None
             matching_event = None
-            if len(query) == 32:
+            event_id = normalize_event_id(query)
+            if event_id:
                 # check to see if we've got an event ID
                 try:
-                    mapping = EventMapping.objects.get(
-                        project_id=project.id,
-                        event_id=query,
-                    )
-                except EventMapping.DoesNotExist:
+                    matching_group = Group.objects.from_event_id(project, event_id)
+                except Group.DoesNotExist:
                     pass
                 else:
-                    matching_group = Group.objects.get(id=mapping.group_id)
-                    try:
-                        matching_event = Event.objects.get(event_id=query, project_id=project.id)
-                    except Event.DoesNotExist:
-                        pass
-
-            # If the query looks like a short id, we want to provide some
-            # information about where that is.  Note that this can return
-            # results for another project.  The UI deals with this.
-            elif request.GET.get('shortIdLookup') == '1' and \
-                    looks_like_short_id(query):
-                try:
-                    matching_group = Group.objects.by_qualified_short_id(
-                        project.organization_id, query)
-                except Group.DoesNotExist:
+                    matching_event = eventstore.get_event_by_id(project.id, event_id)
+            elif matching_group is None:
+                matching_group = get_by_short_id(
+                    project.organization_id, request.GET.get("shortIdLookup"), query
+                )
+                if matching_group is not None and matching_group.project_id != project.id:
                     matching_group = None
 
             if matching_group is not None:
-                response = Response(serialize(
-                    [matching_group], request.user, StreamGroupSerializer(
-                        stats_period=stats_period, matching_event_id=getattr(matching_event, 'id', None)
+                matching_event_environment = None
+
+                try:
+                    matching_event_environment = (
+                        matching_event.get_environment().name if matching_event else None
                     )
-                ))
-                response['X-Sentry-Direct-Hit'] = '1'
+                except Environment.DoesNotExist:
+                    pass
+
+                response = Response(
+                    serialize(
+                        [matching_group],
+                        request.user,
+                        serializer(
+                            matching_event_id=getattr(matching_event, "event_id", None),
+                            matching_event_environment=matching_event_environment,
+                        ),
+                    )
+                )
+                response["X-Sentry-Direct-Hit"] = "1"
                 return response
 
         try:
-            query_kwargs = self._build_query_params_from_request(request, project)
+            cursor_result, query_kwargs = self._search(request, project, {"count_hits": True})
         except ValidationError as exc:
-            return Response({'detail': six.text_type(exc)}, status=400)
-
-        cursor_result = search.query(**query_kwargs)
+            return Response({"detail": six.text_type(exc)}, status=400)
 
         results = list(cursor_result)
 
-        context = serialize(
-            results, request.user, StreamGroupSerializer(
-                stats_period=stats_period
-            )
-        )
+        context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
-        if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
-            context = [
-                r for r in context
-                if r['status'] == 'unresolved'
-            ]
+        # TODO: We should try to integrate this into the search backend, since
+        # this can cause us to arbitrarily return fewer results than requested.
+        status = [
+            search_filter
+            for search_filter in query_kwargs.get("search_filters", [])
+            if search_filter.key.name == "status"
+        ]
+        if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
+            context = [r for r in context if r["status"] == "unresolved"]
 
         response = Response(context)
-        response['Link'] = ', '.join([
-            self.build_cursor_link(request, 'previous', cursor_result.prev),
-            self.build_cursor_link(request, 'next', cursor_result.next),
-        ])
 
-        if results and query not in SAVED_SEARCH_QUERIES:
+        self.add_cursor_headers(request, response, cursor_result)
+
+        if results and query:
             advanced_search.send(project=project, sender=request.user)
+            analytics.record(
+                "project_issue.searched",
+                user_id=request.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                query=query,
+            )
 
         return response
 
-    @attach_scenarios([bulk_update_issues_scenario])
     def put(self, request, project):
         """
         Bulk Mutate a List of Issues
@@ -391,13 +214,20 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
-                              are ``"resolved"``, ``resolvedInNextRelease``,
+                              are ``"resolved"``, ``"resolvedInNextRelease"``,
                               ``"unresolved"``, and ``"ignored"``.
+        :param map statusDetails: additional details about the resolution.
+                                  Valid values are ``"inRelease"``, ``"inNextRelease"``,
+                                  ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
+                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
+                                  ``"ignoreUserWindow"``.
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
-        :param string assignedTo: the username of the user that should be
-                                  assigned to this issue.
+        :param string assignedTo: the user or team that should be assigned to
+                                  this issue. Can be of the form ``"<user_id>"``,
+                                  ``"user:<user_id>"``, ``"<username>"``,
+                                  ``"<user_primary_email>"``, or ``"team:<team_id>"``.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -407,394 +237,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                      the bookmark flag.
         :auth: required
         """
-        group_ids = request.GET.getlist('id')
-        if group_ids:
-            group_list = Group.objects.filter(project=project, id__in=group_ids)
-            # filter down group ids to only valid matches
-            group_ids = [g.id for g in group_list]
-            if not group_ids:
-                return Response(status=204)
-        else:
-            group_list = None
 
-        serializer = GroupValidator(
-            data=request.DATA,
-            partial=True,
-            context={'project': project},
-        )
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-        result = dict(serializer.object)
+        search_fn = functools.partial(self._search, request, project)
+        return update_groups(request, [project], project.organization_id, search_fn)
 
-        acting_user = request.user if request.user.is_authenticated() else None
-
-        if not group_ids:
-            try:
-                query_kwargs = self._build_query_params_from_request(request, project)
-            except ValidationError as exc:
-                return Response({'detail': six.text_type(exc)}, status=400)
-
-            # bulk mutations are limited to 1000 items
-            # TODO(dcramer): it'd be nice to support more than this, but its
-            # a bit too complicated right now
-            query_kwargs['limit'] = 1000
-
-            cursor_result = search.query(**query_kwargs)
-
-            group_list = list(cursor_result)
-            group_ids = [g.id for g in group_list]
-
-        is_bulk = len(group_ids) > 1
-
-        queryset = Group.objects.filter(
-            id__in=group_ids,
-        )
-
-        statusDetails = result.pop('statusDetails', result)
-        status = result.get('status')
-        if status in ('resolved', 'resolvedInNextRelease'):
-            if status == 'resolvedInNextRelease' or statusDetails.get('inNextRelease'):
-                release = Release.objects.filter(
-                    projects=project,
-                    organization_id=project.organization_id,
-                ).order_by('-date_added')[0]
-                activity_type = Activity.SET_RESOLVED_IN_RELEASE
-                activity_data = {
-                    # no version yet
-                    'version': '',
-                }
-                status_details = {
-                    'inNextRelease': True,
-                    'actor': serialize(extract_lazy_object(request.user), request.user),
-                }
-                res_type = GroupResolution.Type.in_next_release
-                res_status = GroupResolution.Status.pending
-            elif statusDetails.get('inRelease'):
-                release = statusDetails['inRelease']
-                activity_type = Activity.SET_RESOLVED_IN_RELEASE
-                activity_data = {
-                    # no version yet
-                    'version': release.version,
-                }
-                status_details = {
-                    'inRelease': release.version,
-                    'actor': serialize(extract_lazy_object(request.user), request.user),
-                }
-                res_type = GroupResolution.Type.in_release
-                res_status = GroupResolution.Status.resolved
-            else:
-                release = None
-                activity_type = Activity.SET_RESOLVED
-                activity_data = {}
-                status_details = {}
-
-            now = timezone.now()
-
-            for group in group_list:
-                with transaction.atomic():
-                    if release:
-                        resolution_params = {
-                            'release': release,
-                            'type': res_type,
-                            'status': res_status,
-                            'actor_id': request.user.id if request.user.is_authenticated() else None,
-                        }
-                        resolution, created = GroupResolution.objects.get_or_create(
-                            group=group,
-                            defaults=resolution_params,
-                        )
-                        if not created:
-                            resolution.update(
-                                datetime=timezone.now(),
-                                **resolution_params
-                            )
-                    else:
-                        resolution = None
-
-                    affected = Group.objects.filter(
-                        id=group.id,
-                    ).update(
-                        status=GroupStatus.RESOLVED,
-                        resolved_at=now,
-                    )
-                    if not resolution:
-                        created = affected
-
-                    group.status = GroupStatus.RESOLVED
-                    group.resolved_at = now
-
-                    self._subscribe_and_assign_issue(
-                        acting_user, group, result
-                    )
-
-                    if created:
-                        activity = Activity.objects.create(
-                            project=group.project,
-                            group=group,
-                            type=activity_type,
-                            user=acting_user,
-                            ident=resolution.id if resolution else None,
-                            data=activity_data,
-                        )
-                        # TODO(dcramer): we need a solution for activity rollups
-                        # before sending notifications on bulk changes
-                        if not is_bulk:
-                            activity.send_notification()
-
-                issue_resolved_in_release.send(
-                    group=group,
-                    project=project,
-                    sender=acting_user,
-                )
-
-            result.update({
-                'status': 'resolved',
-                'statusDetails': status_details,
-            })
-
-        elif status:
-            new_status = STATUS_CHOICES[result['status']]
-
-            with transaction.atomic():
-                happened = queryset.exclude(
-                    status=new_status,
-                ).update(
-                    status=new_status,
-                )
-
-                GroupResolution.objects.filter(
-                    group__in=group_ids,
-                ).delete()
-
-                if new_status == GroupStatus.IGNORED:
-                    ignore_duration = (
-                        statusDetails.pop('ignoreDuration', None)
-                        or statusDetails.pop('snoozeDuration', None)
-                    ) or None
-                    ignore_count = statusDetails.pop('ignoreCount', None) or None
-                    ignore_window = statusDetails.pop('ignoreWindow', None) or None
-                    ignore_user_count = statusDetails.pop('ignoreUserCount', None) or None
-                    ignore_user_window = statusDetails.pop('ignoreUserWindow', None) or None
-                    if ignore_duration or ignore_count or ignore_user_count:
-                        if ignore_duration:
-                            ignore_until = timezone.now() + timedelta(
-                                minutes=ignore_duration,
-                            )
-                        else:
-                            ignore_until = None
-                        for group in group_list:
-                            state = {}
-                            if ignore_count and not ignore_window:
-                                state['times_seen'] = group.times_seen
-                            if ignore_user_count and not ignore_user_window:
-                                state['users_seen'] = group.count_users_seen()
-                            GroupSnooze.objects.create_or_update(
-                                group=group,
-                                values={
-                                    'until': ignore_until,
-                                    'count': ignore_count,
-                                    'window': ignore_window,
-                                    'user_count': ignore_user_count,
-                                    'user_window': ignore_user_window,
-                                    'state': state,
-                                    'actor_id': request.user.id if request.user.is_authenticated() else None,
-                                }
-                            )
-                            result['statusDetails'] = {
-                                'ignoreCount': ignore_count,
-                                'ignoreUntil': ignore_until,
-                                'ignoreUserCount': ignore_user_count,
-                                'ignoreUserWindow': ignore_user_window,
-                                'ignoreWindow': ignore_window,
-                                'actor': serialize(extract_lazy_object(request.user), request.user),
-                            }
-                    else:
-                        GroupSnooze.objects.filter(
-                            group__in=group_ids,
-                        ).delete()
-                        ignore_until = None
-                        result['statusDetails'] = {}
-                else:
-                    result['statusDetails'] = {}
-
-            if group_list and happened:
-                if new_status == GroupStatus.UNRESOLVED:
-                    activity_type = Activity.SET_UNRESOLVED
-                    activity_data = {}
-                elif new_status == GroupStatus.IGNORED:
-                    activity_type = Activity.SET_IGNORED
-                    activity_data = {
-                        'ignoreCount': ignore_count,
-                        'ignoreDuration': ignore_duration,
-                        'ignoreUntil': ignore_until,
-                        'ignoreUserCount': ignore_user_count,
-                        'ignoreUserWindow': ignore_user_window,
-                        'ignoreWindow': ignore_window,
-                    }
-
-                for group in group_list:
-                    group.status = new_status
-
-                    activity = Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=activity_type,
-                        user=acting_user,
-                        data=activity_data,
-                    )
-                    # TODO(dcramer): we need a solution for activity rollups
-                    # before sending notifications on bulk changes
-                    if not is_bulk:
-                        if acting_user:
-                            GroupSubscription.objects.subscribe(
-                                user=acting_user,
-                                group=group,
-                                reason=GroupSubscriptionReason.status_change,
-                            )
-                        activity.send_notification()
-
-        if 'assignedTo' in result:
-            if result['assignedTo']:
-                for group in group_list:
-                    GroupAssignee.objects.assign(group, result['assignedTo'],
-                                                 acting_user)
-
-                    if 'isSubscribed' not in result or result['assignedTo'] != request.user:
-                        GroupSubscription.objects.subscribe(
-                            group=group,
-                            user=result['assignedTo'],
-                            reason=GroupSubscriptionReason.assigned,
-                        )
-                result['assignedTo'] = serialize(result['assignedTo'])
-            else:
-                for group in group_list:
-                    GroupAssignee.objects.deassign(group, acting_user)
-
-        if result.get('hasSeen') and project.member_set.filter(user=acting_user).exists():
-            for group in group_list:
-                instance, created = create_or_update(
-                    GroupSeen,
-                    group=group,
-                    user=acting_user,
-                    project=group.project,
-                    values={
-                        'last_seen': timezone.now(),
-                    }
-                )
-        elif result.get('hasSeen') is False:
-            GroupSeen.objects.filter(
-                group__in=group_ids,
-                user=acting_user,
-            ).delete()
-
-        if result.get('isBookmarked'):
-            for group in group_list:
-                GroupBookmark.objects.get_or_create(
-                    project=project,
-                    group=group,
-                    user=acting_user,
-                )
-                GroupSubscription.objects.subscribe(
-                    user=acting_user,
-                    group=group,
-                    reason=GroupSubscriptionReason.bookmark,
-                )
-        elif result.get('isBookmarked') is False:
-            GroupBookmark.objects.filter(
-                group__in=group_ids,
-                user=acting_user,
-            ).delete()
-
-        # TODO(dcramer): we could make these more efficient by first
-        # querying for rich rows are present (if N > 2), flipping the flag
-        # on those rows, and then creating the missing rows
-        if result.get('isSubscribed') in (True, False):
-            is_subscribed = result['isSubscribed']
-            for group in group_list:
-                # NOTE: Subscribing without an initiating event (assignment,
-                # commenting, etc.) clears out the previous subscription reason
-                # to avoid showing confusing messaging as a result of this
-                # action. It'd be jarring to go directly from "you are not
-                # subscribed" to "you were subscribed due since you were
-                # assigned" just by clicking the "subscribe" button (and you
-                # may no longer be assigned to the issue anyway.)
-                GroupSubscription.objects.create_or_update(
-                    user=acting_user,
-                    group=group,
-                    project=project,
-                    values={
-                        'is_active': is_subscribed,
-                        'reason': GroupSubscriptionReason.unknown,
-                    },
-                )
-
-            result['subscriptionDetails'] = {
-                'reason': SUBSCRIPTION_REASON_MAP.get(
-                    GroupSubscriptionReason.unknown,
-                    'unknown',
-                ),
-            }
-
-        if result.get('isPublic'):
-            queryset.update(is_public=True)
-            for group in group_list:
-                if group.is_public:
-                    continue
-                group.is_public = True
-                Activity.objects.create(
-                    project=group.project,
-                    group=group,
-                    type=Activity.SET_PUBLIC,
-                    user=acting_user,
-                )
-        elif result.get('isPublic') is False:
-            queryset.update(is_public=False)
-            for group in group_list:
-                if not group.is_public:
-                    continue
-                group.is_public = False
-                Activity.objects.create(
-                    project=group.project,
-                    group=group,
-                    type=Activity.SET_PRIVATE,
-                    user=acting_user,
-                )
-
-        # XXX(dcramer): this feels a bit shady like it should be its own
-        # endpoint
-        if result.get('merge') and len(group_list) > 1:
-            primary_group = sorted(group_list, key=lambda x: -x.times_seen)[0]
-            children = []
-            transaction_id = uuid4().hex
-            for group in group_list:
-                if group == primary_group:
-                    continue
-                children.append(group)
-                group.update(status=GroupStatus.PENDING_MERGE)
-                merge_group.delay(
-                    from_object_id=group.id,
-                    to_object_id=primary_group.id,
-                    transaction_id=transaction_id,
-                )
-
-            Activity.objects.create(
-                project=primary_group.project,
-                group=primary_group,
-                type=Activity.MERGE,
-                user=acting_user,
-                data={
-                    'issues': [{'id': c.id} for c in children],
-                },
-            )
-
-            result['merge'] = {
-                'parent': six.text_type(primary_group.id),
-                'children': [six.text_type(g.id) for g in children],
-            }
-
-        return Response(result)
-
-    @attach_scenarios([bulk_remove_issues_scenario])
     def delete(self, request, project):
         """
         Bulk Remove a List of Issues
@@ -817,58 +263,5 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                      belong to.
         :auth: required
         """
-        group_ids = request.GET.getlist('id')
-        if group_ids:
-            group_list = list(Group.objects.filter(
-                project=project,
-                id__in=set(group_ids),
-            ).exclude(
-                status__in=[
-                    GroupStatus.PENDING_DELETION,
-                    GroupStatus.DELETION_IN_PROGRESS,
-                ]
-            ))
-            # filter down group ids to only valid matches
-            group_ids = [g.id for g in group_list]
-        else:
-            # missing any kind of filter
-            return Response('{"detail": "You must specify a list of IDs for this operation"}', status=400)
-
-        if not group_ids:
-            return Response(status=204)
-
-        Group.objects.filter(
-            id__in=group_ids,
-        ).exclude(
-            status__in=[
-                GroupStatus.PENDING_DELETION,
-                GroupStatus.DELETION_IN_PROGRESS,
-            ]
-        ).update(status=GroupStatus.PENDING_DELETION)
-        GroupHash.objects.filter(group__id__in=group_ids).delete()
-
-        transaction_id = uuid4().hex
-
-        for group in group_list:
-            delete_group.apply_async(
-                kwargs={
-                    'object_id': group.id,
-                    'transaction_id': transaction_id,
-                },
-                countdown=3600,
-            )
-
-            self.create_audit_entry(
-                request=request,
-                organization_id=project.organization_id,
-                target_object=group.id,
-                transaction_id=transaction_id,
-            )
-
-            delete_logger.info('object.delete.queued', extra={
-                'object_id': group.id,
-                'transaction_id': transaction_id,
-                'model': type(group).__name__,
-            })
-
-        return Response(status=204)
+        search_fn = functools.partial(self._search, request, project)
+        return delete_groups(request, [project], project.organization_id, search_fn)

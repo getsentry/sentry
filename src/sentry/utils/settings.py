@@ -1,10 +1,3 @@
-"""
-sentry.utils.imports
-~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import inspect
@@ -14,12 +7,10 @@ import sys
 from sentry.utils.imports import import_string
 
 PACKAGES = {
-    'django.db.backends.postgresql_psycopg2': 'psycopg2.extensions',
-    'sentry.db.postgres': 'psycopg2.extensions',
-    'django.db.backends.mysql': 'MySQLdb',
-    'django.db.backends.oracle': 'cx_Oracle',
-    'django.core.cache.backends.memcached.MemcachedCache': 'memcache',
-    'django.core.cache.backends.memcached.PyLibMCCache': 'pylibmc'
+    "django.db.backends.postgresql_psycopg2": "psycopg2.extensions",
+    "sentry.db.postgres": "psycopg2.extensions",
+    "django.core.cache.backends.memcached.MemcachedCache": "memcache",
+    "django.core.cache.backends.memcached.PyLibMCCache": "pylibmc",
 }
 
 
@@ -51,8 +42,10 @@ def reraise_as(new_exception_or_type):
 
 
 def validate_settings(settings):
-    for key, engine_key, engine_type in \
-            [('DATABASES', 'ENGINE', 'database engine'), ('CACHES', 'BACKEND', 'caching backend')]:
+    for key, engine_key, engine_type in [
+        ("DATABASES", "ENGINE", "database engine"),
+        ("CACHES", "BACKEND", "caching backend"),
+    ]:
 
         value = getattr(settings, key, {})
         for alias in value:
@@ -75,9 +68,10 @@ class ConfigurationError(ValueError):
     This error is thrown whenever a sentry configuration is wrong, or requires a third-party library
     that's not installed properly or can't be found.
     """
+
     @classmethod
     def get_error_message(cls, dependency, package):
-        return """Python could not find %(package)s in your current environment (required by %(dependency)s). If you have it installed, maybe you are using the wrong python binary to run sentry?""" % {
-            "dependency": dependency,
-            "package": package
-        }
+        return (
+            """Python could not find %(package)s in your current environment (required by %(dependency)s). If you have it installed, maybe you are using the wrong python binary to run sentry?"""
+            % {"dependency": dependency, "package": package}
+        )

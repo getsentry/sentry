@@ -1,9 +1,29 @@
-{% extends "sentry/groups/details.html" %}
+{% extends "sentry/bases/modal.html" %}
 
+{% load sentry_assets %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{{ title }} | {{ block.super }}{% endblock %}
+
+{% block css %}
+  <link href="{% asset_url "sentry" "dist/select2.css" %}" rel="stylesheet"/>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% asset_url "sentry" "vendor/select2.min.js" %}"></script>
+  <script src="{% asset_url "sentry" "vendor/tooltip.min.js" %}"></script>
+
+  <script>
+    if (window.$) {
+        window.$(function () {
+            $('select').select2();
+        })
+    }
+  </script>
+{% endblock %}
+
 
 {% block main %}
 

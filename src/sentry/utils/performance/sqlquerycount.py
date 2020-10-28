@@ -58,12 +58,19 @@ def get_cursor_wrapper(state):
         result = func(self, *args, **kwargs)
 
         return CursorWrapper(result, self, state)
+
     return cursor
 
 
 class SqlQueryCountMonitor(object):
-    def __init__(self, context, max_queries=DEFAULT_MAX_QUERIES,
-                 max_dupes=DEFAULT_MAX_DUPES, logger=None, **kwargs):
+    def __init__(
+        self,
+        context,
+        max_queries=DEFAULT_MAX_QUERIES,
+        max_dupes=DEFAULT_MAX_DUPES,
+        logger=None,
+        **kwargs
+    ):
         self.context = context
         self.max_queries = max_queries
         self.max_dupes = max_dupes
@@ -72,7 +79,7 @@ class SqlQueryCountMonitor(object):
         self.state = State()
 
         self._cursor = get_cursor_wrapper(self.state)
-        self._patcher = PatchContext('django.db.backends.BaseDatabaseWrapper.cursor', self._cursor)
+        self._patcher = PatchContext("django.db.backends.BaseDatabaseWrapper.cursor", self._cursor)
 
     def __enter__(self):
         self.start()
@@ -98,27 +105,15 @@ class SqlQueryCountMonitor(object):
     def log_max_dupes(self, num_dupes):
         state = self.state
 
-        context = {
-            'stack': True,
-            'data': {
-                'query_count': state.count,
-                'num_dupes': num_dupes,
-            }
-        }
+        context = {"stack": True, "data": {"query_count": state.count, "num_dupes": num_dupes}}
 
-        self.logger.warning('%d duplicate queries executed in %s',
-                            num_dupes, self.context, extra=context)
+        self.logger.warning(
+            "%d duplicate queries executed in %s", num_dupes, self.context, extra=context
+        )
 
     def log_max_queries(self, num_dupes):
         state = self.state
 
-        context = {
-            'stack': True,
-            'data': {
-                'query_count': state.count,
-                'num_dupes': num_dupes,
-            }
-        }
+        context = {"stack": True, "data": {"query_count": state.count, "num_dupes": num_dupes}}
 
-        self.logger.warning('%d queries executed in %s',
-                            state.count, self.context, extra=context)
+        self.logger.warning("%d queries executed in %s", state.count, self.context, extra=context)

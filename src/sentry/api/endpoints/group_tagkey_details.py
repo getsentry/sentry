@@ -1,34 +1,16 @@
 from __future__ import absolute_import
 
-import six
-
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
+from sentry import tagstore
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import (
-    GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, Group
-)
-from sentry.utils.apidocs import scenario
+from sentry.models import Environment
 
 
-@scenario('ListTagDetails')
-def list_tag_details_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(
-        method='GET',
-        path='/issues/%s/tags/%s/' % (
-            group.id, 'browser'),
-    )
-
-
-class GroupTagKeyDetailsEndpoint(GroupEndpoint):
-    doc_section = DocSection.EVENTS
-
-    # XXX: this scenario does not work for some inexplicable reasons
-    # @attach_scenarios([list_tag_details_scenario])
+class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def get(self, request, group, key):
         """
         Retrieve Tag Details
@@ -40,40 +22,31 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         :pparam string key: the tag key to look the values up for.
         :auth: required
         """
-        # XXX(dcramer): kill sentry prefix for internal reserved tags
-        if TagKey.is_reserved_key(key):
-            lookup_key = 'sentry:{0}'.format(key)
-        else:
-            lookup_key = key
+        lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            tag_key = TagKey.objects.get(
-                project=group.project_id,
-                key=lookup_key,
-                status=TagKeyStatus.VISIBLE,
+            environment_id = self._get_environment_id_from_request(
+                request, group.project.organization_id
             )
-        except TagKey.DoesNotExist:
+        except Environment.DoesNotExist:
+            # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
 
         try:
-            group_tag_key = GroupTagKey.objects.get(
-                group=group,
-                key=lookup_key,
+            group_tag_key = tagstore.get_group_tag_key(
+                group.project_id, group.id, environment_id, lookup_key
             )
-        except GroupTagKey.DoesNotExist:
+        except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
 
-        total_values = GroupTagValue.get_value_count(group.id, lookup_key)
+        if group_tag_key.count is None:
+            group_tag_key.count = tagstore.get_group_tag_value_count(
+                group.project_id, group.id, environment_id, lookup_key
+            )
 
-        top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=9)
+        if group_tag_key.top_values is None:
+            group_tag_key.top_values = tagstore.get_top_group_tag_values(
+                group.project_id, group.id, environment_id, lookup_key
+            )
 
-        data = {
-            'id': six.text_type(tag_key.id),
-            'key': key,
-            'name': tag_key.get_label(),
-            'uniqueValues': group_tag_key.values_seen,
-            'totalValues': total_values,
-            'topValues': serialize(top_values, request.user),
-        }
-
-        return Response(data)
+        return Response(serialize(group_tag_key, request.user))

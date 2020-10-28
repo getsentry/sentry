@@ -23,16 +23,16 @@ THE SOFTWARE.
 
 from __future__ import absolute_import
 
-__all__ = ('parse_link_header',)
+__all__ = ("parse_link_header",)
 
 import re
 
 TOKEN = r'(?:[^\(\)<>@,;:\\"/\[\]\?={} \t]+?)'
 QUOTED_STRING = r'(?:"(?:\\"|[^"])*")'
-PARAMETER = r'(?:%(TOKEN)s(?:=(?:%(TOKEN)s|%(QUOTED_STRING)s))?)' % locals()
-LINK = r'<[^>]*>\s*(?:;\s*%(PARAMETER)s?\s*)*' % locals()
-COMMA = r'(?:\s*(?:,\s*)+)'
-LINK_SPLIT = r'%s(?=%s|\s*$)' % (LINK, COMMA)
+PARAMETER = r"(?:%(TOKEN)s(?:=(?:%(TOKEN)s|%(QUOTED_STRING)s))?)" % locals()
+LINK = r"<[^>]*>\s*(?:;\s*%(PARAMETER)s?\s*)*" % locals()
+COMMA = r"(?:\s*(?:,\s*)+)"
+LINK_SPLIT = r"%s(?=%s|\s*$)" % (LINK, COMMA)
 
 link_splitter = re.compile(LINK_SPLIT)
 
@@ -40,14 +40,14 @@ link_splitter = re.compile(LINK_SPLIT)
 def _unquotestring(instr):
     if instr[0] == instr[-1] == '"':
         instr = instr[1:-1]
-        instr = re.sub(r'\\(.)', r'\1', instr)
+        instr = re.sub(r"\\(.)", r"\1", instr)
     return instr
 
 
 def _splitstring(instr, item, split):
     if not instr:
         return []
-    return [h.strip() for h in re.findall(r'%s(?=%s|\s*$)' % (item, split), instr)]
+    return [h.strip() for h in re.findall(r"%s(?=%s|\s*$)" % (item, split), instr)]
 
 
 def parse_link_header(instr):

@@ -1,0 +1,289 @@
+5,Ungültiger Prozeduraufruf oder ungültiges Argument
+6,Überlauf
+7,Nicht genügend Arbeitsspeicher.
+9,Index außerhalb des gültigen Bereichs
+10,Array ist unveränderlich oder momentan gesperrt.
+11,Division durch Null
+13,Typenkonflikt
+14,Nicht genügend Zeichenfolgenspeicher
+17,Angeforderte Operation kann nicht durchgeführt werden.
+28,Nicht genügend Stackspeicher.
+35,Sub- oder Function-Prozedur nicht definiert
+48,Fehler beim Laden einer DLL
+51,Interner Fehler
+52,Ungültige(r) Dateiname oder -nummer.
+53,Die Datei wurde nicht gefunden.
+54,Ungültiger Dateimodus.
+55,Die Datei ist bereits geöffnet.
+57,Geräte-E/A-Fehler
+58,Die Datei ist bereits vorhanden.
+61,Der Datenträger ist voll.
+62,Eingabe hinter Dateiende.
+67,Zu viele Dateien.
+68,Das Gerät ist nicht verfügbar.
+70,Erlaubnis verweigert.
+71,Der Datenträger ist nicht bereit.
+74,Umbenennen bei Angabe unterschiedlicher Laufwerke nicht möglich.
+75,Fehler beim Zugriff auf Pfad/Datei.
+76,Der Pfad wurde nicht gefunden.
+91,Objektvariable oder Variable für With-Block nicht gesetzt
+92,For-Schleife nicht initialisiert
+94,Ungültige Verwendung von Null.
+322,Die erforderliche temporäre Datei kann nicht erstellt werden.
+424,Objekt erforderlich
+429,Automatisierungsserver kann Objekt nicht erstellen.
+430,Klasse unterstützt keine Automatisierung.
+432,Datei- oder Klassenname während der Automatisierungsoperation nicht gefunden.
+438,Das Objekt unterstützt diese Eigenschaft oder Methode nicht.
+440,Automatisierungsfehler
+445,Das Objekt unterstützt diese Aktion nicht.
+446,Das Objekt unterstützt benannte Argumente nicht.
+447,Das Objekt unterstützt die aktuelle Ländereinstellung nicht.
+448,Benanntes Argument nicht gefunden
+449,Das Argument ist nicht optional.
+450,Falsche Anzahl an Argumenten oder ungültige Eigenschaftszuweisung
+451,Das Objekt ist keine Auflistung. 
+453,Angegebene DLL-Funktion nicht gefunden
+458,Variable verwendet einen Automatisierungstyp, der in JavaScript nicht unterstützt wird.
+462,Der Remoteservercomputer ist existiert nicht oder ist nicht verfügbar
+501,Zuweisung an Variable nicht möglich
+502,Das Objekt ist nicht sicher für Skriptingverarbeitung.
+503,Das Objekt ist nicht sicher für Initialisierung.
+504,Das Objekt ist nicht sicher für Erstellung.
+507,Eine Ausnahmebedingung ist aufgetreten.
+1001,Nicht genügend Arbeitsspeicher.
+1002,Syntaxfehler
+1003,':' erwartet
+1004,';' erwartet
+1005,'(' erwartet
+1006,')' erwartet
+1007,']' erwartet
+1008,'{' erwartet
+1009,'}' erwartet
+1010,Bezeichner erwartet
+1011,'=' erwartet
+1012,'/' erwartet
+1013,Ungültige Zahl
+1014,Ungültiges Zeichen
+1015,Nicht abgeschlossene Zeichenfolgenkonstante
+1016,Nicht abgeschlossener Kommentar
+1018,'return'-Anweisung außerhalb einer Funktion
+1019,'break' außerhalb einer Schleife nicht möglich
+1020,'continue' außerhalb einer Schleife nicht möglich
+1023,Hexadezimalziffer erwartet
+1024,'while' erwartet
+1025,Marke neu definiert
+1026,Marke nicht gefunden
+1027,'default' kann nur einmal in einer 'switch'-Anweisung auftreten
+1028,Bezeichner, Zeichenfolge oder Zahl erwartet
+1029,'@end' erwartet
+1030,Bedingte Kompilierung ist ausgeschaltet
+1031,Konstante erwartet
+1032,'@' erwartet
+1033,'catch' erwartet
+1034,'var' erwartet
+1035,Auf "throw" muss ein Ausdruck in derselben Quellzeile folgen
+1037,"with"-Anweisungen sind im Strict-Modus nicht zulässig
+1038,Doppelte formale Parameternamen sind im Strict-Modus nicht zulässig.
+1039,Oktale numerische Literale und Escapezeichen sind im Strict-Modus nicht zulässig.
+1041,Ungültige Verwendung von "eval" im Strict-Modus.
+1042,Ungültige Verwendung von "arguments" im Strict-Modus.
+1045,Das Aufrufen des Löschvorgangs nach einem Ausdruck ist im Strict-Modus nicht zulässig.
+1046,Mehrere Definitionen einer Eigenschaft sind im Strict-Modus nicht zulässig.
+1047,Im Strict-Modus können keine Funktionsdeklarationen in einer Anweisung oder einem Block geschachtelt werden. Sie werden möglicherweise nur auf der obersten Ebene oder direkt in einem Funktionstext angezeigt.
+1048,Die Verwendung eines Schlüsselworts für eine ID ist ungültig.
+1049,Die Verwendung eines zukünftigen reservierten Worts für eine ID ist ungültig.
+1050,Die Verwendung eines zukünftigen reservierten Worts für eine ID ist ungültig. Der ID-Name ist im Strict-Modus reserviert.
+1051,Setter-Funktionen müssen ein Argument besitzen.
+4096,Kompilierungsfehler in JavaScript
+4097,Laufzeitfehler in JavaScript
+4098,Unbekannter Laufzeitfehler
+5000,Zuweisung an 'this' nicht möglich
+5001,Zahl erwartet
+5002,Funktion erwartet
+5003,Kann dem Ergebnis einer Funktion nicht zugewiesen werden
+5004,Objekt kann nicht indiziert werden
+5005,Zeichenfolge erwartet
+5006,Datumsobjekt erwartet
+5007,Objekt erwartet
+5008,Ungültige linke Seite in Zuweisung
+5009,Nicht definierter Bezeichner
+5010,Boolesch erwartet
+5011,Code eines freigegebenen Skripts kann nicht ausgeführt werden
+5012,Objektmitglied erwartet
+5013,VBArray erwartet
+5014,JavaScript-Objekt erwartet
+5015,Aufzählungsobjekt erwartet
+5016,Regulärer Ausdruck als Objekt erwartet
+5017,Syntaxfehler in regulärem Ausdruck
+5018,Unerwarteter Quantifizierer
+5019,Erwartet ']' in regulärem Ausdruck
+5020,Erwartet ')' in regulärem Ausdruck
+5021,Ungültiger Bereich in Zeichensatz
+5022,Annahme ausgelöst und nicht aufgefangen.
+5023,Die Funktion hat kein gültiges Prototyp-Objekt.
+5024,Der zu verschlüsselnde URI enthält ein ungültiges Zeichen.
+5025,Der zu entschlüsselnde URI hat keine gültige Verschlüsselung.
+5026,Die Anzahl der Bruchstellen befindet sich außerhalb des gültigen Bereichs.
+5027,Die Präzision befindet sich außerhalb des gültigen Bereichs.
+5028,Array- oder Arguments-Objekt erwartet
+5029,Die Arraylänge muss eine finite positive Ganzzahl sein.
+5030,Der Arraylänge muss eine finite positive Zahl zugewiesen sein.
+5031,Arrayobjekt erwartet
+5034,Zirkelverweis wird im Wertargument nicht unterstützt.
+5035,Ungültiges Ersetzungsargument.
+5038,Die Argumentliste ist zu lang, um angewendet zu werden.
+5039,Neudeklaration der "const"-Eigenschaft.
+5041,Nicht konfigurierbares Objektmitglied.
+5042,Nicht definierte Variable im Strict-Modus.
+5043,Der Zugriff auf die caller-Eigenschaft einer Funktion oder eines arguments-Objekts ist im Strict-Modus nicht zulässig.
+5044,Der Zugriff auf die callee-Eigenschaft eines arguments-Objekts ist im Strict-Modus nicht zulässig.
+5045,Die Zuordnung zu schreibgeschützten Eigenschaften ist im Strict-Modus nicht zulässig.
+5046,Die Eigenschaft für ein nicht erweiterbares Objekt kann nicht erstellt werden.
+5047,Objekt erwartet
+5048,Objekt erwartet
+5049,Objekt erwartet
+5050,Objekt erwartet
+5051,Funktion erwartet
+5052,Funktion erwartet
+5053,Die Eigenschaft kann nicht sowohl Accessors als auch einen Wert aufweisen.
+5054,'this' ist Null oder undefiniert.
+5055,Objekt erwartet
+5056,Funktion erwartet
+5057,Zeichenfolge erwartet
+5058,Boolesch erwartet
+5059,Datum erwartet
+5060,Zahl erwartet
+5061,VBArray erwartet
+5062,JavaScript-Objekt erwartet
+5063,Aufzählungsobjekt erwartet
+5064,RegExp-Objekt erwartet
+5065,Ungültiges Funktionsargument
+5066,Objekt erwartet
+5067,JavaScript-Objekt erwartet
+5068,Funktion erwartet
+5069,VBArray erwartet
+5070,Objekt erwartet
+5071,Objekt erwartet
+5072,Ungültige "length"-Eigenschaft
+5073,Array- oder Arguments-Objekt erwartet
+5074,Ungültiger Operand
+5075,Ungültiger Operand
+5076,Ungültiger Eigenschaftendeskriptor
+5077,Die Eigenschaft kann nicht definiert werden: Das Objekt ist nicht erweiterbar
+5078,Die nicht konfigurierbare Eigenschaft kann nicht neu definiert werden
+5079,Die schreibgeschützte Eigenschaft kann nicht geändert werden
+5080,Die Eigenschaft kann nicht geändert werden: "length" ist schreibgeschützt
+5081,Die Eigenschaft kann nicht definiert werden
+5082,Ungültiges Konstruktorargument in typisiertem Array.
+5083,'this' ist kein Objekt für ein typisiertes Array.
+5084,Ungültiger Offset oder ungültige Länge beim Erstellen eines typisierten Arrays.
+5085,Ungültiger Start- oder Endwert in Unterarraymethode eines typisierten Arrays.
+5086,Ungültige Quelle in typisiertem Array.
+5087,'this' ist kein Datenansichtsobjekt.
+5088,Ungültige Argumente in Datenansicht.
+5089,Zugriff eines Datenansichtsvorgangs jenseits der angegebenen Pufferlänge.
+5090,Ungültige Argumente in Datenansicht.
+5091,Ungültige Funktionssignatur.
+5092,Ungültige Eigenschaftssignatur.
+5093,Ungültiger Eingabeparametertyp.
+5094,Ungültiger Eingabeparameter
+5095,Der Zugriff auf die arguments-Eigenschaft einer Funktion ist im Strict-Modus nicht zulässig.
+5096,Inspectable-Objekt erwartet
+5097,Fehler beim Konvertieren des Arguments in Typ "char"
+5098,Fehler beim Konvertieren des Arguments in Typ "GUID"
+5099,"IInspectable" erwartet
+5100,Fehler beim Konvertieren des Objekts in Struktur: Objekt fehlt erwartete Eigenschaft.
+5101,Unbekannter Typ
+5102,Funktion aufgerufen mit zu wenig Argumenten
+5103,Typ kann nicht konstruiert werden.
+5104,Fehler beim Konvertieren des Werts in "PropertyValue": Typ nicht unterstützt von "PropertyValue"
+5105,Fehler beim Konvertieren des Werts zu "IInspectable": Typ nicht unterstützt von "IInspectable"
+5106,Fehler beim Konvertieren des Datums zu "Windows.Foundation.DateTime": Wert außerhalb des gültigen Bereichs
+5107,Fehler beim Konvertieren des Werts in "Windows.Foundation.TimeSpan": Wert außerhalb des gültigen Bereichs
+5108,Ungültiger Zugriff auf bereits freigegebenes Inspectable-Objekt
+5109,Bereits freigegebenes Inspectable-Objekt kann nicht freigegeben werden.
+5110,"this" ist nicht vom erwarteten Typ.
+5111,Für das Array wurde eine nicht zulässige Länge und Größe angegeben.
+5112,Unerwarteter Fehler beim Abrufen von Metadateninformationen.
+5200,Der Status lautet "error", es wurde jedoch kein Fehler von "getResults" zurückgegeben.
+5201,An den abgeschlossenen Handler wurde ein fehlender oder ungültiger Statusparameter übergeben.
+5202,An den abgeschlossenen Handler wurde ein fehlender oder ungültiger Absenderparameter übergeben.
+6000,Unendlich
+6001,-unendlich
+10438,Das Objekt unterstützt die Eigenschaft oder Methode "%s" nicht
+10449,Ein Argument für die Funktion "%s" ist nicht optional
+15001,"%s" ist keine Zahl
+15002,"%s" ist keine Funktion
+15004,"%s" ist kein indizierbares Objekt
+15005,"%s" ist keine Zeichenfolge
+15006,"%s" ist kein Datumsobjekt
+15007,"%s" ist Null oder kein Objekt
+15008,Zuweisung an "%s" nicht möglich
+15009,"%s" ist undefiniert
+15010,"%s" ist nicht vom Typ Boolesch
+15012,"%s" kann nicht gelöscht werden
+15013,"%s" ist nicht vom Typ VBArray
+15014,"%s" ist kein JavaScript-Objekt
+15015,"%s" ist kein Aufzählungsobjekt
+15016,"%s" ist kein Objekt mit regulärem Ausdruck
+15028,%s ist kein Array- oder Arguments-Objekt
+15031,%s ist kein Arrayobjekt
+15036,Das "%s"-Attribut für den Eigenschaftendeskriptor kann für dieses Objekt nicht auf "true" festgelegt werden
+15037,Das "%s"-Attribut für den Eigenschaftendeskriptor kann für dieses Objekt nicht auf "false" festgelegt werden
+15039,Neudeklaration der Konstante "%s"
+15041,Das Aufrufen des Löschvorgangs für "%s" ist im Strict-Modus nicht zulässig.
+15047,Die Eigenschaft "%s" eines undefinierten oder Nullverweises kann nicht festgelegt werden.
+15048,Die Eigenschaft "%s" eines undefinierten oder Nullverweises kann nicht abgerufen werden.
+15049,Die Eigenschaft "%s" eines undefinierten oder Nullverweises kann nicht gelöscht werden.
+15050,Auf die Eigenschaft "%s" kann nicht zugegriffen werden: Der Typ "VarDate" unterstützt keine benutzerdefinierten Eigenschaften
+15051,Der Wert der Eigenschaft "%s" ist kein Function-Objekt
+15052,Der Wert der Eigenschaft "%s" ist Null oder undefiniert, kein Function-Objekt
+15054,%s: 'this' ist Null oder undefiniert
+15055,%s: 'this' ist kein Objekt
+15056,%s: 'this' ist kein Function-Objekt
+15057,%s: 'this' ist kein String-Objekt
+15058,%s: 'this' ist kein Boolesch-Objekt
+15059,%s: 'this' ist kein Date-Objekt
+15060,%s: 'this' ist kein Number-Objekt
+15061,%s: 'this' ist kein VBArray-Objekt
+15062,%s: 'this' ist kein JavaScript-Objekt
+15063,%s: 'this' ist kein Enumerator-Objekt
+15064,%s: 'this' ist kein RegExp-Objekt
+15065,%s: Ungültiges Argument
+15066,%s: Das Argument ist kein Objekt
+15067,%s: Das Argument ist kein JavaScript-Objekt
+15068,%s: Das Argument ist kein Function-Objekt
+15069,%s: Das Argument ist kein VBArray-Objekt
+15070,%s: Das Argument ist Null oder undefiniert
+15071,%s: Das Argument ist kein Objekt und ist nicht Null
+15072,%s: Das Argument weist keine gültige "length"-Eigenschaft auf
+15073,%s: Array- oder Arguments-Objekt erwartet
+15074,Ungültiger Operand für "%s": Objekt erwartet
+15075,Ungültiger Operand für "%s": Funktion erwartet
+15076,Ungültiger Deskriptor für die Eigenschaft "%s"
+15077,Die Eigenschaft "%s" kann nicht definiert werden: Das Objekt ist nicht erweiterbar
+15078,Die nicht konfigurierbare Eigenschaft "%s" kann nicht neu definiert werden
+15079,Die schreibgeschützte Eigenschaft "%s" kann nicht geändert werden
+15080,Die Eigenschaft "%s" kann nicht geändert werden: 'length' ist schreibgeschützt
+15081,Die Eigenschaft "%s" kann nicht definiert werden
+15088,Erforderliches Argument %s für Datenansichtsmethode wurde nicht angegeben.
+15090,Ungültiges Konstruktorargument %s in Datenansicht.
+15091,Die Funktion "%s" kann aufgrund einer ungültigen Signatur nicht aufgerufen werden.
+15092,Auf die Eigenschaft "%s" kann aufgrund einer ungültigen Signatur nicht zugegriffen werden.
+15093,Die Laufzeitklasse "%s", die "Windows.Foundation.IPropertyValue" als Standardschnittstelle besitzt, wird nicht als Eingabeparametertyp unterstützt.
+15094,Das Objekt mit der Schnittstelle "Windows.Foundation.IPropertyValue", das den Laufzeitklassennamen "%s" besitzt, wird nicht als out-Parameter unterstützt.
+15096,%s: "this" ist kein Inspectable-Objekt.
+15097,%s: Fehler beim Konvertieren des Arguments in Typ "char"
+15098,%s: Fehler beim Konvertieren des Arguments in Typ "GUID"
+15099,%s: Fehler beim Konvertieren des Rückgabewerts in "IInspectable"
+15100,Fehler beim Konvertieren des Objekts in Struktur: Objekt fehlt erwartete Eigenschaft "%s".
+15101,Typ "%s" nicht gefunden
+15102,%s: Funktion aufgerufen mit zu wenig Argumenten
+15103,%s: Typ kann nicht konstruiert werden.
+15104,Fehler beim Konvertieren des Werts in "PropertyValue": %s nicht unterstützt von "PropertyValue"
+15105,Fehler beim Konvertieren des Werts in "IInspectable": %s nicht unterstützt von "IInspectable"
+15108,%s: Das Inspectable-Objekt "this" wurde freigegeben, Zugriff nicht möglich.
+15110,"this" ist nicht vom erwarteten Typ: %s
+15112,%s: Unerwarteter Fehler beim Abrufen von Metadateninformationen.
+32812,Das angegebene Datum wurde im aktuellen Gebietsschemakalender nicht gefunden.

@@ -3,6 +3,10 @@ from __future__ import absolute_import
 import itertools
 
 
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
+
+
 def advance(n, iterator):
     """Advances an iterator n places."""
     next(itertools.islice(iterator, n, n), None)
@@ -16,12 +20,10 @@ def shingle(n, iterator):
     >>> list(shingle(2, ('foo', 'bar', 'baz')))
     [('foo', 'bar'), ('bar', 'baz')]
     """
-    return itertools.izip(
+    return zip(
         *map(
-            lambda (i, iterator): advance(i, iterator),
-            enumerate(
-                itertools.tee(iterator, n)
-            ),
+            lambda i__iterator: advance(i__iterator[0], i__iterator[1]),
+            enumerate(itertools.tee(iterator, n)),
         )
     )
 

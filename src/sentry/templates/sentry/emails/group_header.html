@@ -1,7 +1,10 @@
 {% load sentry_helpers %}
+{% load sentry_features %}
 
-{% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
-{% url 'sentry-stream' group.organization.slug group.project.slug as project_link %}
+{% url 'sentry-stream' group.organization.slug group.project.slug as old_project_link %}
+{% url 'sentry-organization-issue-list' group.organization.slug as new_stream_link %}
+
+
 <div class="group-header">
   <table class="group-stats">
     <thead>
@@ -21,10 +24,8 @@
           <small>
             <span class="count">Seen <strong>{{ group.times_seen }}</strong> time{{ group.times_seen|pluralize }}.</span>
             <span class="last-seen pretty-date"> Last seen: {{ group.last_seen }} UTC</span>
-            {% if group.avg_time_spent %}
-              <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
-            {% endif %}
-            in <a href="{% absolute_uri project_link %}"><strong>{{ group.project.organization.slug }} / {{ group.project.slug }}</strong></a>
+            in
+            <a href="{% absolute_uri new_stream_link %}?project={{group.project.id}}"><strong>{{ group.project.organization.slug }} / {{ group.project.slug }}</strong></a>
           </small>
         </p>
       </td>

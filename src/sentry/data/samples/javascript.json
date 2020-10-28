@@ -206,5 +206,20 @@
                 "category": "ui.click"
             }
         ]
+    },
+    "contexts": {
+        "os": {
+            "version": "10.13.4",
+            "name": "Mac OS X"
+        },
+        "browser": {
+            "version": "65.0.3325",
+            "name": "Chrome"
+        }
+    },
+    "sentry.interfaces.User": {
+        "ip_address": "127.0.0.1",
+        "email": "mail@example.org",
+        "id": "1"
     }
 }

@@ -12,25 +12,17 @@ from .mail import MailPreview
 
 class DebugMfaRemovedEmailView(View):
     def get(self, request):
-        authenticator = Authenticator(
-            id=0,
-            type=3,  # u2f
-            user=request.user,
-        )
+        authenticator = Authenticator(id=0, type=3, user=request.user)  # u2f
 
         email = generate_security_email(
             account=request.user,
             actor=request.user,
-            type='mfa-removed',
-            ip_address=request.META['REMOTE_ADDR'],
-            context={
-                'authenticator': authenticator,
-            },
+            type="mfa-removed",
+            ip_address=request.META["REMOTE_ADDR"],
+            context={"authenticator": authenticator, "device_name": "Home computer"},
             # make this consistent for acceptance tests
-            current_datetime=datetime.datetime(2017, 1, 20, 21, 39, 23, 30723)
+            current_datetime=datetime.datetime(2017, 1, 20, 21, 39, 23, 30723),
         )
         return MailPreview(
-            html_template=email.html_template,
-            text_template=email.template,
-            context=email.context,
+            html_template=email.html_template, text_template=email.template, context=email.context
         ).render(request)

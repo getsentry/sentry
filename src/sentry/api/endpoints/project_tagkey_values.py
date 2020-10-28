@@ -1,23 +1,22 @@
 from __future__ import absolute_import
 
-from sentry.api.base import DocSection
+from sentry import tagstore
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import get_date_range_from_params
 from sentry.api.serializers import serialize
-from sentry.models import TagKey, TagKeyStatus, TagValue
-from sentry.utils.db import is_postgres
+from sentry.models import Environment
 
 
-class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
-
+class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
     def get(self, request, project, key):
         """
         List a Tag's Values
         ```````````````````
 
         Return a list of values associated with this key.  The `query`
-        parameter can be used to to perform a "starts with" match on
+        parameter can be used to to perform a "contains" match on
         values.
 
         :pparam string organization_slug: the slug of the organization.
@@ -25,46 +24,33 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         :pparam string key: the tag key to look up.
         :auth: required
         """
-        if TagKey.is_reserved_key(key):
-            lookup_key = 'sentry:{0}'.format(key)
-        else:
-            lookup_key = key
+        lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            tagkey = TagKey.objects.get(
-                project=project,
-                key=lookup_key,
-                status=TagKeyStatus.VISIBLE,
-            )
-        except TagKey.DoesNotExist:
+            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+        except Environment.DoesNotExist:
+            # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
 
-        base_queryset = TagValue.objects.filter(
-            project=project,
-            key=tagkey.key,
+        try:
+            tagkey = tagstore.get_tag_key(project.id, environment_id, lookup_key)
+        except tagstore.TagKeyNotFound:
+            raise ResourceDoesNotExist
+
+        start, end = get_date_range_from_params(request.GET)
+
+        paginator = tagstore.get_tag_value_paginator(
+            project.id,
+            environment_id,
+            tagkey.key,
+            start=start,
+            end=end,
+            query=request.GET.get("query"),
+            order_by="-last_seen",
         )
-
-        query = request.GET.get('query')
-        if query:
-            if is_postgres():
-                # not quite optimal, but best we can do with ORM
-                queryset = TagValue.objects.filter(
-                    id__in=base_queryset.order_by('-times_seen')[:10000]
-                )
-            else:
-                # MySQL can't handle an `IN` with a `LIMIT` clause
-                queryset = base_queryset
-            queryset = queryset.filter(value__contains=query)
-
-        else:
-            queryset = TagValue.objects.filter(
-                project=project,
-                key=tagkey.key,
-            )
 
         return self.paginate(
             request=request,
-            queryset=queryset,
-            order_by='-times_seen',
-            on_results=lambda x: serialize(x, request.user),
+            paginator=paginator,
+            on_results=lambda results: serialize(results, request.user),
         )

@@ -1,44 +1,61 @@
 from __future__ import absolute_import
 
+import six
+
+from warnings import warn
+
 from sentry.utils.strings import truncatechars, strip
+from sentry.utils.safe import get_path
+
+# Note: Detecting eventtypes is implemented in the Relay Rust library.
 
 
 class BaseEvent(object):
     id = None
 
-    def __init__(self, data):
-        self.data = data
+    def get_metadata(self, data):
+        metadata = {}
+        title = data.get("title")
+        if title is not None:
+            metadata["title"] = title
+        for key, value in six.iteritems(self.extract_metadata(data)):
+            # If we already have a custom title, do not override with the
+            # computed title.
+            if key not in metadata:
+                metadata[key] = value
+        return metadata
 
-    def has_metadata(self):
-        raise NotImplementedError
+    def get_title(self, metadata):
+        title = metadata.get("title")
+        if title is not None:
+            return title
+        return self.compute_title(metadata) or "<untitled>"
 
-    def get_metadata(self):
-        raise NotImplementedError
+    def compute_title(self, metadata):
+        return None
+
+    def extract_metadata(self, metadata):
+        return {}
+
+    def get_location(self, metadata):
+        return None
 
     def to_string(self, metadata):
-        raise NotImplementedError
+        warn(DeprecationWarning("This method was replaced by get_title", stacklevel=2))
+        return self.get_title()
 
 
 class DefaultEvent(BaseEvent):
-    key = 'default'
+    key = "default"
 
-    def has_metadata(self):
-        # the default event can always work
-        return True
+    def extract_metadata(self, data):
+        message = strip(
+            get_path(data, "logentry", "formatted") or get_path(data, "logentry", "message")
+        )
 
-    def get_metadata(self):
-        # See GH-3248
-        message_interface = self.data.get('sentry.interfaces.Message', {
-            'message': self.data.get('message', ''),
-        })
-        message = strip(message_interface.get('formatted', message_interface['message']))
-        if not message:
-            title = '<unlabeled event>'
-        else:
+        if message:
             title = truncatechars(message.splitlines()[0], 100)
-        return {
-            'title': title,
-        }
+        else:
+            title = "<unlabeled event>"
 
-    def to_string(self, metadata):
-        return metadata['title']
+        return {"title": title}

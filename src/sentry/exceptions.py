@@ -48,8 +48,18 @@ class PluginIdentityRequired(PluginError):
 
 
 class InvalidIdentity(Exception):
-    pass
+    def __init__(self, message="", identity=None):
+        super(InvalidIdentity, self).__init__(message)
+        self.identity = identity
 
 
 class HookValidationError(Exception):
+    pass
+
+
+class NotRegistered(Exception):
+    pass
+
+
+class ApiTokenLimitError(Exception):
     pass

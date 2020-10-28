@@ -1,0 +1,88 @@
+---
+created: '2019-04-30T08:25:08.353517Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_exception.py
+---
+errors: null
+get_api_context:
+  excOmitted: null
+  hasSystemFrames: true
+  values:
+  - mechanism: null
+    module: foo.bar
+    rawStacktrace: null
+    stacktrace:
+      frames:
+      - absPath: foo/baz.py
+        colNo: null
+        context: []
+        errors: null
+        filename: foo/baz.py
+        function: null
+        inApp: true
+        instructionAddr: null
+        lineNo: 1
+        module: null
+        package: null
+        platform: null
+        rawFunction: null
+        symbol: null
+        symbolAddr: null
+        trust: null
+        vars: null
+      framesOmitted: null
+      hasSystemFrames: true
+      registers: null
+    threadId: null
+    type: ValueError
+    value: hello world
+  - mechanism: null
+    module: foo.bar
+    rawStacktrace: null
+    stacktrace:
+      frames:
+      - absPath: foo/baz.py
+        colNo: null
+        context: []
+        errors: null
+        filename: foo/baz.py
+        function: null
+        inApp: false
+        instructionAddr: null
+        lineNo: 1
+        module: null
+        package: null
+        platform: null
+        rawFunction: null
+        symbol: null
+        symbolAddr: null
+        trust: null
+        vars: null
+      framesOmitted: null
+      hasSystemFrames: false
+      registers: null
+    threadId: null
+    type: ValueError
+    value: hello world
+to_json:
+  values:
+  - module: foo.bar
+    stacktrace:
+      frames:
+      - abs_path: foo/baz.py
+        filename: foo/baz.py
+        in_app: true
+        lineno: 1
+    type: ValueError
+    value: hello world
+  - module: foo.bar
+    stacktrace:
+      frames:
+      - abs_path: foo/baz.py
+        filename: foo/baz.py
+        in_app: false
+        lineno: 1
+    type: ValueError
+    value: hello world
+to_string: "ValueError: hello world\n  File \"foo/baz.py\", line 1\n\nValueError:\
+  \ hello world\n  File \"foo/baz.py\", line 1"

@@ -1,8 +1,15 @@
 from __future__ import absolute_import, print_function
 
+from six import text_type
+from symbolic import SourceView
 from sentry.utils.strings import codec_lookup
 
-__all__ = ['SourceCache', 'SourceMapCache']
+__all__ = ["SourceCache", "SourceMapCache"]
+
+
+def is_utf8(codec):
+    name = codec_lookup(codec).name
+    return name in ("utf-8", "ascii")
 
 
 class SourceCache(object):
@@ -21,50 +28,32 @@ class SourceCache(object):
         return url
 
     def get(self, url):
-        url = self._get_canonical_url(url)
-        try:
-            parsed, rv = self._cache[url]
-        except KeyError:
-            return None
-
-        # We have already gotten this file and we've
-        # decoded the response, so just return
-        if parsed:
-            return rv
-
-        # Otherwise, we have a 2-tuple that needs to be applied
-        body, encoding = rv
-
-        # Our body is lazily evaluated if it
-        # comes from libsourcemap
-        if callable(body):
-            body = body()
-
-        body = body.decode(codec_lookup(encoding, 'utf-8').name, 'replace').split(u'\n')
-
-        # Set back a marker to indicate we've parsed this url
-        self._cache[url] = (True, body)
-        return body
+        return self._cache.get(self._get_canonical_url(url))
 
     def get_errors(self, url):
         url = self._get_canonical_url(url)
         return self._errors.get(url, [])
 
-    def alias(self, u1, u2):
-        if u1 == u2:
-            return
-
-        if u1 in self._cache or u1 not in self._aliases:
-            self._aliases[u1] = u1
-        else:
-            self._aliases[u2] = u1
+    def alias(self, alias, target):
+        if alias != target:
+            self._aliases[alias] = target
 
     def add(self, url, source, encoding=None):
         url = self._get_canonical_url(url)
-        # Insert into the cache, an unparsed (source, encoding)
-        # tuple. This allows the source to be split and decoded
-        # on demand when first accessed.
-        self._cache[url] = (False, (source, encoding))
+
+        if not isinstance(source, SourceView):
+            if isinstance(source, text_type):
+                source = source.encode("utf-8")
+            # If an encoding is provided and it's not utf-8 compatible
+            # we try to re-encoding the source and create a source view
+            # from it.
+            elif encoding is not None and not is_utf8(encoding):
+                try:
+                    source = source.decode(encoding).encode("utf-8")
+                except UnicodeError:
+                    pass
+            source = SourceView.from_bytes(source)
+        self._cache[url] = source
 
     def add_error(self, url, error):
         url = self._get_canonical_url(url)
@@ -73,6 +62,14 @@ class SourceCache(object):
 
 
 class SourceMapCache(object):
+    """
+    Stores mappings between
+
+        - the url of a file to be demangled and the url of its associated
+          source map, and
+        - a source map's url and the map's contents.
+    """
+
     def __init__(self):
         self._cache = {}
         self._mapping = {}

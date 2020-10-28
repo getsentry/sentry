@@ -1,36 +1,25 @@
-"""
-sentry.interfaces.http
-~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
+from sentry.utils.compat import map
 
-__all__ = ('Http',)
+__all__ = ("Http",)
 
 import re
 import six
 
-from django.conf import settings
 from django.utils.translation import ugettext as _
-from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from django.utils.http import urlencode
+from six.moves.urllib.parse import parse_qsl
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface
+from sentry.utils.json import prune_empty_keys
 from sentry.utils import json
-from sentry.utils.safe import trim, trim_dict, trim_pairs
+from sentry.utils.strings import to_unicode
+from sentry.utils.safe import get_path
 from sentry.web.helpers import render_to_string
 
-# Instead of relying on a list of hardcoded methods, just loosly match
+# Instead of relying on a list of hardcoded methods, just loosely match
 # against a pattern.
-http_method_re = re.compile(r'^[A-Z\-_]{3,32}$')
-
-
-def to_bytes(value):
-    if isinstance(value, six.text_type):
-        return value.encode('utf-8')
-    return six.binary_type(value)
+http_method_re = re.compile(r"^[A-Z\-_]{3,32}$")
 
 
 def format_headers(value):
@@ -48,9 +37,9 @@ def format_headers(value):
         # This is how most other libraries handle this.
         # See: urllib3._collections:HTTPHeaderDict.itermerged
         if isinstance(v, list):
-            v = ', '.join(v)
+            v = ", ".join(v)
 
-        if k.lower() == 'cookie':
+        if k.lower() == "cookie":
             cookie_header = v
         else:
             if not isinstance(v, six.string_types):
@@ -69,10 +58,7 @@ def format_cookies(value):
     if isinstance(value, dict):
         value = value.items()
 
-    return [
-        list(map(fix_broken_encoding, (k.strip(), v)))
-        for k, v in value
-    ]
+    return [map(fix_broken_encoding, (k.strip(), v)) for k, v in value]
 
 
 def fix_broken_encoding(value):
@@ -81,10 +67,14 @@ def fix_broken_encoding(value):
     in utf8. This prevents our parsers from breaking elsewhere.
     """
     if isinstance(value, six.text_type):
-        value = value.encode('utf8', errors='replace')
+        value = value.encode("utf8", errors="replace")
     if isinstance(value, six.binary_type):
-        value = value.decode('utf8', errors='replace')
+        value = value.decode("utf8", errors="replace")
     return value
+
+
+def jsonify(value):
+    return to_unicode(value) if isinstance(value, six.string_types) else json.dumps(value)
 
 
 class Http(Interface):
@@ -117,109 +107,73 @@ class Http(Interface):
     .. note:: This interface can be passed as the 'request' key in addition
               to the full interface path.
     """
+
     display_score = 1000
     score = 800
+    path = "request"
 
-    FORM_TYPE = 'application/x-www-form-urlencoded'
+    FORM_TYPE = "application/x-www-form-urlencoded"
 
     @classmethod
     def to_python(cls, data):
-        if not data.get('url'):
-            raise InterfaceValidationError("No value for 'url'")
+        data.setdefault("query_string", [])
+        for key in (
+            "method",
+            "url",
+            "fragment",
+            "cookies",
+            "headers",
+            "data",
+            "env",
+            "inferred_content_type",
+        ):
+            data.setdefault(key, None)
+        return cls(**data)
 
-        kwargs = {}
-
-        if data.get('method'):
-            method = data['method'].upper()
-            # Optimize for the common path here, where it's a GET/POST, falling
-            # back to a regular expresion test
-            if method not in ('GET', 'POST') and not http_method_re.match(method):
-                raise InterfaceValidationError("Invalid value for 'method'")
-            kwargs['method'] = method
-        else:
-            kwargs['method'] = None
-
-        scheme, netloc, path, query_bit, fragment_bit = urlsplit(data['url'])
-
-        query_string = data.get('query_string') or query_bit
-        if query_string:
-            # if querystring was a dict, convert it to a string
-            if isinstance(query_string, dict):
-                query_string = urlencode([(to_bytes(k), to_bytes(v))
-                                          for k, v in query_string.items()])
-            else:
-                query_string = query_string
-                if query_string[0] == '?':
-                    # remove '?' prefix
-                    query_string = query_string[1:]
-            kwargs['query_string'] = trim(query_string, 4096)
-        else:
-            kwargs['query_string'] = ''
-
-        fragment = data.get('fragment') or fragment_bit
-
-        cookies = data.get('cookies')
-        # if cookies were [also] included in headers we
-        # strip them out
-        headers = data.get('headers')
-        if headers:
-            headers, cookie_header = format_headers(headers)
-            if not cookies and cookie_header:
-                cookies = cookie_header
-        else:
-            headers = ()
-
-        body = data.get('data')
-        if isinstance(body, dict):
-            body = json.dumps(body)
-
-        if body:
-            body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
-
-        kwargs['cookies'] = trim_pairs(format_cookies(cookies))
-        kwargs['env'] = trim_dict(data.get('env') or {})
-        kwargs['headers'] = trim_pairs(headers)
-        kwargs['data'] = fix_broken_encoding(body)
-        kwargs['url'] = urlunsplit((scheme, netloc, path, '', ''))
-        kwargs['fragment'] = trim(fragment, 1024)
-
-        return cls(**kwargs)
-
-    def get_path(self):
-        return 'sentry.interfaces.Http'
+    def to_json(self):
+        return prune_empty_keys(
+            {
+                "method": self.method,
+                "url": self.url,
+                "query_string": self.query_string or None,
+                "fragment": self.fragment or None,
+                "cookies": self.cookies or None,
+                "headers": self.headers or None,
+                "data": self.data,
+                "env": self.env or None,
+                "inferred_content_type": self.inferred_content_type,
+            }
+        )
 
     @property
     def full_url(self):
         url = self.url
-        if self.query_string:
-            url = url + '?' + self.query_string
-        if self.fragment:
-            url = url + '#' + self.fragment
+        if url:
+            if self.query_string:
+                url = url + "?" + urlencode(get_path(self.query_string, filter=True))
+            if self.fragment:
+                url = url + "#" + self.fragment
         return url
 
     def to_email_html(self, event, **kwargs):
-        return render_to_string('sentry/partial/interfaces/http_email.html', {
-            'event': event,
-            'url': self.full_url,
-            'short_url': self.url,
-            'method': self.method,
-            'query_string': self.query_string,
-            'fragment': self.fragment,
-        })
-
-    def get_alias(self):
-        return 'request'
+        return render_to_string(
+            "sentry/partial/interfaces/http_email.html",
+            {
+                "event": event,
+                "url": self.full_url,
+                "short_url": self.url,
+                "method": self.method,
+                "query_string": urlencode(get_path(self.query_string, filter=True)),
+                "fragment": self.fragment,
+            },
+        )
 
     def get_title(self):
-        return _('Request')
+        return _("Request")
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         if is_public:
             return {}
-
-        data = self.data
-        if isinstance(data, dict):
-            data = json.dumps(data)
 
         cookies = self.cookies or ()
         if isinstance(cookies, dict):
@@ -230,13 +184,43 @@ class Http(Interface):
             headers = sorted(self.headers.items())
 
         data = {
-            'method': self.method,
-            'url': self.url,
-            'query': self.query_string,
-            'fragment': self.fragment,
-            'data': data,
-            'headers': headers,
-            'cookies': cookies,
-            'env': self.env or None,
+            "method": self.method,
+            "url": self.url,
+            "query": self.query_string,
+            "fragment": self.fragment,
+            "data": self.data,
+            "headers": headers,
+            "cookies": cookies,
+            "env": self.env or None,
+            "inferredContentType": self.inferred_content_type,
         }
         return data
+
+    def get_api_meta(self, meta, is_public=False, platform=None):
+        if is_public:
+            return None
+
+        headers = meta.get("headers")
+        if headers:
+            headers_meta = headers.pop("", None)
+            headers = {six.text_type(i): {"1": h[1]} for i, h in enumerate(sorted(headers.items()))}
+            if headers_meta:
+                headers[""] = headers_meta
+
+        cookies = meta.get("cookies")
+        if cookies:
+            cookies_meta = cookies.pop("", None)
+            cookies = {six.text_type(i): {"1": h[1]} for i, h in enumerate(sorted(cookies.items()))}
+            if cookies_meta:
+                cookies[""] = cookies_meta
+
+        return {
+            "": meta.get(""),
+            "method": meta.get("method"),
+            "url": meta.get("url"),
+            "query": meta.get("query_string"),
+            "data": meta.get("data"),
+            "headers": headers,
+            "cookies": cookies,
+            "env": meta.get("env"),
+        }

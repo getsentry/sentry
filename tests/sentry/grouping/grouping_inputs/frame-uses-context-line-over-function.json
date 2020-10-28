@@ -1,0 +1,13 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "bar",
+        "abs_path": "foo.py",
+        "lineno": 1,
+        "context_line": "foo bar",
+        "filename": "foo.py"
+      }
+    ]
+  }
+}

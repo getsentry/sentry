@@ -1,0 +1,1191 @@
+MODULE windows x86 3249D99D0C4049318610F4E4FB0B69361 crash.pdb
+INFO CODE_ID 5AB380779000 crash.exe
+FILE 1 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\system_error
+FILE 2 c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\processthreadsapi.h
+FILE 3 c:\projects\breakpad-tools\deps\breakpad\src\common\scoped_ptr.h
+FILE 4 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xcall_once.h
+FILE 5 c:\projects\breakpad-tools\deps\breakpad\src\common\windows\string_utils-inl.h
+FILE 6 c:\program files (x86)\windows kits\10\include\10.0.16299.0\shared\stralign.h
+FILE 7 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\cmath
+FILE 8 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xstring
+FILE 9 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\cstdlib
+FILE 10 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xmemory0
+FILE 11 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\stdlib.h
+FILE 12 c:\program files (x86)\windows kits\10\include\10.0.16299.0\shared\basetsd.h
+FILE 13 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\corecrt_math.h
+FILE 14 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\crash_generation\client_info.h
+FILE 15 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\vadefs.h
+FILE 16 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\crash_generation\client_info.cc
+FILE 17 c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\winbase.h
+FILE 18 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\vcruntime_exception.h
+FILE 19 c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\propidl.h
+FILE 20 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\corecrt_wio.h
+FILE 21 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\wchar.h
+FILE 22 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\corecrt_wconio.h
+FILE 23 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\limits
+FILE 24 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xutility
+FILE 25 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\utility
+FILE 26 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\iosfwd
+FILE 27 c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\oleauto.h
+FILE 28 c:\program files (x86)\windows kits\10\include\10.0.16299.0\shared\guiddef.h
+FILE 29 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\corecrt_wstring.h
+FILE 30 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\stdio.h
+FILE 31 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\corecrt_wstdio.h
+FILE 32 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\corecrt_stdio_config.h
+FILE 33 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xatomic0.h
+FILE 34 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\vcruntime_typeinfo.h
+FILE 35 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\common\ipc_protocol.h
+FILE 36 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\string
+FILE 37 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\istream
+FILE 38 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\ostream
+FILE 39 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\ios
+FILE 40 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xlocnum
+FILE 41 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\string.h
+FILE 42 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\sys\stat.h
+FILE 43 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\corecrt_memory.h
+FILE 44 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\corecrt_memcpy_s.h
+FILE 45 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\vcruntime_new.h
+FILE 46 c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\dbghelp.h
+FILE 47 c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\memoryapi.h
+FILE 48 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xtgmath.h
+FILE 49 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xfacet
+FILE 50 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\streambuf
+FILE 51 c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\winnt.h
+FILE 52 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xiosbase
+FILE 53 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\ctype.h
+FILE 54 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xlocale
+FILE 55 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\malloc.h
+FILE 56 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xlocinfo
+FILE 57 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\stdexcept
+FILE 58 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\exception
+FILE 59 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\type_traits
+FILE 60 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xstddef
+FILE 61 c:\program files (x86)\windows kits\10\include\10.0.16299.0\shared\winerror.h
+FILE 62 c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\winuser.h
+FILE 63 c:\program files (x86)\windows kits\10\include\10.0.16299.0\ucrt\corecrt_wtime.h
+FILE 78 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\crash_generation\crash_generation_client.h
+FILE 80 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\crash_generation\crash_generation_client.cc
+FILE 127 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\common\auto_critical_section.h
+FILE 137 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\crash_generation\crash_generation_server.h
+FILE 138 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\list
+FILE 143 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\crash_generation\crash_generation_server.cc
+FILE 146 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\crash_generation\minidump_generator.h
+FILE 211 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\crash_generation\minidump_generator.cc
+FILE 218 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\vector
+FILE 219 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\iterator
+FILE 232 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xmemory
+FILE 237 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\algorithm
+FILE 288 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\handler\exception_handler.cc
+FILE 308 c:\projects\breakpad-tools\deps\breakpad\src\client\windows\handler\exception_handler.h
+FILE 346 c:\projects\breakpad-tools\deps\breakpad\src\common\windows\guid_string.cc
+FILE 391 c:\projects\breakpad-tools\deps\breakpad\src\common\windows\string_utils.cc
+FILE 443 c:\projects\breakpad-tools\windows\crash\main.cpp
+FILE 493 C:\Users\appveyor\AppData\Local\Temp\1\lnk{DF0D61F8-A737-40D4-A117-7BE058EF8579}.tmp
+FILE 494 f:\dd\externalapis\windows\10\sdk\inc\evntprov.h
+FILE 495 f:\dd\externalapis\unifiedcrt\inc\corecrt_wstring.h
+FILE 496 f:\dd\vctools\crt\vcruntime\inc\vcruntime_internal.h
+FILE 497 f:\dd\vctools\crt\vcstartup\src\misc\i386\cpu_disp.c
+FILE 498 f:\dd\externalapis\windows\10\sdk\inc\stralign.h
+FILE 499 f:\dd\externalapis\windows\10\sdk\inc\processthreadsapi.h
+FILE 500 f:\dd\externalapis\windows\10\sdk\inc\winnt.h
+FILE 501 f:\dd\externalapis\unifiedcrt\inc\ctype.h
+FILE 502 f:\dd\externalapis\unifiedcrt\inc\string.h
+FILE 503 f:\dd\externalapis\unifiedcrt\inc\corecrt_memcpy_s.h
+FILE 504 f:\dd\vctools\crt\vcruntime\inc\internal_shared.h
+FILE 505 f:\dd\vctools\crt\vcruntime\inc\i386\xmmintrin.h
+FILE 506 f:\dd\externalapis\windows\10\sdk\inc\winbase.h
+FILE 507 f:\dd\externalapis\windows\10\sdk\inc\winerror.h
+FILE 508 f:\dd\externalapis\windows\10\sdk\inc\basetsd.h
+FILE 509 f:\dd\externalapis\unifiedcrt\inc\malloc.h
+FILE 512 f:\dd\vctools\crt\vcstartup\src\rtc\initsect.cpp
+FILE 520 f:\dd\externalapis\unifiedcrt\inc\stdlib.h
+FILE 524 f:\dd\externalapis\windows\10\sdk\inc\guiddef.h
+FILE 525 f:\dd\vctools\crt\vcruntime\inc\vcruntime_new.h
+FILE 526 f:\dd\externalapis\windows\10\sdk\inc\winuser.h
+FILE 528 f:\dd\externalapis\unifiedcrt\inc\corecrt_memory.h
+FILE 531 f:\dd\vctools\crt\vcstartup\src\eh\i386\sehprolg4.asm
+FILE 535 f:\dd\vctools\crt\vcstartup\src\eh\i386\chandler4gs.c
+FILE 551 f:\dd\vctools\crt\vcstartup\src\eh\i386\secchk.c
+FILE 577 f:\dd\vctools\crt\vcstartup\src\gs\gs_report.c
+FILE 590 f:\dd\vctools\crt\vcstartup\src\gs\gs_support.c
+FILE 604 f:\dd\vctools\crt\vcstartup\src\misc\checkcfg.c
+FILE 617 f:\dd\vctools\crt\vcstartup\src\misc\guard_support.c
+FILE 638 f:\dd\vctools\crt\vcstartup\src\utility\dyn_tls_dtor.c
+FILE 649 f:\dd\externalapis\unifiedcrt\inc\math.h
+FILE 650 f:\dd\vctools\crt\vcstartup\src\utility\dyn_tls_init.c
+FILE 661 f:\dd\vctools\crt\vcstartup\src\utility\matherr_detection.c
+FILE 662 f:\dd\vctools\crt\vcstartup\src\utility\ucrt_detection.c
+FILE 663 f:\dd\vctools\crt\vcstartup\src\defaults\argv_mode.cpp
+FILE 664 f:\dd\vctools\crt\vcstartup\src\defaults\commit_mode.cpp
+FILE 671 f:\dd\vctools\crt\vcstartup\src\defaults\default_local_stdio_options.cpp
+FILE 677 f:\dd\vctools\crt\vcstartup\inc\vcstartup_internal.h
+FILE 684 f:\dd\externalapis\unifiedcrt\inc\stdio.h
+FILE 685 f:\dd\externalapis\unifiedcrt\inc\corecrt_wstdio.h
+FILE 686 f:\dd\externalapis\unifiedcrt\inc\corecrt_stdio_config.h
+FILE 689 f:\dd\vctools\crt\vcruntime\inc\vadefs.h
+FILE 690 f:\dd\vctools\crt\vcstartup\src\defaults\denormal_control.cpp
+FILE 691 f:\dd\vctools\crt\vcstartup\src\defaults\env_mode.cpp
+FILE 692 f:\dd\vctools\crt\vcstartup\src\defaults\file_mode.cpp
+FILE 693 f:\dd\vctools\crt\vcstartup\src\defaults\invalid_parameter_handler.cpp
+FILE 694 f:\dd\vctools\crt\vcstartup\src\defaults\matherr.cpp
+FILE 696 f:\dd\vctools\crt\vcstartup\src\defaults\new_mode.cpp
+FILE 697 f:\dd\vctools\crt\vcstartup\src\defaults\thread_locale.cpp
+FILE 698 f:\dd\vctools\crt\vcstartup\src\eh\std_type_info_static.cpp
+FILE 699 f:\dd\vctools\crt\vcruntime\inc\vcruntime_typeinfo.h
+FILE 700 f:\dd\vctools\crt\vcruntime\inc\vcruntime_exception.h
+FILE 703 f:\dd\vctools\crt\vcstartup\src\eh\tncleanup.cpp
+FILE 726 f:\dd\vctools\crt\vcstartup\src\heap\delete_array.cpp
+FILE 747 f:\dd\vctools\crt\vcstartup\src\heap\delete_array_size.cpp
+FILE 766 f:\dd\vctools\crt\vcstartup\src\heap\delete_scalar.cpp
+FILE 771 f:\dd\vctools\crt\vcstartup\src\heap\delete_scalar_size.cpp
+FILE 792 f:\dd\vctools\crt\vcstartup\src\heap\new_array.cpp
+FILE 816 f:\dd\vctools\crt\vcstartup\src\heap\new_scalar.cpp
+FILE 838 f:\dd\vctools\crt\vcstartup\src\heap\throw_bad_alloc.cpp
+FILE 861 f:\dd\vctools\crt\vcstartup\src\startup\exe_main.cpp
+FILE 867 f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl
+FILE 910 f:\dd\vctools\crt\vcstartup\src\utility\utility.cpp
+FILE 925 f:\dd\vctools\crt\vcstartup\src\utility\ucrt_stubs.cpp
+FILE 932 f:\dd\vctools\crt\vcstartup\src\utility\utility_desktop.cpp
+FILE 954 f:\dd\vctools\crt\vcstartup\src\defaults\default_precision.cpp
+FUNC 1000 114 0 google_breakpad::CrashGenerationClient::RequestDump(_EXCEPTION_POINTERS *,MDRawAssertionInfo *)
+1000 11 323 80
+1011 6 324 80
+1017 3 325 80
+101a 11 338 80
+102b 8 328 80
+1033 6 329 80
+1039 e 331 80
+1047 b 332 80
+1052 2 333 80
+1054 10 334 80
+1064 99 337 80
+10fd 4 338 80
+1101 6 337 80
+1107 d 338 80
+FUNC 1120 54 0 std::basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t> >::~basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t> >()
+1120 3 2424 8
+1123 49 2425 8
+116c 1 2426 8
+116d 7 2425 8
+FUNC 1180 150 0 std::basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t> >::assign(wchar_t const * const,unsigned int)
+1180 15 2612 8
+1195 b 2614 8
+11a0 9 2616 8
+11a9 7 2618 8
+11b0 3 2617 8
+11b3 c 2618 8
+11bf 6 2619 8
+11c5 3 2623 8
+11c8 9 2627 8
+11d1 f0 2623 8
+12c1 9 2627 8
+12ca 6 2623 8
+FUNC 12d0 c 0 std::basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t> >::_Xlen()
+12d0 0 3918 8
+12d0 c 3919 8
+FUNC 12e0 7f 0 std::basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t> >::operator=(std::basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t> > &&)
+12e0 8 2267 8
+12e8 4 2268 8
+12ec 48 2270 8
+1334 1e 2274 8
+1352 2 2277 8
+1354 4 2278 8
+1358 7 2270 8
+FUNC 1360 6 0 __local_stdio_printf_options
+1360 0 85 32
+1360 5 87 32
+1365 1 88 32
+FUNC 1370 35 c swprintf_s
+1370 9 1538 31
+1379 28 1542 31
+13a1 4 1545 31
+FUNC 13b0 34 0 _snwprintf_s
+13b0 4 1723 31
+13b4 2f 1727 31
+13e3 1 1730 31
+FUNC 13f0 24 0 fprintf
+13f0 4 833 30
+13f4 1f 837 30
+1413 1 840 30
+FUNC 1420 34a 0 google_breakpad::ExceptionHandler::Initialize(std::basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t> > const &,bool (*)(void *,_EXCEPTION_POINTERS *,MDRawAssertionInfo *),bool (*)(wchar_t const *,wchar_t const *,void *,_EXCEPTION_POINTERS *,MDRawAssertionInfo *,bool),void *,int,_MINIDUMP_TYPE,wchar_t const *,void *,google_breakpad::CrashGenerationClient *,google_breakpad::CustomClientInfo const *)
+1420 30 148 288
+1450 e 149 288
+145e 6 150 288
+1464 7 151 288
+146b 7 152 288
+1472 7 153 288
+1479 7 154 288
+1480 7 155 288
+1487 7 156 288
+148e 7 157 288
+1495 7 158 288
+149c 7 159 288
+14a3 7 160 288
+14aa 7 161 288
+14b1 7 162 288
+14b8 a 164 288
+14c2 a 166 288
+14cc d 167 288
+14d9 7 168 288
+14e0 a 169 288
+14ea a 170 288
+14f4 a 171 288
+14fe a 172 288
+1508 a 173 288
+1512 9 174 288
+151b 7 176 288
+1522 e 180 288
+1530 a 199 288
+153a d 209 288
+1547 e 210 288
+1555 24 211 288
+1579 14 213 288
+158d 18 214 288
+15a5 12 217 288
+15b7 1f 220 288
+15d6 18 226 288
+15ee b 229 288
+15f9 d 230 288
+1606 b 231 288
+1611 e 238 288
+161f 4 239 288
+1623 b 240 288
+162e 2e 246 288
+165c d 253 288
+1669 c 252 288
+1675 2a 253 288
+169f 4 266 288
+16a3 b 253 288
+16ae 2 266 288
+16b0 b 267 288
+16bb b 271 288
+16c6 9 275 288
+16cf 31 276 288
+1700 e 278 288
+170e b 281 288
+1719 e 285 288
+1727 1a 289 288
+1741 b 291 288
+174c 1e 293 288
+FUNC 1770 310 0 google_breakpad::ExceptionHandler::~ExceptionHandler()
+1770 d 295 288
+177d 10 296 288
+178d 3 297 288
+1790 7 300 288
+1797 3 301 288
+179a a 304 288
+17a4 b 305 288
+17af 7 307 288
+17b6 c 308 288
+17c2 4 311 288
+17c6 12 312 288
+17d8 4 315 288
+17dc f 316 288
+17eb 10 318 288
+17fb 3 319 288
+17fe 2 320 288
+1800 16 323 288
+1816 6 324 288
+181c 3 323 288
+181f 2 324 288
+1821 5 325 288
+1826 a 323 288
+1830 4 326 288
+1834 15 327 288
+1849 8 328 288
+1851 6 329 288
+1857 6 325 288
+185d 7 334 288
+1864 53 337 288
+18b7 a 338 288
+18c1 b 341 288
+18cc c 346 288
+18d8 e 359 288
+18e6 e 362 288
+18f4 13 364 288
+1907 8 365 288
+190f 8 366 288
+1917 d 375 288
+1924 7 376 288
+192b 14e 378 288
+1a79 7 337 288
+FUNC 1a80 109 0 google_breakpad::ExceptionHandler::ExceptionHandlerThreadMain(void *)
+1a80 3 385 288
+1a83 23 387 288
+1aa6 1d 388 288
+1ac3 1d 389 288
+1ae0 12 392 288
+1af2 c 395 288
+1afe 67 399 288
+1b65 16 406 288
+1b7b 5 408 288
+1b80 6 412 288
+1b86 3 413 288
+FUNC 1b90 70 0 google_breakpad::AutoExceptionHandler::AutoExceptionHandler()
+1b90 2 422 288
+1b92 d 439 288
+1b9f 2e 440 288
+1bcd 9 446 288
+1bd6 e 448 288
+1be4 11 450 288
+1bf5 5 451 288
+1bfa 6 440 288
+FUNC 1c00 36 0 google_breakpad::AutoExceptionHandler::~AutoExceptionHandler()
+1c00 0 453 288
+1c00 b 455 288
+1c0b b 457 288
+1c16 b 459 288
+1c21 9 461 288
+1c2a b 462 288
+1c35 1 463 288
+FUNC 1c40 11d 0 google_breakpad::ExceptionHandler::HandleException(_EXCEPTION_POINTERS *)
+1c40 2d 472 288
+1c6d 16 473 288
+1c83 4 481 288
+1c87 22 485 288
+1ca9 18 488 288
+1cc1 d 495 288
+1cce 4 503 288
+1cd2 13 504 288
+1ce5 2 508 288
+1ce7 7 509 288
+1cee 4 520 288
+1cf2 5 521 288
+1cf7 2 522 288
+1cf9 7 531 288
+1d00 5 532 288
+1d05 2 533 288
+1d07 2 534 288
+1d09 37 538 288
+1d40 1d 539 288
+FUNC 1d60 18b 0 google_breakpad::ExceptionHandler::HandleInvalidParameter(wchar_t const *,wchar_t const *,wchar_t const *,unsigned int,unsigned int)
+1d60 31 547 288
+1d91 1b 550 288
+1dac 12 554 288
+1dbe 3 551 288
+1dc1 8 554 288
+1dc9 19 555 288
+1de2 19 558 288
+1dfb 1e 561 288
+1e19 9 564 288
+1e22 14 571 288
+1e36 16 572 288
+1e4c 15 573 288
+1e61 7 575 288
+1e68 10 583 288
+1e78 9 585 288
+1e81 6 587 288
+1e87 14 593 288
+1e9b 4 592 288
+1e9f 11 593 288
+1eb0 2 597 288
+1eb2 7 598 288
+1eb9 4 602 288
+1ebd a 603 288
+1ec7 13 606 288
+1eda 2 611 288
+1edc 6 624 288
+1ee2 9 632 288
+FUNC 1ef0 129 0 google_breakpad::ExceptionHandler::HandlePureVirtualCall()
+1ef0 2c 637 288
+1f1c f 640 288
+1f2b 12 644 288
+1f3d 3 641 288
+1f40 8 644 288
+1f48 14 651 288
+1f5c 16 652 288
+1f72 15 653 288
+1f87 7 655 288
+1f8e 10 663 288
+1f9e 9 665 288
+1fa7 6 667 288
+1fad 14 674 288
+1fc1 4 673 288
+1fc5 11 674 288
+1fd6 2 678 288
+1fd8 7 679 288
+1fdf 4 683 288
+1fe3 a 684 288
+1fed 2 687 288
+1fef 8 698 288
+1ff7 8 691 288
+1fff 1a 699 288
+FUNC 2020 da 0 google_breakpad::ExceptionHandler::WriteMinidumpOnHandlerThread(_EXCEPTION_POINTERS *,MDRawAssertionInfo *)
+2020 4 702 288
+2024 d 703 288
+2031 9 707 288
+203a 8 708 288
+2042 2 709 288
+2044 4 736 288
+2048 24 713 288
+206c 1d 714 288
+2089 6 717 288
+208f 2a 722 288
+20b9 e 725 288
+20c7 6 726 288
+20cd 25 733 288
+20f2 4 735 288
+20f6 4 736 288
+FUNC 2100 71 0 google_breakpad::ExceptionHandler::WriteMinidumpWithException(unsigned long,_EXCEPTION_POINTERS *,MDRawAssertionInfo *)
+2100 1 839 288
+2101 20 846 288
+2121 6 871 288
+2127 7 851 288
+212e 7 852 288
+2135 2 853 288
+2137 15 854 288
+214c b 861 288
+2157 14 866 288
+216b 6 871 288
+FUNC 2180 84 0 google_breakpad::ExceptionHandler::MinidumpWriteDumpCallback(void *,_MINIDUMP_CALLBACK_INPUT * const,_MINIDUMP_CALLBACK_OUTPUT *)
+2180 0 877 288
+2180 1c 878 288
+219c 7 882 288
+21a3 3 883 288
+21a6 3 910 288
+21a9 b 886 288
+21b4 9 887 288
+21bd 6 888 288
+21c3 5 889 288
+21c8 3 910 288
+21cb 6 904 288
+21d1 7 905 288
+21d8 5 906 288
+21dd 3 910 288
+21e0 2 909 288
+21e2 22 910 288
+FUNC 2210 22c 14 google_breakpad::ExceptionHandler::WriteMinidumpWithExceptionForProcess(unsigned long,_EXCEPTION_POINTERS *,MDRawAssertionInfo *,void *,bool)
+2210 28 917 288
+2238 b 918 288
+2243 a 919 288
+224d 21 920 288
+226e 9 927 288
+2277 7 929 288
+227e 1c 938 288
+229a 8 949 288
+22a2 6 951 288
+22a8 4 955 288
+22ac c 957 288
+22b8 1b 961 288
+22d3 b 963 288
+22de 8 964 288
+22e6 7 965 288
+22ed 4 966 288
+22f1 8 972 288
+22f9 3 977 288
+22fc 26 988 288
+2322 26 995 288
+2348 2e 998 288
+2376 6 1003 288
+237c 2 1001 288
+237e 2 1003 288
+2380 a 1004 288
+238a 3 1005 288
+238d 4 988 288
+2391 6 1010 288
+2397 10 1009 288
+23a7 6 1010 288
+23ad 4 1011 288
+23b1 8 1014 288
+23b9 6 1015 288
+23bf 10 1020 288
+23cf 2f 1023 288
+23fe a 1031 288
+2408 2 1035 288
+240a 17 1036 288
+2421 4 1035 288
+2425 17 1036 288
+FUNC 2440 11e 0 google_breakpad::ExceptionHandler::UpdateNextID()
+2440 1e 1038 288
+245e 22 1039 288
+2480 8 1040 288
+2488 4 1041 288
+248c 7 1042 288
+2493 56 1044 288
+24e9 8 1045 288
+24f1 1e 1048 288
+250f 4 1054 288
+2513 2 1052 288
+2515 3 1054 288
+2518 8 1052 288
+2520 1f 1054 288
+253f 8 1055 288
+2547 17 1056 288
+FUNC 2560 121 0 std::vector<google_breakpad::ExceptionHandler *,std::allocator<google_breakpad::ExceptionHandler *> >::emplace_back<google_breakpad::ExceptionHandler *>(google_breakpad::ExceptionHandler * &&)
+2560 5 947 218
+2565 a 948 218
+256f d 950 218
+257c 5 987 218
+2581 7 954 218
+2588 c 956 218
+2594 11 962 218
+25a5 3 961 218
+25a8 10 962 218
+25b8 5c 964 218
+2614 9 968 218
+261d 10 970 218
+262d 2 981 218
+262f 3 970 218
+2632 44 981 218
+2676 5 987 218
+267b 6 958 218
+FUNC 2690 d 0 google_breakpad::scoped_ptr<google_breakpad::CrashGenerationClient>::~scoped_ptr<google_breakpad::CrashGenerationClient>()
+2690 0 96 3
+2690 c 98 3
+269c 1 99 3
+FUNC 26a0 43 0 std::list<google_breakpad::AppMemory,std::allocator<google_breakpad::AppMemory> >::~list<google_breakpad::AppMemory,std::allocator<google_breakpad::AppMemory> >()
+26a0 3 1034 138
+26a3 33 1035 138
+26d6 d 1036 138
+FUNC 26f0 8c 0 google_breakpad::CrashGenerationClient::`scalar deleting destructor'(unsigned int)
+FUNC 2780 c 0 std::vector<google_breakpad::ExceptionHandler *,std::allocator<google_breakpad::ExceptionHandler *> >::_Xrange()
+2780 0 2031 218
+2780 c 2032 218
+FUNC 2790 c 0 std::vector<google_breakpad::ExceptionHandler *,std::allocator<google_breakpad::ExceptionHandler *> >::_Xlength()
+2790 0 2026 218
+2790 c 2027 218
+FUNC 27a0 2a 0 std::_List_alloc<std::_List_base_types<google_breakpad::AppMemory,std::allocator<google_breakpad::AppMemory> > >::_Buynode0(std::_List_node<google_breakpad::AppMemory,void *> *,std::_List_node<google_breakpad::AppMemory,void *> *)
+27a0 0 659 138
+27a0 7 660 138
+27a7 4 662 138
+27ab 3 660 138
+27ae 4 662 138
+27b2 2 664 138
+27b4 2 665 138
+27b6 2 670 138
+27b8 3 671 138
+27bb 3 678 138
+27be 4 662 138
+27c2 2 670 138
+27c4 3 671 138
+27c7 3 678 138
+FUNC 27d0 1b 0 std::_List_buy<google_breakpad::AppMemory,std::allocator<google_breakpad::AppMemory> >::_Buynode<google_breakpad::AppMemory const &>(std::_List_node<google_breakpad::AppMemory,void *> *,std::_List_node<google_breakpad::AppMemory,void *> *,google_breakpad::AppMemory const &)
+27d0 0 761 138
+27d0 d 762 138
+27dd b 766 138
+27e8 3 775 138
+FUNC 27f0 ae 0 google_breakpad::GUIDString::GUIDToWString(_GUID *)
+27f0 e 43 346
+27fe 4f 45 346
+284d 7 56 346
+2854 2 54 346
+2856 a 56 346
+2860 5 54 346
+2865 27 56 346
+288c 12 57 346
+FUNC 28a0 2e 0 printf
+28a0 1 952 30
+28a1 2b 956 30
+28cc 1 958 30
+28cd 1 959 30
+FUNC 28d0 33 0 `anonymous namespace'::callback
+28d0 1 11 443
+28d1 8 12 443
+28d9 15 13 443
+28ee 3 19 443
+28f1 1 20 443
+28f2 d 16 443
+28ff 3 19 443
+2902 1 20 443
+FUNC 2910 15e 8 main
+2910 49 33 443
+2959 da 34 443
+2a33 3 36 443
+2a36 7 34 443
+2a3d a 35 443
+2a47 7 36 443
+2a4e 20 37 443
+FUNC 2a6e 11 0 __security_check_cookie
+FUNC 2a7f 30 0 operator new(unsigned int)
+2a7f 3 31 816
+2a82 2 34 816
+2a84 d 39 816
+2a91 d 34 816
+2a9e 2 53 816
+2aa0 a 41 816
+2aaa 5 47 816
+FUNC 2aaf e 0 operator delete(void *,unsigned int)
+2aaf 3 29 771
+2ab2 9 30 771
+2abb 2 31 771
+FUNC 2abd 28 0 __raise_securityfailure
+2abd 3 140 577
+2ac0 8 146 577
+2ac8 9 147 577
+2ad1 12 160 577
+2ae3 2 161 577
+FUNC 2ae5 fb 0 __report_gsfailure
+2ae5 9 217 577
+2aee b 218 577
+2af9 5 220 577
+2afe 5 245 577
+2b03 6 246 577
+2b09 6 247 577
+2b0f 6 248 577
+2b15 6 249 577
+2b1b 6 250 577
+2b21 7 251 577
+2b28 7 252 577
+2b2f 7 253 577
+2b36 7 254 577
+2b3d 7 255 577
+2b44 7 256 577
+2b4b 1 257 577
+2b4c 6 258 577
+2b52 3 262 577
+2b55 5 263 577
+2b5a 3 264 577
+2b5d 5 265 577
+2b62 3 266 577
+2b65 5 267 577
+2b6a 6 270 577
+2b70 a 273 577
+2b7a a 274 577
+2b84 a 286 577
+2b8e a 287 577
+2b98 a 288 577
+2ba2 10 289 577
+2bb2 10 293 577
+2bc2 10 294 577
+2bd2 a 298 577
+2bdc 4 299 577
+FUNC 2be0 a4 0 pre_c_initialization
+2be0 1 147 867
+2be1 7 148 867
+2be8 b 150 867
+2bf3 c 151 867
+2bff 2 153 867
+2c01 2 151 867
+2c03 d 153 867
+2c10 2 159 867
+2c12 5 163 867
+2c17 a 164 867
+2c21 11 167 867
+2c32 5 170 867
+2c37 9 176 867
+2c40 b 178 867
+2c4b 5 182 867
+2c50 5 183 867
+2c55 5 186 867
+2c5a c 189 867
+2c66 9 191 867
+2c6f 5 192 867
+2c74 5 194 867
+2c79 2 196 867
+2c7b 1 197 867
+2c7c 8 154 867
+FUNC 2c84 8 0 post_pgo_initialization
+2c84 0 200 867
+2c84 5 205 867
+2c89 2 207 867
+2c8b 1 208 867
+FUNC 2c8c 12 0 pre_cpp_initialization
+2c8c 0 211 867
+2c8c 5 215 867
+2c91 c 217 867
+2c9d 1 218 867
+FUNC 2c9e 177 0 __scrt_common_main_seh
+2c9e c 231 867
+2caa 10 232 867
+2cba 5 235 867
+2cbf 4 236 867
+2cc3 8 238 867
+2ccb 10 240 867
+2cdb 4 244 867
+2cdf 6 246 867
+2ce5 15 248 867
+2cfa 11 249 867
+2d0b 11 251 867
+2d1c a 253 867
+2d26 2 255 867
+2d28 5 257 867
+2d2d 9 260 867
+2d36 7 265 867
+2d3d 11 266 867
+2d4e 8 268 867
+2d56 5 15732480 867
+2d5b 2 268 867
+2d5d 7 273 867
+2d64 f 274 867
+2d73 8 276 867
+2d7b 21 283 867
+2d9c 9 289 867
+2da5 4 292 867
+2da9 5 293 867
+2dae b 296 867
+2db9 b 297 867
+2dc4 17 299 867
+2ddb 9 304 867
+2de4 6 307 867
+2dea 5 308 867
+2def a 310 867
+2df9 6 312 867
+2dff 7 233 867
+2e06 6 290 867
+2e0c 9 305 867
+FUNC 2e15 a 0 mainCRTStartup
+2e15 0 15 861
+2e15 a 16 861
+FUNC 2e1f 5 0 operator delete(void *)
+2e1f 0 30 766
+2e1f 5 34 766
+FUNC 2e24 1b 0 std::bad_alloc::bad_alloc(std::bad_alloc const &)
+FUNC 2e3f 18 0 std::bad_alloc::bad_alloc()
+2e3f 0 115 700
+2e3f 4 114 700
+2e43 2 116 700
+2e45 b 114 700
+2e50 6 115 700
+2e56 1 116 700
+FUNC 2e57 1b 0 std::bad_array_new_length::bad_array_new_length(std::bad_array_new_length const &)
+FUNC 2e72 18 0 std::bad_array_new_length::bad_array_new_length()
+2e72 0 135 700
+2e72 4 134 700
+2e76 2 136 700
+2e78 b 134 700
+2e83 6 135 700
+2e89 1 136 700
+FUNC 2e8a 2c 0 std::exception::exception(std::exception const &)
+2e8a 16 66 700
+2ea0 f 67 700
+2eaf 7 68 700
+FUNC m 2eb6 11 0 std::bad_alloc::~bad_alloc()
+FUNC m 2ec7 2d 0 std::bad_alloc::`scalar deleting destructor'(unsigned int)
+FUNC 2ef4 1d 0 __scrt_throw_std_bad_alloc()
+2ef4 6 32 838
+2efa 17 33 838
+FUNC 2f11 1d 0 __scrt_throw_std_bad_array_new_length()
+2f11 6 37 838
+2f17 17 38 838
+FUNC 2f2e d 0 std::exception::what()
+2f2e 0 88 700
+2f2e c 89 700
+2f3a 1 90 700
+FUNC 2f3b 44 0 find_pe_section
+2f3b 3 61 910
+2f3e 9 63 910
+2f47 9 69 910
+2f50 9 70 910
+2f59 7 71 910
+2f60 f 73 910
+2f6f 7 71 910
+2f76 3 79 910
+2f79 2 80 910
+2f7b 4 75 910
+FUNC 2f7f 35 0 __scrt_acquire_startup_lock
+2f7f 0 139 910
+2f7f 9 140 910
+2f88 2 143 910
+2f8a 1 157 910
+2f8b 7 146 910
+2f92 a 148 910
+2f9c 4 150 910
+2fa0 c 148 910
+2fac 3 156 910
+2faf 1 157 910
+2fb0 3 152 910
+2fb3 1 157 910
+FUNC 2fb4 39 0 __scrt_initialize_crt
+2fb4 3 185 910
+2fb7 6 186 910
+2fbd 7 188 910
+2fc4 5 191 910
+2fc9 9 194 910
+2fd2 2 196 910
+2fd4 2 206 910
+2fd6 9 199 910
+2fdf 8 201 910
+2fe7 2 202 910
+2fe9 2 205 910
+2feb 2 206 910
+FUNC 2fed aa 0 __scrt_initialize_onexit_tables
+2fed 6 296 910
+2ff3 9 297 910
+2ffc 8 299 910
+3004 c 302 910
+3010 d 307 910
+301d f 310 910
+302c f 315 910
+303b 4 317 910
+303f 5 325 910
+3044 4 327 910
+3048 3 325 910
+304b 5 327 910
+3050 10 325 910
+3060 c 327 910
+306c 15 328 910
+3081 7 331 910
+3088 3 332 910
+308b 4 333 910
+308f 8 304 910
+FUNC 3097 8a 0 __scrt_is_nonwritable_in_current_image
+3097 c 88 910
+30a3 4 92 910
+30a7 2d 99 910
+30d4 a 107 910
+30de 9 108 910
+30e7 4 109 910
+30eb 6 116 910
+30f1 b 121 910
+30fc 16 123 910
+3112 9 127 910
+311b 6 129 910
+FUNC 3121 1d 0 __scrt_release_startup_lock
+3121 3 160 910
+3124 9 161 910
+312d 6 167 910
+3133 9 172 910
+313c 2 173 910
+FUNC 313e 28 0 __scrt_uninitialize_crt
+313e 3 209 910
+3141 f 214 910
+3150 8 220 910
+3158 a 221 910
+3162 2 223 910
+3164 2 224 910
+FUNC 3166 3b 0 _onexit
+3166 3 256 910
+3169 10 257 910
+3179 3 261 910
+317c 2 257 910
+317e 5 259 910
+3183 7 261 910
+318a 15 267 910
+319f 2 271 910
+FUNC 31a1 15 0 atexit
+31a1 3 274 910
+31a4 10 275 910
+31b4 2 278 910
+FUNC 31b6 4f 0 __get_entropy
+31b6 6 90 590
+31bc 4 92 590
+31c0 e 95 590
+31ce 9 100 590
+31d7 9 103 590
+31e0 9 104 590
+31e9 a 113 590
+31f3 e 124 590
+3201 4 136 590
+FUNC 3205 4b 0 __security_init_cookie
+3205 0 158 590
+3205 1a 171 590
+321f 7 184 590
+3226 4 191 590
+322a 5 193 590
+322f 2 194 590
+3231 4 196 590
+3235 a 198 590
+323f 6 202 590
+3245 2 203 590
+3247 9 205 590
+FUNC m 3250 3 0 __scrt_initialize_winrt
+3250 0 21 694
+3250 2 22 694
+3252 1 23 694
+FUNC 3253 4 0 _get_startup_argv_mode
+3253 0 14 663
+3253 3 15 663
+3256 1 16 663
+FUNC 3257 6 0 _get_startup_file_mode
+3257 0 15 692
+3257 5 16 692
+325c 1 17 692
+FUNC 325d c 0 __scrt_initialize_type_info()
+325d 0 16 703
+325d b 17 703
+3268 1 18 703
+FUNC m 3269 3 0 __scrt_stub_for_acrt_initialize
+3269 0 14 691
+3269 2 15 691
+326b 1 16 691
+FUNC 326c 21 0 _initialize_default_precision
+326c 0 19 954
+326c 18 20 954
+3284 1 22 954
+3285 8 21 954
+FUNC m 328d 1 0 _guard_check_icall_nop
+328d 0 15 693
+328d 1 17 693
+FUNC 328e 6 0 __local_stdio_scanf_options
+328e 0 89 686
+328e 5 91 686
+3293 1 92 686
+FUNC 3294 1d 0 __scrt_initialize_default_local_stdio_options
+3294 0 16 671
+3294 e 17 671
+32a2 e 18 671
+32b0 1 19 671
+FUNC 32b1 c 0 __scrt_is_user_matherr_present
+32b1 0 22 661
+32b1 b 23 661
+32bc 1 24 661
+FUNC 32bd 6 0 __scrt_get_dyn_tls_init_callback
+32bd 0 19 650
+32bd 5 20 650
+32c2 1 21 650
+FUNC 32c3 6 0 __scrt_get_dyn_tls_dtor_callback
+32c3 0 20 638
+32c3 5 21 638
+32c8 1 22 638
+FUNC 32c9 11c 0 __scrt_fastfail
+32c9 a 131 932
+32d3 b 134 932
+32de 5 135 932
+32e3 7 142 932
+32ea 18 144 932
+3302 6 150 932
+3308 6 151 932
+330e 6 152 932
+3314 6 153 932
+331a 6 154 932
+3320 6 155 932
+3326 7 156 932
+332d 7 157 932
+3334 7 158 932
+333b 7 159 932
+3342 7 160 932
+3349 7 161 932
+3350 1 162 932
+3351 6 163 932
+3357 9 167 932
+3360 13 168 932
+3373 3 169 932
+3376 13 200 932
+3389 17 203 932
+33a0 6 205 932
+33a6 20 210 932
+33c6 a 211 932
+33d0 8 215 932
+33d8 8 216 932
+33e0 5 217 932
+FUNC 33e5 44 0 __scrt_is_managed_app
+33e5 0 32 932
+33e5 a 33 932
+33ef 4 34 932
+33f3 2 35 932
+33f5 1 62 932
+33f6 a 37 932
+3400 5 41 932
+3405 8 43 932
+340d b 46 932
+3418 6 53 932
+341e a 58 932
+3428 1 62 932
+FUNC 3429 c 0 __scrt_set_unhandled_exception_filter
+3429 0 82 932
+3429 b 83 932
+3434 1 84 932
+FUNC 3435 41 4 __scrt_unhandled_exception_filter
+3435 3 71 932
+3438 5 72 932
+343d 2d 73 932
+346a 2 78 932
+346c 4 79 932
+3470 6 75 932
+FUNC 3476 8 4 _crt_debugger_hook
+3476 0 110 932
+3476 7 115 932
+347d 1 116 932
+FUNC 347e 2b 0 _RTC_Initialize
+FUNC 34a9 2b 0 _RTC_Terminate
+FUNC 34d4 6 0 _guard_check_icall
+34d4 0 61 604
+34d4 6 63 604
+FUNC 34e0 46 0 _SEH_prolog4
+FUNC 3526 15 0 _SEH_epilog4
+FUNC 353b 23 0 _except_handler4
+FUNC 355e 23 0 type_info::`scalar deleting destructor'(unsigned int)
+FUNC 3581 199 0 __isa_available_init
+FUNC 371a c 0 __scrt_is_ucrt_dll_in_use
+371a 0 22 662
+371a b 23 662
+3725 1 24 662
+PUBLIC 3726 0 __CxxFrameHandler3
+PUBLIC 372c 0 __std_exception_copy
+PUBLIC 3732 0 __std_exception_destroy
+PUBLIC 3738 8 _CxxThrowException
+PUBLIC 373e 0 memset
+PUBLIC 3744 0 _except_handler4_common
+PUBLIC 374a 0 exit
+PUBLIC 3750 0 _callnewh
+PUBLIC 3756 0 malloc
+PUBLIC 375c 0 _seh_filter_exe
+PUBLIC 3762 0 _set_app_type
+PUBLIC 3768 0 __setusermatherr
+PUBLIC 376e 0 _configure_narrow_argv
+PUBLIC 3774 0 _initialize_narrow_environment
+PUBLIC 377a 0 _get_initial_narrow_environment
+PUBLIC 3780 0 _initterm
+PUBLIC 3786 0 _initterm_e
+PUBLIC 378c 0 _exit
+PUBLIC 3792 0 _set_fmode
+PUBLIC 3798 0 __p___argc
+PUBLIC 379e 0 __p___argv
+PUBLIC 37a4 0 _cexit
+PUBLIC 37aa 0 _c_exit
+PUBLIC 37b0 0 _register_thread_local_exe_atexit_callback
+PUBLIC 37b6 0 _configthreadlocale
+PUBLIC 37bc 0 _set_new_mode
+PUBLIC 37c2 0 __p__commode
+PUBLIC 37c8 0 free
+PUBLIC 37ce 0 _initialize_onexit_table
+PUBLIC 37d4 0 _register_onexit_function
+PUBLIC 37da 0 _crt_atexit
+PUBLIC 37e0 0 _controlfp_s
+PUBLIC 37e6 0 terminate
+PUBLIC 37ec 4 IsProcessorFeaturePresent
+PUBLIC 37f2 0 memcpy
+STACK WIN 4 1000 114 11 0 8 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 100f f5 2 0 8 4 c 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 16 - ^ =
+STACK WIN 4 1030 92 0 0 8 8 c 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 16 - ^ =  $23 $T0 20 - ^ =
+STACK WIN 4 1048 a 0 0 8 c c 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 16 - ^ =  $23 $T0 20 - ^ =  $24 $T0 24 - ^ =
+STACK WIN 4 1120 54 3 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 1121 4b 2 0 0 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =
+STACK WIN 4 1180 150 11 0 8 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 1188 13c 9 0 8 4 8 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 12 - ^ =
+STACK WIN 4 1189 13a 8 0 8 8 8 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 12 - ^ =  $22 $T0 16 - ^ =
+STACK WIN 4 118e 134 3 0 8 c 8 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 12 - ^ =  $22 $T0 16 - ^ =  $23 $T0 20 - ^ =
+STACK WIN 4 118f 132 2 0 8 10 8 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 12 - ^ =  $22 $T0 16 - ^ =  $23 $T0 20 - ^ =  $24 $T0 24 - ^ =
+STACK WIN 4 12ca 6 0 0 8 10 8 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 12 - ^ =  $22 $T0 16 - ^ =  $23 $T0 20 - ^ =  $24 $T0 24 - ^ =
+STACK WIN 4 12d0 c 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 12e0 7f 8 0 4 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 12e1 74 7 0 4 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =
+STACK WIN 4 12e2 70 6 0 4 8 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =  $24 $T0 8 - ^ =
+STACK WIN 4 1360 6 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 1370 35 6 0 c 0 0 0 1 $T1 .raSearch = $T0  $T1 4 - 8 @ = $ebp $T1 4 - ^ = $eip $T1 ^ = $esp $T1 4 + =
+STACK WIN 4 13b0 34 0 0 10 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 13f0 24 0 0 8 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 1420 34a 2d 0 28 10 30 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $20 $T0 52 - ^ =  $23 $T0 56 - ^ =  $24 $T0 60 - ^ =
+STACK WIN 4 1770 310 16 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 177c 2f4 a 0 0 4 4 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 8 - ^ =
+STACK WIN 4 177d 2f2 9 0 0 8 4 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 8 - ^ =  $23 $T0 12 - ^ =
+STACK WIN 4 1784 2ea 2 0 0 c 4 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 8 - ^ =  $23 $T0 12 - ^ =  $24 $T0 16 - ^ =
+STACK WIN 4 1827 36 0 0 0 10 4 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 8 - ^ =  $23 $T0 12 - ^ =  $24 $T0 16 - ^ =  $22 $T0 32 - ^ =
+STACK WIN 4 1a80 109 8 0 4 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 1a81 105 7 0 4 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =
+STACK WIN 4 1a82 101 6 0 4 8 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =  $22 $T0 8 - ^ =
+STACK WIN 4 1a83 ff 5 0 4 c 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =  $22 $T0 8 - ^ =  $23 $T0 12 - ^ =
+STACK WIN 4 1a88 f9 0 0 4 10 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =  $22 $T0 8 - ^ =  $23 $T0 12 - ^ =  $24 $T0 16 - ^ =
+STACK WIN 4 1b90 70 9 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 1b91 68 8 0 0 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =
+STACK WIN 4 1b92 66 7 0 0 8 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =  $24 $T0 8 - ^ =
+STACK WIN 4 1c00 36 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 1c40 11d 2a 0 4 c 14 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $23 $T0 24 - ^ =  $24 $T0 28 - ^ =
+STACK WIN 4 1d60 18b 2e 0 14 10 644 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $20 $T0 1608 - ^ =  $23 $T0 1612 - ^ =  $24 $T0 1616 - ^ =
+STACK WIN 4 1ef0 129 2c 0 0 8 640 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $23 $T0 1604 - ^ =
+STACK WIN 4 2020 da 3 0 8 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2021 d6 2 0 8 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =
+STACK WIN 4 2024 d2 0 0 8 8 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =  $24 $T0 8 - ^ =
+STACK WIN 4 2050 a5 0 0 8 c 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =  $24 $T0 8 - ^ =  $20 $T0 12 - ^ =
+STACK WIN 4 2100 71 8 0 c 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2101 6d 7 0 c 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =
+STACK WIN 4 2106 67 2 0 c 8 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =  $23 $T0 8 - ^ =
+STACK WIN 4 2109 63 0 0 c c 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =  $23 $T0 8 - ^ =  $24 $T0 12 - ^ =
+STACK WIN 4 2180 84 0 0 c 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 219c 1b 0 0 c 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =
+STACK WIN 4 2210 22c 24 0 14 c 84 0 1 $T1 .raSearch = $T0  $T1 4 - 8 @ = $ebp $T1 4 - ^ = $eip $T1 ^ = $esp $T1 4 + = $20 $T0 136 - ^ =  $23 $T0 140 - ^ =  $24 $T0 144 - ^ =
+STACK WIN 4 2440 11e 1e 0 0 8 238 0 1 $T1 .raSearch = $T0  $T1 4 - 16 @ = $ebp $T1 4 - ^ = $eip $T1 ^ = $esp $T1 4 + = $23 $T0 572 - ^ =  $24 $T0 576 - ^ =
+STACK WIN 4 2560 121 5 0 4 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2562 115 3 0 4 4 4 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 8 - ^ =
+STACK WIN 4 2563 113 2 0 4 8 4 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 8 - ^ =  $23 $T0 12 - ^ =
+STACK WIN 4 25a5 cd 0 0 4 c 4 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 8 - ^ =  $23 $T0 12 - ^ =  $22 $T0 16 - ^ =
+STACK WIN 4 25c4 ad 0 0 4 10 4 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 8 - ^ =  $23 $T0 12 - ^ =  $22 $T0 16 - ^ =  $24 $T0 20 - ^ =
+STACK WIN 4 267b 6 0 0 4 8 4 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 8 - ^ =  $23 $T0 12 - ^ =  $22 $T0 16 - ^ =  $24 $T0 20 - ^ =
+STACK WIN 4 2690 d 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 26a0 43 3 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 26a1 41 2 0 0 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $24 $T0 4 - ^ =
+STACK WIN 4 26bc 1a 0 0 0 8 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $24 $T0 4 - ^ =  $23 $T0 8 - ^ =
+STACK WIN 4 26f0 8c 3 0 4 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 26f1 81 2 0 4 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =
+STACK WIN 4 26f4 7d 0 0 4 8 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =  $24 $T0 8 - ^ =
+STACK WIN 4 2780 c 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2790 c 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 27a0 2a 0 0 8 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 27d0 1b 0 0 c 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 27f0 ae 15 0 0 4 60 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 100 - ^ =
+STACK WIN 4 28a0 2e 1 0 4 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 28a1 2c 0 0 4 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =
+STACK WIN 4 28d0 33 1 0 18 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 28d1 31 0 0 18 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =
+STACK WIN 4 2910 15e 36 0 8 4 f4 0 1 $T0 $ebp 204 + =$eip $T0 4 + ^ =$ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2a6e 11 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2a7f 30 3 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2aaf e 3 0 8 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2abd 28 3 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2ae5 fb 9 0 0 0 324 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2be0 a4 1 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2be1 2b 0 0 0 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =
+STACK WIN 4 2c84 8 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2c8c 12 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2c9e 177 c 0 0 10 24 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $20 $T0 40 - ^ =  $23 $T0 44 - ^ =  $24 $T0 48 - ^ =
+STACK WIN 4 2dc4 14 0 0 0 10 24 0 1 $T0 $ebp = $T2 $esp = $T1 .raSearchStart = $eip $T1 ^ = $ebp $T0 = $esp $T1 4 + =
+STACK WIN 4 2e15 a 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2e1f 5 0 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2e24 1b 9 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2e28 13 5 0 4 4 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $23 $T0 4 - ^ =
+STACK WIN 4 2e3f 18 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2e57 1b 9 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2e5b 13 5 0 4 4 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $23 $T0 4 - ^ =
+STACK WIN 4 2e72 18 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2e8a 2c 6 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2e8e 24 2 0 4 4 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $23 $T0 4 - ^ =
+STACK WIN 4 2eb6 11 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2ec7 2d 6 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2ecb 25 2 0 4 4 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $23 $T0 4 - ^ =
+STACK WIN 4 2ef4 1d 6 0 0 0 c 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2f11 1d 6 0 0 0 c 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2f2e d 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2f3b 44 7 0 8 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2f42 37 0 0 8 4 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $23 $T0 4 - ^ =
+STACK WIN 4 2f7f 35 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 2f92 21 0 0 0 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =
+STACK WIN 4 2fb4 39 3 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 2fed aa 6 0 4 0 c 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 3004 87 0 0 4 4 c 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $23 $T0 16 - ^ =
+STACK WIN 4 3048 39 0 0 4 8 c 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $23 $T0 16 - ^ =  $24 $T0 20 - ^ =
+STACK WIN 4 3097 8a c 0 4 10 18 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $20 $T0 28 - ^ =  $23 $T0 32 - ^ =  $24 $T0 36 - ^ =
+STACK WIN 4 30fc 13 0 0 4 10 18 0 1 $T0 $ebp = $T2 $esp = $T1 .raSearchStart = $eip $T1 ^ = $ebp $T0 = $esp $T1 4 + =
+STACK WIN 4 3121 1d 3 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 313e 28 3 0 8 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 3166 3b 3 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 31a1 15 3 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 31b6 4f 6 0 0 0 14 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 3205 4b 8 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 320c 43 1 0 0 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =
+STACK WIN 4 320d 3b 0 0 0 8 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $23 $T0 4 - ^ =  $24 $T0 8 - ^ =
+STACK WIN 4 3250 3 0 0 4 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 3253 4 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 3257 6 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 325d c 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 3269 3 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 326c 21 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 328d 1 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 328e 6 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 3294 1d 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 32b1 c 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 32bd 6 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 32c3 6 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 32c9 11c a 0 4 4 324 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $20 $T0 808 - ^ =
+STACK WIN 4 33e5 44 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 3429 c 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 3435 41 3 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 3476 8 0 0 4 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 347e 2b 2 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 347f 29 1 0 0 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =
+STACK WIN 4 3480 27 0 0 0 8 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =  $23 $T0 8 - ^ =
+STACK WIN 4 348f 17 0 0 0 c 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =  $23 $T0 8 - ^ =  $24 $T0 12 - ^ =
+STACK WIN 4 34a9 2b 2 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 34aa 29 1 0 0 4 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =
+STACK WIN 4 34ab 27 0 0 0 8 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =  $23 $T0 8 - ^ =
+STACK WIN 4 34ba 17 0 0 0 c 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =  $20 $T0 4 - ^ =  $23 $T0 8 - ^ =  $24 $T0 12 - ^ =
+STACK WIN 4 34d4 6 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 4 353b 23 3 0 10 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 355e 23 a 0 4 0 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 3566 17 2 0 4 4 0 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $23 $T0 4 - ^ =
+STACK WIN 4 3581 199 e 0 0 0 24 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =
+STACK WIN 4 358f 187 0 0 0 4 24 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $20 $T0 40 - ^ =
+STACK WIN 4 35b7 ef 0 0 0 8 24 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $20 $T0 40 - ^ =  $23 $T0 44 - ^ =
+STACK WIN 4 35b8 ed 0 0 0 c 24 0 1 $T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + =  $20 $T0 40 - ^ =  $23 $T0 44 - ^ =  $24 $T0 48 - ^ =
+STACK WIN 4 371a c 0 0 0 0 0 0 1 $T0 .raSearch = $eip $T0 ^ = $esp $T0 4 + =
+STACK WIN 0 2dc4 14 0 0 0 0 0 0 0 0
+STACK WIN 0 30fc 13 0 0 0 0 0 0 0 0

@@ -1,4 +1,4 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
@@ -6,10 +6,7 @@
 
 {% block title %}{% trans "Confirm Password" %} | {{ block.super }}{% endblock %}
 
-{% block wrapperclass %}{{block.super }} windowed-small{% endblock %}
-
-{% block global_sidebar %}{% endblock %}
-{% block header %}{% endblock %}
+{% block wrapperclass %}{{block.super }} narrow auth{% endblock %}
 
 {% block scripts %}
 
@@ -24,50 +21,41 @@
   </script>
 {% endblock %}
 
-{% block content %}
-    <div class="pattern-bg"></div>
-    <div class="box box-modal">
-        <div class="box-header">
-          <a href="/">
-            <span class="icon-sentry-logo-full"></span>
-            <span class="back-to">{% trans "Back to organization" %}</span>
-          </a>
-        </div>
-        <div class="box-content with-padding">
-            <h4 class="m-b-1 p-b-1 b-b-1">
-              {% blocktrans %}Help us keep your account safe by confirming your password.{% endblocktrans %}
-            </h4>
-            <form action="" method="post" autocomplete="off">
+{% block auth_main %}
+
+          <h4>{% blocktrans %}Confirm your Identity{% endblocktrans %}</h4>
+
+          <p>
+            {% blocktrans %}Help us keep your account safe by confirming your identity.{% endblocktrans %}
+          </p>
+            <form class="form-stacked" action="" method="post" autocomplete="off">
                 {% csrf_token %}
 
                 {% if form.password.errors %}
                     <div class="help-block error">{% trans "Your password was not valid." %}</div>
                 {% endif %}
 
-                <div class="form-group">
-                    <label class="control-label" for="id_password">
-                        Password:
-                    </label>
+                <div class="control-group required">
+                  <div class="controls">
+                    <label class="control-label" for="id_password">Password</label>
                     <input type="password" name="password" placeholder="Password" id="id_password" class="form-control">
-                    <p class="help-block">
-                        <a href="{% url 'sentry-account-recover' %}">Forgot your password?</a>
-                    </p>
+                  </div>
                 </div>
 
                 {% if u2f_challenge %}
                     <div id="u2f-challenge"></div>
                     <script>
-                      ReactDOM.render(React.createElement(Sentry.U2fSign, {
+                      ReactDOM.render(React.createElement(SentryApp.U2fSign, {
                         challengeData: {{ u2f_challenge|to_json|safe }},
                         displayMode: 'sudo'
                       }), document.getElementById('u2f-challenge'));
                     </script>
                 {% endif %}
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+                <div class="auth-footer">
+                   <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+                   <a class="secondary" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
                 </div>
             </form>
-        </div>
-    </div>
+
 {% endblock %}

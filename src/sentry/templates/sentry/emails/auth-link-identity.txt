@@ -1,6 +1,7 @@
-SSO has been configured for the {{ organization_name }} organization.
+{{ provider.name }} Single Sign-On has been configured for the {{ organization.name }} organization.
 
-We'll need you to link your existing account with the SSO provider by visiting the following url:
+Link your Sentry account to enable signing on with your {{ provider.name }} account by visiting the following url:
 
-    {{ url }}
+{{ url }}
 
+SSO link request invoked by {{ actor.email }}

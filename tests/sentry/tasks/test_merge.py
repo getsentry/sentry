@@ -1,208 +1,188 @@
 from __future__ import absolute_import
 
-from collections import defaultdict
+from sentry.utils.compat.mock import patch
 
-from sentry.tasks.merge import merge_group, rehash_group_events
-from sentry.models import Event, Group, GroupMeta, GroupRedirect, GroupTagKey, GroupTagValue
+from sentry.tasks.merge import merge_groups
+from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
+from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
+from sentry.utils import redis
+from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry import eventstream, eventstore
+
+# Use the default redis client as a cluster client in the similarity index
+index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 
+@patch("sentry.similarity.features.index", new=index)
 class MergeGroupTest(TestCase):
-    def test_merge_with_event_integrity(self):
-        project1 = self.create_project()
-        group1 = self.create_group(project1)
-        event1 = self.create_event('a' * 32, group=group1, data={'foo': 'bar'})
-        project2 = self.create_project()
-        group2 = self.create_group(project2)
-        event2 = self.create_event('b' * 32, group=group2, data={'foo': 'baz'})
+    @patch("sentry.tasks.merge.eventstream")
+    def test_merge_calls_eventstream(self, mock_eventstream):
+        group1 = self.create_group(self.project)
+        group2 = self.create_group(self.project)
+
+        eventstream_state = object()
 
         with self.tasks():
-            merge_group(group1.id, group2.id)
+            merge_groups([group1.id], group2.id, eventstream_state=eventstream_state)
+
+        mock_eventstream.end_merge.assert_called_once_with(eventstream_state)
+
+    def test_merge_group_environments(self):
+        group1 = self.create_group(self.project)
+
+        GroupEnvironment.objects.create(group_id=group1.id, environment_id=1)
+
+        group2 = self.create_group(self.project)
+
+        GroupEnvironment.objects.create(group_id=group2.id, environment_id=1)
+
+        GroupEnvironment.objects.create(group_id=group2.id, environment_id=2)
+
+        with self.tasks():
+            merge_groups([group1.id], group2.id)
+
+        assert list(
+            GroupEnvironment.objects.filter(group_id=group2.id)
+            .order_by("environment")
+            .values_list("environment_id", flat=True)
+        ) == [1, 2]
+
+    def test_merge_with_event_integrity(self):
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+                "extra": {"foo": "bar"},
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+                "extra": {"foo": "baz"},
+            },
+            project_id=project.id,
+        )
+        group2 = event2.group
+
+        with self.tasks():
+            eventstream_state = eventstream.start_merge(project.id, [group1.id], group2.id)
+            merge_groups([group1.id], group2.id)
+            eventstream.end_merge(eventstream_state)
 
         assert not Group.objects.filter(id=group1.id).exists()
 
-        # this previously would error with NodeIntegrityError due to the
-        # reference check being bound to a group
-        event1 = Event.objects.get(id=event1.id)
+        event1 = eventstore.get_event_by_id(project.id, event1.event_id)
         assert event1.group_id == group2.id
-        Event.objects.bind_nodes([event1], 'data')
-        assert event1.data['foo'] == 'bar'
+        assert event1.data["extra"]["foo"] == "bar"
 
-        event2 = Event.objects.get(id=event2.id)
+        event2 = eventstore.get_event_by_id(project.id, event2.event_id)
         assert event2.group_id == group2.id
-        Event.objects.bind_nodes([event2], 'data')
-        assert event2.data['foo'] == 'baz'
+        assert event2.data["extra"]["foo"] == "baz"
 
     def test_merge_creates_redirect(self):
         groups = [self.create_group() for _ in range(0, 3)]
 
         with self.tasks():
-            merge_group(groups[0].id, groups[1].id)
+            merge_groups([groups[0].id], groups[1].id)
 
         assert not Group.objects.filter(id=groups[0].id).exists()
-        assert GroupRedirect.objects.filter(
-            group_id=groups[1].id,
-            previous_group_id=groups[0].id,
-        ).count() == 1
+        assert (
+            GroupRedirect.objects.filter(
+                group_id=groups[1].id, previous_group_id=groups[0].id
+            ).count()
+            == 1
+        )
 
         with self.tasks():
-            merge_group(groups[1].id, groups[2].id)
+            merge_groups([groups[1].id], groups[2].id)
 
         assert not Group.objects.filter(id=groups[1].id).exists()
-        assert GroupRedirect.objects.filter(
-            group_id=groups[2].id,
-        ).count() == 2
+        assert GroupRedirect.objects.filter(group_id=groups[2].id).count() == 2
 
     def test_merge_updates_tag_values_seen(self):
         project = self.create_project()
-        target, other = [self.create_group(project) for _ in range(0, 2)]
-
-        data = {
-            'sentry:user': {
-                'id:1': {
-                    target: 2,
-                },
-                'id:2': {
-                    other: 3,
-                },
-                'id:3': {
-                    target: 1,
-                    other: 2,
-                },
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+                "tags": {"foo": "bar"},
+                "environment": self.environment.name,
             },
-            'key': {
-                'foo': {
-                    other: 3,
-                },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+                "tags": {"foo": "bar"},
+                "environment": self.environment.name,
             },
-        }
-
-        input_group_tag_keys = defaultdict(int)    # [(group, key)] = values_seen
-        input_group_tag_values = defaultdict(int)  # [(group, key, value)] = times_seen
-        output_group_tag_keys = defaultdict(int)    # [key] = values_seen
-        output_group_tag_values = defaultdict(int)  # [(key, value)] = times_seen
-
-        for key, values in data.items():
-            output_group_tag_keys[key] = len(values)
-
-            for value, groups in values.items():
-                for group, count in groups.items():
-                    input_group_tag_keys[(group, key)] += 1
-                    input_group_tag_values[(group, key, value)] += count
-                    output_group_tag_values[(key, value)] += count
-
-        GroupTagKey.objects.bulk_create([
-            GroupTagKey(
-                project=project,
-                group=group,
-                key=key,
-                values_seen=values_seen,
-            ) for ((group, key), values_seen) in input_group_tag_keys.items()
-        ])
-
-        GroupTagValue.objects.bulk_create([
-            GroupTagValue(
-                project_id=project.id,
-                group_id=group.id,
-                key=key,
-                value=value,
-                times_seen=times_seen,
-            ) for ((group, key, value), times_seen) in input_group_tag_values.items()
-        ])
+            project_id=project.id,
+        )
+        target = event1.group
+        other = event2.group
 
         with self.tasks():
-            merge_group(other.id, target.id)
+            merge_groups([other.id], target.id)
 
         assert not Group.objects.filter(id=other.id).exists()
-        assert not GroupTagKey.objects.filter(group_id=other.id).exists()
-        assert not GroupTagValue.objects.filter(group_id=other.id).exists()
-
-        for key, values_seen in output_group_tag_keys.items():
-            assert GroupTagKey.objects.get(
-                project=project,
-                group=target,
-                key=key
-            ).values_seen == values_seen
-
-        for (key, value), times_seen in output_group_tag_values.items():
-            assert GroupTagValue.objects.get(
-                project_id=project.id,
-                group_id=target.id,
-                key=key,
-                value=value,
-            ).times_seen == times_seen
 
     def test_merge_with_group_meta(self):
         project1 = self.create_project()
-        group1 = self.create_group(project1)
-        event1 = self.create_event('a' * 32, group=group1, data={'foo': 'bar'})
+        event1 = self.store_event(data={}, project_id=project1.id)
+        group1 = event1.group
+
         project2 = self.create_project()
-        group2 = self.create_group(project2)
-        event2 = self.create_event('b' * 32, group=group2, data={'foo': 'baz'})
+        event2 = self.store_event(data={}, project_id=project2.id)
+        group2 = event2.group
 
-        GroupMeta.objects.create(
-            group=event1.group,
-            key='github:tid',
-            value='134',
-        )
+        GroupMeta.objects.create(group=event1.group, key="github:tid", value="134")
 
-        GroupMeta.objects.create(
-            group=event1.group,
-            key='other:tid',
-            value='567',
-        )
+        GroupMeta.objects.create(group=event1.group, key="other:tid", value="567")
 
-        GroupMeta.objects.create(
-            group=event2.group,
-            key='other:tid',
-            value='abc',
-        )
+        GroupMeta.objects.create(group=event2.group, key="other:tid", value="abc")
 
         GroupMeta.objects.populate_cache([group1, group2])
 
-        assert GroupMeta.objects.get_value(group1, 'github:tid') == '134'
-        assert GroupMeta.objects.get_value(group2, 'other:tid') == 'abc'
-        assert not GroupMeta.objects.get_value(group2, 'github:tid')
-        assert GroupMeta.objects.get_value(group1, 'other:tid') == '567'
+        assert GroupMeta.objects.get_value(group1, "github:tid") == "134"
+        assert GroupMeta.objects.get_value(group2, "other:tid") == "abc"
+        assert not GroupMeta.objects.get_value(group2, "github:tid")
+        assert GroupMeta.objects.get_value(group1, "other:tid") == "567"
 
         with self.tasks():
-            merge_group(group1.id, group2.id)
+            merge_groups([group1.id], group2.id)
 
         assert not Group.objects.filter(id=group1.id).exists()
 
         GroupMeta.objects.clear_local_cache()
         GroupMeta.objects.populate_cache([group1, group2])
 
-        assert not GroupMeta.objects.get_value(group1, 'github:tid')
-        assert not GroupMeta.objects.get_value(group1, 'other:tid')
-        assert GroupMeta.objects.get_value(group2, 'github:tid') == '134'
-        assert GroupMeta.objects.get_value(group2, 'other:tid') == 'abc'
+        assert not GroupMeta.objects.get_value(group1, "github:tid")
+        assert not GroupMeta.objects.get_value(group1, "other:tid")
+        assert GroupMeta.objects.get_value(group2, "github:tid") == "134"
+        assert GroupMeta.objects.get_value(group2, "other:tid") == "abc"
 
+    def test_user_report_merge(self):
+        project1 = self.create_project()
+        event1 = self.store_event(data={}, project_id=project1.id)
+        group1 = event1.group
 
-class RehashGroupEventsTest(TestCase):
-    def test_simple(self):
-        project = self.create_project()
-        group = self.create_group(project)
-        event1 = self.create_event('a' * 32, message='foo', group=group, data={})
-        event2 = self.create_event('b' * 32, message='foo', group=group, data={})
-        event3 = self.create_event('c' * 32, message='bar', group=group, data={})
+        project2 = self.create_project()
+        group2 = self.create_group(project2)
+        ur = UserReport.objects.create(project=project1, group=group1, event_id=event1.event_id)
 
         with self.tasks():
-            rehash_group_events(group.id)
+            merge_groups([group1.id], group2.id)
 
-        assert not Group.objects.filter(id=group.id).exists()
+        assert not Group.objects.filter(id=group1.id).exists()
 
-        # this previously would error with NodeIntegrityError due to the
-        # reference check being bound to a group
-        event1 = Event.objects.get(id=event1.id)
-        group1 = event1.group
-        assert sorted(Event.objects.filter(group_id=group1.id).values_list('id', flat=True)) == [
-            event1.id,
-            event2.id,
-        ]
-
-        event3 = Event.objects.get(id=event3.id)
-        group2 = event3.group
-        assert sorted(Event.objects.filter(group_id=group2.id).values_list('id', flat=True)) == [
-            event3.id,
-        ]
+        assert UserReport.objects.get(id=ur.id).group_id == group2.id

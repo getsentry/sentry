@@ -1,10 +1,4 @@
 """
-sentry.rules.base
-~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-
 Rules apply either before an event gets stored, or immediately after.
 
 Basic actions:
@@ -32,28 +26,24 @@ by the rule's logic. Each rule condition may be associated with a form.
 
 - [ACTION:I want to get notified when] [RULE:an event is first seen]
 - [ACTION:I want to group events when] [RULE:an event matches [FORM]]
-
 """
-
 from __future__ import absolute_import
 
 import logging
-import re
 import six
 
 from collections import namedtuple
-from django.utils.safestring import mark_safe
 
-from sentry.utils.html import escape
-
-
-CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs'])
+# Encapsulates a reference to the callback, including arguments. The `key`
+# attribute may be specifically used to key the callbacks when they are
+# collated during rule processing.
+CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 
 class RuleDescriptor(type):
     def __new__(cls, *args, **kwargs):
         new_cls = super(RuleDescriptor, cls).__new__(cls, *args, **kwargs)
-        new_cls.id = '%s.%s' % (new_cls.__module__, new_cls.__name__)
+        new_cls.id = "%s.%s" % (new_cls.__module__, new_cls.__name__)
         return new_cls
 
 
@@ -62,7 +52,7 @@ class RuleBase(object):
     label = None
     form_cls = None
 
-    logger = logging.getLogger('sentry.rules')
+    logger = logging.getLogger("sentry.rules")
 
     def __init__(self, project, data=None, rule=None):
         self.project = project
@@ -70,8 +60,11 @@ class RuleBase(object):
         self.had_data = data is not None
         self.rule = rule
 
-    def get_option(self, key):
-        return self.data.get(key)
+    def is_enabled(self):
+        return True
+
+    def get_option(self, key, default=None):
+        return self.data.get(key, default)
 
     def get_form_instance(self):
         if self.had_data:
@@ -83,18 +76,6 @@ class RuleBase(object):
     def render_label(self):
         return self.label.format(**self.data)
 
-    def render_form(self):
-        if not self.form_cls:
-            return self.label
-
-        form = self.get_form_instance()
-
-        def replace_field(match):
-            field = match.group(1)
-            return six.text_type(form[field])
-
-        return mark_safe(re.sub(r'{([^}]+)}', replace_field, escape(self.label)))
-
     def validate_form(self):
         if not self.form_cls:
             return True
@@ -103,15 +84,13 @@ class RuleBase(object):
 
         return form.is_valid()
 
-    def future(self, callback, **kwargs):
-        return CallbackFuture(
-            callback=callback,
-            kwargs=kwargs,
-        )
+    def future(self, callback, key=None, **kwargs):
+        return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
 
 
 class EventState(object):
-    def __init__(self, is_new, is_regression, is_sample):
+    def __init__(self, is_new, is_regression, is_new_group_environment, has_reappeared):
         self.is_new = is_new
         self.is_regression = is_regression
-        self.is_sample = is_sample,
+        self.is_new_group_environment = is_new_group_environment
+        self.has_reappeared = has_reappeared

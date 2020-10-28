@@ -4,25 +4,13 @@ from rest_framework.response import Response
 from six.moves import range
 
 from sentry import tsdb
-from sentry.api.base import DocSection, StatsMixin
+from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.team import TeamEndpoint
-from sentry.models import Project
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models import Environment, Project
 
 
-@scenario('RetrieveEventCountsTeam')
-def retrieve_event_counts_team(runner):
-    runner.request(
-        method='GET',
-        path='/teams/%s/%s/stats/' % (
-            runner.org.slug, runner.default_team.slug)
-    )
-
-
-class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
-    doc_section = DocSection.TEAMS
-
-    @attach_scenarios([retrieve_event_counts_team])
+class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
     def get(self, request, team):
         """
         Retrieve Event Counts for a Team
@@ -46,25 +34,26 @@ class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
         :qparam timestamp until: a timestamp to set the end of the query
                                  in seconds since UNIX epoch.
         :qparam string resolution: an explicit resolution to search
-                                   for (eg: ``10s``).  This should not be
-                                   used unless you are familiar with Sentry's
-                                   internals as it's restricted to pre-defined
-                                   values.
+                                   for (one of ``10s``, ``1h``, and ``1d``)
         :auth: required
         """
-        projects = Project.objects.get_for_user(
-            team=team,
-            user=request.user,
-        )
+        try:
+            environment_id = self._get_environment_id_from_request(request, team.organization_id)
+        except Environment.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        projects = Project.objects.get_for_user(team=team, user=request.user)
 
         if not projects:
             return Response([])
 
-        data = list(tsdb.get_range(
-            model=tsdb.models.project,
-            keys=[p.id for p in projects],
-            **self._parse_args(request)
-        ).values())
+        data = list(
+            tsdb.get_range(
+                model=tsdb.models.project,
+                keys=[p.id for p in projects],
+                **self._parse_args(request, environment_id)
+            ).values()
+        )
 
         summarized = []
         for n in range(len(data[0])):

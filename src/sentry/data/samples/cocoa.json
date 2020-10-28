@@ -1,830 +1,3438 @@
 {
-  "sentry.interfaces.User": {
-    "username": "Example",
-    "data": {
-      "is_admin": false
-    },
-    "id": "3",
-    "email": "example@example.com"
-  },
-  "tags": [
-    [
-      "environment",
-      "production"
-    ],
-    [
-      "level",
-      "fatal"
-    ],
-    [
-      "sentry:user",
-      "id:3"
-    ]
-  ],
-  "type": "default",
-  "extra": {
-    "foobar": {
-      "foo": "bar"
-    },
-    "some_things": [
-      "green",
-      "red"
-    ],
-    "a_thing": 3
-  },
-  "sentry.interfaces.Breadcrumbs": {
+  "extra": {"c": "d"},
+  "exception": {
     "values": [
       {
-        "timestamp": 1463071692.0,
-        "type": "ui_event",
-        "data": {
-          "type": "button",
-          "target": "onClickBreak"
+        "value": "Attempted to dereference null pointer.\nOriginated at or in a subcall of ViewController.causeCrash(Any) -> ()",
+        "mechanism": {
+          "type": "mach",
+          "meta": {
+            "signal": {
+              "code": 0,
+              "name": "SIGBUS",
+              "number": 10,
+              "code_name": "BUS_NOOP"
+            },
+            "mach_exception": {
+              "code": 0,
+              "subcode": 8,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS"
+            }
+          }
+        },
+        "thread_id": 0,
+        "type": "EXC_BAD_ACCESS",
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/usr/lib/system/libdyld.dylib",
+              "symbol_addr": "0x0000000190609598",
+              "image_addr": "0x0000000190605000",
+              "function": "<redacted>",
+              "instruction_addr": "0x000000019060959c"
+            },
+            {
+              "package": "/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/sentry-ios-cocoapods",
+              "symbol_addr": "0x000000010008d994",
+              "image_addr": "0x0000000100084000",
+              "function": "main",
+              "instruction_addr": "0x000000010008d9e0"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x00000001978b5bcc",
+              "image_addr": "0x0000000197841000",
+              "function": "UIApplicationMain",
+              "instruction_addr": "0x00000001978b5c9c"
+            },
+            {
+              "package": "/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices",
+              "symbol_addr": "0x0000000193065010",
+              "image_addr": "0x0000000193059000",
+              "function": "GSEventRunModal",
+              "instruction_addr": "0x0000000193065074"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "symbol_addr": "0x00000001915fabfc",
+              "image_addr": "0x00000001915f2000",
+              "function": "CFRunLoopRunSpecific",
+              "instruction_addr": "0x00000001915fada4"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "symbol_addr": "0x00000001916ca6c0",
+              "image_addr": "0x00000001915f2000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001916ca9a8"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "symbol_addr": "0x00000001916ccb80",
+              "image_addr": "0x00000001915f2000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001916ccd9c"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "symbol_addr": "0x00000001916cd414",
+              "image_addr": "0x00000001915f2000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001916cd42c"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000198045514",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001980455a8"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x00000001980440d0",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x000000019804517c"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x000000019804a0c0",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x000000019804aa20"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000197850e2c",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000197850f80"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x000000019787f6f4",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x000000019788036c"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000197884624",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000197884fd4"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000197885278",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001978854b8"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x000000019786ff90",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000197870148"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000197885b84",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000197885bd4"
+            },
+            {
+              "package": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/Sentry.framework/Sentry",
+              "symbol_addr": "0x00000001000ad5c4",
+              "image_addr": "0x00000001000a4000",
+              "function": "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2",
+              "instruction_addr": "0x00000001000adb08"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000197885bf4",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000197885c54"
+            },
+            {
+              "package": "/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/sentry-ios-cocoapods",
+              "symbol_addr": "0x000000010008c5e8",
+              "image_addr": "0x0000000100084000",
+              "function": "@objc ViewController.causeCrash(Any) -> ()",
+              "instruction_addr": "0x000000010008c630"
+            },
+            {
+              "package": "/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/sentry-ios-cocoapods",
+              "symbol_addr": "0x000000010008c500",
+              "image_addr": "0x0000000100084000",
+              "function": "ViewController.causeCrash(Any) -> ()",
+              "instruction_addr": "0x000000010008c5ac"
+            },
+            {
+              "package": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/Sentry.framework/Sentry",
+              "symbol_addr": "0x00000001000b0be4",
+              "image_addr": "0x00000001000a4000",
+              "function": "-[SentryClient crash]",
+              "instruction_addr": "0x00000001000b0bfc"
+            }
+          ],
+          "registers": {
+            "x21": "0x000000010008e4de",
+            "x29": "0x000000016fd79870",
+            "x2": "0x0000000000000000",
+            "x16": "0x0000000000591601",
+            "x3": "0x00000001740eb200",
+            "x22": "0x000000010fe0a470",
+            "x4": "0x00000001740eb200",
+            "x17": "0x00000001000b0be4",
+            "cpsr": "0x0000000060000000",
+            "x5": "0x00000001740eb200",
+            "x23": "0x000000010fe0a470",
+            "x6": "0x0000000000000000",
+            "x18": "0x0000000000000000",
+            "x10": "0x00000001b7886ff0",
+            "lr": "0x000000010008c5ac",
+            "x7": "0x0000000000000002",
+            "x24": "0x0000000174008ba0",
+            "x11": "0x0059160100591680",
+            "x8": "0x0000000000000000",
+            "x19": "0x00000001740eb200",
+            "x25": "0x0000000000000000",
+            "x9": "0x00000001b7886fec",
+            "x12": "0x0000000000000000",
+            "fp": "0x000000016fd79870",
+            "x26": "0x000000019838eb61",
+            "x13": "0x0000000000591600",
+            "pc": "0x00000001000b0bfc",
+            "x27": "0x0000000000000001",
+            "x14": "0x0000000000591700",
+            "x20": "0x000000010fd08db0",
+            "x0": "0x00000001700eee80",
+            "sp": "0x000000016fd79810",
+            "x28": "0x0000000170046c60",
+            "x15": "0x00000000005916c0",
+            "x1": "0x000000010008e49c"
+          }
         }
       }
     ]
   },
-  "sentry.interfaces.Exception": {
-    "values": [
-      {
-        "stacktrace": {
-          "frames": [
-            {
-              "function": "start",
-              "abs_path": null,
-              "instruction_offset": 1,
-              "package": "libdyld.dylib",
-              "filename": null,
-              "symbol_addr": "0x00064f9e8",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00064f9e9"
-            },
-            {
-              "function": "main",
-              "abs_path": "/Users/josh/iOS/Sentry/RavenSwift/Examples/SwiftTVOSExample/SwiftTVOSExample/AppDelegate.swift",
-              "instruction_offset": null,
-              "package": "SwiftTVOSExample",
-              "filename": "AppDelegate.swift",
-              "symbol_addr": "0x00d93c230",
-              "lineno": 12,
-              "in_app": true,
-              "instruction_addr": "0x00d93c2a2"
-            },
-            {
-              "function": "UIApplicationMain",
-              "abs_path": null,
-              "instruction_offset": 171,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e4ad7ea",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e4ad895"
-            },
-            {
-              "function": "GSEventRunModal",
-              "abs_path": null,
-              "instruction_offset": 161,
-              "package": "GraphicsServices",
-              "filename": null,
-              "symbol_addr": "0x0022f0a31",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x0022f0ad2"
-            },
-            {
-              "function": "CFRunLoopRunSpecific",
-              "abs_path": null,
-              "instruction_offset": 488,
-              "package": "CoreFoundation",
-              "filename": null,
-              "symbol_addr": "0x00dba1030",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00dba1218"
-            },
-            {
-              "function": "__CFRunLoopRun",
-              "abs_path": null,
-              "instruction_offset": 867,
-              "package": "CoreFoundation",
-              "filename": null,
-              "symbol_addr": "0x00dba14a0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00dba1803"
-            },
-            {
-              "function": "__CFRunLoopDoSources0",
-              "abs_path": null,
-              "instruction_offset": 556,
-              "package": "CoreFoundation",
-              "filename": null,
-              "symbol_addr": "0x00dba2120",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00dba234c"
-            },
-            {
-              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
-              "abs_path": null,
-              "instruction_offset": 17,
-              "package": "CoreFoundation",
-              "filename": null,
-              "symbol_addr": "0x00dbac410",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00dbac421"
-            },
-            {
-              "function": "_UIApplicationHandleEventQueue",
-              "abs_path": null,
-              "instruction_offset": 5480,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e4a647b",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e4a79e3"
-            },
-            {
-              "function": "-[UIApplication handleKeyHIDEvent:]",
-              "abs_path": null,
-              "instruction_offset": 634,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e4cea7d",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e4cecf7"
-            },
-            {
-              "function": "-[UIApplication handleKeyUIEvent:]",
-              "abs_path": null,
-              "instruction_offset": 79,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e4ced18",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e4ced67"
-            },
-            {
-              "function": "-[UIResponder _handleKeyUIEvent:]",
-              "abs_path": null,
-              "instruction_offset": 79,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e6c3204",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e6c3253"
-            },
-            {
-              "function": "-[UIResponder _handleKeyUIEvent:]",
-              "abs_path": null,
-              "instruction_offset": 79,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e6c3204",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e6c3253"
-            },
-            {
-              "function": "-[UIResponder _handleKeyUIEvent:]",
-              "abs_path": null,
-              "instruction_offset": 79,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e6c3204",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e6c3253"
-            },
-            {
-              "function": "-[UIApplication _handleKeyUIEvent:]",
-              "abs_path": null,
-              "instruction_offset": 2420,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e4cf032",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e4cf9a6"
-            },
-            {
-              "function": "-[UIApplication _sendButtonEventWithPressInfo:]",
-              "abs_path": null,
-              "instruction_offset": 302,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e4c3070",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e4c319e"
-            },
-            {
-              "function": "-[UIApplication sendEvent:]",
-              "abs_path": null,
-              "instruction_offset": 263,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e4ce4bf",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e4ce5c6"
-            },
-            {
-              "function": "-[UIWindow sendEvent:]",
-              "abs_path": null,
-              "instruction_offset": 999,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e522a5b",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e522e42"
-            },
-            {
-              "function": "-[UIWindow _sendButtonGesturesForEvent:]",
-              "abs_path": null,
-              "instruction_offset": 1042,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e5221e3",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e5225f5"
-            },
-            {
-              "function": "_UIGestureRecognizerUpdate",
-              "abs_path": null,
-              "instruction_offset": 2634,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e99612f",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e996b79"
-            },
-            {
-              "function": "_UIGestureRecognizerRemoveObjectsFromArrayAndApplyBlocks",
-              "abs_path": null,
-              "instruction_offset": 342,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e9a90a1",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e9a91f7"
-            },
-            {
-              "function": "___UIGestureRecognizerUpdate_block_invoke898",
-              "abs_path": null,
-              "instruction_offset": 79,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e9a930a",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e9a9359"
-            },
-            {
-              "function": "-[UIGestureRecognizer _updateGestureWithEvent:buttonEvent:]",
-              "abs_path": null,
-              "instruction_offset": 843,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e9a0b50",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e9a0e9b"
-            },
-            {
-              "function": "_UIGestureRecognizerSendActions",
-              "abs_path": null,
-              "instruction_offset": 162,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e9a2dfc",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e9a2e9e"
-            },
-            {
-              "function": "_UIGestureRecognizerSendTargetActions",
-              "abs_path": null,
-              "instruction_offset": 153,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e9a6793",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e9a682c"
-            },
-            {
-              "function": "-[UIControl _sendActionsForEvents:withEvent:]",
-              "abs_path": null,
-              "instruction_offset": 327,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e622718",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e62285f"
-            },
-            {
-              "function": "-[UIControl sendAction:to:forEvent:]",
-              "abs_path": null,
-              "instruction_offset": 67,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e622540",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e622583"
-            },
-            {
-              "function": "-[UIApplication sendAction:to:from:forEvent:]",
-              "abs_path": null,
-              "instruction_offset": 92,
-              "package": "UIKit",
-              "filename": null,
-              "symbol_addr": "0x00e4af3bd",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00e4af419"
-            },
-            {
-              "function": "@objc SwiftTVOSExample.ViewController.onClickBreak (Swift.AnyObject) -> ()",
-              "abs_path": "/Users/josh/iOS/Sentry/RavenSwift/Examples/SwiftTVOSExample/SwiftTVOSExample/ViewController.swift",
-              "instruction_offset": 54,
-              "package": "SwiftTVOSExample",
-              "filename": "ViewController.swift",
-              "symbol_addr": "0x00d93ad50",
-              "lineno": 0,
-              "in_app": true,
-              "instruction_addr": "0x00d93ad86"
-            },
-            {
-              "function": "SwiftTVOSExample.ViewController.onClickBreak (Swift.AnyObject) -> ()",
-              "abs_path": "/Users/josh/iOS/Sentry/RavenSwift/Examples/SwiftTVOSExample/SwiftTVOSExample/ViewController.swift",
-              "instruction_offset": null,
-              "package": "SwiftTVOSExample",
-              "filename": "ViewController.swift",
-              "symbol_addr": "0x00d93a9d0",
-              "lineno": 65,
-              "in_app": true,
-              "instruction_addr": "0x00d93acc7"
-            },
-            {
-              "function": "function signature specialization <Arg[0] = Exploded, Arg[1] = Exploded, Arg[2] = Dead, Arg[3] = Dead> of Swift._fatalErrorMessage (Swift.StaticString, Swift.StaticString, Swift.StaticString, Swift.UInt) -> ()",
-              "abs_path": null,
-              "instruction_offset": 40,
-              "package": "libswiftCore.dylib",
-              "filename": null,
-              "symbol_addr": "0x00ffcd0d0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x00ffcd0f8"
-            }
-          ]
-        },
-        "thread_id": 0,
-        "type": "NSRangeException",
-        "mechanism": {
-          "posix_signal": {
-            "signal": 6,
-            "code": 0,
-            "name": "SIGABRT",
-            "code_name": null
-          },
-          "type": "cocoa",
-          "mach_exception": {
-            "subcode": 0,
-            "code": 0,
-            "exception": 10,
-            "exception_name": "EXC_CRASH"
-          }
-        },
-        "value": "*** -[__NSArray0 objectAtIndex:]: index 3 beyond bounds for empty NSArray"
+  "release": "io.sentry.sentry-ios-cocoapods-1.0",
+  "dist": "1",
+  "tags": {"a": "b"},
+  "breadcrumbs": [
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:37:08Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    },
+    {
+      "message": "viewDidAppear",
+      "timestamp": "2017-08-04T07:37:08Z",
+      "level": "info",
+      "type": "navigation",
+      "category": "UIViewController",
+      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x100e09ec0>"}
+    },
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:37:22Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    },
+    {
+      "message": "viewDidAppear",
+      "timestamp": "2017-08-04T07:37:22Z",
+      "level": "info",
+      "type": "navigation",
+      "category": "UIViewController",
+      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x11be073c0>"}
+    },
+    {
+      "message": "causeCrash:",
+      "timestamp": "2017-08-04T07:37:24Z",
+      "level": "info",
+      "type": "user",
+      "category": "touch",
+      "data": {
+        "view": "<UIButton: 0x11be09660; frame = (186.667 415.667; 41 30); opaque = NO; autoresize = RM+BM; layer = <CALayer: 0x170038560>>"
       }
-    ]
-  },
+    },
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:37:26Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    },
+    {
+      "message": "viewDidAppear",
+      "timestamp": "2017-08-04T07:37:26Z",
+      "level": "info",
+      "type": "navigation",
+      "category": "UIViewController",
+      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x100d07290>"}
+    },
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:38:54Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    },
+    {
+      "message": "viewDidAppear",
+      "timestamp": "2017-08-04T07:38:54Z",
+      "level": "info",
+      "type": "navigation",
+      "category": "UIViewController",
+      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x135d07810>"}
+    },
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:39:00Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    },
+    {
+      "message": "viewDidAppear",
+      "timestamp": "2017-08-04T07:39:00Z",
+      "level": "info",
+      "type": "navigation",
+      "category": "UIViewController",
+      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x100d06c30>"}
+    },
+    {
+      "message": "causeCrash:",
+      "timestamp": "2017-08-04T07:39:01Z",
+      "level": "info",
+      "type": "user",
+      "category": "touch",
+      "data": {
+        "view": "<UIButton: 0x100d096b0; frame = (186.667 415.667; 41 30); opaque = NO; autoresize = RM+BM; layer = <CALayer: 0x17402ffe0>>"
+      }
+    },
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:39:08Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    },
+    {
+      "message": "viewDidAppear",
+      "timestamp": "2017-08-04T07:39:08Z",
+      "level": "info",
+      "type": "navigation",
+      "category": "UIViewController",
+      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x121d0b3b0>"}
+    },
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:52:05Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    },
+    {
+      "message": "viewDidAppear",
+      "timestamp": "2017-08-04T07:52:05Z",
+      "level": "info",
+      "type": "navigation",
+      "category": "UIViewController",
+      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x119d05040>"}
+    },
+    {
+      "message": "causeCrash:",
+      "timestamp": "2017-08-04T07:52:07Z",
+      "level": "info",
+      "type": "user",
+      "category": "touch",
+      "data": {
+        "view": "<UIButton: 0x119e0f3e0; frame = (186.667 415.667; 41 30); opaque = NO; autoresize = RM+BM; layer = <CALayer: 0x174027d60>>"
+      }
+    },
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:52:11Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    },
+    {
+      "message": "viewDidAppear",
+      "timestamp": "2017-08-04T07:52:11Z",
+      "level": "info",
+      "type": "navigation",
+      "category": "UIViewController",
+      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x100d010e0>"}
+    },
+    {
+      "message": "sendMessage:",
+      "timestamp": "2017-08-04T07:52:16Z",
+      "level": "info",
+      "type": "user",
+      "category": "touch",
+      "data": {
+        "view": "<UIButton: 0x100d0a9b0; frame = (156.667 353; 101 30); opaque = NO; autoresize = RM+BM; layer = <CALayer: 0x17002a700>>"
+      }
+    },
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:56:58Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    },
+    {
+      "message": "viewDidAppear",
+      "timestamp": "2017-08-04T07:56:58Z",
+      "level": "info",
+      "type": "navigation",
+      "category": "UIViewController",
+      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x100d0a050>"}
+    },
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:57:10Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    },
+    {
+      "message": "viewDidAppear",
+      "timestamp": "2017-08-04T07:57:11Z",
+      "level": "info",
+      "type": "navigation",
+      "category": "UIViewController",
+      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x10fe0a470>"}
+    },
+    {
+      "message": "causeCrash:",
+      "timestamp": "2017-08-04T07:57:12Z",
+      "level": "info",
+      "type": "user",
+      "category": "touch",
+      "data": {
+        "view": "<UIButton: 0x10fd08db0; frame = (186.667 415.667; 41 30); opaque = NO; autoresize = RM+BM; layer = <CALayer: 0x17002e260>>"
+      }
+    },
+    {
+      "message": "Breadcrumb Tracking",
+      "timestamp": "2017-08-04T07:57:16Z",
+      "level": "info",
+      "type": "debug",
+      "category": "started"
+    }
+  ],
+  "level": "fatal",
+  "platform": "cocoa",
   "threads": {
     "values": [
       {
-        "current": true,
-        "crashed": true,
         "id": 0,
-        "name": null,
-        "stacktrace": null
-      },
-      {
         "current": false,
-        "crashed": false,
-        "id": 1,
-        "name": null,
+        "crashed": true,
         "stacktrace": {
           "frames": [
             {
+              "package": "/usr/lib/system/libdyld.dylib",
+              "symbol_addr": "0x0000000190609598",
+              "image_addr": "0x0000000190605000",
               "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 52,
-              "package": "/usr/lib/system/libdispatch.dylib",
-              "filename": null,
-              "symbol_addr": "0x002a93614",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002a93648"
+              "instruction_addr": "0x000000019060959c"
             },
             {
-              "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 232,
-              "package": "/usr/lib/system/libdispatch.dylib",
-              "filename": null,
-              "symbol_addr": "0x002aa46f0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002aa47d8"
+              "package": "/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/sentry-ios-cocoapods",
+              "symbol_addr": "0x000000010008d994",
+              "image_addr": "0x0000000100084000",
+              "function": "main",
+              "instruction_addr": "0x000000010008d9e0"
             },
             {
-              "function": "kevent_qos",
-              "abs_path": null,
-              "instruction_offset": 8,
-              "package": "/usr/lib/system/libsystem_kernel.dylib",
-              "filename": null,
-              "symbol_addr": "0x002be14d0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002be14d8"
-            }
-          ]
-        }
-      },
-      {
-        "current": false,
-        "crashed": false,
-        "id": 2,
-        "name": null,
-        "stacktrace": {
-          "frames": [
-            {
-              "function": "_pthread_start",
-              "abs_path": null,
-              "instruction_offset": 156,
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "filename": null,
-              "symbol_addr": "0x002cab9f0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002caba8c"
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x00000001978b5bcc",
+              "image_addr": "0x0000000197841000",
+              "function": "UIApplicationMain",
+              "instruction_addr": "0x00000001978b5c9c"
             },
             {
-              "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 156,
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "filename": null,
-              "symbol_addr": "0x002caba8c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002cabb28"
+              "package": "/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices",
+              "symbol_addr": "0x0000000193065010",
+              "image_addr": "0x0000000193059000",
+              "function": "GSEventRunModal",
+              "instruction_addr": "0x0000000193065074"
             },
             {
-              "function": "ksmachexc_i_handleExceptions",
-              "abs_path": null,
-              "instruction_offset": 168,
-              "package": "/private/var/containers/Bundle/Application/CDB578A5-7B13-44A7-88BE-4D3867D11CF7/SentryTest.app/Frameworks/KSCrash.framework/KSCrash",
-              "filename": null,
-              "symbol_addr": "0x0000f327c",
-              "lineno": null,
-              "in_app": true,
-              "instruction_addr": "0x0000f3324"
-            },
-            {
-              "function": "thread_suspend",
-              "abs_path": null,
-              "instruction_offset": 80,
-              "package": "/usr/lib/system/libsystem_kernel.dylib",
-              "filename": null,
-              "symbol_addr": "0x002bc9138",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002bc9188"
-            },
-            {
-              "function": "mach_msg",
-              "abs_path": null,
-              "instruction_offset": 72,
-              "package": "/usr/lib/system/libsystem_kernel.dylib",
-              "filename": null,
-              "symbol_addr": "0x002bc4e0c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002bc4e54"
-            },
-            {
-              "function": "mach_msg_trap",
-              "abs_path": null,
-              "instruction_offset": 8,
-              "package": "/usr/lib/system/libsystem_kernel.dylib",
-              "filename": null,
-              "symbol_addr": "0x002bc4fd0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002bc4fd8"
-            }
-          ]
-        }
-      },
-      {
-        "current": false,
-        "crashed": false,
-        "id": 3,
-        "name": null,
-        "stacktrace": {
-          "frames": [
-            {
-              "function": "_pthread_start",
-              "abs_path": null,
-              "instruction_offset": 156,
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "filename": null,
-              "symbol_addr": "0x002cab9f0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002caba8c"
-            },
-            {
-              "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 156,
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "filename": null,
-              "symbol_addr": "0x002caba8c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002cabb28"
-            },
-            {
-              "function": "ksmachexc_i_handleExceptions",
-              "abs_path": null,
-              "instruction_offset": 220,
-              "package": "/private/var/containers/Bundle/Application/CDB578A5-7B13-44A7-88BE-4D3867D11CF7/SentryTest.app/Frameworks/KSCrash.framework/KSCrash",
-              "filename": null,
-              "symbol_addr": "0x0000f327c",
-              "lineno": null,
-              "in_app": true,
-              "instruction_addr": "0x0000f3358"
-            },
-            {
-              "function": "mach_msg",
-              "abs_path": null,
-              "instruction_offset": 72,
-              "package": "/usr/lib/system/libsystem_kernel.dylib",
-              "filename": null,
-              "symbol_addr": "0x002bc4e0c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002bc4e54"
-            },
-            {
-              "function": "mach_msg_trap",
-              "abs_path": null,
-              "instruction_offset": 8,
-              "package": "/usr/lib/system/libsystem_kernel.dylib",
-              "filename": null,
-              "symbol_addr": "0x002bc4fd0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002bc4fd8"
-            }
-          ]
-        }
-      },
-      {
-        "current": false,
-        "crashed": false,
-        "id": 4,
-        "name": null,
-        "stacktrace": {
-          "frames": [
-            {
-              "function": "_pthread_start",
-              "abs_path": null,
-              "instruction_offset": 156,
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "filename": null,
-              "symbol_addr": "0x002cab9f0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002caba8c"
-            },
-            {
-              "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 156,
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "filename": null,
-              "symbol_addr": "0x002caba8c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002cabb28"
-            },
-            {
-              "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 1000,
-              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
-              "filename": null,
-              "symbol_addr": "0x003a1ba64",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x003a1be4c"
-            },
-            {
-              "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 412,
-              "package": "/System/Library/Frameworks/CFNetwork.framework/CFNetwork",
-              "filename": null,
-              "symbol_addr": "0x0036a5acc",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x0036a5c68"
-            },
-            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "symbol_addr": "0x00000001915fabfc",
+              "image_addr": "0x00000001915f2000",
               "function": "CFRunLoopRunSpecific",
-              "abs_path": null,
-              "instruction_offset": 384,
-              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
-              "filename": null,
-              "symbol_addr": "0x002f24ad0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002f24c50"
+              "instruction_addr": "0x00000001915fada4"
             },
             {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "symbol_addr": "0x00000001916ca6c0",
+              "image_addr": "0x00000001915f2000",
               "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 1032,
-              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
-              "filename": null,
-              "symbol_addr": "0x002ffa55c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002ffa964"
+              "instruction_addr": "0x00000001916ca9a8"
             },
             {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "symbol_addr": "0x00000001916ccb80",
+              "image_addr": "0x00000001915f2000",
               "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 196,
+              "instruction_addr": "0x00000001916ccd9c"
+            },
+            {
               "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
-              "filename": null,
-              "symbol_addr": "0x002ffcb9c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002ffcc60"
+              "symbol_addr": "0x00000001916cd414",
+              "image_addr": "0x00000001915f2000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001916cd42c"
             },
             {
-              "function": "mach_msg",
-              "abs_path": null,
-              "instruction_offset": 72,
-              "package": "/usr/lib/system/libsystem_kernel.dylib",
-              "filename": null,
-              "symbol_addr": "0x002bc4e0c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002bc4e54"
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000198045514",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001980455a8"
             },
             {
-              "function": "mach_msg_trap",
-              "abs_path": null,
-              "instruction_offset": 8,
-              "package": "/usr/lib/system/libsystem_kernel.dylib",
-              "filename": null,
-              "symbol_addr": "0x002bc4fd0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002bc4fd8"
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x00000001980440d0",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x000000019804517c"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x000000019804a0c0",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x000000019804aa20"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000197850e2c",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000197850f80"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x000000019787f6f4",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x000000019788036c"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000197884624",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000197884fd4"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000197885278",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001978854b8"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x000000019786ff90",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000197870148"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000197885b84",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000197885bd4"
+            },
+            {
+              "package": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/Sentry.framework/Sentry",
+              "symbol_addr": "0x00000001000ad5c4",
+              "image_addr": "0x00000001000a4000",
+              "function": "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2",
+              "instruction_addr": "0x00000001000adb08"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x0000000197885bf4",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000197885c54"
+            },
+            {
+              "package": "/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/sentry-ios-cocoapods",
+              "symbol_addr": "0x000000010008c5e8",
+              "image_addr": "0x0000000100084000",
+              "function": "@objc ViewController.causeCrash(Any) -> ()",
+              "instruction_addr": "0x000000010008c630"
+            },
+            {
+              "package": "/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/sentry-ios-cocoapods",
+              "symbol_addr": "0x000000010008c500",
+              "image_addr": "0x0000000100084000",
+              "function": "ViewController.causeCrash(Any) -> ()",
+              "instruction_addr": "0x000000010008c5ac"
+            },
+            {
+              "package": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/Sentry.framework/Sentry",
+              "symbol_addr": "0x00000001000b0be4",
+              "image_addr": "0x00000001000a4000",
+              "function": "-[SentryClient crash]",
+              "instruction_addr": "0x00000001000b0bfc"
             }
-          ]
+          ],
+          "registers": {
+            "x21": "0x000000010008e4de",
+            "x29": "0x000000016fd79870",
+            "x2": "0x0000000000000000",
+            "x16": "0x0000000000591601",
+            "x3": "0x00000001740eb200",
+            "x22": "0x000000010fe0a470",
+            "x4": "0x00000001740eb200",
+            "x17": "0x00000001000b0be4",
+            "cpsr": "0x0000000060000000",
+            "x5": "0x00000001740eb200",
+            "x23": "0x000000010fe0a470",
+            "x6": "0x0000000000000000",
+            "x18": "0x0000000000000000",
+            "x10": "0x00000001b7886ff0",
+            "lr": "0x000000010008c5ac",
+            "x7": "0x0000000000000002",
+            "x24": "0x0000000174008ba0",
+            "x11": "0x0059160100591680",
+            "x8": "0x0000000000000000",
+            "x19": "0x00000001740eb200",
+            "x25": "0x0000000000000000",
+            "x9": "0x00000001b7886fec",
+            "x12": "0x0000000000000000",
+            "fp": "0x000000016fd79870",
+            "x26": "0x000000019838eb61",
+            "x13": "0x0000000000591600",
+            "pc": "0x00000001000b0bfc",
+            "x27": "0x0000000000000001",
+            "x14": "0x0000000000591700",
+            "x20": "0x000000010fd08db0",
+            "x0": "0x00000001700eee80",
+            "sp": "0x000000016fd79810",
+            "x28": "0x0000000170046c60",
+            "x15": "0x00000000005916c0",
+            "x1": "0x000000010008e49c"
+          }
         }
       },
       {
+        "id": 1,
         "current": false,
         "crashed": false,
-        "id": 5,
-        "name": null,
         "stacktrace": {
           "frames": [
             {
-              "function": "_pthread_start",
-              "abs_path": null,
-              "instruction_offset": 156,
               "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "filename": null,
-              "symbol_addr": "0x002cab9f0",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002caba8c"
-            },
-            {
-              "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 156,
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "filename": null,
-              "symbol_addr": "0x002caba8c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002cabb28"
-            },
-            {
-              "function": "<redacted>",
-              "abs_path": null,
-              "instruction_offset": 648,
-              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
-              "filename": null,
-              "symbol_addr": "0x003002f40",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x0030031c8"
-            },
-            {
-              "function": "select$DARWIN_EXTSN",
-              "abs_path": null,
-              "instruction_offset": 8,
-              "package": "/usr/lib/system/libsystem_kernel.dylib",
-              "filename": null,
-              "symbol_addr": "0x002be033c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002be0344"
-            }
-          ]
-        }
-      },
-      {
-        "current": false,
-        "crashed": false,
-        "id": 6,
-        "name": null,
-        "stacktrace": {
-          "frames": [
-            {
+              "symbol_addr": "0x00000001907decb8",
+              "image_addr": "0x00000001907de000",
               "function": "_pthread_wqthread",
-              "abs_path": null,
-              "instruction_offset": 1284,
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "filename": null,
-              "symbol_addr": "0x002ca902c",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002ca9530"
+              "instruction_addr": "0x00000001907df1a4"
             },
             {
-              "function": "__workq_kernreturn",
-              "abs_path": null,
-              "instruction_offset": 8,
               "package": "/usr/lib/system/libsystem_kernel.dylib",
-              "filename": null,
-              "symbol_addr": "0x002be0b40",
-              "lineno": null,
-              "in_app": false,
-              "instruction_addr": "0x002be0b48"
+              "symbol_addr": "0x0000000190719a80",
+              "image_addr": "0x00000001906fa000",
+              "function": "__workq_kernreturn",
+              "instruction_addr": "0x0000000190719a88"
             }
-          ]
+          ],
+          "registers": {
+            "x21": "0x0000000000270019",
+            "x29": "0x000000016dfcaf70",
+            "x2": "0x0000000000000000",
+            "x16": "0x0000000000000170",
+            "x3": "0x0000000000000000",
+            "x22": "0x0000000000000000",
+            "x4": "0x00000000080010ff",
+            "x17": "0x0000000191619c10",
+            "cpsr": "0x0000000000000000",
+            "x5": "0x0000000000000000",
+            "x23": "0x0000000000000d03",
+            "x6": "0x0000000000000000",
+            "x18": "0x0000000000000000",
+            "x10": "0x0000000000000001",
+            "lr": "0x00000001907df1a4",
+            "x7": "0x0000000000000000",
+            "x24": "0x00000001b788d000",
+            "x11": "0x0000000000000000",
+            "x8": "0x0000000000000002",
+            "x19": "0x000000016dfcb000",
+            "x25": "0x00000001b788d000",
+            "x9": "0x000000017409b4ec",
+            "x12": "0x0030000400000d03",
+            "fp": "0x000000016dfcaf70",
+            "x26": "0x0000000000000000",
+            "x13": "0x0000000000000000",
+            "pc": "0x0000000190719a88",
+            "x27": "0x0000000080000000",
+            "x14": "0x00000001740e9edc",
+            "x20": "0x0000000000000019",
+            "x0": "0x0000000000000004",
+            "sp": "0x000000016dfcaef0",
+            "x28": "0x00000000800010ff",
+            "x15": "0xfffffff100000000",
+            "x1": "0x0000000000000000"
+          }
         }
       },
       {
+        "id": 2,
         "current": false,
         "crashed": false,
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "symbol_addr": "0x00000001907decb8",
+              "image_addr": "0x00000001907de000",
+              "function": "_pthread_wqthread",
+              "instruction_addr": "0x00000001907df1a4"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "symbol_addr": "0x0000000190719a80",
+              "image_addr": "0x00000001906fa000",
+              "function": "__workq_kernreturn",
+              "instruction_addr": "0x0000000190719a88"
+            }
+          ],
+          "registers": {
+            "x21": "0x0000000000260019",
+            "x29": "0x000000016e056f70",
+            "x2": "0x0000000000000000",
+            "x16": "0x0000000000000170",
+            "x3": "0x0000000000000000",
+            "x22": "0x0000000000000000",
+            "x4": "0x0000000000000001",
+            "x17": "0x000fffed00000000",
+            "cpsr": "0x0000000040000000",
+            "x5": "0x0000000000000000",
+            "x23": "0x0000000000000f03",
+            "x6": "0x0000000000000000",
+            "x18": "0x0000000000000000",
+            "x10": "0x0000000100c28038",
+            "lr": "0x00000001907df1a4",
+            "x7": "0x0000000000000022",
+            "x24": "0x00000001b788d000",
+            "x11": "0x0000000000000000",
+            "x8": "0x0000000000000000",
+            "x19": "0x000000016e057000",
+            "x25": "0x00000001b788d000",
+            "x9": "0x034efe9cf81f002c",
+            "x12": "0x0030000400000f03",
+            "fp": "0x000000016e056f70",
+            "x26": "0x0000000000000000",
+            "x13": "0x0000000000000000",
+            "pc": "0x0000000190719a88",
+            "x27": "0x0000000000000000",
+            "x14": "0x000000000000a000",
+            "x20": "0x0000000000000019",
+            "x0": "0x0000000000000004",
+            "sp": "0x000000016e056ef0",
+            "x28": "0x00000000000010ff",
+            "x15": "0x0000000000001080",
+            "x1": "0x0000000000000000"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "current": false,
+        "crashed": false,
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "symbol_addr": "0x00000001907decb8",
+              "image_addr": "0x00000001907de000",
+              "function": "_pthread_wqthread",
+              "instruction_addr": "0x00000001907df1a4"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "symbol_addr": "0x0000000190719a80",
+              "image_addr": "0x00000001906fa000",
+              "function": "__workq_kernreturn",
+              "instruction_addr": "0x0000000190719a88"
+            }
+          ],
+          "registers": {
+            "x21": "0x0000000000270021",
+            "x29": "0x000000016e0e2f70",
+            "x2": "0x0000000000000000",
+            "x16": "0x0000000000000170",
+            "x3": "0x0000000000000000",
+            "x22": "0x0000000000000000",
+            "x4": "0x0000000000270021",
+            "x17": "0x0000000000000000",
+            "cpsr": "0x0000000040000000",
+            "x5": "0x0000000000000000",
+            "x23": "0x0000000000001303",
+            "x6": "0x0000000000000000",
+            "x18": "0x0000000000000000",
+            "x10": "0x0000000102598038",
+            "lr": "0x00000001907df1a4",
+            "x7": "0x0000000000000000",
+            "x24": "0x00000001b788d000",
+            "x11": "0x0000000000000000",
+            "x8": "0x0000000000000000",
+            "x19": "0x000000016e0e3000",
+            "x25": "0x00000001b788d000",
+            "x9": "0x034efe9cf81f002c",
+            "x12": "0x0000000000000000",
+            "fp": "0x000000016e0e2f70",
+            "x26": "0x0000000000000000",
+            "x13": "0x00000000000020ff",
+            "pc": "0x0000000190719a88",
+            "x27": "0x0000000080000000",
+            "x14": "0x0000000000000000",
+            "x20": "0x0000000000000021",
+            "x0": "0x0000000000000004",
+            "sp": "0x000000016e0e2ef0",
+            "x28": "0x00000000800020ff",
+            "x15": "0x0000000000000000",
+            "x1": "0x0000000000000000"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "current": false,
+        "crashed": false,
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "symbol_addr": "0x00000001907decb8",
+              "image_addr": "0x00000001907de000",
+              "function": "_pthread_wqthread",
+              "instruction_addr": "0x00000001907df1a4"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "symbol_addr": "0x0000000190719a80",
+              "image_addr": "0x00000001906fa000",
+              "function": "__workq_kernreturn",
+              "instruction_addr": "0x0000000190719a88"
+            }
+          ],
+          "registers": {
+            "x21": "0x0000000000270021",
+            "x29": "0x000000016e16ef70",
+            "x2": "0x0000000000000000",
+            "x16": "0x0000000000000170",
+            "x3": "0x0000000000000000",
+            "x22": "0x0000000000000000",
+            "x4": "0x0000000000270021",
+            "x17": "0x0000000000000000",
+            "cpsr": "0x0000000040000000",
+            "x5": "0x0000000000000000",
+            "x23": "0x0000000000001403",
+            "x6": "0x0000000000000000",
+            "x18": "0x0000000000000000",
+            "x10": "0x0000000102590038",
+            "lr": "0x00000001907df1a4",
+            "x7": "0x0000000000000022",
+            "x24": "0x00000001b788d000",
+            "x11": "0x0000000000000000",
+            "x8": "0x0000000000000000",
+            "x19": "0x000000016e16f000",
+            "x25": "0x00000001b788d000",
+            "x9": "0x034efe9cf81f002c",
+            "x12": "0x0030000400001403",
+            "fp": "0x000000016e16ef70",
+            "x26": "0x0000000000000000",
+            "x13": "0x0000000000000000",
+            "pc": "0x0000000190719a88",
+            "x27": "0x0000000080000000",
+            "x14": "0x00000001700ee4dc",
+            "x20": "0x0000000000000021",
+            "x0": "0x0000000000000004",
+            "sp": "0x000000016e16eef0",
+            "x28": "0x00000000800020ff",
+            "x15": "0xfffffff100000000",
+            "x1": "0x0000000000000000"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "current": false,
+        "crashed": false,
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "symbol_addr": "0x00000001907decb8",
+              "image_addr": "0x00000001907de000",
+              "function": "_pthread_wqthread",
+              "instruction_addr": "0x00000001907defd0"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "symbol_addr": "0x0000000190719a80",
+              "image_addr": "0x00000001906fa000",
+              "function": "__workq_kernreturn",
+              "instruction_addr": "0x0000000190719a88"
+            }
+          ],
+          "registers": {
+            "x21": "0x00000000003e0021",
+            "x29": "0x000000016e1faa20",
+            "x2": "0x0000000000000001",
+            "x16": "0x0000000000000170",
+            "x3": "0x0000000000000000",
+            "x22": "0x0000000000000000",
+            "x4": "0x000000010fe06780",
+            "x17": "0x0030000000001603",
+            "cpsr": "0x0000000080000000",
+            "x5": "0x0000000000000020",
+            "x23": "0x0000000000001603",
+            "x6": "0x0000000000000000",
+            "x18": "0x0000000000000000",
+            "x10": "0x0000000000000000",
+            "lr": "0x00000001907defd0",
+            "x7": "0x0000000000000000",
+            "x24": "0x00000001b788d000",
+            "x11": "0x0000000000000000",
+            "x8": "0x0000000000000000",
+            "x19": "0x000000016e1fb000",
+            "x25": "0x00000001b788d000",
+            "x9": "0x0000000000000000",
+            "x12": "0x0000000000000000",
+            "fp": "0x000000016e1faa20",
+            "x26": "0x0000000000080000",
+            "x13": "0x0000000000000000",
+            "pc": "0x0000000190719a88",
+            "x27": "0x0000000003000000",
+            "x14": "0x0000000000000000",
+            "x20": "0x0000000000000021",
+            "x0": "0x0000000000000040",
+            "sp": "0x000000016e1fa9a0",
+            "x28": "0x00000000030020ff",
+            "x15": "0x0000000000000000",
+            "x1": "0x000000016e1fab80"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "current": false,
+        "crashed": false,
+        "name": "com.apple.uikit.eventfetch-thread",
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "symbol_addr": "0x00000001907e1480",
+              "image_addr": "0x00000001907de000",
+              "function": "_pthread_start",
+              "instruction_addr": "0x00000001907e159c"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "symbol_addr": "0x00000001907e159c",
+              "image_addr": "0x00000001907de000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001907e168c"
+            },
+            {
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "symbol_addr": "0x0000000192212f34",
+              "image_addr": "0x0000000192109000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000192213318"
+            },
+            {
+              "package": "/System/Library/Frameworks/UIKit.framework/UIKit",
+              "symbol_addr": "0x000000019823f7a8",
+              "image_addr": "0x0000000197841000",
+              "function": "<redacted>",
+              "instruction_addr": "0x000000019823f830"
+            },
+            {
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "symbol_addr": "0x0000000192136b24",
+              "image_addr": "0x0000000192109000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000192136b84"
+            },
+            {
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "symbol_addr": "0x0000000192115c84",
+              "image_addr": "0x0000000192109000",
+              "function": "<redacted>",
+              "instruction_addr": "0x0000000192115db4"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "symbol_addr": "0x00000001915fabfc",
+              "image_addr": "0x00000001915f2000",
+              "function": "CFRunLoopRunSpecific",
+              "instruction_addr": "0x00000001915fada4"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "symbol_addr": "0x00000001916ca6c0",
+              "image_addr": "0x00000001915f2000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001916caae4"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "symbol_addr": "0x00000001916ccdd0",
+              "image_addr": "0x00000001915f2000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001916cce90"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "symbol_addr": "0x00000001906fb054",
+              "image_addr": "0x00000001906fa000",
+              "function": "mach_msg",
+              "instruction_addr": "0x00000001906fb09c"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "symbol_addr": "0x00000001906fb21c",
+              "image_addr": "0x00000001906fa000",
+              "function": "mach_msg_trap",
+              "instruction_addr": "0x00000001906fb224"
+            }
+          ],
+          "registers": {
+            "x21": "0x0000000000003003",
+            "x29": "0x000000016e285da0",
+            "x2": "0x0000000000000000",
+            "x16": "0xffffffffffffffe1",
+            "x3": "0x0000000000000c00",
+            "x22": "0x0000000000000c00",
+            "x4": "0x0000000000003003",
+            "x17": "0x00000001b7894938",
+            "cpsr": "0x0000000060000000",
+            "x5": "0x00000000ffffffff",
+            "x23": "0x000000016e285e98",
+            "x6": "0x0000000000000000",
+            "x18": "0x0000000000000000",
+            "x10": "0x0000000007000100",
+            "lr": "0x00000001906fb09c",
+            "x7": "0x0000000000000000",
+            "x24": "0x0000000007000806",
+            "x11": "0x0000000000010bae",
+            "x8": "0x00000000fffffbbf",
+            "x19": "0x0000000000000000",
+            "x25": "0x0000000000000000",
+            "x9": "0x0000000007000000",
+            "x12": "0x0000250000002603",
+            "fp": "0x000000016e285da0",
+            "x26": "0x0000000007000806",
+            "x13": "0x0000000000000000",
+            "pc": "0x00000001906fb224",
+            "x27": "0x0000000000000c00",
+            "x14": "0x0000260000002600",
+            "x20": "0x00000000ffffffff",
+            "x0": "0x000000016e285e98",
+            "sp": "0x000000016e285d50",
+            "x28": "0x0000000000000001",
+            "x15": "0x0000000000000000",
+            "x1": "0x0000000007000806"
+          }
+        }
+      },
+      {
         "id": 7,
-        "name": null,
-        "stacktrace": null
+        "current": false,
+        "crashed": false,
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "symbol_addr": "0x00000001907e1480",
+              "image_addr": "0x00000001907de000",
+              "function": "_pthread_start",
+              "instruction_addr": "0x00000001907e159c"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "symbol_addr": "0x00000001907e159c",
+              "image_addr": "0x00000001907de000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001907e168c"
+            },
+            {
+              "package": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/KSCrash.framework/KSCrash",
+              "symbol_addr": "0x00000001001e93d8",
+              "image_addr": "0x00000001001b0000",
+              "function": "monitorCachedData",
+              "instruction_addr": "0x00000001001e9458"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_c.dylib",
+              "symbol_addr": "0x00000001906a1244",
+              "image_addr": "0x000000019062c000",
+              "function": "sleep",
+              "instruction_addr": "0x00000001906a1270"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_c.dylib",
+              "symbol_addr": "0x00000001906387dc",
+              "image_addr": "0x000000019062c000",
+              "function": "nanosleep",
+              "instruction_addr": "0x00000001906388b0"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "symbol_addr": "0x000000019071930c",
+              "image_addr": "0x00000001906fa000",
+              "function": "__semwait_signal",
+              "instruction_addr": "0x0000000190719314"
+            }
+          ],
+          "registers": {
+            "x21": "0x000000016e3130e0",
+            "x29": "0x000000016e312e90",
+            "x2": "0x0000000000000001",
+            "x16": "0x000000000000014e",
+            "x3": "0x0000000000000001",
+            "x22": "0x00000001001e93d8",
+            "x4": "0x0000000000000001",
+            "x17": "0x0000000000000000",
+            "cpsr": "0x0000000040000000",
+            "x5": "0x0000000000000000",
+            "x23": "0x000000000000660f",
+            "x6": "0x0000000000000000",
+            "x18": "0x0000000000000000",
+            "x10": "0x0000000000000002",
+            "lr": "0x00000001906388b0",
+            "x7": "0x0000000000000000",
+            "x24": "0x0000000000000000",
+            "x11": "0xbaddc0dedeadbead",
+            "x8": "0x00000001b788d1d0",
+            "x19": "0x000000016e312ea0",
+            "x25": "0x0000000000000000",
+            "x9": "0x00000000000003e8",
+            "x12": "0x000000017409b0d0",
+            "fp": "0x000000016e312e90",
+            "x26": "0x0000000000000000",
+            "x13": "0x0000000174264e00",
+            "pc": "0x0000000190719314",
+            "x27": "0x0000000000000000",
+            "x14": "0x000000017409b080",
+            "x20": "0x000000016e312eb0",
+            "x0": "0x0000000000000903",
+            "sp": "0x000000016e312e60",
+            "x28": "0x0000000000000000",
+            "x15": "0x000000017409afe0",
+            "x1": "0x0000000000000000"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "current": false,
+        "crashed": false,
+        "name": "KSCrash Exception Handler (Secondary)",
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "symbol_addr": "0x00000001907e1480",
+              "image_addr": "0x00000001907de000",
+              "function": "_pthread_start",
+              "instruction_addr": "0x00000001907e159c"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "symbol_addr": "0x00000001907e159c",
+              "image_addr": "0x00000001907de000",
+              "function": "<redacted>",
+              "instruction_addr": "0x00000001907e168c"
+            },
+            {
+              "package": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/KSCrash.framework/KSCrash",
+              "symbol_addr": "0x00000001001f310c",
+              "image_addr": "0x00000001001b0000",
+              "function": "handleExceptions",
+              "instruction_addr": "0x00000001001f3218"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "symbol_addr": "0x00000001906fb054",
+              "image_addr": "0x00000001906fa000",
+              "function": "mach_msg",
+              "instruction_addr": "0x00000001906fb09c"
+            },
+            {
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "symbol_addr": "0x00000001906fb21c",
+              "image_addr": "0x00000001906fa000",
+              "function": "mach_msg_trap",
+              "instruction_addr": "0x00000001906fb224"
+            }
+          ],
+          "registers": {
+            "x21": "0x0000000000006707",
+            "x29": "0x000000016e39ebc0",
+            "x2": "0x0000000000000000",
+            "x16": "0xffffffffffffffe1",
+            "x3": "0x0000000000000248",
+            "x22": "0x0000000000000248",
+            "x4": "0x0000000000006707",
+            "x17": "0x0000000000000000",
+            "cpsr": "0x0000000060000000",
+            "x5": "0x0000000000000000",
+            "x23": "0x000000016e39eca0",
+            "x6": "0x0000000000000000",
+            "x18": "0x0000000000000000",
+            "x10": "0x0000000000000479",
+            "lr": "0x00000001906fb09c",
+            "x7": "0x0000000000000000",
+            "x24": "0x0000000000000002",
+            "x11": "0x00000001ba023077",
+            "x8": "0x00000000fffffbbf",
+            "x19": "0x0000000000000000",
+            "x25": "0x0000000000000000",
+            "x9": "0x0000000100231b40",
+            "x12": "0x00000001ba023077",
+            "fp": "0x000000016e39ebc0",
+            "x26": "0x0000000000000002",
+            "x13": "0x0000000000000001",
+            "pc": "0x00000001906fb224",
+            "x27": "0x0000000000000000",
+            "x14": "0x0000000000000001",
+            "x20": "0x0000000000000000",
+            "x0": "0x000000016e39eca0",
+            "sp": "0x000000016e39eb70",
+            "x28": "0x0000000000000000",
+            "x15": "0x0000000000000881",
+            "x1": "0x0000000000000002"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "current": true,
+        "crashed": false,
+        "name": "KSCrash Exception Handler (Primary)",
+        "stacktrace": {"frames": []}
       }
     ]
   },
   "contexts": {
-    "device": {
-      "model_id": "N78AP",
-      "model": "iPod5,1",
-      "arch": "armv7f"
-    },
     "os": {
-      "kernel_version": "Darwin Kernel Version 14.0.0: Sun Mar 29 19:46:45 PDT 2015; root:xnu-2784.20.34~2/RELEASE_ARM_S5L8942X",
-      "version": "8.3",
+      "build": "14G60",
+      "rooted": false,
+      "kernel_version": "Darwin Kernel Version 16.7.0: Thu Jun 15 18:33:36 PDT 2017; root:xnu-3789.70.16~4/RELEASE_ARM64_T8010",
       "name": "iOS",
-      "build": "12F69"
+      "version": "10.3.3"
+    },
+    "app": {
+      "build_type": "debug",
+      "app_version": "1.0",
+      "app_identifier": "io.sentry.sentry-ios-cocoapods",
+      "app_start_time": "2017-08-04T07:57:10Z",
+      "device_app_hash": "5773f9b6cf12099af7a8e1d1dcfd530d13391522",
+      "app_build": "1",
+      "executable_path": "/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/sentry-ios-cocoapods",
+      "app_name": "sentry-ios-cocoapods"
+    },
+    "device": {
+      "free_memory": 186646528,
+      "arch": "arm64",
+      "boot_time": "2017-07-20T09:47:57Z",
+      "memory_size": 3143630848,
+      "storage_size": 31989477376,
+      "family": "iOS",
+      "model": "iPhone9,4",
+      "model_id": "D111AP",
+      "usable_memory": 2095349760
     }
   },
-  "sdk": {
-    "version": "1",
-    "name": "raven-swift"
-  }
+  "sdk": {"name": "sentry-cocoa", "version": "3.11.1"},
+  "debug_meta": {
+    "images": [
+      {
+        "major_version": 0,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000100000000",
+        "uuid": "6B77FFB6-5ABA-3B5F-9171-434F9660F738",
+        "image_size": 49152,
+        "image_addr": "0x0000000100084000",
+        "type": "apple",
+        "name": "/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/sentry-ios-cocoapods",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "DEA07186-E28B-3235-9DDD-6F2157237258",
+        "image_size": 491520,
+        "image_addr": "0x00000001001b0000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/KSCrash.framework/KSCrash",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "141A9203-B953-3CD6-B9FD-7BA60191A36D",
+        "image_size": 163840,
+        "image_addr": "0x00000001000a4000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/Sentry.framework/Sentry",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 802,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 53,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "900E59D2-1C9F-3A43-9D3A-E552A289103F",
+        "image_size": 2392064,
+        "image_addr": "0x0000000100284000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/libswiftCore.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 802,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 53,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "10852E11-5290-3D86-B76A-4C939972891C",
+        "image_size": 65536,
+        "image_addr": "0x00000001000fc000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/libswiftCoreGraphics.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 802,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 53,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "0E1D70FD-04D6-3E59-8A55-89D67B642E08",
+        "image_size": 32768,
+        "image_addr": "0x0000000100794000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/libswiftCoreImage.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 802,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 53,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "C037E33F-671A-3555-B4F8-8A37B5F7552E",
+        "image_size": 49152,
+        "image_addr": "0x00000001007a4000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/libswiftDarwin.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 802,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 53,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "86C2F69F-1793-30B6-AA08-1902D99B9B2C",
+        "image_size": 114688,
+        "image_addr": "0x00000001007c0000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/libswiftDispatch.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 802,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 53,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "3DF9A23A-A0C3-32BA-838C-BFCAC90E5729",
+        "image_size": 868352,
+        "image_addr": "0x000000010081c000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/libswiftFoundation.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 802,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 53,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "4AE6B062-FC0B-3D4A-A8D5-106AC89A514B",
+        "image_size": 32768,
+        "image_addr": "0x0000000100a00000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/libswiftObjectiveC.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 802,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 53,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "FA3166BA-ADD8-3863-A0E2-7BD58F3D6C8C",
+        "image_size": 32768,
+        "image_addr": "0x0000000100a14000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/libswiftQuartzCore.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 802,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 53,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "CFB0882C-7A81-35CE-824A-B3D2ABAC3DFE",
+        "image_size": 196608,
+        "image_addr": "0x0000000100a24000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/libswiftSwiftOnoneSupport.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 802,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 53,
+        "image_vmaddr": "0x0000000000000000",
+        "uuid": "6ADEDC44-48EB-35B9-8E8B-86543935A33D",
+        "image_size": 49152,
+        "image_addr": "0x0000000100b0c000",
+        "type": "apple",
+        "name": "/private/var/containers/Bundle/Application/575F9D39-D486-4728-B035-84923A0BE206/sentry-ios-cocoapods.app/Frameworks/libswiftUIKit.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 307,
+        "minor_version": 5,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018002a000",
+        "uuid": "DA0F6A86-DB85-3140-B2D7-9E3B36F28795",
+        "image_size": 352256,
+        "image_addr": "0x0000000190102000",
+        "type": "apple",
+        "name": "/usr/lib/libc++.1.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 307,
+        "minor_version": 2,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000180080000",
+        "uuid": "5DC5BA28-CFA4-3F83-8099-049D17BA9EC6",
+        "image_size": 118784,
+        "image_addr": "0x0000000190158000",
+        "type": "apple",
+        "name": "/usr/lib/libc++abi.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1238,
+        "minor_version": 60,
+        "cpu_subtype": 0,
+        "revision_version": 2,
+        "image_vmaddr": "0x0000000180028000",
+        "uuid": "AC92DD7E-5A81-380B-BA05-C91BE3A473EC",
+        "image_size": 8192,
+        "image_addr": "0x0000000190100000",
+        "type": "apple",
+        "name": "/usr/lib/libSystem.B.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 79,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018047e000",
+        "uuid": "AD6AEA81-20B3-3622-BC51-C6B39587C773",
+        "image_size": 20480,
+        "image_addr": "0x0000000190556000",
+        "type": "apple",
+        "name": "/usr/lib/system/libcache.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 218,
+        "minor_version": 60,
+        "cpu_subtype": 0,
+        "revision_version": 3,
+        "image_vmaddr": "0x0000000180706000",
+        "uuid": "A9496F18-9B71-3C25-962A-892A4B055B2B",
+        "image_size": 40960,
+        "image_addr": "0x00000001907de000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_pthread.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 3789,
+        "minor_version": 70,
+        "cpu_subtype": 0,
+        "revision_version": 16,
+        "image_vmaddr": "0x0000000180622000",
+        "uuid": "98EA0E58-1E20-3A67-A843-6A5BBBA44E35",
+        "image_size": 151552,
+        "image_addr": "0x00000001906fa000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_kernel.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 126,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 8,
+        "image_vmaddr": "0x00000001806ff000",
+        "uuid": "9EE232E0-DD6B-32FF-B5D8-D11368C4D40C",
+        "image_size": 28672,
+        "image_addr": "0x00000001907d7000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_platform.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 433,
+        "minor_version": 8,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018052d000",
+        "uuid": "E514C946-4EED-3BE5-943A-2C61D9241FAD",
+        "image_size": 20480,
+        "image_addr": "0x0000000190605000",
+        "type": "apple",
+        "name": "/usr/lib/system/libdyld.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 116,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 8,
+        "image_vmaddr": "0x0000000180674000",
+        "uuid": "684EF95E-C2A0-322B-95DF-B468ECBAAB0E",
+        "image_size": 114688,
+        "image_addr": "0x000000019074c000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_malloc.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 62,
+        "minor_version": 1,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018048f000",
+        "uuid": "0AD97345-FFF2-3BB9-9981-AC51C558BEDF",
+        "image_size": 16384,
+        "image_addr": "0x0000000190567000",
+        "type": "apple",
+        "name": "/usr/lib/system/libcompiler_rt.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 126,
+        "minor_version": 5,
+        "cpu_subtype": 0,
+        "revision_version": 1,
+        "image_vmaddr": "0x000000018072f000",
+        "uuid": "990BAB05-C7B3-33F3-BFC2-74D5EA579B71",
+        "image_size": 24576,
+        "image_addr": "0x0000000190807000",
+        "type": "apple",
+        "name": "/usr/lib/system/libunwind.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1158,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 2,
+        "image_vmaddr": "0x0000000180554000",
+        "uuid": "4FADA8FE-2343-3D16-A6BF-D9EF0CC6EE2B",
+        "image_size": 512000,
+        "image_addr": "0x000000019062c000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_c.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 3121,
+        "minor_version": 5,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000180647000",
+        "uuid": "995E702E-AA7E-3626-9F65-83F59441EE03",
+        "image_size": 184320,
+        "image_addr": "0x000000019071f000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_m.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 703,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 37,
+        "image_vmaddr": "0x00000001804fd000",
+        "uuid": "0217363B-F6CC-340E-8479-A985BD29C9AC",
+        "image_size": 196608,
+        "image_addr": "0x00000001905d5000",
+        "type": "apple",
+        "name": "/usr/lib/system/libdispatch.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 68,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000180553000",
+        "uuid": "45ADBECB-E4B9-3744-911A-A6314FBBC8FF",
+        "image_size": 4096,
+        "image_addr": "0x000000019062b000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_blocks.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 228,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001800a0000",
+        "uuid": "85F3B59B-9624-3690-B138-CE96E663BF4B",
+        "image_size": 4055040,
+        "image_addr": "0x0000000190178000",
+        "type": "apple",
+        "name": "/usr/lib/libobjc.A.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 972,
+        "minor_version": 70,
+        "cpu_subtype": 0,
+        "revision_version": 1,
+        "image_vmaddr": "0x0000000180532000",
+        "uuid": "B6CE1587-24C4-3DC1-9E29-10B5A4FBB796",
+        "image_size": 4096,
+        "image_addr": "0x000000019060a000",
+        "type": "apple",
+        "name": "/usr/lib/system/liblaunch.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 972,
+        "minor_version": 70,
+        "cpu_subtype": 0,
+        "revision_version": 1,
+        "image_vmaddr": "0x0000000180736000",
+        "uuid": "AF5617C2-A266-3815-B41E-7B6C8526074C",
+        "image_size": 159744,
+        "image_addr": "0x000000019080e000",
+        "type": "apple",
+        "name": "/usr/lib/system/libxpc.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 592,
+        "minor_version": 70,
+        "cpu_subtype": 0,
+        "revision_version": 1,
+        "image_vmaddr": "0x0000000180710000",
+        "uuid": "57284DA1-2441-3192-9A39-6EB9D924BF76",
+        "image_size": 16384,
+        "image_addr": "0x00000001907e8000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_sandbox.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 898,
+        "minor_version": 1,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000180533000",
+        "uuid": "DDBFEAA6-2560-377C-B0C7-0DAC83B53E39",
+        "image_size": 24576,
+        "image_addr": "0x000000019060b000",
+        "type": "apple",
+        "name": "/usr/lib/system/libmacho.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 349,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 5,
+        "image_vmaddr": "0x000000018053b000",
+        "uuid": "55AA3ABF-71D6-389D-8E10-F949D8C95F7F",
+        "image_size": 98304,
+        "image_addr": "0x0000000190613000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_asl.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 518,
+        "minor_version": 70,
+        "cpu_subtype": 0,
+        "revision_version": 1,
+        "image_vmaddr": "0x000000018071c000",
+        "uuid": "633C82B7-BF24-3F29-A8BA-B752896C8BC4",
+        "image_size": 77824,
+        "image_addr": "0x00000001907f4000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_trace.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 165,
+        "minor_version": 20,
+        "cpu_subtype": 0,
+        "revision_version": 1,
+        "image_vmaddr": "0x00000001806f4000",
+        "uuid": "9D36FB0B-8EE4-390C-8867-7E262E7150EC",
+        "image_size": 45056,
+        "image_addr": "0x00000001907cc000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_notify.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000180714000",
+        "uuid": "D9AE74F7-624F-3CBA-8B72-9BDCACB1F59D",
+        "image_size": 32768,
+        "image_addr": "0x00000001907ec000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_symptoms.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 503,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 4,
+        "image_vmaddr": "0x00000001805fe000",
+        "uuid": "A34410E4-9A72-3B92-80C1-7AB01CE03659",
+        "image_size": 147456,
+        "image_addr": "0x00000001906d6000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_info.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 765,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 9,
+        "image_vmaddr": "0x00000001805f7000",
+        "uuid": "7C3C9287-8AFC-3437-9443-AE3867DBAB40",
+        "image_size": 28672,
+        "image_addr": "0x00000001906cf000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_dnssd.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000180690000",
+        "uuid": "FC9A825E-BFEE-3734-A285-0DC04BA86105",
+        "image_size": 368640,
+        "image_addr": "0x0000000190768000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_network.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001806ea000",
+        "uuid": "B961B0AB-5FFC-36F4-AB95-BAC31BB84909",
+        "image_size": 40960,
+        "image_addr": "0x00000001907c2000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_networkextension.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 60092,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 5,
+        "image_vmaddr": "0x0000000180483000",
+        "uuid": "468E03D6-6481-3767-9CAA-585F8BC8E8E8",
+        "image_size": 49152,
+        "image_addr": "0x000000019055b000",
+        "type": "apple",
+        "name": "/usr/lib/system/libcommonCrypto.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 442,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 19,
+        "image_vmaddr": "0x000000018049b000",
+        "uuid": "4788430B-66EB-3612-B235-C713BF498F9A",
+        "image_size": 401408,
+        "image_addr": "0x0000000190573000",
+        "type": "apple",
+        "name": "/usr/lib/system/libcorecrypto.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 888,
+        "minor_version": 60,
+        "cpu_subtype": 0,
+        "revision_version": 2,
+        "image_vmaddr": "0x00000001805d1000",
+        "uuid": "31315DFC-E5C4-3348-BA19-ABC2205B6065",
+        "image_size": 20480,
+        "image_addr": "0x00000001906a9000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_configuration.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000180493000",
+        "uuid": "137D5A38-CAB0-3E94-A4C7-C8EB0387C098",
+        "image_size": 32768,
+        "image_addr": "0x000000019056b000",
+        "type": "apple",
+        "name": "/usr/lib/system/libcopyfile.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 45,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000180539000",
+        "uuid": "6B19D914-2952-32A8-B715-671AEF793783",
+        "image_size": 8192,
+        "image_addr": "0x0000000190611000",
+        "type": "apple",
+        "name": "/usr/lib/system/libremovefile.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001805d6000",
+        "uuid": "33505A6B-4F8E-33FA-BB90-2DABE56EA643",
+        "image_size": 24576,
+        "image_addr": "0x00000001906ae000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_containermanager.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 41,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001805dc000",
+        "uuid": "533A3435-A57B-35B4-940D-5DAD2C02994D",
+        "image_size": 8192,
+        "image_addr": "0x00000001906b4000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_coreservices.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 121,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 4,
+        "image_vmaddr": "0x00000001805de000",
+        "uuid": "CA169484-7473-3DF0-899E-CA179CBFBF1A",
+        "image_size": 102400,
+        "image_addr": "0x00000001906b6000",
+        "type": "apple",
+        "name": "/usr/lib/system/libsystem_coretls.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 0,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000180735000",
+        "uuid": "0B2A2215-8B64-3B78-8ED5-14A6B0DF9C1B",
+        "image_size": 4096,
+        "image_addr": "0x000000019080d000",
+        "type": "apple",
+        "name": "/usr/lib/system/libvminterpose.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 2,
+        "cpu_subtype": 0,
+        "revision_version": 8,
+        "image_vmaddr": "0x0000000180973000",
+        "uuid": "AB0D683D-7CF9-31E4-9E54-56A420CED72E",
+        "image_size": 73728,
+        "image_addr": "0x0000000190a4b000",
+        "type": "apple",
+        "name": "/usr/lib/libz.1.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1350,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000182031000",
+        "uuid": "B3015846-7397-3341-A352-16F9C24A4A8B",
+        "image_size": 2949120,
+        "image_addr": "0x0000000192109000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Foundation.framework/Foundation",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 9,
+        "minor_version": 2,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000182005000",
+        "uuid": "7E0EF1A7-AA7F-37EA-875A-DFCA9C334AFF",
+        "image_size": 172032,
+        "image_addr": "0x00000001920dd000",
+        "type": "apple",
+        "name": "/usr/lib/libarchive.2.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 5,
+        "image_vmaddr": "0x0000000181fc3000",
+        "uuid": "4BAFF1F2-FFFE-30AF-8C52-3142C862C520",
+        "image_size": 57344,
+        "image_addr": "0x000000019209b000",
+        "type": "apple",
+        "name": "/usr/lib/libbz2.1.0.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 10,
+        "minor_version": 9,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018194c000",
+        "uuid": "C24DDB01-1266-3C9B-BF05-B818A63AC0ED",
+        "image_size": 958464,
+        "image_addr": "0x0000000191a24000",
+        "type": "apple",
+        "name": "/usr/lib/libxml2.2.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 57,
+        "minor_version": 1,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018075d000",
+        "uuid": "4014BFCE-4232-32BB-A368-3B741170CDF0",
+        "image_size": 2187264,
+        "image_addr": "0x0000000190835000",
+        "type": "apple",
+        "name": "/usr/lib/libicucore.A.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 6,
+        "minor_version": 3,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000181fd1000",
+        "uuid": "EB9E2354-4357-3C94-8BCD-016EA00A3709",
+        "image_size": 102400,
+        "image_addr": "0x00000001920a9000",
+        "type": "apple",
+        "name": "/usr/lib/liblzma.5.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1349,
+        "minor_version": 7,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018151a000",
+        "uuid": "719044F9-5FE2-3EE0-AB14-504DEF42B100",
+        "image_size": 3678208,
+        "image_addr": "0x00000001915f2000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 811,
+        "minor_version": 5,
+        "cpu_subtype": 0,
+        "revision_version": 4,
+        "image_vmaddr": "0x0000000181c4e000",
+        "uuid": "90D5C0C0-C281-3113-ADA3-3291569DD779",
+        "image_size": 3624960,
+        "image_addr": "0x0000000191d26000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/CFNetwork.framework/CFNetwork",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018192a000",
+        "uuid": "0A7C350B-15C5-3EFD-9C08-5686C0FC271F",
+        "image_size": 139264,
+        "image_addr": "0x0000000191a02000",
+        "type": "apple",
+        "name": "/usr/lib/libMobileGestalt.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 275,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001818ae000",
+        "uuid": "F5FDE3B1-8222-3F7A-A90B-CD8145450589",
+        "image_size": 507904,
+        "image_addr": "0x0000000191986000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001818ad000",
+        "uuid": "5CFCEFFA-0BE7-3639-8124-EFBB3D80CBD1",
+        "image_size": 4096,
+        "image_addr": "0x0000000191985000",
+        "type": "apple",
+        "name": "/usr/lib/libenergytrace.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018189c000",
+        "uuid": "4F2930CF-B67E-3965-A863-F8BFB7704300",
+        "image_size": 69632,
+        "image_addr": "0x0000000191974000",
+        "type": "apple",
+        "name": "/usr/lib/libbsm.0.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 888,
+        "minor_version": 60,
+        "cpu_subtype": 0,
+        "revision_version": 2,
+        "image_vmaddr": "0x0000000181ad1000",
+        "uuid": "6891BC09-DEC3-3FCF-9D92-815F2BB3AA5C",
+        "image_size": 442368,
+        "image_addr": "0x0000000191ba9000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018e243000",
+        "uuid": "A1D866DB-0695-38FC-90AA-AE3CA1CCB13D",
+        "image_size": 499712,
+        "image_addr": "0x000000019e31b000",
+        "type": "apple",
+        "name": "/usr/lib/libnetwork.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000019b5ec000",
+        "uuid": "55F8CBE1-1D33-3B73-9E2C-027802CA3D07",
+        "image_size": 208896,
+        "image_addr": "0x00000001ab6c4000",
+        "type": "apple",
+        "name": "/usr/lib/libpcap.A.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 121,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 4,
+        "image_vmaddr": "0x000000019f335000",
+        "uuid": "852A1F8D-6706-3962-B669-9BD608EE1EEF",
+        "image_size": 4096,
+        "image_addr": "0x00000001af40d000",
+        "type": "apple",
+        "name": "/usr/lib/libcoretls.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 121,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 4,
+        "image_vmaddr": "0x000000019f336000",
+        "uuid": "85A72486-FA0E-376F-8B14-A6D19375A1B6",
+        "image_size": 8192,
+        "image_addr": "0x00000001af40e000",
+        "type": "apple",
+        "name": "/usr/lib/libcoretls_cfhelpers.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 0,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000181a36000",
+        "uuid": "287BF21C-B547-34B9-B915-74CCB4E71436",
+        "image_size": 634880,
+        "image_addr": "0x0000000191b0e000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Security.framework/Security",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 254,
+        "minor_version": 7,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000181b3d000",
+        "uuid": "8CA24BBA-70E4-36E2-B51E-00F3CE519335",
+        "image_size": 1118208,
+        "image_addr": "0x0000000191c15000",
+        "type": "apple",
+        "name": "/usr/lib/libsqlite3.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000181fea000",
+        "uuid": "A859D30F-7DE0-34A2-BEE5-AA662BC5BC2D",
+        "image_size": 110592,
+        "image_addr": "0x00000001920c2000",
+        "type": "apple",
+        "name": "/usr/lib/libCRFSuite.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018202f000",
+        "uuid": "80D66702-D7CE-30B7-B75C-3F75472697EB",
+        "image_size": 8192,
+        "image_addr": "0x0000000192107000",
+        "type": "apple",
+        "name": "/usr/lib/liblangid.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 3600,
+        "minor_version": 9,
+        "cpu_subtype": 0,
+        "revision_version": 1,
+        "image_vmaddr": "0x0000000187769000",
+        "uuid": "314063BD-F85F-321D-88D6-E24A0DE464A2",
+        "image_size": 14315520,
+        "image_addr": "0x0000000197841000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/UIKit.framework/UIKit",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 491,
+        "minor_version": 7,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000187685000",
+        "uuid": "DB0623AB-F224-3A57-8BD1-E457F6877483",
+        "image_size": 884736,
+        "image_addr": "0x000000019775d000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/UIFoundation.framework/UIFoundation",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 775,
+        "minor_version": 2,
+        "cpu_subtype": 0,
+        "revision_version": 37,
+        "image_vmaddr": "0x0000000182fe4000",
+        "uuid": "698B2612-B319-3295-B1A2-5ADCAC4B396F",
+        "image_size": 1236992,
+        "image_addr": "0x00000001930bc000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/MobileCoreServices.framework/MobileCoreServices",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 11,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018484f000",
+        "uuid": "416A878F-23C6-36FC-8D81-404FF7DD4FDC",
+        "image_size": 1957888,
+        "image_addr": "0x0000000194927000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 346,
+        "minor_version": 1,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018385e000",
+        "uuid": "FAB7B202-83E4-3D8A-A268-B7D051E3D521",
+        "image_size": 20480,
+        "image_addr": "0x0000000193936000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/AggregateDictionary.framework/AggregateDictionary",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 4,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000182a3b000",
+        "uuid": "F38DE9AC-D0BA-3A00-A1C3-2FDA7A240F38",
+        "image_size": 4096,
+        "image_addr": "0x0000000192b13000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 331,
+        "minor_version": 5,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001826dc000",
+        "uuid": "1F670947-59DE-3818-9883-0A3692EDFF0F",
+        "image_size": 2732032,
+        "image_addr": "0x00000001927b4000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vImage.framework/vImage",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 600,
+        "minor_version": 60,
+        "cpu_subtype": 0,
+        "revision_version": 1,
+        "image_vmaddr": "0x0000000182a3a000",
+        "uuid": "D21C98B0-0032-35F9-9D24-7F4F934C7641",
+        "image_size": 4096,
+        "image_addr": "0x0000000192b12000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vecLib.framework/vecLib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 600,
+        "minor_version": 60,
+        "cpu_subtype": 0,
+        "revision_version": 1,
+        "image_vmaddr": "0x00000001829c4000",
+        "uuid": "0CED33B1-008E-357E-9ACB-9D039CFF697D",
+        "image_size": 483328,
+        "image_addr": "0x0000000192a9c000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vecLib.framework/libvDSP.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 600,
+        "minor_version": 60,
+        "cpu_subtype": 0,
+        "revision_version": 1,
+        "image_vmaddr": "0x0000000182977000",
+        "uuid": "D67817CA-89B3-397A-90C1-AE1DF6855587",
+        "image_size": 155648,
+        "image_addr": "0x0000000192a4f000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vecLib.framework/libvMisc.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000182301000",
+        "uuid": "708D8599-265C-39D3-881F-C57C55BC982D",
+        "image_size": 704512,
+        "image_addr": "0x00000001923d9000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vecLib.framework/libBLAS.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001823ad000",
+        "uuid": "96E5CE22-3490-3263-AD30-C6398972D535",
+        "image_size": 3338240,
+        "image_addr": "0x0000000192485000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vecLib.framework/libLAPACK.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018299d000",
+        "uuid": "37C71C69-2DA0-3CC9-A153-4BADAB1CF6F4",
+        "image_size": 86016,
+        "image_addr": "0x0000000192a75000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vecLib.framework/libLinearAlgebra.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001829b2000",
+        "uuid": "2237C532-EBE5-39F8-AB93-C181DFA1A291",
+        "image_size": 73728,
+        "image_addr": "0x0000000192a8a000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vecLib.framework/libSparseBLAS.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000019d48b000",
+        "uuid": "61425328-1597-3D5F-9292-892FB7C2C353",
+        "image_size": 20480,
+        "image_addr": "0x00000001ad563000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vecLib.framework/libQuadrature.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000019d478000",
+        "uuid": "7B15B1FD-47DE-37CC-9423-4F1279FEBEC2",
+        "image_size": 77824,
+        "image_addr": "0x00000001ad550000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vecLib.framework/libBNNS.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001921d9000",
+        "uuid": "D2C6F8F2-D00F-365C-8725-9D1578D58306",
+        "image_size": 389120,
+        "image_addr": "0x00000001a22b1000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/CoreBrightness.framework/CoreBrightness",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183209000",
+        "uuid": "E1751132-6B56-3462-98BF-8EDFA81DBA1D",
+        "image_size": 217088,
+        "image_addr": "0x00000001932e1000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/SpringBoardServices.framework/SpringBoardServices",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 0,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001831b6000",
+        "uuid": "8783F168-ED4B-3C3F-964F-5DEFFA37B7D2",
+        "image_size": 327680,
+        "image_addr": "0x000000019328e000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/FrontBoardServices.framework/FrontBoardServices",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 0,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183112000",
+        "uuid": "FF0FEBBE-C863-37AE-AD2C-18F8AC460DEC",
+        "image_size": 401408,
+        "image_addr": "0x00000001931ea000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/BaseBoard.framework/BaseBoard",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183259000",
+        "uuid": "6206CE4A-FF19-3F5E-91D2-5DBBB2BE47BF",
+        "image_size": 36864,
+        "image_addr": "0x0000000193331000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/IOSurface.framework/IOSurface",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1070,
+        "minor_version": 22,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000182a3c000",
+        "uuid": "D53212B5-C865-39C8-9E61-28CF5E1755F1",
+        "image_size": 5525504,
+        "image_addr": "0x0000000192b14000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183184000",
+        "uuid": "9D2893BE-A3B3-3859-A3EF-4037ACBA33C2",
+        "image_size": 188416,
+        "image_addr": "0x000000019325c000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/BackBoardServices.framework/BackBoardServices",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183174000",
+        "uuid": "678B3538-9274-39DE-A29C-80B43AB5B5A6",
+        "image_size": 65536,
+        "image_addr": "0x000000019324c000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/AssertionServices.framework/AssertionServices",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 14,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000182f81000",
+        "uuid": "B5749F3F-A6F1-3CE6-8968-3DB33F23256C",
+        "image_size": 86016,
+        "image_addr": "0x0000000193059000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183bfc000",
+        "uuid": "E759626D-FF94-3930-9F66-279B3E4296CA",
+        "image_size": 36864,
+        "image_addr": "0x0000000193cd4000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/IOMobileFramebuffer.framework/IOMobileFramebuffer",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000184262000",
+        "uuid": "851F6498-F833-335F-B35E-C9E67515C2FB",
+        "image_size": 1363968,
+        "image_addr": "0x000000019433a000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/CoreText.framework/CoreText",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000184261000",
+        "uuid": "5A9FC528-5158-3AAC-96B6-745CF7AAE370",
+        "image_size": 4096,
+        "image_addr": "0x0000000194339000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/FontServices.framework/FontServices",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 0,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001832c9000",
+        "uuid": "5C024C65-5B8B-3F49-92DE-9CA2197B9183",
+        "image_size": 5824512,
+        "image_addr": "0x00000001933a1000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/ImageIO.framework/ImageIO",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183c06000",
+        "uuid": "8A64C7A8-9A14-37AD-929D-C2EA24862BE3",
+        "image_size": 401408,
+        "image_addr": "0x0000000193cde000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Metal.framework/Metal",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 702,
+        "minor_version": 2,
+        "cpu_subtype": 0,
+        "revision_version": 62,
+        "image_vmaddr": "0x0000000183c05000",
+        "uuid": "03E8A64B-5989-35F5-9089-2CB3F6A6704C",
+        "image_size": 4096,
+        "image_addr": "0x0000000193cdd000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/GPUCompiler.framework/libmetal_timestamp.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183bab000",
+        "uuid": "158C17B3-0426-340A-832A-B09982DD8843",
+        "image_size": 16384,
+        "image_addr": "0x0000000193c83000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/OpenGLES.framework/libCoreFSCache.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183ba3000",
+        "uuid": "54E24860-953B-39DD-BE13-A2DCDF76C733",
+        "image_size": 24576,
+        "image_addr": "0x0000000193c7b000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/IOAccelerator.framework/IOAccelerator",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001838ee000",
+        "uuid": "C5E41B4A-6CBF-37FB-87CD-5CD44F6906B8",
+        "image_size": 90112,
+        "image_addr": "0x00000001939c6000",
+        "type": "apple",
+        "name": "/usr/lib/libcompression.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183288000",
+        "uuid": "D8B98C13-F8D8-3200-AD41-D6B30D3C9C14",
+        "image_size": 266240,
+        "image_addr": "0x0000000193360000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/AppleJPEG.framework/AppleJPEG",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183285000",
+        "uuid": "7DD37FD2-95F9-3ECF-A894-01BBBB418DBF",
+        "image_size": 12288,
+        "image_addr": "0x000000019335d000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/IOSurfaceAccelerator.framework/IOSurfaceAccelerator",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001840c3000",
+        "uuid": "A7990CBB-692B-36A4-9280-088C24B9EC2A",
+        "image_size": 1105920,
+        "image_addr": "0x000000019419b000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/FontServices.framework/libFontParser.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 5,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183c73000",
+        "uuid": "BA0CDC15-666B-32F7-BE6F-9FCD1528C7F1",
+        "image_size": 151552,
+        "image_addr": "0x0000000193d4b000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/CoreVideo.framework/CoreVideo",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000184d53000",
+        "uuid": "996FD304-95C3-3A64-B17B-87797C54AEC2",
+        "image_size": 466944,
+        "image_addr": "0x0000000194e2b000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/ColorSync.framework/ColorSync",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183c68000",
+        "uuid": "D7898256-52AC-31C7-8F10-07FED0FF3777",
+        "image_size": 45056,
+        "image_addr": "0x0000000193d40000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/OpenGLES.framework/OpenGLES",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183bf1000",
+        "uuid": "D70B4C46-5EBE-3A9E-98C2-B82CCF8FB7D7",
+        "image_size": 45056,
+        "image_addr": "0x0000000193cc9000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/OpenGLES.framework/libGFXShared.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183baf000",
+        "uuid": "34BB7E96-428F-3C1A-BD6F-0CBB2787B9E1",
+        "image_size": 270336,
+        "image_addr": "0x0000000193c87000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/OpenGLES.framework/libGLImage.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183ba9000",
+        "uuid": "02280E05-346D-3150-9D62-AC2583F72857",
+        "image_size": 8192,
+        "image_addr": "0x0000000193c81000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/OpenGLES.framework/libCVMSPluginSupport.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183b9d000",
+        "uuid": "101BFE9A-ED0F-304B-9346-BEEAD1629A15",
+        "image_size": 24576,
+        "image_addr": "0x0000000193c75000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/OpenGLES.framework/libCoreVMClient.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183863000",
+        "uuid": "4AD93E4E-67CF-3D5E-9993-896A52FD2755",
+        "image_size": 53248,
+        "image_addr": "0x000000019393b000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/PowerLog.framework/PowerLog",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 24,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018762c000",
+        "uuid": "13E35BFF-6908-36B7-B717-F3F5FF690897",
+        "image_size": 16384,
+        "image_addr": "0x0000000197704000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/HangTracer.framework/HangTracer",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183262000",
+        "uuid": "3904292E-CD51-3A0E-8521-6E7C3ABD1101",
+        "image_size": 49152,
+        "image_addr": "0x000000019333a000",
+        "type": "apple",
+        "name": "/usr/lib/liblockdown.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018323e000",
+        "uuid": "B0463506-B6D5-3733-814F-3506384A4B7B",
+        "image_size": 110592,
+        "image_addr": "0x0000000193316000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/MobileKeyBag.framework/MobileKeyBag",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000019ba0b000",
+        "uuid": "28E420B8-A82F-33B6-AACB-A533DED3466C",
+        "image_size": 147456,
+        "image_addr": "0x00000001abae3000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/UserNotifications.framework/UserNotifications",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 432,
+        "minor_version": 4,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018753e000",
+        "uuid": "0A25C84C-F618-3EFE-AD20-A5CEA30B98AD",
+        "image_size": 811008,
+        "image_addr": "0x0000000197616000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/CoreUI.framework/CoreUI",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 2,
+        "minor_version": 8,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000019bf01000",
+        "uuid": "A427C8B8-81E4-3DAD-8D3C-812BC418D731",
+        "image_size": 671744,
+        "image_addr": "0x00000001abfd9000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/TextureIO.framework/TextureIO",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 12,
+        "cpu_subtype": 0,
+        "revision_version": 13,
+        "image_vmaddr": "0x000000019f2bc000",
+        "uuid": "8F60D460-ABD0-31ED-AF84-77A229C4006C",
+        "image_size": 495616,
+        "image_addr": "0x00000001af394000",
+        "type": "apple",
+        "name": "/usr/lib/libate.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 5,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001852e3000",
+        "uuid": "55C8F77F-B93D-3824-9B1F-B57DD83FC30C",
+        "image_size": 1875968,
+        "image_addr": "0x00000001953bb000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/CoreImage.framework/CoreImage",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 61,
+        "minor_version": 5,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000184dc5000",
+        "uuid": "E78463E7-ED83-3490-9AE0-968C5B4DDCBC",
+        "image_size": 462848,
+        "image_addr": "0x0000000194e9d000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/MetalPerformanceShaders.framework/MetalPerformanceShaders",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 3,
+        "minor_version": 1,
+        "cpu_subtype": 0,
+        "revision_version": 9,
+        "image_vmaddr": "0x0000000184e36000",
+        "uuid": "95B96615-D183-3BCF-9A7A-B6045B81A1A4",
+        "image_size": 4390912,
+        "image_addr": "0x0000000194f0e000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/FaceCore.framework/FaceCore",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 0,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000019b001000",
+        "uuid": "66EEA63B-13F3-3419-B384-F7F160084D3C",
+        "image_size": 1900544,
+        "image_addr": "0x00000001ab0d9000",
+        "type": "apple",
+        "name": "/usr/lib/libFosl_dynamic.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183f24000",
+        "uuid": "B64E8D32-C553-3E78-98E9-A631ECDA513A",
+        "image_size": 1105920,
+        "image_addr": "0x0000000193ffc000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/CoreMedia.framework/CoreMedia",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183f20000",
+        "uuid": "B8862D7A-16D8-3D22-954A-B81B89743009",
+        "image_size": 16384,
+        "image_addr": "0x0000000193ff8000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/UserFS.framework/UserFS",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 14117,
+        "minor_version": 4,
+        "cpu_subtype": 0,
+        "revision_version": 2,
+        "image_vmaddr": "0x000000018326e000",
+        "uuid": "B06BF5FA-4C9B-36F5-95A2-A8EA4A84CCA9",
+        "image_size": 94208,
+        "image_addr": "0x0000000193346000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/CrashReporterSupport.framework/CrashReporterSupport",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183dd2000",
+        "uuid": "34F7497D-8B43-383C-B402-1A8300855C94",
+        "image_size": 1368064,
+        "image_addr": "0x0000000193eaa000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/CoreAudio.framework/CoreAudio",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 29,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000182f96000",
+        "uuid": "49A44059-3A07-3CCC-B68E-F6333AD031FD",
+        "image_size": 319488,
+        "image_addr": "0x000000019306e000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/AppSupport.framework/AppSupport",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001841d1000",
+        "uuid": "388D83CB-BE32-318D-B73C-99090DE72300",
+        "image_size": 589824,
+        "image_addr": "0x00000001942a9000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/VideoToolbox.framework/VideoToolbox",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000184d42000",
+        "uuid": "31DBA485-71E5-3542-AAAE-65D36E7F7A80",
+        "image_size": 69632,
+        "image_addr": "0x0000000194e1a000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/MobileAsset.framework/MobileAsset",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000187604000",
+        "uuid": "DD7A3952-FF63-333E-BE91-D7EFF8347628",
+        "image_size": 163840,
+        "image_addr": "0x00000001976dc000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/DictionaryServices.framework/DictionaryServices",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 98,
+        "minor_version": 1,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000019df73000",
+        "uuid": "9162FA12-A5AB-3325-A413-C57DAD3DCE48",
+        "image_size": 839680,
+        "image_addr": "0x00000001ae04b000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/NLP.framework/NLP",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000184a34000",
+        "uuid": "903E2550-9E37-307E-99AF-188ED1272633",
+        "image_size": 69632,
+        "image_addr": "0x0000000194b0c000",
+        "type": "apple",
+        "name": "/usr/lib/libcmph.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 123,
+        "minor_version": 2,
+        "cpu_subtype": 0,
+        "revision_version": 5,
+        "image_vmaddr": "0x0000000184a66000",
+        "uuid": "C49BCBBA-C36D-3430-8151-388E8BF1A718",
+        "image_size": 991232,
+        "image_addr": "0x0000000194b3e000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/LanguageModeling.framework/LanguageModeling",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 40,
+        "minor_version": 3,
+        "cpu_subtype": 0,
+        "revision_version": 3,
+        "image_vmaddr": "0x000000019d8ea000",
+        "uuid": "02DE2177-A2A8-3B38-9B2D-8796F9576D41",
+        "image_size": 73728,
+        "image_addr": "0x00000001ad9c2000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/CoreEmoji.framework/CoreEmoji",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 7,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183cdf000",
+        "uuid": "1DB28A41-C3A8-3551-AAD3-61A4E072FE33",
+        "image_size": 995328,
+        "image_addr": "0x0000000193db7000",
+        "type": "apple",
+        "name": "/usr/lib/libiconv.2.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 539,
+        "minor_version": 3,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018d06c000",
+        "uuid": "A6010E00-F702-3988-9CBD-AAAF2325DF0D",
+        "image_size": 204800,
+        "image_addr": "0x000000019d144000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/DataDetectorsCore.framework/DataDetectorsCore",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 88,
+        "minor_version": 50,
+        "cpu_subtype": 0,
+        "revision_version": 3,
+        "image_vmaddr": "0x00000001970ed000",
+        "uuid": "9CE16A16-E20C-35F5-BE29-2F251083C30D",
+        "image_size": 61440,
+        "image_addr": "0x00000001a71c5000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/AppleFSCompression.framework/AppleFSCompression",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 3,
+        "minor_version": 26,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001873a8000",
+        "uuid": "3EDBCB1D-6E1D-3351-9DB3-63DAF35CFE1C",
+        "image_size": 167936,
+        "image_addr": "0x0000000197480000",
+        "type": "apple",
+        "name": "/usr/lib/libxslt.1.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000184c4f000",
+        "uuid": "96C39929-5CB1-3CAD-829C-93B5C29F0661",
+        "image_size": 94208,
+        "image_addr": "0x0000000194d27000",
+        "type": "apple",
+        "name": "/usr/lib/libmarisa.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001854ad000",
+        "uuid": "A1A56E91-CB05-34E8-815A-23FB6993B023",
+        "image_size": 327680,
+        "image_addr": "0x0000000195585000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/TextInput.framework/TextInput",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 603,
+        "minor_version": 3,
+        "cpu_subtype": 0,
+        "revision_version": 8,
+        "image_vmaddr": "0x00000001873d1000",
+        "uuid": "AA8712F0-C16F-301D-AC4D-63DC9B3AFA83",
+        "image_size": 1495040,
+        "image_addr": "0x00000001974a9000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/WebKitLegacy.framework/WebKitLegacy",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 603,
+        "minor_version": 3,
+        "cpu_subtype": 0,
+        "revision_version": 8,
+        "image_vmaddr": "0x000000018551d000",
+        "uuid": "0548A22A-0C4D-306D-9257-2AD10B73B703",
+        "image_size": 10760192,
+        "image_addr": "0x00000001955f5000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 603,
+        "minor_version": 3,
+        "cpu_subtype": 0,
+        "revision_version": 8,
+        "image_vmaddr": "0x00000001861b2000",
+        "uuid": "71643EC5-512A-3BF5-B4B3-926BFF6107A0",
+        "image_size": 18833408,
+        "image_addr": "0x000000019628a000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/WebCore.framework/WebCore",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 492,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001843fa000",
+        "uuid": "CCC5FB16-1EE5-37E3-B0C2-6110EDEE2ECD",
+        "image_size": 4542464,
+        "image_addr": "0x00000001944d2000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 249,
+        "minor_version": 1,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001843af000",
+        "uuid": "94FC56D3-E011-36A2-AAF8-C207E2761696",
+        "image_size": 110592,
+        "image_addr": "0x0000000194487000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/ProtocolBuffer.framework/ProtocolBuffer",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 757,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018d34f000",
+        "uuid": "741604BE-D6A6-39AD-B1FC-A822F3342885",
+        "image_size": 266240,
+        "image_addr": "0x000000019d427000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/WirelessDiagnostics.framework/WirelessDiagnostics",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018d0ac000",
+        "uuid": "D0A93DE9-52B9-34F3-AF31-A3BD4CD05DF9",
+        "image_size": 2494464,
+        "image_addr": "0x000000019d184000",
+        "type": "apple",
+        "name": "/usr/lib/libAWDSupportFramework.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018cbde000",
+        "uuid": "9C108882-E95C-3003-A914-0280A9DA8250",
+        "image_size": 450560,
+        "image_addr": "0x000000019ccb6000",
+        "type": "apple",
+        "name": "/usr/lib/libprotobuf.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183870000",
+        "uuid": "A9CBA41B-FFA8-3838-B49C-3F8FF2538F8A",
+        "image_size": 438272,
+        "image_addr": "0x0000000193948000",
+        "type": "apple",
+        "name": "/usr/lib/libTelephonyUtilDynamic.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000183857000",
+        "uuid": "B11F764C-841D-3C69-A50A-6B0993735D43",
+        "image_size": 28672,
+        "image_addr": "0x000000019392f000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/TCC.framework/TCC",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 375,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000184c66000",
+        "uuid": "BB56E538-BE88-3519-9A0A-BD263ADB75F8",
+        "image_size": 856064,
+        "image_addr": "0x0000000194d3e000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/ProofReader.framework/ProofReader",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001854fd000",
+        "uuid": "7D0AB5A0-80D6-3601-8391-8DFABD274B9F",
+        "image_size": 69632,
+        "image_addr": "0x00000001955d5000",
+        "type": "apple",
+        "name": "/usr/lib/libAccessibility.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 62,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000184d37000",
+        "uuid": "17FE4943-F536-3A27-8CF9-868DB2623B9D",
+        "image_size": 45056,
+        "image_addr": "0x0000000194e0f000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/MediaAccessibility.framework/MediaAccessibility",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000187630000",
+        "uuid": "E53AECFB-95EC-3252-986A-82A83A3CAFD1",
+        "image_size": 348160,
+        "image_addr": "0x0000000197708000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/PhysicsKit.framework/PhysicsKit",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 331,
+        "minor_version": 5,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000196227000",
+        "uuid": "8D96C27F-BF12-3574-9DD2-907472688E89",
+        "image_size": 86016,
+        "image_addr": "0x00000001a62ff000",
+        "type": "apple",
+        "name": "/System/Library/Frameworks/Accelerate.framework/Frameworks/vImage.framework/Libraries/libCGInterfaces.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 0,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000198595000",
+        "uuid": "AD96A7DB-4EF3-37A1-919E-F9E4F24CE96A",
+        "image_size": 53248,
+        "image_addr": "0x00000001a866d000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/FontServices.framework/libGSFontCache.dylib",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000189940000",
+        "uuid": "D1824269-BDE1-3011-A30B-B20413B487C8",
+        "image_size": 24576,
+        "image_addr": "0x0000000199a18000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/ConstantClasses.framework/ConstantClasses",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x000000018a882000",
+        "uuid": "40AC399D-20DF-3C0E-9C43-8D1C212BEB4F",
+        "image_size": 94208,
+        "image_addr": "0x000000019a95a000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/UserManagement.framework/UserManagement",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 276,
+        "minor_version": 3,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x0000000197dfc000",
+        "uuid": "3C2DB4F0-7EA2-3235-8A78-E76307363BA0",
+        "image_size": 155648,
+        "image_addr": "0x00000001a7ed4000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/CoreServicesInternal.framework/CoreServicesInternal",
+        "cpu_type": 16777228
+      },
+      {
+        "major_version": 1,
+        "minor_version": 0,
+        "cpu_subtype": 0,
+        "revision_version": 0,
+        "image_vmaddr": "0x00000001985a2000",
+        "uuid": "B675E879-D4B0-32BA-8AD2-4E7E78818463",
+        "image_size": 204800,
+        "image_addr": "0x00000001a867a000",
+        "type": "apple",
+        "name": "/System/Library/PrivateFrameworks/FontServices.framework/libTrueTypeScaler.dylib",
+        "cpu_type": 16777228
+      }
+    ]
+  },
+  "event_id": "BFE4379D82934B2B91D70B1167BCAE8D",
+  "user": {"id": "1234", "email": "hello@sentry.io"}
 }

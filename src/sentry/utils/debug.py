@@ -1,10 +1,3 @@
-"""
-sentry.utils.debug
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import cProfile
@@ -17,23 +10,24 @@ from django.conf import settings
 from django.http import HttpResponse
 from six import StringIO
 
+from sentry.auth.superuser import is_active_superuser
 
-words_re = re.compile(r'\s+')
+words_re = re.compile(r"\s+")
 
 group_prefix_re = [
     re.compile(r"^.*/django/[^/]+"),
     re.compile(r"^(.*)/[^/]+$"),  # extract module path
-    re.compile(r".*"),   # catch strange entries
+    re.compile(r".*"),  # catch strange entries
 ]
 
 
 class ProfileMiddleware(object):
     def can(self, request):
-        if 'prof' not in request.GET:
+        if "prof" not in request.GET:
             return False
         if settings.DEBUG:
             return True
-        if hasattr(request, 'user') and request.is_superuser():
+        if hasattr(request, "user") and is_active_superuser(request):
             return True
         return False
 
@@ -70,7 +64,7 @@ class ProfileMiddleware(object):
         def rel_filename(filename):
             for path in python_paths:
                 if filename.startswith(path):
-                    return filename[len(path) + 1:]
+                    return filename[len(path) + 1 :]
             return os.path.basename(filename)
 
         def func_strip_path(func_name):
@@ -89,9 +83,7 @@ class ProfileMiddleware(object):
                 newcallers[func_strip_path(func2)] = caller
 
             if newfunc in newstats:
-                newstats[newfunc] = add_func_stats(
-                    newstats[newfunc],
-                    (cc, nc, tt, ct, newcallers))
+                newstats[newfunc] = add_func_stats(newstats[newfunc], (cc, nc, tt, ct, newcallers))
             else:
                 newstats[newfunc] = (cc, nc, tt, ct, newcallers)
         old_top = stats.top_level
@@ -129,10 +121,15 @@ class ProfileMiddleware(object):
                     mygroups[group] = 0
                 mygroups[group] += time
 
-        return "\n" + \
-               " ---- By file ----\n\n" + self.get_summary(mystats, total) + "\n" + \
-               " ---- By group ---\n\n" + self.get_summary(mygroups, total) + \
-               "\n"
+        return (
+            "\n"
+            + " ---- By file ----\n\n"
+            + self.get_summary(mystats, total)
+            + "\n"
+            + " ---- By group ---\n\n"
+            + self.get_summary(mygroups, total)
+            + "\n"
+        )
 
     def process_response(self, request, response):
         if not self.can(request):
@@ -144,7 +141,7 @@ class ProfileMiddleware(object):
 
         stats = pstats.Stats(self.prof)
         self.normalize_paths(stats)
-        stats.sort_stats('time', 'calls')
+        stats.sort_stats("time", "calls")
         stats.print_stats()
 
         sys.stdout = old_stdout
@@ -154,4 +151,4 @@ class ProfileMiddleware(object):
         content += "\n\n"
         content += self.summary_for_files(stats_str)
 
-        return HttpResponse(content, 'text/plain')
+        return HttpResponse(content, "text/plain")

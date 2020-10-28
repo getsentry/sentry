@@ -30,26 +30,54 @@ if not pcall(redis.replicate_commands) then
     redis.log(redis.LOG_DEBUG, 'Could not enable script effects replication.')
 end
 
-local function identity(value)
-    return value
+
+-- Utilities
+
+local function identity(...)
+    return ...
 end
 
-local function range(start, stop)
+local function sum(t)
+    return table.ireduce(
+        t,
+        function (total, value)
+            return total + value
+        end,
+        0
+    )
+end
+
+local function avg(t)
+    return sum(t) / #t
+end
+
+function table.count(t)
+    -- Shitty O(N) table size implementation
+    local n = 0
+    for k in pairs(t) do
+        n = n + 1
+    end
+    return n
+end
+
+function table.slice(t, start, stop)
+    -- NOTE: ``stop`` is inclusive!
     local result = {}
-    for i = start, stop do
-        table.insert(result, i)
+    for i = start or 1, stop or #t do
+        result[i - start + 1] = t[i]
     end
     return result
 end
 
-function table.ifilter(t, f)
-    local result = {}
-    for i, value in ipairs(t) do
-        if f(value) then
-            table.insert(result, value)
-        end
+function table.get_or_set_default(t, k, f)
+    local v = t[k]
+    if v ~= nil then
+        return v
+    else
+        v = f(k)
+        t[k] = v
+        return v
     end
-    return result
 end
 
 function table.imap(t, f)
@@ -59,7 +87,6 @@ function table.imap(t, f)
     end
     return result
 end
-
 function table.ireduce(t, f, i)
     if i == nil then
         i = {}
@@ -92,153 +119,247 @@ function table.izip(...)
     return result
 end
 
-function table.slice(t, start, stop)
-    -- NOTE: ``stop`` is inclusive!
-    local result = {}
-    for i = start or 1, stop or #t do
-        table.insert(result, t[i])
-    end
-    return result
-end
-
 
 -- Argument Parsing and Validation
 
-local function parse_number(value)
+local function validate_value(value)
+    assert(value ~= nil, 'got nil, expected value')
+    return value
+end
+
+local function validate_number(value)
     local result = tonumber(value)
-    assert(result ~= nil, 'got nil, expected number')
+    assert(result ~= nil, string.format('got nil (%q), expected number', value))
     return result
 end
 
-local function parse_integer(value)
-    local result = parse_number(value)
-    assert(result % 1 == 0, 'got float, expected integer')
+local function validate_integer(value)
+    local result = validate_number(value)
+    assert(result % 1 == 0, string.format('got float (%q), expected integer', value))
     return result
 end
 
-local function build_argument_parser(fields)
-    return function (arguments, offset)
-        if offset == nil then
-            offset = 0
+local function argument_parser(callback)
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
+        return cursor + 1, callback(arguments[cursor])
+    end
+end
+
+local function flag_argument_parser(flags)
+    return function (cursor, arguments)
+        local result = {}
+        while flags[arguments[cursor]] do
+            result[arguments[cursor]] = true
+            cursor = cursor + 1
         end
+        return cursor, result
+    end
+end
+
+local function repeated_argument_parser(argument_parser, quantity_parser, callback)
+    if quantity_parser == nil then
+        quantity_parser = function (cursor, arguments)
+            return cursor + 1, validate_integer(arguments[cursor])
+        end
+    end
+
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
         local results = {}
-        for i = 1, #fields do
-            local name, parser = unpack(fields[i])
-            local value = arguments[i]
-            local ok, result = pcall(parser, value)
-            if not ok then
-                error(string.format('received invalid argument for %q in position %s with value %q; %s', name, offset + i, value, result))
+        local cursor, count = quantity_parser(cursor, arguments)
+        for i = 1, count do
+            cursor, results[i] = argument_parser(cursor, arguments)
+        end
+        return cursor, callback(results)
+    end
+end
+
+local function object_argument_parser(schema, callback)
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
+        local result = {}
+        for i, specification in ipairs(schema) do
+            local key, parser = unpack(specification)
+            cursor, result[key] = parser(cursor, arguments)
+        end
+        return cursor, callback(result)
+    end
+end
+
+local function variadic_argument_parser(argument_parser)
+    return function (cursor, arguments)
+        local results = {}
+        local i = 1
+        while arguments[cursor] ~= nil do
+            cursor, results[i] = argument_parser(cursor, arguments)
+            i = i + 1
+        end
+        return cursor, results
+    end
+end
+
+local function multiple_argument_parser(...)
+    local parsers = {...}
+    return function (cursor, arguments)
+        local results = {}
+        for i, parser in ipairs(parsers) do
+            cursor, results[i] = parser(cursor, arguments)
+        end
+        return cursor, unpack(results)
+    end
+end
+
+local function frequencies_argument_parser(configuration)
+    return repeated_argument_parser(
+        function (cursor, arguments)
+            local buckets = {}
+            return repeated_argument_parser(
+                function (cursor, arguments)
+                    buckets[validate_value(arguments[cursor])] = validate_integer(arguments[cursor + 1])
+                    return cursor + 2
+                end
+            )(cursor, arguments), buckets
+        end,
+        function (cursor, arguments)
+            return cursor, configuration.bands
+        end
+    )
+end
+
+
+-- Time Series Set
+
+local TimeSeriesSet = {}
+
+function TimeSeriesSet:new(interval, retention, timestamp, key_function, limit)
+    return setmetatable({
+        interval = interval,
+        retention = retention,
+        timestamp = timestamp,
+        key_function = key_function,
+        limit = limit,
+    }, {__index = self})
+end
+
+function TimeSeriesSet:members()
+    local results = {}
+    local current = math.floor(self.timestamp / self.interval)
+    local n = 0
+    for index = current - self.retention, current do
+        local sample = redis.call('SRANDMEMBER', self.key_function(index), self.limit)
+        for i = 1, #sample do
+            local member = sample[i]
+            local count = results[member]
+            if count ~= nil then
+                results[member] = count + 1
             else
-                results[name] = result
+                n = n + 1
+                results[member] = 1
+                if n >= self.limit then
+                    return results
+                end
             end
         end
-        return results, table.slice(arguments, #fields + 1)
     end
+    return results
 end
 
-local function build_variadic_argument_parser(fields, validator)
-    if validator == nil then
-        validator = identity
-    end
-    local parser = build_argument_parser(fields)
-    return function (arguments, offset)
-        if offset == nil then
-            offset = 0
-        end
-        if #arguments % #fields ~= 0 then
-            -- TODO: make this error less crummy
-            error('invalid number of arguments')
-        end
-        local results = {}
-        for i = 1, #arguments, #fields do
-            local value, _ = parser(table.slice(arguments, i, i + #fields - 1), i)
-            table.insert(
-                results,
-                validator(value)
-            )
-        end
-        return results
-    end
-end
-
-
--- Time Series
-
-local function get_active_indices(interval, retention, timestamp)
-    local result = {}
-    local upper = math.floor(timestamp / interval)
-    for i = upper - retention, upper do
-        table.insert(result, i)
+function TimeSeriesSet:add(...)
+    local index = math.floor(self.timestamp / self.interval)
+    local key = self.key_function(index)
+    local result = redis.call('SADD', key, ...)
+    if result > 0 then
+        redis.call('EXPIREAT', key, (index + 1 + self.retention) * self.interval)
     end
     return result
 end
 
-local function get_index_expiration_time(interval, retention, index)
-    return (
-        (index + 1)  -- upper bound of this interval
-        + retention
-    ) * interval
+function TimeSeriesSet:remove(...)
+    local current = math.floor(self.timestamp / self.interval)
+    for index = current - self.retention, current do
+        redis.call('SREM', self.key_function(index), ...)
+    end
+end
+
+function TimeSeriesSet:swap(old, new)
+    --[[
+    Replace the "old" member wtih the "new" member in all sets where it is
+    present.
+    ]]--
+    local current = math.floor(self.timestamp / self.interval)
+    for index = current - self.retention, current do
+        local key = self.key_function(index)
+        if redis.call('SREM', key, old) > 0 and redis.call('SADD', key, new) > 0 then
+            -- It's possible that the `SREM` operation implicitly caused this
+            -- set to be deleted if it reached 0 elements, so we need to be
+            -- sure to reset the TTL if we successfully added the element to
+            -- the potentially empty set.
+            redis.call('EXPIREAT', key, (index + 1 + self.retention) * self.interval)
+        end
+    end
+end
+
+function TimeSeriesSet:export(member)
+    local current = math.floor(self.timestamp / self.interval)
+    local results = {}
+    for index = current - self.retention, current do
+        if redis.call('SISMEMBER', self.key_function(index), member) == 1 then
+            results[#results + 1] = index
+        end
+    end
+    return results
+end
+
+function TimeSeriesSet:import(member, data)
+    for _, index in ipairs(data) do
+        local key = self.key_function(index)
+        if redis.call('SADD', key, member) > 1 then
+            redis.call('EXPIREAT', key, (index + 1 + self.retention) * self.interval)
+        end
+    end
 end
 
 
 -- Redis Helpers
 
-local function redis_hgetall_response_to_table(response, value_type)
-    if value_type == nil then
-        value_type = identity
-    end
-    local result = {}
-    for i = 1, #response, 2 do
-        result[response[i]] = value_type(response[i + 1])
-    end
-    return result
-end
-
-
--- Generic Configuration
-
-local configuration_parser = build_argument_parser({
-    {"timestamp", parse_integer},
-    {"bands", parse_integer},
-    {"interval", parse_integer},
-    {"retention", parse_integer},  -- how many previous intervals to store (does not include current interval)
-    {"scope", function (value)
-        assert(value ~= nil)
-        return value
-    end}
-})
-
-local function takes_configuration(command)
-    return function(arguments)
-        local configuration, arguments = configuration_parser(arguments)
-        return command(configuration, arguments)
+local function redis_hash_response_iterator(response)
+    local i = 1
+    return function ()
+        local key, value = response[i], response[i + 1]
+        i = i + 2
+        return key, value
     end
 end
 
 
 -- Key Generation
 
-local function get_bucket_frequency_key(scope, index, time, band, item)
+local function get_key_prefix(configuration, index)
+    -- NB: The brackets around the scope allow redis cluster to shard keys
+    -- using the value within the brackets, this is known as a redis hash tag.
     return string.format(
-        '%s:%s:f:%s:%s:%s:%s',
-        'sim',
-        scope,
-        index,
-        time,
-        band,
-        item
+        '%s:{%s}:%s',
+        configuration.namespace,
+        configuration.scope,
+        index
     )
 end
 
-local function get_bucket_membership_key(scope, index, time, band, bucket)
+local function get_frequency_key(configuration, index, item)
     return string.format(
-        '%s:%s:m:%s:%s:%s:%s',
-        'sim',
-        scope,
-        index,
-        time,
-        band,
-        bucket
+        '%s:f:%s',
+        get_key_prefix(configuration, index),
+        item
     )
 end
 
@@ -272,388 +393,330 @@ local function scale_to_total(values)
     return result
 end
 
-local function collect_index_key_pairs(arguments, validator)
-    return build_variadic_argument_parser({
-        {"index", identity},
-        {"key", identity},
-    }, validator)(arguments)
+
+-- Signature Matching
+
+local function pack_frequency_coordinate(band, bucket)
+    return struct.pack('>B', band) .. bucket
+end
+
+local function unpack_frequency_coordinate(field)
+    local band, index = struct.unpack('>B', field)
+    return band, string.sub(field, index)
+end
+
+local function get_bucket_membership_set(configuration, index, band, bucket)
+    return TimeSeriesSet:new(
+        configuration.interval,
+        configuration.retention,
+        configuration.timestamp,
+        function (i)
+            return string.format(
+                '%s:m:%s:',
+                get_key_prefix(configuration, index),
+                i
+            ) .. pack_frequency_coordinate(band, bucket)
+        end,
+        configuration.candidate_set_limit
+    )
+end
+
+local function get_frequencies(configuration, index, item)
+    local frequencies = {}
+    for i = 1, configuration.bands do
+        frequencies[i] = {}
+    end
+
+    local key = get_frequency_key(configuration, index, item)
+    -- TODO: This needs to handle this returning no data due to TTL gracefully.
+    local response = redis.call('HGETALL', key)
+    for field, value in redis_hash_response_iterator(response) do
+        local band, bucket = unpack_frequency_coordinate(field)
+        frequencies[band][bucket] = tonumber(value)
+    end
+
+    return frequencies
+end
+
+local function set_frequencies(configuration, index, item, frequencies, expiration)
+    if expiration == nil then
+        expiration = configuration.timestamp + configuration.interval * configuration.retention
+    end
+
+    local key = get_frequency_key(configuration, index, item)
+
+    for band, buckets in ipairs(frequencies) do
+        for bucket, count in pairs(buckets) do
+            local field = pack_frequency_coordinate(band, bucket)
+            redis.call('HINCRBY', key, field, count)
+        end
+    end
+
+    redis.call('EXPIREAT', key, expiration)
+end
+
+local function merge_frequencies(configuration, index, source, destination)
+    local source_key = get_frequency_key(configuration, index, source)
+    local destination_key = get_frequency_key(configuration, index, destination)
+
+    local response = redis.call('HGETALL', source_key)
+    if #response == 0 then
+        return  -- nothing to do
+    end
+
+    for field, value in redis_hash_response_iterator(response) do
+        redis.call('HINCRBY', destination_key, field, value)
+    end
+
+    local source_ttl = redis.call('TTL', source_key)
+    assert(source_ttl >= 0)  -- this ttl should not be 0 unless we messed up
+    redis.call('EXPIRE', destination_key, math.max(source_ttl, redis.call('TTL', destination_key)))
+
+    redis.call('DEL', source_key)
+end
+
+local function clear_frequencies(configuration, index, item)
+    local key = get_frequency_key(configuration, index, item)
+    redis.call('DEL', key)
+end
+
+local function is_empty(frequencies)
+    for _ in pairs(frequencies[1]) do
+        return false
+    end
+    return true
+end
+
+local function calculate_similarity(configuration, item_frequencies, candidate_frequencies)
+    if is_empty(item_frequencies) and is_empty(candidate_frequencies) then
+        return -1
+    elseif is_empty(item_frequencies) or is_empty(candidate_frequencies) then
+        return -2
+    end
+
+    return avg(
+        table.imap(
+            table.izip(
+                item_frequencies,
+                candidate_frequencies
+            ),
+            function (v)
+                -- We calculate the "similarity" between two items
+                -- by comparing how often their contents exist in
+                -- the same buckets for a band.
+                local dist = get_manhattan_distance(
+                    scale_to_total(v[1]),
+                    scale_to_total(v[2])
+                )
+                -- Since this is a measure of similarity (and not
+                -- distance) we normalize the result to [0, 1]
+                -- scale.
+                return 1 - (dist / 2)
+            end
+        )
+    )
+end
+
+local function fetch_candidates(configuration, index, frequencies)
+    local create_table = function ()
+        return {}
+    end
+
+    local candidates = {}
+    for band, buckets in ipairs(frequencies) do
+        for bucket in pairs(buckets) do
+            -- Fetch all other items that have been added to
+            -- the same bucket in this band during this time
+            -- period.
+            local members = get_bucket_membership_set(configuration, index, band, bucket):members()
+            for member in pairs(members) do
+                table.get_or_set_default(candidates, member, create_table)[band] = true
+            end
+        end
+    end
+
+    local results = {}
+    for candidate, bands in pairs(candidates) do
+        results[candidate] = table.count(bands)
+    end
+    return results
+end
+
+local function search(configuration, parameters, limit)
+    local possible_candidates = {}
+    local create_table = function ()
+        return {}
+    end
+
+    for i, p in ipairs(parameters) do
+        for candidate, hits in pairs(fetch_candidates(configuration, p.index, p.frequencies)) do
+            if hits >= p.threshold then
+                table.get_or_set_default(possible_candidates, candidate, create_table)[i] = hits
+            end
+        end
+    end
+
+    local candidates = {}
+    local i = 1
+    for candidate, index_hits in pairs(possible_candidates) do
+        candidates[i] = {
+            key = candidate,
+            num_hits = #index_hits,
+            avg_hits = avg(index_hits),
+        }
+        i = i + 1
+    end
+
+    if limit >= 0 and #candidates > limit then
+        table.sort(
+            candidates,
+            function (this, that)
+                if this.avg_hits > that.avg_hits then
+                    return true
+                elseif this.avg_hits < that.avg_hits then
+                    return false
+                elseif this.num_hits > that.num_hits then
+                    return true
+                elseif this.num_hits < that.num_hits then
+                    return false
+                else
+                    return this.key < that.key -- NOTE: reverse lex
+                end
+            end
+        )
+        candidates = table.slice(candidates, 1, limit)
+    end
+
+    local results = {}
+    for i, candidate in ipairs(candidates) do
+        local result = {}
+        for j, p in ipairs(parameters) do
+            local candidate_frequencies = get_frequencies(configuration, p.index, candidate.key)
+            result[j] = string.format('%f', calculate_similarity(
+                configuration,
+                p.frequencies,
+                candidate_frequencies
+            ))
+        end
+        results[i] = {candidate.key, result}
+    end
+    return results
 end
 
 
 -- Command Parsing
 
 local commands = {
-    RECORD = takes_configuration(
-        function (configuration, arguments)
-            local key = arguments[1]
-
-            local entries = table.ireduce(
-                table.slice(arguments, 2),
-                function (state, token)
-                    if state.active == nil then
-                        -- When there is no active entry, we need to initialize
-                        -- a new one. The first token is the index identifier.
-                        state.active = {index = token, buckets = {}}
-                    else
-                        -- If there is an active entry, we need to add the
-                        -- current token to the feature list.
-                        table.insert(state.active.buckets, token)
-
-                        -- When we've seen the same number of buckets as there
-                        -- are bands, we're done recording and need to mark the
-                        -- current entry as completed, and reset the current
-                        -- active entry.
-                        if #state.active.buckets == configuration.bands then
-                            table.insert(state.completed, state.active)
-                            state.active = nil
-                        end
-                    end
-                    return state
-                end,
-                {active = nil, completed = {}}
+    RECORD = function (configuration, cursor, arguments)
+        local cursor, key, signatures = multiple_argument_parser(
+            argument_parser(validate_value),
+            variadic_argument_parser(
+                object_argument_parser({
+                    {"index", argument_parser(validate_value)},
+                    {"frequencies", frequencies_argument_parser(configuration)},
+                })
             )
+        )(cursor, arguments)
 
-            -- If there are any entries in progress when we are completed, that
-            -- means the input was in an incorrect format and we should error
-            -- before we record any bad data.
-            assert(entries.active == nil, 'unexpected end of input')
-
-            local time = math.floor(configuration.timestamp / configuration.interval)
-            local expiration = get_index_expiration_time(
-                configuration.interval,
-                configuration.retention,
-                time
-            )
-
-            return table.imap(
-                entries.completed,
-                function (entry)
-                    local results = {}
-
-                    for band, bucket in ipairs(entry.buckets) do
-                        local bucket_membership_key = get_bucket_membership_key(
-                            configuration.scope,
-                            entry.index,
-                            time,
-                            band,
-                            bucket
-                        )
-                        redis.call('SADD', bucket_membership_key, key)
-                        redis.call('EXPIREAT', bucket_membership_key, expiration)
-
-                        local bucket_frequency_key = get_bucket_frequency_key(
-                            configuration.scope,
-                            entry.index,
-                            time,
-                            band,
-                            key
-                        )
-                        table.insert(
-                            results,
-                            tonumber(redis.call('HINCRBY', bucket_frequency_key, bucket, 1))
-                        )
-                        redis.call('EXPIREAT', bucket_frequency_key, expiration)
+        return table.imap(
+            signatures,
+            function (signature)
+                set_frequencies(configuration, signature.index, key, signature.frequencies)
+                for band, buckets in ipairs(signature.frequencies) do
+                    for bucket in pairs(buckets) do
+                        get_bucket_membership_set(configuration, signature.index, band, bucket):add(key)
                     end
-
-                    return results
                 end
+            end
+        )
+    end,
+    CLASSIFY = function (configuration, cursor, arguments)
+        local cursor, limit, parameters = multiple_argument_parser(
+            argument_parser(validate_integer),
+            variadic_argument_parser(
+                object_argument_parser({
+                    {"index", argument_parser(validate_value)},
+                    {"threshold", argument_parser(validate_integer)},
+                    {"frequencies", frequencies_argument_parser(configuration)},
+                })
             )
-        end
-    ),
-    QUERY = takes_configuration(
-        function (configuration, arguments)
-            local item_key = arguments[1]
-            local indices = table.slice(arguments, 2)
+        )(cursor, arguments)
 
-            local time_series = get_active_indices(
-                configuration.interval,
-                configuration.retention,
-                configuration.timestamp
-            )
+        return search(
+            configuration,
+            parameters,
+            limit
+        )
+    end,
+    COMPARE = function (configuration, cursor, arguments)
+        local cursor, limit, item_key = multiple_argument_parser(
+            argument_parser(validate_integer),
+            argument_parser(validate_value)
+        )(cursor, arguments)
 
-            -- Fetch all of the bucket frequencies for a key from a specific
-            -- index from all active time series chunks. This returns a table
-            -- containing n tables (where n is the number of bands) mapping
-            -- bucket identifiers to counts.
-            local fetch_bucket_frequencies = function (index, key)
-                return table.imap(
-                    range(1, configuration.bands),
-                    function (band)
-                        return table.ireduce(
-                            table.imap(
-                                time_series,
-                                function (time)
-                                    return redis_hgetall_response_to_table(
-                                        redis.call(
-                                            'HGETALL',
-                                            get_bucket_frequency_key(
-                                                configuration.scope,
-                                                index,
-                                                time,
-                                                band,
-                                                key
-                                            )
-                                        ),
-                                        tonumber
-                                    )
-                                end
-                            ),
-                            function (result, response)
-                                for bucket, count in pairs(response) do
-                                    result[bucket] = (result[bucket] or 0) + count
-                                end
-                                return result
-                            end,
-                            {}
-                        )
-                    end
+        local cursor, parameters = variadic_argument_parser(
+            object_argument_parser({
+                {"index", argument_parser(validate_value)},
+                {"threshold", argument_parser(validate_integer)},
+            }, function (parameter)
+                parameter.frequencies = get_frequencies(
+                    configuration,
+                    parameter.index,
+                    item_key
                 )
-            end
+                return parameter
+            end)
+        )(cursor, arguments)
 
-            local fetch_candidates = function (index, frequencies)
-                local candidates = {}  -- acts as a set
-                for band, buckets in ipairs(frequencies) do
-                    for bucket, count in pairs(buckets) do
-                        for _, time in ipairs(time_series) do
-                            -- Fetch all other items that have been added to
-                            -- the same bucket in this band during this time
-                            -- period.
-                            local members = redis.call(
-                                'SMEMBERS',
-                                get_bucket_membership_key(
-                                    configuration.scope,
-                                    index,
-                                    time,
-                                    band,
-                                    bucket
-                                )
-                            )
-                            for _, member in ipairs(members) do
-                                candidates[member] = true
-                            end
-                        end
-                    end
-                end
-                return candidates
-            end
+        return search(
+            configuration,
+            parameters,
+            limit
+        )
+    end,
+    MERGE = function (configuration, cursor, arguments)
+        local cursor, destination_key = argument_parser(validate_value)(cursor, arguments)
+        local cursor, sources = variadic_argument_parser(
+            object_argument_parser({
+                {"index", argument_parser(validate_value)},
+                {"key", argument_parser(validate_value)},
+            }, function (entry)
+                assert(entry.key ~= destination_key, 'cannot merge destination into itself')
+                return entry
+            end)
+        )(cursor, arguments)
 
-            return table.imap(
-                indices,
-                function (index)
-                    -- First, identify the which buckets that the key we are
-                    -- querying is present in.
-                    local item_frequencies = fetch_bucket_frequencies(index, item_key)
+        for _, source in ipairs(sources) do
+            local source_frequencies = get_frequencies(configuration, source.index, source.key)
+            merge_frequencies(configuration, source.index, source.key, destination_key)
 
-                    -- Then, find all iterms that also exist within those
-                    -- buckets and fetch their frequencies.
-                    local candidates = fetch_candidates(index, item_frequencies)
-                    local candidate_frequencies = {}
-                    for candidate_key, _ in pairs(candidates) do
-                        candidate_frequencies[candidate_key] = fetch_bucket_frequencies(
-                            index,
-                            candidate_key
-                        )
-                    end
-
-                    -- Then, calculate the similarity for each candidate based
-                    -- on their frequencies.
-                    local results = {}
-                    for key, value in pairs(candidate_frequencies) do
-                        table.insert(
-                            results,
-                            {
-                                key,
-                                table.ireduce(  -- sum, then avg
-                                    table.imap(  -- calculate similarity
-                                        table.izip(
-                                            item_frequencies,
-                                            value
-                                        ),
-                                        function (v)
-                                            -- We calculate the "similarity"
-                                            -- between two items by comparing
-                                            -- how often their contents exist
-                                            -- in the same buckets for a band.
-                                            local dist = get_manhattan_distance(
-                                                scale_to_total(v[1]),
-                                                scale_to_total(v[2])
-                                            )
-                                            -- Since this is a measure of
-                                            -- similarity (and not distance) we
-                                            -- normalize the result to [0, 1]
-                                            -- scale.
-                                            return 1 - (dist / 2)
-                                        end
-                                    ),
-                                    function (total, item)
-                                        return total + item
-                                    end,
-                                    0
-                                ) / configuration.bands
-                            }
-                        )
-                    end
-
-                    -- Sort the results in descending order (most similar first.)
-                    table.sort(
-                        results,
-                        function (left, right)
-                            return left[2] > right[2]
-                        end
-                    )
-
-                    return table.imap(
-                        results,
-                        function (item)
-                            return {
-                                item[1],
-                                string.format(
-                                    '%f',  -- converting floats to strings avoids truncation
-                                    item[2]
-                                ),
-                            }
-                        end
-                    )
-                end
-            )
-        end
-    ),
-    MERGE = takes_configuration(
-        function (configuration, arguments)
-            local destination_key = arguments[1]
-            local sources = collect_index_key_pairs(
-                table.slice(arguments, 2),
-                function (entry)
-                    assert(entry.key ~= destination_key, 'cannot merge destination into itself')
-                    return entry
-                end
-            )
-
-            local time_series = get_active_indices(
-                configuration.interval,
-                configuration.retention,
-                configuration.timestamp
-            )
-
-            for _, source in ipairs(sources) do
-                for band = 1, configuration.bands do
-                    for _, time in ipairs(time_series) do
-                        local source_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration.scope,
-                            source.index,
-                            time,
-                            band,
-                            source.key
-                        )
-                        local destination_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration.scope,
-                            source.index,
-                            time,
-                            band,
-                            destination_key
-                        )
-                        local expiration_time = get_index_expiration_time(
-                            configuration.interval,
-                            configuration.retention,
-                            time
-                        )
-
-                        local response = redis_hgetall_response_to_table(
-                            redis.call(
-                                'HGETALL',
-                                source_bucket_frequency_key
-                            ),
-                            tonumber
-                        )
-
-                        for bucket, count in pairs(response) do
-                            -- Remove the source from the bucket membership
-                            -- set, and add the destination to the membership
-                            -- set.
-                            local bucket_membership_key = get_bucket_membership_key(
-                                configuration.scope,
-                                source.index,
-                                time,
-                                band,
-                                bucket
-                            )
-                            redis.call('SREM', bucket_membership_key, source.key)
-                            redis.call('SADD', bucket_membership_key, destination_key)
-                            redis.call('EXPIREAT', bucket_membership_key, expiration_time)
-
-                            -- Merge the counter values into the destination frequencies.
-                            redis.call(
-                                'HINCRBY',
-                                destination_bucket_frequency_key,
-                                bucket,
-                                count
-                            )
-                        end
-
-                        -- TODO: We only need to do this if the bucket has contents.
-                        -- The destination bucket frequency key may have not
-                        -- existed previously, so we need to make sure we set
-                        -- the expiration on it in case it is new.
-                        redis.call(
-                            'EXPIREAT',
-                            destination_bucket_frequency_key,
-                            expiration_time
-                        )
-
-                        -- We no longer need the source frequencies.
-                        redis.call('DEL', source_bucket_frequency_key)
-                    end
+            for band, buckets in ipairs(source_frequencies) do
+                for bucket in pairs(buckets) do
+                    get_bucket_membership_set(configuration, source.index, band, bucket):swap(source.key, destination_key)
                 end
             end
         end
-    ),
-    DELETE = takes_configuration(
-        function (configuration, arguments)
-            local sources = collect_index_key_pairs(arguments)
-            local time_series = get_active_indices(
-                configuration.interval,
-                configuration.retention,
-                configuration.timestamp
-            )
+    end,
+    DELETE = function (configuration, cursor, arguments)
+        local cursor, sources = variadic_argument_parser(
+            object_argument_parser({
+                {"index", argument_parser(validate_value)},
+                {"key", argument_parser(validate_value)},
+            })
+        )(cursor, arguments)
 
-            for _, source in ipairs(sources) do
-                for band = 1, configuration.bands do
-                    for _, time in ipairs(time_series) do
-                        local source_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration.scope,
-                            source.index,
-                            time,
-                            band,
-                            source.key
-                        )
+        for _, source in ipairs(sources) do
+            local frequencies = get_frequencies(configuration, source.index, source.key)
+            clear_frequencies(configuration, source.index, source.key)
 
-                        local buckets = redis.call(
-                            'HKEYS',
-                            source_bucket_frequency_key
-                        )
-
-                        for _, bucket in ipairs(buckets) do
-                            redis.call(
-                                'SREM',
-                                get_bucket_membership_key(
-                                    configuration.scope,
-                                    source.index,
-                                    time,
-                                    band,
-                                    bucket
-                                ),
-                                source.key
-                            )
-                        end
-
-                        -- We no longer need the source frequencies.
-                        redis.call('DEL', source_bucket_frequency_key)
-                    end
+            for band, buckets in ipairs(frequencies) do
+                for bucket in pairs(buckets) do
+                    get_bucket_membership_set(configuration, source.index, band, bucket):remove(source.key)
                 end
             end
         end
-    ),
-    IMPORT = takes_configuration(
+    end,
+    IMPORT = function (configuration, cursor, arguments)
         --[[
         Loads data returned by the ``EXPORT`` command into the location
         specified by the ``index`` and ``key`` arguments. Data can be loaded
@@ -664,133 +727,127 @@ local commands = {
         data already exists at the new destination, the imported data will be
         appended to the existing data.
         ]]--
-        function (configuration, arguments)
-            local entries = build_variadic_argument_parser({
-                {'index', identity},
-                {'key', identity},
-                {'data', cmsgpack.unpack},
-            })(arguments)
+        local cursor, entries = variadic_argument_parser(
+            object_argument_parser({
+                {'index', argument_parser(validate_value)},
+                {'key', argument_parser(validate_value)},
+                {'data', argument_parser(cmsgpack.unpack)}
+            })
+        )(cursor, arguments)
 
-            for _, entry in ipairs(entries) do
-                for band, data in ipairs(entry.data) do
-                    for _, item in ipairs(data) do
-                        local time, buckets = item[1], item[2]
-                        local expiration_time = get_index_expiration_time(
-                            configuration.interval,
-                            configuration.retention,
-                            time
-                        )
-                        local destination_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration.scope,
-                            entry.index,
-                            time,
-                            band,
-                            entry.key
-                        )
+        return table.imap(
+            entries,
+            function (source)
+                if #source.data == 0 then
+                    return
+                end
 
-                        for bucket, count in pairs(buckets) do
-                            local bucket_membership_key = get_bucket_membership_key(
-                                configuration.scope,
-                                entry.index,
-                                time,
-                                band,
-                                bucket
-                            )
-                            redis.call('SADD', bucket_membership_key, entry.key)
-                            redis.call('EXPIREAT', bucket_membership_key, expiration_time)
-
-                            redis.call(
-                                'HINCRBY',
-                                destination_bucket_frequency_key,
-                                bucket,
-                                count
-                            )
-                        end
-
-                        -- The destination bucket frequency key may have not
-                        -- existed previously, so we need to make sure we set
-                        -- the expiration on it in case it is new. (We only
-                        -- have to do this if there we changed any bucket counts.)
-                        if next(buckets) ~= nil then
-                            redis.call(
-                                'EXPIREAT',
-                                destination_bucket_frequency_key,
-                                expiration_time
-                            )
-                        end
+                local data, ttl = unpack(source.data)
+                local frequencies = {}
+                for band = 1, #data do
+                    frequencies[band] = {}
+                    for bucket, value in pairs(data[band]) do
+                        frequencies[band][bucket] = value[1]
+                        get_bucket_membership_set(configuration, source.index, band, bucket):import(source.key, value[2])
                     end
                 end
+                set_frequencies(configuration, source.index, source.key, frequencies, ttl)
             end
-        end
-    ),
-    EXPORT = takes_configuration(
+        )
+    end,
+    EXPORT = function (configuration, cursor, arguments)
         --[[
         Exports data that is located at the provided ``index`` and ``key`` pairs.
 
         Generally, this data should be treated as opaque method for extracting
         data to be provided to the ``IMPORT`` command. Exported data is
-        returned in the same order as the arguments are provided. Each item is
-        a messagepacked blob that is at the top level list, where each member
-        represents the data contained within one band.  Each item in the band
-        list is another list, where each member represents one time series
-        interval. Each item in the time series list is a tuple containing the
-        time series index and a mapping containing the counts for each bucket
-        within the interval. (Due to the Lua data model, an empty mapping will
-        be represented as an empty list. The consumer of this data must convert
-        it back to the correct type.)
+        returned in the same order as the arguments are provided.
         ]]--
-        function (configuration, arguments)
-            local bands = range(1, configuration.bands)
-            local time_series = get_active_indices(
-                configuration.interval,
-                configuration.retention,
-                configuration.timestamp
-            )
-            return table.imap(
-                collect_index_key_pairs(arguments),
-                function (source)
-                    return cmsgpack.pack(
-                        table.imap(
-                            bands,
-                            function (band)
-                                return table.imap(
-                                    time_series,
-                                    function (time)
-                                        return {
-                                            time,
-                                            redis_hgetall_response_to_table(
-                                                redis.call(
-                                                    'HGETALL',
-                                                    get_bucket_frequency_key(
-                                                        configuration.scope,
-                                                        source.index,
-                                                        time,
-                                                        band,
-                                                        source.key
-                                                    )
-                                                ),
-                                                tonumber
-                                            ),
-                                        }
-                                    end
-                                )
-                            end
-                        )
-                    )
+        local cursor, entries = variadic_argument_parser(
+            object_argument_parser({
+                {'index', argument_parser(validate_value)},
+                {'key', argument_parser(validate_value)},
+            })
+        )(cursor, arguments)
+
+        return table.imap(
+            entries,
+            function (source)
+                local frequency_key = get_frequency_key(configuration, source.index, source.key)
+                if redis.call('EXISTS', frequency_key) < 1 then
+                    return cmsgpack.pack({})
                 end
-            )
-        end
-    )
+
+                local data = {}
+                local frequencies = get_frequencies(configuration, source.index, source.key)
+                for band = 1, #frequencies do
+                    local result = {}
+                    for bucket, count in pairs(frequencies[band]) do
+                        result[bucket] = {
+                            count,
+                            get_bucket_membership_set(configuration, source.index, band, bucket):export(source.key)
+                        }
+                    end
+                    data[band] = result
+                end
+
+                return cmsgpack.pack({
+                    data,
+                    configuration.timestamp + math.max(
+                        redis.call('TTL', frequency_key),
+                        0
+                    )  -- the TTL should always exist, but this is just to be safe
+                })
+            end
+        )
+    end,
+    SCAN = function (configuration, cursor, arguments)
+        local cursor, entries = variadic_argument_parser(
+            object_argument_parser({
+                {'index', argument_parser(validate_value)},
+                {'cursor', argument_parser(validate_value)},
+                {'count', argument_parser(validate_integer)}
+            })
+        )(cursor, arguments)
+        return table.imap(
+            entries,
+            function (argument)
+                return redis.call(
+                    'SCAN',
+                    argument.cursor,
+                    'MATCH',
+                    string.format(
+                        '%s:*',
+                        get_key_prefix(
+                            configuration,
+                            argument.index
+                        )
+                    ),
+                    'COUNT',
+                    argument.count
+                )
+            end
+        )
+    end,
 }
 
+local cursor, command, configuration = multiple_argument_parser(
+    argument_parser(
+        function (value)
+            local command = commands[value]
+            assert(command ~= nil)
+            return command
+        end
+    ),
+    object_argument_parser({
+        {"timestamp", argument_parser(validate_number)},
+        {"namespace", argument_parser()},
+        {"bands", argument_parser(validate_integer)},
+        {"interval", argument_parser(validate_integer)},
+        {"retention", argument_parser(validate_integer)},  -- how many previous intervals to store (does not include current interval)
+        {"candidate_set_limit", argument_parser(validate_integer)},
+        {"scope", argument_parser(validate_value)},
+    })
+)(1, ARGV)
 
-local command_parser = build_argument_parser({
-    {"command", function (value)
-        local command = commands[value]
-        assert(command ~= nil)
-        return command
-    end},
-})
-
-local parsed, arguments = command_parser(ARGV)
-return parsed.command(arguments)
+return command(configuration, cursor, ARGV)

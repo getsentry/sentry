@@ -2,10 +2,9 @@ from __future__ import absolute_import
 
 from collections import defaultdict, namedtuple
 
+FEATURE_LOCATION = {"language", "integration", "code", "web", "admin", "api"}
 
-FEATURE_LOCATION = {'language', 'integration', 'code', 'web', 'admin'}
-
-Feature = namedtuple('Feature', ['id', 'slug', 'name', 'location', 'prerequisite'])
+Feature = namedtuple("Feature", ["id", "slug", "name", "location", "prerequisite"])
 
 
 class UnknownFeature(KeyError):
@@ -31,7 +30,7 @@ class AdoptionManager(object):
         self._ids.add(id)
         self._location_slugs[location].add(slug)
 
-        if location == 'integration':
+        if location == "integration":
             self._integration_slugs[prerequisite[0]].add(slug)
 
     def get_by_id(self, id):

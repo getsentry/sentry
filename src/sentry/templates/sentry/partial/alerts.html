@@ -2,7 +2,7 @@
 <div id="blk_alerts" class="messages-container"></div>
 <script>
 $(function(){
-  ReactDOM.render(React.createFactory(Sentry.Alerts)({
+  ReactDOM.render(React.createFactory(SentryApp.SystemAlerts)({
      className: "alert-list"
   }), document.getElementById('blk_alerts'));
 });
@@ -10,7 +10,7 @@ $(function(){
 <div id="blk_indicators"></div>
 <script>
 $(function(){
-  ReactDOM.render(React.createFactory(Sentry.Indicators)({
+  ReactDOM.render(React.createFactory(SentryApp.Indicators)({
      className: "indicators-container"
   }), document.getElementById('blk_indicators'));
 });

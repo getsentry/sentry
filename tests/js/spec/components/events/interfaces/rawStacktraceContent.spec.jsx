@@ -1,17 +1,17 @@
 import render, {
   getJavaFrame,
-  getJavaPreamble
+  getJavaPreamble,
 } from 'app/components/events/interfaces/rawStacktraceContent';
 
-describe('RawStacktraceContent', function() {
-  describe('getJavaFrame()', function() {
-    it('should render java frames', function() {
+describe('RawStacktraceContent', function () {
+  describe('getJavaFrame()', function () {
+    it('should render java frames', function () {
       expect(
         getJavaFrame({
           module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
           function: 'run',
           filename: 'QueuedThreadPool.java',
-          lineNo: 582
+          lineNo: 582,
         })
       ).toEqual(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java:582)'
@@ -22,7 +22,7 @@ describe('RawStacktraceContent', function() {
         getJavaFrame({
           module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
           function: 'run',
-          filename: 'QueuedThreadPool.java'
+          filename: 'QueuedThreadPool.java',
         })
       ).toEqual(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
@@ -32,17 +32,17 @@ describe('RawStacktraceContent', function() {
       expect(
         getJavaFrame({
           module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
-          function: 'run'
+          function: 'run',
         })
       ).toEqual('    at org.mortbay.thread.QueuedThreadPool$PoolThread.run');
     });
   });
 
-  describe('getJavaPreamble()', function() {
+  describe('getJavaPreamble()', function () {
     expect(
       getJavaPreamble({
         type: 'Baz',
-        value: 'message'
+        value: 'message',
       })
     ).toEqual('Baz: message');
 
@@ -50,32 +50,32 @@ describe('RawStacktraceContent', function() {
       getJavaPreamble({
         module: 'foo.bar',
         type: 'Baz',
-        value: 'message'
+        value: 'message',
       })
     ).toEqual('foo.bar.Baz: message');
   });
 
-  describe('render()', function() {
-    let exception = {
-      module: 'example.application',
-      type: 'Error',
-      value: 'an error occurred'
-    },
+  describe('render()', function () {
+    const exception = {
+        module: 'example.application',
+        type: 'Error',
+        value: 'an error occurred',
+      },
       data = {
         frames: [
           {
             function: 'main',
             module: 'example.application',
             lineNo: 1,
-            filename: 'application'
+            filename: 'application',
           },
           {
             function: 'doThing',
             module: 'example.application',
             lineNo: 2,
-            filename: 'application'
-          }
-        ]
+            filename: 'application',
+          },
+        ],
       };
 
     expect(render(data, 'java', exception)).toEqual(

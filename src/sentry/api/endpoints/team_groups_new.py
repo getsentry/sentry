@@ -4,12 +4,13 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.response import Response
 
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, GroupSerializer
 from sentry.models import Group, GroupStatus, Project
 
 
-class TeamGroupsNewEndpoint(TeamEndpoint):
+class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
     def get(self, request, team):
         """
         Return a list of the newest groups for a given team.
@@ -18,8 +19,8 @@ class TeamGroupsNewEndpoint(TeamEndpoint):
         cutoff date, and then sort those by score, returning the highest scoring
         groups first.
         """
-        minutes = int(request.REQUEST.get('minutes', 15))
-        limit = min(100, int(request.REQUEST.get('limit', 10)))
+        minutes = int(request.GET.get("minutes", 15))
+        limit = min(100, int(request.GET.get("limit", 10)))
 
         project_list = Project.objects.get_for_user(user=request.user, team=team)
 
@@ -28,15 +29,26 @@ class TeamGroupsNewEndpoint(TeamEndpoint):
         cutoff = timedelta(minutes=minutes)
         cutoff_dt = timezone.now() - cutoff
 
-        group_list = list(Group.objects.filter(
-            project__in=project_dict.keys(),
-            status=GroupStatus.UNRESOLVED,
-            active_at__gte=cutoff_dt,
-        ).extra(
-            select={'sort_value': 'score'},
-        ).order_by('-score', '-first_seen')[:limit])
+        sort_value = "score"
+        group_list = list(
+            Group.objects.filter(
+                project__in=project_dict.keys(),
+                status=GroupStatus.UNRESOLVED,
+                active_at__gte=cutoff_dt,
+            )
+            .extra(select={"sort_value": sort_value})
+            .order_by("-{}".format(sort_value), "-first_seen")[:limit]
+        )
 
         for group in group_list:
             group._project_cache = project_dict.get(group.project_id)
 
-        return Response(serialize(group_list, request.user))
+        return Response(
+            serialize(
+                group_list,
+                request.user,
+                GroupSerializer(
+                    environment_func=self._get_environment_func(request, team.organization_id)
+                ),
+            )
+        )

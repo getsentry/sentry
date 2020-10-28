@@ -15,6 +15,7 @@ def auto_reconnect_cursor(func):
     bouncer disconnecting the client due to a timeout/etc during a cursor
     execution.
     """
+
     @wraps(func)
     def inner(self, *args, **kwargs):
         try:
@@ -36,6 +37,7 @@ def auto_reconnect_connection(func):
     Attempt to safely reconnect when an error is hit that resembles the
     bouncer disconnecting the client due to a timeout/etc.
     """
+
     @wraps(func)
     def inner(self, *args, **kwargs):
         try:
@@ -56,9 +58,13 @@ def capture_transaction_exceptions(func):
     Catches database errors and reraises them on subsequent errors that throw
     some cruft about transaction aborted.
     """
+
     def raise_the_exception(conn, exc):
-        if 'current transaction is aborted, commands ignored until end of transaction block' in six.text_type(exc):
-            exc_info = getattr(conn, '_last_exception', None)
+        if (
+            "current transaction is aborted, commands ignored until end of transaction block"
+            in six.text_type(exc)
+        ):
+            exc_info = getattr(conn, "_last_exception", None)
             if exc_info is None:
                 raise
             new_exc = TransactionAborted(sys.exc_info(), exc_info)
@@ -82,15 +88,14 @@ def less_shitty_error_messages(func):
     Wraps functions where the first param is a SQL statement and enforces
     any exceptions thrown will also contain the statement in the message.
     """
+
     @wraps(func)
     def inner(self, sql, *args, **kwargs):
         try:
             return func(self, sql, *args, **kwargs)
         except Exception as e:
             exc_info = sys.exc_info()
-            msg = '{}\nSQL: {}'.format(
-                repr(e),
-                sql,
-            )
+            msg = u"{}\nSQL: {}".format(repr(e), sql)
             six.reraise(exc_info[0], exc_info[0](msg), exc_info[2])
+
     return inner

@@ -18,7 +18,7 @@
       </p>
       {% if activation %}
         {% if activation.type == 'error' or activation.type == 'warning' or activation.type == 'info' %}
-          <p class="{{ activation.type }}">{{ activation.message }}</p>
+          <p class="{{ activation.type }}">{{ activation.message|safe }}</p>
         {% endif %}
       {% endif %}
       <form class="form-stacked" action="" method="post" autocomplete="off">
@@ -29,6 +29,9 @@
           {% for field in form %}
             {{ field|as_crispy_field }}
           {% endfor %}
+          {% if interface.interface_id == "sms" %}
+            <a class="info" href="" >Resend Code</a>
+          {% endif %}
         {% endblock %}
 
         {% block twofactor_submit %}
@@ -38,10 +41,12 @@
         {% endblock %}
 
         {% if other_interfaces %}
-          <p>Other authentication methods:
+          <p>Other authentication methods:</p>
           <ul>
             {% for interface in other_interfaces %}
-              <li><a href="?interface={{ interface.interface_id }}">{{ interface.name }}</a>
+              <li>
+                <a href="?interface={{ interface.interface_id }}">{{ interface.name }}</a>
+              </li>
             {% endfor %}
           </ul>
         {% endif %}

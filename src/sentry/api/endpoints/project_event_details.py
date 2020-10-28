@@ -1,30 +1,15 @@
 from __future__ import absolute_import
 
-import six
-
+from copy import deepcopy
+from datetime import datetime
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
+from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
-from sentry.models import Event
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario('RetrieveEventForProject')
-def retrieve_event_for_project_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/projects/%s/%s/events/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_event.event_id)
-    )
+from sentry.api.serializers import DetailedEventSerializer, serialize
 
 
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.EVENTS
-
-    @attach_scenarios([retrieve_event_for_project_scenario])
     def get(self, request, project, event_id):
         """
         Retrieve an Event for a Project
@@ -36,54 +21,62 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
                                           event belongs to.
         :pparam string project_slug: the slug of the project the event
                                      belongs to.
-        :pparam string event_id: the hexadecimal ID of the event to
-                                 retrieve (as reported by the raven client).
+        :pparam string event_id: the id of the event to retrieve.
+                                 It is the hexadecimal id as
+                                 reported by the raven client)
         :auth: required
         """
-        try:
-            event = Event.objects.get(
-                event_id=event_id,
-                project_id=project.id,
+
+        event = eventstore.get_event_by_id(project.id, event_id)
+
+        if event is None:
+            return Response({"detail": "Event not found"}, status=404)
+
+        data = serialize(event, request.user, DetailedEventSerializer())
+
+        # Used for paginating through events of a single issue in group details
+        # Skip next/prev for issueless events
+        next_event_id = None
+        prev_event_id = None
+
+        if event.group_id:
+            requested_environments = set(request.GET.getlist("environment"))
+            conditions = [["event.type", "!=", "transaction"]]
+
+            if requested_environments:
+                conditions.append(["environment", "IN", requested_environments])
+
+            _filter = eventstore.Filter(
+                conditions=conditions, project_ids=[event.project_id], group_ids=[event.group_id]
             )
-        except Event.DoesNotExist:
-            return Response({'detail': 'Event not found'}, status=404)
 
-        Event.objects.bind_nodes([event], 'data')
+            # Ignore any time params and search entire retention period
+            next_event_filter = deepcopy(_filter)
+            next_event_filter.end = datetime.utcnow()
+            next_event = eventstore.get_next_event_id(event, filter=next_event_filter)
 
-        # HACK(dcramer): work around lack of unique sorting on datetime
-        base_qs = Event.objects.filter(
-            group_id=event.group_id,
-        ).exclude(id=event.id)
-        try:
-            next_event = sorted(
-                base_qs.filter(
-                    datetime__gte=event.datetime
-                ).order_by('datetime')[0:5],
-                key=lambda x: (x.datetime, x.id)
-            )[0]
-        except IndexError:
-            next_event = None
+            prev_event_filter = deepcopy(_filter)
+            prev_event_filter.start = datetime.utcfromtimestamp(0)
+            prev_event = eventstore.get_prev_event_id(event, filter=prev_event_filter)
 
-        try:
-            prev_event = sorted(
-                base_qs.filter(
-                    datetime__lte=event.datetime,
-                ).order_by('-datetime')[0:5],
-                key=lambda x: (x.datetime, x.id),
-                reverse=True
-            )[0]
-        except IndexError:
-            prev_event = None
+            next_event_id = next_event[1] if next_event else None
+            prev_event_id = prev_event[1] if prev_event else None
 
-        data = serialize(event, request.user)
-
-        if next_event:
-            data['nextEventID'] = six.text_type(next_event.event_id)
-        else:
-            data['nextEventID'] = None
-        if prev_event:
-            data['previousEventID'] = six.text_type(prev_event.event_id)
-        else:
-            data['previousEventID'] = None
+        data["nextEventID"] = next_event_id
+        data["previousEventID"] = prev_event_id
 
         return Response(data)
+
+
+class EventJsonEndpoint(ProjectEndpoint):
+    def get(self, request, project, event_id):
+        event = eventstore.get_event_by_id(project.id, event_id)
+
+        if not event:
+            return Response({"detail": "Event not found"}, status=404)
+
+        event_dict = event.as_dict()
+        if isinstance(event_dict["datetime"], datetime):
+            event_dict["datetime"] = event_dict["datetime"].isoformat()
+
+        return Response(event_dict, status=200)

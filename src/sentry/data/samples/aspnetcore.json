@@ -1,0 +1,894 @@
+{
+    "release": "e386dfd",
+    "dist": null,
+    "platform": "csharp",
+    "culprit": "Samples.AspNetCore.Mvc.Controllers.HomeController in PostIndex",
+    "message": "Param is null!",
+    "time_spent": null,
+    "tags": [
+      [
+        "server-runtime",
+        ".NET Core 2.1.5"
+      ],
+      [
+        "server_name",
+        "FLORIPA"
+      ],
+      [
+        "level",
+        "warning"
+      ],
+      [
+        "url",
+        "/Home/PostIndex"
+      ],
+      [
+        "server-os.name",
+        "Windows"
+      ],
+      [
+        "ConnectionId",
+        "0HLIA5VKBAHTH"
+      ],
+      [
+        "server-runtime.name",
+        ".NET Core"
+      ],
+      [
+        "server-os",
+        "Windows 10.0.17134"
+      ],
+      [
+        "environment",
+        "Production"
+      ],
+      [
+        "RequestId",
+        "0HLIA5VKBAHTH:00000001"
+      ],
+      [
+        "sentry:user",
+        "ip:::1"
+      ],
+      [
+        "logger",
+        "Samples.AspNetCore.Mvc.Controllers.HomeController"
+      ],
+      [
+        "sentry:release",
+        "e386dfd"
+      ]
+    ],
+    "breadcrumbs": {
+      "values": [
+        {
+          "category": "Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager",
+          "timestamp": 1542199893,
+          "message": "User profile is available. Using 'C:\\Users\\bruno\\AppData\\Local\\ASP.NET\\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.",
+          "type": "default"
+        },
+        {
+          "category": "Microsoft.AspNetCore.Hosting.Internal.WebHost",
+          "timestamp": 1542201718,
+          "message": "Request starting HTTP/1.1 POST http://localhost:62919/Home/PostIndex application/json; charset=UTF-8 65",
+          "type": "default",
+          "data": {
+            "eventId": "1"
+          }
+        },
+        {
+          "category": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "timestamp": 1542201718,
+          "message": "Route matched with {action = \"PostIndex\", controller = \"Home\"}. Executing action Samples.AspNetCore.Mvc.Controllers.HomeController.PostIndex (Sentry.Samples.AspNetCore.Mvc)",
+          "type": "default",
+          "data": {
+            "eventId": "1"
+          }
+        },
+        {
+          "category": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "timestamp": 1542201718,
+          "message": "Executing action method Samples.AspNetCore.Mvc.Controllers.HomeController.PostIndex (Sentry.Samples.AspNetCore.Mvc) with arguments () - Validation state: Valid",
+          "type": "default",
+          "data": {
+            "eventId": "1"
+          }
+        }
+      ]
+    },
+    "contexts": {
+      "server-runtime": {
+        "raw_description": ".NET Core 4.6.26919.02",
+        "version": "2.1.5",
+        "type": "runtime",
+        "name": ".NET Core"
+      },
+      "server-os": {
+        "raw_description": "Microsoft Windows 10.0.17134 ",
+        "version": "10.0.17134",
+        "type": "os",
+        "name": "Windows"
+      }
+    },
+    "errors": [],
+    "extra": {
+      "Response:HasStarted": false
+    },
+    "fingerprint": [
+      "{{ default }}"
+    ],
+    "key_id": 558355,
+    "logentry": {
+      "message": "Param is null!"
+    },
+    "modules": {
+      "Newtonsoft.Json": "11.0.0.0",
+      "Microsoft.AspNetCore.Razor.Runtime": "2.1.2.0",
+      "Microsoft.AspNetCore.Routing.Abstractions": "2.1.1.0",
+      "Microsoft.AspNetCore.Mvc.ApiExplorer": "2.1.3.0",
+      "System.Runtime.InteropServices": "4.2.1.0",
+      "System.Memory": "4.1.0.0",
+      "System.Private.Uri": "4.0.5.0",
+      "Microsoft.AspNetCore.WebUtilities": "2.1.1.0",
+      "System.Security.Claims": "4.1.1.0",
+      "Microsoft.AspNetCore.SpaServices.Extensions": "2.1.1.0",
+      "System.IO.FileSystem.Watcher": "4.1.1.0",
+      "Microsoft.AspNetCore.Mvc.TagHelpers": "2.1.3.0",
+      "System.Private.Xml.Linq": "4.0.1.0",
+      "System.Diagnostics.Debug": "4.1.1.0",
+      "Microsoft.Extensions.Configuration.FileExtensions": "2.1.1.0",
+      "System.Net.Http": "4.2.1.0",
+      "Microsoft.AspNetCore.HostFiltering": "2.1.1.0",
+      "System.Private.Xml": "4.0.1.0",
+      "Microsoft.AspNetCore.Authorization": "2.1.2.0",
+      "System.Numerics.Vectors": "4.1.4.0",
+      "Microsoft.Extensions.DependencyModel": "2.1.0.0",
+      "Microsoft.AspNetCore.Mvc.ViewFeatures": "2.1.3.0",
+      "Microsoft.AspNetCore.StaticFiles": "2.1.1.0",
+      "Microsoft.AspNetCore.SpaServices": "2.1.1.0",
+      "Microsoft.Extensions.WebEncoders": "2.1.1.0",
+      "Microsoft.Extensions.Logging.Debug": "2.1.1.0",
+      "Microsoft.AspNetCore.Mvc.Core": "2.1.3.0",
+      "Microsoft.AspNetCore.Http.Features": "2.1.1.0",
+      "System.IO.MemoryMappedFiles": "4.1.1.0",
+      "Microsoft.AspNetCore.Server.Kestrel": "2.1.3.0",
+      "Microsoft.AspNetCore.Mvc.Cors": "2.1.3.0",
+      "Microsoft.CodeAnalysis.CSharp": "2.8.0.0",
+      "Microsoft.Extensions.Options": "2.1.1.0",
+      "System.ComponentModel.Primitives": "4.2.1.0",
+      "Microsoft.Win32.Registry": "4.1.1.0",
+      "System.Security.Cryptography.Primitives": "4.1.1.0",
+      "Microsoft.Net.Http.Headers": "2.1.1.0",
+      "System.Runtime.CompilerServices.Unsafe": "4.0.4.1",
+      "Microsoft.AspNetCore.Antiforgery": "2.1.1.0",
+      "Microsoft.Extensions.Configuration.EnvironmentVariables": "2.1.1.0",
+      "System.Reflection.Primitives": "4.1.1.0",
+      "System.Runtime.Serialization.Formatters": "4.0.3.0",
+      "System.IO.FileSystem": "4.1.1.0",
+      "Microsoft.AspNetCore.Mvc.DataAnnotations": "2.1.3.0",
+      "Microsoft.AspNetCore.HttpOverrides": "2.1.1.0",
+      "Microsoft.Extensions.Configuration.CommandLine": "2.1.1.0",
+      "Microsoft.AspNetCore.Hosting": "2.1.1.0",
+      "Microsoft.AspNetCore.Mvc.Formatters.Json": "2.1.3.0",
+      "Microsoft.Extensions.Primitives": "2.1.1.0",
+      "Microsoft.AspNetCore.Diagnostics.Abstractions": "2.1.1.0",
+      "Microsoft.AspNetCore.Authentication": "2.1.2.0",
+      "Microsoft.Extensions.Logging.Console": "2.1.1.0",
+      "System.Reflection": "4.2.1.0",
+      "Microsoft.AspNetCore.Mvc.Razor.Extensions": "2.1.2.0",
+      "System.IO.FileSystem.Primitives": "4.1.1.0",
+      "Microsoft.AspNetCore.JsonPatch": "2.1.1.0",
+      "Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets": "2.1.3.0",
+      "netstandard": "2.0.0.0",
+      "System.Diagnostics.StackTrace": "4.1.1.0",
+      "Microsoft.CodeAnalysis": "2.8.0.0",
+      "Microsoft.CodeAnalysis.Razor": "2.1.2.0",
+      "System.Threading.ThreadPool": "4.1.1.0",
+      "Microsoft.Extensions.Logging.Abstractions": "2.1.1.0",
+      "System.Threading": "4.1.1.0",
+      "Microsoft.AspNetCore.Identity.UI.Views": "2.1.3.0",
+      "System.AppContext": "4.2.1.0",
+      "Microsoft.Extensions.Configuration.Abstractions": "2.1.1.0",
+      "System.Security.Cryptography.Algorithms": "4.3.1.0",
+      "Microsoft.Extensions.ObjectPool": "2.1.1.0",
+      "System.Collections": "4.1.1.0",
+      "Microsoft.AspNetCore.Razor": "2.1.2.0",
+      "Microsoft.Extensions.DependencyInjection.Abstractions": "2.1.1.0",
+      "System.ComponentModel": "4.0.3.0",
+      "Microsoft.AspNetCore.Html.Abstractions": "2.1.1.0",
+      "Microsoft.AspNetCore.Hosting.Server.Abstractions": "2.1.1.0",
+      "Microsoft.AspNetCore.Cors": "2.1.1.0",
+      "Microsoft.AspNetCore.Authentication.Core": "2.1.1.0",
+      "Microsoft.AspNetCore.DataProtection.Abstractions": "2.1.1.0",
+      "Microsoft.Extensions.Configuration.Binder": "2.1.1.0",
+      "System.Collections.Specialized": "4.1.1.0",
+      "System.ComponentModel.Annotations": "4.2.1.0",
+      "Microsoft.Extensions.Localization.Abstractions": "2.1.1.0",
+      "System.Text.Encoding.Extensions": "4.1.1.0",
+      "Microsoft.AspNetCore.Mvc.Razor": "2.1.3.0",
+      "System.Buffers": "4.0.3.0",
+      "Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions": "2.1.3.0",
+      "Microsoft.Extensions.FileProviders.Abstractions": "2.1.1.0",
+      "System.Reflection.Emit.ILGeneration": "4.0.3.0",
+      "System.Xml.XDocument": "4.1.1.0",
+      "System.Threading.Timer": "4.1.1.0",
+      "System.Linq": "4.2.1.0",
+      "System.Text.RegularExpressions": "4.2.1.0",
+      "System.Runtime": "4.2.1.0",
+      "Microsoft.AspNetCore.Server.IISIntegration": "2.1.2.0",
+      "System.Threading.Tasks.Extensions": "4.3.0.0",
+      "System.Threading.Tasks": "4.1.1.0",
+      "Microsoft.AspNetCore.Http.Extensions": "2.1.1.0",
+      "System.Diagnostics.DiagnosticSource": "4.0.3.1",
+      "System.Threading.Thread": "4.1.1.0",
+      "System.Runtime.Numerics": "4.1.1.0",
+      "Sentry.Extensions.Logging": "1.0.1.0",
+      "Microsoft.Extensions.Hosting.Abstractions": "2.1.1.0",
+      "Microsoft.AspNetCore.Http": "2.1.1.0",
+      "Microsoft.Extensions.FileProviders.Physical": "2.1.1.0",
+      "System.Net.Primitives": "4.1.1.0",
+      "Microsoft.AspNetCore.Identity.UI": "2.1.3.0",
+      "System.ObjectModel": "4.1.1.0",
+      "Microsoft.AspNetCore.Authentication.Cookies": "2.1.2.0",
+      "System.Diagnostics.Tracing": "4.2.1.0",
+      "Microsoft.Extensions.FileSystemGlobbing": "2.1.1.0",
+      "Microsoft.Extensions.Options.ConfigurationExtensions": "2.1.1.0",
+      "System.Security.Cryptography.X509Certificates": "4.2.1.0",
+      "Sentry.Samples.AspNetCore.Mvc": "1.0.1.0",
+      "System.Security.Principal": "4.1.1.0",
+      "System.IO.Pipelines": "4.0.0.1",
+      "System.IO": "4.2.1.0",
+      "Microsoft.AspNetCore.DataProtection": "2.1.1.0",
+      "Microsoft.AspNetCore.Server.Kestrel.Core": "2.1.3.0",
+      "Microsoft.AspNetCore": "2.1.4.0",
+      "Microsoft.Extensions.DependencyInjection": "2.1.1.0",
+      "Sentry.AspNetCore": "1.0.1.0",
+      "System.Private.CoreLib": "4.0.0.0",
+      "System.Console": "4.1.1.0",
+      "Microsoft.AspNetCore.Razor.Language": "2.1.2.0",
+      "System.Net.Security": "4.1.1.0",
+      "Sentry.Protocol": "1.0.2.0",
+      "Microsoft.AspNetCore.Authorization.Policy": "2.1.2.0",
+      "Microsoft.Extensions.Caching.Abstractions": "2.1.2.0",
+      "Microsoft.AspNetCore.Hosting.Abstractions": "2.1.1.0",
+      "Microsoft.AspNetCore.Http.Abstractions": "2.1.1.0",
+      "System.Reflection.Metadata": "1.4.3.0",
+      "Microsoft.AspNetCore.Routing": "2.1.1.0",
+      "Microsoft.Extensions.Configuration.Json": "2.1.1.0",
+      "System.Threading.Overlapped": "4.1.1.0",
+      "System.Reflection.Emit.Lightweight": "4.0.3.0",
+      "System.Drawing.Primitives": "4.2.0.0",
+      "Sentry.Samples.AspNetCore.Mvc.Views": "1.0.1.0",
+      "Microsoft.AspNetCore.Mvc": "2.1.3.0",
+      "Microsoft.Extensions.Caching.Memory": "2.1.2.0",
+      "System.Collections.Immutable": "1.2.3.0",
+      "System.Runtime.Extensions": "4.2.1.0",
+      "Sentry": "1.0.1.0",
+      "System.Linq.Expressions": "4.2.1.0",
+      "Microsoft.Extensions.Configuration": "2.1.1.0",
+      "Microsoft.Extensions.Logging": "2.1.1.0",
+      "System.Resources.ResourceManager": "4.1.1.0",
+      "System.Net.NameResolution": "4.1.1.0",
+      "Microsoft.AspNetCore.Mvc.Abstractions": "2.1.3.0",
+      "Microsoft.AspNetCore.Authentication.Abstractions": "2.1.1.0",
+      "Microsoft.AspNetCore.Connections.Abstractions": "2.1.3.0",
+      "System.Net.Sockets": "4.2.1.0",
+      "Microsoft.AspNetCore.Diagnostics": "2.1.1.0",
+      "System.Text.Encodings.Web": "4.0.3.0",
+      "System.Collections.Concurrent": "4.0.14.0",
+      "System.ComponentModel.TypeConverter": "4.2.1.0",
+      "Microsoft.Extensions.Logging.Configuration": "2.1.1.0",
+      "System.Runtime.InteropServices.RuntimeInformation": "4.0.3.0",
+      "System.IO.Compression": "4.2.1.0",
+      "Microsoft.AspNetCore.Mvc.RazorPages": "2.1.3.0",
+      "Sentry.PlatformAbstractions": "1.0.0.0",
+      "Microsoft.AspNetCore.Cryptography.Internal": "2.1.1.0"
+    },
+    "received": 1542201719,
+    "request": {
+      "cookies": [
+        [
+          ".AspNetCore.Antiforgery._2NlYY4B078",
+          "CfDJ8JgfBVYV2S5Flq6_ywzZxlv6957MfF5E7Je5KQssZGBAazKpPPC39Psqeock0tBWywXqpHXXl0oAWt54a3U8XqqDSOlEWTtSpkMLwWy1lVr6mykRwjbzDb7SQ3I_A5rT-y1XhYcwhUCrieCBtbSpxqE"
+        ]
+      ],
+      "url": "/Home/PostIndex",
+      "headers": [
+        [
+          "Origin",
+          "http://localhost:62919"
+        ],
+        [
+          "Content-Length",
+          "65"
+        ],
+        [
+          "Accept-Language",
+          "en-US,en;q=0.9,de-AT;q=0.8,de;q=0.7,cs-CZ;q=0.6,cs;q=0.5,pt-BR;q=0.4,pt;q=0.3,es-AR;q=0.2,es;q=0.1"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip, deflate, br"
+        ],
+        [
+          "X-Requested-With",
+          "XMLHttpRequest"
+        ],
+        [
+          "Host",
+          "localhost:62919"
+        ],
+        [
+          "Accept",
+          "application/json, text/javascript, */*; q=0.01"
+        ],
+        [
+          "User-Agent",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+        ],
+        [
+          "Connection",
+          "Keep-Alive"
+        ],
+        [
+          "X-Original-Proto",
+          "http"
+        ],
+        [
+          "Ms-Aspnetcore-Token",
+          "9d9be0eb-9c7d-4733-ae11-aed6a66df75e"
+        ],
+        [
+          "Referer",
+          "http://localhost:62919/"
+        ],
+        [
+          "X-Original-For",
+          "127.0.0.1:51097"
+        ],
+        [
+          "Content-Type",
+          "application/json; charset=UTF-8"
+        ]
+      ],
+      "env": {
+        "DOCUMENT_ROOT": "C:\\Users\\bruno\\git\\sentry-dotnet\\samples\\Sentry.Samples.AspNetCore.Mvc\\wwwroot",
+        "SERVER_NAME": "FLORIPA",
+        "SERVER_PORT": "23135",
+        "REMOTE_ADDR": "::1"
+      },
+      "data": {
+        "a": "b",
+        "c": [
+          {
+            "d": "e",
+            "f": "g"
+          }
+        ]
+      },
+      "method": "POST",
+      "inferred_content_type": "application/json"
+    },
+    "sdk": {
+      "version": "1.0.1-beta",
+      "name": "sentry.dotnet.aspnetcore",
+      "packages": [
+        {
+          "Version": "1.0.1-beta",
+          "Name": "nuget:Sentry"
+        },
+        {
+          "Version": "1.0.1-beta",
+          "Name": "nuget:Sentry.Extensions.Logging"
+        },
+        {
+          "Version": "1.0.1-beta",
+          "Name": "nuget:Sentry.AspNetCore"
+        }
+      ]
+    },
+    "stacktrace": {
+      "frames": [
+        {
+          "function": "Dispatch",
+          "in_app": false,
+          "context_line": "Boolean Dispatch()",
+          "module": "System.Threading.ThreadPoolWorkQueue",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "RunInternal",
+          "in_app": false,
+          "context_line": "Void RunInternal(System.Threading.ExecutionContext, System.Threading.ContextCallback, System.Object)",
+          "module": "System.Threading.ExecutionContext",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "MoveNext",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1+AsyncStateMachineBox`1",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "RunInternal",
+          "in_app": false,
+          "context_line": "Void RunInternal(System.Threading.ExecutionContext, System.Threading.ContextCallback, System.Object)",
+          "module": "System.Threading.ExecutionContext",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "MoveNext",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http.HttpProtocol+<ProcessRequests>d__188`1",
+          "package": "Microsoft.AspNetCore.Server.Kestrel.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "ProcessRequestAsync",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task ProcessRequestAsync(Context)",
+          "module": "Microsoft.AspNetCore.Hosting.Internal.HostingApplication",
+          "package": "Microsoft.AspNetCore.Hosting, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Invoke(Microsoft.AspNetCore.Http.HttpContext)",
+          "module": "Microsoft.AspNetCore.Hosting.Internal.RequestServicesContainerMiddleware",
+          "package": "Microsoft.AspNetCore.Hosting, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Invoke(Microsoft.AspNetCore.Http.HttpContext)",
+          "module": "Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware",
+          "package": "Microsoft.AspNetCore.HostFiltering, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Invoke(Microsoft.AspNetCore.Http.HttpContext)",
+          "module": "Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersMiddleware",
+          "package": "Microsoft.AspNetCore.HttpOverrides, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Invoke(Microsoft.AspNetCore.Http.HttpContext)",
+          "module": "Microsoft.AspNetCore.Server.IISIntegration.IISMiddleware",
+          "package": "Microsoft.AspNetCore.Server.IISIntegration, Version=2.1.2.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Server.IISIntegration.IISMiddleware",
+          "package": "Microsoft.AspNetCore.Server.IISIntegration, Version=2.1.2.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "InvokeAsync",
+          "in_app": true,
+          "context_line": "System.Threading.Tasks.Task InvokeAsync(Microsoft.AspNetCore.Http.HttpContext)",
+          "module": "Sentry.AspNetCore.SentryMiddleware",
+          "package": "Sentry.AspNetCore, Version=1.0.1.0, Culture=neutral, PublicKeyToken=fba2ec45388e2af0"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "InvokeAsync",
+          "abs_path": "C:\\Users\\bruno\\git\\sentry-dotnet\\src\\Sentry.AspNetCore\\SentryMiddleware.cs",
+          "package": "Sentry.AspNetCore, Version=1.0.1.0, Culture=neutral, PublicKeyToken=fba2ec45388e2af0",
+          "module": "Sentry.AspNetCore.SentryMiddleware",
+          "in_app": true,
+          "lineno": 91,
+          "colno": 21,
+          "filename": "C:\\Users\\bruno\\git\\sentry-dotnet\\src\\Sentry.AspNetCore\\SentryMiddleware.cs",
+          "context_line": "Void MoveNext()"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Invoke(Microsoft.AspNetCore.Http.HttpContext)",
+          "module": "Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware",
+          "package": "Microsoft.AspNetCore.Diagnostics, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware",
+          "package": "Microsoft.AspNetCore.Diagnostics, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Invoke(Microsoft.AspNetCore.Http.HttpContext)",
+          "module": "Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware",
+          "package": "Microsoft.AspNetCore.StaticFiles, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware",
+          "package": "Microsoft.AspNetCore.StaticFiles, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Invoke(Microsoft.AspNetCore.Http.HttpContext)",
+          "module": "Microsoft.AspNetCore.Builder.RouterMiddleware",
+          "package": "Microsoft.AspNetCore.Routing, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "Invoke",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Builder.RouterMiddleware",
+          "package": "Microsoft.AspNetCore.Routing, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "RouteAsync { <lambda> }",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task <RouteAsync>b__0(Microsoft.AspNetCore.Http.HttpContext)",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.MvcRouteHandler+<>c__DisplayClass8_0",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "InvokeAsync",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task InvokeAsync()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "InvokeAsync",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "InvokeFilterPipelineAsync",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task InvokeFilterPipelineAsync()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "InvokeFilterPipelineAsync",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Next",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "InvokeNextResourceFilter",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task InvokeNextResourceFilter()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "InvokeNextResourceFilter",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Next",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "InvokeInnerFilterAsync",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task InvokeInnerFilterAsync()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "InvokeInnerFilterAsync",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Next",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "OnActionExecutionAsync",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task OnActionExecutionAsync(Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext, Microsoft.AspNetCore.Mvc.Filters.ActionExecutionDelegate)",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionFilter",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "OnActionExecutionAsync",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task OnActionExecutionAsync(Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext, Microsoft.AspNetCore.Mvc.Filters.ActionExecutionDelegate)",
+          "module": "Microsoft.AspNetCore.Mvc.Controller",
+          "package": "Microsoft.AspNetCore.Mvc.ViewFeatures, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "OnActionExecutionAsync",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Mvc.Controller",
+          "package": "Microsoft.AspNetCore.Mvc.ViewFeatures, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "InvokeNextActionFilterAwaitedAsync",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext] InvokeNextActionFilterAwaitedAsync()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "InvokeNextActionFilterAwaitedAsync",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "InvokeNextActionFilterAsync",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task InvokeNextActionFilterAsync()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "InvokeNextActionFilterAsync",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Next",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "InvokeNextActionFilterAsync",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task InvokeNextActionFilterAsync()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "InvokeNextActionFilterAsync",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Next",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "InvokeActionMethodAsync",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.Task InvokeActionMethodAsync()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "InvokeActionMethodAsync",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Execute",
+          "in_app": false,
+          "context_line": "System.Threading.Tasks.ValueTask`1[Microsoft.AspNetCore.Mvc.IActionResult] Execute(Microsoft.AspNetCore.Mvc.Infrastructure.IActionResultTypeMapper, Microsoft.Extensions.Internal.ObjectMethodExecutor, System.Object, System.Object[])",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+AwaitableResultExecutor",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "Execute",
+          "in_app": false,
+          "context_line": "Void MoveNext()",
+          "module": "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+AwaitableResultExecutor",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "ExecuteAsync",
+          "in_app": false,
+          "context_line": "Microsoft.Extensions.Internal.ObjectMethodExecutorAwaitable ExecuteAsync(System.Object, System.Object[])",
+          "module": "Microsoft.Extensions.Internal.ObjectMethodExecutor",
+          "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.1.3.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "lambda_method",
+          "context_line": "Microsoft.Extensions.Internal.ObjectMethodExecutorAwaitable lambda_method(System.Runtime.CompilerServices.Closure, System.Object, System.Object[])",
+          "module": "(unknown)",
+          "in_app": true
+        },
+        {
+          "function": "PostIndex",
+          "in_app": true,
+          "context_line": "System.Threading.Tasks.Task PostIndex(System.String)",
+          "module": "Samples.AspNetCore.Mvc.Controllers.HomeController",
+          "package": "Sentry.Samples.AspNetCore.Mvc, Version=1.0.1.0, Culture=neutral, PublicKeyToken=fba2ec45388e2af0"
+        },
+        {
+          "function": "Start",
+          "in_app": false,
+          "context_line": "Void Start[TStateMachine](TStateMachine ByRef)",
+          "module": "System.Runtime.CompilerServices.AsyncMethodBuilderCore",
+          "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+        },
+        {
+          "function": "PostIndex",
+          "abs_path": "C:\\Users\\bruno\\git\\sentry-dotnet\\samples\\Sentry.Samples.AspNetCore.Mvc\\Controllers\\HomeController.cs",
+          "package": "Sentry.Samples.AspNetCore.Mvc, Version=1.0.1.0, Culture=neutral, PublicKeyToken=fba2ec45388e2af0",
+          "module": "Samples.AspNetCore.Mvc.Controllers.HomeController",
+          "in_app": true,
+          "lineno": 36,
+          "colno": 21,
+          "filename": "C:\\Users\\bruno\\git\\sentry-dotnet\\samples\\Sentry.Samples.AspNetCore.Mvc\\Controllers\\HomeController.cs",
+          "context_line": "Void MoveNext()"
+        },
+        {
+          "function": "LogWarning",
+          "in_app": false,
+          "context_line": "Void LogWarning(Microsoft.Extensions.Logging.ILogger, System.String, System.Object[])",
+          "module": "Microsoft.Extensions.Logging.LoggerExtensions",
+          "package": "Microsoft.Extensions.Logging.Abstractions, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Log",
+          "in_app": false,
+          "context_line": "Void Log(Microsoft.Extensions.Logging.ILogger, Microsoft.Extensions.Logging.LogLevel, Microsoft.Extensions.Logging.EventId, System.Exception, System.String, System.Object[])",
+          "module": "Microsoft.Extensions.Logging.LoggerExtensions",
+          "package": "Microsoft.Extensions.Logging.Abstractions, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Microsoft.Extensions.Logging.ILogger.Log",
+          "in_app": false,
+          "context_line": "Void Microsoft.Extensions.Logging.ILogger.Log[TState](Microsoft.Extensions.Logging.LogLevel, Microsoft.Extensions.Logging.EventId, TState, System.Exception, System.Func`3[TState,System.Exception,System.String])",
+          "module": "Microsoft.Extensions.Logging.Logger`1",
+          "package": "Microsoft.Extensions.Logging.Abstractions, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        },
+        {
+          "function": "Log",
+          "in_app": false,
+          "context_line": "Void Log[TState](Microsoft.Extensions.Logging.LogLevel, Microsoft.Extensions.Logging.EventId, TState, System.Exception, System.Func`3[TState,System.Exception,System.String])",
+          "module": "Microsoft.Extensions.Logging.Logger",
+          "package": "Microsoft.Extensions.Logging, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60"
+        }
+      ]
+    },
+    "user": {
+      "ip_address": "::1"
+    }
+  }

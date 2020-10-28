@@ -1,0 +1,29 @@
+{
+    "message": "Public key pinning validation failed for 'example.com'",
+    "hpkp": {
+        "date_time": "2014-04-06T13:00:50Z",
+        "hostname": "example.com",
+        "port": 443,
+        "effective_expiration_date": "2014-05-01T12:40:50Z",
+        "include_subdomains": false,
+        "served_certificate_chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+        "validated_certificate_chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+        "known_pins": ["pin-sha256=\"E9CZ9INDbd+2eRQozYqqbQ2yXLVKB9+xcprMF+44U1g=\""]
+    },
+    "sentry.interfaces.Http": {
+        "url": "https://example.com/welcome/",
+        "headers": [
+            [
+                "Referer",
+                "https://www.google.com/"
+            ],
+            [
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/51.2.109 Chrome/45.2.2454.109 Safari/537.36"
+            ]
+        ]
+    },
+    "sentry.interfaces.User": {
+        "ip_address": "127.0.0.1"
+    }
+}

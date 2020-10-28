@@ -1,0 +1,85 @@
+---
+created: '2020-08-21T21:07:53.458907Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:fingerprint:ident-shingle: "symcache-error"
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","__rust_maybe_catch_panic"]],[["filename","rt.rs"],["function","std::rt::lang_start_internal::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","panicking.rs"],["function","std::panicking::try"]],[["filename","lib.rs"],["function","__rust_maybe_catch_panic"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","rt.rs"],["function","std::rt::lang_start_internal::{{closure}}"]],[["function","std::rt::lang_start::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__libc_start_main"]],[["function","main"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_start"]],[["function","__libc_start_main"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","actix::contextimpl::ContextFut<T>::poll"]],[["function","futures::future::then::Then<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","actix::system::SystemRunner::run"]],[["function","tokio::runtime::current_thread::runtime::Runtime::block_on"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","failure::backtrace::Backtrace::default"]],[["function","failure::backtrace::internal::InternalBacktrace::new"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","failure::error::error_impl::ErrorImpl::from"]],[["function","failure::backtrace::Backtrace::default"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::future::chain::Chain<T>::poll"]],[["function","futures::future::map::Map<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::future::chain::Chain<T>::poll"]],[["function","symbolicator::actors::symcaches::SymCacheFile::parse"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::future::join_all::JoinAll<T>::poll"]],[["function","futures::future::chain::Chain<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::future::lazy::Lazy<T>::poll"]],[["function","futures::future::then::Then<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::future::map::Map<T>::poll"]],[["function","futures::future::join_all::JoinAll<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::future::map_err::MapErr<T>::poll"]],[["function","futures::future::chain::Chain<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::future::then::Then<T>::poll"]],[["function","futures::future::lazy::Lazy<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::future::then::Then<T>::poll"]],[["function","futures::future::map_err::MapErr<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::task_impl::Spawn<T>::poll_future_notify"]],[["function","futures::task_impl::std::set"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::task_impl::std::set"]],[["function","actix::contextimpl::ContextFut<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","main"]],[["filename","panicking.rs"],["function","std::panicking::try"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","main"]],[["function","symbolicator::main"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::rt::lang_start::{{closure}}"]],[["function","symbolicator::main"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::thread::local::LocalKey<T>::with"]],[["function","tokio_current_thread::Entered<T>::block_on"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","symbolic_symcache::cache::SymCache::parse"]],[["function","symbolic_symcache::format::Header::parse"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","symbolic_symcache::format::Header::parse"]],[["function","failure::error::error_impl::ErrorImpl::from"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","symbolicator::actors::symcaches::SymCacheFile::parse"]],[["function","symbolic_symcache::cache::SymCache::parse"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","symbolicator::app::main"]],[["function","actix::system::SystemRunner::run"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","symbolicator::main"]],[["function","symbolicator::app::main"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio::runtime::current_thread::runtime::Runtime::block_on"]],[["function","std::thread::local::LocalKey<T>::with"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio::runtime::current_thread::runtime::Runtime::block_on"]],[["function","tokio_current_thread::Entered<T>::block_on"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thread::CurrentRunner::set_spawn"]],[["function","futures::task_impl::Spawn<T>::poll_future_notify"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thread::Entered<T>::block_on"]],[["function","tokio_current_thread::Entered<T>::tick"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thread::Entered<T>::tick"]],[["function","tokio_current_thread::scheduler::Scheduler<T>::tick"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thread::scheduler::Scheduler<T>::tick"]],[["function","tokio_current_thread::CurrentRunner::set_spawn"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","unknown"]],[["function","_start"]]]
+similarity:2020-07-23:type:ident-shingle: "Custom"
+similarity:2020-07-23:type:ident-shingle: "SymCacheError"
+similarity:2020-07-23:value:character-5-shingle: " head"
+similarity:2020-07-23:value:character-5-shingle: " of r"
+similarity:2020-07-23:value:character-5-shingle: " pars"
+similarity:2020-07-23:value:character-5-shingle: " rang"
+similarity:2020-07-23:value:character-5-shingle: " symc"
+similarity:2020-07-23:value:character-5-shingle: " to p"
+similarity:2020-07-23:value:character-5-shingle: "ache "
+similarity:2020-07-23:value:character-5-shingle: "ailed"
+similarity:2020-07-23:value:character-5-shingle: "alid "
+similarity:2020-07-23:value:character-5-shingle: "arse "
+similarity:2020-07-23:value:character-5-shingle: "cache"
+similarity:2020-07-23:value:character-5-shingle: "che h"
+similarity:2020-07-23:value:character-5-shingle: "d sym"
+similarity:2020-07-23:value:character-5-shingle: "d to "
+similarity:2020-07-23:value:character-5-shingle: "e hea"
+similarity:2020-07-23:value:character-5-shingle: "e sym"
+similarity:2020-07-23:value:character-5-shingle: "eader"
+similarity:2020-07-23:value:character-5-shingle: "ed to"
+similarity:2020-07-23:value:character-5-shingle: "f ran"
+similarity:2020-07-23:value:character-5-shingle: "faile"
+similarity:2020-07-23:value:character-5-shingle: "he he"
+similarity:2020-07-23:value:character-5-shingle: "heade"
+similarity:2020-07-23:value:character-5-shingle: "id sy"
+similarity:2020-07-23:value:character-5-shingle: "iled "
+similarity:2020-07-23:value:character-5-shingle: "inval"
+similarity:2020-07-23:value:character-5-shingle: "led t"
+similarity:2020-07-23:value:character-5-shingle: "lid s"
+similarity:2020-07-23:value:character-5-shingle: "mcach"
+similarity:2020-07-23:value:character-5-shingle: "nvali"
+similarity:2020-07-23:value:character-5-shingle: "o par"
+similarity:2020-07-23:value:character-5-shingle: "of ra"
+similarity:2020-07-23:value:character-5-shingle: "out o"
+similarity:2020-07-23:value:character-5-shingle: "parse"
+similarity:2020-07-23:value:character-5-shingle: "range"
+similarity:2020-07-23:value:character-5-shingle: "rse s"
+similarity:2020-07-23:value:character-5-shingle: "se sy"
+similarity:2020-07-23:value:character-5-shingle: "symca"
+similarity:2020-07-23:value:character-5-shingle: "t of "
+similarity:2020-07-23:value:character-5-shingle: "to pa"
+similarity:2020-07-23:value:character-5-shingle: "ut of"
+similarity:2020-07-23:value:character-5-shingle: "valid"
+similarity:2020-07-23:value:character-5-shingle: "ymcac"

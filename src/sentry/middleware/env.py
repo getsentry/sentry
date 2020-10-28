@@ -14,4 +14,5 @@ class SentryEnvMiddleware(object):
 def clear_request(**kwargs):
     env.request = None
 
+
 request_finished.connect(clear_request)

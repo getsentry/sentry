@@ -6,7 +6,7 @@
 {% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
-	<h2>{% trans "Recover Account" %}</h2>
-	{% url 'sentry-recover-account' as link %}
+	<h3>{% trans "Recover Account" %}</h3>
+	{% url 'sentry-account-recover' as link %}
 	<p>{% blocktrans %}We were unable to confirm your identity. Either the link you followed is invalid, or it has expired. You can always <a href="{{ link }}">try again</a>.{% endblocktrans %}</p>
 {% endblock %}

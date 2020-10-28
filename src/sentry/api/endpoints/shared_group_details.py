@@ -2,16 +2,18 @@ from __future__ import absolute_import, print_function
 
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, EnvironmentMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import (
-    serialize, SharedEventSerializer, SharedGroupSerializer,
-    SharedProjectSerializer
+    serialize,
+    SharedEventSerializer,
+    SharedGroupSerializer,
+    SharedProjectSerializer,
 )
 from sentry.models import Group
 
 
-class SharedGroupDetailsEndpoint(Endpoint):
+class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
     permission_classes = ()
 
     def get(self, request, share_id):
@@ -22,7 +24,7 @@ class SharedGroupDetailsEndpoint(Endpoint):
 
             {method} {path}
 
-        Note: This is not the equivilant of what you'd receive with the standard
+        Note: This is not the equivalent of what you'd receive with the standard
         group details endpoint. Data is more restrictive and designed
         specifically for sharing.
 
@@ -37,8 +39,14 @@ class SharedGroupDetailsEndpoint(Endpoint):
 
         event = group.get_latest_event()
 
-        context = serialize(group, request.user, SharedGroupSerializer())
+        context = serialize(
+            group,
+            request.user,
+            SharedGroupSerializer(
+                environment_func=self._get_environment_func(request, group.project.organization_id)
+            ),
+        )
         # TODO(dcramer): move latestEvent/project into SharedGroupSerializer
-        context['latestEvent'] = serialize(event, request.user, SharedEventSerializer())
-        context['project'] = serialize(group.project, request.user, SharedProjectSerializer())
+        context["latestEvent"] = serialize(event, request.user, SharedEventSerializer())
+        context["project"] = serialize(group.project, request.user, SharedProjectSerializer())
         return Response(context)

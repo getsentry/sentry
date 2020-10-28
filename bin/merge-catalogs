@@ -6,35 +6,33 @@ import click
 from babel.messages.pofile import read_po, write_po
 
 
-JS_EXTENSIONS = ('.js', '.jsx')
+JS_EXTENSIONS = (".js", ".jsx", ".ts", ".tsx")
 
 
 def merge_message(msg, frontend_msg):
     non_js_locations = [
-        (fn, lineno) for fn, lineno in msg.locations
-        if not fn.endswith(JS_EXTENSIONS)
+        (fn, lineno) for fn, lineno in msg.locations if not fn.endswith(JS_EXTENSIONS)
     ]
-    if (not msg.user_comments or not non_js_locations) \
-       and frontend_msg.user_comments:
+    if (not msg.user_comments or not non_js_locations) and frontend_msg.user_comments:
         msg.user_comments = frontend_msg.usr_comments
     msg.locations = non_js_locations + frontend_msg.locations
 
 
 @click.command()
-@click.argument('locale')
+@click.argument("locale")
 def cli(locale):
-    catalog_file = 'src/sentry/locale/%s/LC_MESSAGES/django.po' % locale
-    frontend_file = 'build/javascript.po'
+    catalog_file = "src/sentry/locale/%s/LC_MESSAGES/django.po" % locale
+    frontend_file = "build/javascript.po"
     if not os.path.isfile(frontend_file):
         return
 
     with open(catalog_file) as f:
-        catalog = read_po(f)
+        catalog = read_po(f, locale)
     with open(frontend_file) as f:
-        frontend = read_po(f)
+        frontend = read_po(f, locale)
 
     for frontend_msg in frontend:
-        if frontend_msg.id == '':
+        if frontend_msg.id == "":
             continue
         msg = catalog.get(frontend_msg.id)
 
@@ -48,9 +46,9 @@ def cli(locale):
             merge_message(msg, frontend_msg)
         catalog[msg.id] = msg
 
-    with open(catalog_file, 'w') as f:
+    with open(catalog_file, "w") as f:
         write_po(f, catalog)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

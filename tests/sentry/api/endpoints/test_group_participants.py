@@ -13,15 +13,12 @@ class GroupParticipantsTest(APITestCase):
         group = self.create_group()
 
         GroupSubscription.objects.create(
-            user=self.user,
-            group=group,
-            project=group.project,
-            is_active=True,
+            user=self.user, group=group, project=group.project, is_active=True
         )
 
-        url = '/api/0/issues/{}/participants/'.format(group.id)
-        response = self.client.get(url, format='json')
+        url = u"/api/0/issues/{}/participants/".format(group.id)
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(self.user.id)
+        assert response.data[0]["id"] == six.text_type(self.user.id)

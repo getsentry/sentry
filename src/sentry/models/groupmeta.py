@@ -1,10 +1,3 @@
-"""
-sentry.models.groupmeta
-~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import threading
@@ -17,8 +10,7 @@ from sentry.exceptions import CacheNotPopulated
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 
-
-ERR_CACHE_MISISNG = 'Cache not populated for instance id=%s'
+ERR_CACHE_MISISNG = "Cache not populated for instance id=%s"
 
 
 class GroupMetaManager(BaseManager):
@@ -28,7 +20,7 @@ class GroupMetaManager(BaseManager):
 
     def __getstate__(self):
         d = self.__dict__.copy()
-        d.pop('_GroupMetaManager__local_cache', None)
+        d.pop("_GroupMetaManager__local_cache", None)
         return d
 
     def __setstate__(self, state):
@@ -36,7 +28,7 @@ class GroupMetaManager(BaseManager):
         self.__local_cache = threading.local()
 
     def _get_cache(self):
-        if not hasattr(self.__local_cache, 'value'):
+        if not hasattr(self.__local_cache, "value"):
             self.__local_cache.value = {}
         return self.__local_cache.value
 
@@ -58,9 +50,7 @@ class GroupMetaManager(BaseManager):
         for group in instance_list:
             self.__cache.setdefault(group.id, {})
 
-        results = self.filter(
-            group__in=instance_list,
-        ).values_list('group', 'key', 'value')
+        results = self.filter(group__in=instance_list).values_list("group", "key", "value")
         for group_id, key, value in results:
             self.__cache[group_id][key] = value
 
@@ -89,13 +79,7 @@ class GroupMetaManager(BaseManager):
             pass
 
     def set_value(self, instance, key, value):
-        self.create_or_update(
-            group=instance,
-            key=key,
-            values={
-                'value': value,
-            },
-        )
+        self.create_or_update(group=instance, key=key, values={"value": value})
         self.__cache.setdefault(instance.id, {})
         self.__cache[instance.id][key] = value
 
@@ -107,17 +91,18 @@ class GroupMeta(Model):
     Generally useful for things like storing metadata
     provided by plugins.
     """
+
     __core__ = False
 
-    group = FlexibleForeignKey('sentry.Group')
+    group = FlexibleForeignKey("sentry.Group")
     key = models.CharField(max_length=64)
     value = models.TextField()
 
     objects = GroupMetaManager()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_groupmeta'
-        unique_together = (('group', 'key'),)
+        app_label = "sentry"
+        db_table = "sentry_groupmeta"
+        unique_together = (("group", "key"),)
 
-    __repr__ = sane_repr('group_id', 'key', 'value')
+    __repr__ = sane_repr("group_id", "key", "value")

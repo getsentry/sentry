@@ -1,1 +1,1 @@
-You have been granted access to the {{ organization.name }} / {{ team.name }} team on Sentry.
+You have been granted access to the {{ organization.slug }} / #{{ team.slug }} team on Sentry.

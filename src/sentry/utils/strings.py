@@ -1,10 +1,3 @@
-"""
-sentry.utils.strings
-~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import base64
@@ -15,34 +8,68 @@ import string
 import zlib
 
 from django.utils.encoding import force_text, smart_text
-from itertools import count
+from sentry.utils.compat import map
 
-# Callsigns we do not want to generate automatically because they might
-# overlap with something else that is popular (like GH for GitHub)
-CALLSIGN_BLACKLIST = ['GH']
-
-_callsign_re = re.compile(r'^[A-Z]{2,6}$')
-_word_sep_re = re.compile(r'[\s.;,_-]+(?u)')
-_camelcase_re = re.compile(
-    r'(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)')
-_letters_re = re.compile(r'[A-Z]+')
-_digit_re = re.compile(r'\d+')
+_word_sep_re = re.compile(r"[\s.;,_-]+", re.UNICODE)
+_camelcase_re = re.compile(r"(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)")
+_letters_re = re.compile(r"[A-Z]+")
+_digit_re = re.compile(r"\d+")
 _sprintf_placeholder_re = re.compile(
-    r'%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]')
+    r"%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]"
+)
+
+_lone_surrogate = re.compile(
+    u"""(?x)
+    (
+        [\ud800-\udbff](?![\udc00-\udfff])
+    ) | (
+        (?<![\ud800-\udbff])
+        [\udc00-\udfff]
+    )
+"""
+)
 
 
-def truncatechars(value, arg):
+def unicode_escape_recovery_handler(err):
+    try:
+        value = err.object[err.start : err.end].decode("utf-8")
+    except UnicodeError:
+        value = u""
+    return value, err.end
+
+
+codecs.register_error("unicode-escape-recovery", unicode_escape_recovery_handler)
+
+
+def unescape_string(value):
+    """Unescapes a backslash escaped string."""
+    return value.encode("ascii", "backslashreplace").decode(
+        "unicode-escape", "unicode-escape-recovery"
+    )
+
+
+def strip_lone_surrogates(string):
+    """Removes lone surrogates."""
+    if six.PY3:
+        return string.encode("utf-8", "surrogatepass").decode("utf-8", "ignore")
+    return _lone_surrogate.sub("", string)
+
+
+def truncatechars(value, arg, ellipsis="..."):
+    # TODO (alex) could use unicode ellipsis: u'\u2026'
     """
     Truncates a string after a certain number of chars.
 
     Argument: Number of chars to truncate after.
     """
+    if value is None:
+        return value
     try:
         length = int(arg)
     except ValueError:  # Invalid literal for int().
         return value  # Fail silently.
     if len(value) > length:
-        return value[:length - 3] + '...'
+        return value[: max(0, length - len(ellipsis))] + ellipsis
     return value
 
 
@@ -53,7 +80,7 @@ def compress(value):
     This returns a unicode string rather than bytes, as the Django ORM works
     with unicode objects.
     """
-    return base64.b64encode(zlib.compress(value)).decode('utf-8')
+    return base64.b64encode(zlib.compress(value)).decode("utf-8")
 
 
 def decompress(value):
@@ -66,12 +93,12 @@ def gunzip(value):
 
 def strip(value):
     if not value:
-        return ''
+        return ""
     return smart_text(value).strip()
 
 
-def soft_hyphenate(value, length, hyphen=u'\u00ad'):
-    return hyphen.join([value[i:(i + length)] for i in range(0, len(value), length)])
+def soft_hyphenate(value, length, hyphen=u"\u00ad"):
+    return hyphen.join([value[i : (i + length)] for i in range(0, len(value), length)])
 
 
 def soft_break(value, length, process=lambda chunk: chunk):
@@ -80,7 +107,9 @@ def soft_break(value, length, process=lambda chunk: chunk):
     zero-width spaces after common delimeters, as well as soft-hyphenating long
     identifiers.
     """
-    delimiters = re.compile(r'([{}]+)'.format(''.join(map(re.escape, ',.$:/+@!?()<>[]{}'))))
+    delimiters = re.compile(
+        six.text_type(r"([{}]+)").format("".join(map(re.escape, ",.$:/+@!?()<>[]{}")))
+    )
 
     def soft_break_delimiter(match):
         results = []
@@ -89,67 +118,26 @@ def soft_break(value, length, process=lambda chunk: chunk):
         chunks = delimiters.split(value)
         for i, chunk in enumerate(chunks):
             if i % 2 == 1:  # check if this is this a delimiter
-                results.extend([chunk, u'\u200b'])
+                results.extend([chunk, u"\u200b"])
             else:
                 results.append(process(chunk))
 
-        return u''.join(results).rstrip(u'\u200b')
+        return u"".join(results).rstrip(u"\u200b")
 
-    return re.sub(r'\S{{{},}}'.format(length), soft_break_delimiter, value)
+    return re.sub(six.text_type(r"\S{{{},}}").format(length), soft_break_delimiter, value)
 
 
 def to_unicode(value):
     try:
         value = six.text_type(force_text(value))
     except (UnicodeEncodeError, UnicodeDecodeError):
-        value = '(Error decoding value)'
+        value = "(Error decoding value)"
     except Exception:  # in some cases we get a different exception
         try:
             value = six.text_type(repr(type(value)))
         except Exception:
-            value = '(Error decoding value)'
+            value = "(Error decoding value)"
     return value
-
-
-def validate_callsign(value):
-    if not value:
-        return None
-    callsign = value.strip().upper()
-    if _callsign_re.match(callsign) is None:
-        return None
-    return callsign
-
-
-def iter_callsign_choices(project_name):
-    words = list(x.upper() for x in tokens_from_name(
-        project_name, remove_digits=True))
-    bits = []
-
-    if len(words) == 2:
-        bits.append(words[0][:1] + words[1][:1])
-    elif len(words) == 3:
-        bits.append(words[0][:1] + words[1][:1] + words[2][:1])
-    elif words:
-        bit = words[0][:2]
-        if len(bit) == 2:
-            bits.append(bit)
-        bit = words[0][:3]
-        if len(bit) == 3:
-            bits.append(bit)
-
-    # Fallback if nothing else works, use PR for project
-    if not bits:
-        bits.append('PR')
-
-    for bit in bits:
-        if bit not in CALLSIGN_BLACKLIST:
-            yield bit
-
-    for idx in count(2):
-        for bit in bits:
-            bit = '%s%d' % (bit, idx)
-            if bit not in CALLSIGN_BLACKLIST:
-                yield bit
 
 
 def split_camelcase(word):
@@ -175,25 +163,23 @@ def split_any_wordlike(value, handle_camelcase=False):
 def tokens_from_name(value, remove_digits=False):
     for word in split_any_wordlike(value, handle_camelcase=True):
         if remove_digits:
-            word = _digit_re.sub('', word)
+            word = _digit_re.sub("", word)
         word = word.lower()
         if word:
             yield word
 
 
-valid_dot_atom_characters = frozenset(
-    string.ascii_letters +
-    string.digits +
-    ".!#$%&'*+-/=?^_`{|}~"
-)
+valid_dot_atom_characters = frozenset(string.ascii_letters + string.digits + ".!#$%&'*+-/=?^_`{|}~")
 
 
 def is_valid_dot_atom(value):
     """Validate an input string as an RFC 2822 dot-atom-text value."""
-    return (isinstance(value, six.string_types)  # must be a string type
-        and not value[0] == '.'
-        and not value[-1] == '.'  # cannot start or end with a dot
-        and set(value).issubset(valid_dot_atom_characters))  # can only contain valid characters
+    return (
+        isinstance(value, six.string_types)  # must be a string type
+        and not value[0] == "."
+        and not value[-1] == "."  # cannot start or end with a dot
+        and set(value).issubset(valid_dot_atom_characters)
+    )  # can only contain valid characters
 
 
 def count_sprintf_parameters(string):
@@ -201,19 +187,23 @@ def count_sprintf_parameters(string):
     return len(_sprintf_placeholder_re.findall(string))
 
 
-def codec_lookup(encoding, default='utf-8'):
+def codec_lookup(encoding, default="utf-8"):
     """Safely lookup a codec and ignore non-text codecs,
     falling back to a default on errors.
     Note: the default value is not sanity checked and would
     bypass these checks."""
 
+    def _get_default():
+        if default is not None:
+            return codecs.lookup(default)
+
     if not encoding:
-        return codecs.lookup(default)
+        return _get_default()
 
     try:
         info = codecs.lookup(encoding)
     except (LookupError, TypeError):
-        return codecs.lookup(default)
+        return _get_default()
 
     try:
         # Check for `CodecInfo._is_text_encoding`.
@@ -222,13 +212,34 @@ def codec_lookup(encoding, default='utf-8'):
         # introduced into 2.7.12, so versions prior to this will
         # raise, but this is the best we can do.
         if not info._is_text_encoding:
-            return codecs.lookup(default)
+            return _get_default()
     except AttributeError:
         pass
 
     # `undefined` is special a special encoding in python that 100% of
     # the time will raise, so ignore it.
-    if info.name == 'undefined':
-        return codecs.lookup(default)
+    if info.name == "undefined":
+        return _get_default()
 
     return info
+
+
+def oxfordize_list(strings):
+    """Given a list of strings, formats them correctly given the length of the
+    list. For example:
+
+        oxfordize_list(['A'])  =>  'A'
+
+        oxfordize_list(['A', 'B'])  =>  'A and B'
+
+        oxfordize_list(['A', 'B', 'C'])  =>  'A, B, and C'
+    """
+
+    if len(strings) == 0:
+        return ""
+    elif len(strings) == 1:
+        return strings[0]
+    elif len(strings) == 2:
+        return "%s and %s" % (strings[0], strings[1])
+    else:
+        return "%s, and %s" % (", ".join(strings[:-1]), strings[-1])

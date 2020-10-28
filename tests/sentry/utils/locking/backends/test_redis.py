@@ -4,7 +4,7 @@ import pytest
 
 from exam import fixture
 
-from sentry.testutils import TestCase
+from unittest import TestCase
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.redis import clusters
 
@@ -12,7 +12,7 @@ from sentry.utils.redis import clusters
 class RedisLockBackendTestCase(TestCase):
     @fixture
     def cluster(self):
-        return clusters.get('default')
+        return clusters.get("default")
 
     @fixture
     def backend(self):
@@ -25,14 +25,14 @@ class RedisLockBackendTestCase(TestCase):
         client = self.backend.get_client(key)
 
         self.backend.acquire(key, duration)
-        assert client.get(full_key) == self.backend.uuid.encode('utf-8')
+        assert client.get(full_key) == self.backend.uuid.encode("utf-8")
         assert duration - 2 < float(client.ttl(full_key)) <= duration
 
         self.backend.release(key)
-        assert client.exists(full_key) is False
+        assert not client.exists(full_key)
 
     def test_acquire_fail_on_conflict(self):
-        key = 'lock'
+        key = "lock"
         duration = 60
 
         other_cluster = RedisLockBackend(self.cluster)
@@ -42,12 +42,12 @@ class RedisLockBackendTestCase(TestCase):
 
     def test_release_fail_on_missing(self):
         with pytest.raises(Exception):
-            self.backend.release('missing-key')
+            self.backend.release("missing-key")
 
     def test_release_fail_on_conflict(self):
-        key = 'lock'
+        key = "lock"
         duration = 60
-        self.backend.get_client(key).set(self.backend.prefix_key(key), 'someone-elses-uuid')
+        self.backend.get_client(key).set(self.backend.prefix_key(key), "someone-elses-uuid")
 
         with pytest.raises(Exception):
             self.backend.acquire(key, duration)

@@ -1,4 +1,4 @@
-{% extends "sentry/groups/details.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load i18n %}
 
@@ -19,8 +19,9 @@
                 {% endfor %}
             </ul>
         {% else %}
-            {% url 'sentry-configure-project-plugin' organization_slug=project.organization.slug project_slug=project.slug slug=plugin.slug as link %}
-            <p>{% blocktrans %}You still need to <a href="{{ link }}">configure this plugin</a> before you can use it.{% endblocktrans %}</p>
+            <p>{% blocktrans %}You still need to <a href="{{ plugin_link }}">configure this plugin</a>
+                before you can use it.{% endblocktrans %}
+            </p>
         {% endif %}
     </div>
 {% endblock %}

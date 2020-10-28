@@ -1,0 +1,13 @@
+# Resolved Issue
+
+Sentry marked an issue as resolved
+
+
+## Issue Details
+
+goose smiling gobbler sterling feline
+
+http://testserver/organizations/organization/issues/1/?referrer=ResolvedActivityEmail
+
+
+Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

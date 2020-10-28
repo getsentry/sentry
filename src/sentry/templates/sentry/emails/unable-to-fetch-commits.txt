@@ -1,0 +1,11 @@
+Unable to Fetch Commits
+-----------------------
+
+We were unable to fetch the commit log for your release ({{ release.version }}) due to the following error:
+
+{{ error_message }}
+
+Troubleshooting &amp; References
+
+https://help.sentry.io/hc/en-us/articles/360019866834-Why-am-I-receiving-the-email-Unable-to-Fetch-Commits-
+https://docs.sentry.io/workflow/releases/?platform=php#associate-commits-with-a-release

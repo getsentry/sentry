@@ -1,10 +1,3 @@
-"""
-sentry.runner.commands.queues
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2016 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import click
@@ -17,8 +10,8 @@ def queues():
 
 
 @queues.command()
-@click.option('-S', 'sort_size', default=False, is_flag=True, help='Sort by size.')
-@click.option('-r', 'reverse', default=False, is_flag=True, help='Reverse the sort order.')
+@click.option("-S", "sort_size", default=False, is_flag=True, help="Sort by size.")
+@click.option("-r", "reverse", default=False, is_flag=True, help="Reverse the sort order.")
 @configuration
 def list(sort_size, reverse):
     "List queues and their sizes."
@@ -27,7 +20,7 @@ def list(sort_size, reverse):
     from sentry.monitoring.queues import backend
 
     if backend is None:
-        raise click.ClickException('unknown broker type')
+        raise click.ClickException("unknown broker type")
 
     queues = backend.bulk_get_sizes([q.name for q in settings.CELERY_QUEUES])
 
@@ -37,12 +30,12 @@ def list(sort_size, reverse):
         queues = sorted(queues, reverse=reverse)
 
     for queue in queues:
-        click.echo('%s %d' % queue)
+        click.echo("%s %d" % queue)
 
 
 @queues.command()
-@click.option('-f', '--force', default=False, is_flag=True, help='Do not prompt for confirmation.')
-@click.argument('queue')
+@click.option("-f", "--force", default=False, is_flag=True, help="Do not prompt for confirmation.")
+@click.argument("queue")
 @configuration
 def purge(force, queue):
     "Purge all messages from a queue."
@@ -50,18 +43,21 @@ def purge(force, queue):
     from sentry.monitoring.queues import get_queue_by_name, backend
 
     if get_queue_by_name(queue) is None:
-        raise click.ClickException('unknown queue: %r' % queue)
+        raise click.ClickException("unknown queue: %r" % queue)
 
     if backend is None:
-        raise click.ClickException('unknown broker type')
+        raise click.ClickException("unknown broker type")
 
     size = backend.get_size(queue)
 
     if size == 0:
-        click.echo('Queue is empty, nothing to purge', err=True)
+        click.echo("Queue is empty, nothing to purge", err=True)
         return
 
     if not force:
-        click.confirm('Are you sure you want to purge %d messages from the queue \'%s\'?' % (size, queue), abort=True)
+        click.confirm(
+            "Are you sure you want to purge %d messages from the queue '%s'?" % (size, queue),
+            abort=True,
+        )
 
-    click.echo('Poof, %d messages deleted' % backend.purge_queue(queue), err=True)
+    click.echo("Poof, %d messages deleted" % backend.purge_queue(queue), err=True)

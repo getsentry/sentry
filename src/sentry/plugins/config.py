@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['PluginConfigMixin']
+__all__ = ["PluginConfigMixin"]
 
 import six
 
@@ -14,13 +14,9 @@ from sentry.utils.forms import form_to_config
 from .providers import ProviderMixin
 from .validators import DEFAULT_VALIDATORS
 
-VALIDATOR_ERRORS = (
-    forms.ValidationError,
-    serializers.ValidationError,
-    PluginError,
-)
+VALIDATOR_ERRORS = (forms.ValidationError, serializers.ValidationError, PluginError)
 
-ERR_FIELD_REQUIRED = 'This field is required.'
+ERR_FIELD_REQUIRED = "This field is required."
 
 
 # TODO(dcramer): replace one-off validation code with standardized validator
@@ -31,9 +27,7 @@ class ConfigValidator(object):
         self.result = {}
         self.context = context or {}
 
-        self.config = OrderedDict((
-            (f['name'], f) for f in config
-        ))
+        self.config = OrderedDict(((f["name"], f) for f in config))
 
         self._data = data or {}
         self._initial = initial or {}
@@ -45,19 +39,16 @@ class ConfigValidator(object):
         cleaned = self.result
         errors = self.errors
         for field in six.itervalues(self.config):
-            key = field['name']
+            key = field["name"]
             value = data.get(key, initial.get(key))
 
-            if field.get('required') and not value:
+            if field.get("required") and not value:
                 errors[key] = ERR_FIELD_REQUIRED
 
             try:
-                value = self.validate_field(
-                    name=key,
-                    value=value,
-                )
+                value = self.validate_field(name=key, value=value)
             except (forms.ValidationError, serializers.ValidationError, PluginError) as e:
-                errors[key] = e.message
+                errors[key] = six.text_type(e)
 
             if not errors.get(key):
                 cleaned[key] = value
@@ -75,8 +66,8 @@ class ConfigValidator(object):
         """
         field = self.config[name]
         if value is None:
-            if field.get('required'):
-                raise PluginError('Field is required')
+            if field.get("required"):
+                raise PluginError("Field is required")
             return value
 
         if isinstance(value, six.string_types):
@@ -84,13 +75,13 @@ class ConfigValidator(object):
             # TODO(dcramer): probably should do something with default
             # validations here, though many things will end up bring string
             # based
-            if not value and field.get('required'):
-                raise PluginError('Field is required')
+            if not value and field.get("required"):
+                raise PluginError("Field is required")
 
-        for validator in DEFAULT_VALIDATORS.get(field['type'], ()):
+        for validator in DEFAULT_VALIDATORS.get(field["type"], ()):
             value = validator(value=value)
 
-        for validator in field.get('validators', ()):
+        for validator in field.get("validators", ()):
             value = validator(value=value, **self.context)
         return value
 
@@ -105,7 +96,6 @@ class PluginConfigMixin(ProviderMixin):
     def get_metadata(self):
         """
         Return extra metadata which is used to represent this plugin.
-
         This is available via the API, and commonly used for runtime
         configuration that changes per-install, but not per-project.
         """
@@ -127,13 +117,13 @@ class PluginConfigMixin(ProviderMixin):
         ```
         """
         for config in self.get_config(project=project, user=actor):
-            if config['name'] != name:
+            if config["name"] != name:
                 continue
 
             if value is None:
-                if config.get('required'):
-                    raise PluginError('Field is required')
-                if config.get('type') == 'secret':
+                if config.get("required"):
+                    raise PluginError("Field is required")
+                if config.get("type") == "secret":
                     value = self.get_option(name, project)
                 return value
 
@@ -143,15 +133,15 @@ class PluginConfigMixin(ProviderMixin):
                 # validations here, though many things will end up bring string
                 # based
                 if not value:
-                    if config.get('required'):
-                        raise PluginError('Field is required')
-                    if config.get('type') == 'secret':
+                    if config.get("required"):
+                        raise PluginError("Field is required")
+                    if config.get("type") == "secret":
                         value = self.get_option(name, project)
 
-            for validator in DEFAULT_VALIDATORS.get(config['type'], ()):
+            for validator in DEFAULT_VALIDATORS.get(config["type"], ()):
                 value = validator(project=project, value=value, actor=actor)
 
-            for validator in config.get('validators', ()):
+            for validator in config.get("validators", ()):
                 value = validator(value, project=project, actor=actor)
             return value
         return value
@@ -174,3 +164,13 @@ class PluginConfigMixin(ProviderMixin):
 
     def setup(self, bindings):
         pass
+
+    @staticmethod
+    def feature_flag_name(f):
+        """
+        For the time being, we want the features for plugins to be treated separately than integrations
+        (integration features prefix with integrations-). This is because in Saas Sentry,
+        users can install the Trello and Asana plugins but not Jira even though both utilize issue-commits.
+        By not prefixing, we can avoid making new feature flags for data-forwarding which are restricted.
+        """
+        return f

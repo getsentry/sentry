@@ -9,26 +9,22 @@ from .organization import OrganizationEndpoint
 
 
 class OrganizationMemberEndpoint(OrganizationEndpoint):
-    def convert_args(self, request, organization_slug, member_id='me', *args, **kwargs):
+    def convert_args(self, request, organization_slug, member_id="me", *args, **kwargs):
         args, kwargs = super(OrganizationMemberEndpoint, self).convert_args(
             request, organization_slug
         )
 
         try:
-            kwargs['member'] = self._get_member(
-                request, kwargs['organization'], member_id
-            )
+            kwargs["member"] = self._get_member(request, kwargs["organization"], member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
         return (args, kwargs)
 
     def _get_member(self, request, organization, member_id):
-        if member_id == 'me':
+        if member_id == "me":
             queryset = OrganizationMember.objects.filter(
-                organization=organization,
-                user__id=request.user.id,
-                user__is_active=True,
+                organization=organization, user__id=request.user.id, user__is_active=True
             )
         else:
             queryset = OrganizationMember.objects.filter(
@@ -36,4 +32,4 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
                 organization=organization,
                 id=member_id,
             )
-        return queryset.select_related('user').get()
+        return queryset.select_related("user").get()

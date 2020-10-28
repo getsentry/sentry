@@ -1,88 +1,108 @@
 import React from 'react';
-import TestUtils from 'react-addons-test-utils';
+
+import {mount} from 'sentry-test/enzyme';
+
 import LetterAvatar from 'app/components/letterAvatar';
 
-describe('LetterAvatar', function() {
+describe('LetterAvatar', function () {
   const USER_1 = {
-    identifier: 'janedoe@example.com',
-    displayName: 'Jane Doe'
+    identifier: 'janebloggs@example.com',
+    displayName: 'Jane Bloggs',
   };
   const USER_2 = {
     identifier: 'johnsmith@example.com',
-    displayName: 'johnsmith@example.com'
+    displayName: 'johnsmith@example.com',
   };
   const USER_3 = {
     identifier: 'foo@example.com',
-    displayName: 'foo@example.com'
+    displayName: 'foo@example.com',
   };
   const USER_4 = {
     identifier: '2',
-    displayName: ''
+    displayName: '',
   };
   const USER_5 = {
     identifier: '127.0.0.1',
-    displayName: ''
+    displayName: '',
   };
   const USER_6 = {
-    identifier: 'janedoe@example.com',
-    displayName: 'Jane Doe '
+    identifier: 'janebloggs@example.com',
+    displayName: 'Jane Bloggs ',
   };
   const USER_7 = {
-    identifier: 'janedoe@example.com',
-    displayName: ' '
+    identifier: 'janebloggs@example.com',
+    displayName: ' ',
+  };
+  const USER_8 = {
+    identifier: 'janebloggs@example.com',
+    displayName: '\u2603super \u2603duper',
+  };
+  const USER_9 = {
+    identifier: 'janebloggs@example.com',
+    displayName: 'jane austen bloggs',
   };
 
-  describe('getInitials()', function() {
-    it('should get initials based on name', function() {
-      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_1} />);
-      expect(letterAvatar.getInitials()).toEqual('JD');
+  describe('display name', function () {
+    it('should get initials based on name', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_1} />);
+      expect(letterAvatar.text()).toEqual('JB');
     });
 
-    it('should get initials based on email', function() {
-      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_2} />);
-      expect(letterAvatar.getInitials()).toEqual('J');
+    it('should get initials based on email', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_2} />);
+      expect(letterAvatar.text()).toEqual('J');
     });
 
-    it('should get initials based on username', function() {
-      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_3} />);
-      expect(letterAvatar.getInitials()).toEqual('F');
+    it('should get initials based on username', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_3} />);
+      expect(letterAvatar.text()).toEqual('F');
     });
 
-    it('should show question mark if user has no display name', function() {
-      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_4} />);
-      expect(letterAvatar.getInitials()).toEqual('?');
+    it('should show question mark if user has no display name', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_4} />);
+      expect(letterAvatar.text()).toEqual('?');
     });
 
-    it('should show question mark even if display name is a space', function() {
-      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_7} />);
-      expect(letterAvatar.getInitials()).toEqual('?');
+    it('should show question mark even if display name is a space', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_7} />);
+      expect(letterAvatar.text()).toEqual('?');
     });
 
-    it('should get initials based on name even if there are trailing spaces', function() {
-      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_6} />);
-      expect(letterAvatar.getInitials()).toEqual('JD');
+    it('should get initials based on name even if there are trailing spaces', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_6} />);
+      expect(letterAvatar.text()).toEqual('JB');
+    });
+
+    it('should not slice multibyte characters in half', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_8} />);
+      expect(letterAvatar.text()).toEqual('\u2603\u2603');
+    });
+
+    it('should pick most last name', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_9} />);
+      expect(letterAvatar.text()).toEqual('JB');
     });
   });
 
-  describe('getColor()', function() {
-    it('should return a color based on email', function() {
-      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_1} />);
-      expect(letterAvatar.getColor()).toEqual('#f868bc');
+  describe('color', function () {
+    it('should return a color based on email', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_1} />);
+      expect(letterAvatar.find('rect').props().fill).toEqual('#4e3fb4');
     });
 
-    it('should return a color based on username', function() {
-      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_3} />);
-      expect(letterAvatar.getColor()).toEqual('#315cac');
+    it('should return a color based on username', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_3} />);
+      expect(letterAvatar.find('rect').props().fill).toEqual('#315cac');
     });
 
-    it('should return a color based on id', function() {
-      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_4} />);
-      expect(letterAvatar.getColor()).toEqual('#57be8c');
+    it('should return a color based on id', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_4} />);
+      expect(letterAvatar.find('rect').props().fill).toEqual('#57be8c');
     });
 
-    it('should return a color based on ip address', function() {
-      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_5} />);
-      expect(letterAvatar.getColor()).toEqual('#ec5e44');
+    it('should return a color based on ip address', function () {
+      const letterAvatar = mount(<LetterAvatar {...USER_5} />);
+      expect(letterAvatar.find('rect').props().fill).toEqual('#ec5e44');
     });
   });
 });

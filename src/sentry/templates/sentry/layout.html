@@ -1,7 +1,5 @@
 {% load i18n %}
-{% load sentry_api %}
 {% load sentry_avatars %}
-{% load sentry_dsn %}
 {% load sentry_assets %}
 {% load sentry_features %}
 {% load sentry_helpers %}
@@ -17,51 +15,35 @@
   <meta name="robots" content="NONE,NOARCHIVE">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link href="{% absolute_asset_url "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
+  <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
 
-  <link rel="icon" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
-  <link rel="apple-touch-icon" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
-  <link rel="apple-touch-icon" sizes="76x76" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-76x76.png" %}">
-  <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-120x120.png" %}">
-  <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-152x152.png" %}">
+  <link rel="apple-touch-icon" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon.png" %}">
+  <link rel="apple-touch-icon" sizes="76x76" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-76x76.png" %}">
+  <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-120x120.png" %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-152x152.png" %}">
 
-  <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
+  <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
-  {% block css %}
   <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
-  {% endblock %}
+
+  {% block css %}{% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
   <script>
-  window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
+    window.__initialData = {% get_react_config %};
   </script>
-
 
   {% block scripts %}
-  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   {% locale_js_include %}
-  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
+  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
+  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %} data-entry="true"></script>
 
   <script>
-    for (var n in window.exports.default) {
-      window[n] = window.exports.default[n];
-    }
-    window.$ = window.jQuery;
-
-    window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
-
     // if the ads.js file loads below it will mark this variable as false
     window.adblockSuspected = true;
-
-    Sentry.ConfigStore.loadInitialData({% get_react_config %});
   </script>
   <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
-
-  {% include "sentry/includes/ravenjs.html" %}
-  {% endblock %}
-
-  {% block meta %}
   {% endblock %}
 </head>
 
@@ -72,278 +54,30 @@
         {% show_system_status %}
     {% endif %}
 
-    {% block global_sidebar %}
-      {% if request.user.is_authenticated %}
-        <div id="blk_sidebar"></div>
-        <script>
-        $(function(){
-          var SidebarWrapper = React.createClass({
-            propTypes: {
-              organization: React.PropTypes.any.isRequired
-            },
-            getChildContext: function () {
-              return {
-                organization: this.props.organization,
-              }
-            },
-            render: function () {
-              return React.createElement(Sentry.OrganizationsLoader, {},
-                React.createElement(Sentry.Sidebar));
-            }
-          });
-          SidebarWrapper.childContextTypes = {
-            organization: React.PropTypes.any
-          };
-          ReactDOM.render(React.createFactory(SidebarWrapper)({
-            organization: {% serialize_detailed_org organization %},
-          }), document.getElementById('blk_sidebar'));
-        });
-        </script>
-      {% endif %}
-    {% endblock %}
-
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
 
-    {% block header %}
-    {% comment %}
-    <header>
-      <div class="container">
-        {% if request.user.is_authenticated %}
-        {% block account_nav %}
-        <div class="pull-right">
-          <div class="dropdown">
-            <a class="dropdown-toggle" data-toggle="dropdown">
-              <span class="avatar">
-                {% avatar request.user %}
-              </span>
-              <i class="icon-arrow-down"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-right">
-              <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
-              <li><a href="{% url 'sentry-api' %}">{% trans "API" %}</a></li>
-              {% if request.is_superuser %}
-                <li><a href="{% url 'sentry-admin-overview' %}">{% trans "Admin" %}</a></li>
-              {% endif %}
-              <li><a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a></li>
-            </ul>
-          </div>
-        </div>
-        {% endblock %}
-        {% endif %}
-
-        {% block logo %}
-        <a href="/" class="logo"><span class="icon-sentry-logo"></span></a>
-        {% endblock %}
-
-        <ul class="global-nav pull-right">
-          {% block global_nav %}
-          <li><a href="https://docs.sentry.io">{% trans "Docs" %}</a></li>
-          {% endblock %}
-        </ul>
-
-        {% if not SINGLE_ORGANIZATION and request.user.is_authenticated and organization %}
-        {% block org_selector %}
-        <div class="org-selector pull-right">
-          <div class="dropdown">
-            <a class="dropdown-toggle" data-toggle="dropdown">
-              {{ organization.name }}
-              <i class="icon-arrow-down"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-right">
-              {% for org in request.user|list_organizations %}
-                <li><a href="{% url 'sentry-organization-home' org.slug %}">{{ org.name }}</a></li>
-              {% endfor %}
-              {% feature organizations:create %}
-                <li class="divider"></li>
-                <li><a href="{% absolute_uri '/organizations/new/' %}">New Organization</a></li>
-              {% endfeature %}
-            </ul>
-          </div>
-        </div>
-        {% endblock %}
-        {% endif %}
-      </div>
-    </header>
-    {% endcomment %}
-    {% endblock %}
-
-    {% if organization and ACCESS.org_read %}
-    {% block sub-header %}
-    <div class="sub-header flex flex-container flex-vertically-centered">
-      <div>
-        <div id="blk_projectselect"></div>
-        {% block header_nav %}{% endblock %}
-        <script>
-        $(function(){
-          ReactDOM.render(React.createFactory(Sentry.ProjectSelector)({
-            organization: {% serialize_detailed_org organization %},
-            projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
-          }), document.getElementById('blk_projectselect'));
-        });
-        </script>
-      </div>
-      <div class="align-right project-actions">
-        {% block header_action %}{% endblock %}
-      </div>
-    </div>
-    {% endblock %}
-    {% endif %}
-
     <div class="container">
-      {% block above_content %}{% endblock %}
       <div class="content">
-        {% block content_before %}
-        {% endblock %}
-        {% block content %}
-        <div class="row" id="blk_content">
-          <div class="col-md-2">
-            {% block sidebar %}
-            {% endblock %}
-          </div>
-          <div class="col-md-10" id="blk_main">
-            {% block main %}
-            {% endblock %}
-          </div>
-        </div>
-        {% endblock %}
-
-        {% block content_after %}
-        {% endblock %}
+        {% block content %}{% endblock %}
       </div>
     </div>
     <footer>
       <div class="container">
         {% block footer %}
         <div class="pull-right">
-          {% block support_link %}{% endblock %}
-          <a href="https://docs.sentry.io/hosted/api/">{% trans "API" %}</a>
+          <a href="https://docs.sentry.io/api/">{% trans "API" %}</a>
           <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
           {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
         </div>
-        {% if ONPREMISE %}<div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>{% endif %}
+        {% if ONPREMISE %}<div class="version pull-left">Sentry {{ sentry_version.current }} ({{ sentry_version.build }}) {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>{% endif %}
         <a href="/" class="icon-sentry-logo"></a>
         {% endblock %}
       </div>
     </footer>
   </div>
-
-  {% block selectize %}
-  <script>
-  $(function() {
-    $('select').select2({placeholder: '--'});
-  });
-  </script>
-  {% endblock %}
-  <script>
-  $('.auto-select').click(function() {
-    if (document.selection) {
-      var range = document.body.createTextRange();
-      range.moveToElementText(this.firstChild);
-      range.select();
-    } else if (window.getSelection) {
-      var range = document.createRange();
-      range.selectNode(this.firstChild);
-      window.getSelection().addRange(range);
-    }
-  });
-  </script>
-  <script type="text/javascript">
-  $(function() {
-    // This is duplicated from <ProjectSelector>
-    $('.project-dropdown').on('shown.bs.dropdown', function(event){
-      $(event.target).find('input[type=text]').focus();
-    });
-  });
-  $(function() {
-    var slideShow = function() {
-
-      var slideWidth = $(".slide").width();
-      var numSlides = 0;
-      var currentSlide;
-
-      // Find all slides
-
-      $(".slide").each(function(i) {
-        numSlides++;
-
-        var slide = i + 1;
-        var isActive;
-
-        if ($(this).hasClass("active")) {
-          isActive = true;
-          currentSlide = slide;
-        }
-
-        $(this).addClass("slide-" + slide );
-
-        // Build dot nav
-
-        $(".dot-nav").append('<li class="'+ (isActive ? "active" : "") + '"><a href="#" class="show-slide" data-show-slide="'+ slide +'"></a></li>')
-      });
-
-      // Input handlers
-
-      $(".show-slide").click(function() {
-        showSlide($(this).attr("data-show-slide"));
-      });
-
-      $(".close").click(function() {
-        $(".welcome-modal").fadeOut();
-      });
-
-      $(".slide-show-next").click(function() {
-        if (currentSlide + 1 <= numSlides) {
-          showSlide(currentSlide + 1);
-        } else {
-          showSlide(1);
-        }
-      });
-
-      $(".slide-show-prev").click(function() {
-        if (currentSlide - 1 != 0) {
-          showSlide(currentSlide - 1);
-        } else {
-          showSlide(numSlides);
-        }
-      });
-
-      this.showSlide = function(location) {
-        currentSlide = location;
-
-        // Clear active items
-        $(".slide").removeClass("active");
-        $(".dot-nav li").removeClass("active");
-
-        // Set new active items
-
-        $(".dot-nav li a[data-show-slide="+ location +"]").parent("li").addClass("active");
-        $(".slide-" + location).addClass("active");
-
-        // Use margin to show slide
-
-        $(".welcome-slides").css("margin-left", -(slideWidth * location) + slideWidth);
-
-        // Animate shit
-
-        $(".slide-" + location + " [data-animate]").addClass("animated");
-      }
-
-      showSlide(1);
-    }
-
-    // $( "body" ).keypress(function( event ) {
-    //   if ( event.which == 96 ) {
-    //      event.preventDefault();
-    //      $(".welcome-modal").fadeIn();
-    //   }
-    // });
-
-    slideShow();
-  });
-  </script>
   {% endblock %}
 
   {% block scripts_bottom %}{% endblock %}

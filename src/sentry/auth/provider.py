@@ -1,8 +1,26 @@
 from __future__ import absolute_import, print_function
 
 import logging
+from collections import namedtuple
+
+from django.utils.encoding import force_text, python_2_unicode_compatible
+
 
 from .view import ConfigureView
+
+
+@python_2_unicode_compatible
+class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):
+    """
+    MigratingIdentityId may be used in the ``id`` field of an identity
+    dictionary to facilitate migrating user identities from one identifying id
+    to another.
+    """
+
+    __slots__ = ()
+
+    def __str__(self):
+        return force_text(self.id)
 
 
 class Provider(object):
@@ -10,12 +28,16 @@ class Provider(object):
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.
     """
+
     name = None
+
+    # All auth providers by default require the sso-basic feature
+    required_feature = "organizations:sso-basic"
 
     def __init__(self, key, **config):
         self.key = key
         self.config = config
-        self.logger = logging.getLogger('sentry.auth.%s' % (key,))
+        self.logger = logging.getLogger("sentry.auth.%s" % (key,))
 
     def get_configure_view(self):
         """
@@ -57,9 +79,20 @@ class Provider(object):
         >>>     "id": "foo@example.com",
         >>>     "email": "foo@example.com",
         >>>     "name": "Foo Bar",
+        >>>     "email_verified": True,
         >>> }
 
         The ``email`` and ``id`` keys are required, ``name`` is optional.
+
+        The ``id`` may be passed in as a ``MigratingIdentityId`` should the
+        the id key be migrating from one value to another and have multiple
+        lookup values.
+
+        The provider is trustable and the email address is verified by the provider,
+        the ``email_verified`` attribute should be set to ``True``.
+
+        If the identity can not be constructed an ``IdentityNotValid`` error
+        should be raised.
         """
         raise NotImplementedError
 

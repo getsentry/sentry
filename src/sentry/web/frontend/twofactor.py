@@ -7,14 +7,14 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.translation import ugettext as _
 
 from sentry import options
+from sentry.app import ratelimiter
 from sentry.web.frontend.base import BaseView
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.helpers import render_to_response
 from sentry.utils import auth, json
 from sentry.models import Authenticator
 
-
-COOKIE_NAME = 's2fai'
+COOKIE_NAME = "s2fai"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 
 
@@ -29,16 +29,17 @@ class TwoFactorAuthView(BaseView):
             if not interface.is_backup_interface:
                 rv.set_cookie(
                     COOKIE_NAME,
-                    six.text_type(interface.type).encode('utf-8'),
-                    max_age=COOKIE_MAX_AGE, path='/')
+                    six.text_type(interface.type).encode("utf-8"),
+                    max_age=COOKIE_MAX_AGE,
+                    path="/",
+                )
         return rv
 
     def fail_signin(self, request, user, form):
-        # Ladies and gentlemen: he world's shittiest bruteforce
+        # Ladies and gentlemen: the world's shittiest bruteforce
         # prevention.
         time.sleep(2.0)
-        form.errors['__all__'] = [
-            _('Invalid confirmation code. Try again.')]
+        form.errors["__all__"] = [_("Invalid confirmation code. Try again.")]
 
     def negotiate_interface(self, request, interfaces):
         # If there is only one interface, just pick that one.
@@ -47,7 +48,7 @@ class TwoFactorAuthView(BaseView):
 
         # Next option is to go with the interface that was selected in the
         # URL.
-        interface_id = request.GET.get('interface')
+        interface_id = request.GET.get("interface")
         if interface_id:
             for interface in interfaces:
                 if interface.interface_id == interface_id:
@@ -78,9 +79,11 @@ class TwoFactorAuthView(BaseView):
                 rv.append(interface)
                 if interface.can_validate_otp:
                     can_validate_otp = True
-            if backup_interface is None and \
-               interface.can_validate_otp and \
-               interface.is_backup_interface:
+            if (
+                backup_interface is None
+                and interface.can_validate_otp
+                and interface.is_backup_interface
+            ):
                 backup_interface = interface
 
         if not can_validate_otp and backup_interface is not None:
@@ -92,9 +95,11 @@ class TwoFactorAuthView(BaseView):
         if selected_interface.validate_otp(otp):
             return selected_interface
         for interface in all_interfaces or ():
-            if interface.interface_id != selected_interface.interface_id and \
-               interface.is_backup_interface and \
-               interface.validate_otp(otp):
+            if (
+                interface.interface_id != selected_interface.interface_id
+                and interface.is_backup_interface
+                and interface.validate_otp(otp)
+            ):
                 return interface
 
     def handle(self, request):
@@ -111,17 +116,29 @@ class TwoFactorAuthView(BaseView):
 
         challenge = activation = None
         interface = self.negotiate_interface(request, interfaces)
-        if request.method == 'GET':
+
+        if request.method == "POST" and ratelimiter.is_limited(
+            u"auth-2fa:user:{}".format(user.id), limit=5, window=60
+        ):
+            # TODO: Maybe email the account owner or do something to notify someone
+            # This would probably be good for them to know.
+            return HttpResponse(
+                "You have made too many 2FA attempts. Please try again later.",
+                content_type="text/plain",
+                status=429,
+            )
+
+        if request.method == "GET":
             activation = interface.activate(request)
-            if activation is not None and activation.type == 'challenge':
+            if activation is not None and activation.type == "challenge":
                 challenge = activation.challenge
-        elif 'challenge' in request.POST:
-            challenge = json.loads(request.POST['challenge'])
+        elif "challenge" in request.POST:
+            challenge = json.loads(request.POST["challenge"])
 
         form = TwoFactorForm()
 
         # If an OTP response was supplied, we try to make it pass.
-        otp = request.POST.get('otp')
+        otp = request.POST.get("otp")
         if otp:
             used_interface = self.validate_otp(otp, interface, interfaces)
             if used_interface is not None:
@@ -130,33 +147,37 @@ class TwoFactorAuthView(BaseView):
 
         # If a challenge and response exists, validate
         if challenge:
-            response = request.POST.get('response')
+            response = request.POST.get("response")
             if response:
                 response = json.loads(response)
                 if interface.validate_response(request, challenge, response):
                     return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
 
-        return render_to_response(['sentry/twofactor_%s.html' %
-                                   interface.interface_id,
-                                   'sentry/twofactor.html'], {
-            'form': form,
-            'interface': interface,
-            'other_interfaces': self.get_other_interfaces(interface, interfaces),
-            'activation': activation,
-        }, request, status=200)
+        return render_to_response(
+            ["sentry/twofactor_%s.html" % interface.interface_id, "sentry/twofactor.html"],
+            {
+                "form": form,
+                "interface": interface,
+                "other_interfaces": self.get_other_interfaces(interface, interfaces),
+                "activation": activation,
+            },
+            request,
+            status=200,
+        )
 
 
 def u2f_appid(request):
-    facets = options.get('u2f.facets')
+    facets = options.get("u2f.facets")
     if not facets:
-        facets = [options.get('system.url-prefix')]
-    return HttpResponse(json.dumps({
-        'trustedFacets': [{
-            'version': {
-                'major': 1,
-                'minor': 0
-            },
-            'ids': [x.rstrip('/') for x in facets]
-        }]
-    }), content_type='application/fido.trusted-apps+json')
+        facets = [options.get("system.url-prefix")]
+    return HttpResponse(
+        json.dumps(
+            {
+                "trustedFacets": [
+                    {"version": {"major": 1, "minor": 0}, "ids": [x.rstrip("/") for x in facets]}
+                ]
+            }
+        ),
+        content_type="application/fido.trusted-apps+json",
+    )

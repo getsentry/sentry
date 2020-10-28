@@ -1,16 +1,23 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
-import GroupEventDataSection from './eventDataSection';
-import plugins from '../../plugins';
-import {objectIsEmpty, toTitleCase, defined} from '../../utils';
+import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
+import EventDataSection from 'app/components/events/eventDataSection';
+import plugins from 'app/plugins';
+import {t} from 'app/locale';
 
 const CONTEXT_TYPES = {
-  default: require('./contexts/default').default,
-  app: require('./contexts/app').default,
-  device: require('./contexts/device').default,
-  os: require('./contexts/os').default,
-  runtime: require('./contexts/runtime').default,
-  user: require('./contexts/user').default
+  default: require('app/components/events/contexts/default').default,
+  app: require('app/components/events/contexts/app/app').default,
+  device: require('app/components/events/contexts/device/device').default,
+  os: require('app/components/events/contexts/operatingSystem/operatingSystem').default,
+  runtime: require('app/components/events/contexts/runtime/runtime').default,
+  user: require('app/components/events/contexts/user/user').default,
+  gpu: require('app/components/events/contexts/gpu/gpu').default,
+  trace: require('app/components/events/contexts/trace/trace').default,
+  // 'redux.state' will be replaced with more generic context called 'state'
+  'redux.state': require('app/components/events/contexts/redux').default,
+  state: require('app/components/events/contexts/state').default,
 };
 
 function getContextComponent(type) {
@@ -21,7 +28,7 @@ function getSourcePlugin(pluginContexts, contextType) {
   if (CONTEXT_TYPES[contextType]) {
     return null;
   }
-  for (let plugin of pluginContexts) {
+  for (const plugin of pluginContexts) {
     if (plugin.contexts.indexOf(contextType) >= 0) {
       return plugin;
     }
@@ -29,41 +36,58 @@ function getSourcePlugin(pluginContexts, contextType) {
   return null;
 }
 
-const ContextChunk = React.createClass({
-  propTypes: {
-    event: React.PropTypes.object.isRequired,
-    group: React.PropTypes.object.isRequired,
-    type: React.PropTypes.string.isRequired,
-    alias: React.PropTypes.string.isRequired,
-    value: React.PropTypes.object.isRequired
-  },
+class ContextChunk extends React.Component {
+  static propTypes = {
+    event: PropTypes.object.isRequired,
+    group: PropTypes.object,
+    type: PropTypes.string.isRequired,
+    alias: PropTypes.string.isRequired,
+    value: PropTypes.object.isRequired,
+  };
 
-  getInitialState() {
-    return {
-      isLoading: false
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isLoading: false,
     };
-  },
+  }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.syncPlugin();
-  },
+  }
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevProps.group.id != this.props.group.id || prevProps.type != this.props.type) {
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.type !== this.props.type ||
+      prevProps?.group?.id !== this.props?.group?.id
+    ) {
       this.syncPlugin();
     }
-  },
+  }
 
-  syncPlugin() {
-    let sourcePlugin = getSourcePlugin(this.props.group.pluginContexts, this.props.type);
+  syncPlugin = () => {
+    const {group, type, alias} = this.props;
+    // If we don't have a grouped event we can't sync with plugins.
+    if (!group) {
+      return;
+    }
+
+    // Search using `alias` first because old plugins rely on it and type is set to "default"
+    // e.g. sessionstack
+    const sourcePlugin =
+      type === 'default'
+        ? getSourcePlugin(group.pluginContexts, alias) ||
+          getSourcePlugin(group.pluginContexts, type)
+        : getSourcePlugin(group.pluginContexts, type);
+
     if (!sourcePlugin) {
       this.setState({
-        pluginLoading: false
+        pluginLoading: false,
       });
     } else {
       this.setState(
         {
-          pluginLoading: true
+          pluginLoading: true,
         },
         () => {
           plugins.load(sourcePlugin, () => {
@@ -72,29 +96,53 @@ const ContextChunk = React.createClass({
         }
       );
     }
-  },
+  };
 
-  renderTitle(component) {
-    let {value, alias, type} = this.props;
-    let title = null;
+  getTitle = () => {
+    const {value, alias, type} = this.props;
+
     if (defined(value.title)) {
-      title = value.title;
-    } else {
-      if (component.getTitle) {
-        title = component.getTitle(value);
-      }
-      if (!defined(title)) {
-        title = toTitleCase(alias);
-      }
+      return value.title;
     }
 
+    if (!defined(type)) {
+      return toTitleCase(alias);
+    }
+
+    switch (type) {
+      case 'app':
+        return t('App');
+      case 'device':
+        return t('Device');
+      case 'os':
+        return t('Operating System');
+      case 'user':
+        return t('User');
+      case 'gpu':
+        return t('Graphics Processing Unit');
+      case 'runtime':
+        return t('Runtime');
+      case 'trace':
+        return t('Trace Details');
+      case 'default':
+        if (alias === 'state') return t('Application State');
+        return toTitleCase(alias);
+      default:
+        return toTitleCase(type);
+    }
+  };
+
+  renderSectionTitle = () => {
+    const {alias, type} = this.props;
     return (
-      <span>
-        {title + ' '}
-        {alias !== type ? <small>({alias})</small> : null}
-      </span>
+      <React.Fragment>
+        {this.getTitle()}
+        {defined(type) && type !== 'default' && alias !== type && (
+          <small>({alias})</small>
+        )}
+      </React.Fragment>
     );
-  },
+  };
 
   render() {
     // if we are currently loading the plugin, just render nothing for now.
@@ -102,39 +150,43 @@ const ContextChunk = React.createClass({
       return null;
     }
 
-    let group = this.props.group;
-    let evt = this.props.event;
-    let {type, alias, value} = this.props;
-    let Component = getContextComponent(type);
+    const evt = this.props.event;
+    const {type, alias, value = {}} = this.props;
+    const Component =
+      type === 'default'
+        ? getContextComponent(alias) || getContextComponent(type)
+        : getContextComponent(type);
+
+    const isObjectValueEmpty = Object.values(value).filter(v => defined(v)).length === 0;
 
     // this can happen if the component does not exist
-    if (!Component) {
+    if (!Component || isObjectValueEmpty) {
       return null;
     }
 
     return (
-      <GroupEventDataSection
-        group={group}
+      <EventDataSection
         event={evt}
         key={`context-${alias}`}
         type={`context-${alias}`}
-        title={this.renderTitle(Component)}>
-        <Component alias={alias} data={value} />
-      </GroupEventDataSection>
+        title={this.renderSectionTitle()}
+      >
+        <Component alias={alias} event={evt} data={value} />
+      </EventDataSection>
     );
   }
-});
+}
 
-const ContextsInterface = React.createClass({
-  propTypes: {
-    event: React.PropTypes.object.isRequired,
-    group: React.PropTypes.object.isRequired
-  },
+class ContextsInterface extends React.Component {
+  static propTypes = {
+    event: PropTypes.object.isRequired,
+    group: PropTypes.object,
+  };
 
   render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let children = [];
+    const group = this.props.group;
+    const evt = this.props.event;
+    const children = [];
     if (!objectIsEmpty(evt.user)) {
       children.push(
         <ContextChunk
@@ -149,7 +201,7 @@ const ContextsInterface = React.createClass({
     }
 
     let value = null;
-    for (let key in evt.contexts) {
+    for (const key in evt.contexts) {
       value = evt.contexts[key];
       children.push(
         <ContextChunk
@@ -163,8 +215,8 @@ const ContextsInterface = React.createClass({
       );
     }
 
-    return <div>{children}</div>;
+    return <React.Fragment>{children}</React.Fragment>;
   }
-});
+}
 
 export default ContextsInterface;
