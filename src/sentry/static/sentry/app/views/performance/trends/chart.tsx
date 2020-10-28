@@ -75,8 +75,11 @@ function transformEventStatsSmoothed(data: Series[], seriesName?: string) {
       name: point.x,
       value,
     });
-    minValue = isNaN(value) ? minValue : Math.min(Math.round(value), minValue);
-    maxValue = isNaN(value) ? maxValue : Math.max(Math.round(value), maxValue);
+    if (isNaN(value)) {
+      const rounded = Math.round(value);
+      minValue = Math.min(rounded, minValue);
+      maxValue = Math.max(rounded, maxValue);
+    }
   }
 
   return {
@@ -272,11 +275,13 @@ class Chart extends React.Component<Props> {
     const reloading = isLoading;
 
     const yMax = Math.max(
-      Math.max(maxValue, transaction?.aggregate_range_2 || 0),
+      maxValue,
+      transaction?.aggregate_range_2 || 0,
       transaction?.aggregate_range_1 || 0
     );
     const yMin = Math.min(
-      Math.min(minValue, transaction?.aggregate_range_1 || Number.MAX_SAFE_INTEGER),
+      minValue,
+      transaction?.aggregate_range_1 || Number.MAX_SAFE_INTEGER,
       transaction?.aggregate_range_2 || Number.MAX_SAFE_INTEGER
     );
     const yDiff = yMax - yMin;
