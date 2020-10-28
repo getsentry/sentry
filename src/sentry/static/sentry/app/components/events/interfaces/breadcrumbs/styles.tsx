@@ -20,7 +20,7 @@ const IconWrapper = styled('div', {
   border-radius: 32px;
   z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
   position: relative;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   color: ${p => p.theme.gray800};
   ${p =>
     p.color &&
@@ -38,7 +38,7 @@ const GridCell = styled('div')<{
   position: relative;
   white-space: pre-wrap;
   word-break: break-all;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(1)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(1)} ${space(2)};
@@ -81,7 +81,7 @@ const GridCellLeft = styled(GridCell)`
 `;
 
 const aroundContentStyle = css`
-  border: 1px solid ${theme.borderDark};
+  border: 1px solid ${theme.border};
   border-radius: ${theme.borderRadius};
   box-shadow: ${theme.dropShadowLightest};
   z-index: 1;

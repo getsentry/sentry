@@ -55,7 +55,7 @@ export default Row;
 
 const LabelWithBorder = styled('div')`
   background-color: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   border-width: 1px 0;
   color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -95,7 +95,7 @@ const AutoCompleteItem = styled('div')<{hasGrayBackground: boolean; itemSize?: I
   background-color: ${p => (p.hasGrayBackground ? p.theme.gray100 : 'transparent')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
   cursor: pointer;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
 
   :last-child {
     border-bottom: none;

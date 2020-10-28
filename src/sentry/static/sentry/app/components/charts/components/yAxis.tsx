@@ -15,7 +15,7 @@ export default function YAxis(props: EChartOption.YAxis = {}): EChartOption.YAxi
     },
     splitLine: {
       lineStyle: {
-        color: theme.gray100, // TODO(dark): borderLighter --> gray100 --> chartLineColor
+        color: theme.gray100, // TODO(dark): border --> gray100 --> chartLineColor
       },
     },
     ...props,

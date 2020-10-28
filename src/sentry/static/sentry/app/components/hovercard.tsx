@@ -261,13 +261,8 @@ const StyledHovercard = styled('div')<StyledHovercardProps>`
 const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   background: ${p => p.theme.gray100};
-<<<<<<< HEAD:src/sentry/static/sentry/app/components/hovercard.tsx
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  border-radius: ${p => p.theme.borderRadiusTop};
-=======
   border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: 4px 4px 0 0;
->>>>>>> 4749b41398... feat(ui): Change border colors to use single color:src/sentry/static/sentry/app/components/hovercard.jsx
+  border-radius: ${p => p.theme.borderRadiusTop};
   font-weight: 600;
   word-wrap: break-word;
   padding: ${space(1.5)};

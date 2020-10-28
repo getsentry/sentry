@@ -95,6 +95,11 @@ const aliases = {
   border: colors.gray200,
 
   /**
+   * Inner borders, e.g. borders inside of a grid
+   */
+  innerBorder: colors.gray100,
+
+  /**
    * A color that denotes a "success", or something good
    */
   success: colors.green400, // TODO(dark): colors.green300,
