@@ -207,7 +207,7 @@ def load_data(
             for key, entry in measurements.items():
                 if key in ["fp", "fcp", "lcp", "fid"]:
                     measurement_markers["mark.{}".format(key)] = {
-                        "value": data["start_timestamp"] + entry["value"] / 1000
+                        "value": round(data["start_timestamp"] + entry["value"] / 1000)
                     }
             measurements.update(measurement_markers)
 
