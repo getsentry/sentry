@@ -391,11 +391,11 @@ function TrendsListItem(props: TrendsListItemProps) {
 
   const previousDuration = getDuration(
     previousPeriodValue / 1000,
-    previousPeriodValue < 1000 ? 0 : 2
+    previousPeriodValue < 1000 && previousPeriodValue > 10 ? 0 : 2
   );
   const currentDuration = getDuration(
     currentPeriodValue / 1000,
-    currentPeriodValue < 1000 ? 0 : 2
+    currentPeriodValue < 1000 && previousPeriodValue > 10 ? 0 : 2
   );
 
   const percentChangeExplanation = t(
