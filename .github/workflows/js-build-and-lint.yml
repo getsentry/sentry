@@ -62,7 +62,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: tsc
-        if: steps.changes.outputs.frontend == 'true' && always()
+        if: steps.changes.outputs.frontend == 'true'
         run: |
           yarn tsc -p config/tsconfig.build.json
 
