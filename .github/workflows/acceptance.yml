@@ -50,8 +50,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - run: cat src/sentry/static/sentry/app/utils/theme.tsx
-
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
