@@ -2,6 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 
 import {IconStar} from 'app/icons';
+import {COL_WIDTH_MINIMUM} from 'app/components/gridEditable';
 import {t} from 'app/locale';
 import {NewQuery, LightWeightOrganization, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -109,9 +110,9 @@ export function generatePerformanceEventView(
 ): EventView {
   const {query} = location;
 
-  const keyTransactionFields = organization.features.includes('key-transactions')
-    ? ['key_transaction']
-    : [];
+  const keyTransactionsFeature = organization.features.includes('key-transactions');
+  const keyTransactionFields = keyTransactionsFeature ? ['key_transaction'] : [];
+  const widths = keyTransactionsFeature ? [COL_WIDTH_MINIMUM.toString()] : undefined;
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -132,6 +133,7 @@ export function generatePerformanceEventView(
       `user_misery(${organization.apdexThreshold})`,
     ],
     version: 2,
+    widths,
   };
 
   if (!query.statsPeriod && !hasStartAndEnd) {

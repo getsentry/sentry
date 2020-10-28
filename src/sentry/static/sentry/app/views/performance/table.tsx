@@ -251,6 +251,7 @@ class Table extends React.Component<Props, State> {
 
     const sortedEventView = this.getSortedEventView();
     const columnSortBy = sortedEventView.getSorts();
+
     return (
       <div>
         <DiscoverQuery
