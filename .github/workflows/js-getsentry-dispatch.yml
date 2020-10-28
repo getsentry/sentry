@@ -2,13 +2,21 @@
 name: getsentry dispatcher
 
 on:
-  pull_request:
+  # XXX: We are using `pull_request_target` instead of `pull_request` because we want
+  # this to run on forks.  It allows forks to access secrets safely by
+  # only running workflows from the main branch. Prefer to use `pull_request` when possible.
+  #
+  # See https://github.com/getsentry/sentry/pull/21600 for more details
+  pull_request_target:
 
 jobs:
   frontend:
     name: frontend dispatch
     runs-on: ubuntu-16.04
     steps:
+      # This workflow only uses `.github/file-filters.yml`, so we do not need to checkout
+      # the head ref from potential forked repo. Instead, we are ok with the base branch
+      # (i.e. getsentry master)
       - uses: actions/checkout@v2
 
       - name: Check for frontend file changes
