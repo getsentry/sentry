@@ -123,7 +123,7 @@ class SimilarStackTrace extends React.Component<Props, State> {
           version,
         })}`,
         dataKey: 'similar',
-        version: this.state.v2 ? '2' : '1',
+        version,
       });
     }
 
