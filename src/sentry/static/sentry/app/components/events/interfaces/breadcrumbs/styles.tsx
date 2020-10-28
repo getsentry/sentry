@@ -38,7 +38,7 @@ const GridCell = styled('div')<{
   position: relative;
   white-space: pre-wrap;
   word-break: break-all;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   padding: ${space(1)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(1)} ${space(2)};
