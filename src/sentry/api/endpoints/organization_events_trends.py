@@ -49,16 +49,16 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             "format": "percentage({alias}2, {alias}1)",
             "query_alias": "trend_percentage()",
         },
-        "t_score": {
-            "format": "t_score({avg}1, {avg}2, {variance}1, {variance}2, {count}1, {count}2)",
-            "query_alias": "t_score()",
+        "t_test": {
+            "format": "t_test({avg}1, {avg}2, {variance}1, {variance}2, {count}1, {count}2)",
+            "query_alias": "t_test()",
         },
     }
 
     def has_feature(self, organization, request):
         return features.has("organizations:trends", organization, actor=request.user)
 
-    def get_query(self, request, percentage, t_score):
+    def get_query(self, request, percentage, t_test):
         """ Map query aliases back to their full function calls
 
             This is so that users don't need to see or know the full function
@@ -67,7 +67,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         query = request.GET.get("query")
         aliases = {
             self.trend_columns["percentage"]["query_alias"]: percentage,
-            self.trend_columns["t_score"]["query_alias"]: t_score,
+            self.trend_columns["t_test"]["query_alias"]: t_test,
         }
         for alias, column in six.iteritems(aliases):
             query = query.replace(alias, column)
@@ -103,20 +103,20 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         selected_columns = request.GET.getlist("field")[:]
         orderby = self.get_orderby(request)
 
-        # t_score, and the columns required to calculate it
+        # t_test, and the columns required to calculate it
         variance_column = self.trend_columns["variance"]
         avg_column = self.trend_columns["avg"]
-        t_score = self.trend_columns["t_score"]["format"].format(
+        t_test = self.trend_columns["t_test"]["format"].format(
             avg=avg_column["alias"], variance=variance_column["alias"], count=count_column["alias"],
         )
-        t_score_columns = [
+        t_test_columns = [
             variance_column["format"].format(start=start, end=middle, index="1"),
             variance_column["format"].format(start=middle, end=end, index="2"),
-            t_score,
+            t_test,
         ]
         # Only add average when its not the baseline
         if function != "avg":
-            t_score_columns.extend(
+            t_test_columns.extend(
                 [
                     avg_column["format"].format(start=start, end=middle, index="1"),
                     avg_column["format"].format(start=middle, end=end, index="2"),
@@ -124,12 +124,12 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             )
 
         trend_percentage = percentage_column["format"].format(alias=trend_column["alias"])
-        query = self.get_query(request, trend_percentage, t_score)
+        query = self.get_query(request, trend_percentage, t_test)
 
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=selected_columns
-                + t_score_columns
+                + t_test_columns
                 + [
                     trend_column["format"].format(*columns, start=start, end=middle, index="1"),
                     trend_column["format"].format(*columns, start=middle, end=end, index="2"),
