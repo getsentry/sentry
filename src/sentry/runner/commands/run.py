@@ -224,7 +224,7 @@ def worker(ignore_unknown_queues, **options):
     if options["queues"] is not None:
         if not options["queues"].issubset(known_queues):
             unknown_queues = options["queues"] - known_queues
-            message = "Following queues are not found: %s" % unknown_queues
+            message = "Following queues are not found: %s" % ",".join(sorted(list(unknown_queues)))
             if ignore_unknown_queues:
                 options["queues"] -= unknown_queues
                 click.echo(message)
@@ -234,7 +234,9 @@ def worker(ignore_unknown_queues, **options):
     if options["exclude_queues"] is not None:
         if not options["exclude_queues"].issubset(known_queues):
             unknown_queues = options["exclude_queues"] - known_queues
-            message = "Following queues cannot be excluded as they don't exist: %s" % unknown_queues
+            message = "Following queues cannot be excluded as they don't exist: %s" % ",".join(
+                sorted(list(unknown_queues))
+            )
             if ignore_unknown_queues:
                 options["exclude_queues"] -= unknown_queues
                 click.echo(message)
