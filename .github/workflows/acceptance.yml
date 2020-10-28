@@ -23,13 +23,16 @@ jobs:
       VISUAL_HTML_ENABLE: 1
     steps:
       - uses: actions/checkout@v2
-        name: Checkout ${{github.event.pull_request.head.repo.full_name}} --> ${{github.event.pull_request.head.ref}}
+        name: Checkout sentry (pull_request)
         if: github.event.pull_request.head.ref != ''
         with:
-          ref: ${{github.event.pull_request.head.ref}}
-          repository: ${{github.event.pull_request.head.repo.full_name}}
+          # Note this is required because of `pull_request_target`, which allows
+          # forks to access secrets safely by only running workflows from the main branch.
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - uses: actions/checkout@v2
+        name: Checkout sentry (push)
         if: github.event.pull_request.head.ref == ''
 
       - uses: volta-cli/action@v1
@@ -90,13 +93,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        name: Checkout ${{github.event.pull_request.head.repo.full_name}} --> ${{github.event.pull_request.head.ref}}
+        name: Checkout sentry (pull_request)
         if: github.event.pull_request.head.ref != ''
         with:
-          ref: ${{github.event.pull_request.head.ref}}
-          repository: ${{github.event.pull_request.head.repo.full_name}}
+          # Note this is required because of `pull_request_target`, which allows
+          # forks to access secrets safely by only running workflows from the main branch.
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - uses: actions/checkout@v2
+        name: Checkout sentry (push)
         if: github.event.pull_request.head.ref == ''
 
       - uses: volta-cli/action@v1
