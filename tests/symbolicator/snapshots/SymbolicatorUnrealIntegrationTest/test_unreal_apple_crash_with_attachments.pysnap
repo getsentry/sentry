@@ -1,10 +1,11 @@
 ---
-created: '2019-06-05T20:22:56.070284Z'
+created: '2020-08-27T15:59:42.208300Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
 contexts:
   device:
+    arch: x86_64
     memory_size: 17179869184
     model: MacBookPro14,3
     type: device
@@ -14,7 +15,6 @@ contexts:
   os:
     build: 18A391
     name: macOS
-    raw_description: Mac OS X 10.14.0 (18A391)
     type: os
     version: 10.14.0
   unreal:
@@ -25,6 +25,28 @@ contexts:
     crash_guid: UE4CC-Mac-C4D618F60F46F8E48017259A587AC54E_0000
     crash_reporter_client_version: '1.0'
     crash_type: Crash
+    custom:
+      CommandLine: -installed
+      CrashDumpMode: '0'
+      CrashVersion: '3'
+      DeploymentName: ''
+      EngineModeEx: Unset
+      GameSessionID: ''
+      IsPerforceBuild: 'false'
+      MemoryStats.AvailablePhysical: '0'
+      MemoryStats.AvailableVirtual: '0'
+      MemoryStats.OOMAllocationAlignment: '0'
+      MemoryStats.OOMAllocationSize: '0'
+      MemoryStats.PeakUsedPhysical: '0'
+      MemoryStats.PeakUsedVirtual: '0'
+      MemoryStats.UsedPhysical: '0'
+      MemoryStats.UsedVirtual: '0'
+      MemoryStats.bIsOOM: '0'
+      PlatformFullName: Mac
+      PlatformNameIni: Mac
+      SourceContext: ''
+      Symbols: '**UE4*Release-4.21-CL-4613538-Mac-Development'
+      UserActivityHint: ''
     engine_mode: Game
     engine_version: 4.21.1-4613538+++UE4+Release-4.21
     epic_account_id: 2e7d369327054a448be6c8d3601213cb
@@ -105,80 +127,159 @@ contexts:
     seconds_since_start: 0
     time_of_crash: 636826526632420000
     type: unreal
-exception: null
+exception:
+  values:
+  - mechanism:
+      handled: false
+      synthetic: true
+      type: applecrashreport
+    stacktrace:
+      frames:
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7fff61c7f425'
+        package: /usr/lib/system/libsystem_pthread.dylib
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7fff61c832a7'
+        package: /usr/lib/system/libsystem_pthread.dylib
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7fff61c8033d'
+        package: /usr/lib/system/libsystem_pthread.dylib
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7fff36d4a234'
+        package: /System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x1095aab27'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x108b6fd8e'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x108b65169'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x108b55d76'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x10c28647e'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x10c2a6f41'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x10ce48e4a'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x10ce4f8f5'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x10cfadb9e'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x10c2e4621'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x10cfe80be'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x10bc5eb21'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x10bc5fc29'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x10bc3b85b'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: true
+        instruction_addr: '0x1090a0132'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+      registers:
+        cs: '0x2b'
+        fs: '0x0'
+        gs: '0x0'
+        r10: '0x0'
+        r11: '0xffffffff'
+        r12: '0x8'
+        r13: '0x11e800b00'
+        r14: '0x1'
+        r15: '0x0'
+        r8: '0x3'
+        r9: '0x10'
+        rax: '0x20261bb4775b008f'
+        rbp: '0x700015a616d0'
+        rbx: '0x0'
+        rcx: '0x1288266c0'
+        rdi: '0x0'
+        rdx: '0x1'
+        rflags: '0x10206'
+        rip: '0x1090a0132'
+        rsi: '0x0'
+        rsp: '0x700015a613f0'
+    thread_id: 5
+    type: SIGSEGV
+    value: SEGV_MAPERR at 0x88
 extra: null
 stacktrace: null
 threads:
   values:
   - crashed: false
     id: 0
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61a8e085'
-        package: /usr/lib/system/libdyld.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108b702a6'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108b7092b'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff31f4375d'
-        package: /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff31f496fa'
-        package: /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff31f4a95b'
-        package: /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff33c8d348'
-        package: /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff33c8d5cb'
-        package: /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff33c8d895'
-        package: /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff349f3ce4'
-        package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff349f45ad'
-        package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff349f505e'
-        package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc6c2a'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -261,22 +362,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 1
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x54485244'
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f415'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc85be'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -298,22 +383,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 2
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x54485244'
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f415'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc85be'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -335,18 +404,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 3
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f415'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc85be'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -363,22 +420,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 4
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x54485244'
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f415'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc85be'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -400,307 +441,8 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: true
     id: 5
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff36d4a234'
-        package: /System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1095aab27'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108b6fd8e'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108b65169'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108b55d76'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10c28647e'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10c2a6f41'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10ce48e4a'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10ce4f8f5'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10cfadb9e'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10c2e4621'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10cfe80be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10bc5eb21'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10bc5fc29'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10bc3b85b'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1090a0132'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      registers:
-        cs: '0x2b'
-        fs: '0x0'
-        gs: '0x0'
-        r10: '0x0'
-        r11: '0xffffffff'
-        r12: '0x8'
-        r13: '0x11e800b00'
-        r14: '0x1'
-        r15: '0x0'
-        r8: '0x3'
-        r9: '0x10'
-        rax: '0x20261bb4775b008f'
-        rbp: '0x700015a616d0'
-        rbx: '0x0'
-        rcx: '0x1288266c0'
-        rdi: '0x0'
-        rdx: '0x1'
-        rflags: '0x10206'
-        rip: '0x1090a0132'
-        rsi: '0x0'
-        rsp: '0x700015a613f0'
-    stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7fff36d4a234'
-        package: /System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x1095aab27'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x108b6fd8e'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x108b65169'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x108b55d76'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x10c28647e'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x10c2a6f41'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x10ce48e4a'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x10ce4f8f5'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x10cfadb9e'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x10c2e4621'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x10cfe80be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x10bc5eb21'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x10bc5fc29'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x10bc3b85b'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: true
-        instruction_addr: '0x1090a0132'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      registers:
-        cs: '0x2b'
-        fs: '0x0'
-        gs: '0x0'
-        r10: '0x0'
-        r11: '0xffffffff'
-        r12: '0x8'
-        r13: '0x11e800b00'
-        r14: '0x1'
-        r15: '0x0'
-        r8: '0x3'
-        r9: '0x10'
-        rax: '0x20261bb4775b008f'
-        rbp: '0x700015a616d0'
-        rbx: '0x0'
-        rcx: '0x1288266c0'
-        rdi: '0x0'
-        rdx: '0x1'
-        rflags: '0x10206'
-        rip: '0x1090a0132'
-        rsi: '0x0'
-        rsp: '0x700015a613f0'
   - crashed: false
     id: 6
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff31f53581'
-        package: /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff349f3ce4'
-        package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff349f45ad'
-        package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff349f505e'
-        package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc6c2a'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -753,58 +495,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 7
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109432156'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094312e8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109433182'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -869,58 +559,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 8
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109432156'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094312e8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109433182'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -985,58 +623,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 9
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109432156'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094312e8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109433182'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -1101,58 +687,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 10
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109432156'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094312e8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109433182'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -1217,58 +751,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 11
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109432156'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094312e8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109433182'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -1333,58 +815,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 12
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109432156'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094312e8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109433182'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -1449,58 +879,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 13
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109432156'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094312e8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109433182'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -1565,58 +943,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 14
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109432156'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094312e8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109433182'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -1681,58 +1007,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 15
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109432156'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094312e8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109433182'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -1797,63 +1071,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 16
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1097a01a8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109430351'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109434103'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094358c3'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -1924,48 +1141,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 17
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2018,48 +1193,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 18
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2112,48 +1245,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 19
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2206,48 +1297,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 20
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2300,48 +1349,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 21
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2394,22 +1401,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 22
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x54485244'
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f415'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc85be'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2431,22 +1422,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 23
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x54485244'
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f415'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc85be'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2468,22 +1443,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 24
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x70001989cba0'
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f415'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc85be'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2505,22 +1464,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 25
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x54485244'
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f415'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc85be'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2542,48 +1485,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 26
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1096b1e4d'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61b55724'
-        package: /usr/lib/system/libsystem_c.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca876'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2636,48 +1537,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 27
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108e4c4c5'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2730,48 +1589,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 28
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2824,48 +1641,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 29
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -2918,48 +1693,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 30
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -3012,48 +1745,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 31
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -3106,48 +1797,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 32
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10a44a1eb'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -3200,63 +1849,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 33
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10a874ab6'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109430351'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109434103'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094358c3'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -3327,98 +1919,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 34
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10a875ba7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10a86402c'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109430351'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109434103'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109435e23'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10c7c83da'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10c7f8302'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1093cd746'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1093c61d9'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1093c3c67'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1092abd6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109266ff1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c74969'
-        package: /usr/lib/system/libsystem_platform.dylib
     stacktrace:
       frames:
       - data:
@@ -3531,53 +2031,6 @@ threads:
         package: /usr/lib/system/libsystem_platform.dylib
   - crashed: false
     id: 35
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10a87c821'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109481b6e'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61b55724'
-        package: /usr/lib/system/libsystem_c.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca876'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -3636,48 +2089,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 36
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108ddca01'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -3730,48 +2141,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 37
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108ddca01'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -3824,48 +2193,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 38
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108ddca01'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -3918,48 +2245,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 39
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108ddca01'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4012,48 +2297,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 40
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108ddca01'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4106,48 +2349,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 41
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108ddca01'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4200,48 +2401,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 42
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108ddca01'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4294,48 +2453,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 43
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x108ddca01'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4388,48 +2505,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 44
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10bbea8b8'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4482,48 +2557,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 45
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10dc214e1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4576,48 +2609,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 46
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4670,48 +2661,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 47
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4764,48 +2713,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 48
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4858,48 +2765,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 49
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -4952,48 +2817,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 50
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -5046,48 +2869,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 51
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10951d7f1'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482d68'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -5140,38 +2921,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 52
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61a4db5a'
-        package: /usr/lib/system/libdispatch.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61a40b19'
-        package: /usr/lib/system/libdispatch.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc6c7e'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -5212,53 +2961,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 53
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff344410d6'
-        package: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff344415ee'
-        package: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff34441b84'
-        package: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff3444580d'
-        package: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff3444589a'
-        package: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bc6c2a'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:
@@ -5317,63 +3019,6 @@ threads:
         package: /usr/lib/system/libsystem_kernel.dylib
   - crashed: false
     id: 54
-    raw_stacktrace:
-      frames:
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: /usr/lib/system/libsystem_pthread.dylib
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094ba0b7'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094dd7be'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x10be5f7ce'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109430351'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109434103'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x1094358c3'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: true
-        instruction_addr: '0x109482f6f'
-        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-      - data:
-          orig_in_app: -1
-        in_app: false
-        instruction_addr: '0x7fff61bca1b2'
-        package: /usr/lib/system/libsystem_kernel.dylib
     stacktrace:
       frames:
       - data:

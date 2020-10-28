@@ -1,0 +1,15 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% block auth_main %}
+  <div class="box">
+    <div class="box-content with-padding">
+      <h3>Confirm Email Address</h3>
+
+      <div class="help-block">It looks like your GitHub account is setup to keep your email address private. To continue signing in to Sentry we'll need you to first confirm your email address.</div>
+
+      {% with submit_label="Continue" %}
+        {% include "sentry/partial/_form.html" %}
+      {% endwith %}
+    </div>
+  </div>
+{% endblock %}

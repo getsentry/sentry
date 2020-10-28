@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationApiKeyDetails from 'app/views/settings/organizationApiKeys/organizationApiKeyDetails';
@@ -13,8 +14,8 @@ const childContextTypes = {
   location: PropTypes.object,
 };
 
-describe('OrganizationApiKeyDetails', function() {
-  beforeEach(function() {
+describe('OrganizationApiKeyDetails', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/organizations/org-slug/api-keys/',
@@ -28,7 +29,7 @@ describe('OrganizationApiKeyDetails', function() {
     });
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mount(
       <OrganizationApiKeyDetails params={{apiKey: 1, orgId: 'org-slug'}} />,
       {
@@ -41,6 +42,6 @@ describe('OrganizationApiKeyDetails', function() {
       }
     );
     expect(wrapper.state('loading')).toBe(false);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

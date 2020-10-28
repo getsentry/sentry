@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
 
 import {
   addErrorMessage,
@@ -14,10 +13,8 @@ import ActivityAuthor from 'app/components/activity/author';
 import ActivityItem from 'app/components/activity/item';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
-import MemberListStore from 'app/stores/memberListStore';
 import Note from 'app/components/activity/note';
 import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
-import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -42,9 +39,6 @@ class GroupActivity extends React.Component {
     inputId: uniqueId(),
   };
 
-  getMemberList = (memberList, sessionUser) =>
-    _.uniqBy(memberList, ({id}) => id).filter(({id}) => sessionUser.id !== id);
-
   handleNoteDelete = async ({modelId, text: oldText}) => {
     const {api, group} = this.props;
 
@@ -59,7 +53,7 @@ class GroupActivity extends React.Component {
   };
 
   /**
-   * Note: This is nearly the same logic as `app/views/organizationIncidents/details/activity`
+   * Note: This is nearly the same logic as `app/views/alerts/details/activity`
    * This can be abstracted a bit if we create more objects that can have activities
    */
   handleNoteCreate = async note => {
@@ -116,23 +110,13 @@ class GroupActivity extends React.Component {
     }
   };
 
-  getMentionableTeams = projectSlug => {
-    return (
-      ProjectsStore.getBySlug(projectSlug) || {
-        teams: [],
-      }
-    ).teams;
-  };
-
   render() {
-    const {organization, group} = this.props;
+    const {group} = this.props;
     const me = ConfigStore.get('user');
-    const memberList = this.getMemberList(MemberListStore.getAll(), me);
-    const teams = this.getMentionableTeams(group && group.project && group.project.slug);
+    const projectSlugs = group && group.project ? [group.project.slug] : [];
     const noteProps = {
       group,
-      memberList,
-      teams,
+      projectSlugs,
       placeholder: t(
         'Add details or updates to this event. \nTag users with @, or teams with #'
       ),
@@ -185,11 +169,10 @@ class GroupActivity extends React.Component {
                       date={item.dateCreated}
                       header={
                         <GroupActivityItem
-                          organization={organization}
                           author={<ActivityAuthor>{authorName}</ActivityAuthor>}
                           item={item}
-                          orgId={this.props.params.orgId}
-                          projectId={group.project.slug}
+                          orgSlug={this.props.params.orgId}
+                          projectId={group.project.id}
                         />
                       }
                     />

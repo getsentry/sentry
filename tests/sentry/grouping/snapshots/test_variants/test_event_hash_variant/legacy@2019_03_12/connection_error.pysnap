@@ -1,275 +1,275 @@
 ---
-created: '2019-03-14T17:12:36.889789Z'
+created: '2020-08-25T09:17:10.213133Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '8abb6be15864dac05d46e61bfe1dd6d3'
+  hash: "8abb6be15864dac05d46e61bfe1dd6d3"
   component:
     app*
       exception*
         stacktrace*
           frame*
             module*
-              u'sentry.utils.safe'
+              "sentry.utils.safe"
             filename (module takes precedence)
-              u'sentry/utils/safe.py'
+              "sentry/utils/safe.py"
             context-line*
-              u'            result = func(*args, **kwargs)'
-            function (function name is used only if module or filename are available)
-              u'safe_execute'
-            lineno (line number is used only if module or filename are available)
+              "            result = func(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "safe_execute"
+            lineno (line number is not used if context-line is available)
               31
           frame*
             module*
-              u'sentry.utils.services'
+              "sentry.utils.services"
             filename (module takes precedence)
-              u'sentry/utils/services.py'
+              "sentry/utils/services.py"
             context-line*
-              u'                context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)'
-            function (function name is used only if module or filename are available)
-              u'<lambda>'
-            lineno (line number is used only if module or filename are available)
+              "                context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+            function (function name is not used if context-line is available)
+              "<lambda>"
+            lineno (line number is not used if context-line is available)
               91
           frame*
             module*
-              u'getsentry.quotas'
+              "getsentry.quotas"
             filename (module takes precedence)
-              u'getsentry/quotas.py'
+              "getsentry/quotas.py"
             context-line*
-              u'        return super(SubscriptionQuota, self).is_rate_limited(project, key=key)'
-            function (function name is used only if module or filename are available)
-              u'is_rate_limited'
-            lineno (line number is used only if module or filename are available)
+              "        return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+            function (function name is not used if context-line is available)
+              "is_rate_limited"
+            lineno (line number is not used if context-line is available)
               136
           frame*
             module*
-              u'sentry.quotas.redis'
+              "sentry.quotas.redis"
             filename (module takes precedence)
-              u'sentry/quotas/redis.py'
+              "sentry/quotas/redis.py"
             context-line*
-              u'        rejections = is_rate_limited(client, keys, args)'
-            function (function name is used only if module or filename are available)
-              u'is_rate_limited'
-            lineno (line number is used only if module or filename are available)
+              "        rejections = is_rate_limited(client, keys, args)"
+            function (function name is not used if context-line is available)
+              "is_rate_limited"
+            lineno (line number is not used if context-line is available)
               189
           frame*
             module*
-              u'sentry.utils.redis'
+              "sentry.utils.redis"
             filename (module takes precedence)
-              u'sentry/utils/redis.py'
+              "sentry/utils/redis.py"
             context-line*
-              u'        return script(keys, args, client)'
-            function (function name is used only if module or filename are available)
-              u'call_script'
-            lineno (line number is used only if module or filename are available)
+              "        return script(keys, args, client)"
+            function (function name is not used if context-line is available)
+              "call_script"
+            lineno (line number is not used if context-line is available)
               239
           frame (non app frame)
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'redis/client.py'
+              "redis/client.py"
             context-line*
-              u'            return client.evalsha(self.sha, len(keys), *args)'
-            function (function name is used only if module or filename are available)
-              u'__call__'
-            lineno (line number is used only if module or filename are available)
+              "            return client.evalsha(self.sha, len(keys), *args)"
+            function (function name is not used if context-line is available)
+              "__call__"
+            lineno (line number is not used if context-line is available)
               2694
           frame (non app frame)
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'redis/client.py'
+              "redis/client.py"
             context-line*
-              u"        return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
-            function (function name is used only if module or filename are available)
-              u'evalsha'
-            lineno (line number is used only if module or filename are available)
+              "        return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+            function (function name is not used if context-line is available)
+              "evalsha"
+            lineno (line number is not used if context-line is available)
               1944
           frame (non app frame)
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'redis/client.py'
+              "redis/client.py"
             context-line*
-              u'            return self.parse_response(connection, command_name, **options)'
-            function (function name is used only if module or filename are available)
-              u'execute_command'
-            lineno (line number is used only if module or filename are available)
+              "            return self.parse_response(connection, command_name, **options)"
+            function (function name is not used if context-line is available)
+              "execute_command"
+            lineno (line number is not used if context-line is available)
               579
           frame (non app frame)
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'redis/client.py'
+              "redis/client.py"
             context-line*
-              u'        response = connection.read_response()'
-            function (function name is used only if module or filename are available)
-              u'parse_response'
-            lineno (line number is used only if module or filename are available)
+              "        response = connection.read_response()"
+            function (function name is not used if context-line is available)
+              "parse_response"
+            lineno (line number is not used if context-line is available)
               585
           frame (non app frame)
             module*
-              u'redis.connection'
+              "redis.connection"
             filename (module takes precedence)
-              u'redis/connection.py'
+              "redis/connection.py"
             context-line*
-              u'            response = self._parser.read_response()'
-            function (function name is used only if module or filename are available)
-              u'read_response'
-            lineno (line number is used only if module or filename are available)
+              "            response = self._parser.read_response()"
+            function (function name is not used if context-line is available)
+              "read_response"
+            lineno (line number is not used if context-line is available)
               577
           frame (non app frame)
             module*
-              u'redis.connection'
+              "redis.connection"
             filename (module takes precedence)
-              u'redis/connection.py'
+              "redis/connection.py"
             context-line*
-              u'                                      (e.args,))'
-            function (function name is used only if module or filename are available)
-              u'read_response'
-            lineno (line number is used only if module or filename are available)
+              "                                      (e.args,))"
+            function (function name is not used if context-line is available)
+              "read_response"
+            lineno (line number is not used if context-line is available)
               357
         type*
-          u'ConnectionError'
+          "ConnectionError"
         value (stacktrace and type take precedence)
-          u"Error while reading from socket: ('Connection closed by server.',)"
+          "Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
 default:
-  hash: None
+  hash: null
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
-        u'%s.process_error'
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
+        "%s.process_error"
 --------------------------------------------------------------------------
 system:
-  hash: '6391c18be56c7e7c95e58be4b3eaf0bd'
+  hash: "6391c18be56c7e7c95e58be4b3eaf0bd"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'sentry.utils.safe'
+              "sentry.utils.safe"
             filename (module takes precedence)
-              u'sentry/utils/safe.py'
+              "sentry/utils/safe.py"
             context-line*
-              u'            result = func(*args, **kwargs)'
-            function (function name is used only if module or filename are available)
-              u'safe_execute'
-            lineno (line number is used only if module or filename are available)
+              "            result = func(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "safe_execute"
+            lineno (line number is not used if context-line is available)
               31
           frame*
             module*
-              u'sentry.utils.services'
+              "sentry.utils.services"
             filename (module takes precedence)
-              u'sentry/utils/services.py'
+              "sentry/utils/services.py"
             context-line*
-              u'                context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)'
-            function (function name is used only if module or filename are available)
-              u'<lambda>'
-            lineno (line number is used only if module or filename are available)
+              "                context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+            function (function name is not used if context-line is available)
+              "<lambda>"
+            lineno (line number is not used if context-line is available)
               91
           frame*
             module*
-              u'getsentry.quotas'
+              "getsentry.quotas"
             filename (module takes precedence)
-              u'getsentry/quotas.py'
+              "getsentry/quotas.py"
             context-line*
-              u'        return super(SubscriptionQuota, self).is_rate_limited(project, key=key)'
-            function (function name is used only if module or filename are available)
-              u'is_rate_limited'
-            lineno (line number is used only if module or filename are available)
+              "        return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+            function (function name is not used if context-line is available)
+              "is_rate_limited"
+            lineno (line number is not used if context-line is available)
               136
           frame*
             module*
-              u'sentry.quotas.redis'
+              "sentry.quotas.redis"
             filename (module takes precedence)
-              u'sentry/quotas/redis.py'
+              "sentry/quotas/redis.py"
             context-line*
-              u'        rejections = is_rate_limited(client, keys, args)'
-            function (function name is used only if module or filename are available)
-              u'is_rate_limited'
-            lineno (line number is used only if module or filename are available)
+              "        rejections = is_rate_limited(client, keys, args)"
+            function (function name is not used if context-line is available)
+              "is_rate_limited"
+            lineno (line number is not used if context-line is available)
               189
           frame*
             module*
-              u'sentry.utils.redis'
+              "sentry.utils.redis"
             filename (module takes precedence)
-              u'sentry/utils/redis.py'
+              "sentry/utils/redis.py"
             context-line*
-              u'        return script(keys, args, client)'
-            function (function name is used only if module or filename are available)
-              u'call_script'
-            lineno (line number is used only if module or filename are available)
+              "        return script(keys, args, client)"
+            function (function name is not used if context-line is available)
+              "call_script"
+            lineno (line number is not used if context-line is available)
               239
           frame*
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'redis/client.py'
+              "redis/client.py"
             context-line*
-              u'            return client.evalsha(self.sha, len(keys), *args)'
-            function (function name is used only if module or filename are available)
-              u'__call__'
-            lineno (line number is used only if module or filename are available)
+              "            return client.evalsha(self.sha, len(keys), *args)"
+            function (function name is not used if context-line is available)
+              "__call__"
+            lineno (line number is not used if context-line is available)
               2694
           frame*
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'redis/client.py'
+              "redis/client.py"
             context-line*
-              u"        return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
-            function (function name is used only if module or filename are available)
-              u'evalsha'
-            lineno (line number is used only if module or filename are available)
+              "        return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+            function (function name is not used if context-line is available)
+              "evalsha"
+            lineno (line number is not used if context-line is available)
               1944
           frame*
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'redis/client.py'
+              "redis/client.py"
             context-line*
-              u'            return self.parse_response(connection, command_name, **options)'
-            function (function name is used only if module or filename are available)
-              u'execute_command'
-            lineno (line number is used only if module or filename are available)
+              "            return self.parse_response(connection, command_name, **options)"
+            function (function name is not used if context-line is available)
+              "execute_command"
+            lineno (line number is not used if context-line is available)
               579
           frame*
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'redis/client.py'
+              "redis/client.py"
             context-line*
-              u'        response = connection.read_response()'
-            function (function name is used only if module or filename are available)
-              u'parse_response'
-            lineno (line number is used only if module or filename are available)
+              "        response = connection.read_response()"
+            function (function name is not used if context-line is available)
+              "parse_response"
+            lineno (line number is not used if context-line is available)
               585
           frame*
             module*
-              u'redis.connection'
+              "redis.connection"
             filename (module takes precedence)
-              u'redis/connection.py'
+              "redis/connection.py"
             context-line*
-              u'            response = self._parser.read_response()'
-            function (function name is used only if module or filename are available)
-              u'read_response'
-            lineno (line number is used only if module or filename are available)
+              "            response = self._parser.read_response()"
+            function (function name is not used if context-line is available)
+              "read_response"
+            lineno (line number is not used if context-line is available)
               577
           frame*
             module*
-              u'redis.connection'
+              "redis.connection"
             filename (module takes precedence)
-              u'redis/connection.py'
+              "redis/connection.py"
             context-line*
-              u'                                      (e.args,))'
-            function (function name is used only if module or filename are available)
-              u'read_response'
-            lineno (line number is used only if module or filename are available)
+              "                                      (e.args,))"
+            function (function name is not used if context-line is available)
+              "read_response"
+            lineno (line number is not used if context-line is available)
               357
         type*
-          u'ConnectionError'
+          "ConnectionError"
         value (stacktrace and type take precedence)
-          u"Error while reading from socket: ('Connection closed by server.',)"
+          "Error while reading from socket: ('Connection closed by server.',)"

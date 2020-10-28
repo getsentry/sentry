@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
-__all__ = ('DebugMeta', )
+__all__ = ("DebugMeta",)
 
-from sentry.interfaces.base import Interface, prune_empty_keys
+from sentry.interfaces.base import Interface
+from sentry.utils.json import prune_empty_keys
 
 
 class DebugMeta(Interface):
     """
-    Holds debug meta information information for processing stacktraces
+    Holds debug meta information for processing stacktraces
     and similar things.  This information is deleted after event processing.
 
     Currently two attributes exist:
@@ -20,20 +21,22 @@ class DebugMeta(Interface):
     """
 
     ephemeral = False
-    path = 'debug_meta'
-    external_type = 'debugmeta'
+    path = "debug_meta"
+    external_type = "debugmeta"
 
     @classmethod
     def to_python(cls, data):
         return cls(
-            images=data.get('images', None) or [],
-            sdk_info=data.get('sdk_info'),
-            is_debug_build=data.get('is_debug_build'),
+            images=data.get("images", None) or [],
+            sdk_info=data.get("sdk_info"),
+            is_debug_build=data.get("is_debug_build"),
         )
 
     def to_json(self):
-        return prune_empty_keys({
-            'images': self.images or None,
-            'sdk_info': self.sdk_info or None,
-            'is_debug_build': self.is_debug_build
-        })
+        return prune_empty_keys(
+            {
+                "images": self.images or None,
+                "sdk_info": self.sdk_info or None,
+                "is_debug_build": self.is_debug_build,
+            }
+        )

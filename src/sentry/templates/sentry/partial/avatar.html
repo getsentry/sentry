@@ -1,18 +1,18 @@
 {% load sentry_avatars %}
 <span class="avatar">
   {% if avatar_type == 'upload' %}
-    <img src="{% profile_photo_url user_id size size %}">
+    <img src="{% profile_photo_url user_id size %}">
   {% else %}
     {% if for_email %}
       {% if avatar_type == 'letter_avatar' %}
-        {% email_avatar display_name label size size try_gravatar False %}
+        {% email_avatar display_name label size False %}
       {% else %}
-        {% email_avatar display_name label size size try_gravatar True %}
+        {% email_avatar display_name label size True %}
       {% endif %}
     {% else %}
-      {% letter_avatar_svg display_name label size size %}
+      {% letter_avatar_svg display_name label size %}
       {% if avatar_type == 'gravatar' %}
-        <img src="{% gravatar_url email size size default 'blank' %}">
+        <img src="{% gravatar_url email size 'blank' %}">
       {% endif %}
     {% endif %}
   {% endif %}

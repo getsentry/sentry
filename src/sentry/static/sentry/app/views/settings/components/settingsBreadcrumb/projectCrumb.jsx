@@ -1,21 +1,21 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import IdBadge from 'app/components/idBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 import SentryTypes from 'app/sentryTypes';
-import TextLink from 'app/components/links/textLink';
+import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import recreateRoute from 'app/utils/recreateRoute';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
+import space from 'app/styles/space';
 import withLatestContext from 'app/utils/withLatestContext';
 import withProjects from 'app/utils/withProjects';
-import space from 'app/styles/space';
 
-const ROUTE_PATH_EXCEPTIONS = new Set([':ruleId/', ':keyId/', ':hookId/', ':pluginId/']);
+import {CrumbLink} from '.';
 
 class ProjectCrumb extends React.Component {
   static propTypes = {
@@ -27,18 +27,21 @@ class ProjectCrumb extends React.Component {
   };
 
   handleSelect = item => {
-    const {routes, params} = this.props;
+    const {routes, route, params} = this.props;
 
-    const lastRoute = routes[routes.length - 1];
     // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
     // Since these models are project specific, we need to traverse up a route when switching projects
-    const stepBack = ROUTE_PATH_EXCEPTIONS.has(lastRoute.path) ? -1 : undefined;
+    //
+    // we manipulate `routes` so that it doesn't include the current project's route
+    // which, unlike the org version, does not start with a route param
     browserHistory.push(
-      recreateRoute('', {
-        routes,
-        params: {...params, projectId: item.value},
-        stepBack,
-      })
+      recreateRoute(
+        findFirstRouteWithoutRouteParam(routes.slice(routes.indexOf(route) + 1), route),
+        {
+          routes,
+          params: {...params, projectId: item.value},
+        }
+      )
     );
   };
 
@@ -69,14 +72,14 @@ class ProjectCrumb extends React.Component {
             {!latestProject ? (
               <LoadingIndicator mini />
             ) : (
-              <TextLink
+              <CrumbLink
                 to={replaceRouterParams('/settings/:orgId/projects/:projectId/', {
                   orgId: latestOrganization.slug,
                   projectId: latestProject.slug,
                 })}
               >
                 <IdBadge project={latestProject} avatarSize={18} />
-              </TextLink>
+              </CrumbLink>
             )}
           </ProjectName>
         }

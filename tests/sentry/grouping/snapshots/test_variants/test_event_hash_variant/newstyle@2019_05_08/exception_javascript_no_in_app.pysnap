@@ -1,60 +1,58 @@
 ---
-created: '2019-05-10T12:45:55.182908Z'
+created: '2020-02-26T19:54:37.676056Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             module*
-              u'app/components/modals/createTeamModal'
+              "app/components/modals/createTeamModal"
             filename (module takes precedence)
-              u'createteammodal.jsx'
-            function (ignored unknown function name)
+              "createteammodal.jsx"
             context-line*
-              u'onError(err);'
+              "onError(err);"
           frame (non app frame)
             module*
-              u'app/views/settings/components/forms/form'
+              "app/views/settings/components/forms/form"
             filename (module takes precedence)
-              u'form.jsx'
+              "form.jsx"
             function (ignored because sourcemap used and context line available)
-              u'onError'
+              "onError"
             context-line*
-              u'this.model.submitError(error);'
+              "this.model.submitError(error);"
         type*
-          u'TypeError'
+          "TypeError"
         value*
-          u"Cannot read property 'submitError' of null"
+          "Cannot read property 'submitError' of null"
 --------------------------------------------------------------------------
 system:
-  hash: '26552f86ca2368e708afa1df6effc1c5'
+  hash: "26552f86ca2368e708afa1df6effc1c5"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'app/components/modals/createTeamModal'
+              "app/components/modals/createTeamModal"
             filename (module takes precedence)
-              u'createteammodal.jsx'
-            function (ignored unknown function name)
+              "createteammodal.jsx"
             context-line*
-              u'onError(err);'
+              "onError(err);"
           frame*
             module*
-              u'app/views/settings/components/forms/form'
+              "app/views/settings/components/forms/form"
             filename (module takes precedence)
-              u'form.jsx'
+              "form.jsx"
             function (ignored because sourcemap used and context line available)
-              u'onError'
+              "onError"
             context-line*
-              u'this.model.submitError(error);'
+              "this.model.submitError(error);"
         type*
-          u'TypeError'
+          "TypeError"
         value (ignored because stacktrace takes precedence)
-          u"Cannot read property 'submitError' of null"
+          "Cannot read property 'submitError' of null"

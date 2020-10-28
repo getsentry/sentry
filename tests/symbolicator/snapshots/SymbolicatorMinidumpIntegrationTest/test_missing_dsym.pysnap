@@ -1,5 +1,5 @@
 ---
-created: '2019-06-12T09:33:15.441451Z'
+created: '2020-07-23T19:54:04.468992Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -8,7 +8,6 @@ contexts:
     arch: x86
     type: device
   os:
-    build: ''
     name: Windows
     type: os
     version: 10.0.14393
@@ -18,125 +17,241 @@ debug_meta:
     code_id: 5ab380779000
     debug_file: C:\projects\breakpad-tools\windows\Release\crash.pdb
     debug_id: 3249d99d-0c40-4931-8610-f4e4fb0b6936-1
+    debug_status: missing
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x2a0000'
     image_size: 36864
     type: pe
+    unwind_status: missing
   - code_file: C:\Windows\System32\dbghelp.dll
     code_id: 57898e12145000
     debug_file: dbghelp.pdb
     debug_id: 9c2a902b-6fdf-40ad-8308-588a41d572a0-1
+    debug_status: missing
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x70850000'
     image_size: 1331200
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\msvcp140.dll
     code_id: 589abc846c000
     debug_file: msvcp140.i386.pdb
     debug_id: bf5257f7-8c26-43dd-9bb7-901625e1136a-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x709a0000'
     image_size: 442368
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\apphelp.dll
     code_id: 57898eeb92000
     debug_file: apphelp.pdb
     debug_id: 8daf7773-372f-460a-af38-944e193f7e33-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x70a10000'
     image_size: 598016
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\dbgcore.dll
     code_id: 57898dab25000
     debug_file: dbgcore.pdb
     debug_id: aec7ef2f-df4b-4642-a471-4c3e5fe8760a-1
+    debug_status: missing
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x70b70000'
     image_size: 151552
     type: pe
+    unwind_status: missing
   - code_file: C:\Windows\System32\VCRUNTIME140.dll
     code_id: 589abc7714000
     debug_file: vcruntime140.i386.pdb
     debug_id: 0ed80a50-ecda-472b-86a4-eb6c833f8e1b-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x70c60000'
     image_size: 81920
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\CRYPTBASE.dll
     code_id: 57899141a000
     debug_file: cryptbase.pdb
     debug_id: 147c51fb-7ca1-408f-85b5-285f2ad6f9c5-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x73ba0000'
     image_size: 40960
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\sspicli.dll
     code_id: 59bf30e31f000
     debug_file: wsspicli.pdb
     debug_id: 51e432b1-0450-4b19-8ed1-6d4335f9f543-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x73bb0000'
     image_size: 126976
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\advapi32.dll
     code_id: 5a49bb7677000
     debug_file: advapi32.pdb
     debug_id: 0c799483-b549-417d-8433-4331852031fe-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x73c70000'
     image_size: 487424
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\msvcrt.dll
     code_id: 57899155be000
     debug_file: msvcrt.pdb
     debug_id: 6f6409b3-d520-43c7-9b2f-62e00bfe761c-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x73cf0000'
     image_size: 778240
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\sechost.dll
     code_id: 598942c741000
     debug_file: sechost.pdb
     debug_id: 6f6a05dd-0a80-478b-a419-9b88703bf75b-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x74450000'
     image_size: 266240
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\kernel32.dll
     code_id: 590285e9e0000
     debug_file: wkernel32.pdb
     debug_id: d3474559-96f7-47d6-bf43-c176b2171e68-1
+    debug_status: missing
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x75050000'
     image_size: 917504
     type: pe
+    unwind_status: missing
   - code_file: C:\Windows\System32\bcryptPrimitives.dll
     code_id: 59b0df8f5a000
     debug_file: bcryptprimitives.pdb
     debug_id: 287b19c3-9209-4a2b-bb8f-bcc37f411b11-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x75130000'
     image_size: 368640
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\rpcrt4.dll
     code_id: 5a49bb75c1000
     debug_file: wrpcrt4.pdb
     debug_id: ae131c67-27a7-4fa1-9916-b5a4aef41190-1
+    debug_status: missing
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x75810000'
     image_size: 790528
     type: pe
+    unwind_status: missing
   - code_file: C:\Windows\System32\ucrtbase.dll
     code_id: 59bf2b5ae0000
     debug_file: ucrtbase.pdb
     debug_id: 6bedcbce-0a3a-40e9-8040-81c2c8c6cc2f-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x758f0000'
     image_size: 917504
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\KERNELBASE.dll
     code_id: 59bf2bcf1a1000
     debug_file: wkernelbase.pdb
     debug_id: 8462294a-c645-402d-ac82-a4e95f61ddf9-1
+    debug_status: unused
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x76db0000'
     image_size: 1708032
     type: pe
+    unwind_status: unused
   - code_file: C:\Windows\System32\ntdll.dll
     code_id: 59b0d8f3183000
     debug_file: wntdll.pdb
     debug_id: 971f98e5-ce60-41ff-b2d7-235bbeb34578-1
+    debug_status: missing
+    features:
+      has_debug_info: false
+      has_sources: false
+      has_symbols: false
+      has_unwind_info: false
     image_addr: '0x77170000'
     image_size: 1585152
     type: pe
+    unwind_status: missing
 errors:
-- name: timestamp
-  type: past_timestamp
-  value: 1521713273
 - image_path: C:\projects\breakpad-tools\windows\Release\crash.exe
   image_uuid: 3249d99d-0c40-4931-8610-f4e4fb0b6936-1
   message: None

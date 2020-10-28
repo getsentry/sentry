@@ -6,7 +6,11 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    BaseManager,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
 )
 
 
@@ -25,27 +29,17 @@ class GroupSubscriptionReason(object):
     team_mentioned = 7
 
     descriptions = {
-        implicit:
-        u"have opted to receive updates for all issues within "
+        implicit: u"have opted to receive updates for all issues within "
         "projects that you are a member of",
-        committed:
-        u"were involved in a commit that is part of this release",
-        processing_issue:
-        u"are subscribed to alerts for this project",
-        comment:
-        u"have commented on this issue",
-        assigned:
-        u"have been assigned to this issue",
-        bookmark:
-        u"have bookmarked this issue",
-        status_change:
-        u"have changed the resolution status of this issue",
-        deploy_setting:
-        u"opted to receive all deploy notifications for this organization",
-        mentioned:
-        u"have been mentioned in this issue",
-        team_mentioned:
-        u"are a member of a team mentioned in this issue",
+        committed: u"were involved in a commit that is part of this release",
+        processing_issue: u"are subscribed to alerts for this project",
+        comment: u"have commented on this issue",
+        assigned: u"have been assigned to this issue",
+        bookmark: u"have bookmarked this issue",
+        status_change: u"have changed the resolution status of this issue",
+        deploy_setting: u"opted to receive all deploy notifications for this organization",
+        mentioned: u"have been mentioned in this issue",
+        team_mentioned: u"are a member of a team mentioned in this issue",
     }
 
 
@@ -54,24 +48,17 @@ def get_user_options(key, user_ids, project, default):
 
     options = {
         (option.user_id, option.project_id): option.value
-        for option in
-        UserOption.objects.filter(
+        for option in UserOption.objects.filter(
             Q(project__isnull=True) | Q(project=project),
             user_id__in=user_ids,
-            key='workflow:notifications',
+            key="workflow:notifications",
         )
     }
 
     results = {}
 
     for user_id in user_ids:
-        results[user_id] = options.get(
-            (user_id, project.id),
-            options.get(
-                (user_id, None),
-                default,
-            ),
-        )
+        results[user_id] = options.get((user_id, project.id), options.get((user_id, None), default))
 
     return results
 
@@ -85,11 +72,7 @@ class GroupSubscriptionManager(BaseManager):
         try:
             with transaction.atomic():
                 self.create(
-                    user=user,
-                    group=group,
-                    project=group.project,
-                    is_active=True,
-                    reason=reason,
+                    user=user, group=group, project=group.project, is_active=True, reason=reason
                 )
         except IntegrityError:
             pass
@@ -101,10 +84,10 @@ class GroupSubscriptionManager(BaseManager):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
             # subscribe the members of the team
-            team_users_ids = list(actor.member_set.values_list('user_id', flat=True))
+            team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
             return self.bulk_subscribe(group, team_users_ids, reason)
 
-        raise NotImplementedError('Unknown actor type: %r' % type(actor))
+        raise NotImplementedError("Unknown actor type: %r" % type(actor))
 
     def bulk_subscribe(self, group, user_ids, reason=GroupSubscriptionReason.unknown):
         """
@@ -117,11 +100,11 @@ class GroupSubscriptionManager(BaseManager):
         # concurrent subscription attempts cause integrity errors
         for i in range(4, -1, -1):  # 4 3 2 1 0
 
-            existing_subscriptions = set(GroupSubscription.objects.filter(
-                user_id__in=user_ids,
-                group=group,
-                project=group.project,
-            ).values_list('user_id', flat=True))
+            existing_subscriptions = set(
+                GroupSubscription.objects.filter(
+                    user_id__in=user_ids, group=group, project=group.project
+                ).values_list("user_id", flat=True)
+            )
 
             subscriptions = [
                 GroupSubscription(
@@ -151,10 +134,8 @@ class GroupSubscriptionManager(BaseManager):
 
         users = {
             user.id: user
-            for user in
-            User.objects.filter(
-                sentry_orgmember_set__teams=group.project.teams.all(),
-                is_active=True,
+            for user in User.objects.filter(
+                sentry_orgmember_set__teams__in=group.project.teams.all(), is_active=True
             )
         }
 
@@ -162,10 +143,8 @@ class GroupSubscriptionManager(BaseManager):
 
         subscriptions = {
             subscription.user_id: subscription
-            for subscription in
-            GroupSubscription.objects.filter(
-                group=group,
-                user_id__in=users.keys(),
+            for subscription in GroupSubscription.objects.filter(
+                group=group, user_id__in=users.keys()
             )
         }
 
@@ -174,8 +153,8 @@ class GroupSubscriptionManager(BaseManager):
                 excluded_ids.add(user_id)
 
         options = get_user_options(
-            'workflow:notifications',
-            users.keys(),
+            "workflow:notifications",
+            list(users.keys()),
             group.project,
             UserOptionValue.participating_only,
         )
@@ -206,23 +185,22 @@ class GroupSubscription(Model):
     """
     Identifies a subscription relationship between a user and an issue.
     """
+
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project', related_name="subscription_set")
-    group = FlexibleForeignKey('sentry.Group', related_name="subscription_set")
+    project = FlexibleForeignKey("sentry.Project", related_name="subscription_set")
+    group = FlexibleForeignKey("sentry.Group", related_name="subscription_set")
     # namespace related_name on User since we don't own the model
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     is_active = models.BooleanField(default=True)
-    reason = BoundedPositiveIntegerField(
-        default=GroupSubscriptionReason.unknown,
-    )
+    reason = BoundedPositiveIntegerField(default=GroupSubscriptionReason.unknown)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = GroupSubscriptionManager()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_groupsubscription'
-        unique_together = (('group', 'user'), )
+        app_label = "sentry"
+        db_table = "sentry_groupsubscription"
+        unique_together = (("group", "user"),)
 
-    __repr__ = sane_repr('project_id', 'group_id', 'user_id')
+    __repr__ = sane_repr("project_id", "group_id", "user_id")

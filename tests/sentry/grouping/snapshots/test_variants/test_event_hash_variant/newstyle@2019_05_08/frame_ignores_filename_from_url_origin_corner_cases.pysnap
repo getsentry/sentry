@@ -1,0 +1,54 @@
+---
+created: '2020-02-26T19:54:37.816777Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          filename (ignored because frame points to a URL)
+            "foo.js"
+          function*
+            "test"
+          context-line (discarded because from URL origin)
+            "hello world"
+        frame (non app frame)
+          filename*
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+        frame (non app frame)
+          filename (ignored because frame points to a URL)
+            "foo.js"
+          context-line (discarded because from URL origin)
+            "hello world"
+--------------------------------------------------------------------------
+system:
+  hash: "bd8c868a3914eeb4f48e7ef46f19a0df"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename (ignored because frame points to a URL)
+            "foo.js"
+          function*
+            "test"
+          context-line (discarded because from URL origin)
+            "hello world"
+        frame*
+          filename*
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+        frame
+          filename (ignored because frame points to a URL)
+            "foo.js"
+          context-line (discarded because from URL origin)
+            "hello world"

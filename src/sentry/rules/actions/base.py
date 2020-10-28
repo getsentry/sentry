@@ -1,18 +1,10 @@
-"""
-sentry.rules.actions.base
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import, print_function
 
 from sentry.rules.base import RuleBase
 
 
 class EventAction(RuleBase):
-    rule_type = 'action/event'
+    rule_type = "action/event"
 
     def after(self, event, state):
         """
@@ -22,6 +14,9 @@ class EventAction(RuleBase):
         the given callback.
 
         See the notification implementation for example usage.
+
+        Does not need to handle group state (e.g. is resolved or not)
+        Caller will handle state
 
         >>> def after(self, event, state):
         >>>     yield self.future(self.print_results)

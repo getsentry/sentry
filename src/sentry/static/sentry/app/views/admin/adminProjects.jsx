@@ -1,4 +1,3 @@
-/* eslint-disable getsentry/jsx-needs-il8n */
 /* eslint-disable react/jsx-key */
 import React from 'react';
 import moment from 'moment';
@@ -6,24 +5,22 @@ import moment from 'moment';
 import ResultGrid from 'app/components/resultGrid';
 import {t} from 'app/locale';
 
-export const prettyDate = function(x) {
+export const prettyDate = function (x) {
   return moment(x).format('ll');
 };
 
 class AdminProjects extends React.Component {
-  getRow = row => {
-    return [
-      <td>
-        <strong>
-          <a href={`/${row.organization.slug}/${row.slug}/`}>{row.name}</a>
-        </strong>
-        <br />
-        <small>{row.organization.name}</small>
-      </td>,
-      <td style={{textAlign: 'center'}}>{row.status}</td>,
-      <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>,
-    ];
-  };
+  getRow = row => [
+    <td>
+      <strong>
+        <a href={`/${row.organization.slug}/${row.slug}/`}>{row.name}</a>
+      </strong>
+      <br />
+      <small>{row.organization.name}</small>
+    </td>,
+    <td style={{textAlign: 'center'}}>{row.status}</td>,
+    <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>,
+  ];
 
   render() {
     const columns = [
@@ -41,11 +38,14 @@ class AdminProjects extends React.Component {
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}
-          hasSearch={true}
+          hasSearch
           filters={{
             status: {
               name: 'Status',
-              options: [['active', 'Active'], ['deleted', 'Deleted']],
+              options: [
+                ['active', 'Active'],
+                ['deleted', 'Deleted'],
+              ],
             },
           }}
           sortOptions={[['date', 'Date Created']]}

@@ -4,6 +4,7 @@ import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import Identity
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from .testutils import GitLabTestCase
 
@@ -14,17 +15,18 @@ class GitlabRefreshAuthTest(GitLabTestCase):
     def setUp(self):
         super(GitlabRefreshAuthTest, self).setUp()
         self.client = self.installation.get_client()
-        self.request_data = {'id': 'user_id'}
-        self.request_url = 'https://example.gitlab.com/api/v4/user'
-        self.refresh_url = 'https://example.gitlab.com/oauth/token'
+        self.request_data = {"id": "user_id"}
+        self.request_url = "https://example.gitlab.com/api/v4/user"
+        self.refresh_url = "https://example.gitlab.com/oauth/token"
         self.refresh_response = {
-            'access_token': '123432sfh29uhs29347',
-            'token_type': 'bearer',
-            'refresh_token': '29f43sdfsk22fsj929',
-            'created_at': 1536798907,
-            'scope': 'api'
+            "access_token": "123432sfh29uhs29347",
+            "token_type": "bearer",
+            "refresh_token": "29f43sdfsk22fsj929",
+            "created_at": 1536798907,
+            "scope": "api",
         }
         self.original_identity_data = dict(self.client.identity.data)
+        self.gitlab_id = 123
 
     def tearDown(self):
         responses.reset()
@@ -37,7 +39,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             responses.POST,
             self.refresh_url,
             status=200 if success else 401,
-            json=self.refresh_response if success else {}
+            json=self.refresh_response if success else {},
         )
 
     def add_get_user_response(self, success):
@@ -53,9 +55,9 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         assert call.response.status_code == status
 
     def assert_data(self, data, expected_data):
-        assert data['access_token'] == expected_data['access_token']
-        assert data['refresh_token'] == expected_data['refresh_token']
-        assert data['created_at'] == expected_data['created_at']
+        assert data["access_token"] == expected_data["access_token"]
+        assert data["refresh_token"] == expected_data["refresh_token"]
+        assert data["created_at"] == expected_data["created_at"]
 
     def assert_request_failed_refresh(self):
         responses_calls = responses.calls
@@ -122,3 +124,34 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         self.assert_response_call(call, self.request_url, 200)
         assert resp == self.request_data
         self.assert_identity_was_not_refreshed()
+
+    @responses.activate
+    def test_check_file(self):
+        path = "file.py"
+        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
+        responses.add(
+            responses.HEAD,
+            "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+                self.gitlab_id, path, ref
+            ),
+            json={"text": 200},
+        )
+
+        resp = self.client.check_file(self.gitlab_id, path, ref)
+        assert responses.calls[0].response.status_code == 200
+        assert resp.status_code == 200
+
+    @responses.activate
+    def test_check_no_file(self):
+        path = "file.py"
+        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
+        responses.add(
+            responses.HEAD,
+            "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+                self.gitlab_id, path, ref
+            ),
+            status=404,
+        )
+        with self.assertRaises(ApiError):
+            self.client.check_file(self.gitlab_id, path, ref)
+        assert responses.calls[0].response.status_code == 404

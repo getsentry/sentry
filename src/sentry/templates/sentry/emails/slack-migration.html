@@ -1,0 +1,54 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+
+{% block main %}
+  <h3>You're All Upgraded</h3>
+    Well, you're looking fresh. Your organization <strong>{{organization.name}}</strong>'s Sentry-Slack Integration for your workspace
+    <strong>{{integration.name}}</strong> is all up to date and ready to report errors. If you're confused, curious, or just looking
+    for some light reading, see <a href="{{ doc_link }}">our docs</a>.
+  <br />
+  <br />
+    {% if good_channels or failing_channels %}
+    <strong>Private Channels</strong>
+    <div>
+        <p>Before you pack up and go home, take a look at the following private channel(s). We sent you a message with instructions to add Sentry to the channel(s).</p>
+        {% for channel in good_channels %}
+            <li class="channel-name">{{channel.name}} </li>
+        {% endfor %}
+        {% if failing_channels %}
+        <br />
+        <p>For some reason, we couldn't send a message to private channel(s) below:</p>
+        {% for channel in failing_channels %}
+            <li class="channel-name">{{channel.name}} </li>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endif %}
+    {% if missing_channels %}
+        <br />
+        <div>
+            <strong>Missing or Unauthorized Channels</strong>
+            <p class="section-info">
+                {% trans "These channels were found to be missing or unauthorized in your legacy Slack integration. If they were private channels, you'll have make sure to add the Sentry bot to these channels. Otherwise you may want update your alert rules accordingly." %}
+            </p>
+            {% for channel in missing_channels %}
+                <li class="channel-name">{{channel.name}} </li>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+{% endblock %}
+
+<div class="container">
+    <div class="footer">
+        {% block footer %}
+        <a href="{% absolute_uri %}" style="float:right">Home</a>
+        <span href="#">
+            Have questions? Emails us at <a href="mailto:partners@sentry.io?subject=Slack Upgrade"><strong>partners@sentry.io</strong></a>.
+        </span>
+        {% endblock %}
+    </div>
+</div>

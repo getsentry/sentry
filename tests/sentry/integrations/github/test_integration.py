@@ -1,38 +1,32 @@
 from __future__ import absolute_import
 
 import responses
-import six
 import sentry
 
-from mock import MagicMock
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse
+from sentry.utils.compat.mock import MagicMock
+from six.moves.urllib.parse import urlencode, urlparse
 
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.constants import ObjectStatus
-from sentry.integrations.github import GitHubIntegrationProvider
-from sentry.models import (
-    Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration,
-    Repository, Project
-)
-from sentry.plugins import plugins
+from sentry.integrations.github import GitHubIntegrationProvider, API_ERRORS
+from sentry.models import Integration, OrganizationIntegration, Repository, Project
+from sentry.plugins.base import plugins
 from sentry.testutils import IntegrationTestCase
-from tests.sentry.plugins.testutils import (
-    register_mock_plugins,
-    unregister_mock_plugins,
-)
+from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
 
 
 class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
-    base_url = 'https://api.github.com'
+    base_url = "https://api.github.com"
 
     def setUp(self):
         super(GitHubIntegrationTest, self).setUp()
 
-        self.installation_id = 'install_1'
-        self.user_id = 'user_1'
-        self.app_id = 'app_1'
-        self.access_token = 'xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx'
-        self.expires_at = '3000-01-01T00:00:00Z'
+        self.installation_id = "install_1"
+        self.user_id = "user_1"
+        self.app_id = "app_1"
+        self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        self.expires_at = "3000-01-01T00:00:00Z"
 
         self._stub_github()
         register_mock_plugins()
@@ -44,138 +38,58 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def _stub_github(self):
         responses.reset()
 
-        sentry.integrations.github.integration.get_jwt = MagicMock(
-            return_value='jwt_token_1',
-        )
-        sentry.integrations.github.client.get_jwt = MagicMock(
-            return_value='jwt_token_1',
-        )
+        sentry.integrations.github.integration.get_jwt = MagicMock(return_value=b"jwt_token_1")
+        sentry.integrations.github.client.get_jwt = MagicMock(return_value=b"jwt_token_1")
 
         responses.add(
             responses.POST,
-            'https://github.com/login/oauth/access_token',
-            json={'access_token': self.access_token}
-        )
-
-        responses.add(
-            responses.POST,
-            self.base_url + '/installations/{}/access_tokens'.format(
-                self.installation_id,
-            ),
-            json={
-                'token': self.access_token,
-                'expires_at': self.expires_at,
-            }
+            self.base_url + "/app/installations/{}/access_tokens".format(self.installation_id),
+            json={"token": self.access_token, "expires_at": self.expires_at},
         )
 
         responses.add(
             responses.GET,
-            self.base_url + '/user',
-            json={'id': self.user_id}
+            self.base_url + "/installation/repositories",
+            json={
+                "repositories": [
+                    {"id": 1296269, "name": "foo", "full_name": "Test-Organization/foo"},
+                    {"id": 9876574, "name": "bar", "full_name": "Test-Organization/bar"},
+                ]
+            },
         )
 
         responses.add(
             responses.GET,
-            self.base_url + '/installation/repositories',
+            self.base_url + "/app/installations/{}".format(self.installation_id),
             json={
-                'repositories': [
-                    {
-                        'id': 1296269,
-                        'name': 'foo',
-                        'full_name': 'Test-Organization/foo',
-                    },
-                    {
-                        'id': 9876574,
-                        'name': 'bar',
-                        'full_name': 'Test-Organization/bar',
-                    },
-                ],
-            }
-        )
-
-        responses.add(
-            responses.GET,
-            self.base_url + '/app/installations/{}'.format(
-                self.installation_id,
-            ),
-            json={
-                'id': self.installation_id,
-                'app_id': self.app_id,
-                'account': {
-                    'login': 'Test Organization',
-                    'avatar_url': 'http://example.com/avatar.png',
-                    'html_url': 'https://github.com/Test-Organization',
-                    'type': 'Organization',
+                "id": self.installation_id,
+                "app_id": self.app_id,
+                "account": {
+                    "login": "Test Organization",
+                    "avatar_url": "http://example.com/avatar.png",
+                    "html_url": "https://github.com/Test-Organization",
+                    "type": "Organization",
                 },
-            }
+            },
         )
 
-        responses.add(
-            responses.GET,
-            self.base_url + '/user/installations',
-            json={
-                'installations': [{'id': self.installation_id}],
-            }
-        )
-
-        responses.add(
-            responses.GET,
-            self.base_url + '/repos/Test-Organization/foo/hooks',
-            json=[],
-        )
+        responses.add(responses.GET, self.base_url + "/repos/Test-Organization/foo/hooks", json=[])
 
     def assert_setup_flow(self):
         resp = self.client.get(self.init_path)
         assert resp.status_code == 302
-        redirect = urlparse(resp['Location'])
-        assert redirect.scheme == 'https'
-        assert redirect.netloc == 'github.com'
-        assert redirect.path == '/apps/sentry-test-app'
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/apps/sentry-test-app"
 
         # App installation ID is provided
-        resp = self.client.get(u'{}?{}'.format(
-            self.setup_path,
-            urlencode({'installation_id': self.installation_id})
-        ))
+        resp = self.client.get(
+            u"{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+        )
 
-        redirect = urlparse(resp['Location'])
-
-        assert resp.status_code == 302
-        assert redirect.scheme == 'https'
-        assert redirect.netloc == 'github.com'
-        assert redirect.path == '/login/oauth/authorize'
-
-        params = parse_qs(redirect.query)
-
-        assert params['state']
-        assert params['redirect_uri'] == ['http://testserver/extensions/github/setup/']
-        assert params['response_type'] == ['code']
-        assert params['client_id'] == ['github-client-id']
-
-        # Compact list values into singular values, since there's only ever one.
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
-
-        resp = self.client.get(u'{}?{}'.format(
-            self.setup_path,
-            urlencode({
-                'code': 'oauth-code',
-                'state': authorize_params['state'],
-            })
-        ))
-
-        oauth_exchange = responses.calls[0]
-        req_params = parse_qs(oauth_exchange.request.body)
-
-        assert req_params['grant_type'] == ['authorization_code']
-        assert req_params['code'] == ['oauth-code']
-        assert req_params['redirect_uri'] == ['http://testserver/extensions/github/setup/']
-        assert req_params['client_id'] == ['github-client-id']
-        assert req_params['client_secret'] == ['github-client-secret']
-
-        assert oauth_exchange.response.status_code == 200
-
-        auth_header = responses.calls[2].request.headers['Authorization']
-        assert auth_header == 'Bearer jwt_token_1'
+        auth_header = responses.calls[0].request.headers["Authorization"]
+        assert auth_header == b"Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
         return resp
@@ -184,23 +98,19 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_plugin_migration(self):
         accessible_repo = Repository.objects.create(
             organization_id=self.organization.id,
-            name='Test-Organization/foo',
-            url='https://github.com/Test-Organization/foo',
-            provider='github',
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="github",
             external_id=123,
-            config={
-                'name': 'Test-Organization/foo',
-            },
+            config={"name": "Test-Organization/foo"},
         )
 
         inaccessible_repo = Repository.objects.create(
             organization_id=self.organization.id,
-            name='Not-My-Org/other',
-            provider='github',
+            name="Not-My-Org/other",
+            provider="github",
             external_id=321,
-            config={
-                'name': 'Not-My-Org/other',
-            },
+            config={"name": "Not-My-Org/other"},
         )
 
         with self.tasks():
@@ -209,42 +119,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
 
         # Updates the existing Repository to belong to the new Integration
-        assert Repository.objects.get(
-            id=accessible_repo.id,
-        ).integration_id == integration.id
+        assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
 
         # Doesn't touch Repositories not accessible by the new Integration
-        assert Repository.objects.get(
-            id=inaccessible_repo.id,
-        ).integration_id is None
-
-    @responses.activate
-    def test_disables_plugin_when_fully_migrated(self):
-        project = Project.objects.create(
-            organization_id=self.organization.id,
-        )
-
-        plugin = plugins.get('github')
-        plugin.enable(project)
-
-        # Accessible to new Integration
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name='Test-Organization/foo',
-            url='https://github.com/Test-Organization/foo',
-            provider='github',
-            external_id=123,
-            config={
-                'name': 'Test-Organization/foo',
-            },
-        )
-
-        assert 'github' in [p.slug for p in plugins.for_project(project)]
-
-        with self.tasks():
-            self.assert_setup_flow()
-
-        assert 'github' not in [p.slug for p in plugins.for_project(project)]
+        assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     @responses.activate
     def test_basic_flow(self):
@@ -254,53 +132,20 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
 
         assert integration.external_id == self.installation_id
-        assert integration.name == 'Test Organization'
+        assert integration.name == "Test Organization"
         assert integration.metadata == {
-            'access_token': None,
+            "access_token": None,
             # The metadata doesn't get saved with the timezone "Z" character
             # for some reason, so just compare everything but that.
-            'expires_at': None,
-            'icon': 'http://example.com/avatar.png',
-            'domain_name': 'github.com/Test-Organization',
-            'account_type': 'Organization',
+            "expires_at": None,
+            "icon": "http://example.com/avatar.png",
+            "domain_name": "github.com/Test-Organization",
+            "account_type": "Organization",
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration,
-            organization=self.organization,
+            integration=integration, organization=self.organization
         )
         assert oi.config == {}
-
-        idp = IdentityProvider.objects.get(type='github')
-        identity = Identity.objects.get(
-            idp=idp,
-            user=self.user,
-            external_id=self.user_id,
-        )
-        assert identity.status == IdentityStatus.VALID
-        assert identity.data == {
-            'access_token': self.access_token,
-        }
-
-    @responses.activate
-    def test_reassign_user(self):
-        self.assert_setup_flow()
-
-        # Associate the identity with a user that has a password.
-        # Identity should be relinked.
-        user2 = self.create_user()
-        Identity.objects.get().update(user=user2)
-        self.assert_setup_flow()
-        identity = Identity.objects.get()
-        assert identity.user == self.user
-
-        # Associate the identity with a user without a password.
-        # Identity should not be relinked.
-        user2.set_unusable_password()
-        user2.save()
-        Identity.objects.get().update(user=user2)
-        resp = self.assert_setup_flow()
-        assert '"success":false' in resp.content
-        assert 'The provided GitHub account is linked to a different user' in resp.content
 
     @responses.activate
     def test_reinstall_flow(self):
@@ -312,64 +157,29 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert integration.status == ObjectStatus.DISABLED
         assert integration.external_id == self.installation_id
 
-        resp = self.client.get(u'{}?{}'.format(
-            self.init_path,
-            urlencode({'reinstall_id': integration.id})
-        ))
+        resp = self.client.get(
+            u"{}?{}".format(self.init_path, urlencode({"reinstall_id": integration.id}))
+        )
 
         assert resp.status_code == 302
-        redirect = urlparse(resp['Location'])
-        assert redirect.scheme == 'https'
-        assert redirect.netloc == 'github.com'
-        assert redirect.path == '/apps/sentry-test-app'
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/apps/sentry-test-app"
 
         # New Installation
-        self.installation_id = 'install_2'
-
-        resp = self.client.get(u'{}?{}'.format(
-            self.setup_path,
-            urlencode({'installation_id': self.installation_id})
-        ))
-
-        redirect = urlparse(resp['Location'])
-
-        assert resp.status_code == 302
-        assert redirect.scheme == 'https'
-        assert redirect.netloc == 'github.com'
-        assert redirect.path == '/login/oauth/authorize'
-
-        params = parse_qs(redirect.query)
-
-        assert params['state']
-        assert params['redirect_uri'] == ['http://testserver/extensions/github/setup/']
-        assert params['response_type'] == ['code']
-        assert params['client_id'] == ['github-client-id']
-
-        # Compact list values to make the rest of this easier
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+        self.installation_id = "install_2"
 
         self._stub_github()
 
-        resp = self.client.get(u'{}?{}'.format(
-            self.setup_path,
-            urlencode({
-                'code': 'oauth-code',
-                'state': authorize_params['state'],
-            })
-        ))
-
-        mock_access_token_request = responses.calls[0].request
-        req_params = parse_qs(mock_access_token_request.body)
-        assert req_params['grant_type'] == ['authorization_code']
-        assert req_params['code'] == ['oauth-code']
-        assert req_params['redirect_uri'] == ['http://testserver/extensions/github/setup/']
-        assert req_params['client_id'] == ['github-client-id']
-        assert req_params['client_secret'] == ['github-client-secret']
+        resp = self.client.get(
+            u"{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+        )
 
         assert resp.status_code == 200
 
-        auth_header = responses.calls[2].request.headers['Authorization']
-        assert auth_header == 'Bearer jwt_token_1'
+        auth_header = responses.calls[0].request.headers["Authorization"]
+        assert auth_header == b"Bearer jwt_token_1"
 
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.status == ObjectStatus.VISIBLE
@@ -379,33 +189,29 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_disable_plugin_when_fully_migrated(self):
         self._stub_github()
 
-        project = Project.objects.create(
-            organization_id=self.organization.id,
-        )
+        project = Project.objects.create(organization_id=self.organization.id)
 
-        plugin = plugins.get('github')
+        plugin = plugins.get("github")
         plugin.enable(project)
 
         # Accessible to new Integration - mocked in _stub_github
         Repository.objects.create(
             organization_id=self.organization.id,
-            name='Test-Organization/foo',
-            url='https://github.com/Test-Organization/foo',
-            provider='github',
-            external_id='123',
-            config={
-                'name': 'Test-Organization/foo',
-            },
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="github",
+            external_id="123",
+            config={"name": "Test-Organization/foo"},
         )
 
         # Enabled before
-        assert 'github' in [p.slug for p in plugins.for_project(project)]
+        assert "github" in [p.slug for p in plugins.for_project(project)]
 
         with self.tasks():
             self.assert_setup_flow()
 
         # Disabled after Integration installed
-        assert 'github' not in [p.slug for p in plugins.for_project(project)]
+        assert "github" not in [p.slug for p in plugins.for_project(project)]
 
     @responses.activate
     def test_get_repositories_search_param(self):
@@ -414,24 +220,89 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            self.base_url + '/search/repositories?q=org:test%20ex',
+            self.base_url + "/search/repositories?q=org:test%20ex",
             json={
-                'items': [
-                    {
-                        'name': 'example',
-                        'full_name': 'test/example',
-                    },
-                    {
-                        'name': 'exhaust',
-                        'full_name': 'test/exhaust',
-                    },
+                "items": [
+                    {"name": "example", "full_name": "test/example"},
+                    {"name": "exhaust", "full_name": "test/exhaust"},
                 ]
-            }
+            },
         )
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
-        result = installation.get_repositories('ex')
+        result = installation.get_repositories("ex")
         assert result == [
-            {'identifier': 'test/example', 'name': 'example'},
-            {'identifier': 'test/exhaust', 'name': 'exhaust'}
+            {"identifier": "test/example", "name": "example"},
+            {"identifier": "test/exhaust", "name": "exhaust"},
         ]
+
+    @responses.activate
+    def test_get_stacktrace_link_file_exists(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
+        )
+
+        path = "README.md"
+        version = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+        )
+        installation = integration.get_installation(self.organization)
+        result = installation.get_stacktrace_link(repo, path, version)
+
+        assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
+
+    @responses.activate
+    def test_get_stacktrace_link_file_doesnt_exists(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
+        )
+        path = "README.md"
+        version = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+            status=404,
+        )
+        installation = integration.get_installation(self.organization)
+        result = installation.get_stacktrace_link(repo, path, version)
+
+        assert not result
+
+    @responses.activate
+    def test_get_message_from_error(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+        base_error = "Error Communicating with GitHub (HTTP 404): %s" % (API_ERRORS[404])
+        assert (
+            installation.message_from_error(
+                ApiError("Not Found", code=404, url="https://api.github.com/repos/scefali")
+            )
+            == base_error
+        )
+        url = "https://api.github.com/repos/scefali/sentry-integration-example/compare/2adcab794f6f57efa8aa84de68a724e728395792...e208ee2d71e8426522f95efbdae8630fa66499ab"
+        assert (
+            installation.message_from_error(ApiError("Not Found", code=404, url=url))
+            == base_error
+            + " Please also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
+            % url
+        )

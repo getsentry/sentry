@@ -13,9 +13,9 @@ from sentry.lang.native.processing import _merge_image
 
 
 def test_merge_symbolicator_image_empty():
-    errors = []
-    _merge_image({}, {}, None, errors.append)
-    assert not errors
+    data = {}
+    _merge_image({}, {}, None, data)
+    assert not data.get("errors")
 
 
 def test_merge_symbolicator_image_basic():
@@ -27,12 +27,19 @@ def test_merge_symbolicator_image_basic():
         "other2": "bar",
         "arch": "unknown",
     }
-    errors = []
 
-    _merge_image(raw_image, complete_image, sdk_info, errors.append)
+    data = {}
 
-    assert not errors
-    assert raw_image == {"instruction_addr": 0xFEEBEE, "other": "foo", "other2": "bar"}
+    _merge_image(raw_image, complete_image, sdk_info, data)
+
+    assert not data.get("errors")
+    assert raw_image == {
+        "debug_status": "found",
+        "unwind_status": "found",
+        "instruction_addr": 0xFEEBEE,
+        "other": "foo",
+        "other2": "bar",
+    }
 
 
 def test_merge_symbolicator_image_basic_success():
@@ -44,12 +51,14 @@ def test_merge_symbolicator_image_basic_success():
         "other2": "bar",
         "arch": "foo",
     }
-    errors = []
+    data = {}
 
-    _merge_image(raw_image, complete_image, sdk_info, errors.append)
+    _merge_image(raw_image, complete_image, sdk_info, data)
 
-    assert not errors
+    assert not data.get("errors")
     assert raw_image == {
+        "debug_status": "found",
+        "unwind_status": "found",
         "instruction_addr": 0xFEEBEE,
         "other": "foo",
         "other2": "bar",
@@ -60,25 +69,27 @@ def test_merge_symbolicator_image_basic_success():
 def test_merge_symbolicator_image_remove_unknown_arch():
     raw_image = {"instruction_addr": 0xFEEBEE}
     sdk_info = {"sdk_name": "linux"}
-    complete_image = {
+    complete_image = {"debug_status": "found", "unwind_status": "found", "arch": "unknown"}
+    data = {}
+
+    _merge_image(raw_image, complete_image, sdk_info, data)
+
+    assert not data.get("errors")
+    assert raw_image == {
         "debug_status": "found",
         "unwind_status": "found",
-        "arch": "unknown",
+        "instruction_addr": 0xFEEBEE,
     }
-    errors = []
-
-    _merge_image(raw_image, complete_image, sdk_info, errors.append)
-
-    assert not errors
-    assert raw_image == {"instruction_addr": 0xFEEBEE}
 
 
 @pytest.mark.parametrize(
     "code_file,error",
     [
         ("/var/containers/Bundle/Application/asdf/foo", EventError.NATIVE_MISSING_DSYM),
-        ("/var/containers/Bundle/Application/asdf/Frameworks/foo",
-         EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM),
+        (
+            "/var/containers/Bundle/Application/asdf/Frameworks/foo",
+            EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+        ),
     ],
 )
 def test_merge_symbolicator_image_errors(code_file, error):
@@ -90,16 +101,18 @@ def test_merge_symbolicator_image_errors(code_file, error):
         "other2": "bar",
         "arch": "unknown",
     }
-    errors = []
+    data = {}
 
-    _merge_image(raw_image, complete_image, sdk_info, errors.append)
+    _merge_image(raw_image, complete_image, sdk_info, data)
 
-    e, = errors
+    (e,) = data["errors"]
 
-    assert e.image_name == "foo"
-    assert e.type == error
+    assert e["image_path"].endswith("/foo")
+    assert e["type"] == error
 
     assert raw_image == {
+        "debug_status": "found",
+        "unwind_status": "missing",
         "instruction_addr": 0xFEEBEE,
         "other": "foo",
         "other2": "bar",

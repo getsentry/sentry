@@ -1,26 +1,29 @@
 ---
-created: '2019-03-16T15:38:20.740059Z'
+created: '2020-02-26T19:54:30.488085Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
-    app (stacktrace of system takes precedence)
+    app
       stacktrace
         frame (non app frame)
           module*
-            u'foo/bar/baz'
+            "foo/bar/baz"
           filename (ignored because frame points to a URL)
-            u'foo.py'
+            "foo.py"
+--------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
 --------------------------------------------------------------------------
 system:
-  hash: 'a7a536723f7289f3ab7cbb444b7058ac'
+  hash: null
   component:
-    system*
-      stacktrace*
-        frame*
+    system
+      stacktrace
+        frame (ignored single non-URL JavaScript frame)
           module*
-            u'foo/bar/baz'
+            "foo/bar/baz"
           filename (ignored because frame points to a URL)
-            u'foo.py'
+            "foo.py"

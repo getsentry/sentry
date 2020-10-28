@@ -8,6 +8,7 @@ import withApi from 'app/utils/withApi';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
+import {IconSearch} from 'app/icons';
 
 class Filter extends React.Component {
   static propTypes = {
@@ -19,9 +20,9 @@ class Filter extends React.Component {
   };
 
   getCurrentLabel = () => {
-    const selected = this.props.options.filter(item => {
-      return item[0] === (this.props.value || '');
-    })[0];
+    const selected = this.props.options.filter(
+      item => item[0] === (this.props.value || '')
+    )[0];
     if (selected) {
       return this.props.name + ': ' + selected[1];
     }
@@ -38,37 +39,33 @@ class Filter extends React.Component {
       <MenuItem
         key=""
         isActive={this.props.value === '' || !this.props.value}
-        to={this.props.path}
-        query={query}
+        to={{pathname: this.props.path, query}}
       >
         Any
       </MenuItem>
     );
   };
 
-  getSelector = () => {
-    return (
-      <DropdownLink title={this.getCurrentLabel()}>
-        {this.getDefaultItem()}
-        {this.props.options.map(item => {
-          const filterQuery = {};
-          filterQuery[this.props.queryKey] = item[0];
-          filterQuery.cursor = '';
-          const query = $.extend({}, this.props.location.query, filterQuery);
-          return (
-            <MenuItem
-              key={item[0]}
-              isActive={this.props.value === item[0]}
-              to={this.props.path}
-              query={query}
-            >
-              {item[1]}
-            </MenuItem>
-          );
-        })}
-      </DropdownLink>
-    );
-  };
+  getSelector = () => (
+    <DropdownLink title={this.getCurrentLabel()}>
+      {this.getDefaultItem()}
+      {this.props.options.map(item => {
+        const filterQuery = {};
+        filterQuery[this.props.queryKey] = item[0];
+        filterQuery.cursor = '';
+        const query = $.extend({}, this.props.location.query, filterQuery);
+        return (
+          <MenuItem
+            key={item[0]}
+            isActive={this.props.value === item[0]}
+            to={{pathname: this.props.path, query}}
+          >
+            {item[1]}
+          </MenuItem>
+        );
+      })}
+    </DropdownLink>
+  );
 
   render() {
     return (
@@ -91,34 +88,28 @@ class SortBy extends React.Component {
     value: PropTypes.any,
   };
 
-  getCurrentSortLabel = () => {
-    return this.props.options.filter(item => {
-      return item[0] === this.props.value;
-    })[0][1];
-  };
+  getCurrentSortLabel = () =>
+    this.props.options.filter(item => item[0] === this.props.value)[0][1];
 
-  getSortBySelector = () => {
-    return (
-      <DropdownLink title={this.getCurrentSortLabel()} className="sorted-by">
-        {this.props.options.map(item => {
-          const query = $.extend({}, this.props.location.query, {
-            sortBy: item[0],
-            cursor: '',
-          });
-          return (
-            <MenuItem
-              isActive={this.props.value === item[0]}
-              key={item[0]}
-              to={this.props.path}
-              query={query}
-            >
-              {item[1]}
-            </MenuItem>
-          );
-        })}
-      </DropdownLink>
-    );
-  };
+  getSortBySelector = () => (
+    <DropdownLink title={this.getCurrentSortLabel()} className="sorted-by">
+      {this.props.options.map(item => {
+        const query = $.extend({}, this.props.location.query, {
+          sortBy: item[0],
+          cursor: '',
+        });
+        return (
+          <MenuItem
+            isActive={this.props.value === item[0]}
+            key={item[0]}
+            to={{pathname: this.props.path, query}}
+          >
+            {item[1]}
+          </MenuItem>
+        );
+      })}
+    </DropdownLink>
+  );
 
   render() {
     if (this.props.options.length === 0) {
@@ -168,10 +159,10 @@ const ResultGrid = createReactClass({
       sortOptions: [],
       filters: {},
       defaultSort: '',
-      keyForRow: function(row) {
+      keyForRow: function (row) {
         return row.id;
       },
-      columnsForRow: function(row) {
+      columnsForRow: function () {
         return [];
       },
       defaultParams: {
@@ -229,7 +220,7 @@ const ResultGrid = createReactClass({
   },
 
   fetchData() {
-    // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
+    // TODO(dcramer): this should explicitly allow filters/sortBy/cursor/perPage
     const queryParams = $.extend(
       {},
       this.props.defaultParams,
@@ -309,9 +300,9 @@ const ResultGrid = createReactClass({
   },
 
   renderResults() {
-    return this.state.rows.map(row => {
-      return <tr key={this.props.keyForRow(row)}>{this.props.columnsForRow(row)}</tr>;
-    });
+    return this.state.rows.map(row => (
+      <tr key={this.props.keyForRow(row)}>{this.props.columnsForRow(row)}</tr>
+    ));
   },
 
   render() {
@@ -334,7 +325,7 @@ const ResultGrid = createReactClass({
                     onChange={this.onQueryChange}
                   />
                   <button type="submit" className="btn btn-sm btn-primary">
-                    <span className="icon-search" />
+                    <IconSearch size="xs" />
                   </button>
                 </div>
               </form>
@@ -346,18 +337,16 @@ const ResultGrid = createReactClass({
             path={this.props.path}
             location={this.props.location}
           />
-          {Object.keys(filters).map(filterKey => {
-            return (
-              <Filter
-                key={filterKey}
-                queryKey={filterKey}
-                value={this.state.filters[filterKey]}
-                path={this.props.path}
-                location={this.props.location}
-                {...filters[filterKey]}
-              />
-            );
-          })}
+          {Object.keys(filters).map(filterKey => (
+            <Filter
+              key={filterKey}
+              queryKey={filterKey}
+              value={this.state.filters[filterKey]}
+              path={this.props.path}
+              location={this.props.location}
+              {...filters[filterKey]}
+            />
+          ))}
         </div>
 
         <table className="table table-grid">

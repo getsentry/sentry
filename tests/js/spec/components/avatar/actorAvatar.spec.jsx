@@ -1,14 +1,16 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme, mount} from 'sentry-test/enzyme';
+
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 
-describe('Avatar', function() {
+describe('ActorAvatar', function () {
   const USER = {
     id: '1',
-    name: 'Jane Doe',
-    email: 'janedoe@example.com',
+    name: 'JanActore Bloggs',
+    email: 'janebloggs@example.com',
   };
   const TEAM_1 = {
     id: '3',
@@ -20,29 +22,29 @@ describe('Avatar', function() {
       },
     ],
   };
-  beforeEach(function() {
+  beforeEach(function () {
     MemberListStore.loadInitialData([USER]);
     TeamStore.loadInitialData([TEAM_1]);
   });
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  describe('render()', function() {
-    it('should show a gravatar when actor type is a user', function() {
-      const avatar = shallow(
+  describe('render()', function () {
+    it('should show a gravatar when actor type is a user', function () {
+      const avatar = mountWithTheme(
         <ActorAvatar
           actor={{
             id: '1',
-            name: 'Jane Doe',
+            name: 'Jane Bloggs',
             type: 'user',
           }}
         />
       );
-      expect(avatar).toMatchSnapshot();
+      expect(avatar).toSnapshot();
     });
 
-    it('should show a gravatar when actor type is a team', function() {
-      const avatar = shallow(
+    it('should show a gravatar when actor type is a team', function () {
+      const avatar = mountWithTheme(
         <ActorAvatar
           actor={{
             id: '3',
@@ -51,10 +53,10 @@ describe('Avatar', function() {
           }}
         />
       );
-      expect(avatar).toMatchSnapshot();
+      expect(avatar).toSnapshot();
     });
 
-    it('should return null when actor type is a unknown', function() {
+    it('should return null when actor type is a unknown', function () {
       window.console.error = jest.fn();
 
       const avatar = mount(

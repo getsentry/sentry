@@ -7,11 +7,11 @@ from sentry.reprocessing import trigger_reprocessing
 
 
 class ProjectReprocessingEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectReleasePermission, )
+    permission_classes = (ProjectReleasePermission,)
 
     def post(self, request, project):
         """
-        Triggers the reporcessing process as a task
+        Triggers the reprocessing process as a task
         """
         trigger_reprocessing(project)
         return Response(status=200)

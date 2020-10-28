@@ -1,8 +1,9 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -11,6 +12,7 @@ import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import Button from 'app/components/button';
 
 const CodeBlock = styled('pre')`
   word-break: break-all;
@@ -24,7 +26,8 @@ class ProjectOwnership extends AsyncView {
   };
 
   getTitle() {
-    return t('Ownership');
+    const {project} = this.props;
+    return routeTitleGen(t('Issue Owners'), project.slug, false);
   }
 
   getEndpoints() {
@@ -40,11 +43,24 @@ class ProjectOwnership extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader title={t('Issue Owners')} />
+        <SettingsPageHeader
+          title={t('Issue Owners')}
+          action={
+            <Button
+              to={{
+                pathname: `/organizations/${organization.slug}/issues/`,
+                query: {project: project.id},
+              }}
+              size="small"
+            >
+              {t('View Issues')}
+            </Button>
+          }
+        />
         <PermissionAlert />
         <Panel>
           <PanelHeader>{t('Ownership Rules')}</PanelHeader>
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <Block>
               {t(
                 'Define rules here to configure automated ownership for new issues and direct email alerts'
@@ -78,6 +94,8 @@ class ProjectOwnership extends AsyncView {
                 path:src/example/pipeline/* person@sentry.io #infrastructure
                 {'\n'}
                 url:http://example.com/settings/* #product
+                {'\n'}
+                tags.sku_class:enterprise #enterprise
               </CodeBlock>
             </Block>
             <OwnerInput

@@ -1,5 +1,7 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
+
 import AutoComplete from 'app/components/autoComplete';
 
 const items = [
@@ -19,7 +21,7 @@ const items = [
  * assert against those instead of the wrapper's state since component state will be different if we have
  * "controlled" props where <AutoComplete> does not handle state
  */
-describe('AutoComplete', function() {
+describe('AutoComplete', function () {
   let wrapper;
   let input;
   let autoCompleteState = [];
@@ -103,18 +105,18 @@ describe('AutoComplete', function() {
     return wrapper;
   };
 
-  describe('Uncontrolled', function() {
+  describe('Uncontrolled', function () {
     beforeEach(() => {
       wrapper = createWrapper();
     });
 
-    it('shows dropdown menu when input has focus', function() {
+    it('shows dropdown menu when input has focus', function () {
       input.simulate('focus');
       expect(wrapper.state('isOpen')).toBe(true);
       expect(wrapper.find('li')).toHaveLength(3);
     });
 
-    it('only tries to close once if input is blurred and click outside occurs', async function() {
+    it('only tries to close once if input is blurred and click outside occurs', async function () {
       jest.useFakeTimers();
       input.simulate('focus');
       input.simulate('blur');
@@ -128,7 +130,7 @@ describe('AutoComplete', function() {
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('only calls onClose dropdown menu when input is blurred', function() {
+    it('only calls onClose dropdown menu when input is blurred', function () {
       jest.useFakeTimers();
       input.simulate('focus');
       input.simulate('blur');
@@ -142,7 +144,7 @@ describe('AutoComplete', function() {
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('can close dropdown menu when Escape is pressed', function() {
+    it('can close dropdown menu when Escape is pressed', function () {
       input.simulate('focus');
       expect(wrapper.state('isOpen')).toBe(true);
 
@@ -150,7 +152,7 @@ describe('AutoComplete', function() {
       expect(wrapper.state('isOpen')).toBe(false);
     });
 
-    it('can open and close dropdown menu using injected actions', function() {
+    it('can open and close dropdown menu using injected actions', function () {
       const [injectedProps] = autoCompleteState;
       injectedProps.actions.open();
       expect(wrapper.state('isOpen')).toBe(true);
@@ -161,7 +163,7 @@ describe('AutoComplete', function() {
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('reopens dropdown menu after Escape is pressed and input is changed', function() {
+    it('reopens dropdown menu after Escape is pressed and input is changed', function () {
       input.simulate('focus');
       expect(wrapper.state('isOpen')).toBe(true);
 
@@ -173,7 +175,7 @@ describe('AutoComplete', function() {
       expect(wrapper.instance().items.size).toBe(3);
     });
 
-    it('reopens dropdown menu after item is selected and then input is changed', function() {
+    it('reopens dropdown menu after item is selected and then input is changed', function () {
       input.simulate('focus');
       expect(wrapper.state('isOpen')).toBe(true);
 
@@ -188,15 +190,12 @@ describe('AutoComplete', function() {
       expect(wrapper.instance().items.size).toBe(2);
     });
 
-    it('selects dropdown item by clicking and sets input to selected value', function() {
+    it('selects dropdown item by clicking and sets input to selected value', function () {
       input.simulate('focus');
       expect(wrapper.state('isOpen')).toBe(true);
       expect(wrapper.instance().items.size).toBe(3);
 
-      wrapper
-        .find('li')
-        .at(1)
-        .simulate('click');
+      wrapper.find('li').at(1).simulate('click');
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
         expect.objectContaining({inputValue: '', highlightedIndex: 0}),
@@ -207,7 +206,7 @@ describe('AutoComplete', function() {
       expect(wrapper.instance().items.size).toBe(0);
     });
 
-    it('can navigate dropdown items with keyboard and select with "Enter" keypress', function() {
+    it('can navigate dropdown items with keyboard and select with "Enter" keypress', function () {
       input.simulate('focus');
       expect(wrapper.state('isOpen')).toBe(true);
       expect(wrapper.state('highlightedIndex')).toBe(0);
@@ -230,7 +229,7 @@ describe('AutoComplete', function() {
       expect(wrapper.state('inputValue')).toBe('Orange');
     });
 
-    it('respects list bounds when navigating filtered items with arrow keys', function() {
+    it('respects list bounds when navigating filtered items with arrow keys', function () {
       input.simulate('focus');
       expect(wrapper.state('isOpen')).toBe(true);
       expect(wrapper.state('highlightedIndex')).toBe(0);
@@ -259,7 +258,7 @@ describe('AutoComplete', function() {
       expect(wrapper.instance().items.size).toBe(3);
     });
 
-    it('can filter items and then navigate with keyboard', function() {
+    it('can filter items and then navigate with keyboard', function () {
       input.simulate('focus');
       expect(wrapper.state('isOpen')).toBe(true);
       expect(wrapper.state('highlightedIndex')).toBe(0);
@@ -295,7 +294,7 @@ describe('AutoComplete', function() {
       expect(wrapper.state('inputValue')).toBe('Pineapple');
     });
 
-    it('can reset input when menu closes', function() {
+    it('can reset input when menu closes', function () {
       jest.useFakeTimers();
       wrapper.setProps({resetInputOnClose: true});
       input.simulate('focus');
@@ -311,17 +310,17 @@ describe('AutoComplete', function() {
     });
   });
 
-  describe('Controlled', function() {
-    beforeEach(function() {
+  describe('Controlled', function () {
+    beforeEach(function () {
       wrapper = createWrapper({isOpen: true});
     });
 
-    it('has dropdown menu initially open', function() {
+    it('has dropdown menu initially open', function () {
       expect(wrapper.state('isOpen')).toBe(true);
       expect(wrapper.find('li')).toHaveLength(3);
     });
 
-    it('closes when props change', function() {
+    it('closes when props change', function () {
       wrapper.setProps({isOpen: false});
       expect(wrapper.state('isOpen')).toBe(true);
       wrapper.update();
@@ -331,7 +330,7 @@ describe('AutoComplete', function() {
       expect(wrapper.find('li')).toHaveLength(0);
     });
 
-    it('remains closed when input is focused, but calls `onOpen`', function() {
+    it('remains closed when input is focused, but calls `onOpen`', function () {
       wrapper = createWrapper({isOpen: false});
       jest.useFakeTimers();
 
@@ -346,7 +345,7 @@ describe('AutoComplete', function() {
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);
     });
 
-    it('remains open when input focus/blur events occur, but calls `onClose`', function() {
+    it('remains open when input focus/blur events occur, but calls `onClose`', function () {
       jest.useFakeTimers();
       input.simulate('focus');
       input.simulate('blur');
@@ -359,7 +358,7 @@ describe('AutoComplete', function() {
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onClose when Escape is pressed', function() {
+    it('calls onClose when Escape is pressed', function () {
       expect(wrapper.state('isOpen')).toBe(true);
 
       input.simulate('keyDown', {key: 'Escape'});
@@ -367,7 +366,7 @@ describe('AutoComplete', function() {
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('does not open and close dropdown menu using injected actions', function() {
+    it('does not open and close dropdown menu using injected actions', function () {
       const [injectedProps] = autoCompleteState;
       injectedProps.actions.open();
       expect(wrapper.state('isOpen')).toBe(true);
@@ -378,7 +377,7 @@ describe('AutoComplete', function() {
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('onClose is called after item is selected', function() {
+    it('onClose is called after item is selected', function () {
       expect(wrapper.state('isOpen')).toBe(true);
 
       input.simulate('change', {target: {value: 'eapp'}});
@@ -389,13 +388,10 @@ describe('AutoComplete', function() {
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('selects dropdown item by clicking and sets input to selected value', function() {
+    it('selects dropdown item by clicking and sets input to selected value', function () {
       expect(wrapper.instance().items.size).toBe(3);
 
-      wrapper
-        .find('li')
-        .at(1)
-        .simulate('click');
+      wrapper.find('li').at(1).simulate('click');
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
         expect.objectContaining({inputValue: '', highlightedIndex: 0}),
@@ -406,7 +402,7 @@ describe('AutoComplete', function() {
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('can navigate dropdown items with keyboard and select with "Enter" keypress', function() {
+    it('can navigate dropdown items with keyboard and select with "Enter" keypress', function () {
       expect(wrapper.state('isOpen')).toBe(true);
       expect(wrapper.state('highlightedIndex')).toBe(0);
 
@@ -428,7 +424,7 @@ describe('AutoComplete', function() {
       expect(wrapper.state('inputValue')).toBe('Orange');
     });
 
-    it('respects list bounds when navigating filtered items with arrow keys', function() {
+    it('respects list bounds when navigating filtered items with arrow keys', function () {
       expect(wrapper.state('isOpen')).toBe(true);
       expect(wrapper.state('highlightedIndex')).toBe(0);
 
@@ -456,7 +452,7 @@ describe('AutoComplete', function() {
       expect(wrapper.instance().items.size).toBe(3);
     });
 
-    it('can filter items and then navigate with keyboard', function() {
+    it('can filter items and then navigate with keyboard', function () {
       expect(wrapper.state('isOpen')).toBe(true);
       expect(wrapper.state('highlightedIndex')).toBe(0);
       expect(wrapper.instance().items.size).toBe(3);
@@ -492,7 +488,7 @@ describe('AutoComplete', function() {
     });
   });
 
-  it('selects using enter key', function() {
+  it('selects using enter key', function () {
     wrapper = createWrapper({isOpen: true, shouldSelectWithEnter: false});
     input.simulate('change', {target: {value: 'pine'}});
     input.simulate('keyDown', {key: 'Enter'});
@@ -510,7 +506,7 @@ describe('AutoComplete', function() {
     expect(wrapper.state('inputValue')).toBe('Pineapple');
   });
 
-  it('selects using tab key', function() {
+  it('selects using tab key', function () {
     wrapper = createWrapper({isOpen: true, shouldSelectWithTab: false});
     input.simulate('change', {target: {value: 'pine'}});
     input.simulate('keyDown', {key: 'Tab'});
@@ -528,7 +524,7 @@ describe('AutoComplete', function() {
     expect(wrapper.state('inputValue')).toBe('Pineapple');
   });
 
-  it('does not reset highlight state if `closeOnSelect` is false and we select a new item', function() {
+  it('does not reset highlight state if `closeOnSelect` is false and we select a new item', function () {
     wrapper = createWrapper({closeOnSelect: false});
     jest.useFakeTimers();
     input.simulate('focus');

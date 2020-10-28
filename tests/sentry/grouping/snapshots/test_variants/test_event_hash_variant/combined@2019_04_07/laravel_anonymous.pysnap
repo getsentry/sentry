@@ -1,0 +1,76 @@
+---
+created: '2020-02-26T19:54:24.941635Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "260f8f0a5856cd6db03c549b83080d5d"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "/server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+            lineno (line number is not used if context-line is available)
+              21
+          frame (non app frame)
+            filename*
+              "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+            context-line*
+              "                    return $callable($passable);"
+            function (function name is not used if context-line is available)
+              "class@anonymous\u0000/var/www/html/dummy.php0x7190ad3c35cf::run"
+            lineno (line number is not used if context-line is available)
+              53
+          frame (non app frame)
+            filename*
+              "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+            context-line*
+              "                                ? $pipe->{$this->method}(...$parameters)"
+            function (function name is not used if context-line is available)
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            lineno (line number is not used if context-line is available)
+              163
+        type*
+          "Exception"
+        value (stacktrace and type take precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+system:
+  hash: "babe97015e0a63eaaab253c266bae20d"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "/server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+            lineno (line number is not used if context-line is available)
+              21
+          frame*
+            filename*
+              "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+            context-line*
+              "                    return $callable($passable);"
+            function (function name is not used if context-line is available)
+              "class@anonymous\u0000/var/www/html/dummy.php0x7190ad3c35cf::run"
+            lineno (line number is not used if context-line is available)
+              53
+          frame*
+            filename*
+              "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+            context-line*
+              "                                ? $pipe->{$this->method}(...$parameters)"
+            function (function name is not used if context-line is available)
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            lineno (line number is not used if context-line is available)
+              163
+        type*
+          "Exception"
+        value (stacktrace and type take precedence)
+          "LARAVEL TEST"

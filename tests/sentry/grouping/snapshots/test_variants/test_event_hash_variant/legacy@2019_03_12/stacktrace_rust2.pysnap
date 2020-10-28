@@ -1,68 +1,68 @@
 ---
-created: '2019-06-05T11:45:14.605221Z'
+created: '2020-02-26T19:54:29.176667Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         stacktrace
           frame (non app frame)
-            function (function name is used only if module or filename are available)
-              u'_main'
+            function (function name is not used if module or filename are available)
+              "_main"
           frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
-            function (function name is used only if module or filename are available)
-              u'std::rt::lang_start_internal'
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start_internal"
           frame (non app frame)
-            function (function name is used only if module or filename are available)
-              u'___rust_maybe_catch_panic'
+            function (function name is not used if module or filename are available)
+              "___rust_maybe_catch_panic"
           frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
-            function (function name is used only if module or filename are available)
-              u'std::panicking::try::do_call'
+            function (function name is not used if module or filename are available)
+              "std::panicking::try::do_call"
           frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
-            function (function name is used only if module or filename are available)
-              u'std::rt::lang_start::{{closure}}'
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start::{{closure}}"
           frame (marked in-app by grouping enhancement rule (family:native function:log_demo::* +app))
-            function (function name is used only if module or filename are available)
-              u'log_demo::main'
+            function (function name is not used if module or filename are available)
+              "log_demo::main"
           frame (non app frame)
-            function (function name is used only if module or filename are available)
-              u'log::__private_api_log'
+            function (function name is not used if module or filename are available)
+              "log::__private_api_log"
         type*
-          u'log_demo'
+          "log_demo"
         value*
-          u'Holy shit everything is on fire!'
+          "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: '3e0ae2ce25cce2fca3390f3416e6a82a'
+  hash: "3e0ae2ce25cce2fca3390f3416e6a82a"
   component:
     system*
       exception*
         stacktrace
           frame
-            function (function name is used only if module or filename are available)
-              u'_main'
+            function (function name is not used if module or filename are available)
+              "_main"
           frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
-            function (function name is used only if module or filename are available)
-              u'std::rt::lang_start_internal'
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start_internal"
           frame
-            function (function name is used only if module or filename are available)
-              u'___rust_maybe_catch_panic'
+            function (function name is not used if module or filename are available)
+              "___rust_maybe_catch_panic"
           frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
-            function (function name is used only if module or filename are available)
-              u'std::panicking::try::do_call'
+            function (function name is not used if module or filename are available)
+              "std::panicking::try::do_call"
           frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
-            function (function name is used only if module or filename are available)
-              u'std::rt::lang_start::{{closure}}'
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start::{{closure}}"
           frame (marked in-app by grouping enhancement rule (family:native function:log_demo::* +app))
-            function (function name is used only if module or filename are available)
-              u'log_demo::main'
+            function (function name is not used if module or filename are available)
+              "log_demo::main"
           frame
-            function (function name is used only if module or filename are available)
-              u'log::__private_api_log'
+            function (function name is not used if module or filename are available)
+              "log::__private_api_log"
         type*
-          u'log_demo'
+          "log_demo"
         value*
-          u'Holy shit everything is on fire!'
+          "Holy shit everything is on fire!"

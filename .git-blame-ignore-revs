@@ -1,0 +1,55 @@
+# Since version 2.23 (released in August 2019), git-blame has a feature
+# to ignore or bypass certain commits.
+#
+# This file contains a list of commits that are not likely what you
+# are looking for in a blame, such as mass reformatting or renaming.
+
+# chore: blacken take 2 (#14360)
+95767d455b8004ec4b4c5026d84b64b6348e6d37
+
+# ci: upgrade, apply, and require pre-commit (#18176)
+f952fedefe679d632077a2b334a913e9e68cfd91
+
+# feat(lint): Update prettier (#16505)
+# Required to properly support nullish coalescence operator and optional chaining.
+# https://github.com/getsentry/sentry/pull/16505
+75bd65eef51a75c7f8db3af9ed71188b89d17fb2
+
+# build(prettier): Upgrade prettier to 1.16.4 #10703
+# https://github.com/getsentry/sentry/pull/10703
+d467e8894478662e0ceee9b5137be4ee6620b60d
+
+# lint: Prettier catalogs.json #11131
+# https://github.com/getsentry/sentry/pull/11131
+69c3284fff26f5db7da7f96bb72b0f3732d4a867
+
+# chore: Run prettier on .eslintrc #10433
+# https://github.com/getsentry/sentry/pull/10433
+a2df8eab9b802966c8af6d0d61e6f97b5fbd3882
+
+# build(prettier): Upgrade prettier to 1.7.4 #6459
+# https://github.com/getsentry/sentry/pull/6459
+652a90266d98b1e74f3617c92aa8c1461e76b58d
+
+# Upgrade Prettier to 1.2.2, enable --jsx-bracket-same-line=true #5278
+# https://github.com/getsentry/sentry/pull/5278
+9ca15377ca03d474e2714802fc2b9a37e7b6e174
+
+# Add prettier to lint engine, prettify existing files #5247
+# https://github.com/getsentry/sentry/pull/5247
+49efa19a2fbd37a0b87e0aed234ea8fdae11dd5e
+
+# run prettier over jsx files to make escaping unecessary #5340
+# https://github.com/getsentry/sentry/pull/5340
+f736793749a7e0a120a3d5f8630959864e553adb
+
+# chore: Prefer const
+# https://github.com/getsentry/sentry/pull/11862
+84747dbbabc7e974711c175232ddf71f6194edb6
+
+# chore(eslint): Use shortform boolean jsx attributes (#14950)
+# https://github.com/getsentry/sentry/pull/14950
+6ffce5ab2755cda5721df8e8eeac8314b47fab2e
+
+# chore(prettier): Apply prettier 2.1 (#21605)
+032754739fd210e1d12c076bad4ce8093cbae574

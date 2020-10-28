@@ -1,7 +1,5 @@
 {% load i18n %}
-{% load sentry_api %}
 {% load sentry_avatars %}
-{% load sentry_dsn %}
 {% load sentry_assets %}
 {% load sentry_features %}
 {% load sentry_helpers %}
@@ -17,43 +15,35 @@
   <meta name="robots" content="NONE,NOARCHIVE">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link href="{% absolute_asset_url "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
+  <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
 
-  <link rel="icon" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
-  <link rel="apple-touch-icon" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
-  <link rel="apple-touch-icon" sizes="76x76" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-76x76.png" %}">
-  <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-120x120.png" %}">
-  <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-152x152.png" %}">
+  <link rel="apple-touch-icon" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon.png" %}">
+  <link rel="apple-touch-icon" sizes="76x76" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-76x76.png" %}">
+  <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-120x120.png" %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-152x152.png" %}">
 
-  <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
+  <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
-  {% block css %}
   <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
-  {% endblock %}
+
+  {% block css %}{% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
   <script>
-    window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
-    window.__sentryGlobalStaticPrefix = '{% asset_url "sentry" "dist/" %}';
     window.__initialData = {% get_react_config %};
-    window.__languageCode = {{ request.LANGUAGE_CODE|to_json|safe }};
   </script>
 
   {% block scripts %}
-  {% include "sentry/includes/sdk-config.html" %}
   {% locale_js_include %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
-  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
+  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %} data-entry="true"></script>
 
   <script>
     // if the ads.js file loads below it will mark this variable as false
     window.adblockSuspected = true;
   </script>
   <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
-  {% endblock %}
-
-  {% block meta %}
   {% endblock %}
 </head>
 
@@ -64,125 +54,30 @@
         {% show_system_status %}
     {% endif %}
 
-    {% block global_sidebar %}
-      {% if request.user.is_authenticated %}
-        <div id="blk_sidebar"></div>
-        <script>
-        $(function(){
-          var SidebarWrapper = createReactClass({
-            propTypes: {
-              organization: PropTypes.any.isRequired
-            },
-            getChildContext: function () {
-              return {
-                organization: this.props.organization,
-              }
-            },
-            render: function () {
-              return React.createElement(SentryApp.OrganizationsLoader, {},
-                React.createElement(SentryApp.Sidebar));
-            }
-          });
-          SidebarWrapper.childContextTypes = {
-            organization: PropTypes.any
-          };
-          ReactDOM.render(React.createFactory(SidebarWrapper)({
-            organization: {% serialize_detailed_org organization %},
-          }), document.getElementById('blk_sidebar'));
-        });
-        </script>
-      {% endif %}
-    {% endblock %}
-
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
 
-    {% block header %}
-    {% endblock %}
-
-    {% if organization and ACCESS.org_read %}
-    {% block sub-header %}
-    <div class="sub-header flex flex-container flex-vertically-centered">
-      <div>
-        <div id="blk_projectselect"></div>
-        {% block header_nav %}{% endblock %}
-        <script>
-        $(function(){
-          ReactDOM.render(React.createFactory(SentryApp.ProjectSelector)({
-            organization: {% serialize_detailed_org organization %},
-            projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
-          }), document.getElementById('blk_projectselect'));
-        });
-        </script>
-      </div>
-      <div class="align-right project-actions">
-        {% block header_action %}{% endblock %}
-      </div>
-    </div>
-    {% endblock %}
-    {% endif %}
-
     <div class="container">
-      {% block above_content %}{% endblock %}
       <div class="content">
-        {% block content_before %}
-        {% endblock %}
-        {% block content %}
-        <div class="row" id="blk_content">
-          <div class="col-md-2">
-            {% block sidebar %}
-            {% endblock %}
-          </div>
-          <div class="col-md-10" id="blk_main">
-            {% block main %}
-            {% endblock %}
-          </div>
-        </div>
-        {% endblock %}
-
-        {% block content_after %}
-        {% endblock %}
+        {% block content %}{% endblock %}
       </div>
     </div>
     <footer>
       <div class="container">
         {% block footer %}
         <div class="pull-right">
-          {% block support_link %}{% endblock %}
-          <a href="https://docs.sentry.io/hosted/api/">{% trans "API" %}</a>
+          <a href="https://docs.sentry.io/api/">{% trans "API" %}</a>
           <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
           {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
         </div>
-        {% if ONPREMISE %}<div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>{% endif %}
+        {% if ONPREMISE %}<div class="version pull-left">Sentry {{ sentry_version.current }} ({{ sentry_version.build }}) {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>{% endif %}
         <a href="/" class="icon-sentry-logo"></a>
         {% endblock %}
       </div>
     </footer>
   </div>
-
-  <script>
-  $('.auto-select').click(function() {
-    if (document.selection) {
-      var range = document.body.createTextRange();
-      range.moveToElementText(this.firstChild);
-      range.select();
-    } else if (window.getSelection) {
-      var range = document.createRange();
-      range.selectNode(this.firstChild);
-      window.getSelection().addRange(range);
-    }
-  });
-  </script>
-  <script type="text/javascript">
-  $(function() {
-    // This is duplicated from <ProjectSelector>
-    $('.project-dropdown').on('shown.bs.dropdown', function(event){
-      $(event.target).find('input[type=text]').focus();
-    });
-  });
-  </script>
   {% endblock %}
 
   {% block scripts_bottom %}{% endblock %}

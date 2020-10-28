@@ -1,14 +1,17 @@
-import React from 'react';
 import PropTypes from 'prop-types';
-import _ from 'lodash';
+import React from 'react';
+import isString from 'lodash/isString';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
-import LoadingError from 'app/components/loadingError';
 import {analytics} from 'app/utils/analytics';
+import {t} from 'app/locale';
 import Alert from 'app/components/alert';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Redirect from 'app/utils/redirect';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
 class ProjectDetailsInner extends React.Component {
   static propTypes = {
@@ -56,16 +59,22 @@ class ProjectDetailsInner extends React.Component {
   };
 
   getProjectId = () => {
-    return this.state.project?.id;
+    if (this.state.project) {
+      return this.state.project.id;
+    }
+    return null;
   };
 
   hasProjectId = () => {
     const projectID = this.getProjectId(this.state.project);
-    return _.isString(projectID) && projectID.length > 0;
+    return isString(projectID) && projectID.length > 0;
   };
 
   getOrganizationId = () => {
-    return this.state.project?.organization?.id;
+    if (this.state.project) {
+      return this.state.project.organization.id;
+    }
+    return null;
   };
 
   render() {
@@ -117,40 +126,45 @@ const redirectDeprecatedProjectRoute = generateRedirectRoute => {
       const {orgId} = this.props.params;
 
       return (
-        <ProjectDetails orgId={orgId} projectSlug={this.props.params.projectId}>
-          {({loading, error, hasProjectId, projectId, organizationId}) => {
-            if (loading) {
-              return null;
-            }
-
-            if (!hasProjectId) {
-              if (error?.status === 404) {
-                return (
-                  <Alert type="error">
-                    {t('The project you were looking for was not found.')}
-                  </Alert>
-                );
+        <Wrapper>
+          <ProjectDetails orgId={orgId} projectSlug={this.props.params.projectId}>
+            {({loading, error, hasProjectId, projectId, organizationId}) => {
+              if (loading) {
+                return <LoadingIndicator />;
               }
 
-              return <LoadingError onRetry={this.fetchData} />;
-            }
+              if (!hasProjectId) {
+                if (error && error.status === 404) {
+                  return (
+                    <Alert type="error">
+                      {t('The project you were looking for was not found.')}
+                    </Alert>
+                  );
+                }
 
-            const routeProps = {
-              orgId,
-              projectId,
-              router: {
-                params: this.props.params,
-              },
-            };
+                return <LoadingError onRetry={this.fetchData} />;
+              }
 
-            return (
-              <Redirect
-                router={this.props.router}
-                to={this.trackRedirect(organizationId, generateRedirectRoute(routeProps))}
-              />
-            );
-          }}
-        </ProjectDetails>
+              const routeProps = {
+                orgId,
+                projectId,
+                router: {
+                  params: this.props.params,
+                },
+              };
+
+              return (
+                <Redirect
+                  router={this.props.router}
+                  to={this.trackRedirect(
+                    organizationId,
+                    generateRedirectRoute(routeProps)
+                  )}
+                />
+              );
+            }}
+          </ProjectDetails>
+        </Wrapper>
       );
     }
   }
@@ -159,3 +173,8 @@ const redirectDeprecatedProjectRoute = generateRedirectRoute => {
 };
 
 export default redirectDeprecatedProjectRoute;
+
+const Wrapper = styled('div')`
+  flex: 1;
+  padding: ${space(3)};
+`;

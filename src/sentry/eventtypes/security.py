@@ -1,79 +1,86 @@
 from __future__ import absolute_import
 
+from six.moves.urllib.parse import urlsplit, urlunsplit
+
 from .base import BaseEvent
 
+from sentry.utils.strings import strip
+from sentry.utils.safe import get_path
 
-class CspEvent(BaseEvent):
-    key = 'csp'
-
-    def get_metadata(self, data):
-        from sentry.interfaces.security import Csp
-        # TODO(dcramer): pull get message into here to avoid instantiation
-        # or ensure that these get interfaces passed instead of raw data
-        csp = Csp.to_python(data['csp'])
-
-        return {
-            'directive': csp.effective_directive,
-            'uri': csp.normalized_blocked_uri,
-            'message': csp.get_message(),
-        }
-
-    def get_title(self, metadata):
-        return metadata['message']
-
-    def get_location(self, metadata):
-        return metadata.get('uri')
+LOCAL = "'self'"
 
 
-class HpkpEvent(BaseEvent):
-    key = 'hpkp'
+def _normalize_uri(value):
+    if value in ("", LOCAL, LOCAL.strip("'")):
+        return LOCAL
 
-    def get_metadata(self, data):
-        from sentry.interfaces.security import Hpkp
-        hpkp = Hpkp.to_python(data['hpkp'])
-        return {
-            'origin': hpkp.get_origin(),
-            'message': hpkp.get_message(),
-        }
-
-    def get_title(self, metadata):
-        return metadata['message']
-
-    def get_location(self, metadata):
-        return metadata.get('origin')
+    # A lot of these values get reported as literally
+    # just the scheme. So a value like 'data' or 'blob', which
+    # are valid schemes, just not a uri. So we want to
+    # normalize it into a uri.
+    if ":" not in value:
+        scheme, hostname = value, ""
+    else:
+        scheme, hostname = urlsplit(value)[:2]
+        if scheme in ("http", "https"):
+            return hostname
+    return urlunsplit((scheme, hostname, "", None, None))
 
 
-class ExpectCTEvent(BaseEvent):
-    key = 'expectct'
-
-    def get_metadata(self, data):
-        from sentry.interfaces.security import ExpectCT
-        expectct = ExpectCT.to_python(data['expectct'])
-        return {
-            'origin': expectct.get_origin(),
-            'message': expectct.get_message(),
-        }
+class SecurityEvent(BaseEvent):
+    def extract_metadata(self, data):
+        # Relay normalizes the message for security reports into the log entry
+        # field, so we grab the message from there.
+        # (https://github.com/getsentry/relay/pull/558)
+        message = strip(
+            get_path(data, "logentry", "formatted") or get_path(data, "logentry", "message")
+        )
+        return {"message": message}
 
     def get_title(self, metadata):
-        return metadata['message']
+        # Due to a regression (https://github.com/getsentry/sentry/pull/19794)
+        # some events did not have message persisted but title. Because of this
+        # the title code has to take these into account.
+        return metadata.get("message") or metadata.get("title") or "<untitled>"
 
     def get_location(self, metadata):
-        return metadata.get('origin')
+        # Try to get location by preferring URI over origin.  This covers
+        # all the cases below where CSP sets URI and others set origin.
+        return metadata.get("uri") or metadata.get("origin")
 
 
-class ExpectStapleEvent(BaseEvent):
-    key = 'expectstaple'
+class CspEvent(SecurityEvent):
+    key = "csp"
 
-    def get_metadata(self, data):
-        from sentry.interfaces.security import ExpectStaple
-        expectstaple = ExpectStaple.to_python(data['expectstaple'])
-        return {
-            'origin': expectstaple.get_origin(),
-            'message': expectstaple.get_message(),
-        }
+    def extract_metadata(self, data):
+        metadata = SecurityEvent.extract_metadata(self, data)
+        metadata["uri"] = _normalize_uri(data["csp"].get("blocked_uri") or "")
+        metadata["directive"] = data["csp"].get("effective_directive")
+        return metadata
 
-    def get_title(self, metadata):
-        return metadata['message']
 
-    def get_location(self, metadata):
-        return metadata.get('origin')
+class HpkpEvent(SecurityEvent):
+    key = "hpkp"
+
+    def extract_metadata(self, data):
+        metadata = SecurityEvent.extract_metadata(self, data)
+        metadata["origin"] = data["hpkp"].get("hostname")
+        return metadata
+
+
+class ExpectCTEvent(SecurityEvent):
+    key = "expectct"
+
+    def extract_metadata(self, data):
+        metadata = SecurityEvent.extract_metadata(self, data)
+        metadata["origin"] = data["expectct"].get("hostname")
+        return metadata
+
+
+class ExpectStapleEvent(SecurityEvent):
+    key = "expectstaple"
+
+    def extract_metadata(self, data):
+        metadata = SecurityEvent.extract_metadata(self, data)
+        metadata["origin"] = data["expectstaple"].get("hostname")
+        return metadata

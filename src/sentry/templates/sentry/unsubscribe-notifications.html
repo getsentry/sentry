@@ -10,10 +10,10 @@
     <form action="" method="post" class="">
         {% csrf_token %}
 
-        <p>You are about to unsubscribe from notifications for the <a href="{{ instance_link }}">selected {{ object_type }}</a>.</p>
+        <p>You are about to unsubscribe from <a href="https://docs.sentry.io/workflow/notifications/workflow/" target="_blank">workflow notifications</a> for the <a href="{{ instance_link }}">selected {{ object_type }}</a>.</p>
 
         <fieldset class="form-actions">
-            <button type="submit" class="btn btn-primary">{% trans "Unsubscribe" %}</button>
+            <button type="submit" name="op" value="unsubscribe" class="btn btn-primary">{% trans "Unsubscribe" %}</button>
             <button type="submit" name="cancel" class="btn btn-default">{% trans "Cancel" %}</button>
         </fieldset>
     </form>

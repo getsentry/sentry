@@ -2,14 +2,15 @@ from __future__ import absolute_import
 
 import six
 
+
 from django.db import connections
-from itertools import izip
 
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Commit, Repository, UserEmail
+from sentry.utils.compat import zip
 
-# TODO(dcramer): once LatestRelease is backfilled, change this query to use the new
+# TODO(dcramer): once LatestRepoReleaseEnvironment is backfilled, change this query to use the new
 # schema [performance]
 query = """
 select c1.*
@@ -35,47 +36,47 @@ and c1.author_id IN (
 order by c1.date_added desc
 """
 
-quote_name = connections['default'].ops.quote_name
+quote_name = connections["default"].ops.quote_name
 
 
 class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
     def get(self, request, organization, member):
-        email_list = list(UserEmail.objects.filter(
-            user=member.user_id,
-            is_verified=True,
-        ).values_list('email', flat=True))
+        email_list = list(
+            UserEmail.objects.filter(user=member.user_id, is_verified=True).values_list(
+                "email", flat=True
+            )
+        )
         if not email_list:
-            return self.respond({
-                'commits': [],
-                'repositories': {},
-                'errors': {
-                    'missing_emails': True,
-                }
-            })
+            return self.respond(
+                {"commits": [], "repositories": {}, "errors": {"missing_emails": True}}
+            )
 
         params = [organization.id, organization.id]
         for e in email_list:
             params.append(e.upper())
 
-        queryset = Commit.objects.raw(query % (', '.join('%s' for _ in email_list),), params)
+        queryset = Commit.objects.raw(query % (", ".join("%s" for _ in email_list),), params)
 
         results = list(queryset)
 
         if results:
-            repos = list(Repository.objects.filter(
-                id__in=set([r.repository_id for r in results]),
-            ))
+            repos = list(Repository.objects.filter(id__in=set([r.repository_id for r in results])))
         else:
             repos = []
 
-        return self.respond({
-            'commits': [{
-                'id': c.key,
-                'message': c.message,
-                'dateCreated': c.date_added,
-                'repositoryID': six.text_type(c.repository_id),
-            } for c in results],
-            'repositories': {
-                six.text_type(r.id): d for r, d in izip(repos, serialize(repos, request.user))
+        return self.respond(
+            {
+                "commits": [
+                    {
+                        "id": c.key,
+                        "message": c.message,
+                        "dateCreated": c.date_added,
+                        "repositoryID": six.text_type(c.repository_id),
+                    }
+                    for c in results
+                ],
+                "repositories": {
+                    six.text_type(r.id): d for r, d in zip(repos, serialize(repos, request.user))
+                },
             }
-        })
+        )

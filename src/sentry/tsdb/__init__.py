@@ -8,8 +8,5 @@ from .base import BaseTSDB  # NOQA
 from .dummy import DummyTSDB
 
 LazyServiceWrapper(
-    BaseTSDB,
-    settings.SENTRY_TSDB,
-    settings.SENTRY_TSDB_OPTIONS,
-    dangerous=[DummyTSDB],
+    BaseTSDB, settings.SENTRY_TSDB, settings.SENTRY_TSDB_OPTIONS, dangerous=[DummyTSDB]
 ).expose(locals())

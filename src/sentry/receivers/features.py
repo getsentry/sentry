@@ -5,7 +5,8 @@ from django.db.models.signals import post_save
 from sentry import analytics
 from sentry.adoption import manager
 from sentry.models import FeatureAdoption, GroupTombstone, Organization
-from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_DATA
 from sentry.signals import (
@@ -23,6 +24,8 @@ from sentry.signals import (
     issue_assigned,
     issue_resolved,
     issue_ignored,
+    issue_unresolved,
+    issue_unignored,
     issue_deleted,
     member_joined,
     ownership_rule_created,
@@ -35,64 +38,91 @@ from sentry.signals import (
     team_created,
     user_feedback_received,
 )
+from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
 
 DEFAULT_TAGS = frozenset(
     [
-        'level', 'logger', 'transaction', 'url', 'browser', 'sentry:user', 'os', 'server_name',
-        'device', 'os.name', 'browser.name', 'sentry:release', 'environment', 'device.family',
-        'site', 'version', 'interface_type', 'rake_task', 'runtime', 'runtime.name', 'type',
-        'php_version', 'app', 'app.device', 'locale', 'os_version', 'device_model', 'deviceModel',
-        'sentry_version'
+        "level",
+        "logger",
+        "transaction",
+        "url",
+        "browser",
+        "sentry:user",
+        "os",
+        "server_name",
+        "device",
+        "os.name",
+        "browser.name",
+        "sentry:release",
+        "environment",
+        "device.family",
+        "site",
+        "version",
+        "interface_type",
+        "rake_task",
+        "runtime",
+        "runtime.name",
+        "type",
+        "php_version",
+        "app",
+        "app.device",
+        "locale",
+        "os_version",
+        "device_model",
+        "deviceModel",
+        "sentry_version",
     ]
 )
 
 
 # First Event
 @first_event_received.connect(weak=False)
-def record_first_event(project, group, **kwargs):
+def record_first_event(project, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="first_event", complete=True
     )
 
 
 @event_processed.connect(weak=False)
-def record_event_processed(project, group, event, **kwargs):
+def record_event_processed(project, event, **kwargs):
     feature_slugs = []
 
+    platform = event.group.platform if event.group else event.platform
+
     # Platform
-    if group.platform in manager.location_slugs('language'):
-        feature_slugs.append(group.platform)
+    if platform in manager.location_slugs("language"):
+        feature_slugs.append(platform)
 
     # Release Tracking
-    if event.get_tag('sentry:release'):
-        feature_slugs.append('release_tracking')
+    if event.get_tag("sentry:release"):
+        feature_slugs.append("release_tracking")
 
     # Environment Tracking
-    if event.get_tag('environment'):
-        feature_slugs.append('environment_tracking')
+    if event.get_tag("environment"):
+        feature_slugs.append("environment_tracking")
 
     # User Tracking
-    user_context = event.data.get('user')
+    user_context = event.data.get("user")
     # We'd like them to tag with id or email.
     # Certain SDKs automatically tag with ip address.
     # Check to make sure more the ip address is being sent.
     # testing for this in test_no_user_tracking_for_ip_address_only
     # list(d.keys()) pattern is to make this python3 safe
-    if user_context and list(user_context.keys()) != ['ip_address']:
-        feature_slugs.append('user_tracking')
+    if user_context and list(user_context.keys()) != ["ip_address"]:
+        feature_slugs.append("user_tracking")
 
     # Custom Tags
     if set(tag[0] for tag in event.tags) - DEFAULT_TAGS:
-        feature_slugs.append('custom_tags')
+        feature_slugs.append("custom_tags")
 
     # Sourcemaps
     if has_sourcemap(event):
-        feature_slugs.append('source_maps')
+        feature_slugs.append("source_maps")
 
     # Breadcrumbs
-    if event.data.get('breadcrumbs'):
-        feature_slugs.append('breadcrumbs')
+    if event.data.get("breadcrumbs"):
+        feature_slugs.append("breadcrumbs")
 
     if not feature_slugs:
         return
@@ -119,11 +149,7 @@ def record_member_joined(member, organization, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=member.organization_id, feature_slug="invite_team", complete=True
     )
-    analytics.record(
-        'organization.joined',
-        user_id=member.user.id,
-        organization_id=organization.id,
-    )
+    analytics.record("organization.joined", user_id=member.user.id, organization_id=organization.id)
 
 
 @issue_assigned.connect(weak=False)
@@ -138,7 +164,7 @@ def record_issue_assigned(project, group, user, **kwargs):
         user_id = None
         default_user_id = project.organization.get_default_owner().id
     analytics.record(
-        'issue.assigned',
+        "issue.assigned",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
@@ -154,11 +180,11 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
             or tagging the issue in a commit (marked as "with_commit"))
         3) now
     """
-    if resolution_type in ('in_next_release', 'in_release'):
+    if resolution_type in ("in_next_release", "in_release"):
         FeatureAdoption.objects.record(
             organization_id=organization_id, feature_slug="resolved_in_release", complete=True
         )
-    if resolution_type == 'with_commit':
+    if resolution_type == "with_commit":
         FeatureAdoption.objects.record(
             organization_id=organization_id, feature_slug="resolved_with_commit", complete=True
         )
@@ -170,12 +196,30 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
-        'issue.resolved',
+        "issue.resolved",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=organization_id,
         group_id=group.id,
         resolution_type=resolution_type,
+    )
+
+
+@issue_unresolved.connect(weak=False)
+def record_issue_unresolved(project, user, group, transition_type, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        "issue.unresolved",
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+        transition_type=transition_type,
     )
 
 
@@ -195,7 +239,7 @@ def record_advanced_search_feature_gated(user, organization, **kwargs):
         default_user_id = organization.get_default_owner().id
 
     analytics.record(
-        'advanced_search.feature_gated',
+        "advanced_search.feature_gated",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=organization.id,
@@ -215,7 +259,7 @@ def record_save_search_created(project, user, **kwargs):
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
-        'search.saved',
+        "search.saved",
         user_id=user_id,
         default_user_id=default_user_id,
         project_id=project.id,
@@ -231,8 +275,10 @@ def record_inbound_filter_toggled(project, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project, rule, **kwargs):
-    if rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
+def record_alert_rule_created(
+    user, project, rule, rule_type, referrer=None, session_id=None, **kwargs
+):
+    if rule_type == "issue" and rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
         return
 
     FeatureAdoption.objects.record(
@@ -246,12 +292,15 @@ def record_alert_rule_created(user, project, rule, **kwargs):
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
-        'alert.created',
+        "alert.created",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
+        project_id=project.id,
         rule_id=rule.id,
-        actions=[a['id'] for a in rule.data.get('actions', [])],
+        rule_type=rule_type,
+        referrer=referrer,
+        session_id=session_id,
     )
 
 
@@ -261,13 +310,13 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
             feature_slug="issue_tracker_integration",
-            complete=True
+            complete=True,
         )
     elif isinstance(plugin, NotificationPlugin):
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
             feature_slug="notification_integration",
-            complete=True
+            complete=True,
         )
 
 
@@ -278,10 +327,7 @@ def record_sso_enabled(organization, user, provider, **kwargs):
     )
 
     analytics.record(
-        'sso.enabled',
-        user_id=user.id,
-        organization_id=organization.id,
-        provider=provider,
+        "sso.enabled", user_id=user.id, organization_id=organization.id, provider=provider
     )
 
 
@@ -295,8 +341,7 @@ def record_data_scrubber_enabled(organization, **kwargs):
 def deleted_and_discarded_issue(instance, created, **kwargs):
     if created:
         FeatureAdoption.objects.record(
-            organization_id=instance.project.organization_id,
-            feature_slug="delete_and_discard"
+            organization_id=instance.project.organization_id, feature_slug="delete_and_discard"
         )
 
 
@@ -313,7 +358,7 @@ def record_repo_linked(repo, user, **kwargs):
         default_user_id = Organization.objects.get(id=repo.organization_id).get_default_owner().id
 
     analytics.record(
-        'repo.linked',
+        "repo.linked",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=repo.organization_id,
@@ -339,7 +384,9 @@ def record_deploy_created(deploy, **kwargs):
 @ownership_rule_created.connect(weak=False)
 def record_ownership_rule_created(project, **kwargs):
     FeatureAdoption.objects.record(
-        organization_id=project.organization_id, feature_slug="ownership_rule_created", complete=True
+        organization_id=project.organization_id,
+        feature_slug="ownership_rule_created",
+        complete=True,
     )
 
 
@@ -357,17 +404,35 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
 
     for group in group_list:
         analytics.record(
-            'issue.ignored',
+            "issue.ignored",
             user_id=user_id,
             default_user_id=default_user_id,
             organization_id=project.organization_id,
             group_id=group.id,
-            ignore_duration=activity_data.get('ignoreDuration'),
-            ignore_count=activity_data.get('ignoreCount'),
-            ignore_window=activity_data.get('ignoreWindow'),
-            ignore_user_count=activity_data.get('ignoreUserCount'),
-            ignore_user_window=activity_data.get('ignoreUserWindow'),
+            ignore_duration=activity_data.get("ignoreDuration"),
+            ignore_count=activity_data.get("ignoreCount"),
+            ignore_window=activity_data.get("ignoreWindow"),
+            ignore_user_count=activity_data.get("ignoreUserCount"),
+            ignore_user_window=activity_data.get("ignoreUserWindow"),
         )
+
+
+@issue_unignored.connect(weak=False)
+def record_issue_unignored(project, user, group, transition_type, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        "issue.unignored",
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+        transition_type=transition_type,
+    )
 
 
 @team_created.connect(weak=False)
@@ -379,7 +444,7 @@ def record_team_created(organization, user, team, **kwargs):
         default_user_id = organization.get_default_owner().id
 
     analytics.record(
-        'team.created',
+        "team.created",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=organization.id,
@@ -395,12 +460,15 @@ def record_integration_added(integration, organization, user, **kwargs):
         user_id = None
         default_user_id = organization.get_default_owner().id
     analytics.record(
-        'integration.added',
+        "integration.added",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=organization.id,
         provider=integration.provider,
         id=integration.id,
+    )
+    metrics.incr(
+        "integration.added", sample_rate=1.0, tags={"integration_slug": integration.provider},
     )
 
 
@@ -412,7 +480,7 @@ def record_integration_issue_created(integration, organization, user, **kwargs):
         user_id = None
         default_user_id = organization.get_default_owner().id
     analytics.record(
-        'integration.issue.created',
+        "integration.issue.created",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=organization.id,
@@ -429,7 +497,7 @@ def record_integration_issue_linked(integration, organization, user, **kwargs):
         user_id = None
         default_user_id = organization.get_default_owner().id
     analytics.record(
-        'integration.issue.linked',
+        "integration.issue.linked",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=organization.id,
@@ -446,7 +514,7 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
         user_id = None
         default_user_id = group.project.organization.get_default_owner().id
     analytics.record(
-        'issue.deleted',
+        "issue.deleted",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=group.project.organization_id,
@@ -458,6 +526,6 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
 post_save.connect(
     deleted_and_discarded_issue,
     sender=GroupTombstone,
-    dispatch_uid='analytics.grouptombstone.created',
+    dispatch_uid="analytics.grouptombstone.created",
     weak=False,
 )

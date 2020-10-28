@@ -1,25 +1,16 @@
-"""
-sentry.interfaces.exception
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
-__all__ = ('Exception', 'Mechanism', 'upgrade_legacy_mechanism')
+__all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
 
 import re
 import six
 
-from django.conf import settings
-
-from sentry.interfaces.base import Interface, prune_empty_keys
-from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
+from sentry.interfaces.base import Interface
+from sentry.utils.json import prune_empty_keys
+from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import get_path
 
-_type_value_re = re.compile('^(\w+):(.*)$')
+_type_value_re = re.compile("^(\w+):(.*)$")
 
 
 def upgrade_legacy_mechanism(data):
@@ -70,38 +61,42 @@ def upgrade_legacy_mechanism(data):
 
     # Early exit for current protocol. We assume that when someone sends a
     # "type", we do not need to preprocess and can immediately validate
-    if data is None or data.get('type') is not None:
+    if data is None or data.get("type") is not None:
         return data
 
-    result = {'type': 'generic'}
+    result = {"type": "generic"}
 
     # "posix_signal" and "mach_exception" were optional root-level objects,
     # which have now moved to special keys inside "meta". We only create "meta"
     # if there is actual data to add.
 
-    posix_signal = data.pop('posix_signal', None)
-    if posix_signal and posix_signal.get('signal'):
-        result.setdefault('meta', {})['signal'] = prune_empty_keys({
-            'number': posix_signal.get('signal'),
-            'code': posix_signal.get('code'),
-            'name': posix_signal.get('name'),
-            'code_name': posix_signal.get('code_name'),
-        })
+    posix_signal = data.pop("posix_signal", None)
+    if posix_signal and posix_signal.get("signal"):
+        result.setdefault("meta", {})["signal"] = prune_empty_keys(
+            {
+                "number": posix_signal.get("signal"),
+                "code": posix_signal.get("code"),
+                "name": posix_signal.get("name"),
+                "code_name": posix_signal.get("code_name"),
+            }
+        )
 
-    mach_exception = data.pop('mach_exception', None)
+    mach_exception = data.pop("mach_exception", None)
     if mach_exception:
-        result.setdefault('meta', {})['mach_exception'] = prune_empty_keys({
-            'exception': mach_exception.get('exception'),
-            'code': mach_exception.get('code'),
-            'subcode': mach_exception.get('subcode'),
-            'name': mach_exception.get('exception_name'),
-        })
+        result.setdefault("meta", {})["mach_exception"] = prune_empty_keys(
+            {
+                "exception": mach_exception.get("exception"),
+                "code": mach_exception.get("code"),
+                "subcode": mach_exception.get("subcode"),
+                "name": mach_exception.get("exception_name"),
+            }
+        )
 
     # All remaining data has to be moved to the "data" key. We assume that even
     # if someone accidentally sent a corret top-level key (such as "handled"),
     # it will not pass our interface validation and should be moved to "data"
     # instead.
-    result.setdefault('data', {}).update(data)
+    result.setdefault("data", {}).update(data)
     return result
 
 
@@ -136,35 +131,29 @@ class Mechanism(Interface):
 
     @classmethod
     def to_python(cls, data):
-        for key in (
-            'type',
-            'synthetic',
-            'description',
-            'help_link',
-            'handled',
-            'data',
-            'meta',
-        ):
+        for key in ("type", "synthetic", "description", "help_link", "handled", "data", "meta"):
             data.setdefault(key, None)
 
         return cls(**data)
 
     def to_json(self):
-        return prune_empty_keys({
-            'type': self.type,
-            'synthetic': self.synthetic,
-            'description': self.description,
-            'help_link': self.help_link,
-            'handled': self.handled,
-            'data': self.data or None,
-            'meta': prune_empty_keys(self.meta) or None,
-        })
+        return prune_empty_keys(
+            {
+                "type": self.type,
+                "synthetic": self.synthetic,
+                "description": self.description,
+                "help_link": self.help_link,
+                "handled": self.handled,
+                "data": self.data or None,
+                "meta": prune_empty_keys(self.meta) or None,
+            }
+        )
 
     def iter_tags(self):
         yield (self.path, self.type)
 
         if self.handled is not None:
-            yield ('handled', self.handled and 'yes' or 'no')
+            yield ("handled", self.handled and "yes" or "no")
 
 
 def uncontribute_non_stacktrace_variants(variants):
@@ -182,8 +171,9 @@ def uncontribute_non_stacktrace_variants(variants):
     # In case any of the variants has a contributing stacktrace, we want
     # to make all other variants non contributing.  Thr e
     for (key, component) in six.iteritems(variants):
-        if any(s.contributes for s in component.iter_subcomponents(
-                id='stacktrace', recursive=True)):
+        if any(
+            s.contributes for s in component.iter_subcomponents(id="stacktrace", recursive=True)
+        ):
             any_stacktrace_contributes = True
             stacktrace_variants.add(key)
         else:
@@ -191,17 +181,17 @@ def uncontribute_non_stacktrace_variants(variants):
 
     if any_stacktrace_contributes:
         if len(stacktrace_variants) == 1:
-            hint_suffix = 'but the %s variant does' % next(iter(stacktrace_variants))
+            hint_suffix = "but the %s variant does" % next(iter(stacktrace_variants))
         else:
             # this branch is basically dead because we only have two
             # variants right now, but this is so this does not break in
             # the future.
-            hint_suffix = 'others do'
+            hint_suffix = "others do"
         for component in non_contributing_components:
             component.update(
                 contributes=False,
-                hint='ignored because this variant does not contain a '
-                'stacktrace, but %s' % hint_suffix
+                hint="ignored because this variant does not contain a "
+                "stacktrace, but %s" % hint_suffix,
             )
 
     return variants
@@ -226,48 +216,48 @@ class SingleException(Interface):
     >>>     }
     >>> }
     """
-    grouping_variants = ['system', 'app']
+
+    grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data, slim_frames=True):
-        if get_path(data, 'stacktrace', 'frames', filter=True):
-            stacktrace = Stacktrace.to_python(
-                data['stacktrace'],
-                slim_frames=slim_frames,
-            )
+    def to_python(cls, data):
+        if get_path(data, "stacktrace", "frames", filter=True):
+            stacktrace = Stacktrace.to_python(data["stacktrace"])
         else:
             stacktrace = None
 
-        if get_path(data, 'raw_stacktrace', 'frames', filter=True):
-            raw_stacktrace = Stacktrace.to_python(
-                data['raw_stacktrace'], slim_frames=slim_frames, raw=True,
-            )
+        if get_path(data, "raw_stacktrace", "frames", filter=True):
+            raw_stacktrace = Stacktrace.to_python(data["raw_stacktrace"], raw=True)
         else:
             raw_stacktrace = None
 
-        type = data.get('type')
-        value = data.get('value')
+        type = data.get("type")
+        value = data.get("value")
 
-        if data.get('mechanism'):
-            mechanism = Mechanism.to_python(data['mechanism'])
+        if data.get("mechanism"):
+            mechanism = Mechanism.to_python(data["mechanism"])
         else:
             mechanism = None
 
         kwargs = {
-            'type': type,
-            'value': value,
-            'module': data.get('module'),
-            'mechanism': mechanism,
-            'stacktrace': stacktrace,
-            'thread_id': data.get('thread_id'),
-            'raw_stacktrace': raw_stacktrace,
+            "type": type,
+            "value": value,
+            "module": data.get("module"),
+            "mechanism": mechanism,
+            "stacktrace": stacktrace,
+            "thread_id": data.get("thread_id"),
+            "raw_stacktrace": raw_stacktrace,
         }
 
         return cls(**kwargs)
 
     def to_json(self):
-        mechanism = isinstance(self.mechanism, Mechanism) and \
-            self.mechanism.to_json() or self.mechanism or None
+        mechanism = (
+            isinstance(self.mechanism, Mechanism)
+            and self.mechanism.to_json()
+            or self.mechanism
+            or None
+        )
 
         if self.stacktrace:
             stacktrace = self.stacktrace.to_json()
@@ -279,20 +269,25 @@ class SingleException(Interface):
         else:
             raw_stacktrace = None
 
-        return prune_empty_keys({
-            'type': self.type,
-            'value': self.value,
-            'mechanism': mechanism,
-            'module': self.module,
-            'stacktrace': stacktrace,
-            'thread_id': self.thread_id,
-            'raw_stacktrace': raw_stacktrace,
-        })
+        return prune_empty_keys(
+            {
+                "type": self.type,
+                "value": self.value,
+                "mechanism": mechanism,
+                "module": self.module,
+                "stacktrace": stacktrace,
+                "thread_id": self.thread_id,
+                "raw_stacktrace": raw_stacktrace,
+            }
+        )
 
     def get_api_context(self, is_public=False, platform=None):
-        mechanism = isinstance(self.mechanism, Mechanism) and \
-            self.mechanism.get_api_context(is_public=is_public, platform=platform) or \
-            self.mechanism or None
+        mechanism = (
+            isinstance(self.mechanism, Mechanism)
+            and self.mechanism.get_api_context(is_public=is_public, platform=platform)
+            or self.mechanism
+            or None
+        )
 
         if self.stacktrace:
             stacktrace = self.stacktrace.get_api_context(is_public=is_public, platform=platform)
@@ -301,38 +296,42 @@ class SingleException(Interface):
 
         if self.raw_stacktrace:
             raw_stacktrace = self.raw_stacktrace.get_api_context(
-                is_public=is_public, platform=platform)
+                is_public=is_public, platform=platform
+            )
         else:
             raw_stacktrace = None
 
         return {
-            'type': self.type,
-            'value': six.text_type(self.value) if self.value else None,
-            'mechanism': mechanism,
-            'threadId': self.thread_id,
-            'module': self.module,
-            'stacktrace': stacktrace,
-            'rawStacktrace': raw_stacktrace,
+            "type": self.type,
+            "value": six.text_type(self.value) if self.value else None,
+            "mechanism": mechanism,
+            "threadId": self.thread_id,
+            "module": self.module,
+            "stacktrace": stacktrace,
+            "rawStacktrace": raw_stacktrace,
         }
 
     def get_api_meta(self, meta, is_public=False, platform=None):
-        mechanism_meta = self.mechanism.get_api_meta(
-            meta['mechanism'], is_public=is_public, platform=platform) \
-            if isinstance(self.mechanism, Mechanism) and meta.get('mechanism') \
+        mechanism_meta = (
+            self.mechanism.get_api_meta(meta["mechanism"], is_public=is_public, platform=platform)
+            if isinstance(self.mechanism, Mechanism) and meta.get("mechanism")
             else None
+        )
 
-        stacktrace_meta = self.stacktrace.get_api_meta(meta, is_public=is_public, platform=platform) \
-            if self.stacktrace and meta.get('stacktrace') \
+        stacktrace_meta = (
+            self.stacktrace.get_api_meta(meta, is_public=is_public, platform=platform)
+            if self.stacktrace and meta.get("stacktrace")
             else None
+        )
 
         return {
-            '': meta.get(''),
-            'type': meta.get('type'),
-            'value': meta.get('value'),
-            'mechanism': mechanism_meta,
-            'threadId': meta.get('thread_id'),
-            'module': meta.get('module'),
-            'stacktrace': stacktrace_meta,
+            "": meta.get(""),
+            "type": meta.get("type"),
+            "value": meta.get("value"),
+            "mechanism": mechanism_meta,
+            "threadId": meta.get("thread_id"),
+            "module": meta.get("module"),
+            "stacktrace": stacktrace_meta,
         }
 
 
@@ -370,7 +369,7 @@ class Exception(Interface):
     """
 
     score = 2000
-    grouping_variants = ['system', 'app']
+    grouping_variants = ["system", "app"]
 
     def exceptions(self):
         return get_path(self.values, filter=True)
@@ -388,29 +387,31 @@ class Exception(Interface):
     def to_python(cls, data):
         return cls(
             values=[
-                v and SingleException.to_python(v, slim_frames=False)
-                for v in get_path(data, 'values', default=[])
+                v and SingleException.to_python(v) for v in get_path(data, "values", default=[])
             ],
-            exc_omitted=data.get('exc_omitted')
+            exc_omitted=data.get("exc_omitted"),
         )
 
     # TODO(ja): Fix all following methods when to_python is refactored. All
     # methods below might throw if None exceptions are in ``values``.
 
     def to_json(self):
-        return prune_empty_keys({
-            'values': [v and v.to_json() for v in self.values] or None,
-            'exc_omitted': self.exc_omitted,
-        })
+        return prune_empty_keys(
+            {
+                "values": [v and v.to_json() for v in self.values] or None,
+                "exc_omitted": self.exc_omitted,
+            }
+        )
 
     def get_api_context(self, is_public=False, platform=None):
         return {
-            'values': [v.get_api_context(is_public=is_public, platform=platform)
-                       for v in self.values if v],
-            'hasSystemFrames':
-            any(v.stacktrace.get_has_system_frames() for v in self.values if v and v.stacktrace),
-            'excOmitted':
-            self.exc_omitted,
+            "values": [
+                v.get_api_context(is_public=is_public, platform=platform) for v in self.values if v
+            ],
+            "hasSystemFrames": any(
+                v.stacktrace.get_has_system_frames() for v in self.values if v and v.stacktrace
+            ),
+            "excOmitted": self.exc_omitted,
         }
 
     def get_api_meta(self, meta, is_public=False, platform=None):
@@ -418,37 +419,38 @@ class Exception(Interface):
             return meta
 
         result = {}
-        values = meta.get('values', meta)
+        values = meta.get("values", meta)
         for index, value in six.iteritems(values):
             exc = self.values[int(index)]
             if exc is not None:
-                result[index] = exc.get_api_meta(value, is_public=is_public,
-                                                 platform=platform)
+                result[index] = exc.get_api_meta(value, is_public=is_public, platform=platform)
 
-        return {'values': result}
+        return {"values": result}
 
     def to_string(self, event, is_public=False, **kwargs):
         if not self.values:
-            return ''
+            return ""
 
         output = []
         for exc in self.values:
             if not exc:
                 continue
 
-            output.append(u'{0}: {1}\n'.format(exc.type, exc.value))
+            output.append(u"{0}: {1}\n".format(exc.type, exc.value))
             if exc.stacktrace:
                 output.append(
-                    exc.stacktrace.
-                    get_stacktrace(event, system_frames=False, max_frames=5, header=False) + '\n\n'
+                    exc.stacktrace.get_stacktrace(
+                        event, system_frames=False, max_frames=5, header=False
+                    )
+                    + "\n\n"
                 )
-        return (''.join(output)).strip()
+        return ("".join(output)).strip()
 
     def get_stacktrace(self, *args, **kwargs):
         exc = self.values[0]
         if exc.stacktrace:
             return exc.stacktrace.get_stacktrace(*args, **kwargs)
-        return ''
+        return ""
 
     def iter_tags(self):
         if not self.values or not self.values[0]:
@@ -458,19 +460,3 @@ class Exception(Interface):
         if mechanism:
             for tag in mechanism.iter_tags():
                 yield tag
-
-
-def slim_exception_data(instance, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
-    """
-    Removes various excess metadata from middle frames which go beyond
-    ``frame_allowance``.
-    """
-    # TODO(dcramer): it probably makes sense to prioritize a certain exception
-    # rather than distributing allowance among all exceptions
-    frames = []
-    for exception in instance.values:
-        if exception is None or not exception.stacktrace:
-            continue
-        frames.extend(exception.stacktrace.frames)
-
-    slim_frame_data(frames, frame_allowance)

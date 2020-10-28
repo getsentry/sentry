@@ -10,7 +10,7 @@ from sentry.web.frontend.unsubscribe_notifications import UnsubscribeBaseView
 
 
 class UnsubscribeIncidentNotificationsView(UnsubscribeBaseView):
-    object_type = 'incident'
+    object_type = "incident"
 
     def fetch_instance(self, incident_id):
         try:
@@ -20,13 +20,15 @@ class UnsubscribeIncidentNotificationsView(UnsubscribeBaseView):
         return incident
 
     def build_link(self, instance):
-        return absolute_uri(reverse(
-            'sentry-incident',
-            kwargs={
-                'organization_slug': instance.organization.slug,
-                'incident_id': instance.identifier,
-            },
-        ))
+        return absolute_uri(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": instance.organization.slug,
+                    "incident_id": instance.identifier,
+                },
+            )
+        )
 
     def unsubscribe(self, instance, user):
         unsubscribe_from_incident(instance, user)

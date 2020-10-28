@@ -3,12 +3,16 @@ from __future__ import absolute_import
 import itertools
 import time
 
+from django.utils.encoding import force_text
+
 from sentry.similarity.backends.abstract import AbstractIndexBackend
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 
-index = load_script('similarity/index.lua')
+index = load_script("similarity/index.lua")
 
 
 def band(n, value):
@@ -21,8 +25,9 @@ def flatten(value):
 
 
 class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
-    def __init__(self, cluster, namespace, signature_builder,
-                 bands, interval, retention, candidate_set_limit):
+    def __init__(
+        self, cluster, namespace, signature_builder, bands, interval, retention, candidate_set_limit
+    ):
         self.cluster = cluster
         self.namespace = namespace
         self.signature_builder = signature_builder
@@ -37,7 +42,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
 
         arguments = []
         for bucket in band(self.bands, self.signature_builder(features)):
-            arguments.extend([1, ','.join(map('{}'.format, bucket)), 1])
+            arguments.extend([1, ",".join(map("{}".format, bucket)), 1])
         return arguments
 
     def __index(self, scope, args):
@@ -50,26 +55,20 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
     def _as_search_result(self, results):
         score_replacements = {
             -1.0: None,  # both items don't have the feature (no comparison)
-            -2.0: 0,     # one item doesn't have the feature (totally dissimilar)
+            -2.0: 0,  # one item doesn't have the feature (totally dissimilar)
         }
 
         def decode_search_result(result):
             key, scores = result
             return (
-                key,
-                map(
-                    lambda score: score_replacements.get(score, score),
-                    map(float, scores),
-                )
+                force_text(key),
+                map(lambda score: score_replacements.get(score, score), map(float, scores)),
             )
 
         def get_comparison_key(result):
             key, scores = result
 
-            scores = filter(
-                lambda score: score is not None,
-                scores,
-            )
+            scores = [score for score in scores if score is not None]
 
             return (
                 sum(scores) / len(scores) * -1,  # average score, descending
@@ -77,17 +76,14 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
                 key,  # lexicographical sort on key, ascending
             )
 
-        return sorted(
-            map(decode_search_result, results),
-            key=get_comparison_key,
-        )
+        return sorted(map(decode_search_result, results), key=get_comparison_key)
 
     def classify(self, scope, items, limit=None, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
         arguments = [
-            'CLASSIFY',
+            "CLASSIFY",
             timestamp,
             self.namespace,
             self.bands,
@@ -109,7 +105,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
             timestamp = int(time.time())
 
         arguments = [
-            'COMPARE',
+            "COMPARE",
             timestamp,
             self.namespace,
             self.bands,
@@ -134,7 +130,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
             timestamp = int(time.time())
 
         arguments = [
-            'RECORD',
+            "RECORD",
             timestamp,
             self.namespace,
             self.bands,
@@ -156,7 +152,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
             timestamp = int(time.time())
 
         arguments = [
-            'MERGE',
+            "MERGE",
             timestamp,
             self.namespace,
             self.bands,
@@ -177,7 +173,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
             timestamp = int(time.time())
 
         arguments = [
-            'DELETE',
+            "DELETE",
             timestamp,
             self.namespace,
             self.bands,
@@ -197,7 +193,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
             timestamp = int(time.time())
 
         arguments = [
-            'SCAN',
+            "SCAN",
             timestamp,
             self.namespace,
             self.bands,
@@ -234,7 +230,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
             timestamp = int(time.time())
 
         arguments = [
-            'EXPORT',
+            "EXPORT",
             timestamp,
             self.namespace,
             self.bands,
@@ -254,7 +250,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
             timestamp = int(time.time())
 
         arguments = [
-            'IMPORT',
+            "IMPORT",
             timestamp,
             self.namespace,
             self.bands,

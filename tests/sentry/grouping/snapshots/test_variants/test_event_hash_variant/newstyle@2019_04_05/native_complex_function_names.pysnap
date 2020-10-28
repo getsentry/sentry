@@ -1,40 +1,40 @@
 ---
-created: '2019-05-11T09:56:05.696521Z'
+created: '2020-02-26T19:54:31.965032Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             function* (isolated function)
-              u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
           frame (non app frame)
             function* (isolated function)
-              u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
           frame (non app frame)
             function*
-              u'<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()'
+              "<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()"
         type (ignored because exception is synthetic)
-          u'log_demo'
+          "log_demo"
 --------------------------------------------------------------------------
 system:
-  hash: 'e4dcc3896f798a517fb40f50daace658'
+  hash: "e4dcc3896f798a517fb40f50daace658"
   component:
     system*
       exception*
         stacktrace*
           frame*
             function* (isolated function)
-              u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
           frame*
             function* (isolated function)
-              u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
           frame*
             function*
-              u'<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()'
+              "<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()"
         type (ignored because exception is synthetic)
-          u'log_demo'
+          "log_demo"

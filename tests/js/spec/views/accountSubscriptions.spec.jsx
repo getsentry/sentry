@@ -1,23 +1,24 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountSubscriptions from 'app/views/settings/account/accountSubscriptions';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-describe('AccountSubscriptions', function() {
-  beforeEach(function() {
+describe('AccountSubscriptions', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [],
     });
-    const wrapper = shallow(<AccountSubscriptions />, {
+    const wrapper = mountWithTheme(<AccountSubscriptions />, {
       context: {
         router: TestStubs.router(),
       },
@@ -26,10 +27,10 @@ describe('AccountSubscriptions', function() {
       },
     });
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders list and can toggle', function() {
+  it('renders list and can toggle', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: TestStubs.Subscriptions(),
@@ -39,7 +40,7 @@ describe('AccountSubscriptions', function() {
       method: 'PUT',
     });
 
-    const wrapper = mount(<AccountSubscriptions />, {
+    const wrapper = mountWithTheme(<AccountSubscriptions />, {
       context: {
         router: TestStubs.router(),
       },
@@ -48,14 +49,11 @@ describe('AccountSubscriptions', function() {
       },
     });
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
 
     expect(mock).not.toHaveBeenCalled();
 
-    wrapper
-      .find('Switch')
-      .first()
-      .simulate('click');
+    wrapper.find('Switch').first().simulate('click');
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,

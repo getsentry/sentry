@@ -1,0 +1,647 @@
+{
+  "type": "error",
+  "level": "error",
+  "release": "io.sentry.sample-1.0",
+  "dist": "1",
+  "platform": "java",
+  "contexts": {
+    "device": {
+      "screen_resolution": "1136x768",
+      "orientation": "portrait",
+      "family": "Android",
+      "battery_level": 100,
+      "screen_dpi": 480,
+      "memory_size": 1055186944,
+      "timezone": "America/Los_Angeles",
+      "external_storage_size": 534761472,
+      "external_free_storage": 534702080,
+      "screen_width_pixels": 768,
+      "low_memory": false,
+      "simulator": true,
+      "screen_height_pixels": 1136,
+      "free_memory": 658702336,
+      "online": true,
+      "screen_density": 3,
+      "type": "device",
+      "charging": true,
+      "locale": "US",
+      "model_id": "NYC",
+      "brand": "google",
+      "storage_size": 817143808,
+      "boot_time": "2019-12-11T11:38:15Z",
+      "arch": "x86",
+      "manufacturer": "Google",
+      "name": "Android SDK built for x86",
+      "free_storage": 508784640,
+      "model": "Android SDK built for x86",
+      "uuid": "abadcade-feed-dead-beef-baddadfeeded",
+      "archs": [
+        "x86"
+      ]
+    },
+    "app": {
+      "app_version": "1.0",
+      "app_identifier": "io.sentry.sample",
+      "type": "app",
+      "app_build": "1"
+    },
+    "os": {
+      "rooted": true,
+      "kernel_version": "Linux version 3.10.0+ (bjoernj@bjoernj.mtv.corp.google.com) (gcc version 4.9.x 20150123 (prerelease) (GCC) ) #256 SMP PREEMPT Fri May 19 11:58:12 PDT 2017",
+      "version": "7.1.1",
+      "build": "sdk_google_phone_x86-userdebug 7.1.1 NYC 5464897 test-keys",
+      "type": "os",
+      "name": "Android"
+    }
+  },
+  "culprit": "io.sentry.sample.MainActivity in lambda$onCreate$2",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "ZygoteInit.java",
+              "module": "com.android.internal.os.ZygoteInit",
+              "in_app": false,
+              "lineno": 776,
+              "filename": "ZygoteInit.java"
+            },
+            {
+              "function": "run",
+              "abs_path": "ZygoteInit.java",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller",
+              "in_app": false,
+              "lineno": 886,
+              "filename": "ZygoteInit.java"
+            },
+            {
+              "function": "invoke",
+              "abs_path": "Method.java",
+              "in_app": false,
+              "module": "java.lang.reflect.Method",
+              "filename": "Method.java"
+            },
+            {
+              "function": "main",
+              "abs_path": "ActivityThread.java",
+              "module": "android.app.ActivityThread",
+              "in_app": false,
+              "lineno": 6119,
+              "filename": "ActivityThread.java"
+            },
+            {
+              "function": "loop",
+              "abs_path": "Looper.java",
+              "module": "android.os.Looper",
+              "in_app": false,
+              "lineno": 154,
+              "filename": "Looper.java"
+            },
+            {
+              "function": "dispatchMessage",
+              "abs_path": "Handler.java",
+              "module": "android.os.Handler",
+              "in_app": false,
+              "lineno": 95,
+              "filename": "Handler.java"
+            },
+            {
+              "function": "handleCallback",
+              "abs_path": "Handler.java",
+              "module": "android.os.Handler",
+              "in_app": false,
+              "lineno": 751,
+              "filename": "Handler.java"
+            },
+            {
+              "function": "run",
+              "abs_path": "View.java",
+              "module": "android.view.View$PerformClick",
+              "in_app": false,
+              "lineno": 22429,
+              "filename": "View.java"
+            },
+            {
+              "function": "performClick",
+              "abs_path": "View.java",
+              "module": "android.view.View",
+              "in_app": false,
+              "lineno": 5637,
+              "filename": "View.java"
+            },
+            {
+              "function": "onClick",
+              "abs_path": "lambda",
+              "in_app": true,
+              "module": "io.sentry.sample.-$$Lambda$MainActivity$tVGPRGxxb8SivUa5SKhzp6BuXOI",
+              "filename": "lambda"
+            },
+            {
+              "function": "lambda$onCreate$2",
+              "abs_path": "MainActivity.java",
+              "module": "io.sentry.sample.MainActivity",
+              "in_app": true,
+              "lineno": 36,
+              "filename": "MainActivity.java"
+            }
+          ]
+        },
+        "type": "Exception",
+        "module": "java.lang",
+        "value": "java.lang.Exception: java.lang.Exception: Some exception."
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "ZygoteInit.java",
+              "module": "com.android.internal.os.ZygoteInit",
+              "in_app": false,
+              "lineno": 776,
+              "filename": "ZygoteInit.java"
+            },
+            {
+              "function": "run",
+              "abs_path": "ZygoteInit.java",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller",
+              "in_app": false,
+              "lineno": 886,
+              "filename": "ZygoteInit.java"
+            },
+            {
+              "function": "invoke",
+              "abs_path": "Method.java",
+              "in_app": false,
+              "module": "java.lang.reflect.Method",
+              "filename": "Method.java"
+            },
+            {
+              "function": "main",
+              "abs_path": "ActivityThread.java",
+              "module": "android.app.ActivityThread",
+              "in_app": false,
+              "lineno": 6119,
+              "filename": "ActivityThread.java"
+            },
+            {
+              "function": "loop",
+              "abs_path": "Looper.java",
+              "module": "android.os.Looper",
+              "in_app": false,
+              "lineno": 154,
+              "filename": "Looper.java"
+            },
+            {
+              "function": "dispatchMessage",
+              "abs_path": "Handler.java",
+              "module": "android.os.Handler",
+              "in_app": false,
+              "lineno": 95,
+              "filename": "Handler.java"
+            },
+            {
+              "function": "handleCallback",
+              "abs_path": "Handler.java",
+              "module": "android.os.Handler",
+              "in_app": false,
+              "lineno": 751,
+              "filename": "Handler.java"
+            },
+            {
+              "function": "run",
+              "abs_path": "View.java",
+              "module": "android.view.View$PerformClick",
+              "in_app": false,
+              "lineno": 22429,
+              "filename": "View.java"
+            },
+            {
+              "function": "performClick",
+              "abs_path": "View.java",
+              "module": "android.view.View",
+              "in_app": false,
+              "lineno": 5637,
+              "filename": "View.java"
+            },
+            {
+              "function": "onClick",
+              "abs_path": "lambda",
+              "in_app": true,
+              "module": "io.sentry.sample.-$$Lambda$MainActivity$tVGPRGxxb8SivUa5SKhzp6BuXOI",
+              "filename": "lambda"
+            },
+            {
+              "function": "lambda$onCreate$2",
+              "abs_path": "MainActivity.java",
+              "module": "io.sentry.sample.MainActivity",
+              "in_app": true,
+              "lineno": 36,
+              "filename": "MainActivity.java"
+            }
+          ]
+        },
+        "type": "Exception",
+        "module": "java.lang",
+        "value": "java.lang.Exception: Some exception."
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "ZygoteInit.java",
+              "module": "com.android.internal.os.ZygoteInit",
+              "in_app": false,
+              "lineno": 776,
+              "filename": "ZygoteInit.java"
+            },
+            {
+              "function": "run",
+              "abs_path": "ZygoteInit.java",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller",
+              "in_app": false,
+              "lineno": 886,
+              "filename": "ZygoteInit.java"
+            },
+            {
+              "function": "invoke",
+              "abs_path": "Method.java",
+              "in_app": false,
+              "module": "java.lang.reflect.Method",
+              "filename": "Method.java"
+            },
+            {
+              "function": "main",
+              "abs_path": "ActivityThread.java",
+              "module": "android.app.ActivityThread",
+              "in_app": false,
+              "lineno": 6119,
+              "filename": "ActivityThread.java"
+            },
+            {
+              "function": "loop",
+              "abs_path": "Looper.java",
+              "module": "android.os.Looper",
+              "in_app": false,
+              "lineno": 154,
+              "filename": "Looper.java"
+            },
+            {
+              "function": "dispatchMessage",
+              "abs_path": "Handler.java",
+              "module": "android.os.Handler",
+              "in_app": false,
+              "lineno": 95,
+              "filename": "Handler.java"
+            },
+            {
+              "function": "handleCallback",
+              "abs_path": "Handler.java",
+              "module": "android.os.Handler",
+              "in_app": false,
+              "lineno": 751,
+              "filename": "Handler.java"
+            },
+            {
+              "function": "run",
+              "abs_path": "View.java",
+              "module": "android.view.View$PerformClick",
+              "in_app": false,
+              "lineno": 22429,
+              "filename": "View.java"
+            },
+            {
+              "function": "performClick",
+              "abs_path": "View.java",
+              "module": "android.view.View",
+              "in_app": false,
+              "lineno": 5637,
+              "filename": "View.java"
+            },
+            {
+              "function": "onClick",
+              "abs_path": "lambda",
+              "in_app": true,
+              "module": "io.sentry.sample.-$$Lambda$MainActivity$tVGPRGxxb8SivUa5SKhzp6BuXOI",
+              "filename": "lambda"
+            },
+            {
+              "function": "lambda$onCreate$2",
+              "abs_path": "MainActivity.java",
+              "module": "io.sentry.sample.MainActivity",
+              "in_app": true,
+              "lineno": 36,
+              "filename": "MainActivity.java"
+            }
+          ]
+        },
+        "type": "Exception",
+        "module": "java.lang",
+        "value": "Some exception."
+      }
+    ]
+  },
+  "sdk": {
+    "version": "2.0.0-beta01",
+    "name": "sentry.java.android",
+    "packages": [
+      {
+        "version": "2.0.0-beta01",
+        "name": "sentry-core"
+      },
+      {
+        "version": "2.0.0-beta01",
+        "name": "sentry-android-core"
+      },
+      {
+        "version": "2.0.0-beta01",
+        "name": "sentry-android-ndk"
+      }
+    ]
+  },
+  "threads": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "run",
+              "abs_path": "ANRWatchDog.java",
+              "module": "io.sentry.android.core.ANRWatchDog",
+              "in_app": false,
+              "lineno": 66,
+              "filename": "ANRWatchDog.java"
+            },
+            {
+              "function": "sleep",
+              "abs_path": "Thread.java",
+              "module": "java.lang.Thread",
+              "in_app": false,
+              "lineno": 313,
+              "filename": "Thread.java"
+            },
+            {
+              "function": "sleep",
+              "abs_path": "Thread.java",
+              "module": "java.lang.Thread",
+              "in_app": false,
+              "lineno": 371,
+              "filename": "Thread.java"
+            },
+            {
+              "function": "sleep",
+              "abs_path": "Thread.java",
+              "in_app": false,
+              "module": "java.lang.Thread",
+              "filename": "Thread.java"
+            }
+          ]
+        },
+        "crashed": false,
+        "id": 444,
+        "name": "|ANR-WatchDog|"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "run",
+              "abs_path": "Thread.java",
+              "module": "java.lang.Thread",
+              "in_app": false,
+              "lineno": 761,
+              "filename": "Thread.java"
+            },
+            {
+              "function": "run",
+              "abs_path": "Daemons.java",
+              "module": "java.lang.Daemons$HeapTaskDaemon",
+              "in_app": false,
+              "lineno": 433,
+              "filename": "Daemons.java"
+            },
+            {
+              "function": "runHeapTasks",
+              "abs_path": "VMRuntime.java",
+              "in_app": false,
+              "module": "dalvik.system.VMRuntime",
+              "filename": "VMRuntime.java"
+            }
+          ]
+        },
+        "crashed": false,
+        "id": 437,
+        "name": "HeapTaskDaemon"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "ZygoteInit.java",
+              "module": "com.android.internal.os.ZygoteInit",
+              "in_app": false,
+              "lineno": 776,
+              "filename": "ZygoteInit.java"
+            },
+            {
+              "function": "run",
+              "abs_path": "ZygoteInit.java",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller",
+              "in_app": false,
+              "lineno": 886,
+              "filename": "ZygoteInit.java"
+            },
+            {
+              "function": "invoke",
+              "abs_path": "Method.java",
+              "in_app": false,
+              "module": "java.lang.reflect.Method",
+              "filename": "Method.java"
+            },
+            {
+              "function": "main",
+              "abs_path": "ActivityThread.java",
+              "module": "android.app.ActivityThread",
+              "in_app": false,
+              "lineno": 6119,
+              "filename": "ActivityThread.java"
+            },
+            {
+              "function": "loop",
+              "abs_path": "Looper.java",
+              "module": "android.os.Looper",
+              "in_app": false,
+              "lineno": 154,
+              "filename": "Looper.java"
+            },
+            {
+              "function": "dispatchMessage",
+              "abs_path": "Handler.java",
+              "module": "android.os.Handler",
+              "in_app": false,
+              "lineno": 95,
+              "filename": "Handler.java"
+            },
+            {
+              "function": "handleCallback",
+              "abs_path": "Handler.java",
+              "module": "android.os.Handler",
+              "in_app": false,
+              "lineno": 751,
+              "filename": "Handler.java"
+            },
+            {
+              "function": "run",
+              "abs_path": "View.java",
+              "module": "android.view.View$PerformClick",
+              "in_app": false,
+              "lineno": 22429,
+              "filename": "View.java"
+            },
+            {
+              "function": "performClick",
+              "abs_path": "View.java",
+              "module": "android.view.View",
+              "in_app": false,
+              "lineno": 5637,
+              "filename": "View.java"
+            },
+            {
+              "function": "onClick",
+              "abs_path": "lambda",
+              "in_app": true,
+              "module": "io.sentry.sample.-$$Lambda$MainActivity$tVGPRGxxb8SivUa5SKhzp6BuXOI",
+              "filename": "lambda"
+            },
+            {
+              "function": "lambda$onCreate$2",
+              "abs_path": "MainActivity.java",
+              "module": "io.sentry.sample.MainActivity",
+              "in_app": true,
+              "lineno": 36,
+              "filename": "MainActivity.java"
+            },
+            {
+              "function": "captureException",
+              "abs_path": "Sentry.java",
+              "module": "io.sentry.core.Sentry",
+              "in_app": false,
+              "lineno": 94,
+              "filename": "Sentry.java"
+            },
+            {
+              "function": "captureException",
+              "abs_path": "IHub.java",
+              "module": "io.sentry.core.IHub",
+              "in_app": false,
+              "lineno": 28,
+              "filename": "IHub.java"
+            },
+            {
+              "function": "captureException",
+              "abs_path": "Hub.java",
+              "module": "io.sentry.core.Hub",
+              "in_app": false,
+              "lineno": 155,
+              "filename": "Hub.java"
+            },
+            {
+              "function": "captureException",
+              "abs_path": "ISentryClient.java",
+              "module": "io.sentry.core.ISentryClient",
+              "in_app": false,
+              "lineno": 49,
+              "filename": "ISentryClient.java"
+            },
+            {
+              "function": "captureEvent",
+              "abs_path": "SentryClient.java",
+              "module": "io.sentry.core.SentryClient",
+              "in_app": false,
+              "lineno": 80,
+              "filename": "SentryClient.java"
+            },
+            {
+              "function": "process",
+              "abs_path": "MainEventProcessor.java",
+              "module": "io.sentry.core.MainEventProcessor",
+              "in_app": false,
+              "lineno": 51,
+              "filename": "MainEventProcessor.java"
+            },
+            {
+              "function": "processNonCachedEvent",
+              "abs_path": "MainEventProcessor.java",
+              "module": "io.sentry.core.MainEventProcessor",
+              "in_app": false,
+              "lineno": 72,
+              "filename": "MainEventProcessor.java"
+            },
+            {
+              "function": "getCurrentThreads",
+              "abs_path": "SentryThreadFactory.java",
+              "module": "io.sentry.core.SentryThreadFactory",
+              "in_app": false,
+              "lineno": 23,
+              "filename": "SentryThreadFactory.java"
+            },
+            {
+              "function": "getCurrentThreads",
+              "abs_path": "SentryThreadFactory.java",
+              "module": "io.sentry.core.SentryThreadFactory",
+              "in_app": false,
+              "lineno": 35,
+              "filename": "SentryThreadFactory.java"
+            },
+            {
+              "function": "getStackTrace",
+              "abs_path": "Thread.java",
+              "module": "java.lang.Thread",
+              "in_app": false,
+              "lineno": 1566,
+              "filename": "Thread.java"
+            },
+            {
+              "function": "getThreadStackTrace",
+              "abs_path": "VMStack.java",
+              "in_app": false,
+              "module": "dalvik.system.VMStack",
+              "filename": "VMStack.java"
+            }
+          ]
+        },
+        "crashed": true,
+        "id": 1,
+        "name": "main"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "run",
+              "abs_path": "FileObserver.java",
+              "module": "android.os.FileObserver$ObserverThread",
+              "in_app": false,
+              "lineno": 86,
+              "filename": "FileObserver.java"
+            },
+            {
+              "function": "observe",
+              "abs_path": "FileObserver.java",
+              "in_app": false,
+              "module": "android.os.FileObserver$ObserverThread",
+              "filename": "FileObserver.java"
+            }
+          ]
+        },
+        "crashed": false,
+        "id": 443,
+        "name": "FileObserver"
+      }
+    ]
+  }
+}

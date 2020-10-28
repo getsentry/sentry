@@ -1,238 +1,238 @@
 ---
-created: '2019-04-07T10:03:31.547922Z'
+created: '2020-02-26T19:54:25.368649Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 'bc6bc0f8bfa8a2fe5f0e4034384bfec1'
+  hash: "bc6bc0f8bfa8a2fe5f0e4034384bfec1"
   component:
     app*
       exception*
         stacktrace*
           frame*
             module*
-              u'hub'
+              "hub"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js'
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js"
             context-line*
-              u'     */'
-            function (function name is used only if module or filename are available)
-              u'Hub.Object.<anonymous>.Hub.withScope'
-            lineno (line number is used only if module or filename are available)
+              "     */"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.withScope"
+            lineno (line number is not used if context-line is available)
               171
           frame*
             module*
-              u'onunhandledrejection.ts'
+              "onunhandledrejection.ts"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/node/src/integrations/onunhandledrejection.ts'
+              "/home/travis/build/getsentry/sentry-javascript/packages/node/src/integrations/onunhandledrejection.ts"
             function*
-              u'null.<anonymous>'
+              "null.<anonymous>"
             lineno (function takes precedence)
               808
           frame (non app frame)
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
             context-line*
-              u'        return fn.apply(this, arguments);'
-            function (function name is used only if module or filename are available)
-              u'Hub.mockConstructor [as captureException]'
-            lineno (line number is used only if module or filename are available)
+              "        return fn.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "Hub.mockConstructor [as captureException]"
+            lineno (line number is not used if context-line is available)
               150
           frame (non app frame)
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
             context-line*
-              u'          })();'
-            function (function name is used only if module or filename are available)
-              u'Hub.<anonymous>'
-            lineno (line number is used only if module or filename are available)
+              "          })();"
+            function (function name is not used if context-line is available)
+              "Hub.<anonymous>"
+            lineno (line number is not used if context-line is available)
               446
           frame (non app frame)
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
             context-line*
-              u'                return specificMockImpl.apply(this, arguments);'
-            function (function name is used only if module or filename are available)
-              u'finalReturnValue'
-            lineno (line number is used only if module or filename are available)
+              "                return specificMockImpl.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "finalReturnValue"
+            lineno (line number is not used if context-line is available)
               437
           frame (non app frame)
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
             context-line*
-              u'        return original.apply(this, arguments);'
-            function (function name is used only if module or filename are available)
-              u'Hub.<anonymous>'
-            lineno (line number is used only if module or filename are available)
+              "        return original.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "Hub.<anonymous>"
+            lineno (line number is not used if context-line is available)
               806
           frame*
             module*
-              u'hub.ts'
+              "hub.ts"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/hub/src/hub.ts'
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/src/hub.ts"
             context-line*
-              u'    if (maxBreadcrumbs <= 0) {'
-            function (function name is used only if module or filename are available)
-              u'Hub.Object.<anonymous>.Hub.captureException'
-            lineno (line number is used only if module or filename are available)
+              "    if (maxBreadcrumbs <= 0) {"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.captureException"
+            lineno (line number is not used if context-line is available)
               255
           frame*
             module*
-              u'hub'
+              "hub"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js'
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js"
             context-line*
-              u'     * @returns Scope, the new cloned scope'
-            function (function name is used only if module or filename are available)
-              u'Hub.Object.<anonymous>.Hub.invokeClient'
-            lineno (line number is used only if module or filename are available)
+              "     * @returns Scope, the new cloned scope"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.invokeClient"
+            lineno (line number is not used if context-line is available)
               91
           frame*
             module*
-              u'baseclient.ts'
+              "baseclient.ts"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/core/src/baseclient.ts'
+              "/home/travis/build/getsentry/sentry-javascript/packages/core/src/baseclient.ts"
             context-line*
-              u'    promisedEvent'
-            function (function name is used only if module or filename are available)
-              u'NodeClient.Object.<anonymous>.BaseClient.captureException'
-            lineno (line number is used only if module or filename are available)
+              "    promisedEvent"
+            function (function name is not used if context-line is available)
+              "NodeClient.Object.<anonymous>.BaseClient.captureException"
+            lineno (line number is not used if context-line is available)
               110
           frame*
             module*
-              u'backend.ts'
+              "backend.ts"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/node/src/backend.ts'
+              "/home/travis/build/getsentry/sentry-javascript/packages/node/src/backend.ts"
             function*
-              u'NodeBackend.Object.<anonymous>.NodeBackend.eventFromException'
+              "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException"
             lineno (function takes precedence)
               2093
         type*
-          u'Error'
+          "Error"
         value (stacktrace and type take precedence)
-          u'bla'
+          "bla"
 --------------------------------------------------------------------------
 system:
-  hash: '6a3275e56067560bf20cb311f724f897'
+  hash: "6a3275e56067560bf20cb311f724f897"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'hub'
+              "hub"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js'
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js"
             context-line*
-              u'     */'
-            function (function name is used only if module or filename are available)
-              u'Hub.Object.<anonymous>.Hub.withScope'
-            lineno (line number is used only if module or filename are available)
+              "     */"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.withScope"
+            lineno (line number is not used if context-line is available)
               171
           frame*
             module*
-              u'onunhandledrejection.ts'
+              "onunhandledrejection.ts"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/node/src/integrations/onunhandledrejection.ts'
+              "/home/travis/build/getsentry/sentry-javascript/packages/node/src/integrations/onunhandledrejection.ts"
             function*
-              u'null.<anonymous>'
+              "null.<anonymous>"
             lineno (function takes precedence)
               808
           frame*
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
             context-line*
-              u'        return fn.apply(this, arguments);'
-            function (function name is used only if module or filename are available)
-              u'Hub.mockConstructor [as captureException]'
-            lineno (line number is used only if module or filename are available)
+              "        return fn.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "Hub.mockConstructor [as captureException]"
+            lineno (line number is not used if context-line is available)
               150
           frame*
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
             context-line*
-              u'          })();'
-            function (function name is used only if module or filename are available)
-              u'Hub.<anonymous>'
-            lineno (line number is used only if module or filename are available)
+              "          })();"
+            function (function name is not used if context-line is available)
+              "Hub.<anonymous>"
+            lineno (line number is not used if context-line is available)
               446
           frame*
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
             context-line*
-              u'                return specificMockImpl.apply(this, arguments);'
-            function (function name is used only if module or filename are available)
-              u'finalReturnValue'
-            lineno (line number is used only if module or filename are available)
+              "                return specificMockImpl.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "finalReturnValue"
+            lineno (line number is not used if context-line is available)
               437
           frame*
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js'
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
             context-line*
-              u'        return original.apply(this, arguments);'
-            function (function name is used only if module or filename are available)
-              u'Hub.<anonymous>'
-            lineno (line number is used only if module or filename are available)
+              "        return original.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "Hub.<anonymous>"
+            lineno (line number is not used if context-line is available)
               806
           frame*
             module*
-              u'hub.ts'
+              "hub.ts"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/hub/src/hub.ts'
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/src/hub.ts"
             context-line*
-              u'    if (maxBreadcrumbs <= 0) {'
-            function (function name is used only if module or filename are available)
-              u'Hub.Object.<anonymous>.Hub.captureException'
-            lineno (line number is used only if module or filename are available)
+              "    if (maxBreadcrumbs <= 0) {"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.captureException"
+            lineno (line number is not used if context-line is available)
               255
           frame*
             module*
-              u'hub'
+              "hub"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js'
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js"
             context-line*
-              u'     * @returns Scope, the new cloned scope'
-            function (function name is used only if module or filename are available)
-              u'Hub.Object.<anonymous>.Hub.invokeClient'
-            lineno (line number is used only if module or filename are available)
+              "     * @returns Scope, the new cloned scope"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.invokeClient"
+            lineno (line number is not used if context-line is available)
               91
           frame*
             module*
-              u'baseclient.ts'
+              "baseclient.ts"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/core/src/baseclient.ts'
+              "/home/travis/build/getsentry/sentry-javascript/packages/core/src/baseclient.ts"
             context-line*
-              u'    promisedEvent'
-            function (function name is used only if module or filename are available)
-              u'NodeClient.Object.<anonymous>.BaseClient.captureException'
-            lineno (line number is used only if module or filename are available)
+              "    promisedEvent"
+            function (function name is not used if context-line is available)
+              "NodeClient.Object.<anonymous>.BaseClient.captureException"
+            lineno (line number is not used if context-line is available)
               110
           frame*
             module*
-              u'backend.ts'
+              "backend.ts"
             filename (module takes precedence)
-              u'/home/travis/build/getsentry/sentry-javascript/packages/node/src/backend.ts'
+              "/home/travis/build/getsentry/sentry-javascript/packages/node/src/backend.ts"
             function*
-              u'NodeBackend.Object.<anonymous>.NodeBackend.eventFromException'
+              "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException"
             lineno (function takes precedence)
               2093
         type*
-          u'Error'
+          "Error"
         value (stacktrace and type take precedence)
-          u'bla'
+          "bla"
