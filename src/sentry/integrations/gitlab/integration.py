@@ -94,6 +94,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
     def get_stacktrace_link(self, repo, filepath, version):
         project_id = repo.config["project_id"]
+        repo_name = repo.config["path"]
         try:
             # repos are projects in GL so the project_id is the repo id which
             # GL's API uses instead of slugs like GH
@@ -107,7 +108,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
-        web_url = u"{}/{}/blob/{}/{}".format(base_url, repo.name, version, filepath)
+        web_url = u"{}/{}/blob/{}/{}".format(base_url, repo_name, version, filepath)
 
         return web_url
 

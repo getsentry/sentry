@@ -239,22 +239,23 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_get_stacktrace_link_file_exists(self):
         self.assert_setup_flow()
-
+        integration = Integration.objects.get(provider=self.provider.key)
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Test-Organization/foo",
             url="https://github.com/Test-Organization/foo",
-            provider="github",
+            provider="integrations:github",
             external_id=123,
             config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
         )
+
         path = "README.md"
         version = "master"
         responses.add(
             responses.HEAD,
             self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
         )
-        integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
         result = installation.get_stacktrace_link(repo, path, version)
 
@@ -263,14 +264,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_get_stacktrace_link_file_doesnt_exists(self):
         self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
 
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Test-Organization/foo",
             url="https://github.com/Test-Organization/foo",
-            provider="github",
+            provider="integrations:github",
             external_id=123,
             config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
         )
         path = "README.md"
         version = "master"
@@ -279,7 +282,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
             status=404,
         )
-        integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
         result = installation.get_stacktrace_link(repo, path, version)
 
