@@ -4,11 +4,9 @@
  *
  * Also displays 2fa method specific details.
  */
-import {Box, Flex} from 'grid-emotion';
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -22,19 +20,9 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
 import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
+import space from 'app/styles/space';
 
 const ENDPOINT = '/users/me/authenticators/';
-
-const DateLabel = styled.span`
-  font-weight: bold;
-  margin-right: 6px;
-  width: 100px;
-`;
-
-const Phone = styled.span`
-  font-weight: bold;
-  margin-left: 6px;
-`;
 
 class AuthenticatorDate extends React.Component {
   static propTypes = {
@@ -45,14 +33,15 @@ class AuthenticatorDate extends React.Component {
      */
     date: PropTypes.string,
   };
+
   render() {
     const {label, date} = this.props;
 
     return (
-      <Flex mb={1}>
+      <React.Fragment>
         <DateLabel>{label}</DateLabel>
-        <Box flex="1">{date ? <DateTime date={date} /> : t('never')}</Box>
-      </Flex>
+        <div>{date ? <DateTime date={date} /> : t('never')}</div>
+      </React.Fragment>
     );
   }
 }
@@ -62,10 +51,8 @@ class AccountSecurityDetails extends AsyncView {
     deleteDisabled: PropTypes.bool.isRequired,
     onRegenerateBackupCodes: PropTypes.func.isRequired,
   };
-  constructor(...args) {
-    super(...args);
-    this._form = {};
-  }
+
+  _form = {};
 
   getTitle() {
     return t('Security');
@@ -83,7 +70,9 @@ class AccountSecurityDetails extends AsyncView {
   handleRemove = device => {
     const {authenticator} = this.state;
 
-    if (!authenticator || !authenticator.authId) return;
+    if (!authenticator || !authenticator.authId) {
+      return;
+    }
     const isRemovingU2fDevice = !!device;
     const deviceId = isRemovingU2fDevice ? `${device.key_handle}/` : '';
 
@@ -111,10 +100,6 @@ class AccountSecurityDetails extends AsyncView {
     );
   };
 
-  handleRemoveU2fDevice = () => {
-    // TODO(billy): Implement me
-  };
-
   renderBody() {
     const {authenticator} = this.state;
     const {deleteDisabled, onRegenerateBackupCodes} = this.props;
@@ -125,7 +110,7 @@ class AccountSecurityDetails extends AsyncView {
           title={
             <React.Fragment>
               <span>{authenticator.name}</span>
-              <CircleIndicator css={{marginLeft: 6}} enabled={authenticator.isEnrolled} />
+              <AuthenticatorStatus enabled={authenticator.isEnrolled} />
             </React.Fragment>
           }
           action={
@@ -137,19 +122,20 @@ class AccountSecurityDetails extends AsyncView {
                 )}
                 disabled={!deleteDisabled}
               >
-                <span>
-                  <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
-                    <Button priority="danger">{authenticator.removeButton}</Button>
-                  </RemoveConfirm>
-                </span>
+                <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
+                  <Button priority="danger">{authenticator.removeButton}</Button>
+                </RemoveConfirm>
               </Tooltip>
             )
           }
         />
 
         <TextBlock>{authenticator.description}</TextBlock>
-        <AuthenticatorDate label={t('Created at')} date={authenticator.createdAt} />
-        <AuthenticatorDate label={t('Last used')} date={authenticator.lastUsedAt} />
+
+        <AuthenticatorDates>
+          <AuthenticatorDate label={t('Created at')} date={authenticator.createdAt} />
+          <AuthenticatorDate label={t('Last used')} date={authenticator.lastUsedAt} />
+        </AuthenticatorDates>
 
         <U2fEnrolledDetails
           isEnrolled={authenticator.isEnrolled}
@@ -158,13 +144,12 @@ class AccountSecurityDetails extends AsyncView {
           onRemoveU2fDevice={this.handleRemove}
         />
 
-        {authenticator.isEnrolled &&
-          authenticator.phone && (
-            <div css={{marginTop: 30}}>
-              {t('Confirmation codes are sent to the following phone number')}:
-              <Phone>{authenticator.phone}</Phone>
-            </div>
-          )}
+        {authenticator.isEnrolled && authenticator.phone && (
+          <PhoneWrapper>
+            {t('Confirmation codes are sent to the following phone number')}:
+            <Phone>{authenticator.phone}</Phone>
+          </PhoneWrapper>
+        )}
 
         <RecoveryCodes
           onRegenerateBackupCodes={onRegenerateBackupCodes}
@@ -176,4 +161,27 @@ class AccountSecurityDetails extends AsyncView {
   }
 }
 
-export default withRouter(AccountSecurityDetails);
+export default AccountSecurityDetails;
+
+const AuthenticatorStatus = styled(CircleIndicator)`
+  margin-left: ${space(1)};
+`;
+
+const AuthenticatorDates = styled('div')`
+  display: grid;
+  grid-gap: ${space(2)};
+  grid-template-columns: max-content auto;
+`;
+
+const DateLabel = styled('span')`
+  font-weight: bold;
+`;
+
+const PhoneWrapper = styled('div')`
+  margin-top: ${space(4)};
+`;
+
+const Phone = styled('span')`
+  font-weight: bold;
+  margin-left: ${space(1)};
+`;

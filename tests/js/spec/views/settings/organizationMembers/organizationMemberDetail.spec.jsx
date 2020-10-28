@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {updateMember} from 'app/actionCreators/members';
 import OrganizationMemberDetail from 'app/views/settings/organizationMembers/organizationMemberDetail';
@@ -8,7 +9,7 @@ jest.mock('app/actionCreators/members', () => ({
   updateMember: jest.fn().mockReturnValue(new Promise(() => {})),
 }));
 
-describe('OrganizationMemberDetail', function() {
+describe('OrganizationMemberDetail', function () {
   let organization;
   let wrapper;
   let routerContext;
@@ -45,13 +46,13 @@ describe('OrganizationMemberDetail', function() {
     expired: true,
   });
 
-  describe('Can Edit', function() {
-    beforeAll(function() {
+  describe('Can Edit', function () {
+    beforeAll(function () {
       organization = TestStubs.Organization({teams});
       routerContext = TestStubs.routerContext([{organization}]);
     });
 
-    beforeEach(function() {
+    beforeEach(function () {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${member.id}/`,
@@ -71,8 +72,8 @@ describe('OrganizationMemberDetail', function() {
       });
     });
 
-    it('changes role to owner', function() {
-      wrapper = mount(
+    it('changes role to owner', function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -80,17 +81,9 @@ describe('OrganizationMemberDetail', function() {
       // Should have 4 roles
       expect(wrapper.find('RoleSelect Radio')).toHaveLength(4);
 
-      wrapper
-        .find('RoleSelect Radio')
-        .last()
-        .simulate('click');
+      wrapper.find('RoleSelect Radio').last().simulate('click');
 
-      expect(
-        wrapper
-          .find('RoleSelect Radio')
-          .last()
-          .prop('checked')
-      ).toBe(true);
+      expect(wrapper.find('RoleSelect Radio').last().prop('checked')).toBe(true);
 
       // Save Member
       wrapper.find('Button[priority="primary"]').simulate('click');
@@ -105,11 +98,13 @@ describe('OrganizationMemberDetail', function() {
       );
     });
 
-    it('leaves a team', async function() {
-      wrapper = mount(
+    it('leaves a team', async function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
+      // Wait for team list to load
+      await tick();
 
       // Remove our one team
       const button = wrapper.find('TeamSelect TeamRow Button');
@@ -129,8 +124,8 @@ describe('OrganizationMemberDetail', function() {
       );
     });
 
-    it('joins a team', async function() {
-      wrapper = mount(
+    it('joins a team', async function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -138,17 +133,14 @@ describe('OrganizationMemberDetail', function() {
       await wrapper.update();
 
       // Should have one team enabled
-      expect(wrapper.find('TeamSelect PanelItem')).toHaveLength(1);
+      expect(wrapper.find('TeamPanelItem')).toHaveLength(1);
 
       // Select new team to join
       // Open the dropdown
       wrapper.find('TeamSelect DropdownButton').simulate('click');
 
       // Click the first item
-      wrapper
-        .find('TeamSelect TeamDropdownElement')
-        .first()
-        .simulate('click');
+      wrapper.find('TeamSelect TeamDropdownElement').first().simulate('click');
 
       // Save Member
       wrapper.find('Button[priority="primary"]').simulate('click');
@@ -164,14 +156,14 @@ describe('OrganizationMemberDetail', function() {
     });
   });
 
-  describe('Cannot Edit', function() {
-    beforeAll(function() {
+  describe('Cannot Edit', function () {
+    beforeAll(function () {
       organization = TestStubs.Organization({teams, access: ['org:read']});
       routerContext = TestStubs.routerContext([{organization}]);
     });
 
-    it('can not change roles, teams, or save', async function() {
-      wrapper = mount(
+    it('can not change roles, teams, or save', async function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -180,26 +172,21 @@ describe('OrganizationMemberDetail', function() {
       // Should have 4 roles
       expect(wrapper.find('RoleSelect').prop('disabled')).toBe(true);
       expect(wrapper.find('TeamSelect').prop('disabled')).toBe(true);
-      expect(
-        wrapper
-          .find('TeamRow Button')
-          .first()
-          .prop('disabled')
-      ).toBe(true);
-      expect(
-        wrapper.find('Button[className="invite-member-submit"]').prop('disabled')
-      ).toBe(true);
+      expect(wrapper.find('TeamRow Button').first().prop('disabled')).toBe(true);
+
+      // Save Member
+      expect(wrapper.find('Button[priority="primary"]').prop('disabled')).toBe(true);
     });
   });
 
-  describe('Display status', function() {
-    beforeAll(function() {
+  describe('Display status', function () {
+    beforeAll(function () {
       organization = TestStubs.Organization({teams, access: ['org:read']});
       routerContext = TestStubs.routerContext([{organization}]);
     });
 
-    it('display pending status', function() {
-      wrapper = mount(
+    it('display pending status', function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
         routerContext
       );
@@ -209,8 +196,8 @@ describe('OrganizationMemberDetail', function() {
       );
     });
 
-    it('display expired status', function() {
-      wrapper = mount(
+    it('display expired status', function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: expiredMember.id}} />,
         routerContext
       );
@@ -221,14 +208,14 @@ describe('OrganizationMemberDetail', function() {
     });
   });
 
-  describe('Show resend button', function() {
-    beforeAll(function() {
+  describe('Show resend button', function () {
+    beforeAll(function () {
       organization = TestStubs.Organization({teams, access: ['org:read']});
       routerContext = TestStubs.routerContext([{organization}]);
     });
 
-    it('shows for pending', function() {
-      wrapper = mount(
+    it('shows for pending', function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
         routerContext
       );
@@ -237,8 +224,8 @@ describe('OrganizationMemberDetail', function() {
       expect(button.text()).toEqual('Resend Invite');
     });
 
-    it('does not show for expired', function() {
-      wrapper = mount(
+    it('does not show for expired', function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: expiredMember.id}} />,
         routerContext
       );
@@ -247,7 +234,7 @@ describe('OrganizationMemberDetail', function() {
     });
   });
 
-  describe('Reset member 2FA', function() {
+  describe('Reset member 2FA', function () {
     const fields = {
       roles: TestStubs.RoleList(),
       dateCreated: new Date(),
@@ -290,7 +277,7 @@ describe('OrganizationMemberDetail', function() {
       }),
     });
 
-    beforeAll(function() {
+    beforeAll(function () {
       organization = TestStubs.Organization({teams});
       routerContext = TestStubs.routerContext([{organization}]);
 
@@ -340,67 +327,67 @@ describe('OrganizationMemberDetail', function() {
       expect(wrapper.find(tooltip).prop('disabled')).toBe(false);
     };
 
-    it('does not show for pending member', function() {
-      wrapper = mount(
+    it('does not show for pending member', function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
         routerContext
       );
       expect(wrapper.find(button)).toHaveLength(0);
     });
 
-    it('shows tooltip for joined member without permission to edit', function() {
-      wrapper = mount(
+    it('shows tooltip for joined member without permission to edit', function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: noAccess.id}} />,
         routerContext
       );
       expectButtonDisabled('You do not have permission to perform this action');
     });
 
-    it('shows tooltip for member without 2fa', function() {
-      wrapper = mount(
+    it('shows tooltip for member without 2fa', function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: no2fa.id}} />,
         routerContext
       );
       expectButtonDisabled('Not enrolled in two-factor authentication');
     });
 
-    it('can reset member 2FA', function() {
-      const deleteMocks = has2fa.user.authenticators.map(auth => {
-        return MockApiClient.addMockResponse({
+    it('can reset member 2FA', function () {
+      const deleteMocks = has2fa.user.authenticators.map(auth =>
+        MockApiClient.addMockResponse({
           url: `/users/${has2fa.user.id}/authenticators/${auth.id}/`,
           method: 'DELETE',
-        });
-      });
+        })
+      );
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: has2fa.id}} />,
         routerContext
       );
 
       expectButtonEnabled();
       wrapper.find(button).simulate('click');
-      wrapper.find('Button[data-test-id="confirm-modal"]').simulate('click');
+      wrapper.find('Button[data-test-id="confirm-button"]').simulate('click');
       deleteMocks.map(deleteMock => {
         expect(deleteMock).toHaveBeenCalled();
       });
     });
 
-    it('shows tooltip for member in multiple orgs', function() {
-      wrapper = mount(
+    it('shows tooltip for member in multiple orgs', function () {
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: multipleOrgs.id}} />,
         routerContext
       );
       expectButtonDisabled('Cannot be reset since user is in more than one organization');
     });
 
-    it('shows tooltip for member in 2FA required org', function() {
+    it('shows tooltip for member in 2FA required org', function () {
       organization.require2FA = true;
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${has2fa.id}/`,
         body: has2fa,
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: has2fa.id}} />,
         routerContext
       );

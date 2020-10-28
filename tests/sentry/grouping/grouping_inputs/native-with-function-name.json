@@ -1,0 +1,142 @@
+{
+  "culprit": "",
+  "event_id": "043fabbee34d4a2fb7b767baf3ed1287",
+  "platform": "native",
+  "logger": "",
+  "threads": {
+    "values": [
+      {
+        "crashed": true,
+        "id": 775
+      }
+    ]
+  },
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "../macos/main.cpp",
+              "in_app": false,
+              "package": "/private/tmp/breakpad-tools/macos/./build/crash",
+              "filename": "../macos/main.cpp",
+              "lineno": 47,
+              "trust": "context",
+              "instruction_addr": "0x10cb29243",
+              "raw_function": "main"
+            },
+            {
+              "function": "(anonymous namespace)::start()",
+              "abs_path": "../macos/main.cpp",
+              "in_app": false,
+              "package": "/private/tmp/breakpad-tools/macos/./build/crash",
+              "symbol": "_ZN12_GLOBAL__N_15startEv",
+              "filename": "../macos/main.cpp",
+              "lineno": 40,
+              "trust": "context",
+              "instruction_addr": "0x10cb29243"
+            },
+            {
+              "raw_function": "(anonymous namespace)::crash(int, int)",
+              "abs_path": "../macos/main.cpp",
+              "in_app": false,
+              "package": "/private/tmp/breakpad-tools/macos/./build/crash",
+              "symbol": "_ZN12_GLOBAL__N_15crashEii",
+              "filename": "../macos/main.cpp",
+              "lineno": 36,
+              "trust": "context",
+              "instruction_addr": "0x10cb29243",
+              "function": "(anonymous namespace)::crash"
+            },
+            {
+              "raw_function": "(anonymous namespace)::something::nested::Foo<std::__1::map<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::less<std:...",
+              "abs_path": "../macos/main.cpp",
+              "in_app": false,
+              "package": "/private/tmp/breakpad-tools/macos/./build/crash",
+              "symbol": "_ZN12_GLOBAL__N_19something6nested3FooINSt3__13mapINS3_12basic_stringIcNS3_11char_traitsIcEENS3_9allocatorIcEEEESA_NS3_4lessISA_EENS8_INS3_4pairIKSA_SA_EEEEEEE5crashEii",
+              "filename": "../macos/main.cpp",
+              "lineno": 28,
+              "trust": "context",
+              "instruction_addr": "0x10cb29243",
+              "function": "(anonymous namespace)::something::nested::Foo<T>::crash"
+            }
+          ],
+          "registers": {
+            "r14": "0x0",
+            "r15": "0x0",
+            "r12": "0x0",
+            "r13": "0x0",
+            "r10": "0x7ff26bc00000",
+            "r11": "0x7",
+            "rsp": "0x7ffee30e45f0",
+            "rbx": "0x0",
+            "r8": "0x26bc054f",
+            "r9": "0xffff7fff",
+            "rip": "0x10cb29243",
+            "rbp": "0x7ffee30e4730",
+            "rdx": "0x10000",
+            "rcx": "0x7ff26bc054e8",
+            "rdi": "0x55",
+            "rax": "0x7ff26bc054e0",
+            "rsi": "0x26bc0550"
+          }
+        },
+        "type": "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS",
+        "mechanism": {
+          "synthetic": true,
+          "type": "minidump",
+          "handled": false
+        },
+        "thread_id": 775,
+        "value": "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS",
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "trust": "scan",
+              "in_app": false,
+              "instruction_addr": "0x7fff6b0f93d5",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "trust": "scan",
+              "in_app": false,
+              "instruction_addr": "0x10cb292c0",
+              "package": "/private/tmp/breakpad-tools/macos/./build/crash"
+            },
+            {
+              "trust": "context",
+              "in_app": false,
+              "instruction_addr": "0x10cb29243",
+              "package": "/private/tmp/breakpad-tools/macos/./build/crash"
+            }
+          ],
+          "registers": {
+            "r14": "0x0",
+            "r15": "0x0",
+            "r12": "0x0",
+            "r13": "0x0",
+            "r10": "0x7ff26bc00000",
+            "r11": "0x7",
+            "rsp": "0x7ffee30e45f0",
+            "rbx": "0x0",
+            "r8": "0x26bc054f",
+            "r9": "0xffff7fff",
+            "rip": "0x10cb29243",
+            "rbp": "0x7ffee30e4730",
+            "rdx": "0x10000",
+            "rcx": "0x7ff26bc054e8",
+            "rdi": "0x55",
+            "rax": "0x7ff26bc054e0",
+            "rsi": "0x26bc0550"
+          }
+        }
+      }
+    ]
+  },
+  "release": null
+}

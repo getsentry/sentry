@@ -1,9 +1,22 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    Commit, CommitAuthor, Environment, EnvironmentProject, Event, EventAttachment, File, Group, GroupAssignee, GroupMeta,
-    GroupResolution, Project, Release, ReleaseCommit, Repository, ScheduledDeletion,
-    ProjectDebugFile
+    Commit,
+    CommitAuthor,
+    Environment,
+    EnvironmentProject,
+    EventAttachment,
+    File,
+    Group,
+    GroupAssignee,
+    GroupMeta,
+    GroupResolution,
+    Project,
+    Release,
+    ReleaseCommit,
+    Repository,
+    ScheduledDeletion,
+    ProjectDebugFile,
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
@@ -11,34 +24,27 @@ from sentry.testutils import TestCase
 
 class DeleteProjectTest(TestCase):
     def test_simple(self):
-        project = self.create_project(
-            name='test',
-        )
-        group = self.create_group(project=project)
-        event = self.create_event(group=group)
+        project = self.create_project(name="test")
+        event = self.store_event(data={}, project_id=project.id)
+        group = event.group
         GroupAssignee.objects.create(group=group, project=project, user=self.user)
-        GroupMeta.objects.create(group=group, key='foo', value='bar')
-        release = Release.objects.create(version='a' * 32, organization_id=project.organization_id)
+        GroupMeta.objects.create(group=group, key="foo", value="bar")
+        release = Release.objects.create(version="a" * 32, organization_id=project.organization_id)
         release.add_project(project)
         GroupResolution.objects.create(group=group, release=release)
         env = Environment.objects.create(
-            organization_id=project.organization_id, project_id=project.id, name='foo'
+            organization_id=project.organization_id, project_id=project.id, name="foo"
         )
         env.add_project(project)
-        repo = Repository.objects.create(
-            organization_id=project.organization_id,
-            name=project.name,
-        )
+        repo = Repository.objects.create(organization_id=project.organization_id, name=project.name)
         commit_author = CommitAuthor.objects.create(
-            organization_id=project.organization_id,
-            name='foo',
-            email='foo@example.com',
+            organization_id=project.organization_id, name="foo", email="foo@example.com"
         )
         commit = Commit.objects.create(
             repository_id=repo.id,
             organization_id=project.organization_id,
             author=commit_author,
-            key='a' * 40,
+            key="a" * 40,
         )
         ReleaseCommit.objects.create(
             organization_id=project.organization_id,
@@ -47,25 +53,22 @@ class DeleteProjectTest(TestCase):
             commit=commit,
             order=0,
         )
-        file = File.objects.create(
-            name='debug-file',
-            type='project.dif',
-        )
+        file = File.objects.create(name="debug-file", type="project.dif")
         dif = ProjectDebugFile.objects.create(
             file=file,
-            debug_id='uuid',
-            cpu_name='cpu',
-            object_name='object',
+            debug_id="uuid",
+            code_id="codeid",
+            cpu_name="cpu",
+            object_name="object",
             project=project,
         )
+        file_attachment = File.objects.create(name="hello.png", type="image/png")
         EventAttachment.objects.create(
             event_id=event.event_id,
             project_id=event.project_id,
-            file=File.objects.create(
-                name='hello.png',
-                type='image/png',
-            ),
-            name='hello.png',
+            file=file_attachment,
+            type=file_attachment.type,
+            name="hello.png",
         )
 
         deletion = ScheduledDeletion.schedule(project, days=0)
@@ -80,7 +83,6 @@ class DeleteProjectTest(TestCase):
         ).exists()
         assert Environment.objects.filter(id=env.id).exists()
         assert not Group.objects.filter(project_id=project.id).exists()
-        assert not Event.objects.filter(project_id=project.id).exists()
         assert not EventAttachment.objects.filter(project_id=project.id).exists()
         assert Release.objects.filter(id=release.id).exists()
         assert ReleaseCommit.objects.filter(release_id=release.id).exists()

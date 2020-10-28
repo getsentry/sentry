@@ -1,16 +1,26 @@
 from __future__ import absolute_import
 
-__all__ = ['from_user', 'from_member', 'DEFAULT']
+__all__ = ["from_user", "from_member", "DEFAULT"]
 
 import warnings
 
 from django.conf import settings
 from django.utils.functional import cached_property
 
+import sentry_sdk
+
 from sentry import roles
 from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
 from sentry.models import (
-    AuthIdentity, AuthProvider, OrganizationMember, Project, SentryApp, UserPermission
+    AuthIdentity,
+    AuthProvider,
+    OrganizationMember,
+    Project,
+    ProjectStatus,
+    SentryApp,
+    UserPermission,
+    Team,
 )
 
 
@@ -21,9 +31,7 @@ def _sso_params(member):
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
     try:
-        auth_provider = AuthProvider.objects.get(
-            organization=member.organization_id,
-        )
+        auth_provider = AuthProvider.objects.get(organization=member.organization_id)
     except AuthProvider.DoesNotExist:
         sso_is_valid = True
         requires_sso = False
@@ -35,8 +43,7 @@ def _sso_params(member):
             requires_sso = True
             try:
                 auth_identity = AuthIdentity.objects.get(
-                    auth_provider=auth_provider,
-                    user=member.user_id,
+                    auth_provider=auth_provider, user=member.user_id
                 )
             except AuthIdentity.DoesNotExist:
                 sso_is_valid = False
@@ -50,7 +57,9 @@ def _sso_params(member):
                             organization=member.organization_id,
                             role=roles.get_top_dog().id,
                             user__is_active=True,
-                        ).exclude(id=member.id).values_list('user_id')
+                        )
+                        .exclude(id=member.id)
+                        .values_list("user_id"),
                     ).exists()
             else:
                 sso_is_valid = auth_identity.is_valid(member)
@@ -73,6 +82,7 @@ class BaseAccess(object):
     has_global_access = False
     scopes = frozenset()
     permissions = frozenset()
+    role = None
 
     def has_permission(self, permission):
         """
@@ -95,7 +105,7 @@ class BaseAccess(object):
         return scope in self.scopes
 
     def has_team(self, team):
-        warnings.warn('has_team() is deprecated in favor of has_team_access', DeprecationWarning)
+        warnings.warn("has_team() is deprecated in favor of has_team_access", DeprecationWarning)
         return self.has_team_access(team)
 
     def has_team_access(self, team):
@@ -157,22 +167,35 @@ class BaseAccess(object):
         return self.has_project_access(project) and self.has_scope(scope)
 
     def to_django_context(self):
-        return {s.replace(':', '_'): self.has_scope(s) for s in settings.SENTRY_SCOPES}
+        return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
 
 
 class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
-    # would be based on the same scopes as API access so theres clarity in
+    # would be based on the same scopes as API access so there's clarity in
     # what things mean
-    def __init__(self, scopes, is_active, organization_id, teams, projects, has_global_access,
-                 sso_is_valid, requires_sso, permissions=None):
+    def __init__(
+        self,
+        scopes,
+        is_active,
+        organization_id,
+        teams,
+        projects,
+        has_global_access,
+        sso_is_valid,
+        requires_sso,
+        permissions=None,
+        role=None,
+    ):
         self.organization_id = organization_id
         self.teams = teams
-        self.projects = projects
+        self.projects = frozenset(projects)
         self.has_global_access = has_global_access
         self.scopes = scopes
         if permissions is not None:
             self.permissions = permissions
+        if role is not None:
+            self.role = role
 
         self.is_active = is_active
         self.sso_is_valid = sso_is_valid
@@ -215,6 +238,25 @@ class OrganizationlessAccess(BaseAccess):
             self.permissions = permissions
 
 
+class SystemAccess(BaseAccess):
+    is_active = True
+
+    def has_permission(self, permission):
+        return True
+
+    def has_scope(self, scope):
+        return True
+
+    def has_team_access(self, team):
+        return True
+
+    def has_project_access(self, project):
+        return True
+
+    def has_project_membership(self, project):
+        return True
+
+
 class NoAccess(BaseAccess):
     requires_sso = False
     sso_is_valid = True
@@ -230,25 +272,22 @@ class NoAccess(BaseAccess):
 
 def from_request(request, organization=None, scopes=None):
     if not organization:
-        return from_user(request.user,
-                         organization=organization,
-                         scopes=scopes)
+        return from_user(request.user, organization=organization, scopes=scopes)
 
-    if getattr(request.user, 'is_sentry_app', False):
-        return from_sentry_app(request.user, organization=organization)
+    if getattr(request.user, "is_sentry_app", False):
+        return _from_sentry_app(request.user, organization=organization)
 
     if is_active_superuser(request):
+        role = None
         # we special case superuser so that if they're a member of the org
         # they must still follow SSO checks, but they gain global access
         try:
-            member = OrganizationMember.objects.get(
-                user=request.user,
-                organization=organization,
-            )
+            member = OrganizationMember.objects.get(user=request.user, organization=organization)
         except OrganizationMember.DoesNotExist:
             requires_sso, sso_is_valid = False, True
         else:
             requires_sso, sso_is_valid = _sso_params(member)
+            role = member.role
 
         team_list = ()
 
@@ -263,15 +302,18 @@ def from_request(request, organization=None, scopes=None):
             requires_sso=requires_sso,
             has_global_access=True,
             permissions=UserPermission.for_user(request.user.id),
+            role=role,
         )
 
-    if hasattr(request, 'auth') and not request.user.is_authenticated():
+    # TODO: from_auth does not take scopes as a parameter so this fails for anon user
+    if hasattr(request, "auth") and not request.user.is_authenticated():
         return from_auth(request.auth, scopes=scopes)
 
     return from_user(request.user, organization, scopes=scopes)
 
 
-def from_sentry_app(user, organization=None):
+# only used internally
+def _from_sentry_app(user, organization=None):
     if not organization:
         return NoAccess()
 
@@ -280,13 +322,15 @@ def from_sentry_app(user, organization=None):
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
 
-    team_list = list(sentry_app.teams.all())
-    project_list = list(Project.objects.filter(teams__in=team_list).distinct())
+    team_list = list(Team.objects.filter(organization=organization))
+    project_list = list(
+        Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=team_list).distinct()
+    )
 
     return Access(
         scopes=sentry_app.scope_list,
         is_active=True,
-        organization_id=organization.id if organization else None,
+        organization_id=organization.id,
         teams=team_list,
         projects=project_list,
         permissions=(),
@@ -301,19 +345,12 @@ def from_user(user, organization=None, scopes=None):
         return DEFAULT
 
     if not organization:
-        return OrganizationlessAccess(
-            permissions=UserPermission.for_user(user.id),
-        )
+        return OrganizationlessAccess(permissions=UserPermission.for_user(user.id))
 
     try:
-        om = OrganizationMember.objects.get(
-            user=user,
-            organization=organization,
-        )
+        om = OrganizationMember.objects.get(user=user, organization=organization)
     except OrganizationMember.DoesNotExist:
-        return OrganizationlessAccess(
-            permissions=UserPermission.for_user(user.id),
-        )
+        return OrganizationlessAccess(permissions=UserPermission.for_user(user.id))
 
     # ensure cached relation
     om.organization = organization
@@ -327,7 +364,12 @@ def from_member(member, scopes=None):
     requires_sso, sso_is_valid = _sso_params(member)
 
     team_list = member.get_teams()
-    project_list = list(Project.objects.filter(teams__in=team_list).distinct())
+    with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
+        project_list = list(
+            Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=team_list).distinct()
+        )
+        span.set_data("Project Count", len(project_list))
+        span.set_data("Team Count", len(team_list))
 
     if scopes is not None:
         scopes = set(scopes) & member.get_scopes()
@@ -342,14 +384,20 @@ def from_member(member, scopes=None):
         organization_id=member.organization_id,
         teams=team_list,
         projects=project_list,
-        has_global_access=bool(member.organization.flags.allow_joinleave) or
-        roles.get(member.role).is_global,
+        has_global_access=bool(member.organization.flags.allow_joinleave)
+        or roles.get(member.role).is_global,
         permissions=UserPermission.for_user(member.user_id),
+        role=member.role,
     )
 
 
-def from_auth(auth, scopes=None):
-    return OrganizationGlobalAccess(auth.organization, scopes=scopes)
+def from_auth(auth, organization):
+    if is_system_auth(auth):
+        return SystemAccess()
+    if auth.organization_id == organization.id:
+        return OrganizationGlobalAccess(auth.organization)
+    else:
+        return DEFAULT
 
 
 DEFAULT = NoAccess()

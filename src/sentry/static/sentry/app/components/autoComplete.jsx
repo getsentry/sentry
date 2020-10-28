@@ -77,7 +77,7 @@ class AutoComplete extends React.Component {
     this.items = new Map();
   }
 
-  componentWillReceiveProps(nextProps, nextState) {
+  UNSAFE_componentWillReceiveProps(nextProps, nextState) {
     // If we do NOT want to close on select, then we should not reset highlight state
     // when we select an item (when we select an item, `this.state.selectedItem` changes)
     if (!nextProps.closeOnSelect && this.state.selectedItem !== nextState.selectedItem) {
@@ -87,7 +87,7 @@ class AutoComplete extends React.Component {
     this.resetHighlightState();
   }
 
-  componentWillUpdate() {
+  UNSAFE_componentWillUpdate() {
     this.items.clear();
   }
 
@@ -147,13 +147,19 @@ class AutoComplete extends React.Component {
   };
 
   // Dropdown detected click outside, we should close
-  handleClickOutside = () => {
+  handleClickOutside = async () => {
     // Otherwise, it's possible that this gets fired multiple times
     // e.g. click outside triggers closeMenu and at the same time input gets blurred, so
     // a timer is set to close the menu
     if (this.blurTimer) {
       clearTimeout(this.blurTimer);
     }
+
+    // Wait until the current macrotask completes, in the case that the click
+    // happened on a hovercard or some other element rendered outside of the
+    // autocomplete, but controlled by the existence of the autocomplete, we
+    // need to ensure any click handlers are run.
+    await new Promise(resolve => setTimeout(resolve));
 
     this.closeMenu();
   };
@@ -187,7 +193,9 @@ class AutoComplete extends React.Component {
   };
 
   handleItemClick = ({onClick, item, index} = {}, e) => {
-    if (this.blurTimer) clearTimeout(this.blurTimer);
+    if (this.blurTimer) {
+      clearTimeout(this.blurTimer);
+    }
     this.setState({highlightedIndex: index});
     this.handleSelect(item, e);
     callIfFunction(onClick, item, e);
@@ -218,12 +226,15 @@ class AutoComplete extends React.Component {
     this.setState(newState);
   };
 
-  moveHighlightedIndex = (step, e) => {
-    const listSize = this.items.size - 1;
+  moveHighlightedIndex = (step, _e) => {
     let newIndex = this.state.highlightedIndex + step;
 
+    // when this component is in virtualized mode, only a subset of items will be passed
+    // down, making the array length inaccurate. instead we manually pass the length as itemCount
+    const listSize = this.itemCount || this.items.size;
+
     // Make sure new index is within bounds
-    newIndex = Math.max(0, Math.min(newIndex, listSize));
+    newIndex = Math.max(0, Math.min(newIndex, listSize - 1));
 
     this.setState({
       highlightedIndex: newIndex,
@@ -240,7 +251,9 @@ class AutoComplete extends React.Component {
 
     callIfFunction(onOpen, ...args);
 
-    if (disabled || this.isControlled()) return;
+    if (disabled || this.isControlled()) {
+      return;
+    }
 
     this.resetHighlightState();
     this.setState({
@@ -258,14 +271,14 @@ class AutoComplete extends React.Component {
 
     callIfFunction(onClose, ...args);
 
-    if (this.isControlled()) return;
+    if (this.isControlled()) {
+      return;
+    }
 
-    this.setState(state => {
-      return {
-        isOpen: false,
-        inputValue: resetInputOnClose ? '' : state.inputValue,
-      };
-    });
+    this.setState(state => ({
+      isOpen: false,
+      inputValue: resetInputOnClose ? '' : state.inputValue,
+    }));
   };
 
   getInputProps = inputProps => ({
@@ -283,7 +296,7 @@ class AutoComplete extends React.Component {
       console.warn('getItemProps requires an object with an `item` key');
     }
 
-    const newIndex = index || this.items.size;
+    const newIndex = index ?? this.items.size;
     this.items.set(newIndex, item);
 
     return {
@@ -292,10 +305,14 @@ class AutoComplete extends React.Component {
     };
   };
 
-  getMenuProps = menuProps => ({
-    ...menuProps,
-    onMouseDown: this.handleMenuMouseDown.bind(this, menuProps),
-  });
+  getMenuProps = menuProps => {
+    this.itemCount = menuProps.itemCount;
+
+    return {
+      ...menuProps,
+      onMouseDown: this.handleMenuMouseDown.bind(this, menuProps),
+    };
+  };
 
   render() {
     const {children, onMenuOpen} = this.props;
@@ -329,7 +346,8 @@ class AutoComplete extends React.Component {
               open: this.openMenu,
               close: this.closeMenu,
             },
-          })}
+          })
+        }
       </DropdownMenu>
     );
   }

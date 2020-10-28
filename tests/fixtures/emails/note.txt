@@ -2,13 +2,13 @@
 
 foo@example.com left a new comment:
 
-metus volutpat
+sincerely gobbler epic immensely katydid beloved stunning falcon mainly actively bedbug correctly sincere primate falcon guiding game notably hardly goose smiling gobbler
 
 
 ## Details
 
-ornare elit pulvinar nisl integer cum ad massa
+goose smiling gobbler sterling feline
 
-http://testserver/organization/project/issues/1/activity/?referrer=NoteActivityEmail
+http://testserver/organizations/organization/issues/1/activity/?referrer=NoteActivityEmail
 
 Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

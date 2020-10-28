@@ -2,16 +2,17 @@ import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import createReactClass from 'create-react-class';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {MEMBER_ROLES} from 'app/constants';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationState from 'app/mixins/organizationState';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/components/forms/textField';
@@ -20,48 +21,20 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 import RoleSelect from './roleSelect';
 
-// These don't have allowed and are only used for superusers. superceded by server result of allowed roles
-const STATIC_ROLE_LIST = [
-  {
-    id: 'member',
-    name: 'Member',
-    desc:
-      'Members can view and act on events, as well as view most other data within the organization.',
-  },
-  {
-    id: 'admin',
-    name: 'Admin',
-    desc:
-      "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).",
-  },
-  {
-    id: 'manager',
-    name: 'Manager',
-    desc:
-      'Gains admin access on all teams as well as the ability to add and remove members.',
-  },
-  {
-    id: 'owner',
-    name: 'Owner',
-    desc:
-      'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
-  },
-];
-
-const InviteMember = createReactClass({
-  displayName: 'InviteMember',
-  propTypes: {
+class InviteMember extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
+    organization: SentryTypes.Organization.isRequired,
     router: PropTypes.object,
-  },
-  mixins: [ApiMixin, OrganizationState],
+  };
 
-  getInitialState() {
-    const {teams} = this.getOrganization();
-
+  constructor(props) {
+    super(props);
+    const {teams} = props.organization;
     //select team if there's only one
     const initialTeamSelection = teams.length === 1 ? [teams[0].slug] : [];
 
-    return {
+    this.state = {
       selectedTeams: new Set(initialTeamSelection),
       roleList: [],
       selectedRole: 'member',
@@ -70,13 +43,13 @@ const InviteMember = createReactClass({
       busy: false,
       error: undefined,
     };
-  },
+  }
 
   componentDidMount() {
-    const {slug} = this.getOrganization();
+    const {slug} = this.props.organization;
     const {isSuperuser} = ConfigStore.get('user');
 
-    this.api.request(`/organizations/${slug}/members/me/`, {
+    this.props.api.request(`/organizations/${slug}/members/me/`, {
       method: 'GET',
       success: resp => {
         const {roles} = resp || {};
@@ -104,9 +77,9 @@ const InviteMember = createReactClass({
         }
       },
       error: error => {
-        if (error.status == 404 && isSuperuser) {
+        if (error.status === 404 && isSuperuser) {
           // use the static list
-          this.setState({roleList: STATIC_ROLE_LIST, loading: false});
+          this.setState({roleList: MEMBER_ROLES, loading: false});
         } else if (error.status !== 0) {
           Sentry.withScope(scope => {
             scope.setExtra('error', error);
@@ -118,9 +91,9 @@ const InviteMember = createReactClass({
         addErrorMessage(t('Error with request, please reload'));
       },
     });
-  },
+  }
 
-  redirectToMemberPage() {
+  redirectToMemberPage = () => {
     // Get path to parent route (`/organizations/${slug}/members/`)
     // `recreateRoute` fucks up because of getsentry hooks
     const {params, router} = this.props;
@@ -129,25 +102,23 @@ const InviteMember = createReactClass({
       ? '/settings/:orgId/members/'
       : '/organizations/:orgId/members/';
     router.push(replaceRouterParams(pathToParentRoute, params));
-  },
+  };
 
-  splitEmails(text) {
-    return text
+  splitEmails = text =>
+    text
       .split(',')
       .map(e => e.trim())
       .filter(e => e);
-  },
 
-  inviteUser(email) {
-    const {slug} = this.getOrganization();
+  inviteUser = email => {
+    const {slug} = this.props.organization;
     const {selectedTeams, selectedRole} = this.state;
 
     return new Promise((resolve, reject) => {
-      this.api.request(`/organizations/${slug}/members/`, {
+      this.props.api.request(`/organizations/${slug}/members/`, {
         method: 'POST',
         data: {
           email,
-          user: email,
           teams: Array.from(selectedTeams.keys()),
           role: selectedRole,
           referrer: this.props.location.query.referrer,
@@ -174,12 +145,14 @@ const InviteMember = createReactClass({
         },
       });
     });
-  },
+  };
 
-  submit() {
+  submit = () => {
     const {email} = this.state;
     const emails = this.splitEmails(email);
-    if (!emails.length) return;
+    if (!emails.length) {
+      return;
+    }
     this.setState({busy: true});
     Promise.all(emails.map(this.inviteUser))
       .then(() => this.redirectToMemberPage())
@@ -193,26 +166,26 @@ const InviteMember = createReactClass({
         }
         this.setState({error, busy: false});
       });
-  },
+  };
 
-  handleAddTeam(slug) {
+  handleAddTeam = team => {
     const {selectedTeams} = this.state;
-    if (!selectedTeams.has(slug)) {
-      selectedTeams.add(slug);
+    if (!selectedTeams.has(team.slug)) {
+      selectedTeams.add(team.slug);
     }
     this.setState({selectedTeams});
-  },
+  };
 
-  handleRemoveTeam(slug) {
+  handleRemoveTeam = teamSlug => {
     const {selectedTeams} = this.state;
-    selectedTeams.delete(slug);
+    selectedTeams.delete(teamSlug);
 
     this.setState({selectedTeams});
-  },
+  };
 
   render() {
     const {error, loading, roleList, selectedRole, selectedTeams} = this.state;
-    const organization = this.getOrganization();
+    const {organization} = this.props;
     const {invitesEnabled} = ConfigStore.getConfig();
     const {isSuperuser} = ConfigStore.get('user');
 
@@ -267,8 +240,8 @@ const InviteMember = createReactClass({
         )}
       </div>
     );
-  },
-});
+  }
+}
 
 export {InviteMember};
-export default withRouter(InviteMember);
+export default withApi(withRouter(withOrganization(InviteMember)));

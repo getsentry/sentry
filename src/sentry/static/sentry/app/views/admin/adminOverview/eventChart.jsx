@@ -1,22 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
-import ApiMixin from 'app/mixins/apiMixin';
-import StackedBarChart from 'app/components/stackedBarChart';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import StackedBarChart from 'app/components/stackedBarChart';
+import withApi from 'app/utils/withApi';
 
-export default createReactClass({
+const EventChart = createReactClass({
   displayName: 'eventChart',
 
   propTypes: {
+    api: PropTypes.object.isRequired,
     since: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -47,7 +45,7 @@ export default createReactClass({
     statNameList.forEach(statName => {
       // query the organization stats via a separate call as its possible the project stats
       // are too heavy
-      this.api.request('/internal/stats/', {
+      this.props.api.request('/internal/stats/', {
         method: 'GET',
         data: {
           since: this.props.since,
@@ -63,7 +61,7 @@ export default createReactClass({
             };
           }, this.requestFinished);
         },
-        error: data => {
+        error: () => {
           this.setState({
             error: true,
           });
@@ -112,13 +110,11 @@ export default createReactClass({
         avgRate: parseInt(aReceived[0] / aReceived[1] / 60, 10),
       },
       stats: {
-        rejected: Object.keys(sRejected).map(ts => {
-          return {x: ts, y: sRejected[ts] || null};
-        }),
-        accepted: Object.keys(sReceived).map(ts => {
+        rejected: Object.keys(sRejected).map(ts => ({x: ts, y: sRejected[ts] || null})),
+        accepted: Object.keys(sReceived).map(ts =>
           // total number of events accepted (received - rejected)
-          return {x: ts, y: sReceived[ts] - sRejected[ts]};
-        }),
+          ({x: ts, y: sReceived[ts] - sRejected[ts]})
+        ),
       },
       loading: false,
     });
@@ -142,8 +138,11 @@ export default createReactClass({
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
     return (
       <StackedBarChart
         series={this.getChartSeries()}
@@ -153,3 +152,5 @@ export default createReactClass({
     );
   },
 });
+
+export default withApi(EventChart);

@@ -1,16 +1,18 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import ConfirmHeader from 'app/views/settings/account/accountSecurity/components/confirmHeader';
 import DateTime from 'app/components/dateTime';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
+import {IconDelete} from 'app/icons';
+import space from 'app/styles/space';
 
 /**
  * List u2f devices w/ ability to remove a single device
@@ -29,16 +31,18 @@ class U2fEnrolledDetails extends React.Component {
   };
 
   render() {
-    const {isEnrolled, devices, id, onRemoveU2fDevice} = this.props;
+    const {className, isEnrolled, devices, id, onRemoveU2fDevice} = this.props;
 
-    if (id !== 'u2f' || !isEnrolled) return null;
+    if (id !== 'u2f' || !isEnrolled) {
+      return null;
+    }
 
     const hasDevices = devices && devices.length;
     // Note Tooltip doesn't work because of bootstrap(?) pointer events for disabled buttons
     const isLastDevice = hasDevices === 1;
 
     return (
-      <Panel css={{marginTop: 30}}>
+      <Panel className={className}>
         <PanelHeader>{t('Device name')}</PanelHeader>
 
         <PanelBody>
@@ -47,15 +51,13 @@ class U2fEnrolledDetails extends React.Component {
           )}
           {hasDevices &&
             devices.map(device => (
-              <PanelItem p={0} key={device.name}>
-                <Flex p={2} pr={0} align="center" flex="1">
-                  <Box flex="1">{device.name}</Box>
-                  <div css={{fontSize: '0.8em', opacity: 0.6}}>
-                    <DateTime date={device.timestamp} />
-                  </div>
-                </Flex>
+              <DevicePanelItem key={device.name}>
+                <DeviceInformation>
+                  <Name>{device.name}</Name>
+                  <FadedDateTime date={device.timestamp} />
+                </DeviceInformation>
 
-                <Box p={2}>
+                <Actions>
                   <Confirm
                     onConfirm={() => onRemoveU2fDevice(device)}
                     disabled={isLastDevice}
@@ -77,22 +79,59 @@ class U2fEnrolledDetails extends React.Component {
                         disabled={!isLastDevice}
                         title={t('Can not remove last U2F device')}
                       >
-                        <span className="icon icon-trash" />
+                        <IconDelete size="xs" />
                       </Tooltip>
                     </Button>
                   </Confirm>
-                </Box>
-              </PanelItem>
+                </Actions>
+              </DevicePanelItem>
             ))}
-          <PanelItem justify="flex-end" p={2}>
-            <Button type="button" to="/settings/account/security/mfa/u2f/enroll/">
+          <AddAnotherPanelItem>
+            <Button
+              type="button"
+              to="/settings/account/security/mfa/u2f/enroll/"
+              size="small"
+            >
               {t('Add Another Device')}
             </Button>
-          </PanelItem>
+          </AddAnotherPanelItem>
         </PanelBody>
       </Panel>
     );
   }
 }
 
-export default U2fEnrolledDetails;
+const DevicePanelItem = styled(PanelItem)`
+  padding: 0;
+`;
+
+const DeviceInformation = styled('div')`
+  display: flex;
+  align-items: center;
+  flex: 1;
+
+  padding: ${space(2)};
+  padding-right: 0;
+`;
+
+const FadedDateTime = styled(DateTime)`
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  opacity: 0.6;
+`;
+
+const Name = styled('div')`
+  flex: 1;
+`;
+
+const Actions = styled('div')`
+  margin: ${space(2)};
+`;
+
+const AddAnotherPanelItem = styled(PanelItem)`
+  justify-content: flex-end;
+  padding: ${space(2)};
+`;
+
+export default styled(U2fEnrolledDetails)`
+  margin-top: ${space(4)};
+`;

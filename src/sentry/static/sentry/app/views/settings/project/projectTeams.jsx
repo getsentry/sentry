@@ -1,30 +1,33 @@
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
-import {getOrganizationState} from 'app/mixins/organizationState';
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import {removeTeamFromProject, addTeamToProject} from 'app/actionCreators/projects';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {addTeamToProject, removeTeamFromProject} from 'app/actionCreators/projects';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TeamSelect from 'app/views/settings/components/teamSelect';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import routeTitleGen from 'app/utils/routeTitle';
 
 class ProjectTeams extends AsyncView {
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
-    return [
-      ['projectTeams', `/projects/${orgId}/${projectId}/teams/`],
-      ['allTeams', `/organizations/${orgId}/teams/`],
-    ];
+    return [['projectTeams', `/projects/${orgId}/${projectId}/teams/`]];
+  }
+
+  getTitle() {
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Project Teams'), projectId, false);
   }
 
   canCreateTeam = () => {
     const {organization} = this.props;
-    const access = getOrganizationState(organization).getAccess();
+    const access = new Set(organization.access);
     return (
       access.has('org:write') && access.has('team:write') && access.has('project:write')
     );
@@ -36,40 +39,31 @@ class ProjectTeams extends AsyncView {
     }
 
     const {orgId, projectId} = this.props.params;
-    const team = this.state.allTeams.find(tm => tm.slug === teamSlug);
 
-    removeTeamFromProject(this.api, orgId, projectId, team.slug)
-      .then(() => this.handleRemovedTeam(team))
+    removeTeamFromProject(this.api, orgId, projectId, teamSlug)
+      .then(() => this.handleRemovedTeam(teamSlug))
       .catch(() => {
-        addErrorMessage(t('Could not remove the %s team', team.slug));
+        addErrorMessage(t('Could not remove the %s team', teamSlug));
         this.setState({loading: false});
       });
   };
 
-  handleRemovedTeam = removedTeam => {
-    this.setState(prevState => {
-      return {
-        projectTeams: this.state.projectTeams.filter(team => {
-          return team.slug !== removedTeam.slug;
-        }),
-      };
-    });
+  handleRemovedTeam = teamSlug => {
+    this.setState(() => ({
+      projectTeams: this.state.projectTeams.filter(team => team.slug !== teamSlug),
+    }));
   };
 
   handleAddedTeam = team => {
-    this.setState(prevState => {
-      return {
-        projectTeams: this.state.projectTeams.concat([team]),
-      };
-    });
+    this.setState(() => ({
+      projectTeams: this.state.projectTeams.concat([team]),
+    }));
   };
 
-  handleAdd = teamSlug => {
+  handleAdd = team => {
     if (this.state.loading) {
       return;
     }
-
-    const team = this.state.allTeams.find(tm => tm.slug === teamSlug);
     const {orgId, projectId} = this.props.params;
 
     addTeamToProject(this.api, orgId, projectId, team).then(
@@ -114,7 +108,7 @@ class ProjectTeams extends AsyncView {
     const hasAccess = organization.access.includes('project:write');
     const confirmRemove = t(
       'This is the last team with access to this project. Removing it will mean ' +
-        'only owners and managers will be able to access the project pages. Are ' +
+        'only organization owners and managers will be able to access the project pages. Are ' +
         'you sure you want to remove this team from the project %s?',
       params.projectId
     );
@@ -126,9 +120,13 @@ class ProjectTeams extends AsyncView {
         <Tooltip
           disabled={canCreateTeam}
           title={t('You must be a project admin to create teams')}
-          tooltipOptions={{placement: 'top'}}
+          position="top"
         >
-          <StyledCreateTeamLink disabled={!canCreateTeam} onClick={this.handleCreateTeam}>
+          <StyledCreateTeamLink
+            to=""
+            disabled={!canCreateTeam}
+            onClick={this.handleCreateTeam}
+          >
             {t('Create Team')}
           </StyledCreateTeamLink>
         </Tooltip>
@@ -165,7 +163,7 @@ const StyledCreateTeamLink = styled(Link)`
     p.disabled &&
     css`
       cursor: not-allowed;
-      color: ${p.theme.gray2};
+      color: ${p.theme.gray500};
       opacity: 0.6;
     `};
 `;

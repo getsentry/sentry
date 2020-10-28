@@ -1,0 +1,100 @@
+{
+  "culprit": "aha(/Home/Desktop/test.html)",
+  "event_id": "e58aee200c8a486385bf5e1346b44865",
+  "platform": "javascript",
+  "logger": "",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "Anonymous function",
+              "abs_path": "file://mac/Home/Desktop/test.html",
+              "filename": "/Home/Desktop/test.html",
+              "lineno": 49,
+              "colno": 8,
+              "in_app": false
+            },
+            {
+              "function": "Foo.prototype.testMethod",
+              "abs_path": "file://mac/Home/Desktop/test.html",
+              "filename": "/Home/Desktop/test.html",
+              "lineno": 43,
+              "colno": 7,
+              "in_app": false
+            },
+            {
+              "function": "aha",
+              "abs_path": "file://mac/Home/Desktop/test.html",
+              "filename": "/Home/Desktop/test.html",
+              "lineno": 38,
+              "colno": 5,
+              "in_app": false
+            },
+            {
+              "function": "eval code",
+              "abs_path": "eval code",
+              "filename": "eval code",
+              "lineno": 1,
+              "colno": 1,
+              "in_app": false
+            },
+            {
+              "function": "test",
+              "abs_path": "file://mac/Home/Desktop/test.html",
+              "filename": "/Home/Desktop/test.html",
+              "lineno": 32,
+              "colno": 5,
+              "in_app": false
+            },
+            {
+              "function": "Array.prototype.map",
+              "abs_path": "native code",
+              "in_app": false,
+              "filename": "native code"
+            },
+            {
+              "function": "Anonymous function",
+              "abs_path": "file://mac/Home/Desktop/test.html",
+              "filename": "/Home/Desktop/test.html",
+              "lineno": 33,
+              "colno": 7,
+              "in_app": false
+            },
+            {
+              "function": "callback",
+              "abs_path": "file://mac/Home/Desktop/test.html",
+              "filename": "/Home/Desktop/test.html",
+              "lineno": 24,
+              "colno": 7,
+              "in_app": false
+            },
+            {
+              "function": "callAnotherThing",
+              "abs_path": "file://mac/Home/Desktop/test.html",
+              "filename": "/Home/Desktop/test.html",
+              "lineno": 17,
+              "colno": 6,
+              "in_app": false
+            },
+            {
+              "function": "aha",
+              "abs_path": "file://mac/Home/Desktop/test.html",
+              "filename": "/Home/Desktop/test.html",
+              "lineno": 18,
+              "colno": 7,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "Error",
+        "value": "bad"
+      }
+    ]
+  },
+  "release": null
+}

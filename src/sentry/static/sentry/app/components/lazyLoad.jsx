@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
-import * as Sentry from '@sentry/browser';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {isWebpackChunkLoadingError} from 'app/utils';
 import {t} from 'app/locale';
@@ -39,9 +39,11 @@ class LazyLoad extends React.Component {
     this.fetchComponent();
   }
 
-  componentWillReceiveProps(nextProps, nextState) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // No need to refetch when component does not change
-    if (nextProps.component && nextProps.component === this.props.component) return;
+    if (nextProps.component && nextProps.component === this.props.component) {
+      return;
+    }
 
     // This is to handle the following case:
     // <Route path="a/">
@@ -51,7 +53,9 @@ class LazyLoad extends React.Component {
     //
     // `LazyLoad` will get not fully remount when we switch between `b` and `c`,
     // instead will just re-render.  Refetch if route paths are different
-    if (nextProps.route && nextProps.route === this.props.route) return;
+    if (nextProps.route && nextProps.route === this.props.route) {
+      return;
+    }
 
     // If `this.fetchComponent` is not in callback,
     // then there's no guarantee that new Component will be rendered
@@ -63,7 +67,7 @@ class LazyLoad extends React.Component {
     );
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error) {
     Sentry.captureException(error);
     this.handleError(error);
   }
@@ -112,8 +116,7 @@ class LazyLoad extends React.Component {
 
   render() {
     const {Component, error} = this.state;
-    // eslint-disable-next-line no-unused-vars
-    const {hideBusy, hideError, component, ...otherProps} = this.props;
+    const {hideBusy, hideError, component: _component, ...otherProps} = this.props;
 
     if (error && !hideError) {
       return (

@@ -3,8 +3,6 @@
 {% load i18n %}
 
 {% block wrapperclass %}{{ block.super }} narrow hide-sidebar{% endblock %}
-{% block org_selector %}{% endblock %}
-{% block account_nav %}{% endblock %}
 
 {% block content %}
   <p><strong>Account</strong>: {{ request.user.get_display_name }}</p>

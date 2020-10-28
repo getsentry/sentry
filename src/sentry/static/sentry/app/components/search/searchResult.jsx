@@ -1,23 +1,22 @@
-import {Flex} from 'grid-emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconInput, IconLink, IconSettings} from 'app/icons';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import SentryTypes from 'app/sentryTypes';
 import SettingsSearch from 'app/views/settings/components/settingsSearch';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
+import space from 'app/styles/space';
 
 class SearchResult extends React.Component {
   static propTypes = {
     highlighted: PropTypes.bool,
     item: PropTypes.shape({
       /**
-     * The source of the search result (i.e. a model type)
-     */
+       * The source of the search result (i.e. a model type)
+       */
       sourceType: PropTypes.oneOf([
         'organization',
         'project',
@@ -30,14 +29,15 @@ class SearchResult extends React.Component {
         'event',
         'plugin',
         'integration',
+        'docIntegration',
         'help',
       ]),
       /**
-     * The type of result this is, for example:
-     * - can be a setting route,
-     * - an application route (e.g. org dashboard)
-     * - form field
-     */
+       * The type of result this is, for example:
+       * - can be a setting route,
+       * - an application route (e.g. org dashboard)
+       * - form field
+       */
       resultType: PropTypes.oneOf([
         'settings',
         'command',
@@ -46,26 +46,24 @@ class SearchResult extends React.Component {
         'issue',
         'event',
         'integration',
-        'doc',
-        'faq',
+        'help-docs',
+        'help-develop',
+        'help-help-center',
+        'help-blog',
       ]),
+
+      resultIcon: PropTypes.node,
       title: PropTypes.node,
       description: PropTypes.node,
-      model: PropTypes.oneOfType([
-        SentryTypes.Organization,
-        SentryTypes.Project,
-        SentryTypes.Team,
-        SentryTypes.Member,
-        SentryTypes.Group,
-        SentryTypes.Event,
-      ]),
+      extra: PropTypes.node,
+      model: PropTypes.object,
     }),
     matches: PropTypes.array,
   };
 
   renderContent() {
     const {highlighted, item, matches, params} = this.props;
-    const {sourceType, model} = item;
+    const {sourceType, model, extra} = item;
     let {title, description} = item;
 
     if (matches) {
@@ -107,6 +105,7 @@ class SearchResult extends React.Component {
           <SearchTitle>{title}</SearchTitle>
         </div>
         {description && <SearchDetail>{description}</SearchDetail>}
+        {extra && <ExtraDetail>{extra}</ExtraDetail>}
       </React.Fragment>
     );
   }
@@ -125,19 +124,19 @@ class SearchResult extends React.Component {
     }
 
     if (isSettings) {
-      return <ResultTypeIcon src="icon-settings" />;
+      return <IconSettings />;
     }
 
     if (isField) {
-      return <ResultTypeIcon src="icon-input" />;
+      return <IconInput />;
     }
 
     if (isRoute) {
-      return <ResultTypeIcon src="icon-link" />;
+      return <IconLink />;
     }
 
     if (isIntegration) {
-      return <StyledPluginIcon pluginId={model.key || model.id} />;
+      return <StyledPluginIcon pluginId={model.slug} />;
     }
 
     return null;
@@ -145,10 +144,10 @@ class SearchResult extends React.Component {
 
   render() {
     return (
-      <Flex justify="space-between" align="center">
+      <Wrapper>
         <Content>{this.renderContent()}</Content>
-        {this.renderResultType()}
-      </Flex>
+        <IconWrapper>{this.renderResultType()}</IconWrapper>
+      </Wrapper>
     );
   }
 }
@@ -156,32 +155,39 @@ class SearchResult extends React.Component {
 export default withRouter(SearchResult);
 
 // This is for tests
-const SearchTitle = styled.span`
-  /* stylelint-disable-next-line no-empty-block */
-`;
+const SearchTitle = styled('span')``;
 
-const SearchDetail = styled.div`
+const SearchDetail = styled('div')`
   font-size: 0.8em;
   line-height: 1.3;
   margin-top: 4px;
   opacity: 0.8;
 `;
 
-const BadgeDetail = styled.div`
+const ExtraDetail = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
+  margin-top: ${space(0.5)};
+`;
+
+const BadgeDetail = styled('div')`
   line-height: 1.3;
-  color: ${p => (p.highlighted ? p.theme.purpleDarkest : null)};
+  color: ${p => (p.highlighted ? p.theme.purple500 : null)};
 `;
 
-const Content = styled(props => <Flex direction="column" {...props} />)`
-  /* stylelint-disable-next-line no-empty-block */
+const Wrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
-const ResultTypeIcon = styled(InlineSvg)`
-  font-size: 1.2em;
-  flex-shrink: 0;
+const Content = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
-  ${SettingsSearch} & {
+const IconWrapper = styled('div')`
+  ${/* sc-selector*/ SettingsSearch} & {
     color: inherit;
   }
 `;
@@ -194,5 +200,5 @@ const HighlightMarker = styled('mark')`
   padding: 0;
   background: transparent;
   font-weight: bold;
-  color: inherit;
+  color: ${p => p.theme.pink400};
 `;

@@ -1,5 +1,4 @@
-{% load sentry_helpers %}// Sentry Loader
-(function(
+{% load sentry_helpers %}(function(
   _window,
   _document,
   _script,
@@ -149,25 +148,26 @@
     }
   }
 
-  // We don't want to _window.Sentry = _window.Sentry || { ... } since we want to make sure
-  // that the first Sentry "instance" is our with onLoad
-  _window[_namespace] = {
-    onLoad: function (callback) {
-      onLoadCallbacks.push(callback);
-      if (lazy && !forceLoad) {
-        return;
-      }
-      injectSdk(onLoadCallbacks);
-    },
-    forceLoad: function() {
-      forceLoad = true;
-      if (lazy) {
-        setTimeout(function() {
-          injectSdk(onLoadCallbacks);
-        });
-      }
+  // We make sure we do not overwrite window.Sentry since there could be already integrations in there
+  _window[_namespace] = _window[_namespace] || {};
+
+  _window[_namespace].onLoad = function (callback) {
+    onLoadCallbacks.push(callback);
+    if (lazy && !forceLoad) {
+      return;
+    }
+    injectSdk(onLoadCallbacks);
+  };
+
+  _window[_namespace].forceLoad = function() {
+    forceLoad = true;
+    if (lazy) {
+      setTimeout(function() {
+        injectSdk(onLoadCallbacks);
+      });
     }
   };
+
 
   [
     'init',

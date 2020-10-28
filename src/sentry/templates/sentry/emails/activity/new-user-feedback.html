@@ -7,17 +7,25 @@
 {% block activity %}
   <h3>New Feedback from {{ report.name }}</h3>
 
-  <table class="note">
-    <tr>
-      <td class="avatar-column">
-        {% email_avatar report.name report.email size 48 %}
-      </td>
-      <td class="notch-column">
-        <img width="7" height="48" src="{% absolute_asset_url 'sentry' 'images/email/avatar-notch.png' %}">
-      </td>
-      <td>
-        <div class="note-body">{{ report.comments|urlize|linebreaks }}</div>
-      </td>
-    </tr>
-  </table>
+  {% if enhanced_privacy %}
+    <div class="notice">
+      Details about this feedback are not shown in this notification since enhanced privacy
+        controls are enabled. For more details about this feedback, <a href="{{ link }}">view on Sentry</a>.
+    </div>
+
+  {% else %}
+    <table class="note">
+      <tr>
+        <td class="avatar-column">
+          {% email_avatar report.name report.email 48 %}
+        </td>
+        <td class="notch-column">
+          <img width="7" height="48" src="{% absolute_asset_url 'sentry' 'images/email/avatar-notch.png' %}">
+        </td>
+        <td>
+          <div class="note-body">{{ report.comments|urlize|linebreaks }}</div>
+        </td>
+      </tr>
+    </table>
+  {% endif %}
 {% endblock %}

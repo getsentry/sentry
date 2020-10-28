@@ -1,25 +1,17 @@
 from __future__ import absolute_import
 
 from django.conf import settings
-from django.http import HttpResponse
 from django.middleware.csrf import get_token as get_csrf_token
-from django.template import loader, Context
 
 from sentry.models import Project
 from sentry.signals import first_event_pending
+from sentry.web.helpers import render_to_response
 from sentry.web.frontend.base import BaseView, OrganizationView
 
 
 class ReactMixin(object):
-    def get_context(self, request):
-        # this hook is utilized by getsentry
-        return {
-            'request': request,
-            'CSRF_COOKIE_NAME': settings.CSRF_COOKIE_NAME,
-        }
-
     def handle_react(self, request):
-        context = Context(self.get_context(request))
+        context = {"CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME}
 
         # Force a new CSRF token to be generated and set in user's
         # Cookie. Alternatively, we could use context_processor +
@@ -27,12 +19,7 @@ class ReactMixin(object):
         # page. So there's no point in rendering a random `<input>` field.
         get_csrf_token(request)
 
-        template = loader.render_to_string('sentry/bases/react.html', context)
-
-        response = HttpResponse(template)
-        response['Content-Type'] = 'text/html'
-
-        return response
+        return render_to_response("sentry/bases/react.html", context=context, request=request)
 
 
 # TODO(dcramer): once we implement basic auth hooks in React we can make this
@@ -48,9 +35,9 @@ class ReactPageView(OrganizationView, ReactMixin):
         return super(ReactPageView, self).handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request, organization, **kwargs):
-        if 'project_id' in kwargs and request.GET.get('onboarding'):
+        if "project_id" in kwargs and request.GET.get("onboarding"):
             project = Project.objects.filter(
-                organization=organization, slug=kwargs['project_id']
+                organization=organization, slug=kwargs["project_id"]
             ).first()
             first_event_pending.send(project=project, user=request.user, sender=self)
         return self.handle_react(request)

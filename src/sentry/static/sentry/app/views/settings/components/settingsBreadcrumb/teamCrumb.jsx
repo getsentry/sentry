@@ -5,9 +5,10 @@ import React from 'react';
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import IdBadge from 'app/components/idBadge';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
-import TextLink from 'app/components/textLink';
 import recreateRoute from 'app/utils/recreateRoute';
 import withTeams from 'app/utils/withTeams';
+
+import {CrumbLink} from '.';
 
 class TeamCrumb extends React.Component {
   static propTypes = {
@@ -22,19 +23,21 @@ class TeamCrumb extends React.Component {
     const team = teams.find(({slug}) => slug === params.teamId);
     const hasMenu = teams.length > 1;
 
-    if (!team) return null;
+    if (!team) {
+      return null;
+    }
 
     return (
       <BreadcrumbDropdown
         name={
-          <TextLink
+          <CrumbLink
             to={recreateRoute(route, {
               routes,
               params: {...params, teamId: team.slug},
             })}
           >
             <IdBadge avatarSize={18} team={team} />
-          </TextLink>
+          </CrumbLink>
         }
         onSelect={item => {
           browserHistory.push(

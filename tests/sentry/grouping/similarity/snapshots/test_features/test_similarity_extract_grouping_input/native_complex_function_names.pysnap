@@ -1,0 +1,35 @@
+---
+created: '2020-08-19T12:18:49.785047Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Scaleform::GFx::AS3::IMEManager::DispatchEvent"]],[["function","<lambda>::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"]],[["function","Scaleform::GFx::AS3::IMEManager::DispatchEvent"]]]
+similarity:2020-07-23:value:character-5-shingle: " ever"
+similarity:2020-07-23:value:character-5-shingle: " fire"
+similarity:2020-07-23:value:character-5-shingle: " is o"
+similarity:2020-07-23:value:character-5-shingle: " on f"
+similarity:2020-07-23:value:character-5-shingle: " shit"
+similarity:2020-07-23:value:character-5-shingle: "Holy "
+similarity:2020-07-23:value:character-5-shingle: "eryth"
+similarity:2020-07-23:value:character-5-shingle: "every"
+similarity:2020-07-23:value:character-5-shingle: "fire!"
+similarity:2020-07-23:value:character-5-shingle: "g is "
+similarity:2020-07-23:value:character-5-shingle: "hing "
+similarity:2020-07-23:value:character-5-shingle: "hit e"
+similarity:2020-07-23:value:character-5-shingle: "ing i"
+similarity:2020-07-23:value:character-5-shingle: "is on"
+similarity:2020-07-23:value:character-5-shingle: "it ev"
+similarity:2020-07-23:value:character-5-shingle: "ly sh"
+similarity:2020-07-23:value:character-5-shingle: "n fir"
+similarity:2020-07-23:value:character-5-shingle: "ng is"
+similarity:2020-07-23:value:character-5-shingle: "oly s"
+similarity:2020-07-23:value:character-5-shingle: "on fi"
+similarity:2020-07-23:value:character-5-shingle: "rythi"
+similarity:2020-07-23:value:character-5-shingle: "s on "
+similarity:2020-07-23:value:character-5-shingle: "shit "
+similarity:2020-07-23:value:character-5-shingle: "t eve"
+similarity:2020-07-23:value:character-5-shingle: "thing"
+similarity:2020-07-23:value:character-5-shingle: "veryt"
+similarity:2020-07-23:value:character-5-shingle: "y shi"
+similarity:2020-07-23:value:character-5-shingle: "ythin"

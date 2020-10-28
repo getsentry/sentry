@@ -8,11 +8,7 @@ const PluginsStore = Reflux.createStore({
   },
 
   getState() {
-    const {
-      //eslint-disable-next-line no-unused-vars
-      plugins,
-      ...state
-    } = this.state;
+    const {plugins: _plugins, ...state} = this.state;
 
     return {
       ...state,
@@ -71,7 +67,9 @@ const PluginsStore = Reflux.createStore({
   },
 
   onUpdate(id, updateObj) {
-    if (!this.plugins) return;
+    if (!this.plugins) {
+      return;
+    }
 
     const plugin = this.plugins.get(id);
     const newPlugin = {
@@ -84,13 +82,15 @@ const PluginsStore = Reflux.createStore({
     this.triggerState();
   },
 
-  onUpdateSuccess(id, updateObj) {
+  onUpdateSuccess(id, _updateObj) {
     this.updating.delete(id);
   },
 
-  onUpdateError(id, updateObj, err) {
+  onUpdateError(id, _updateObj, err) {
     const origPlugin = this.updating.get(id);
-    if (!origPlugin) return;
+    if (!origPlugin) {
+      return;
+    }
 
     this.plugins.set(id, origPlugin);
     this.updating.delete(id);

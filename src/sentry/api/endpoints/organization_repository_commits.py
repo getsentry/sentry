@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
@@ -9,8 +8,6 @@ from sentry.models import Commit, Repository
 
 
 class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
-    doc_section = DocSection.ORGANIZATIONS
-
     def get(self, request, organization, repo_id):
         """
         List a Repository's Commits
@@ -23,21 +20,16 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            repo = Repository.objects.get(
-                id=repo_id,
-                organization_id=organization.id,
-            )
+            repo = Repository.objects.get(id=repo_id, organization_id=organization.id)
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 
-        queryset = Commit.objects.filter(
-            repository_id=repo.id,
-        ).select_related('author')
+        queryset = Commit.objects.filter(repository_id=repo.id).select_related("author")
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-date_added',
+            order_by="-date_added",
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=DateTimePaginator,
         )

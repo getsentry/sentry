@@ -1,20 +1,17 @@
 ---
-created: '2019-03-14T17:12:35.247803Z'
+created: '2019-05-22T14:45:11.363053Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_debug_meta.py
 ---
 errors: null
 to_json:
   images:
-  - id: 3249d99d-0c40-4931-8610-f4e4fb0b6936-1
+  - code_file: C:\projects\breakpad-tools\windows\Release\crash.exe
+    debug_id: 3249d99d-0c40-4931-8610-f4e4fb0b6936-1
     image_addr: '0x2a0000'
     image_size: 36864
-    image_vmaddr: '0x0'
-    name: C:\projects\breakpad-tools\windows\Release\crash.exe
     type: symbolic
   sdk_info:
-    build: null
-    dsym_type: none
     sdk_name: Windows
     version_major: 10
     version_minor: 0

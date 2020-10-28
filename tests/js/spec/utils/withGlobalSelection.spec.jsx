@@ -1,15 +1,16 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-describe('withGlobalSelection HoC', function() {
+describe('withGlobalSelection HoC', function () {
   beforeEach(() => {
     GlobalSelectionStore.init();
   });
 
-  it('handles projects', function() {
+  it('handles projects', function () {
     const MyComponent = () => null;
     const Container = withGlobalSelection(MyComponent);
     const wrapper = mount(<Container />);
@@ -22,12 +23,16 @@ describe('withGlobalSelection HoC', function() {
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([1]);
   });
 
-  it('handles datetime', function() {
+  it('handles datetime', function () {
+    let selection;
     const MyComponent = () => null;
     const Container = withGlobalSelection(MyComponent);
     const wrapper = mount(<Container />);
 
-    expect(wrapper.find('MyComponent').prop('selection').datetime.period).toEqual('14d');
+    selection = wrapper.find('MyComponent').prop('selection');
+    expect(selection.datetime.period).toEqual('14d');
+    expect(selection.datetime.start).toEqual(null);
+    expect(selection.datetime.end).toEqual(null);
 
     GlobalSelectionStore.updateDateTime({
       period: '7d',
@@ -36,16 +41,25 @@ describe('withGlobalSelection HoC', function() {
     });
     wrapper.update();
 
-    expect(wrapper.find('MyComponent').prop('selection').datetime.period).toEqual('7d');
+    selection = wrapper.find('MyComponent').prop('selection');
+    expect(selection.datetime.period).toEqual('7d');
+    expect(selection.datetime.start).toEqual(null);
+    expect(selection.datetime.end).toEqual(null);
 
     GlobalSelectionStore.updateDateTime({
       period: null,
       start: '2018-08-08T00:00:00',
       end: '2018-08-08T00:00:00',
     });
+    wrapper.update();
+
+    selection = wrapper.find('MyComponent').prop('selection');
+    expect(selection.datetime.period).toEqual(null);
+    expect(selection.datetime.start).toEqual('2018-08-08T00:00:00');
+    expect(selection.datetime.end).toEqual('2018-08-08T00:00:00');
   });
 
-  it('handles environments', function() {
+  it('handles environments', function () {
     const MyComponent = () => null;
     const Container = withGlobalSelection(MyComponent);
     const wrapper = mount(<Container />);

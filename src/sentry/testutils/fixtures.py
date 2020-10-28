@@ -1,9 +1,14 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
+import six
 
+from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
+from sentry.incidents.models import IncidentActivityType
+
+import pytest
 from django.utils.functional import cached_property
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -20,61 +25,50 @@ class Fixtures(object):
 
     @cached_property
     def user(self):
-        return self.create_user('admin@localhost', is_superuser=True)
+        return self.create_user("admin@localhost", is_superuser=True)
 
     @cached_property
     def organization(self):
         # XXX(dcramer): ensure that your org slug doesnt match your team slug
         # and the same for your project slug
-        return self.create_organization(
-            name='baz',
-            slug='baz',
-            owner=self.user,
-        )
+        return self.create_organization(name="baz", slug="baz", owner=self.user)
 
     @cached_property
     def team(self):
-        team = self.create_team(
-            organization=self.organization,
-            name='foo',
-            slug='foo',
-        )
+        team = self.create_team(organization=self.organization, name="foo", slug="foo")
         # XXX: handle legacy team fixture
-        queryset = OrganizationMember.objects.filter(
-            organization=self.organization,
-        )
+        queryset = OrganizationMember.objects.filter(organization=self.organization)
         for om in queryset:
-            OrganizationMemberTeam.objects.create(
-                team=team,
-                organizationmember=om,
-                is_active=True,
-            )
+            OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
         return team
 
     @cached_property
     def project(self):
         return self.create_project(
-            name='Bar',
-            slug='bar',
-            teams=[self.team],
+            name="Bar", slug="bar", teams=[self.team], fire_project_created=True
         )
+
+    @cached_property
+    def release(self):
+        return self.create_release(project=self.project, version="foo-1.0")
 
     @cached_property
     def environment(self):
-        return self.create_environment(
-            name='development',
-            project=self.project,
-        )
+        return self.create_environment(name="development", project=self.project)
 
     @cached_property
     def group(self):
-        return self.create_group(message=u'\u3053\u3093\u306b\u3061\u306f')
+        return self.create_group(message="\u3053\u3093\u306b\u3061\u306f")
 
     @cached_property
     def event(self):
-        return self.create_event(
-            event_id='a' * 32,
-            message=u'\u3053\u3093\u306b\u3061\u306f',
+        return self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "\u3053\u3093\u306b\u3061\u306f",
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
+            project_id=self.project.id,
         )
 
     @cached_property
@@ -104,7 +98,7 @@ class Fixtures(object):
         return Factories.create_environment(project=project, **kwargs)
 
     def create_project(self, **kwargs):
-        kwargs.setdefault('teams', [self.team])
+        kwargs.setdefault("teams", [self.team])
         return Factories.create_project(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):
@@ -117,10 +111,49 @@ class Fixtures(object):
             project = self.project
         return Factories.create_project_key(project=project, *args, **kwargs)
 
+    def create_project_rule(
+        self, project=None, action_match=None, condition_match=None, *args, **kwargs
+    ):
+        if project is None:
+            project = self.project
+        return Factories.create_project_rule(
+            project=project,
+            action_match=action_match,
+            condition_match=condition_match,
+            *args,
+            **kwargs
+        )
+
+    def create_slack_project_rule(
+        self, project=None, integration_id=None, channel_id=None, channel_name=None, *args, **kwargs
+    ):
+        if project is None:
+            project = self.project
+        return Factories.create_slack_project_rule(
+            project,
+            integration_id=integration_id,
+            channel_id=channel_id,
+            channel_name=channel_name,
+            *args,
+            **kwargs
+        )
+
     def create_release(self, project=None, user=None, *args, **kwargs):
         if project is None:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
+
+    def create_release_file(self, release=None, file=None, name=None, dist=None):
+        if release is None:
+            release = self.release
+        return Factories.create_release_file(release, file, name, dist)
+
+    def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
+        if org is None:
+            org = self.organization.slug
+        if release is None:
+            release = self.release.version
+        return Factories.create_artifact_bundle(org, release, *args, **kwargs)
 
     def create_repo(self, project=None, *args, **kwargs):
         if project is None:
@@ -142,18 +175,8 @@ class Fixtures(object):
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
 
-    def create_event(self, event_id=None, group=None, *args, **kwargs):
-        if group is None:
-            group = self.group
-        return Factories.create_event(event_id=event_id, group=group, *args, **kwargs)
-
     def store_event(self, *args, **kwargs):
         return Factories.store_event(*args, **kwargs)
-
-    def create_full_event(self, group=None, *args, **kwargs):
-        if group is None:
-            group = self.group
-        return Factories.create_full_event(group=group, *args, **kwargs)
 
     def create_group(self, project=None, *args, **kwargs):
         if project is None:
@@ -187,6 +210,12 @@ class Fixtures(object):
     def create_sentry_app(self, *args, **kwargs):
         return Factories.create_sentry_app(*args, **kwargs)
 
+    def create_internal_integration(self, *args, **kwargs):
+        return Factories.create_internal_integration(*args, **kwargs)
+
+    def create_internal_integration_token(self, *args, **kwargs):
+        return Factories.create_internal_integration_token(*args, **kwargs)
+
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
 
@@ -196,8 +225,72 @@ class Fixtures(object):
     def create_alert_rule_action_schema(self, *args, **kwargs):
         return Factories.create_alert_rule_action_schema(*args, **kwargs)
 
+    def create_sentry_app_feature(self, *args, **kwargs):
+        return Factories.create_sentry_app_feature(*args, **kwargs)
+
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
 
     def create_userreport(self, *args, **kwargs):
         return Factories.create_userreport(*args, **kwargs)
+
+    def create_platform_external_issue(self, *args, **kwargs):
+        return Factories.create_platform_external_issue(*args, **kwargs)
+
+    def create_integration_external_issue(self, *args, **kwargs):
+        return Factories.create_integration_external_issue(*args, **kwargs)
+
+    def create_incident(self, organization=None, projects=None, *args, **kwargs):
+        if not organization:
+            organization = self.organization
+        if projects is None:
+            projects = [self.project]
+
+        return Factories.create_incident(
+            organization=organization, projects=projects, *args, **kwargs
+        )
+
+    def create_incident_activity(self, incident, *args, **kwargs):
+        return Factories.create_incident_activity(incident=incident, *args, **kwargs)
+
+    def create_incident_comment(self, incident, *args, **kwargs):
+        return self.create_incident_activity(
+            incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs
+        )
+
+    def create_alert_rule(self, organization=None, projects=None, *args, **kwargs):
+        if not organization:
+            organization = self.organization
+        if projects is None:
+            projects = [self.project]
+        return Factories.create_alert_rule(organization, projects, *args, **kwargs)
+
+    def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
+        if not alert_rule:
+            alert_rule = self.create_alert_rule()
+        return Factories.create_alert_rule_trigger(alert_rule, *args, **kwargs)
+
+    def create_alert_rule_trigger_action(
+        self,
+        alert_rule_trigger=None,
+        target_identifier=None,
+        triggered_for_incident=None,
+        *args,
+        **kwargs
+    ):
+        if not alert_rule_trigger:
+            alert_rule_trigger = self.create_alert_rule_trigger()
+
+        if not target_identifier:
+            target_identifier = six.text_type(self.user.id)
+
+        if triggered_for_incident is not None:
+            Factories.create_incident_trigger(triggered_for_incident, alert_rule_trigger)
+
+        return Factories.create_alert_rule_trigger_action(
+            alert_rule_trigger, target_identifier=target_identifier, **kwargs
+        )
+
+    @pytest.fixture(autouse=True)
+    def _init_insta_snapshot(self, insta_snapshot):
+        self.insta_snapshot = insta_snapshot

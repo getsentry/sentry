@@ -1,24 +1,24 @@
-/* eslint-disable getsentry/jsx-needs-il8n */
 /* eslint-disable react/jsx-key */
+import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
-import withEnvironment from 'app/utils/withEnvironment';
-
+import withApi from 'app/utils/withApi';
 import ResultGrid from 'app/components/resultGrid';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 
-const prettyDate = function(x) {
+const prettyDate = function (x) {
   return moment(x).format('ll LTS');
 };
 
 const AdminRelays = createReactClass({
   displayName: 'GroupEventDetails',
 
-  mixins: [ApiMixin],
+  propTypes: {
+    api: PropTypes.object,
+  },
 
   getInitialState() {
     return {
@@ -30,7 +30,7 @@ const AdminRelays = createReactClass({
     this.setState({
       loading: true,
     });
-    this.api.request(`/relays/${key}/`, {
+    this.props.api.request(`/relays/${key}/`, {
       method: 'DELETE',
       success: () => {
         this.setState({
@@ -82,7 +82,7 @@ const AdminRelays = createReactClass({
         <h3>{t('Relays')}</h3>
         <ResultGrid
           path="/manage/relays/"
-          endpoint={'/relays/'}
+          endpoint="/relays/"
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}
@@ -100,4 +100,6 @@ const AdminRelays = createReactClass({
   },
 });
 
-export default withEnvironment(AdminRelays);
+export {AdminRelays};
+
+export default withApi(AdminRelays);

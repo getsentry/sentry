@@ -1,76 +1,7 @@
 /**
-* Settings sub-header
-* ============================================================================
-*/
-
-.settings .sub-header > div:first-child {
-  padding-top: 20px;
-}
-
-/**
 * Inbound Data Filters
 * ============================================================================
 */
-
-.filtered-stats-barchart {
-  height: 100px;
-
-  a,
-  g {
-    > span,
-    > rect,
-    &:hover > rect {
-      left: 2px;
-      right: 2px;
-
-      &.ip-address {
-        background: @red-light;
-        fill: @red-light;
-      }
-
-      &.release-version {
-        background: @purple-light;
-        fill: @purple-light;
-      }
-
-      &.error-message {
-        background: @purple;
-        fill: @purple;
-      }
-
-      &.browser-extensions {
-        background: @gray;
-        fill: @gray;
-      }
-
-      &.legacy-browsers {
-        background: @gray-light;
-        fill: @gray-light;
-      }
-
-      &.localhost {
-        background: @blue;
-        fill: @blue;
-      }
-
-      &.web-crawlers {
-        background: @red;
-        fill: @red;
-      }
-
-      &.invalid-csp {
-        background: @blue-light;
-        fill: @blue-light;
-      }
-
-      &.cors {
-        background: @orange;
-        fill: @orange;
-      }
-    }
-  }
-}
-
 .legend {
   padding: 3px 0;
   position: relative;

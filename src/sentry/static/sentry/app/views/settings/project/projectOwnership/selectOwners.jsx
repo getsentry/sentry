@@ -1,10 +1,9 @@
-import {debounce} from 'lodash';
-import {Flex} from 'grid-emotion';
+import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
@@ -15,10 +14,10 @@ import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import IdBadge from 'app/components/idBadge';
 import MultiSelectControl from 'app/components/forms/multiSelectControl';
-import ActorAvatar from 'app/components/actorAvatar';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconAdd} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 
 class ValueComponent extends React.Component {
@@ -82,52 +81,46 @@ export default class SelectOwners extends React.Component {
     }
   }
 
-  renderUserBadge = user => {
-    return <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />;
-  };
+  renderUserBadge = user => (
+    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
+  );
 
-  createMentionableUser = user => {
-    return {
-      value: buildUserId(user.id),
-      label: this.renderUserBadge(user),
-      searchKey: getSearchKeyForUser(user),
-      actor: {
-        type: 'user',
-        id: user.id,
-        name: user.name,
-      },
-    };
-  };
+  createMentionableUser = user => ({
+    value: buildUserId(user.id),
+    label: this.renderUserBadge(user),
+    searchKey: getSearchKeyForUser(user),
+    actor: {
+      type: 'user',
+      id: user.id,
+      name: user.name,
+    },
+  });
 
-  createUnmentionableUser = ({user}) => {
-    return {
-      ...this.createMentionableUser(user),
-      disabled: true,
-      label: (
-        <DisabledLabel>
-          <Tooltip
-            tooltipOptions={{container: 'body', placement: 'left'}}
-            title={t('%s is not a member of project', user.name || user.email)}
-          >
-            {this.renderUserBadge(user)}
-          </Tooltip>
-        </DisabledLabel>
-      ),
-    };
-  };
+  createUnmentionableUser = ({user}) => ({
+    ...this.createMentionableUser(user),
+    disabled: true,
+    label: (
+      <DisabledLabel>
+        <Tooltip
+          position="left"
+          title={t('%s is not a member of project', user.name || user.email)}
+        >
+          {this.renderUserBadge(user)}
+        </Tooltip>
+      </DisabledLabel>
+    ),
+  });
 
-  createMentionableTeam = team => {
-    return {
-      value: buildTeamId(team.id),
-      label: <IdBadge team={team} />,
-      searchKey: `#${team.slug}`,
-      actor: {
-        type: 'team',
-        id: team.id,
-        name: team.slug,
-      },
-    };
-  };
+  createMentionableTeam = team => ({
+    value: buildTeamId(team.id),
+    label: <IdBadge team={team} />,
+    searchKey: `#${team.slug}`,
+    actor: {
+      type: 'team',
+      id: team.id,
+      name: team.slug,
+    },
+  });
 
   createUnmentionableTeam = team => {
     const {organization} = this.props;
@@ -137,10 +130,10 @@ export default class SelectOwners extends React.Component {
       ...this.createMentionableTeam(team),
       disabled: true,
       label: (
-        <Flex justify="space-between">
+        <Container>
           <DisabledLabel>
             <Tooltip
-              tooltipOptions={{container: 'body', placement: 'left'}}
+              position="left"
               title={t('%s is not a member of project', `#${team.slug}`)}
             >
               <IdBadge team={team} />
@@ -158,11 +151,10 @@ export default class SelectOwners extends React.Component {
               borderless
               disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
-            >
-              <InlineSvg src="icon-circle-add" />
-            </AddToProjectButton>
+              icon={<IconAdd isCircled />}
+            />
           </Tooltip>
-        </Flex>
+        </Container>
       ),
     };
   };
@@ -203,6 +195,7 @@ export default class SelectOwners extends React.Component {
   closeSelectMenu() {
     // Close select menu
     if (this.selectRef) {
+      // eslint-disable-next-line react/no-find-dom-node
       const input = ReactDOM.findDOMNode(this.selectRef).querySelector(
         '.Select-input input'
       );
@@ -252,13 +245,18 @@ export default class SelectOwners extends React.Component {
 
     // Because this function is debounced, the component can potentially be
     // unmounted before this fires, in which case, `this.api` is null
-    if (!this.api) return null;
+    if (!this.api) {
+      return null;
+    }
 
     return this.api
       .requestPromise(`/organizations/${organization.slug}/members/`, {
         query: {query},
       })
-      .then(data => cb(null, data), err => cb(err));
+      .then(
+        data => cb(null, data),
+        err => cb(err)
+      );
   }, 250);
 
   handleLoadOptions = () => {
@@ -277,33 +275,27 @@ export default class SelectOwners extends React.Component {
         }
       });
     })
-      .then(members => {
+      .then(members =>
         // Be careful here as we actually want the `users` object, otherwise it means user
         // has not registered for sentry yet, but has been invited
-        return members
+        members
           ? members
               .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
               .map(this.createUnmentionableUser)
-          : [];
-      })
-      .then(members => {
-        return {
-          options: [
-            ...usersInProject,
-            ...teamsInProject,
-            ...teamsNotInProject,
-            ...members,
-          ],
-        };
-      });
+          : []
+      )
+      .then(members => ({
+        options: [...usersInProject, ...teamsInProject, ...teamsNotInProject, ...members],
+      }));
   };
 
   render() {
     return (
       <MultiSelectControl
-        filterOptions={(options, filterText) => {
-          return options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1);
-        }}
+        deprecatedSelectControl
+        filterOptions={(options, filterText) =>
+          options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)
+        }
         ref={ref => (this.selectRef = ref)}
         loadOptions={this.handleLoadOptions}
         defaultOptions
@@ -312,7 +304,7 @@ export default class SelectOwners extends React.Component {
         disabled={this.props.disabled}
         cache={false}
         valueComponent={ValueComponent}
-        placeholder={t('Add Owners')}
+        placeholder={t('owners')}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
         value={this.props.value}
@@ -321,6 +313,11 @@ export default class SelectOwners extends React.Component {
     );
   }
 }
+
+const Container = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
 
 const DisabledLabel = styled('div')`
   opacity: 0.5;

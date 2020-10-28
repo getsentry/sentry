@@ -25,10 +25,10 @@ class CheckInStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.UNKNOWN, 'unknown'),
-            (cls.OK, 'ok'),
-            (cls.ERROR, 'error'),
-            (cls.IN_PROGRESS, 'in_progress'),
+            (cls.UNKNOWN, u"unknown"),
+            (cls.OK, u"ok"),
+            (cls.ERROR, u"error"),
+            (cls.IN_PROGRESS, u"in_progress"),
         )
 
 
@@ -37,23 +37,20 @@ class MonitorCheckIn(Model):
 
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedPositiveIntegerField(db_index=True)
-    monitor = FlexibleForeignKey('sentry.Monitor')
-    location = FlexibleForeignKey('sentry.MonitorLocation', null=True)
-    status = BoundedPositiveIntegerField(
-        default=0,
-        choices=CheckInStatus.as_choices(),
-    )
+    monitor = FlexibleForeignKey("sentry.Monitor")
+    location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
+    status = BoundedPositiveIntegerField(default=0, choices=CheckInStatus.as_choices())
     config = EncryptedJsonField(default=dict)
     duration = BoundedPositiveIntegerField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
-    objects = BaseManager(cache_fields=('guid', ))
+    objects = BaseManager(cache_fields=("guid",))
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_monitorcheckin'
+        app_label = "sentry"
+        db_table = "sentry_monitorcheckin"
 
-    __repr__ = sane_repr('guid', 'project_id', 'status')
+    __repr__ = sane_repr("guid", "project_id", "status")
 
     def save(self, *args, **kwargs):
         if not self.date_added:

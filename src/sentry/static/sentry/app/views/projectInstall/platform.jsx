@@ -1,193 +1,182 @@
-import {Box, Flex} from 'grid-emotion';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
+import 'prismjs/themes/prism-tomorrow.css';
 
-import SentryTypes from 'app/sentryTypes';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
-import Link from 'app/components/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import Projects from 'app/utils/projects';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import platforms from 'app/data/platforms';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
-const ProjectInstallPlatform = createReactClass({
-  displayName: 'ProjectInstallPlatform',
+class ProjectInstallPlatform extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
+  };
 
-  propTypes: {
-    organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project.isRequired,
-    // eslint-disable-next-line react/no-unused-prop-types
-    platformData: PropTypes.object.isRequired,
-    linkPath: PropTypes.func,
-  },
-
-  mixins: [ApiMixin],
-
-  getDefaultProps() {
-    return {
-      linkPath: (orgId, projectId, platform) =>
-        `/${orgId}/${projectId}/settings/install/${platform}/`,
-    };
-  },
-
-  getInitialState(props) {
-    props = props || this.props;
-    const params = props.params;
-    const key = params.platform;
-    let integration;
-    let platform;
-
-    props.platformData.platforms.forEach(p_item => {
-      if (integration) {
-        return;
-      }
-      integration = p_item.integrations.filter(i_item => {
-        return i_item.id == key;
-      })[0];
-      if (integration) {
-        platform = p_item;
-      }
-    });
-
-    return {
-      loading: true,
-      error: false,
-      integration,
-      platform,
-      html: null,
-    };
-  },
+  state = {
+    loading: true,
+    error: false,
+    html: null,
+  };
 
   componentDidMount() {
     this.fetchData();
     window.scrollTo(0, 0);
-  },
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.params.platform !== this.props.params.platform) {
-      this.setState(this.getInitialState(nextProps), this.fetchData);
-      window.scrollTo(0, 0);
+    const {platform} = this.props.params;
+
+    //redirect if platform is not known.
+    if (!platform || platform === 'other') {
+      this.redirectToNeutralDocs();
     }
-  },
+  }
 
-  isGettingStarted() {
-    return location.href.indexOf('getting-started') > 0;
-  },
+  get isGettingStarted() {
+    return window.location.href.indexOf('getting-started') > 0;
+  }
 
-  fetchData() {
-    const {orgId, projectId, platform} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/docs/${platform}/`, {
-      success: data => {
-        this.setState({
-          loading: false,
-          error: false,
-          html: data.html,
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true,
-        });
-      },
-    });
-  },
+  fetchData = async () => {
+    const {api, params} = this.props;
+    const {orgId, projectId, platform} = params;
 
-  getPlatformLink(platform, display) {
+    this.setState({loading: true});
+
+    try {
+      const {html} = await loadDocs(api, orgId, projectId, platform);
+      this.setState({html});
+    } catch (error) {
+      this.setState({error});
+    }
+
+    this.setState({loading: false});
+  };
+
+  redirectToNeutralDocs() {
     const {orgId, projectId} = this.props.params;
-    const path = this.props.linkPath(orgId, projectId, platform);
-    return (
-      <Link key={platform} to={path} className="list-group-item">
-        {display || platform}
-      </Link>
-    );
-  },
+
+    const url = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+
+    browserHistory.push(url);
+  }
 
   render() {
-    const {integration, platform} = this.state;
-    const {organization, project, params: {orgId, projectId}} = this.props;
+    const {params} = this.props;
+    const {orgId, projectId} = params;
 
-    if (!integration || !platform) {
+    const platform = platforms.find(p => p.id === params.platform);
+
+    if (!platform) {
       return <NotFound />;
     }
 
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-
-    const issueStreamLink = hasSentry10
-      ? `/organizations/${orgId}/issues/?project=${project.id}#welcome`
-      : `/${orgId}/${projectId}/#welcome`;
-
-    const gettingStartedLink = hasSentry10
-      ? `/organizations/${orgId}/projects/${projectId}/getting-started/`
-      : `/${orgId}/${projectId}/getting-started/`;
+    const issueStreamLink = `/organizations/${orgId}/issues/`;
+    const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
 
     return (
       <Panel>
         <PanelHeader hasButtons>
-          {t('Configure %(integration)s', {integration: integration.name})}
-          <Flex>
-            <Box ml={1}>
-              <Button size="small" href={gettingStartedLink}>
-                {t('< Back')}
-              </Button>
-            </Box>
-            <Box ml={1}>
-              <Button size="small" href={integration.link} external>
-                {t('Full Documentation')}
-              </Button>
-            </Box>
-          </Flex>
+          {t('Configure %(platform)s', {platform: platform.name})}
+          <Actions>
+            <Button size="small" to={gettingStartedLink}>
+              {t('< Back')}
+            </Button>
+            <Button size="small" href={platform.link} external>
+              {t('Full Documentation')}
+            </Button>
+          </Actions>
         </PanelHeader>
 
-        <PanelBody disablePadding={false}>
-          <TextBlock>
-            {tct(
-              `
+        <PanelAlert type="info">
+          {tct(
+            `
              This is a quick getting started guide. For in-depth instructions
-             on integrating Sentry with [integration], view
-             [docLink:our complete documentation].
-            `,
-              {
-                integration: integration.name,
-                docLink: <a href={integration.link} />,
-              }
-            )}
-          </TextBlock>
+             on integrating Sentry with [platform], view
+             [docLink:our complete documentation].`,
+            {
+              platform: platform.name,
+              docLink: <a href={platform.link} />,
+            }
+          )}
+        </PanelAlert>
 
+        <PanelBody withPadding>
           {this.state.loading ? (
             <LoadingIndicator />
           ) : this.state.error ? (
             <LoadingError onRetry={this.fetchData} />
           ) : (
-            <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
+            <React.Fragment>
+              <SentryDocumentTitle
+                title={`${t('Configure')} ${platform.name}`}
+                objSlug={projectId}
+              />
+              <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
+            </React.Fragment>
           )}
 
-          {this.isGettingStarted() && (
-            <Button
-              priority="primary"
-              size="large"
-              to={issueStreamLink}
-              style={{marginTop: 20}}
+          {this.isGettingStarted && (
+            <Projects
+              key={`${orgId}-${projectId}`}
+              orgId={orgId}
+              slugs={[projectId]}
+              passthroughPlaceholderProject={false}
             >
-              {t('Got it! Take me to the Issue Stream.')}
-            </Button>
+              {({projects, initiallyLoaded, fetching, fetchError}) => {
+                const projectsLoading = !initiallyLoaded && fetching;
+                const issueStreamLinkQuery =
+                  !projectsLoading && !fetchError && projects.length
+                    ? {
+                        project: projects[0].id,
+                      }
+                    : {};
+
+                return (
+                  <Button
+                    priority="primary"
+                    busy={projectsLoading}
+                    to={{
+                      pathname: issueStreamLink,
+                      query: issueStreamLinkQuery,
+                      hash: '#welcome',
+                    }}
+                    style={{marginTop: 20}}
+                  >
+                    {t('Got it! Take me to the Issue Stream.')}
+                  </Button>
+                );
+              }}
+            </Projects>
           )}
         </PanelBody>
       </Panel>
     );
-  },
-});
-
-export {ProjectInstallPlatform};
-export default withOrganization(ProjectInstallPlatform);
+  }
+}
 
 const DocumentationWrapper = styled('div')`
+  .gatsby-highlight {
+    margin-bottom: ${space(3)};
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .alert {
+    margin-bottom: ${space(3)};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+
   p {
     line-height: 1.5;
   }
@@ -196,3 +185,12 @@ const DocumentationWrapper = styled('div')`
     white-space: pre-wrap;
   }
 `;
+
+const Actions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+`;
+
+export {ProjectInstallPlatform};
+export default withApi(withOrganization(ProjectInstallPlatform));

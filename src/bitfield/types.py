@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import django
 import six
 
 from six import string_types
@@ -12,25 +11,16 @@ def cmp(a, b):
 
 
 class Bit(object):
-    """
-    Represents a single Bit.
-    """
-
     def __init__(self, number, is_set=True):
         self.number = number
         self.is_set = bool(is_set)
-        self.mask = 2**int(number)
+        self.mask = 2 ** int(number)
         self.children = []
         if not self.is_set:
             self.mask = ~self.mask
 
     def __repr__(self):
-        return '<%s: number=%d, is_set=%s>' % (self.__class__.__name__, self.number, self.is_set)
-
-    # def __str__(self):
-    #     if self.is_set:
-    #         return 'Yes'
-    #     return 'No'
+        return "<%s: number=%d, is_set=%s>" % (self.__class__.__name__, self.number, self.is_set)
 
     def __int__(self):
         return self.mask
@@ -154,9 +144,9 @@ class BitHandler(object):
         return cmp(self._value, other)
 
     def __repr__(self):
-        return '<%s: %s>' % (
+        return "<%s: %s>" % (
             self.__class__.__name__,
-            ', '.join('%s=%s' % (k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),
+            ", ".join("%s=%s" % (k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),
         )
 
     def __str__(self):
@@ -196,19 +186,19 @@ class BitHandler(object):
         return bool(self.get_bit(bit_number))
 
     def __getattr__(self, key):
-        if key.startswith('_'):
+        if key.startswith("_"):
             return object.__getattribute__(self, key)
         if key not in self._keys:
-            raise AttributeError('%s is not a valid flag' % key)
+            raise AttributeError("%s is not a valid flag" % key)
         return self.get_bit(self._keys.index(key))
 
     __getitem__ = __getattr__
 
     def __setattr__(self, key, value):
-        if key.startswith('_'):
+        if key.startswith("_"):
             return object.__setattr__(self, key, value)
         if key not in self._keys:
-            raise AttributeError('%s is not a valid flag' % key)
+            raise AttributeError("%s is not a valid flag" % key)
         self.set_bit(self._keys.index(key), value)
 
     __setitem__ = __setattr__
@@ -228,15 +218,15 @@ class BitHandler(object):
         return self.mask, []
 
     def get_bit(self, bit_number):
-        mask = 2**int(bit_number)
+        mask = 2 ** int(bit_number)
         return Bit(bit_number, self._value & mask != 0)
 
     def set_bit(self, bit_number, true_or_false):
-        mask = 2**int(bit_number)
+        mask = 2 ** int(bit_number)
         if true_or_false:
             self._value |= mask
         else:
-            self._value &= (~mask)
+            self._value &= ~mask
         return Bit(bit_number, self._value & mask != 0)
 
     def keys(self):
@@ -260,21 +250,14 @@ class BitHandler(object):
         return self._labels[flag]
 
 
-if django.VERSION[:2] >= (1, 8):
-    from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured
 
-    # We need to register adapters in Django 1.8 in order to prevent
-    # "ProgrammingError: can't adapt type"
-    try:
-        from django.db.backends.sqlite3.base import Database
-        Database.register_adapter(Bit, lambda x: int(x))
-        Database.register_adapter(BitHandler, lambda x: int(x))
-    except ImproperlyConfigured:
-        pass
+# We need to register adapters in Django 1.8 in order to prevent
+# "ProgrammingError: can't adapt type"
+try:
+    from django.db.backends.postgresql_psycopg2.base import Database
 
-    try:
-        from django.db.backends.postgresql_psycopg2.base import Database
-        Database.extensions.register_adapter(Bit, lambda x: Database.extensions.AsIs(int(x)))
-        Database.extensions.register_adapter(BitHandler, lambda x: Database.extensions.AsIs(int(x)))
-    except ImproperlyConfigured:
-        pass
+    Database.extensions.register_adapter(Bit, lambda x: Database.extensions.AsIs(int(x)))
+    Database.extensions.register_adapter(BitHandler, lambda x: Database.extensions.AsIs(int(x)))
+except ImproperlyConfigured:
+    pass

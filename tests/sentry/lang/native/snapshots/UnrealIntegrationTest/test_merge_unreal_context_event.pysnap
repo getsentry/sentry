@@ -1,0 +1,108 @@
+---
+created: '2020-02-07T13:54:33.527768Z'
+creator: sentry
+source: tests/sentry/lang/native/test_unreal.py
+---
+contexts:
+  device:
+    memory_size: 6896832512
+  gpu:
+    name: Parallels Display Adapter (WDDM)
+  os:
+    name: Windows 10
+  unreal:
+    app_default_locate: en-US
+    base_dir: //Mac/Home/Desktop/WindowsNoEditor/YetAnother/Binaries/Win64/
+    build_configuration: Development
+    build_version: ++UE4+Release-4.20-CL-4369336
+    crash_guid: UE4CC-Windows-63456D684167A2659DE73EA3517BEDC4_0000
+    crash_reporter_client_version: '1.0'
+    crash_type: Crash
+    engine_mode: Game
+    engine_version: 4.20.3-4369336+++UE4+Release-4.20
+    executable_name: YetAnother
+    game_name: UE4-YetAnother
+    is_assert: false
+    is_ensure: false
+    is_internal_build: false
+    is_source_distribution: false
+    is_ue4_release: false
+    language_lcid: 1033
+    legacy_call_stack: 'YetAnother!AActor::IsPendingKillPending()
+
+      YetAnother!AActor::Destroy()
+
+      YetAnother!FActorComponentTickFunction::ExecuteTickHelper<<lambda_e8384def656dc646af48282ce274db64>
+      >()
+
+      YetAnother!FActorComponentTickFunction::ExecuteTick()
+
+      YetAnother!FTickFunctionTask::DoTask()
+
+      YetAnother!TGraphTask<FTickFunctionTask>::ExecuteTask()
+
+      YetAnother!FNamedTaskThread::ProcessTasksNamedThread()
+
+      YetAnother!FNamedTaskThread::ProcessTasksUntilIdle()
+
+      YetAnother!FTickTaskSequencer::ReleaseTickGroup()
+
+      YetAnother!FTickTaskManager::RunTickGroup()
+
+      YetAnother!UWorld::RunTickGroup()
+
+      YetAnother!UWorld::Tick()
+
+      YetAnother!UGameEngine::Tick()
+
+      YetAnother!FEngineLoop::Tick()
+
+      YetAnother!GuardedMain()
+
+      YetAnother!GuardedMainWrapper()
+
+      YetAnother!WinMain()
+
+      YetAnother!__scrt_common_main_seh() [f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl:288]
+
+      kernel32
+
+      ntdll'
+    login_id: 9776d4844cc893f55395dbbefb0eb6d7
+    machine_id: 9776D4844CC893F55395DBBEFB0EB6D7
+    memory_stats_page_size: 4096
+    memory_stats_total_phsysical_gb: 7
+    memory_stats_total_virtual: 140737488224256
+    misc_cpu_brand: Intel(R) Core(TM) i7-7920HQ CPU @ 3.10GHz
+    misc_cpu_vendor: GenuineIntel
+    misc_number_of_cores: 6
+    misc_number_of_cores_inc_hyperthread: 6
+    misc_primary_gpu_brand: Parallels Display Adapter (WDDM)
+    platform_name: WindowsNoEditor
+    portable_call_stack: YetAnother 0x00000000544e0000 + 703394 YetAnother 0x00000000544e0000
+      + 281f2ee YetAnother 0x00000000544e0000 + 2a26dd3 YetAnother 0x00000000544e0000
+      + 2a4f984 YetAnother 0x00000000544e0000 + 355e77e YetAnother 0x00000000544e0000
+      + 3576186 YetAnother 0x00000000544e0000 + 8acc56 YetAnother 0x00000000544e0000
+      + 8acf00 YetAnother 0x00000000544e0000 + 35c121d YetAnother 0x00000000544e0000
+      + 35cfb58 YetAnother 0x00000000544e0000 + 2eb082f YetAnother 0x00000000544e0000
+      + 2eb984f YetAnother 0x00000000544e0000 + 2d1cd39 YetAnother 0x00000000544e0000
+      + 325258 YetAnother 0x00000000544e0000 + 334e4c YetAnother 0x00000000544e0000
+      + 334eaa YetAnother 0x00000000544e0000 + 3429e6 YetAnother 0x00000000544e0000
+      + 44e73c6 KERNEL32 0x000000000fd40000 + 13034 ntdll 0x0000000010060000 + 71471
+    process_id: 9444
+    root_dir: /Mac/Home/Desktop/WindowsNoEditor/
+    seconds_since_start: 8
+    time_of_crash: 636783112433190000
+    type: unreal
+environment: Production
+event_id: 12852a74acc943a790c8f1cd23907caa
+message: Access violation - code c0000005 (first/second chance not available)
+sdk:
+  name: sentry.unreal.crashreporter
+  version: '1.0'
+tags:
+  epic_account_id: 2e7d369327054a448be6c8d3601213cb
+  machine_id: C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F
+user:
+  id: ebff51ef3c4878627823eebd9ff40eb4
+  username: bruno

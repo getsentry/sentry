@@ -1,23 +1,20 @@
 from __future__ import absolute_import
 
-from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases import OrganizationEndpoint, add_integration_platform_metric_tag
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.features.helpers import requires_feature
 from sentry.models import SentryApp
 
 
 class OrganizationSentryAppsEndpoint(OrganizationEndpoint):
-    @requires_feature('organizations:sentry-apps')
+    @add_integration_platform_metric_tag
     def get(self, request, organization):
-        queryset = SentryApp.objects.filter(
-            owner=organization,
-        )
+        queryset = SentryApp.objects.filter(owner=organization)
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-date_added',
+            order_by="-date_added",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, access=request.access),
         )

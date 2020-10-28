@@ -1,13 +1,14 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectPluginDetailsContainer, {
   ProjectPluginDetails,
-} from 'app/views/projectPluginDetails';
+} from 'app/views/settings/projectPlugins/details';
 
 jest.mock('jquery');
 
-describe('ProjectPluginDetails', function() {
+describe('ProjectPluginDetails', function () {
   let component;
   const routerContext = TestStubs.routerContext();
   const {organization, project} = routerContext.context;
@@ -16,11 +17,11 @@ describe('ProjectPluginDetails', function() {
   const plugin = TestStubs.Plugin();
   const pluginId = plugin.id;
 
-  beforeAll(function() {
-    jest.spyOn(console, 'info');
+  beforeAll(function () {
+    jest.spyOn(console, 'info').mockImplementation(() => {});
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
       method: 'GET',
@@ -47,7 +48,7 @@ describe('ProjectPluginDetails', function() {
       },
     });
 
-    component = mount(
+    component = mountWithTheme(
       <ProjectPluginDetailsContainer
         organization={org}
         project={project}
@@ -58,18 +59,18 @@ describe('ProjectPluginDetails', function() {
     );
   });
 
-  afterAll(function() {
+  afterAll(function () {
     // eslint-disable-next-line no-console
-    console.info.restore();
+    console.info.mockRestore();
   });
 
-  it('renders', function() {
-    expect(component).toMatchSnapshot();
+  it('renders', function () {
+    expect(component).toSnapshot();
   });
 
-  it('resets plugin', function() {
+  it('resets plugin', function () {
     // Test component instead of container so that we can access state
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectPluginDetails
         organization={org}
         project={project}
@@ -85,7 +86,7 @@ describe('ProjectPluginDetails', function() {
     expect(wrapper.state().pluginDetails.config[0].value).toBe('default');
   });
 
-  it('enables/disables plugin', function(done) {
+  it('enables/disables plugin', function (done) {
     const btn = component.find('button').first();
     expect(btn.text()).toBe('Enable Plugin');
 

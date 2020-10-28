@@ -103,7 +103,7 @@ SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
 # The TSDB is used for building charts as well as making things like per-rate
 # alerts possible.
 
-SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
+SENTRY_TSDB = 'sentry.tsdb.redissnuba.RedisSnubaTSDB'
 
 ###########
 # Digests #
@@ -123,13 +123,9 @@ SENTRY_DIGESTS = 'sentry.digests.backends.redis.RedisBackend'
 # SESSION_COOKIE_SECURE = True
 # CSRF_COOKIE_SECURE = True
 
-# If you're not hosting at the root of your web server,
-# you need to uncomment and set it to the path where Sentry is hosted.
-# FORCE_SCRIPT_NAME = '/sentry'
-
 SENTRY_WEB_HOST = '0.0.0.0'
 SENTRY_WEB_PORT = 9000
 SENTRY_WEB_OPTIONS = {
-    # 'workers': 3,  # the number of web workers
+    # 'workers': 1,  # the number of web workers
     # 'protocol': 'uwsgi',  # Enable uwsgi protocol instead of http
 }

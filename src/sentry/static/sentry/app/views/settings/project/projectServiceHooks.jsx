@@ -1,38 +1,35 @@
-import PropTypes from 'prop-types';
 import {Link} from 'react-router';
+import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
-import IndicatorStore from 'app/stores/indicatorStore';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Switch from 'app/components/switch';
 import Truncate from 'app/components/truncate';
+import {IconAdd, IconFlag} from 'app/icons';
 
-const ServiceHookRow = createReactClass({
-  displayName: 'ServiceHookRow',
-
-  propTypes: {
+class ServiceHookRow extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     hook: PropTypes.object.isRequired,
     onToggleActive: PropTypes.func.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      loading: false,
-      error: false,
-    };
-  },
+  state = {
+    loading: false,
+    error: false,
+  };
 
   render() {
     const {orgId, projectId, hook} = this.props;
@@ -60,8 +57,8 @@ const ServiceHookRow = createReactClass({
         />
       </Field>
     );
-  },
-});
+  }
+}
 
 export default class ProjectServiceHooks extends AsyncView {
   static contextTypes = {
@@ -75,14 +72,16 @@ export default class ProjectServiceHooks extends AsyncView {
 
   onToggleActive = hook => {
     const {orgId, projectId} = this.props.params;
-    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+
+    addLoadingMessage(t('Saving changes\u2026'));
+
     this.api.request(`/projects/${orgId}/${projectId}/hooks/${hook.id}/`, {
       method: 'PUT',
       data: {
         isActive: hook.status !== 'active',
       },
       success: data => {
-        IndicatorStore.remove(loadingIndicator);
+        clearIndicators();
         const hookList = this.state.hookList.map(h => {
           if (h.id === data.id) {
             return {
@@ -95,14 +94,7 @@ export default class ProjectServiceHooks extends AsyncView {
         this.setState({hookList});
       },
       error: () => {
-        IndicatorStore.remove(loadingIndicator);
-        IndicatorStore.add(
-          t('Unable to remove application. Please try again.'),
-          'error',
-          {
-            duration: 3000,
-          }
-        );
+        addErrorMessage(t('Unable to remove application. Please try again.'));
       },
     });
   };
@@ -120,23 +112,22 @@ export default class ProjectServiceHooks extends AsyncView {
 
     return (
       <React.Fragment>
-        <PanelHeader key={'header'}>{t('Service Hook')}</PanelHeader>
-        <PanelBody key={'body'}>
-          <PanelAlert type="info" icon="icon-circle-exclamation">
-            Service Hooks are an early adopter preview feature and will change in the
-            future.
+        <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
+        <PanelBody key="body">
+          <PanelAlert type="info" icon={<IconFlag size="md" />}>
+            {t(
+              'Service Hooks are an early adopter preview feature and will change in the future.'
+            )}
           </PanelAlert>
-          {this.state.hookList.map(hook => {
-            return (
-              <ServiceHookRow
-                key={hook.id}
-                orgId={orgId}
-                projectId={projectId}
-                hook={hook}
-                onToggleActive={this.onToggleActive.bind(this, hook)}
-              />
-            );
-          })}
+          {this.state.hookList.map(hook => (
+            <ServiceHookRow
+              key={hook.id}
+              orgId={orgId}
+              projectId={projectId}
+              hook={hook}
+              onToggleActive={this.onToggleActive.bind(this, hook)}
+            />
+          ))}
         </PanelBody>
       </React.Fragment>
     );
@@ -144,8 +135,11 @@ export default class ProjectServiceHooks extends AsyncView {
 
   renderBody() {
     let body;
-    if (this.state.hookList.length > 0) body = this.renderResults();
-    else body = this.renderEmpty();
+    if (this.state.hookList.length > 0) {
+      body = this.renderResults();
+    } else {
+      body = this.renderEmpty();
+    }
 
     const {orgId, projectId} = this.props.params;
     const access = new Set(this.context.organization.access);
@@ -161,8 +155,9 @@ export default class ProjectServiceHooks extends AsyncView {
                 to={`/settings/${orgId}/projects/${projectId}/hooks/new/`}
                 size="small"
                 priority="primary"
+                icon={<IconAdd size="xs" isCircled />}
               >
-                <span className="icon-plus" />&nbsp;{t('Create New Hook')}
+                {t('Create New Hook')}
               </Button>
             ) : null
           }

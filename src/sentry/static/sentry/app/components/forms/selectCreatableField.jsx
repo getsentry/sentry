@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {StyledForm} from 'app/components/forms/form';
 import {defined} from 'app/utils';
@@ -21,6 +21,7 @@ export default class SelectCreatableField extends SelectField {
     choices: SelectControl.propTypes.choices,
     onChange: PropTypes.func,
     creatable: PropTypes.bool,
+    deprecatedSelectControl: PropTypes.bool,
   };
 
   constructor(props) {
@@ -33,9 +34,9 @@ export default class SelectCreatableField extends SelectField {
     this.options = this.getOptions(props);
   }
 
-  componentWillReceiveProps(nextProps, nextContext) {
+  UNSAFE_componentWillReceiveProps(nextProps, nextContext) {
     const newError = this.getError(nextProps, nextContext);
-    if (newError != this.state.error) {
+    if (newError !== this.state.error) {
       this.setState({error: newError});
     }
     if (this.props.value !== nextProps.value || defined(nextContext.form)) {
@@ -66,10 +67,18 @@ export default class SelectCreatableField extends SelectField {
   }
 
   getField() {
-    const {placeholder, disabled, required, clearable, name} = this.props;
+    const {
+      deprecatedSelectControl,
+      placeholder,
+      disabled,
+      required,
+      clearable,
+      name,
+    } = this.props;
 
     return (
       <StyledSelectControl
+        deprecatedSelectControl={deprecatedSelectControl}
         creatable
         id={this.getId()}
         options={this.options}

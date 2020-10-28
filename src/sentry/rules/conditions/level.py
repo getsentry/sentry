@@ -1,11 +1,3 @@
-"""
-sentry.rules.conditions.minimum_level
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
 from collections import OrderedDict
@@ -21,39 +13,36 @@ LEVEL_CHOICES = OrderedDict(
 
 
 class MatchType(object):
-    EQUAL = 'eq'
-    LESS_OR_EQUAL = 'lte'
-    GREATER_OR_EQUAL = 'gte'
+    EQUAL = "eq"
+    LESS_OR_EQUAL = "lte"
+    GREATER_OR_EQUAL = "gte"
 
 
 MATCH_CHOICES = OrderedDict(
     [
-        (MatchType.EQUAL, 'equal to'), (MatchType.LESS_OR_EQUAL, 'less than or equal to'),
-        (MatchType.GREATER_OR_EQUAL, 'greater than or equal to')
+        (MatchType.EQUAL, "equal to"),
+        (MatchType.LESS_OR_EQUAL, "less than or equal to"),
+        (MatchType.GREATER_OR_EQUAL, "greater than or equal to"),
     ]
 )
 
 
 class LevelEventForm(forms.Form):
-    level = forms.ChoiceField(
-        choices=LEVEL_CHOICES.items(),
-    )
-    match = forms.ChoiceField(
-        choices=MATCH_CHOICES.items(),
-    )
+    level = forms.ChoiceField(choices=list(LEVEL_CHOICES.items()))
+    match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
 
 
 class LevelCondition(EventCondition):
     form_cls = LevelEventForm
-    label = 'An event\'s level is {match} {level}'
+    label = "The event's level is {match} {level}"
     form_fields = {
-        'level': {'type': 'choice', 'choices': LEVEL_CHOICES.items()},
-        'match': {'type': 'choice', 'choices': MATCH_CHOICES.items()}
+        "level": {"type": "choice", "choices": list(LEVEL_CHOICES.items())},
+        "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
     }
 
     def passes(self, event, state, **kwargs):
-        desired_level = self.get_option('level')
-        desired_match = self.get_option('match')
+        desired_level = self.get_option("level")
+        desired_match = self.get_option("match")
 
         if not (desired_level and desired_match):
             return False
@@ -62,7 +51,7 @@ class LevelCondition(EventCondition):
         # Fetch the event level from the tags since event.level is
         # event.group.level which may have changed
         try:
-            level = LOG_LEVELS_MAP[event.get_tag('level')]
+            level = LOG_LEVELS_MAP[event.get_tag("level")]
         except KeyError:
             return False
 
@@ -76,7 +65,7 @@ class LevelCondition(EventCondition):
 
     def render_label(self):
         data = {
-            'level': LEVEL_CHOICES[self.data['level']],
-            'match': MATCH_CHOICES[self.data['match']],
+            "level": LEVEL_CHOICES[self.data["level"]],
+            "match": MATCH_CHOICES[self.data["match"]],
         }
         return self.label.format(**data)

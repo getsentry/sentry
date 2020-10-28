@@ -4,6 +4,8 @@ import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
 import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
 
 import AuditLogList from './auditLogList';
 
@@ -46,17 +48,18 @@ const EVENT_TYPES = [
   'rule.create',
   'rule.edit',
   'rule.remove',
-  'serivcehook.create',
-  'serivcehook.edit',
-  'serivcehook.remove',
-  'serivcehook.enable',
-  'serivcehook.disable',
+  'servicehook.create',
+  'servicehook.edit',
+  'servicehook.remove',
+  'servicehook.enable',
+  'servicehook.disable',
   'integration.add',
   'integration.edit',
   'integration.remove',
   'ondemand.edit',
   'trial.started',
   'plan.changed',
+  'plan.cancelled',
 ].sort();
 
 class OrganizationAuditLog extends AsyncView {
@@ -81,8 +84,7 @@ class OrganizationAuditLog extends AsyncView {
   }
 
   getTitle() {
-    const org = this.context.organization;
-    return `${org.name} Audit Log`;
+    return routeTitleGen(t('Audit Log'), this.context.organization.slug, false);
   }
 
   handleEventSelect = value => {

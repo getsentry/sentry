@@ -1,4 +1,4 @@
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -47,7 +47,9 @@ class SelectAsyncControl extends React.Component {
   }
 
   componentWillUnmount() {
-    if (!this.api) return;
+    if (!this.api) {
+      return;
+    }
     this.api.clear();
     this.api = null;
   }
@@ -56,17 +58,22 @@ class SelectAsyncControl extends React.Component {
     const {url, onQuery} = this.props;
     const {query} = this.state;
 
-    if (!this.api) return null;
+    if (!this.api) {
+      return null;
+    }
 
     return this.api
       .requestPromise(url, {
         query: typeof onQuery === 'function' ? onQuery(query) : {query},
       })
-      .then(data => cb(null, data), err => cb(err));
+      .then(
+        data => cb(null, data),
+        err => cb(err)
+      );
   }, 250);
 
-  handleLoadOptions = () => {
-    return new Promise((resolve, reject) => {
+  handleLoadOptions = () =>
+    new Promise((resolve, reject) => {
       this.doQuery((err, result) => {
         if (err) {
           reject(err);
@@ -93,7 +100,6 @@ class SelectAsyncControl extends React.Component {
         console.error(err);
       }
     );
-  };
 
   handleInputChange = query => {
     this.setState({query});

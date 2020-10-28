@@ -1,23 +1,26 @@
 import React from 'react';
-import {shallow} from 'enzyme';
-import AlertLink from 'app/components/alertLink';
 
-describe('AlertLink', function() {
-  it('renders', function() {
-    const wrapper = shallow(
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import AlertLink from 'app/components/alertLink';
+import {IconMail} from 'app/icons';
+
+describe('AlertLink', function () {
+  it('renders', function () {
+    const wrapper = mountWithTheme(
       <AlertLink to="/settings/accounts/notifications">
         This is an external link button
       </AlertLink>
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders with icon', function() {
-    const wrapper = shallow(
-      <AlertLink to="/settings/accounts/notifications" icon="icon-mail">
+  it('renders with icon', function () {
+    const wrapper = mountWithTheme(
+      <AlertLink to="/settings/accounts/notifications" icon={<IconMail />}>
         This is an external link button
       </AlertLink>
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

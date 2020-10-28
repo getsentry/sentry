@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationRepositoriesContainer from 'app/views/settings/organizationRepositories';
@@ -10,14 +11,14 @@ const childContextTypes = {
   location: PropTypes.object,
 };
 
-describe('OrganizationRepositoriesContainer', function() {
-  beforeEach(function() {
+describe('OrganizationRepositoriesContainer', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
-  describe('render()', function() {
-    describe('without any providers', function() {
-      beforeEach(function() {
+  describe('render()', function () {
+    describe('without any providers', function () {
+      beforeEach(function () {
         Client.addMockResponse({
           url: '/organizations/org-slug/repos/',
           body: [],
@@ -28,8 +29,8 @@ describe('OrganizationRepositoriesContainer', function() {
         });
       });
 
-      it('is loading when initially rendering', function() {
-        const wrapper = shallow(
+      it('is loading when initially rendering', function () {
+        const wrapper = mountWithTheme(
           <OrganizationRepositoriesContainer params={{orgId: 'org-slug'}} />,
           {
             context: {
@@ -40,7 +41,7 @@ describe('OrganizationRepositoriesContainer', function() {
             childContextTypes,
           }
         );
-        expect(wrapper).toMatchSnapshot();
+        expect(wrapper).toSnapshot();
       });
     });
   });

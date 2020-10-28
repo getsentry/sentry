@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`Toolbar renders 1`] = `
-<div
-  className="css-uvb3r7-Toolbar ehkx0bi0"
->
-  <div />
-</div>
-`;

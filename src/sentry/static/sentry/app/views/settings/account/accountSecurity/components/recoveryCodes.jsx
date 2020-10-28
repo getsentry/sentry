@@ -1,14 +1,7 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import Button from 'app/components/button';
-import Clipboard from 'app/components/clipboard';
-import Confirm from 'app/components/confirm';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import InlineSvg from 'app/components/inlineSvg';
 import {
   Panel,
   PanelBody,
@@ -16,10 +9,13 @@ import {
   PanelItem,
   PanelAlert,
 } from 'app/components/panels';
-
-const Code = styled(props => <PanelItem p={2} {...props} />)`
-  font-family: ${p => p.theme.text.familyMono};
-`;
+import {t} from 'app/locale';
+import Button from 'app/components/button';
+import Clipboard from 'app/components/clipboard';
+import Confirm from 'app/components/confirm';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {IconCopy, IconDownload, IconPrint} from 'app/icons';
+import space from 'app/styles/space';
 
 class RecoveryCodes extends React.Component {
   static propTypes = {
@@ -36,63 +32,55 @@ class RecoveryCodes extends React.Component {
   };
 
   render() {
-    const {isEnrolled, codes} = this.props;
+    const {className, isEnrolled, codes} = this.props;
 
-    if (!isEnrolled || !codes) return null;
+    if (!isEnrolled || !codes) {
+      return null;
+    }
 
     const formattedCodes = codes.join(' \n');
 
     return (
-      <Panel css={{marginTop: 30}}>
+      <Panel className={className}>
         <PanelHeader hasButtons>
-          <Flex align="center">
-            <Box>{t('Unused Codes')}</Box>
-          </Flex>
-          <Flex>
-            <Box ml={1}>
-              <Clipboard hideUnsupported value={formattedCodes}>
-                <Button size="small">
-                  <InlineSvg src="icon-copy" />
-                </Button>
-              </Clipboard>
-            </Box>
-            <Box ml={1}>
-              <Button size="small" onClick={this.printCodes}>
-                <InlineSvg src="icon-print" />
+          {t('Unused Codes')}
+
+          <Actions>
+            <Clipboard hideUnsupported value={formattedCodes}>
+              <Button size="small" label={t('copy')}>
+                <IconCopy />
               </Button>
-            </Box>
-            <Box ml={1}>
-              <Button
-                size="small"
-                download="sentry-recovery-codes.txt"
-                href={`data:text/plain;charset=utf-8,${formattedCodes}`}
-              >
-                <InlineSvg src="icon-download" />
+            </Clipboard>
+            <Button size="small" onClick={this.printCodes} label={t('print')}>
+              <IconPrint />
+            </Button>
+            <Button
+              size="small"
+              download="sentry-recovery-codes.txt"
+              href={`data:text/plain;charset=utf-8,${formattedCodes}`}
+              label={t('download')}
+            >
+              <IconDownload />
+            </Button>
+            <Confirm
+              onConfirm={this.props.onRegenerateBackupCodes}
+              message={t(
+                'Are you sure you want to regenerate recovery codes? Your old codes will no longer work.'
+              )}
+            >
+              <Button priority="danger" size="small">
+                {t('Regenerate Codes')}
               </Button>
-            </Box>
-            <Box ml={1}>
-              <Confirm
-                onConfirm={this.props.onRegenerateBackupCodes}
-                message={t(
-                  'Are you sure you want to regenerate recovery codes? Your old codes will no longer work.'
-                )}
-              >
-                <Button priority="danger" size="small">
-                  {t('Regenerate Codes')}
-                </Button>
-              </Confirm>
-            </Box>
-          </Flex>
+            </Confirm>
+          </Actions>
         </PanelHeader>
         <PanelBody>
           <PanelAlert type="warning">
-            <Flex align="center" ml={1} flex="1">
-              {t(
-                'Make sure to save a copy of your recovery codes and store them in a safe place.'
-              )}
-            </Flex>
+            {t(
+              'Make sure to save a copy of your recovery codes and store them in a safe place.'
+            )}
           </PanelAlert>
-          <Box>{!!codes.length && codes.map(code => <Code key={code}>{code}</Code>)}</Box>
+          <div>{!!codes.length && codes.map(code => <Code key={code}>{code}</Code>)}</div>
           {!codes.length && (
             <EmptyMessage>{t('You have no more recovery codes to use')}</EmptyMessage>
           )}
@@ -103,4 +91,17 @@ class RecoveryCodes extends React.Component {
   }
 }
 
-export default RecoveryCodes;
+export default styled(RecoveryCodes)`
+  margin-top: ${space(4)};
+`;
+
+const Actions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+`;
+
+const Code = styled(PanelItem)`
+  font-family: ${p => p.theme.text.familyMono};
+  padding: ${space(2)};
+`;

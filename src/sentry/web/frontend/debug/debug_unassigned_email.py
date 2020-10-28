@@ -7,7 +7,4 @@ from .mail import ActivityMailDebugView
 
 class DebugUnassignedEmailView(ActivityMailDebugView):
     def get_activity(self, request, event):
-        return {
-            'type': Activity.UNASSIGNED,
-            'user': request.user,
-        }
+        return {"type": Activity.UNASSIGNED, "user": request.user}

@@ -1,5 +1,5 @@
 ---
-created: '2019-03-14T17:12:35.335046Z'
+created: '2019-04-30T08:25:08.353517Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_exception.py
 ---
@@ -25,6 +25,7 @@ get_api_context:
         module: null
         package: null
         platform: null
+        rawFunction: null
         symbol: null
         symbolAddr: null
         trust: null
@@ -52,6 +53,7 @@ get_api_context:
         module: null
         package: null
         platform: null
+        rawFunction: null
         symbol: null
         symbolAddr: null
         trust: null

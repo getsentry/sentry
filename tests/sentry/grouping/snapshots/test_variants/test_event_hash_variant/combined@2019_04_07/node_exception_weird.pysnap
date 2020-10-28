@@ -1,0 +1,238 @@
+---
+created: '2020-02-26T19:54:25.368649Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "bc6bc0f8bfa8a2fe5f0e4034384bfec1"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "hub"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js"
+            context-line*
+              "     */"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.withScope"
+            lineno (line number is not used if context-line is available)
+              171
+          frame*
+            module*
+              "onunhandledrejection.ts"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/node/src/integrations/onunhandledrejection.ts"
+            function*
+              "null.<anonymous>"
+            lineno (function takes precedence)
+              808
+          frame (non app frame)
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
+            context-line*
+              "        return fn.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "Hub.mockConstructor [as captureException]"
+            lineno (line number is not used if context-line is available)
+              150
+          frame (non app frame)
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
+            context-line*
+              "          })();"
+            function (function name is not used if context-line is available)
+              "Hub.<anonymous>"
+            lineno (line number is not used if context-line is available)
+              446
+          frame (non app frame)
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
+            context-line*
+              "                return specificMockImpl.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "finalReturnValue"
+            lineno (line number is not used if context-line is available)
+              437
+          frame (non app frame)
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
+            context-line*
+              "        return original.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "Hub.<anonymous>"
+            lineno (line number is not used if context-line is available)
+              806
+          frame*
+            module*
+              "hub.ts"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/src/hub.ts"
+            context-line*
+              "    if (maxBreadcrumbs <= 0) {"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.captureException"
+            lineno (line number is not used if context-line is available)
+              255
+          frame*
+            module*
+              "hub"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js"
+            context-line*
+              "     * @returns Scope, the new cloned scope"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.invokeClient"
+            lineno (line number is not used if context-line is available)
+              91
+          frame*
+            module*
+              "baseclient.ts"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/core/src/baseclient.ts"
+            context-line*
+              "    promisedEvent"
+            function (function name is not used if context-line is available)
+              "NodeClient.Object.<anonymous>.BaseClient.captureException"
+            lineno (line number is not used if context-line is available)
+              110
+          frame*
+            module*
+              "backend.ts"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/node/src/backend.ts"
+            function*
+              "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException"
+            lineno (function takes precedence)
+              2093
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bla"
+--------------------------------------------------------------------------
+system:
+  hash: "6a3275e56067560bf20cb311f724f897"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "hub"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js"
+            context-line*
+              "     */"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.withScope"
+            lineno (line number is not used if context-line is available)
+              171
+          frame*
+            module*
+              "onunhandledrejection.ts"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/node/src/integrations/onunhandledrejection.ts"
+            function*
+              "null.<anonymous>"
+            lineno (function takes precedence)
+              808
+          frame*
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
+            context-line*
+              "        return fn.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "Hub.mockConstructor [as captureException]"
+            lineno (line number is not used if context-line is available)
+              150
+          frame*
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
+            context-line*
+              "          })();"
+            function (function name is not used if context-line is available)
+              "Hub.<anonymous>"
+            lineno (line number is not used if context-line is available)
+              446
+          frame*
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
+            context-line*
+              "                return specificMockImpl.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "finalReturnValue"
+            lineno (line number is not used if context-line is available)
+              437
+          frame*
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js"
+            context-line*
+              "        return original.apply(this, arguments);"
+            function (function name is not used if context-line is available)
+              "Hub.<anonymous>"
+            lineno (line number is not used if context-line is available)
+              806
+          frame*
+            module*
+              "hub.ts"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/src/hub.ts"
+            context-line*
+              "    if (maxBreadcrumbs <= 0) {"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.captureException"
+            lineno (line number is not used if context-line is available)
+              255
+          frame*
+            module*
+              "hub"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js"
+            context-line*
+              "     * @returns Scope, the new cloned scope"
+            function (function name is not used if context-line is available)
+              "Hub.Object.<anonymous>.Hub.invokeClient"
+            lineno (line number is not used if context-line is available)
+              91
+          frame*
+            module*
+              "baseclient.ts"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/core/src/baseclient.ts"
+            context-line*
+              "    promisedEvent"
+            function (function name is not used if context-line is available)
+              "NodeClient.Object.<anonymous>.BaseClient.captureException"
+            lineno (line number is not used if context-line is available)
+              110
+          frame*
+            module*
+              "backend.ts"
+            filename (module takes precedence)
+              "/home/travis/build/getsentry/sentry-javascript/packages/node/src/backend.ts"
+            function*
+              "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException"
+            lineno (function takes precedence)
+              2093
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bla"

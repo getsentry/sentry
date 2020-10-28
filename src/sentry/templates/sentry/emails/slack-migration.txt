@@ -1,0 +1,17 @@
+Slack Upgrade
+--------------
+
+Your Sentry Slack Integration for workspace {{integration.name}} has been updated on behalf of organization {{organization.name}}. For more information, check out the documentation: {{ doc_link }}.
+
+{% if good_channels %}
+    Sentry was able to send messages to the following private channels with instructions on how to add Sentry to the channel:
+    {% for channel in good_channels %}
+        {{ channel }}
+    {% endfor %}
+{% endif %}
+{% if problem_channels %}
+    Sentry was unable to send messages to the following private channels:
+    {% for channel in problem_channels %}
+        {{ channel }}
+    {% endfor %}
+{% endif %}

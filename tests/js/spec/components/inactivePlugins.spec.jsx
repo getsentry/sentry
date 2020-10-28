@@ -1,30 +1,31 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import InactivePlugins from 'app/components/inactivePlugins';
 
-describe('InactivePlugins', function() {
-  it('renders null when no plugins', function() {
-    const wrapper = shallow(<InactivePlugins plugins={[]} onEnablePlugin={() => {}} />);
-    expect(wrapper).toMatchSnapshot();
+describe('InactivePlugins', function () {
+  it('renders null when no plugins', function () {
+    const wrapper = mountWithTheme(
+      <InactivePlugins plugins={[]} onEnablePlugin={() => {}} />
+    );
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders plugins list', function() {
-    const wrapper = shallow(
+  it('renders plugins list', function () {
+    const wrapper = mountWithTheme(
       <InactivePlugins onEnablePlugin={() => {}} plugins={TestStubs.Plugins()} />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('enables a plugin', function() {
+  it('enables a plugin', function () {
     const enableFn = jest.fn();
     const plugins = TestStubs.Plugins();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InactivePlugins onEnablePlugin={enableFn} plugins={plugins} />
     );
-    wrapper
-      .find('button')
-      .first()
-      .simulate('click');
-    expect(enableFn).toHaveBeenCalledWith(expect.objectContaining(plugins[0]), true);
+    wrapper.find('button').first().simulate('click');
+    expect(enableFn).toHaveBeenCalledWith(expect.objectContaining(plugins[0]));
   });
 });

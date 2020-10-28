@@ -1,25 +1,24 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import createReactClass from 'create-react-class';
 
-import OrganizationState from 'app/mixins/organizationState';
+import SentryTypes from 'app/sentryTypes';
+import withOrganization from 'app/utils/withOrganization';
 
 import OrganizationRateLimits from './organizationRateLimits';
 
-const OrganizationRateLimitsContainer = createReactClass({
-  displayName: 'OrganizationRateLimits',
-  propTypes: {
+class OrganizationRateLimitsContainer extends React.Component {
+  static propTypes = {
+    organization: SentryTypes.Organization,
     routes: PropTypes.array,
-  },
-  mixins: [OrganizationState],
+  };
 
   render() {
-    if (!this.context.organization) return null;
+    if (!this.props.organization) {
+      return null;
+    }
 
-    return (
-      <OrganizationRateLimits {...this.props} organization={this.context.organization} />
-    );
-  },
-});
+    return <OrganizationRateLimits {...this.props} />;
+  }
+}
 
-export default OrganizationRateLimitsContainer;
+export default withOrganization(OrganizationRateLimitsContainer);

@@ -1,0 +1,28 @@
+{
+  "culprit": "onScriptComplete(webpack/bootstrap)",
+  "event_id": "07882247670741c797467e8142a146b4",
+  "environment": "prod",
+  "platform": "javascript",
+  "logger": "",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "message": "Loading chunk 158 failed.\n(timeout: https://s1.sentry-cdn.com/_static/34f8a6d11b9f52ebb4e5fd949650088f/sentry/dist/passwordStrength.js)",
+            "mode": "stack",
+            "name": "Error"
+          },
+          "type": "onunhandledrejection",
+          "handled": false
+        },
+        "value": "Loading chunk 158 failed.\n(timeout: https://s1.sentry-cdn.com/_static/34f8a6d11b9f52ebb4e5fd949650088f/sentry/dist/passwordStrength.js)",
+        "type": "Error"
+      }
+    ]
+  },
+  "release": "fb54ad9453c2c41a5810a6b3ee37e4a9eb943410"
+}

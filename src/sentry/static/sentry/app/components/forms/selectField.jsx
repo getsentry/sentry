@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {defined} from 'app/utils';
 
@@ -16,6 +16,7 @@ export default class SelectField extends FormField {
     clearable: SelectControl.propTypes.clearable,
     onChange: PropTypes.func,
     multiple: PropTypes.bool,
+    deprecatedSelectControl: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -24,14 +25,14 @@ export default class SelectField extends FormField {
     multiple: false,
   };
 
-  componentWillReceiveProps(nextProps, nextContext) {
+  UNSAFE_componentWillReceiveProps(nextProps, nextContext) {
     const newError = this.getError(nextProps, nextContext);
-    if (newError != this.state.error) {
+    if (newError !== this.state.error) {
       this.setState({error: newError});
     }
     if (this.props.value !== nextProps.value || defined(nextContext.form)) {
       const newValue = this.getValue(nextProps, nextContext);
-      // This is the only thing that is different from parent, we compare newValue against coerved value in state
+      // This is the only thing that is different from parent, we compare newValue against coerced value in state
       // To remain compatible with react-select, we need to store the option object that
       // includes `value` and `label`, but when we submit the format, we need to coerce it
       // to just return `value`. Also when field changes, it propagates the coerced value up
@@ -72,7 +73,9 @@ export default class SelectField extends FormField {
   // This is also needed to get `multi` select working since we need the {label, value} object
   // for react-select (but forms expect just the value to be propagated)
   coerceValue(value) {
-    if (!value) return '';
+    if (!value) {
+      return '';
+    }
 
     if (this.isMultiple()) {
       return value.map(v => v.value);
@@ -101,6 +104,7 @@ export default class SelectField extends FormField {
 
   getField() {
     const {
+      deprecatedSelectControl,
       options,
       clearable,
       creatable,
@@ -109,10 +113,12 @@ export default class SelectField extends FormField {
       disabled,
       required,
       name,
+      isLoading,
     } = this.props;
 
     return (
       <StyledSelectControl
+        deprecatedSelectControl={deprecatedSelectControl}
         creatable={creatable}
         id={this.getId()}
         choices={choices}
@@ -125,6 +131,7 @@ export default class SelectField extends FormField {
         clearable={clearable}
         multiple={this.isMultiple()}
         name={name}
+        isLoading={isLoading}
       />
     );
   }
