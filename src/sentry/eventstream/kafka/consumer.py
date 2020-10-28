@@ -64,7 +64,7 @@ def run_commit_log_consumer(
     # state of the consumer groups it is tracking.
     consumer_config = kafka_config.get_kafka_consumer_cluster_options(
         cluster_name,
-        override={
+        override_params={
             "group.id": consumer_group,
             "enable.auto.commit": "false",
             "enable.auto.offset.store": "true",
@@ -188,7 +188,7 @@ class SynchronizedConsumer(object):
 
         consumer_configuration = kafka_config.get_kafka_consumer_cluster_options(
             cluster_name,
-            override={
+            override_params={
                 "group.id": self.consumer_group,
                 "enable.auto.commit": "false",
                 "enable.auto.offset.store": "true",

@@ -216,7 +216,7 @@ class BatchingKafkaConsumer(object):
     ):
         consumer_config = kafka_config.get_kafka_consumer_cluster_options(
             cluster_name,
-            override={
+            override_params={
                 "enable.auto.commit": False,
                 "group.id": group_id,
                 "default.topic.config": {"auto.offset.reset": auto_offset_reset},
@@ -230,7 +230,7 @@ class BatchingKafkaConsumer(object):
             # This is required for confluent-kafka>=1.5.0, otherwise the topics will
             # not be automatically created.
             conf = kafka_config.get_kafka_admin_cluster_options(
-                cluster_name, override={"allow.auto.create.topics": "true"}
+                cluster_name, override_params={"allow.auto.create.topics": "true"}
             )
             admin_client = AdminClient(conf)
             self._wait_for_topics(admin_client, topics)
