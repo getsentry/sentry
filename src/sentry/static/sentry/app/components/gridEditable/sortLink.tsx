@@ -11,7 +11,7 @@ export type Directions = 'desc' | 'asc' | undefined;
 
 type Props = {
   align: Alignments;
-  title: string;
+  title: React.ReactNode;
   direction: Directions;
   canSort: boolean;
 

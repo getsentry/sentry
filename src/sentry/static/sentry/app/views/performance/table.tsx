@@ -155,7 +155,7 @@ class Table extends React.Component<Props, State> {
   };
 
   renderHeadCell = (tableMeta: TableData['meta']) => {
-    const {eventView, location} = this.props;
+    const {eventView, organization, location} = this.props;
 
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode => {
       return (
@@ -178,6 +178,10 @@ class Table extends React.Component<Props, State> {
             }
             const currentSort = eventView.sortForField(field, tableMeta);
             const canSort = isFieldSortable(field, tableMeta);
+
+            // key transactions adds an additional column, so we shift the index over by 1
+            // when the feature is not available
+            index += organization.features.includes('key-transactions') ? 0 : 1;
 
             return (
               <SortLink
@@ -211,6 +215,28 @@ class Table extends React.Component<Props, State> {
     this.setState({widths});
   };
 
+  getSortedEventView() {
+    const {eventView} = this.props;
+
+    // We special case sort by key transactions here to include
+    // the transaction name and project as the secondary sorts.
+    const keyTransactionSort = eventView.sorts.find(
+      sort => sort.field === 'key_transaction'
+    );
+    if (keyTransactionSort) {
+      const allowedFields = eventView.getFields();
+      const sorts = ['key_transaction', 'transaction', 'project']
+        .filter(field => allowedFields.includes(field))
+        .map(field => ({
+          field,
+          kind: keyTransactionSort.kind,
+        }));
+      return eventView.withSorts(sorts);
+    }
+
+    return eventView;
+  }
+
   render() {
     const {eventView, organization, location, keyTransactions} = this.props;
     const {widths} = this.state;
@@ -223,11 +249,12 @@ class Table extends React.Component<Props, State> {
         return col;
       });
 
-    const columnSortBy = eventView.getSorts();
+    const sortedEventView = this.getSortedEventView();
+    const columnSortBy = sortedEventView.getSorts();
     return (
       <div>
         <DiscoverQuery
-          eventView={eventView}
+          eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
           keyTransactions={keyTransactions}

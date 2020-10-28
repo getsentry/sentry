@@ -1,5 +1,7 @@
+import React from 'react';
 import {Location} from 'history';
 
+import {IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import {NewQuery, LightWeightOrganization, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -9,6 +11,12 @@ import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 export const DEFAULT_STATS_PERIOD = '24h';
 
 export const COLUMN_TITLES = [
+  <IconStar
+    key="keyTransaction"
+    color="yellow500"
+    isSolid
+    data-test-id="key-transaction-header"
+  />,
   'transaction',
   'project',
   'tpm',
@@ -101,6 +109,10 @@ export function generatePerformanceEventView(
 ): EventView {
   const {query} = location;
 
+  const keyTransactionFields = organization.features.includes('key-transactions')
+    ? ['key_transaction']
+    : [];
+
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
     id: undefined,
@@ -108,6 +120,7 @@ export function generatePerformanceEventView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
+      ...keyTransactionFields,
       'transaction',
       'project',
       'epm()',

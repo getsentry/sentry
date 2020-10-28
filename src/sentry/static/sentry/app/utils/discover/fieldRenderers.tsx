@@ -3,6 +3,7 @@ import {Location} from 'history';
 import partial from 'lodash/partial';
 import styled from '@emotion/styled';
 
+import {IconStar} from 'app/icons';
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
@@ -167,6 +168,7 @@ type SpecialFields = {
   'error.handled': SpecialField;
   issue: SpecialField;
   release: SpecialField;
+  key_transaction: SpecialField;
 };
 
 /**
@@ -304,6 +306,22 @@ const SPECIAL_FIELDS: SpecialFields = {
       const values = data['error.handled'];
       const value = Array.isArray(values) ? values.slice(-1)[0] : values;
       return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
+    },
+  },
+  key_transaction: {
+    sortField: 'key_transaction',
+    renderFunc: data => {
+      const isKeyTransaction = (data.key_transaction ?? 0) !== 0;
+      return (
+        <Container>
+          <IconStar
+            size="xs"
+            color={isKeyTransaction ? 'yellow500' : 'gray500'}
+            isSolid={isKeyTransaction}
+            data-test-id="key-transaction-column"
+          />
+        </Container>
+      );
     },
   },
 };
