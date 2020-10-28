@@ -116,7 +116,7 @@ export const Default = withInfo('default')(() => {
   const ignoredGroup = {
     ...group,
     id: '4',
-    status: 'resolved',
+    status: 'ignored',
     culprit: 'culprit',
     metadata: {function: 'fetchData', type: 'IgnoredErrorType'},
   };
