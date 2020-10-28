@@ -216,6 +216,8 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
         original_short_id = group.short_id
         group.status = models.GroupStatus.REPROCESSING
         # satisfy unique constraint of (project_id, short_id)
+        # we manually tested that multiple groups with (project_id=1,
+        # short_id=null) can exist in postgres
         group.short_id = None
         group.save()
 
