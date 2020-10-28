@@ -148,7 +148,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
       : statsPeriodOptions[0];
 
     return (
-      <Feature features={['internal-catchall']} organization={organization}>
+      <Feature features={['metric-alert-builder-aggregate']} organization={organization}>
         {({hasFeature}) => {
           return (
             <EventsRequest
@@ -200,51 +200,66 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   }
                 }
 
-                return (
-                  <StickyWrapper>
-                    <StyledPanel>
-                      <PanelBody withPadding>
-                        <ControlsContainer>
-                          <PeriodSelectControl
-                            inline={false}
-                            styles={{
-                              control: provided => ({
-                                ...provided,
-                                minHeight: '25px',
-                                height: '25px',
-                              }),
-                            }}
-                            isSearchable={false}
-                            isClearable={false}
-                            disabled={loading || reloading}
-                            name="statsPeriod"
-                            value={period}
-                            choices={statsPeriodOptions.map(timePeriod => [
-                              timePeriod,
-                              TIME_PERIOD_MAP[timePeriod],
-                            ])}
-                            onChange={this.handleStatsPeriodChange}
-                          />
-                        </ControlsContainer>
+                const chart = (
+                  <React.Fragment>
+                    <ControlsContainer>
+                      <PeriodSelectControl
+                        inline={false}
+                        styles={{
+                          control: provided => ({
+                            ...provided,
+                            minHeight: '25px',
+                            height: '25px',
+                          }),
+                        }}
+                        isSearchable={false}
+                        isClearable={false}
+                        disabled={loading || reloading}
+                        name="statsPeriod"
+                        value={period}
+                        choices={statsPeriodOptions.map(timePeriod => [
+                          timePeriod,
+                          TIME_PERIOD_MAP[timePeriod],
+                        ])}
+                        onChange={this.handleStatsPeriodChange}
+                      />
+                    </ControlsContainer>
 
-                        {loading || reloading ? (
-                          <ChartPlaceholder />
-                        ) : (
-                          <React.Fragment>
-                            <TransparentLoadingMask visible={reloading} />
-                            <ThresholdsChart
-                              period={statsPeriod}
-                              maxValue={maxValue ? maxValue.value : maxValue}
-                              data={timeseriesData}
-                              triggers={triggers}
-                              resolveThreshold={resolveThreshold}
-                              thresholdType={thresholdType}
-                            />
-                          </React.Fragment>
-                        )}
-                      </PanelBody>
-                    </StyledPanel>
-                  </StickyWrapper>
+                    {loading || reloading ? (
+                      <ChartPlaceholder />
+                    ) : (
+                      <React.Fragment>
+                        <TransparentLoadingMask visible={reloading} />
+                        <ThresholdsChart
+                          period={statsPeriod}
+                          maxValue={maxValue ? maxValue.value : maxValue}
+                          data={timeseriesData}
+                          triggers={triggers}
+                          resolveThreshold={resolveThreshold}
+                          thresholdType={thresholdType}
+                        />
+                      </React.Fragment>
+                    )}
+                  </React.Fragment>
+                );
+
+                return (
+                  <Feature
+                    organization={organization}
+                    features={['metric-alert-gui-filters']}
+                  >
+                    {({hasFeature: hasGuiFilters}) =>
+                      hasGuiFilters ? (
+                        <ChartWrapper>{chart}</ChartWrapper>
+                      ) : (
+                        <StickyWrapper>
+                          <StyledPanel>
+                            <PanelBody withPadding>{chart}</PanelBody>
+                          </StyledPanel>
+                        </StickyWrapper>
+                      )
+                    }
+                  </Feature>
                 );
               }}
             </EventsRequest>
@@ -292,4 +307,8 @@ const PeriodSelectControl = styled(SelectControl)`
   font-weight: normal;
   text-transform: none;
   border: 0;
+`;
+
+const ChartWrapper = styled('div')`
+  padding: ${space(2)};
 `;

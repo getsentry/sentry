@@ -13,7 +13,12 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import EventView from 'app/utils/discover/eventView';
-import {isAggregateField} from 'app/utils/discover/fields';
+import {
+  Column,
+  WebVital,
+  getAggregateAlias,
+  isAggregateField,
+} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -26,6 +31,10 @@ import withProjects from 'app/utils/withProjects';
 
 import SummaryContent from './content';
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  WEB_VITAL_DETAILS,
+} from '../transactionVitals/constants';
 
 type Props = {
   api: Client;
@@ -99,6 +108,10 @@ class TransactionSummary extends React.Component<Props, State> {
   ): [EventView, TotalValues] {
     const threshold = organization.apdexThreshold.toString();
 
+    const vitals = organization.features.includes('measurements')
+      ? Object.values(WebVital).filter(vital => WEB_VITAL_DETAILS[vital].includeInSummary)
+      : [];
+
     const totalsView = eventView.withColumns([
       {
         kind: 'function',
@@ -120,14 +133,18 @@ class TransactionSummary extends React.Component<Props, State> {
         kind: 'function',
         function: ['count_unique', 'user', undefined],
       },
+      ...vitals.map(
+        vital =>
+          ({
+            kind: 'function',
+            function: ['percentile', vital, VITAL_PERCENTILE.toString()],
+          } as Column)
+      ),
     ]);
-    const emptyValues = {
-      count: 0,
-      [`apdex_${threshold}`]: 0,
-      [`user_misery_${threshold}`]: 0,
-      p95: 0,
-      count_unique_user: 0,
-    };
+    const emptyValues = totalsView.fields.reduce((values, field) => {
+      values[getAggregateAlias(field.field)] = 0;
+      return values;
+    }, {});
     return [totalsView, emptyValues];
   }
 

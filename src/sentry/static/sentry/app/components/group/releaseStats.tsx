@@ -1,9 +1,11 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GroupReleaseChart from 'app/components/group/releaseChart';
 import SeenInfo from 'app/components/group/seenInfo';
 import getDynamicText from 'app/utils/getDynamicText';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {Environment, Group, Organization, Project} from 'app/types';
 
@@ -32,7 +34,7 @@ const GroupReleaseStats = ({
       ? t('selected environments')
       : environments.length === 1
       ? environments[0].displayName
-      : null;
+      : undefined;
 
   const projectId = project.id;
   const projectSlug = project.slug;
@@ -73,10 +75,30 @@ const GroupReleaseStats = ({
               firstSeen={group.firstSeen}
               lastSeen={group.lastSeen}
             />
-            <h6>
+
+            <Subheading>
+              <span>{t('Last seen')}</span>
+              {environments.length > 0 && <small>({environmentLabel})</small>}
+            </Subheading>
+            <SeenInfo
+              orgSlug={orgSlug}
+              projectId={projectId}
+              projectSlug={projectSlug}
+              date={getDynamicText({
+                value: group.lastSeen,
+                fixed: '2016-01-13T03:08:25Z',
+              })}
+              dateGlobal={allEnvironments.lastSeen}
+              hasRelease={hasRelease}
+              environment={shortEnvironmentLabel}
+              release={group.lastRelease || null}
+              title={t('Last seen')}
+            />
+
+            <Subheading>
               <span>{t('First seen')}</span>
               {environments.length > 0 && <small>({environmentLabel})</small>}
-            </h6>
+            </Subheading>
 
             <SeenInfo
               orgSlug={orgSlug}
@@ -92,30 +114,16 @@ const GroupReleaseStats = ({
               release={group.firstRelease || null}
               title={t('First seen')}
             />
-
-            <h6>
-              <span>{t('Last seen')}</span>
-              {environments.length > 0 && <small>({environmentLabel})</small>}
-            </h6>
-            <SeenInfo
-              orgSlug={orgSlug}
-              projectId={projectId}
-              projectSlug={projectSlug}
-              date={getDynamicText({
-                value: group.lastSeen,
-                fixed: '2016-01-13T03:08:25Z',
-              })}
-              dateGlobal={allEnvironments.lastSeen}
-              hasRelease={hasRelease}
-              environment={shortEnvironmentLabel}
-              release={group.lastRelease || null}
-              title={t('Last seen')}
-            />
           </React.Fragment>
         )}
       </div>
     </div>
   );
 };
+
+const Subheading = styled('h6')`
+  margin-bottom: ${space(0.25)} !important;
+  margin-top: ${space(4)};
+`;
 
 export default React.memo(GroupReleaseStats);

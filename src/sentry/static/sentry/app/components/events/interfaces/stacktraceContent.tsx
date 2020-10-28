@@ -1,44 +1,40 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/line';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
-import {Stacktrace} from 'app/types/stacktrace';
-import {PlatformType, Event} from 'app/types';
+import {StacktraceType} from 'app/types/stacktrace';
+import {PlatformType, Event, Frame} from 'app/types';
+
+const defaultProps = {
+  includeSystemFrames: true,
+  expandFirstFrame: true,
+};
 
 type Props = {
-  data: Stacktrace;
-  includeSystemFrames: boolean;
+  data: StacktraceType;
   platform: PlatformType;
   event: Event;
-  expandFirstFrame?: boolean;
   newestFirst?: boolean;
   className?: string;
-};
+} & typeof defaultProps;
 
 type State = {
   showingAbsoluteAddresses: boolean;
+  showCompleteFunctionName: boolean;
 };
 
 export default class StacktraceContent extends React.Component<Props, State> {
-  static propTypes: any = {
-    data: PropTypes.object.isRequired,
-    includeSystemFrames: PropTypes.bool,
-    expandFirstFrame: PropTypes.bool,
-    platform: PropTypes.string,
-    newestFirst: PropTypes.bool,
-    event: SentryTypes.Event.isRequired,
-  };
-
   static defaultProps = {
     includeSystemFrames: true,
     expandFirstFrame: true,
   };
 
-  state = {
+  state: State = {
     showingAbsoluteAddresses: false,
+    showCompleteFunctionName: false,
   };
 
   renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
@@ -54,14 +50,38 @@ export default class StacktraceContent extends React.Component<Props, State> {
     return <li {...props}>{text}</li>;
   };
 
-  frameIsVisible = (frame, nextFrame) =>
-    this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp);
+  isFrameAfterLastNonApp(): boolean {
+    const {data} = this.props;
 
-  findImageForAddress(address) {
+    const frames = data.frames;
+
+    if (!frames.length || frames.length < 2) {
+      return false;
+    }
+
+    const lastFrame = frames[frames.length - 1];
+    const penultimateFrame = frames[frames.length - 2];
+
+    return penultimateFrame.inApp && !lastFrame.inApp;
+  }
+
+  frameIsVisible = (frame: Frame, nextFrame: Frame) => {
+    const {includeSystemFrames} = this.props;
+
+    return (
+      includeSystemFrames ||
+      frame.inApp ||
+      (nextFrame && nextFrame.inApp) ||
+      // the last non-app frame
+      (!frame.inApp && !nextFrame)
+    );
+  };
+
+  findImageForAddress(address: Frame['instructionAddr']) {
     const images = this.props.event.entries.find(entry => entry.type === 'debugmeta')
       ?.data?.images;
 
-    return images
+    return images && address
       ? images.find(img => {
           const [startAddress, endAddress] = getImageRange(img);
           return address >= startAddress && address < endAddress;
@@ -69,7 +89,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       : null;
   }
 
-  handleToggleAddresses = event => {
+  handleToggleAddresses = (event: React.MouseEvent<SVGElement>) => {
     event.stopPropagation(); // to prevent collapsing if collapsable
 
     this.setState(prevState => ({
@@ -77,30 +97,53 @@ export default class StacktraceContent extends React.Component<Props, State> {
     }));
   };
 
+  handleToggleFunctionName = (event: React.MouseEvent<SVGElement>) => {
+    event.stopPropagation(); // to prevent collapsing if collapsable
+
+    this.setState(prevState => ({
+      showCompleteFunctionName: !prevState.showCompleteFunctionName,
+    }));
+  };
+
+  getClassName() {
+    const {className = '', includeSystemFrames} = this.props;
+
+    if (includeSystemFrames) {
+      return `${className} traceback full-traceback`;
+    }
+
+    return `${className} traceback in-app-traceback`;
+  }
   render() {
-    const data = this.props.data;
-    const {showingAbsoluteAddresses} = this.state;
-    let firstFrameOmitted, lastFrameOmitted;
+    const {
+      data,
+      newestFirst,
+      expandFirstFrame,
+      platform,
+      includeSystemFrames,
+    } = this.props;
+    const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
+
+    let firstFrameOmitted = null;
+    let lastFrameOmitted = null;
 
     if (data.framesOmitted) {
       firstFrameOmitted = data.framesOmitted[0];
       lastFrameOmitted = data.framesOmitted[1];
-    } else {
-      firstFrameOmitted = null;
-      lastFrameOmitted = null;
     }
 
     let lastFrameIdx: number | null = null;
+
     data.frames.forEach((frame, frameIdx) => {
       if (frame.inApp) {
         lastFrameIdx = frameIdx;
       }
     });
+
     if (lastFrameIdx === null) {
       lastFrameIdx = data.frames.length - 1;
     }
 
-    const expandFirstFrame = this.props.expandFirstFrame;
     const frames: React.ReactElement[] = [];
     let nRepeats = 0;
 
@@ -123,6 +166,8 @@ export default class StacktraceContent extends React.Component<Props, State> {
       },
       0
     );
+
+    const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
 
     data.frames.forEach((frame, frameIdx) => {
       const prevFrame = data.frames[frameIdx - 1];
@@ -148,16 +193,20 @@ export default class StacktraceContent extends React.Component<Props, State> {
             data={frame}
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
             emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
-            isOnlyFrame={this.props.data.frames.length === 1}
+            isOnlyFrame={data.frames.length === 1}
             nextFrame={nextFrame}
             prevFrame={prevFrame}
-            platform={this.props.platform}
+            platform={platform}
             timesRepeated={nRepeats}
             showingAbsoluteAddress={showingAbsoluteAddresses}
             onAddressToggle={this.handleToggleAddresses}
             image={image}
             maxLengthOfRelativeAddress={maxLengthOfAllRelativeAddresses}
             registers={{}} //TODO: Fix registers
+            isFrameAfterLastNonApp={isFrameAfterLastNonApp}
+            includeSystemFrames={includeSystemFrames}
+            onFunctionNameToggle={this.handleToggleFunctionName}
+            showCompleteFunctionName={showCompleteFunctionName}
           />
         );
       }
@@ -178,22 +227,35 @@ export default class StacktraceContent extends React.Component<Props, State> {
       });
     }
 
-    if (this.props.newestFirst) {
+    if (newestFirst) {
       frames.reverse();
     }
-    let className = this.props.className || '';
-    className += ' traceback';
 
-    if (this.props.includeSystemFrames) {
-      className += ' full-traceback';
-    } else {
-      className += ' in-app-traceback';
-    }
+    const className = this.getClassName();
 
     return (
-      <div className={className}>
-        <ul>{frames}</ul>
-      </div>
+      <Wrapper className={className}>
+        <StyledPlatformIcon
+          platform={platform}
+          size="20px"
+          style={{borderRadius: '3px 0 0 3px'}}
+        />
+        <StyledList>{frames}</StyledList>
+      </Wrapper>
     );
   }
 }
+
+const Wrapper = styled('div')`
+  position: relative;
+`;
+
+const StyledPlatformIcon = styled(PlatformIcon)`
+  position: absolute;
+  top: -1px;
+  left: -20px;
+`;
+
+const StyledList = styled('ul')`
+  list-style: none;
+`;

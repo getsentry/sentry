@@ -1,10 +1,17 @@
 import {isNativePlatform} from 'app/utils/platform';
-import {Event, Group} from 'app/types';
+import {Event, Group, GroupTombstone, Organization} from 'app/types';
+
+function isTombstone(maybe: Group | Event | GroupTombstone): maybe is GroupTombstone {
+  return maybe.hasOwnProperty('type');
+}
 
 /**
  * Extract the display message from an event.
  */
-export function getMessage(event: Event | Group): string | undefined {
+export function getMessage(event: Event | Group | GroupTombstone): string | undefined {
+  if (isTombstone(event)) {
+    return event.culprit || '';
+  }
   const {metadata, type, culprit} = event;
 
   switch (type) {
@@ -24,7 +31,10 @@ export function getMessage(event: Event | Group): string | undefined {
 /**
  * Get the location from an event.
  */
-export function getLocation(event: Event | Group): string | null {
+export function getLocation(event: Event | Group | GroupTombstone): string | null {
+  if (isTombstone(event)) {
+    return null;
+  }
   if (event.type === 'error' && isNativePlatform(event.platform)) {
     return event.metadata.filename || null;
   }
@@ -36,7 +46,7 @@ type EventTitle = {
   subtitle: string;
 };
 
-export function getTitle(event: Event | Group): EventTitle {
+export function getTitle(event: Event | Group, organization?: Organization): EventTitle {
   const {metadata, type, culprit} = event;
   const result: EventTitle = {
     title: event.title,
@@ -54,10 +64,17 @@ export function getTitle(event: Event | Group): EventTitle {
     result.title = metadata.directive || '';
     result.subtitle = metadata.uri || '';
   } else if (type === 'expectct' || type === 'expectstaple' || type === 'hpkp') {
-    result.title = metadata.message || '';
+    // Due to a regression some reports did not have message persisted
+    // (https://github.com/getsentry/sentry/pull/19794) so we need to fall
+    // back to the computed title for these.
+    result.title = metadata.message || result.title || '';
     result.subtitle = metadata.origin || '';
   } else if (type === 'default') {
     result.title = metadata.title || '';
+  }
+
+  if (organization?.features.includes('custom-event-title') && metadata?.title) {
+    result.title = metadata.title;
   }
 
   return result;

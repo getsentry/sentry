@@ -59,7 +59,7 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry import quotas
-from sentry.signals import first_event_received
+from sentry.signals import first_event_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
@@ -345,7 +345,13 @@ class EventManager(object):
             # removed it from the payload.  The call to get_hashes will then
             # look at `grouping_config` to pick the right parameters.
             job["data"]["fingerprint"] = job["data"].get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(job["data"], get_fingerprinting_config_for_project(project))
+            apply_server_fingerprinting(
+                job["data"],
+                get_fingerprinting_config_for_project(project),
+                allow_custom_title=features.has(
+                    "organizations:custom-event-title", project.organization, actor=None
+                ),
+            )
 
         with metrics.timer("event_manager.event.get_hashes"):
             # Here we try to use the grouping config that was requested in the
@@ -997,6 +1003,13 @@ def _handle_regression(group, event, release):
             last_seen=date,
             status=GroupStatus.UNRESOLVED,
         )
+    )
+    issue_unresolved.send_robust(
+        project=group.project,
+        user=None,
+        group=group,
+        transition_type="automatic",
+        sender="handle_regression",
     )
 
     group.active_at = date

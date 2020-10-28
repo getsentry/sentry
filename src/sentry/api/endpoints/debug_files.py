@@ -337,7 +337,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # This can under rare circumstances yield more than one file
             # which is why we use first() here instead of get().
             dif = (
-                ProjectDebugFile.objects.filter(project=project, file__checksum=checksum)
+                ProjectDebugFile.objects.filter(project=project, checksum=checksum)
                 .select_related("file")
                 .order_by("-id")
                 .first()

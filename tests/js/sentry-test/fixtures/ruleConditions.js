@@ -18,7 +18,7 @@ export const MOCK_RESP_VERBOSE = [
   },
   {
     id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-    label: 'The issue is first seen',
+    label: 'A new issue is created',
   },
   {
     id: 'sentry.rules.conditions.regression_event.RegressionEventCondition',

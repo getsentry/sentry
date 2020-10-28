@@ -90,28 +90,29 @@ class GroupSerializerBase(Serializer):
         """
         raise NotImplementedError
 
-    def _get_group_snuba_stats(self, item_list, seen_stats):
-        filter_keys = {}
-
+    @staticmethod
+    def _get_start_from_seen_stats(seen_stats):
         # Try to figure out what is a reasonable time frame to look into stats,
         # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
         # but it has to be at least 14 days, and not more than 90 days ago.
         # Fallback to the 30 days ago if we are not able to calculate the value.
         last_seen = None
         for item in seen_stats.values():
-            if last_seen is None or last_seen > item["last_seen"]:
+            if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
                 last_seen = item["last_seen"]
-        if last_seen is not None:
-            last_seen = last_seen - timedelta(days=1)
 
         if last_seen is None:
-            start = datetime.now(pytz.utc) - timedelta(days=30)
-        else:
-            start = max(
-                min(last_seen, datetime.now(pytz.utc) - timedelta(days=14)),
-                datetime.now(pytz.utc) - timedelta(days=90),
-            )
+            return datetime.now(pytz.utc) - timedelta(days=30)
 
+        return max(
+            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
+            datetime.now(pytz.utc) - timedelta(days=90),
+        )
+
+    def _get_group_snuba_stats(self, item_list, seen_stats):
+        start = self._get_start_from_seen_stats(seen_stats)
+
+        filter_keys = {}
         for item in item_list:
             filter_keys.setdefault("project_id", []).append(item.project_id)
             filter_keys.setdefault("group_id", []).append(item.id)
@@ -120,10 +121,16 @@ class GroupSerializerBase(Serializer):
             dataset=Dataset.Events,
             selected_columns=[
                 "group_id",
-                ["has", ["exception_stacks.mechanism_handled", 0], "unhandled"],
+                [
+                    "argMax",
+                    [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
+                    "unhandled",
+                ],
             ],
+            groupby=["group_id"],
             filter_keys=filter_keys,
             start=start,
+            referrer="group.unhandled-flag",
         )
 
         return dict((x["group_id"], {"unhandled": x["unhandled"]}) for x in rv["data"])
@@ -335,7 +342,9 @@ class GroupSerializerBase(Serializer):
         )
         merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
 
-        snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
+        snuba_stats = {}
+        if has_unhandled_flag:
+            snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
         for item in item_list:
             active_date = item.active_at or item.first_seen
@@ -739,12 +748,30 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "active_at",
         "first_release",
         "first_seen",
+        "last_seen",
+        "times_seen",
+        "date",  # We merge this with start/end, so don't want to include it as its own
+        # condition
     }
 
     def __init__(self, environment_ids=None, start=None, end=None, search_filters=None):
+        from sentry.search.snuba.executors import get_search_filter
+
         self.environment_ids = environment_ids
-        self.start = start
-        self.end = end
+
+        # XXX: We copy this logic from `PostgresSnubaQueryExecutor.query`. Ideally we
+        # should try and encapsulate this logic, but if you're changing this, change it
+        # there as well.
+        self.start = None
+        start_params = [_f for _f in [start, get_search_filter(search_filters, "date", ">")] if _f]
+        if start_params:
+            self.start = max([_f for _f in start_params if _f])
+
+        self.end = None
+        end_params = [_f for _f in [end, get_search_filter(search_filters, "date", "<")] if _f]
+        if end_params:
+            self.end = min(end_params)
+
         self.conditions = (
             [
                 convert_search_filter_to_snuba_query(search_filter)
