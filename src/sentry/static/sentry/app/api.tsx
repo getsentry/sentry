@@ -34,23 +34,23 @@ export class Request {
 type ParamsType = {
   itemIds?: Array<number>;
   query?: string;
-  environment?: string | null;
+  environment?: string | Array<string> | null;
   project?: Array<number> | null;
 };
 
 type QueryArgs =
   | {
       query: string;
-      environment?: string;
+      environment?: string | Array<string>;
       project?: Array<number>;
     }
   | {
       id: Array<number>;
-      environment?: string;
+      environment?: string | Array<string>;
       project?: Array<number>;
     }
   | {
-      environment?: string;
+      environment?: string | Array<string>;
       project?: Array<number>;
     };
 

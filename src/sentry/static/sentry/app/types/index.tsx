@@ -187,7 +187,7 @@ export type AvatarProject = {
 /**
  * Simple timeseries data used in groups, projects and release health.
  */
-export type TimeseriesValue = [timestamp: number, value: number];
+export type TimeseriesValue = [number, number];
 
 export type Project = {
   id: string;
@@ -1376,6 +1376,7 @@ export type ChunkType = {
 export enum ResolutionStatus {
   RESOLVED = 'resolved',
   UNRESOLVED = 'unresolved',
+  IGNORED = 'ignored',
 }
 export type ResolutionStatusDetails = {
   actor?: AvatarUser;
