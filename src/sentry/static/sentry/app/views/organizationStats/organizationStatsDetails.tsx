@@ -47,7 +47,7 @@ class OrganizationStats extends React.Component<Props> {
       organization,
     } = this.props;
 
-    const colors = orgSeries ? orgSeries.map(series => series.color || '') : undefined;
+    const colors = orgSeries?.map(series => series.color || '');
 
     return (
       <div>
