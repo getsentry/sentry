@@ -9,7 +9,7 @@ import {Project} from 'app/types';
 
 const defaultProps = {
   avatarSize: 20,
-  placeholder: t('Choose Sentry project\u2026'),
+  placeholder: t('Choose Sentry project'),
 };
 
 type Props = InputField['props'];

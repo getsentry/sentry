@@ -1,10 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {Project, Organization, Integration, Repository} from 'app/types';
+import {
+  Project,
+  Organization,
+  Integration,
+  Repository,
+  RepositoryProjectPathConfig,
+} from 'app/types';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 type Props = {
@@ -13,14 +20,18 @@ type Props = {
   projects: Project[];
   repos: Repository[];
   onSubmitSuccess: Form['onSubmitSuccess'];
+  existingConfig?: RepositoryProjectPathConfig;
 };
 
 export default class RepositoryProjectPathConfigForm extends React.Component<Props> {
   get initialData() {
+    const {existingConfig} = this.props;
     return {
       defaultBranch: 'master',
       stackRoot: '',
       sourceRoot: '',
+      repositoryId: existingConfig?.repoId,
+      ...pick(existingConfig, ['projectId', 'defaultBranch', 'stackRoot', 'sourceRoot']),
     };
   }
 
@@ -54,6 +65,10 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
           label: t('Branch'),
           placeholder: t('Type your branch'),
           inline: false,
+          showHelpInTooltip: true,
+          help: t(
+            'If an event does not have a release tied to a commit, we will use this branch when linking to your source code.'
+          ),
         },
         {
           name: 'stackRoot',
@@ -84,11 +99,14 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
   }
 
   render() {
-    const {organization, integration, onSubmitSuccess} = this.props;
+    const {organization, integration, onSubmitSuccess, existingConfig} = this.props;
 
-    //TODO: make endpoint and method dynamic
-    const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/`;
-    const apiMethod = 'POST';
+    // endpoint changes if we are making a new row or updating an existing one
+    const baseEndpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/`;
+    const endpoint = existingConfig
+      ? `${baseEndpoint}${existingConfig.id}/`
+      : baseEndpoint;
+    const apiMethod = existingConfig ? 'PUT' : 'POST';
 
     return (
       <StyledForm

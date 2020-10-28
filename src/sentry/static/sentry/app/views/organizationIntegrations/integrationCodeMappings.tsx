@@ -18,6 +18,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {
   Integration,
   Organization,
@@ -34,6 +35,7 @@ type State = AsyncComponent['state'] & {
   pathConfigs: RepositoryProjectPathConfig[];
   repos: Repository[];
   showModal: boolean;
+  configInEdit?: RepositoryProjectPathConfig;
 };
 
 class IntegrationCodeMappings extends AsyncComponent<Props, State> {
@@ -84,20 +86,45 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return this.projects.find(project => project.id === pathConfig.projectId);
   }
 
-  openModal = () => {
+  openModal = (pathConfig?: RepositoryProjectPathConfig) => {
     this.setState({
       showModal: true,
+      configInEdit: pathConfig,
     });
   };
 
   closeModal = () => {
     this.setState({
       showModal: false,
+      pathConfig: undefined,
     });
+  };
+
+  handleEdit = (pathConfig: RepositoryProjectPathConfig) => {
+    this.openModal(pathConfig);
+  };
+
+  handleDelete = async (pathConfig: RepositoryProjectPathConfig) => {
+    const {organization, integration} = this.props;
+    const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/${pathConfig.id}/`;
+    try {
+      await this.api.requestPromise(endpoint, {
+        method: 'DELETE',
+      });
+      // remove config and update state
+      let {pathConfigs} = this.state;
+      pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
+      this.setState({pathConfigs});
+      addSuccessMessage(t('Deletion successful'));
+    } catch {
+      //no 4xx errors should happen on delete
+      addErrorMessage(t('An error occurred'));
+    }
   };
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
     let {pathConfigs} = this.state;
+    pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
     // our getter handles the order of the configs
     pathConfigs = pathConfigs.concat([pathConfig]);
     this.setState({pathConfigs});
@@ -106,7 +133,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {organization, integration} = this.props;
-    const {showModal} = this.state;
+    const {showModal, configInEdit} = this.state;
     const pathConfigs = this.pathConfigs;
     return (
       <React.Fragment>
@@ -118,7 +145,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               <InputPathColumn>{t('Input Path')}</InputPathColumn>
               <ButtonColumn>
                 <AddButton
-                  onClick={this.openModal}
+                  onClick={() => this.openModal()}
                   size="xsmall"
                   icon={<IconAdd size="xs" isCircled />}
                 >
@@ -145,6 +172,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                       <RepositoryProjectPathConfigRow
                         pathConfig={pathConfig}
                         project={project}
+                        onEdit={this.handleEdit}
+                        onDelete={this.handleDelete}
                       />
                     </Layout>
                   </ConfigPanelItem>
@@ -169,6 +198,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               projects={this.projects}
               repos={this.repos}
               onSubmitSuccess={this.handleSubmitSuccess}
+              existingConfig={configInEdit}
             />
           </Modal.Body>
         </Modal>
