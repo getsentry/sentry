@@ -9,7 +9,7 @@ on:
   pull_request:
 
 jobs:
-  ts-and-lint:
+  typescript-and-lint:
     name: typescript and lint
     if: ${{ github.ref != 'refs/heads/master' }}
     runs-on: ubuntu-16.04
