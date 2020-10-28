@@ -3,12 +3,15 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
-import LazyLoad from 'app/components/lazyLoad';
 import withOrganization from 'app/utils/withOrganization';
-import {Organization, Project} from 'app/types';
+import {Series} from 'app/types/echarts';
+import {Organization, Project, TimeseriesValue} from 'app/types';
+import theme from 'app/utils/theme';
 
-import {ProjectTotal, Point, OrgTotal} from './types';
+import OrganizationStatsDetails from './organizationStatsDetails';
+import {ProjectTotal, OrgTotal} from './types';
 
 type Props = {
   api: Client;
@@ -16,9 +19,9 @@ type Props = {
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type RawData = {
-  received: Point[];
-  rejected: Point[];
-  blacklisted: Point[];
+  received: TimeseriesValue[];
+  rejected: TimeseriesValue[];
+  blacklisted: TimeseriesValue[];
 };
 
 type State = {
@@ -28,14 +31,14 @@ type State = {
   statsError: boolean;
   statsLoading: boolean;
   statsRequestsPending: number;
-  projectMap: null | Record<string, Project>;
+  projectMap: Record<string, Project>;
   rawProjectData: {
-    received: Record<string, Point[]>;
-    rejected: Record<string, Point[]>;
-    blacklisted: Record<string, Point[]>;
+    received: Record<string, TimeseriesValue[]>;
+    rejected: Record<string, TimeseriesValue[]>;
+    blacklisted: Record<string, TimeseriesValue[]>;
   };
   rawOrgData: RawData;
-  orgStats: null | Point[];
+  orgSeries: null | Series[];
   orgTotal: null | OrgTotal;
   projectTotals: null | ProjectTotal[];
   querySince: number;
@@ -56,10 +59,10 @@ class OrganizationStatsContainer extends React.Component<Props, State> {
       statsError: false,
       statsLoading: false,
       statsRequestsPending: 0,
-      projectMap: null,
+      projectMap: {},
       rawProjectData: {received: {}, rejected: {}, blacklisted: {}},
       rawOrgData: {received: [], rejected: [], blacklisted: []},
-      orgStats: null,
+      orgSeries: null,
       orgTotal: null,
       projectTotals: null,
       querySince: since,
@@ -217,29 +220,46 @@ class OrganizationStatsContainer extends React.Component<Props, State> {
     let oReceived = 0;
     let oRejected = 0;
     let oBlacklisted = 0;
-    const orgPoints: Point[] = []; // accepted, rejected, blacklisted
     const aReceived = [0, 0]; // received, points
     const rawOrgData = this.state.rawOrgData;
+
+    const orgAccepted: Series = {
+      seriesName: t('Accepted'),
+      color: theme.gray400,
+      data: [],
+    };
+    const orgRejected: Series = {
+      seriesName: t('Rate limited'),
+      color: theme.red400,
+      data: [],
+    };
+    const orgFiltered: Series = {
+      seriesName: t('Filtered'),
+      color: theme.orange400,
+      data: [],
+    };
 
     rawOrgData.received.forEach((point, idx) => {
       const dReceived = point[1];
       const dRejected = rawOrgData.rejected[idx][1];
-      const dBlacklisted = rawOrgData.blacklisted[idx][1];
-      const dAccepted = Math.max(0, dReceived - dRejected - dBlacklisted);
-      orgPoints.push({
-        x: point[0],
-        y: [dAccepted, dRejected, dBlacklisted],
-      });
+      const dFiltered = rawOrgData.blacklisted[idx][1];
+      const dAccepted = Math.max(0, dReceived - dRejected - dFiltered);
+
+      const time = point[0] * 1000;
+      orgAccepted.data.push({name: time, value: dAccepted});
+      orgRejected.data.push({name: time, value: dRejected});
+      orgFiltered.data.push({name: time, value: dFiltered});
       oReceived += dReceived;
       oRejected += dRejected;
-      oBlacklisted += dBlacklisted;
+      oBlacklisted += dFiltered;
       if (dReceived > 0) {
         aReceived[0] += dReceived;
         aReceived[1] += 1;
       }
     });
+
     this.setState({
-      orgStats: orgPoints,
+      orgSeries: [orgAccepted, orgRejected, orgFiltered],
       orgTotal: {
         id: '',
         received: oReceived,
@@ -284,15 +304,7 @@ class OrganizationStatsContainer extends React.Component<Props, State> {
 
     return (
       <DocumentTitle title={`Stats - ${organization.slug} - Sentry`}>
-        <LazyLoad
-          component={() =>
-            import(
-              /* webpackChunkName: "organizationStats" */ './organizationStatsDetails'
-            ).then(mod => mod.default)
-          }
-          organization={organization}
-          {...this.state}
-        />
+        <OrganizationStatsDetails organization={organization} {...this.state} />
       </DocumentTitle>
     );
   }
