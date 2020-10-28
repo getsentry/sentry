@@ -30,12 +30,12 @@ class SimilarToolbar extends React.Component<Props, State> {
   }
 
   onGroupChange = ({mergeList}) => {
-    if (!mergeList?.size) {
+    if (!mergeList?.length) {
       return;
     }
 
-    if (mergeList.size !== this.state.mergeCount) {
-      this.setState({mergeCount: mergeList.size});
+    if (mergeList.length !== this.state.mergeCount) {
+      this.setState({mergeCount: mergeList.length});
     }
   };
 
