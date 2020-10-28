@@ -7,7 +7,7 @@ import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle'
 import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 import {Event, Project} from 'app/types';
-import {STACK_VIEW} from 'app/types/stacktrace';
+import {STACK_VIEW, STACK_TYPE} from 'app/types/stacktrace';
 
 export function isStacktraceNewestFirst() {
   const user = ConfigStore.get('user');
@@ -102,6 +102,7 @@ class StacktraceInterface extends React.Component<Props, State> {
           stackView={stackView}
           newestFirst={newestFirst}
           stacktrace={data}
+          stackType={STACK_TYPE.ORIGINAL}
         />
       </EventDataSection>
     );

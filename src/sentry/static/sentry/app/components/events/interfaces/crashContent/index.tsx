@@ -9,10 +9,12 @@ import Stacktrace from './stacktrace';
 
 type ExceptionProps = React.ComponentProps<typeof Exception>;
 type StacktraceProps = React.ComponentProps<typeof Stacktrace>;
-type Props = Pick<ExceptionProps, 'stackView' | 'projectId' | 'event' | 'newestFirst'> & {
+type Props = Pick<
+  ExceptionProps,
+  'stackType' | 'stackView' | 'projectId' | 'event' | 'newestFirst'
+> & {
   exception?: ExceptionProps['exception'];
   stacktrace?: StacktraceProps['stacktrace'];
-  stackType?: ExceptionProps['stackType'];
 };
 
 const CrashContent = ({
