@@ -334,7 +334,7 @@ const Cell = styled('div')<{isOddRow: boolean; align: 'right' | 'left'}>`
   font-size: 14px;
   line-height: ${TABLE_ROW_HEIGHT}px;
   padding: 0 10px;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 
   ::-webkit-scrollbar {
     display: none;
