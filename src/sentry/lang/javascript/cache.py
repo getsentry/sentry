@@ -4,12 +4,12 @@ from six import text_type
 from symbolic import SourceView
 from sentry.utils.strings import codec_lookup
 
-__all__ = ['SourceCache', 'SourceMapCache']
+__all__ = ["SourceCache", "SourceMapCache"]
 
 
 def is_utf8(codec):
     name = codec_lookup(codec).name
-    return name in ('utf-8', 'ascii')
+    return name in ("utf-8", "ascii")
 
 
 class SourceCache(object):
@@ -43,13 +43,13 @@ class SourceCache(object):
 
         if not isinstance(source, SourceView):
             if isinstance(source, text_type):
-                source = source.encode('utf-8')
+                source = source.encode("utf-8")
             # If an encoding is provided and it's not utf-8 compatible
             # we try to re-encoding the source and create a source view
             # from it.
             elif encoding is not None and not is_utf8(encoding):
                 try:
-                    source = source.decode(encoding).encode('utf-8')
+                    source = source.decode(encoding).encode("utf-8")
                 except UnicodeError:
                     pass
             source = SourceView.from_bytes(source)
@@ -62,6 +62,14 @@ class SourceCache(object):
 
 
 class SourceMapCache(object):
+    """
+    Stores mappings between
+
+        - the url of a file to be demangled and the url of its associated
+          source map, and
+        - a source map's url and the map's contents.
+    """
+
     def __init__(self):
         self._cache = {}
         self._mapping = {}

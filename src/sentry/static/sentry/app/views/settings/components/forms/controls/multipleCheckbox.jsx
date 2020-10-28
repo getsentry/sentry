@@ -1,8 +1,7 @@
-import {Box} from 'grid-emotion';
-
+import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {defined} from 'app/utils';
 
@@ -53,22 +52,20 @@ export default class MultipleCheckbox extends React.Component {
 
     return (
       <MultipleCheckboxWrapper>
-        {choices.map(([choiceValue, choiceLabel]) => {
-          return (
-            <Box key={choiceValue} w={[1, 1 / 2, 1 / 3, 1 / 4]}>
-              <Label>
-                <input
-                  type="checkbox"
-                  value={choiceValue}
-                  onChange={this.onChange.bind(this, choiceValue)}
-                  disabled={disabled}
-                  checked={defined(value) && value.indexOf(choiceValue) !== -1}
-                />
-                <CheckboxLabel>{choiceLabel}</CheckboxLabel>
-              </Label>
-            </Box>
-          );
-        })}
+        {choices.map(([choiceValue, choiceLabel]) => (
+          <Box key={choiceValue} width={[1, 1 / 2, 1 / 3, 1 / 4]}>
+            <Label>
+              <input
+                type="checkbox"
+                value={choiceValue}
+                onChange={this.onChange.bind(this, choiceValue)}
+                disabled={disabled}
+                checked={defined(value) && value.indexOf(choiceValue) !== -1}
+              />
+              <CheckboxLabel>{choiceLabel}</CheckboxLabel>
+            </Label>
+          </Box>
+        ))}
       </MultipleCheckboxWrapper>
     );
   }

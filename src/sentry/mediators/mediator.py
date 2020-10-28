@@ -15,7 +15,7 @@ from .param import Param
 
 class Mediator(object):
     """
-    Objects that encapsulte domain logic.
+    Objects that encapsulate domain logic.
 
     Mediators provide a layer between User accessible components like Endpoints
     and the database. They encapsulate the logic necessary to create domain
@@ -128,45 +128,30 @@ class Mediator(object):
     # class.
     _params_prepared = False
 
-    def __new__(cls, *args, **kwargs):
-        """
-        When the Mediator type is created, we turn all of it's Param
-        declarations into actual properties.
-        """
-        if (
-            sentry.mediators.mediator.Mediator in cls.__bases__
-            and not cls._params_prepared
-        ):
-            cls._prepare_params()
-            cls._params_prepared = True
-
-        return super(Mediator, cls).__new__(cls, *args, **kwargs)
-
     @classmethod
     def _prepare_params(cls):
-        params = [
-            (k, v) for k, v in six.iteritems(cls.__dict__)
-            if isinstance(v, Param)
-        ]
-
-        for name, param in params:
-            param.setup(cls, name)
+        if sentry.mediators.mediator.Mediator in cls.__bases__ and not cls._params_prepared:
+            params = [(k, v) for k, v in six.iteritems(cls.__dict__) if isinstance(v, Param)]
+            for name, param in params:
+                param.setup(cls, name)
+            cls._params_prepared = True
 
     @classmethod
-    @transaction.atomic
     def run(cls, *args, **kwargs):
-        obj = cls(*args, **kwargs)
+        with transaction.atomic():
+            obj = cls(*args, **kwargs)
 
-        with obj.log():
-            result = obj.call()
-            obj.audit()
-            obj.record_analytics()
-            return result
+            with obj.log():
+                result = obj.call()
+                obj.audit()
+                obj.record_analytics()
+        obj.post_commit()
+        return result
 
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs
-        self.logger = kwargs.get('logger',
-                                 logging.getLogger(self._logging_name))
+        self.logger = kwargs.get("logger", logging.getLogger(self._logging_name))
+        self._prepare_params()
         self._validate_params(**kwargs)
 
     def audit(self):
@@ -175,6 +160,10 @@ class Mediator(object):
 
     def record_analytics(self):
         # used to record data to Amplitude
+        pass
+
+    def post_commit(self):
+        # used to call any hooks that have to happen after the transaction has been committed
         pass
 
     def call(self):
@@ -217,33 +206,33 @@ class Mediator(object):
         # These will be named ``_<name>`` on the class, so remove the ``_`` so
         # that it matches the name we'll be invoking on the Mediator instance.
         return dict(
-            (k[1:], v) for k, v in six.iteritems(self.__class__.__dict__)
-            if isinstance(v, Param)
+            (k[1:], v) for k, v in six.iteritems(self.__class__.__dict__) if isinstance(v, Param)
         )
 
     @memoize
     def _logging_name(self):
-        return '.'.join([
-            self.__class__.__module__,
-            self.__class__.__name__
-        ])
+        return ".".join([self.__class__.__module__, self.__class__.__name__])
 
     @property
     def _default_logging(self):
         from sentry.app import env
 
-        if not env.request or \
-           not hasattr(env.request, 'resolver_match') or \
-           not hasattr(env.request.resolver_match, 'kwargs'):
+        if (
+            not env.request
+            or not hasattr(env.request, "resolver_match")
+            or not hasattr(env.request.resolver_match, "kwargs")
+        ):
             return {}
 
         request_params = env.request.resolver_match.kwargs
 
-        return compact({
-            'org': request_params.get('organization_slug'),
-            'team': request_params.get('team_slug'),
-            'project': request_params.get('project_slug'),
-        })
+        return compact(
+            {
+                "org": request_params.get("organization_slug"),
+                "team": request_params.get("team_slug"),
+                "project": request_params.get("project_slug"),
+            }
+        )
 
     @property
     def _logging_context(self):
@@ -255,16 +244,15 @@ class Mediator(object):
     @contextmanager
     def _measured(self, context):
         start = datetime.datetime.now()
-        context.log(at='start')
+        context.log(at="start")
 
         try:
             yield
         except Exception as e:
-            context.log(at='exception',
-                        elapsed=self._milliseconds_since(start))
+            context.log(at="exception", elapsed=self._milliseconds_since(start))
             raise e
 
-        context.log(at='finish', elapsed=self._milliseconds_since(start))
+        context.log(at="finish", elapsed=self._milliseconds_since(start))
 
     def _milliseconds_since(self, start):
         now = datetime.datetime.now()

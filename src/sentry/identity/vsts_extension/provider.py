@@ -15,4 +15,4 @@ class VstsExtensionIdentityProvider(VSTSIdentityProvider):
     also requires a new class; this one.
     """
 
-    key = 'vsts-extension'
+    key = "vsts-extension"

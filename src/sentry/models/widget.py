@@ -1,11 +1,17 @@
 from __future__ import absolute_import, print_function
 
+import six
 from django.db import models
 from django.utils import timezone
-from jsonfield import JSONField
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    JSONField,
+    Model,
+    sane_repr,
+)
 
 
 class TypesClass(object):
@@ -13,7 +19,7 @@ class TypesClass(object):
 
     @classmethod
     def as_choices(cls):
-        return cls.TYPES
+        return [(k, six.text_type(v)) for k, v in cls.TYPES]
 
     @classmethod
     def get_type_name(cls, num):
@@ -38,23 +44,21 @@ class WidgetDisplayTypes(TypesClass):
     WORLD_MAP = 6
     PERCENTAGE_AREA_CHART = 7
     TYPES = [
-        (LINE_CHART, 'line'),
-        (AREA_CHART, 'area'),
-        (STACKED_AREA_CHART, 'stacked_area'),
-        (BAR_CHART, 'bar'),
-        (PIE_CHART, 'pie'),
-        (TABLE, 'table'),
-        (WORLD_MAP, 'world_map'),
-        (PERCENTAGE_AREA_CHART, 'percentage_area_chart')
+        (LINE_CHART, "line"),
+        (AREA_CHART, "area"),
+        (STACKED_AREA_CHART, "stacked_area"),
+        (BAR_CHART, "bar"),
+        (PIE_CHART, "pie"),
+        (TABLE, "table"),
+        (WORLD_MAP, "world_map"),
+        (PERCENTAGE_AREA_CHART, "percentage_area_chart"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
 class WidgetDataSourceTypes(TypesClass):
     DISCOVER_SAVED_SEARCH = 0
-    TYPES = [
-        (DISCOVER_SAVED_SEARCH, 'discover_saved_search'),
-    ]
+    TYPES = [(DISCOVER_SAVED_SEARCH, "discover_saved_search")]
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
@@ -62,47 +66,47 @@ class WidgetDataSource(Model):
     """
     A dashboard widget.
     """
+
     __core__ = True
 
-    widget = FlexibleForeignKey('sentry.Widget')
+    widget = FlexibleForeignKey("sentry.Widget")
     type = BoundedPositiveIntegerField(choices=WidgetDataSourceTypes.as_choices())
     name = models.CharField(max_length=255)
     data = JSONField(default={})  # i.e. saved discover query
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.VISIBLE,
-        choices=ObjectStatus.as_choices(),
+        default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices()
     )
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_widgetdatasource'
-        unique_together = (('widget', 'name'), ('widget', 'order'))
+        app_label = "sentry"
+        db_table = "sentry_widgetdatasource"
+        unique_together = (("widget", "name"), ("widget", "order"))
 
-    __repr__ = sane_repr('widget', 'type', 'name')
+    __repr__ = sane_repr("widget", "type", "name")
 
 
 class Widget(Model):
     """
     A dashboard widget.
     """
+
     __core__ = True
 
-    dashboard = FlexibleForeignKey('sentry.Dashboard')
+    dashboard = FlexibleForeignKey("sentry.Dashboard")
     order = BoundedPositiveIntegerField()
     title = models.CharField(max_length=255)
     display_type = BoundedPositiveIntegerField(choices=WidgetDisplayTypes.as_choices())
     display_options = JSONField(default={})
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.VISIBLE,
-        choices=ObjectStatus.as_choices(),
+        default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices()
     )
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_widget'
-        unique_together = (('dashboard', 'order'), ('dashboard', 'title'), )
+        app_label = "sentry"
+        db_table = "sentry_widget"
+        unique_together = (("dashboard", "order"), ("dashboard", "title"))
 
-    __repr__ = sane_repr('dashboard', 'title')
+    __repr__ = sane_repr("dashboard", "title")

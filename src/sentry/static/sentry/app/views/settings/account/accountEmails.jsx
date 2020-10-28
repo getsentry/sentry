@@ -1,18 +1,21 @@
-import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import {IconDelete, IconStack} from 'app/icons';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tagDeprecated';
 import accountEmailsFields from 'app/data/forms/accountEmails';
+import space from 'app/styles/space';
+import ButtonBar from 'app/components/buttonBar';
 
 const ENDPOINT = '/users/me/emails/';
 
@@ -45,21 +48,13 @@ class EmailRow extends React.Component {
     const {email, isPrimary, isVerified, hideRemove} = this.props;
 
     return (
-      <PanelItem justify="space-between">
-        <Flex align="center">
+      <EmailItem>
+        <EmailTags>
           {email}
-          {!isVerified && (
-            <Tag ml={1} priority="warning">
-              {t('Unverified')}
-            </Tag>
-          )}
-          {isPrimary && (
-            <Tag ml={1} priority="success">
-              {t('Primary')}
-            </Tag>
-          )}
-        </Flex>
-        <Flex>
+          {!isVerified && <Tag priority="warning">{t('Unverified')}</Tag>}
+          {isPrimary && <Tag priority="success">{t('Primary')}</Tag>}
+        </EmailTags>
+        <ButtonBar gap={1}>
           {!isPrimary && isVerified && (
             <Button size="small" onClick={this.handleSetPrimary}>
               {t('Set as primary')}
@@ -71,18 +66,16 @@ class EmailRow extends React.Component {
             </Button>
           )}
           {!hideRemove && !isPrimary && (
-            <Box ml={1}>
-              <Button
-                data-test-id="remove"
-                priority="danger"
-                size="small"
-                icon="icon-trash"
-                onClick={this.handleRemove}
-              />
-            </Box>
+            <Button
+              data-test-id="remove"
+              priority="danger"
+              size="small"
+              icon={<IconDelete />}
+              onClick={this.handleRemove}
+            />
           )}
-        </Flex>
-      </PanelItem>
+        </ButtonBar>
+      </EmailItem>
     );
   }
 }
@@ -96,7 +89,7 @@ class AccountEmails extends AsyncView {
     return 'Emails';
   }
 
-  handleSubmitSuccess = (change, model, id) => {
+  handleSubmitSuccess = (_change, model, id) => {
     model.setValue(id, '');
     this.remountComponent();
   };
@@ -166,17 +159,15 @@ class AccountEmails extends AsyncView {
             )}
 
             {secondary &&
-              secondary.map(emailObj => {
-                return (
-                  <EmailRow
-                    key={emailObj.email}
-                    onSetPrimary={this.handleSetPrimary}
-                    onRemove={this.handleRemove}
-                    onVerify={this.handleVerify}
-                    {...emailObj}
-                  />
-                );
-              })}
+              secondary.map(emailObj => (
+                <EmailRow
+                  key={emailObj.email}
+                  onSetPrimary={this.handleSetPrimary}
+                  onRemove={this.handleRemove}
+                  onVerify={this.handleVerify}
+                  {...emailObj}
+                />
+              ))}
           </PanelBody>
         </Panel>
 
@@ -190,7 +181,7 @@ class AccountEmails extends AsyncView {
           <JsonForm location={this.props.location} forms={accountEmailsFields} />
         </Form>
 
-        <AlertLink to="/settings/account/notifications" icon="icon-stack">
+        <AlertLink to="/settings/account/notifications" icon={<IconStack />}>
           {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>
       </div>
@@ -199,3 +190,14 @@ class AccountEmails extends AsyncView {
 }
 
 export default AccountEmails;
+
+const EmailTags = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  align-items: center;
+`;
+
+const EmailItem = styled(PanelItem)`
+  justify-content: space-between;
+`;

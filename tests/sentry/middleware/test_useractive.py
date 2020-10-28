@@ -17,7 +17,7 @@ class UserActiveMiddlewareTest(TestCase):
         self.view = lambda x: None
 
         user = self.user
-        req = self.factory.get('/')
+        req = self.factory.get("/")
         req.user = user
 
         resp = self.middleware.process_view(req, self.view, [], {})

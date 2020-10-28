@@ -1,5 +1,5 @@
-import {Box} from 'grid-emotion';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {disconnectIdentity} from 'app/actionCreators/account';
 import {t} from 'app/locale';
@@ -26,7 +26,7 @@ class AccountIdentities extends AsyncView {
     };
   }
 
-  handleDisconnect = (identity, e) => {
+  handleDisconnect = identity => {
     const {identities} = this.state;
 
     this.setState(
@@ -53,9 +53,7 @@ class AccountIdentities extends AsyncView {
       <div>
         <SettingsPageHeader title="Identities" />
         <Panel>
-          <PanelHeader disablePadding>
-            <Box px={2}>{t('Identities')}</Box>
-          </PanelHeader>
+          <PanelHeader>{t('Identities')}</PanelHeader>
           <PanelBody>
             {isEmpty && (
               <EmptyMessage>
@@ -65,20 +63,16 @@ class AccountIdentities extends AsyncView {
 
             {!isEmpty &&
               this.state.identities.map(identity => (
-                <PanelItem p={0} key={identity.id} align="center">
-                  <Box flex="1" p={2}>
-                    {identity.providerLabel}
-                  </Box>
+                <IdentityPanelItem key={identity.id}>
+                  <div>{identity.providerLabel}</div>
 
-                  <Box p={2}>
-                    <Button
-                      size="small"
-                      onClick={this.handleDisconnect.bind(this, identity)}
-                    >
-                      {t('Disconnect')}
-                    </Button>
-                  </Box>
-                </PanelItem>
+                  <Button
+                    size="small"
+                    onClick={this.handleDisconnect.bind(this, identity)}
+                  >
+                    {t('Disconnect')}
+                  </Button>
+                </IdentityPanelItem>
               ))}
           </PanelBody>
         </Panel>
@@ -86,5 +80,10 @@ class AccountIdentities extends AsyncView {
     );
   }
 }
+
+const IdentityPanelItem = styled(PanelItem)`
+  align-items: center;
+  justify-content: space-between;
+`;
 
 export default AccountIdentities;

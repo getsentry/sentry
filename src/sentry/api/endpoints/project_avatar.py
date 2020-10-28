@@ -6,5 +6,5 @@ from sentry.models import ProjectAvatar
 
 
 class ProjectAvatarEndpoint(AvatarMixin, ProjectEndpoint):
-    object_type = 'project'
+    object_type = "project"
     model = ProjectAvatar

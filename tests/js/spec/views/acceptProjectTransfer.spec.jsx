@@ -1,15 +1,16 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import AcceptProjectTransfer from 'app/views/acceptProjectTransfer';
 
 jest.mock('jquery');
 
-describe('AcceptProjectTransfer', function() {
+describe('AcceptProjectTransfer', function () {
   let getMock;
   let postMock;
   const endpoint = '/accept-transfer/';
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
 
     getMock = MockApiClient.addMockResponse({
@@ -28,11 +29,11 @@ describe('AcceptProjectTransfer', function() {
     });
   });
 
-  it('renders', function() {
-    mount(
+  it('renders', function () {
+    mountWithTheme(
       <AcceptProjectTransfer
         location={{
-          pathame: 'endpoint',
+          pathname: 'endpoint',
           query: {data: 'XYZ'},
         }}
       />,
@@ -42,11 +43,11 @@ describe('AcceptProjectTransfer', function() {
     expect(getMock).toHaveBeenCalled();
   });
 
-  it('submits', function() {
-    const wrapper = mount(
+  it('submits', function () {
+    const wrapper = mountWithTheme(
       <AcceptProjectTransfer
         location={{
-          pathame: 'endpoint',
+          pathname: 'endpoint',
           query: {data: 'XYZ'},
         }}
       />,

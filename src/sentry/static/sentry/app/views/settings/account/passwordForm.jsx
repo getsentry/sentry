@@ -12,13 +12,13 @@ import accountPasswordFields from 'app/data/forms/accountPassword';
 const ENDPOINT = '/users/me/password/';
 
 class PasswordForm extends React.Component {
-  handleSubmitSuccess = (change, model, id) => {
+  handleSubmitSuccess = (_change, model) => {
     // Reset form on success
     model.resetForm();
     addSuccessMessage('Password has been changed');
   };
 
-  handleSubmitError = (resp, model, id) => {
+  handleSubmitError = () => {
     addErrorMessage('Error changing password');
   };
 
@@ -37,8 +37,8 @@ class PasswordForm extends React.Component {
           location={this.props.location}
           forms={accountPasswordFields}
           additionalFieldProps={{user}}
-          renderFooter={({title, fields}) => (
-            <PanelItem justify="flex-end">
+          renderFooter={() => (
+            <PanelItem justifyContent="flex-end">
               <Button type="submit" priority="primary">
                 {t('Change password')}
               </Button>

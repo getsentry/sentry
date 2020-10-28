@@ -81,33 +81,6 @@
 }
 
 /**
-* Release file change list
-* ============================================================================
-*/
-
-.release-file-change {
-  .file-name {
-    font-size: 14px;
-    display: inline-block;
-    vertical-align: middle;
-  }
-  .icon-file-generic {
-    color: @40;
-    margin-right: 7px;
-  }
-
-  .avatar {
-    display: block;
-    width: 23px !important;
-    height: 23px !important;
-  }
-
-  .avatar-grid-item {
-    margin: 0 0 4px 4px;
-  }
-}
-
-/**
 * Commits Tab
 * ============================================================================
 */
@@ -143,12 +116,14 @@
 
   .commit-avatar {
     position: absolute;
-    .square(19px);
+    width: 19px;
+    height: 19px;
     top: 2px;
     left: 0;
 
     .avatar {
-      .square(19px);
+      width: 19px;
+      height: 19px;
     }
   }
 

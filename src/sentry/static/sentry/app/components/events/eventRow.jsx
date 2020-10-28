@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
+
 import EventStore from 'app/stores/eventStore';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import TimeSince from 'app/components/timeSince';
 
 class EventRow extends React.Component {
@@ -19,23 +20,21 @@ class EventRow extends React.Component {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.id != this.props.id) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    if (nextProps.id !== this.props.id) {
       this.setState({
         event: EventStore.get(this.props.id),
       });
     }
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(_nextProps, _nextState) {
     return false;
   }
 
   render() {
     const event = this.state.event;
-    const eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/issues/${
-      event.groupID
-    }/events/${event.id}/`;
+    const eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/issues/${event.groupID}/events/${event.id}/`;
 
     const tagList = [];
     for (const key in event.tags) {
@@ -49,19 +48,17 @@ class EventRow extends React.Component {
             <Link to={eventLink}>{event.title || event.message}</Link>
           </h5>
           <small className="tagList">
-            {tagList.map(tag => {
-              return (
-                <span key={tag[0]}>
-                  {tag[0]} = {tag[1]}{' '}
-                </span>
-              );
-            })}
+            {tagList.map(tag => (
+              <span key={tag[0]}>
+                {tag[0]} = {tag[1]}{' '}
+              </span>
+            ))}
           </small>
         </td>
         <td className="event-user table-user-info">
           {event.user ? (
             <div>
-              <Avatar user={event.user} size={64} className="avatar" />
+              <UserAvatar user={event.user} size={64} className="avatar" />
               {event.user.email}
             </div>
           ) : (

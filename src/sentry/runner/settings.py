@@ -1,29 +1,24 @@
-"""
-sentry.runner.settings
-~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2015 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import os
 import click
 
-DEFAULT_SETTINGS_MODULE = 'sentry.conf.server'
-DEFAULT_SETTINGS_CONF = 'config.yml'
-DEFAULT_SETTINGS_OVERRIDE = 'sentry.conf.py'
+DEFAULT_SETTINGS_MODULE = "sentry.conf.server"
+DEFAULT_SETTINGS_CONF = "config.yml"
+DEFAULT_SETTINGS_OVERRIDE = "sentry.conf.py"
 
 
 def generate_secret_key():
     from django.utils.crypto import get_random_string
-    chars = u'abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)'
+
+    chars = u"abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)"
     return get_random_string(50, chars)
 
 
-def load_config_template(path, version='default'):
+def load_config_template(path, version="default"):
     from pkg_resources import resource_string
-    return resource_string('sentry', 'data/config/%s.%s' % (path, version)).decode('utf8')
+
+    return resource_string("sentry", "data/config/%s.%s" % (path, version)).decode("utf8")
 
 
 def generate_settings(dev=False):
@@ -33,13 +28,13 @@ def generate_settings(dev=False):
     settings file.
     """
     context = {
-        'secret_key': generate_secret_key(),
-        'debug_flag': dev,
-        'mail.backend': 'console' if dev else 'smtp',
+        "secret_key": generate_secret_key(),
+        "debug_flag": dev,
+        "mail.backend": "console" if dev else "smtp",
     }
 
-    py = load_config_template(DEFAULT_SETTINGS_OVERRIDE, 'default') % context
-    yaml = load_config_template(DEFAULT_SETTINGS_CONF, 'default') % context
+    py = load_config_template(DEFAULT_SETTINGS_OVERRIDE, "default") % context
+    yaml = load_config_template(DEFAULT_SETTINGS_CONF, "default") % context
     return py, yaml
 
 
@@ -50,12 +45,12 @@ def get_sentry_conf():
     """
     try:
         ctx = click.get_current_context()
-        return ctx.obj['config']
+        return ctx.obj["config"]
     except (RuntimeError, KeyError, TypeError):
         try:
-            return os.environ['SENTRY_CONF']
+            return os.environ["SENTRY_CONF"]
         except KeyError:
-            return '~/.sentry'
+            return "~/.sentry"
 
 
 def discover_configs():
@@ -66,19 +61,20 @@ def discover_configs():
      * Optional yaml config (~/.sentry/config.yml)
     """
     try:
-        config = os.environ['SENTRY_CONF']
+        config = os.environ["SENTRY_CONF"]
     except KeyError:
-        config = '~/.sentry'
+        config = "~/.sentry"
 
     config = os.path.expanduser(config)
 
     # This is the old, now deprecated code path where SENTRY_CONF is pointed directly
     # to a python file
-    if config.endswith(('.py', '.conf')) or os.path.isfile(config):
-        return (os.path.dirname(config), config, None, )
+    if config.endswith((".py", ".conf")) or os.path.isfile(config):
+        return (os.path.dirname(config), config, None)
 
     return (
-        config, os.path.join(config, DEFAULT_SETTINGS_OVERRIDE),
+        config,
+        os.path.join(config, DEFAULT_SETTINGS_OVERRIDE),
         os.path.join(config, DEFAULT_SETTINGS_CONF),
     )
 
@@ -95,22 +91,29 @@ def configure(ctx, py, yaml, skip_service_validation=False):
 
     # Make sure that our warnings are always displayed
     import warnings
-    warnings.filterwarnings('default', '', Warning, r'^sentry')
+
+    warnings.filterwarnings("default", "", Warning, r"^sentry")
+
+    # for now, squelch Django 2 warnings so prod logs aren't clogged
+    from django.utils.deprecation import RemovedInDjango20Warning
+
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango20Warning)
 
     # Add in additional mimetypes that are useful for our static files
     # which aren't common in default system registries
     import mimetypes
+
     for type, ext in (
-        ('application/json', 'map'),
-        ('application/font-woff', 'woff'),
-        ('application/font-woff2', 'woff2'),
-        ('application/vnd.ms-fontobject', 'eot'),
-        ('application/x-font-ttf', 'ttf'),
-        ('application/x-font-ttf', 'ttc'),
-        ('font/opentype', 'otf'),
-        ('image/svg+xml', 'svg'),
+        ("application/json", "map"),
+        ("application/font-woff", "woff"),
+        ("application/font-woff2", "woff2"),
+        ("application/vnd.ms-fontobject", "eot"),
+        ("application/x-font-ttf", "ttf"),
+        ("application/x-font-ttf", "ttc"),
+        ("font/opentype", "otf"),
+        ("image/svg+xml", "svg"),
     ):
-        mimetypes.add_type(type, '.' + ext)
+        mimetypes.add_type(type, "." + ext)
 
     from .importer import install
 
@@ -135,27 +138,25 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     # Add autoreload for config.yml file if needed
     if yaml is not None and os.path.exists(yaml):
         from sentry.utils.uwsgi import reload_on_change
+
         reload_on_change(yaml)
 
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry_config'
+    os.environ["DJANGO_SETTINGS_MODULE"] = "sentry_config"
 
-    install('sentry_config', py, DEFAULT_SETTINGS_MODULE)
+    install("sentry_config", py, DEFAULT_SETTINGS_MODULE)
+
+    from django.conf import settings
 
     # HACK: we need to force access of django.conf.settings to
     # ensure we don't hit any import-driven recursive behavior
-    from django.conf import settings
-    hasattr(settings, 'INSTALLED_APPS')
+    hasattr(settings, "INSTALLED_APPS")
 
-    from .initializer import initialize_app, on_configure
+    from .initializer import initialize_app
+
     initialize_app(
-        {
-            'config_path': py,
-            'settings': settings,
-            'options': yaml,
-        },
-        skip_service_validation=skip_service_validation
+        {"config_path": py, "settings": settings, "options": yaml},
+        skip_service_validation=skip_service_validation,
     )
-    on_configure({'settings': settings})
 
     __installed = True
 

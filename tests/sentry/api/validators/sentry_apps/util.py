@@ -1,23 +1,25 @@
 from __future__ import absolute_import
 
 from jsonschema import ValidationError
-from sentry.api.validators.sentry_apps.schema import validate, SCHEMA
 
 
 def invalid_schema(func):
     def inner(self, *args, **kwargs):
         with self.assertRaises(ValidationError):
             func(self)
+
     return inner
 
 
-def validate_component(schema):
-    """
-    In order to test individual components, that aren't normally allowed at the
-    top-level of a schema, we just plop all `definitions` into `properties`.
-    This makes the validator think they're all valid top-level elements.
-    """
-    component_schema = SCHEMA.copy()
-    component_schema['properties'] = component_schema['definitions']
-    del component_schema['required']
-    validate(instance={schema['type']: schema}, schema=component_schema)
+def invalid_schema_with_error_message(message):
+    def decorator(func):
+        def inner(self, *args, **kwargs):
+            with self.assertRaises(ValidationError) as cm:
+                func(self)
+            found_message = cm.exception.message
+            if found_message != message:
+                assert found_message == message
+
+        return inner
+
+    return decorator

@@ -1,0 +1,142 @@
+---
+created: '2020-02-26T19:54:25.524852Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "main"
+          lineno (function takes precedence)
+            13
+        frame* (frame considered in-app because no frame is in-app)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "normalFunc"
+          lineno (function takes precedence)
+            20
+        frame* (frame considered in-app because no frame is in-app)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "recurFunc"
+          lineno (function takes precedence)
+            27
+        frame (ignored due to recursion)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "recurFunc"
+          lineno (function takes precedence)
+            27
+        frame (ignored due to recursion)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "recurFunc"
+          lineno (function takes precedence)
+            27
+        frame* (frame considered in-app because no frame is in-app)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "recurFunc"
+          lineno (function takes precedence)
+            25
+        frame* (frame considered in-app because no frame is in-app)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "throwError"
+          lineno (function takes precedence)
+            32
+--------------------------------------------------------------------------
+system:
+  hash: "894c3489e2ade384dc107bca6829d134"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "main"
+          lineno (function takes precedence)
+            13
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "normalFunc"
+          lineno (function takes precedence)
+            20
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "recurFunc"
+          lineno (function takes precedence)
+            27
+        frame (ignored due to recursion)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "recurFunc"
+          lineno (function takes precedence)
+            27
+        frame (ignored due to recursion)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "recurFunc"
+          lineno (function takes precedence)
+            27
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "recurFunc"
+          lineno (function takes precedence)
+            25
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "Application.java"
+          function*
+            "throwError"
+          lineno (function takes precedence)
+            32

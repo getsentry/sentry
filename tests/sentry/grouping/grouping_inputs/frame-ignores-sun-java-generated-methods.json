@@ -4,6 +4,10 @@
       {
         "function": "invoke",
         "module": "sun.reflect.GeneratedMethodAccessor12345"
+      },
+      {
+        "function": "invoke",
+        "module": "jdk.internal.reflect.GeneratedMethodAccessor12345"
       }
     ]
   },

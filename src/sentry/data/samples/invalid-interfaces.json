@@ -88,8 +88,9 @@
     },
     "logentry": {
         "params": [
-            "missing message or formatted"
-        ]
+            "bogus"
+        ],
+        "formatted": 42
     },
     "request": {
         "method": "unknown",

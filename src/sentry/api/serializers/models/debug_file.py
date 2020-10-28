@@ -10,17 +10,17 @@ from sentry.models import ProjectDebugFile
 class DebugFileSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
-            'id': six.text_type(obj.id),
-            'uuid': obj.debug_id[:36],
-            'debugId': obj.debug_id,
-            'codeId': obj.code_id,
-            'cpuName': obj.cpu_name,
-            'objectName': obj.object_name,
-            'symbolType': obj.file_format,
-            'headers': obj.file.headers,
-            'size': obj.file.size,
-            'sha1': obj.file.checksum,
-            'dateCreated': obj.file.timestamp,
-            'data': obj.data or {},
+            "id": six.text_type(obj.id),
+            "uuid": obj.debug_id[:36],
+            "debugId": obj.debug_id,
+            "codeId": obj.code_id,
+            "cpuName": obj.cpu_name,
+            "objectName": obj.object_name,
+            "symbolType": obj.file_format,
+            "headers": obj.file.headers,
+            "size": obj.file.size,
+            "sha1": obj.file.checksum,
+            "dateCreated": obj.file.timestamp,
+            "data": obj.data or {},
         }
         return d

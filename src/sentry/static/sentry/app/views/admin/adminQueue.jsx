@@ -1,4 +1,3 @@
-/*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
@@ -47,19 +46,17 @@ export default class AdminQueue extends AsyncView {
     return (
       <div>
         <div className="btn-group pull-right">
-          {['1h', '1d', '1w'].map(r => {
-            return (
-              <a
-                className={`btn btn-sm ${
-                  r == this.state.timeWindow ? 'btn-primary' : 'btn-default'
-                }`}
-                onClick={() => this.changeWindow(r)}
-                key={r}
-              >
-                {r}
-              </a>
-            );
-          })}
+          {['1h', '1d', '1w'].map(r => (
+            <a
+              className={`btn btn-sm ${
+                r === this.state.timeWindow ? 'btn-primary' : 'btn-default'
+              }`}
+              onClick={() => this.changeWindow(r)}
+              key={r}
+            >
+              {r}
+            </a>
+          ))}
         </div>
 
         <h3 className="no-border">Queue Overview</h3>
@@ -82,10 +79,11 @@ export default class AdminQueue extends AsyncView {
           <div>
             <label>Show details for task:</label>
             <SelectField
+              deprecatedSelectControl
               name="task"
               onChange={this.changeTask}
               value={activeTask}
-              allowClear={true}
+              allowClear
               choices={[''].concat(...taskList).map(t => [t, t])}
             />
           </div>

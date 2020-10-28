@@ -1,0 +1,26 @@
+---
+created: '2020-02-26T19:54:30.667304Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module*
+            "libfoo"
+          function*
+            "main"
+--------------------------------------------------------------------------
+system:
+  hash: "a972f399399f5566f39b14a7afdd24ff"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "libfoo"
+          function*
+            "main"

@@ -1,166 +1,178 @@
 from __future__ import absolute_import
 
-import os
 import pytest
 import zipfile
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from six import BytesIO
 
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.testutils import TestCase, TransactionTestCase
-from sentry.models import Event, EventAttachment, File
+from sentry import eventstore
+from sentry.testutils import TransactionTestCase, RelayStoreHelper
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
+from sentry.models import EventAttachment
+from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 
-from tests.symbolicator import insta_snapshot_stacktrace_data
+from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
 
-class MinidumpIntegrationTestBase(object):
+# IMPORTANT:
+# For these tests to run, write `symbolicator.enabled: true` into your
+# `~/.sentry/config.yml` and run `sentry devservices up`
+
+
+class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def initialize(self, live_server):
+        self.project.update_option("sentry:builtin_symbol_sources", [])
+        new_prefix = live_server.url
+
+        with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
+            {"system.url-prefix": new_prefix}
+        ):
+
+            # Run test case:
+            yield
+
     def upload_symbols(self):
         url = reverse(
-            'sentry-api-0-dsym-files',
+            "sentry-api-0-dsym-files",
             kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
         )
 
         self.login_as(user=self.user)
 
         out = BytesIO()
-        f = zipfile.ZipFile(out, 'w')
-        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym'),
-                'crash.sym')
+        f = zipfile.ZipFile(out, "w")
+        f.write(get_fixture_path("windows.sym"), "crash.sym")
         f.close()
 
         response = self.client.post(
-            url, {
-                'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+            url,
+            {
+                "file": SimpleUploadedFile(
+                    "symbols.zip", out.getvalue(), content_type="application/zip"
+                )
             },
-            format='multipart'
+            format="multipart",
         )
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
 
     def test_full_minidump(self):
-        self.project.update_option('sentry:store_crash_reports', True)
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
-        with self.feature('organizations:event-attachments'):
-            attachment = BytesIO(b'Hello World!')
-            attachment.name = 'hello.txt'
-            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
-                resp = self._postMinidumpWithHeader(f, {
-                    'sentry[logger]': 'test-logger',
-                    'some_file': attachment,
-                })
-                assert resp.status_code == 200
-
-        event = Event.objects.get()
+        with self.feature("organizations:event-attachments"):
+            with open(get_fixture_path("windows.dmp"), "rb") as f:
+                event = self.post_and_retrieve_minidump(
+                    {
+                        "upload_file_minidump": f,
+                        "some_file": ("hello.txt", BytesIO(b"Hello World!")),
+                    },
+                    {"sentry[logger]": "test-logger"},
+                )
 
         insta_snapshot_stacktrace_data(self, event.data)
+        assert event.data.get("logger") == "test-logger"
+        # assert event.data.get("extra") == {"foo": "bar"}
 
         attachments = sorted(
-            EventAttachment.objects.filter(
-                event_id=event.event_id),
-            key=lambda x: x.name)
+            EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name
+        )
         hello, minidump = attachments
 
-        assert hello.name == 'hello.txt'
-        assert hello.file.type == 'event.attachment'
-        assert hello.file.checksum == '2ef7bde608ce5404e97d5f042f95f89f1c232871'
+        assert hello.name == "hello.txt"
+        assert hello.file.type == "event.attachment"
+        assert hello.file.checksum == "2ef7bde608ce5404e97d5f042f95f89f1c232871"
 
-        assert minidump.name == 'windows.dmp'
-        assert minidump.file.type == 'event.minidump'
-        assert minidump.file.checksum == '74bb01c850e8d65d3ffbc5bad5cabc4668fce247'
+        assert minidump.name == "windows.dmp"
+        assert minidump.file.type == "event.minidump"
+        assert minidump.file.checksum == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
 
-
-class SymbolicMinidumpIntegrationTest(MinidumpIntegrationTestBase, TestCase):
-    def test_attachments_only_minidumps(self):
-        self.project.update_option('sentry:store_crash_reports', False)
+    def test_full_minidump_json_extra(self):
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
-        with self.feature('organizations:event-attachments'):
-            attachment = BytesIO(b'Hello World!')
-            attachment.name = 'hello.txt'
-            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
-                resp = self._postMinidumpWithHeader(f, {
-                    'sentry[logger]': 'test-logger',
-                    'some_file': attachment,
-                })
-                assert resp.status_code == 200
+        with self.feature("organizations:event-attachments"):
+            with open(get_fixture_path("windows.dmp"), "rb") as f:
+                event = self.post_and_retrieve_minidump(
+                    {"upload_file_minidump": f},
+                    {"sentry": '{"logger":"test-logger"}', "foo": "bar"},
+                )
 
-        event = Event.objects.get()
+        assert event.data.get("logger") == "test-logger"
+        assert event.data.get("extra") == {"foo": "bar"}
+        # Other assertions are performed by `test_full_minidump`
 
-        attachments = list(EventAttachment.objects.filter(event_id=event.event_id))
-        assert len(attachments) == 1
-        hello = attachments[0]
-
-        assert hello.name == 'hello.txt'
-        assert hello.file.type == 'event.attachment'
-        assert hello.file.checksum == '2ef7bde608ce5404e97d5f042f95f89f1c232871'
-
-    def test_disabled_attachments(self):
+    def test_full_minidump_invalid_extra(self):
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
-        attachment = BytesIO(b'Hello World!')
-        attachment.name = 'hello.txt'
-        with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
-            resp = self._postMinidumpWithHeader(f, {
-                'sentry[logger]': 'test-logger',
-                'some_file': attachment,
-            })
-            assert resp.status_code == 200
+        with self.feature("organizations:event-attachments"):
+            with open(get_fixture_path("windows.dmp"), "rb") as f:
+                event = self.post_and_retrieve_minidump(
+                    {"upload_file_minidump": f},
+                    {"sentry": "{{{{", "foo": "bar"},  # invalid sentry JSON
+                )
 
-        event = Event.objects.get()
-        attachments = list(EventAttachment.objects.filter(event_id=event.event_id))
-        assert attachments == []
+        assert not event.data.get("logger")
+        assert event.data.get("extra") == {"foo": "bar"}
+        # Other assertions are performed by `test_full_minidump`
 
-    def test_attachment_deletion(self):
-        event = self.create_event(
-            event_id='a' * 32,
-            message='Minidump test event',
-        )
+    def test_missing_dsym(self):
+        with self.feature("organizations:event-attachments"):
+            with open(get_fixture_path("windows.dmp"), "rb") as f:
+                event = self.post_and_retrieve_minidump(
+                    {"upload_file_minidump": f}, {"sentry[logger]": "test-logger"}
+                )
 
-        attachment = self.create_event_attachment(event=event, name='log.txt')
-        file = attachment.file
+        insta_snapshot_stacktrace_data(self, event.data)
+        assert not EventAttachment.objects.filter(event_id=event.event_id)
 
-        self.login_as(self.user)
-        with self.tasks():
-            url = u'/api/0/issues/{}/'.format(event.group_id)
-            response = self.client.delete(url)
+    def test_reprocessing(self):
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
 
-        assert response.status_code == 202
-        assert not Event.objects.filter(event_id=event.event_id).exists()
-        assert not EventAttachment.objects.filter(event_id=event.event_id).exists()
-        assert not File.objects.filter(id=file.id).exists()
+        with self.feature(
+            {"organizations:event-attachments": True, "projects:reprocessing-v2": True}
+        ):
+            with open(get_fixture_path("windows.dmp"), "rb") as f:
+                event = self.post_and_retrieve_minidump(
+                    {"upload_file_minidump": f}, {"sentry[logger]": "test-logger"}
+                )
 
-    def test_empty_minidump(self):
-        f = BytesIO()
-        f.name = 'empty.dmp'
-        response = self._postMinidumpWithHeader(f)
-        assert response.status_code == 400
-        assert response.content == '{"error":"Empty minidump upload received"}'
+            insta_snapshot_stacktrace_data(self, event.data, subname="initial")
 
+            self.upload_symbols()
 
-class SymbolicatorMinidumpIntegrationTest(MinidumpIntegrationTestBase, TransactionTestCase):
-    # For these tests to run, write `symbolicator.enabled: true` into your
-    # `~/.sentry/config.yml` and run `sentry devservices up`
+            from sentry.tasks.reprocessing2 import reprocess_group
 
-    @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
-        new_prefix = live_server.url
+            with BurstTaskRunner() as burst:
+                reprocess_group.delay(project_id=self.project.id, group_id=event.group_id)
 
-        with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
-            as symbolize_app_frame, \
-                patch('sentry.lang.native.plugin._is_symbolicator_enabled', return_value=True), \
-                patch('sentry.auth.system.is_internal_ip', return_value=True), \
-                self.options({"system.url-prefix": new_prefix}):
+            burst()
 
-            # Run test case:
-            yield
+            (new_event,) = eventstore.get_events(
+                eventstore.Filter(
+                    project_ids=[self.project.id],
+                    conditions=[["tags[original_event_id]", "=", event.event_id]],
+                )
+            )
+            assert new_event is not None
+            assert new_event.event_id != event.event_id
 
-            # Teardown:
-            assert not symbolize_app_frame.called
+        insta_snapshot_stacktrace_data(self, new_event.data, subname="reprocessed")
+
+        for event_id in (event.event_id, new_event.event_id):
+            (minidump,) = sorted(
+                EventAttachment.objects.filter(event_id=new_event.event_id), key=lambda x: x.name
+            )
+
+            assert minidump.name == "windows.dmp"
+            assert minidump.file.type == "event.minidump"
+            assert minidump.file.checksum == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div id="reporter"></div>
+  <ul id="sentry-issues">
+  </ul>
+{% endblock %}
+{% block javascript %}
+  <script type="text/x-template" title="reporter-template">
+    <div class="reporter">
+      <img src="{avatarURL}"/>
+      <span><strong>{email}</strong> experienced {count}</span>
+    </div>
+  </script>
+  <script type="text/x-template" title="issue-template">
+    <li class="aui-group">
+      <div class="aui-item error-level">
+        <span class="sentry-{level}"></span>
+      </div>
+      <div class="aui-item">
+        <div><a href="{permalink}" target="_blank">{title}</a></div>
+        <div class="last-seen">{lastSeen} - {firstSeen}</div>
+      </div>
+    </li>
+  </script>
+  <script type="text/javascript">
+    (function() {
+      var issueKey = '{{ issue_key }}',
+          MAX_ISSUES = 5;
+
+      AP.require('request', function(request) {
+        request({
+          url: '/rest/api/latest/issue/' + issueKey,
+          success: function(responseText) {
+            var issue = JSON.parse(responseText),
+                reporter = issue.fields.reporter,
+                email = reporter.emailAddress,
+                url = ('{{ sentry_api_url }}' + '?limit=' + (MAX_ISSUES + 1) +
+                       '&email=' + encodeURIComponent(email));
+            $.get(url).done(function(issues) {
+              var $issuesEl = $('#sentry-issues'),
+                  $reporter = $('#reporter'),
+                  count = issues.length > MAX_ISSUES ? '5+' : issues.length;
+              $reporter.append(AJS.template.load('reporter-template').fill({
+                avatarURL: reporter.avatarUrls['48x48'],
+                email: email,
+                count: (count + ' issue' + (issues.length === 1 ? '' : 's') +
+                        (issues.length ? ':' : ''))
+              }));
+
+              var issue, level;
+              for (var i = 0; i < Math.min(issues.length, MAX_ISSUES); i++) {
+                issue = issues[i];
+                level = issue.level;
+                $issuesEl.append(AJS.template.load('issue-template').fill({
+                  level: level === 'fatal' ? 'error' : level,
+                  permalink: issue.permalink,
+                  title: issue.title,
+                  lastSeen: prettyDate(issue.lastSeen) + ' ago',
+                  firstSeen: prettyDate(issue.firstSeen) + ' old'
+                }));
+              }
+            }).fail(function() {
+              $('#reporter').text('Unable to fetch related issues. Please try again.')
+            });
+          }
+        });
+      });
+    })();
+  </script>
+{% endblock %}

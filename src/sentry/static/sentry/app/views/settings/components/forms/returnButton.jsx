@@ -1,9 +1,9 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
-import Tooltip2 from 'app/components/tooltip2';
+import {IconReturn} from 'app/icons/iconReturn';
+import Tooltip from 'app/components/tooltip';
 
 const SubmitButton = styled('div')`
   background: transparent;
@@ -34,16 +34,14 @@ const ClickTargetStyled = styled('div')`
   }
 `;
 
-const returnButton = props => {
-  return (
-    <ClickTargetStyled {...props}>
-      <Tooltip2 title={t('Save')}>
-        <SubmitButton>
-          <InlineSvg size="0.75em" src="icon-return-key" />
-        </SubmitButton>
-      </Tooltip2>
-    </ClickTargetStyled>
-  );
-};
+const returnButton = props => (
+  <ClickTargetStyled {...props}>
+    <Tooltip title={t('Save')}>
+      <SubmitButton>
+        <IconReturn />
+      </SubmitButton>
+    </Tooltip>
+  </ClickTargetStyled>
+);
 
 export default returnButton;

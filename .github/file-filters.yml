@@ -1,0 +1,23 @@
+# This is used by the action https://github.com/dorny/paths-filter (which we have forked to https://github.com/getsentry/paths-filter)
+
+# TODO: There are some meta files that we potentially could ignore for both front/backend,
+# as well as some configuration files that should trigger both
+frontend:
+  - '**/*.[tj]{s,sx}'
+  - '**/*.less'
+  - '**/tsconfig*.json'
+  - 'yarn.lock'
+  - '{package,now,vercel}.json'
+  - '.eslint*'
+  - 'docs-ui/**'
+  - 'src/sentry/static/sentry/**'
+  - 'tests/js/**'
+  - '.github/workflows/javascript*.yml'
+
+backend:
+  - '**/*.py'
+  - 'src/sentry/!(static)/**'
+  - 'requirements-*.txt'
+  - 'migrations_lockfile.txt'
+  - '.python-version'
+  - '.github/workflows/!(javascript*)'

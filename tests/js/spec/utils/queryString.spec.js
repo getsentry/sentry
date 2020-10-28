@@ -1,123 +1,109 @@
 import utils from 'app/utils/queryString';
 
-describe('getQueryEnvironment()', function() {
-  it('returns environment name', function() {
-    const qs = 'is:unresolved is:unassigned environment:production';
-    expect(utils.getQueryEnvironment(qs)).toBe('production');
-  });
-
-  // empty environment aka. (No environment) has '' as a name
-  it('returns empty string environment (the empty environment case)', function() {
-    const qs = 'is:unresolved is:unassigned environment:';
-    expect(utils.getQueryEnvironment(qs)).toBe('');
-  });
-
-  it('returns null if no environment specified in query', function() {
-    const qs = 'is:unresolved is:unassigned';
-    expect(utils.getQueryEnvironment(qs)).toBe(null);
-  });
-
-  it('handles environment with non word characters', function() {
-    const qs = 'is:unresolved is:unassigned environment:something.com';
-    expect(utils.getQueryEnvironment(qs)).toBe('something.com');
-  });
-
-  it('handles environment provided with quote marks', function() {
-    const qs = 'is:unresolved is:unassigned environment:"production"';
-    expect(utils.getQueryEnvironment(qs)).toBe('production');
-  });
-
-  it('handles environment names with space and quote marks', function() {
-    const qs = 'is:unresolved is:unassigned environment:"my environment"';
-    expect(utils.getQueryEnvironment(qs)).toBe('my environment');
-  });
-
-  it('handles query property similar to `environment`', function() {
-    const qs = 'test_environment:development';
-    expect(utils.getQueryEnvironment(qs)).toBe(null);
-  });
-});
-
-describe('getQueryStringWithEnvironment', function() {
-  it('replaces environment in query string', function() {
-    const qs = 'is:unresolved environment:development is:unassigned';
-    expect(utils.getQueryStringWithEnvironment(qs, 'staging')).toBe(
-      'is:unresolved is:unassigned environment:staging'
-    );
-  });
-
-  it('handles empty string environment', function() {
-    const qs = 'is:unresolved environment:development is:unassigned';
-    expect(utils.getQueryStringWithEnvironment(qs, '')).toBe(
-      'is:unresolved is:unassigned environment:'
-    );
-  });
-
-  it('handles null environment', function() {
-    const qs = 'is:unresolved environment:development is:unassigned';
-    expect(utils.getQueryStringWithEnvironment(qs, null)).toBe(
-      'is:unresolved is:unassigned'
-    );
-  });
-
-  it('handles environment with non word characters', function() {
-    const qs = 'is:unresolved environment:something.com is:unassigned';
-    expect(utils.getQueryStringWithEnvironment(qs, 'test.com')).toBe(
-      'is:unresolved is:unassigned environment:test.com'
-    );
-  });
-
-  it('handles query property similar to `environment`', function() {
-    const qs = 'test_environment:development';
-    expect(utils.getQueryStringWithEnvironment(qs, 'test.com')).toBe(
-      'test_environment:development environment:test.com'
-    );
-  });
-});
-
-describe('getQueryStringWithoutEnvironment', function() {
-  it('removes environment from querystring', function() {
-    const qs = 'is:unresolved environment:development is:unassigned';
-    expect(utils.getQueryStringWithoutEnvironment(qs)).toBe(
-      'is:unresolved is:unassigned'
-    );
-  });
-
-  it('removes empty environment from querystring', function() {
-    const qs = 'is:unresolved environment: is:unassigned';
-    expect(utils.getQueryStringWithoutEnvironment(qs)).toBe(
-      'is:unresolved is:unassigned'
-    );
-  });
-
-  it('handles query property similar to `environment`', function() {
-    const qs = 'test_environment:development';
-    expect(utils.getQueryStringWithoutEnvironment(qs)).toBe(
-      'test_environment:development'
-    );
-  });
-});
-
-describe('addQueryParamsToExistingUrl', function() {
-  it('adds new query params to existing query params', function() {
+describe('addQueryParamsToExistingUrl', function () {
+  it('adds new query params to existing query params', function () {
     const url = 'https://example.com?value=3';
-    const newParams = {id: 4};
+    const newParams = {
+      id: 4,
+    };
     expect(utils.addQueryParamsToExistingUrl(url, newParams)).toBe(
       'https://example.com/?id=4&value=3'
     );
   });
 
-  it('adds new query params without existing query params', function() {
+  it('adds new query params without existing query params', function () {
     const url = 'https://example.com';
-    const newParams = {id: 4};
+    const newParams = {
+      id: 4,
+    };
     expect(utils.addQueryParamsToExistingUrl(url, newParams)).toBe(
       'https://example.com/?id=4'
     );
   });
 
-  it('returns empty string no url is passed', function() {
+  it('returns empty string no url is passed', function () {
     let url;
-    const newParams = {id: 4};
+    const newParams = {
+      id: 4,
+    };
     expect(utils.addQueryParamsToExistingUrl(url, newParams)).toBe('');
+  });
+});
+
+describe('appendTagCondition', function () {
+  it('adds simple values', function () {
+    const result = utils.appendTagCondition('error+text', 'color', 'red');
+    expect(result).toEqual('error+text color:red');
+  });
+
+  it('handles array current value', function () {
+    const result = utils.appendTagCondition(['', 'thing'], 'color', 'red');
+    expect(result).toEqual('thing color:red');
+  });
+
+  it('handles empty string current value', function () {
+    const result = utils.appendTagCondition('', 'color', 'red');
+    expect(result).toEqual('color:red');
+  });
+
+  it('handles null current value', function () {
+    const result = utils.appendTagCondition(null, 'color', 'red');
+    expect(result).toEqual('color:red');
+  });
+
+  it('wraps values with spaces', function () {
+    const result = utils.appendTagCondition(null, 'color', 'purple red');
+    expect(result).toEqual('color:"purple red"');
+  });
+
+  it('wraps values with colon', function () {
+    const result = utils.appendTagCondition(null, 'color', 'id:red');
+    expect(result).toEqual('color:"id:red"');
+  });
+
+  it('handles user tag values', function () {
+    let result = utils.appendTagCondition('', 'user', 'something');
+    expect(result).toEqual('user:something');
+
+    result = utils.appendTagCondition('', 'user', 'id:1');
+    expect(result).toEqual('user:"id:1"');
+
+    result = utils.appendTagCondition('', 'user', 'email:foo@example.com');
+    expect(result).toEqual('user:"email:foo@example.com"');
+
+    result = utils.appendTagCondition('', 'user', 'name:jill jones');
+    expect(result).toEqual('user:"name:jill jones"');
+  });
+});
+
+describe('decodeScalar()', function () {
+  it('unwraps array values', function () {
+    expect(utils.decodeScalar(['one', 'two'])).toEqual('one');
+  });
+
+  it('handles strings', function () {
+    expect(utils.decodeScalar('one')).toEqual('one');
+  });
+
+  it('handles falsey values', function () {
+    expect(utils.decodeScalar(undefined)).toBeUndefined();
+    expect(utils.decodeScalar(false)).toBeUndefined();
+    expect(utils.decodeScalar('')).toBeUndefined();
+  });
+});
+
+describe('decodeList()', function () {
+  it('wraps string values', function () {
+    expect(utils.decodeList('one')).toEqual(['one']);
+  });
+
+  it('handles arrays', function () {
+    expect(utils.decodeList(['one', 'two'])).toEqual(['one', 'two']);
+  });
+
+  it('handles falsey values', function () {
+    expect(utils.decodeList(undefined)).toBeUndefined();
+    expect(utils.decodeList(false)).toBeUndefined();
+    expect(utils.decodeList('')).toBeUndefined();
   });
 });

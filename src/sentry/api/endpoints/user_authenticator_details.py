@@ -12,7 +12,7 @@ from sentry.security import capture_security_activity
 
 
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
-    permission_classes = (OrganizationUserPermission, )
+    permission_classes = (OrganizationUserPermission,)
 
     @sudo_required
     def get(self, request, user, auth_id):
@@ -43,12 +43,12 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         #    - recovery codes
         response = serialize(interface)
 
-        if interface.interface_id == 'recovery':
-            response['codes'] = interface.get_unused_codes()
-        if interface.interface_id == 'sms':
-            response['phone'] = interface.phone_number
-        if interface.interface_id == 'u2f':
-            response['devices'] = interface.get_registered_devices()
+        if interface.interface_id == "recovery":
+            response["codes"] = interface.get_unused_codes()
+        if interface.interface_id == "sms":
+            response["phone"] = interface.phone_number
+        if interface.interface_id == "u2f":
+            response["devices"] = interface.get_registered_devices()
 
         return Response(response)
 
@@ -67,27 +67,22 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         """
 
         try:
-            authenticator = Authenticator.objects.get(
-                user=user,
-                id=auth_id,
-            )
+            authenticator = Authenticator.objects.get(user=user, id=auth_id)
         except (ValueError, Authenticator.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         interface = authenticator.interface
 
-        if interface.interface_id == 'recovery':
+        if interface.interface_id == "recovery":
             interface.regenerate_codes()
 
             capture_security_activity(
                 account=user,
-                type='recovery-codes-regenerated',
+                type="recovery-codes-regenerated",
                 actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                context={
-                    'authenticator': authenticator,
-                },
-                send_email=True
+                ip_address=request.META["REMOTE_ADDR"],
+                context={"authenticator": authenticator},
+                send_email=True,
             )
         return Response(serialize(interface))
 
@@ -105,17 +100,14 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         """
 
         try:
-            authenticator = Authenticator.objects.get(
-                user=user,
-                id=auth_id,
-            )
+            authenticator = Authenticator.objects.get(user=user, id=auth_id)
         except (ValueError, Authenticator.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         interface = authenticator.interface
 
         # Remove a single device and not entire authentication method
-        if interface.interface_id == 'u2f' and interface_device_id is not None:
+        if interface.interface_id == "u2f" and interface_device_id is not None:
             device_name = interface.get_device_name(interface_device_id)
             # Can't remove if this is the last device, will return False if so
             if not interface.remove_u2f_device(interface_device_id):
@@ -124,14 +116,11 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
             capture_security_activity(
                 account=user,
-                type='mfa-removed',
+                type="mfa-removed",
                 actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                context={
-                    'authenticator': authenticator,
-                    'device_name': device_name
-                },
-                send_email=True
+                ip_address=request.META["REMOTE_ADDR"],
+                context={"authenticator": authenticator, "device_name": device_name},
+                send_email=True,
             )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -143,17 +132,15 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
         if require_2fa and last_2fa_method:
             return Response(
-                {
-                    'detail': 'Cannot delete authenticator because organization requires 2FA',
-                },
-                status=status.HTTP_403_FORBIDDEN
+                {"detail": "Cannot delete authenticator because organization requires 2FA"},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         with transaction.atomic():
             authenticator.delete()
 
             # if we delete an actual authenticator and all that
-            # remainds are backup interfaces, then we kill them in the
+            # remains are backup interfaces, then we kill them in the
             # process.
             if not interface.is_backup_interface:
                 interfaces = Authenticator.objects.all_interfaces_for_user(user)
@@ -167,23 +154,19 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                     for iface in backup_interfaces:
                         capture_security_activity(
                             account=request.user,
-                            type='mfa-removed',
+                            type="mfa-removed",
                             actor=request.user,
-                            ip_address=request.META['REMOTE_ADDR'],
-                            context={
-                                'authenticator': iface.authenticator,
-                            },
+                            ip_address=request.META["REMOTE_ADDR"],
+                            context={"authenticator": iface.authenticator},
                             send_email=False,
                         )
 
             capture_security_activity(
                 account=user,
-                type='mfa-removed',
+                type="mfa-removed",
                 actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                context={
-                    'authenticator': authenticator,
-                },
+                ip_address=request.META["REMOTE_ADDR"],
+                context={"authenticator": authenticator},
                 send_email=not interface.is_backup_interface,
             )
 

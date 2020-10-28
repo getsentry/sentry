@@ -2,63 +2,51 @@ from __future__ import absolute_import
 
 from sentry.testutils import APITestCase
 from time import time
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    Integration,
-    Repository
-)
+from sentry.models import Identity, IdentityProvider, Integration, Repository
 
 
-EXTERNAL_ID = 'example.gitlab.com:group-x'
-WEBHOOK_SECRET = 'secret-token-value'
-WEBHOOK_TOKEN = u'{}:{}'.format(EXTERNAL_ID, WEBHOOK_SECRET)
+EXTERNAL_ID = "example.gitlab.com:group-x"
+WEBHOOK_SECRET = "secret-token-value"
+WEBHOOK_TOKEN = u"{}:{}".format(EXTERNAL_ID, WEBHOOK_SECRET)
 
 
 class GitLabTestCase(APITestCase):
-    provider = 'gitlab'
+    provider = "gitlab"
 
     def setUp(self):
         self.login_as(self.user)
         self.integration = Integration.objects.create(
             provider=self.provider,
-            name='Example Gitlab',
+            name="Example Gitlab",
             external_id=EXTERNAL_ID,
             metadata={
-                'instance': 'example.gitlab.com',
-                'base_url': 'https://example.gitlab.com',
-                'domain_name': 'example.gitlab.com/group-x',
-                'verify_ssl': False,
-                'webhook_secret': WEBHOOK_SECRET,
-                'group_id': 1,
-            }
+                "instance": "example.gitlab.com",
+                "base_url": "https://example.gitlab.com",
+                "domain_name": "example.gitlab.com/group-x",
+                "verify_ssl": False,
+                "webhook_secret": WEBHOOK_SECRET,
+                "group_id": 1,
+            },
         )
         identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(
-                type=self.provider,
-                config={},
-            ),
+            idp=IdentityProvider.objects.create(type=self.provider, config={}),
             user=self.user,
-            external_id='gitlab123',
-            data={
-                'access_token': '123456789',
-                'created_at': time(),
-                'refresh_token': '0987654321',
-            }
+            external_id="gitlab123",
+            data={"access_token": "123456789", "created_at": time(), "refresh_token": "0987654321"},
         )
         self.integration.add_organization(self.organization, self.user, identity.id)
         self.installation = self.integration.get_installation(self.organization.id)
 
     def create_repo(self, name, external_id=15, url=None, organization_id=None):
-        instance = self.integration.metadata['instance']
+        instance = self.integration.metadata["instance"]
         organization_id = organization_id or self.organization.id
         return Repository.objects.create(
             organization_id=organization_id,
             name=name,
-            external_id=u'{}:{}'.format(instance, external_id),
+            external_id=u"{}:{}".format(instance, external_id),
             url=url,
-            config={'project_id': external_id},
-            provider='integrations:gitlab',
+            config={"project_id": external_id},
+            provider="integrations:gitlab",
             integration_id=self.integration.id,
         )
 
@@ -195,13 +183,13 @@ PUSH_EVENT = b"""
   "project_id": 15,
   "project":{
     "id": 15,
-    "name":"Diaspora",
+    "name":"Sentry",
     "description":"",
     "web_url":"http://example.com/cool-group/sentry",
     "avatar_url":null,
     "git_ssh_url":"git@example.com:cool-group/sentry.git",
     "git_http_url":"http://example.com/cool-group/sentry.git",
-    "namespace":"Mike",
+    "namespace":"Cool Group",
     "visibility_level":0,
     "path_with_namespace":"cool-group/sentry",
     "default_branch":"master",

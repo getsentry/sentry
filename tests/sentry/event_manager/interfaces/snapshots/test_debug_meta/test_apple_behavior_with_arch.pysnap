@@ -1,5 +1,5 @@
 ---
-created: '2019-03-19T19:18:09.270927Z'
+created: '2019-05-22T14:45:11.352473Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_debug_meta.py
 ---
@@ -10,12 +10,10 @@ to_json:
     code_file: /var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest
     debug_id: c05b4ddd-69a7-3840-a649-32180d341587
     image_addr: '0x100020000'
-    image_size: '0x8000'
+    image_size: 32768
     image_vmaddr: '0x100000000'
     type: macho
   sdk_info:
-    build: null
-    dsym_type: none
     sdk_name: iOS
     version_major: 9
     version_minor: 3

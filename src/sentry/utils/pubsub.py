@@ -33,8 +33,8 @@ class QueuedPublisherService(object):
                 try:
                     self.publisher.publish(channel, key=key, value=value)
                 except Exception as e:
-                    logger = logging.getLogger('sentry.errors')
-                    logger.debug('could not submit event to pubsub: %s' % e)
+                    logger = logging.getLogger("sentry.errors")
+                    logger.debug("could not submit event to pubsub: %s" % e)
                 finally:
                     q.task_done()
 
@@ -73,5 +73,7 @@ class KafkaPublisher(object):
 
     def publish(self, channel, value, key=None):
         self.producer.produce(topic=channel, value=value, key=key)
-        if not self.asynchronous:
+        if self.asynchronous:
+            self.producer.poll(0)
+        else:
             self.producer.flush()

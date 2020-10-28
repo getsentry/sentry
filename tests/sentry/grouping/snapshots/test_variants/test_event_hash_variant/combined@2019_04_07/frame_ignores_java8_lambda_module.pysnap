@@ -1,0 +1,28 @@
+---
+created: '2020-02-26T19:52:18.709420Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          module* (ignored module)
+            salt* (normalized generated module name)
+              "<module>"
+          function*
+            "call"
+--------------------------------------------------------------------------
+system:
+  hash: "5fd1358271b3a3dba3287e135029688d"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (ignored module)
+            salt* (normalized generated module name)
+              "<module>"
+          function*
+            "call"

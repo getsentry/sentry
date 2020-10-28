@@ -1,38 +1,11 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel, PanelHeader, PanelItem} from 'app/components/panels';
 
 export const TableChart = styled(
   class TableChartComponent extends React.Component {
-    static propTypes = {
-      data: PropTypes.arrayOf(PropTypes.any),
-      /**
-       * The column index where your data starts.
-       * This is used to calculate totals.
-       *
-       * Will not work if you have mixed string/number columns
-       */
-      dataStartIndex: PropTypes.number,
-      widths: PropTypes.arrayOf(PropTypes.number),
-      // Height of body
-      bodyHeight: PropTypes.string,
-      getValue: PropTypes.func,
-      renderTableHeader: PropTypes.func,
-      renderBody: PropTypes.func,
-      renderHeaderCell: PropTypes.func,
-      renderDataCell: PropTypes.func,
-      shadeRowPercentage: PropTypes.bool,
-      showRowTotal: PropTypes.bool,
-      showColumnTotal: PropTypes.bool,
-      rowTotalLabel: PropTypes.string,
-      columnTotalLabel: PropTypes.string,
-      // props to pass to PanelHeader
-      headerProps: PropTypes.object,
-    };
-
     static get defaultProps() {
       // Default renderer for Table Header
       const defaultRenderTableHeader = ({
@@ -111,10 +84,10 @@ export const TableChart = styled(
       // Default renderer for ALL rows (including header + body so that both can share the same DOM structure + styles)
       const defaultRenderRow = ({
         dataStartIndex,
-        css,
+        css: _css,
         items,
-        rowHeaders,
-        rowData,
+        rowHeaders: _rowHeaders,
+        rowData: _rowData,
         isTableHeader,
         rowIndex,
         renderCell,
@@ -122,54 +95,52 @@ export const TableChart = styled(
         rowTotalWidth,
         widths,
         ...props
-      }) => {
-        return (
-          <Row>
+      }) => (
+        <Row>
+          {items &&
+            items.slice(0, dataStartIndex).map((rowHeaderValue, columnIndex) =>
+              renderCell({
+                isTableHeader,
+                isHeader: true,
+                value: rowHeaderValue,
+                columnIndex,
+                rowIndex,
+                width:
+                  columnIndex < widths.length
+                    ? widths[columnIndex]
+                    : showRowTotal
+                    ? rowTotalWidth
+                    : null,
+                showRowTotal,
+                ...props,
+              })
+            )}
+
+          <DataGroup>
             {items &&
-              items.slice(0, dataStartIndex).map((rowHeaderValue, columnIndex) =>
-                renderCell({
+              items.slice(dataStartIndex).map((rowDataValue, columnIndex) => {
+                const index = columnIndex + dataStartIndex;
+                const renderCellProps = {
                   isTableHeader,
-                  isHeader: true,
-                  value: rowHeaderValue,
-                  columnIndex,
+                  value: rowDataValue,
+                  columnIndex: index,
                   rowIndex,
                   width:
-                    columnIndex < widths.length
-                      ? widths[columnIndex]
+                    index < widths.length
+                      ? widths[index]
                       : showRowTotal
                       ? rowTotalWidth
                       : null,
+                  justify: 'right',
                   showRowTotal,
                   ...props,
-                })
-              )}
+                };
 
-            <DataGroup>
-              {items &&
-                items.slice(dataStartIndex).map((rowDataValue, columnIndex) => {
-                  const index = columnIndex + dataStartIndex;
-                  const renderCellProps = {
-                    isTableHeader,
-                    value: rowDataValue,
-                    columnIndex: index,
-                    rowIndex,
-                    width:
-                      index < widths.length
-                        ? widths[index]
-                        : showRowTotal
-                        ? rowTotalWidth
-                        : null,
-                    justify: 'right',
-                    showRowTotal,
-                    ...props,
-                  };
-
-                  return renderCell(renderCellProps);
-                })}
-            </DataGroup>
-          </Row>
-        );
-      };
+                return renderCell(renderCellProps);
+              })}
+          </DataGroup>
+        </Row>
+      );
 
       // Default renderer for ALL cells
       const defaultRenderCell = p => {
@@ -197,12 +168,12 @@ export const TableChart = styled(
       };
 
       const defaultRenderDataCell = ({
-        isTableHeader,
-        justify,
+        isTableHeader: _isTableHeader,
+        justify: _justify,
         value,
-        width,
-        rowIndex,
-        columnIndex,
+        width: _width,
+        rowIndex: _rowIndex,
+        columnIndex: _columnIndex,
       }) => value;
       const defaultRenderHeaderCell = defaultRenderDataCell;
       const defaultRenderTableHeaderCell = defaultRenderHeaderCell;
@@ -223,6 +194,32 @@ export const TableChart = styled(
       };
     }
 
+    static propTypes = {
+      data: PropTypes.arrayOf(PropTypes.any),
+      /**
+       * The column index where your data starts.
+       * This is used to calculate totals.
+       *
+       * Will not work if you have mixed string/number columns
+       */
+      dataStartIndex: PropTypes.number,
+      widths: PropTypes.arrayOf(PropTypes.number),
+      // Height of body
+      bodyHeight: PropTypes.string,
+      getValue: PropTypes.func,
+      renderTableHeader: PropTypes.func,
+      renderBody: PropTypes.func,
+      renderHeaderCell: PropTypes.func,
+      renderDataCell: PropTypes.func,
+      shadeRowPercentage: PropTypes.bool,
+      showRowTotal: PropTypes.bool,
+      showColumnTotal: PropTypes.bool,
+      rowTotalLabel: PropTypes.string,
+      columnTotalLabel: PropTypes.string,
+      // props to pass to PanelHeader
+      headerProps: PropTypes.object,
+    };
+
     // TODO(billy): memoize?
     getTotals(rows) {
       if (!rows) {
@@ -232,13 +229,11 @@ export const TableChart = styled(
       const {getValue, dataStartIndex} = this.props;
 
       const reduceSum = (sum, val) => (sum += getValue(val));
-      const rowTotals = rows.map((row, rowIndex) =>
-        row.slice(dataStartIndex).reduce(reduceSum, 0)
-      );
+      const rowTotals = rows.map(row => row.slice(dataStartIndex).reduce(reduceSum, 0));
       const columnTotals = rows.length
         ? rows[0]
             .slice(dataStartIndex)
-            .map((r, currentColumn) =>
+            .map((_r, currentColumn) =>
               rows.reduce(
                 (sum, row) => (sum += getValue(row[currentColumn + dataStartIndex])),
                 0
@@ -389,13 +384,13 @@ export const TableChartRow = styled(
 /**
  * Shows relative percentage as width of bar inside of a table's row
  */
-export const TableChartRowBar = styled(({width, ...props}) => <div {...props} />)`
+export const TableChartRowBar = styled(({width: _width, ...props}) => <div {...props} />)`
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
   right: ${p => 100 - p.width}%;
-  background-color: ${p => p.theme.offWhite2};
+  background-color: ${p => p.theme.gray300};
   z-index: 1;
 `;
 
@@ -409,10 +404,12 @@ export const Cell = styled('div')`
   ${p => (p.justify === 'right' ? 'text-align: right' : '')};
 `;
 
-const DataGroup = styled(Flex)`
+const DataGroup = styled('div')`
+  display: flex;
   flex-shrink: 0;
 `;
-const Row = styled(Flex)`
+const Row = styled('div')`
+  display: flex;
   flex: 1;
   overflow: hidden;
 `;

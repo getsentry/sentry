@@ -146,13 +146,12 @@ class PieChart extends React.Component {
             left: 10,
             top: 10,
             bottom: 10,
-            formatter: name => {
-              return `${name} ${
+            formatter: name =>
+              `${name} ${
                 typeof seriesPercentages[name] !== 'undefined'
                   ? `(${seriesPercentages[name]}%)`
                   : ''
-              }`;
-            },
+              }`,
           }),
         }}
         series={[
@@ -162,9 +161,7 @@ class PieChart extends React.Component {
             avoidLabelOverlap: false,
             label: {
               normal: {
-                formatter: ({name, percent, dataIndex}) => {
-                  return `${name}\n${percent}%`;
-                },
+                formatter: ({name, percent}) => `${name}\n${percent}%`,
                 show: false,
                 position: 'center',
               },

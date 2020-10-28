@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class GroupExternalIssueDetailsEndpointTest(APITestCase):
@@ -12,37 +11,28 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
         self.group = self.create_group()
         self.external_issue = self.create_platform_external_issue(
             group=self.group,
-            service_type='sentry-app',
-            display_name='App#issue-1',
-            web_url='https://example.com/app/issues/1',
+            service_type="sentry-app",
+            display_name="App#issue-1",
+            web_url="https://example.com/app/issues/1",
         )
 
-        self.url = u'/api/0/issues/{}/external-issues/{}/'.format(
-            self.group.id,
-            self.external_issue.id,
+        self.url = u"/api/0/issues/{}/external-issues/{}/".format(
+            self.group.id, self.external_issue.id
         )
 
-    @with_feature('organizations:sentry-apps')
     def test_deletes_external_issue(self):
-        response = self.client.delete(self.url, format='json')
+        response = self.client.delete(self.url, format="json")
 
         assert response.status_code == 204, response.content
-        assert not PlatformExternalIssue.objects.filter(
-            id=self.external_issue.id,
-        ).exists()
+        assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
-    @with_feature('organizations:sentry-apps')
     def test_handles_non_existing_external_issue(self):
-        url = u'/api/0/issues/{}/external-issues/{}/'.format(
-            self.group.id,
-            99999,
-        )
+        url = u"/api/0/issues/{}/external-issues/{}/".format(self.group.id, 99999)
 
-        response = self.client.delete(url, format='json')
+        response = self.client.delete(url, format="json")
 
         assert response.status_code == 404, response.content
 
-    @with_feature('organizations:sentry-apps')
     def test_forbids_deleting_an_inaccessible_issue(self):
         group = self.create_group(
             project=self.create_project(
@@ -54,16 +44,13 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
 
         external_issue = self.create_platform_external_issue(
             group=group,
-            service_type='sentry-app',
-            display_name='App#issue-1',
-            web_url='https://example.com/app/issues/1',
+            service_type="sentry-app",
+            display_name="App#issue-1",
+            web_url="https://example.com/app/issues/1",
         )
 
-        url = u'/api/0/issues/{}/external-issues/{}/'.format(
-            group.id,
-            external_issue.id,
-        )
+        url = u"/api/0/issues/{}/external-issues/{}/".format(group.id, external_issue.id)
 
-        response = self.client.delete(url, format='json')
+        response = self.client.delete(url, format="json")
 
         assert response.status_code == 403, response.content

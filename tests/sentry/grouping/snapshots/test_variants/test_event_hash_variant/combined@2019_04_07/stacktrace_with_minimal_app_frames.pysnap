@@ -1,0 +1,136 @@
+---
+created: '2020-02-26T19:54:25.901175Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (less than 10% of frames are in-app)
+        frame*
+          filename*
+            "foo.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (non app frame)
+          filename*
+            "bar.py"
+          lineno*
+            1
+--------------------------------------------------------------------------
+system:
+  hash: "3aa7e7dacc3a98cf8316a226c4485053"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+          lineno*
+            1
+        frame*
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+          lineno*
+            1
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+          lineno*
+            1

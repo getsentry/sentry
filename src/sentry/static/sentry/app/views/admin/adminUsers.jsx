@@ -1,29 +1,27 @@
-/* eslint-disable getsentry/jsx-needs-il8n */
 /* eslint-disable react/jsx-key */
 import React from 'react';
 import moment from 'moment';
 
-import ResultGrid from 'app/components/resultGrid';
 import {t} from 'app/locale';
+import Link from 'app/components/links/link';
+import ResultGrid from 'app/components/resultGrid';
 
-export const prettyDate = function(x) {
+export const prettyDate = function (x) {
   return moment(x).format('ll');
 };
 
 class AdminUsers extends React.Component {
-  getRow = row => {
-    return [
-      <td>
-        <strong>
-          <a href={`/manage/users/${row.id}/`}>{row.username}</a>
-        </strong>
-        <br />
-        {row.email !== row.username && <small>{row.email}</small>}
-      </td>,
-      <td style={{textAlign: 'center'}}>{prettyDate(row.dateJoined)}</td>,
-      <td style={{textAlign: 'center'}}>{prettyDate(row.lastLogin)}</td>,
-    ];
-  };
+  getRow = row => [
+    <td>
+      <strong>
+        <Link to={`/manage/users/${row.id}/`}>{row.username}</Link>
+      </strong>
+      <br />
+      {row.email !== row.username && <small>{row.email}</small>}
+    </td>,
+    <td style={{textAlign: 'center'}}>{prettyDate(row.dateJoined)}</td>,
+    <td style={{textAlign: 'center'}}>{prettyDate(row.lastLogin)}</td>,
+  ];
 
   render() {
     const columns = [
@@ -41,11 +39,14 @@ class AdminUsers extends React.Component {
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}
-          hasSearch={true}
+          hasSearch
           filters={{
             status: {
               name: 'Status',
-              options: [['active', 'Active'], ['disabled', 'Disabled']],
+              options: [
+                ['active', 'Active'],
+                ['disabled', 'Disabled'],
+              ],
             },
           }}
           sortOptions={[['date', 'Date Joined']]}

@@ -27,15 +27,20 @@ def get_digest_metadata(digest):
     return start, end, counts
 
 
-def get_personalized_digests(project_id, digest, user_ids):
+def get_personalized_digests(target_type, project_id, digest, user_ids):
     """
     get_personalized_digests(project_id: Int, digest: Digest, user_ids: Set[Int]) -> Iterator[user_id: Int, digest: Digest]
     """
-    # TODO(LB): I Know this is inefficent.
+    from sentry.mail.adapter import ActionTargetType
+
+    # TODO(LB): I Know this is inefficient.
     # In the case that ProjectOwnership does exist, I do the same query twice.
     # Once with this statement and again with the call to ProjectOwnership.get_actors()
     # Will follow up with another PR to reduce the number of queries.
-    if ProjectOwnership.objects.filter(project_id=project_id).exists():
+    if (
+        target_type == ActionTargetType.ISSUE_OWNERS
+        and ProjectOwnership.objects.filter(project_id=project_id).exists()
+    ):
         events = get_event_from_groups_in_digest(digest)
         events_by_actor = build_events_by_actor(project_id, events, user_ids)
         events_by_user = convert_actors_to_users(events_by_actor, user_ids)
@@ -68,8 +73,7 @@ def build_custom_digest(original_digest, events):
         user_rule_groups = OrderedDict()
         for group, group_records in six.iteritems(rule_groups):
             user_group_records = [
-                record for record in group_records
-                if record.value.event in events
+                record for record in group_records if record.value.event in events
             ]
             if user_group_records:
                 user_rule_groups[group] = user_group_records
@@ -84,9 +88,9 @@ def build_events_by_actor(project_id, events, user_ids):
     """
     events_by_actor = defaultdict(set)
     for event in events:
-        # TODO(LB): I Know this is inefficent.
+        # TODO(LB): I Know this is inefficient.
         # ProjectOwnership.get_owners is O(n) queries and I'm doing that O(len(events)) times
-        # I will create a follow-up PR to address this method's efficency problem
+        # I will create a follow-up PR to address this method's efficiency problem
         # Just wanted to make as few changes as possible for now.
         actors, __ = ProjectOwnership.get_owners(project_id, event.data)
         if actors == ProjectOwnership.Everyone:
@@ -115,7 +119,7 @@ def convert_actors_to_users(events_by_actor, user_ids):
         elif actor.type == User:
             events_by_user[actor.id].update(events)
         else:
-            raise ValueError('Unknown Actor type: %s' % actor.type)
+            raise ValueError("Unknown Actor type: %s" % actor.type)
     return events_by_user
 
 
@@ -127,10 +131,8 @@ def team_actors_to_user_ids(team_actors, user_ids):
     """
     team_ids = [actor.id for actor in team_actors]
     members = OrganizationMemberTeam.objects.filter(
-        team_id__in=team_ids,
-        is_active=True,
-        organizationmember__user_id__in=user_ids,
-    ).select_related('organizationmember')
+        team_id__in=team_ids, is_active=True, organizationmember__user_id__in=user_ids
+    ).select_related("organizationmember")
 
     team_members = defaultdict(set)
     for member in members:

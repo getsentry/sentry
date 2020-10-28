@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import ipaddress
-import re
 import six
+import uuid
 
-EVENT_ID_RE = re.compile(r'^[a-fA-F0-9]{32}$')
+from django.utils.encoding import force_text
 
 
 def validate_ip(value, required=True):
@@ -24,8 +24,12 @@ def is_float(var):
     return True
 
 
-def is_event_id(value):
+def normalize_event_id(value):
     try:
-        return bool(EVENT_ID_RE.match(value))
-    except TypeError:
-        return False
+        return uuid.UUID(force_text(value)).hex
+    except (TypeError, AttributeError, ValueError):
+        return None
+
+
+def is_event_id(value):
+    return normalize_event_id(value) is not None

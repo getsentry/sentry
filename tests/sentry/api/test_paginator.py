@@ -11,9 +11,13 @@ from sentry.api.paginator import (
     OffsetPaginator,
     SequencePaginator,
     GenericOffsetPaginator,
-    reverse_bisect_left)
-from sentry.models import User
-from sentry.testutils import TestCase
+    CombinedQuerysetIntermediary,
+    CombinedQuerysetPaginator,
+    reverse_bisect_left,
+)
+from sentry.models import User, Rule
+from sentry.incidents.models import AlertRule
+from sentry.testutils import TestCase, APITestCase
 from sentry.utils.cursors import Cursor
 
 
@@ -21,51 +25,51 @@ class PaginatorTest(TestCase):
     cls = Paginator
 
     def test_max_limit(self):
-        self.create_user('foo@example.com')
-        self.create_user('bar@example.com')
-        self.create_user('baz@example.com')
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        self.create_user("baz@example.com")
 
         queryset = User.objects.all()
 
-        paginator = self.cls(queryset, 'id', max_limit=10)
+        paginator = self.cls(queryset, "id", max_limit=10)
         result = paginator.get_result(limit=2, cursor=None)
         assert len(result) == 2
 
-        paginator = self.cls(queryset, 'id', max_limit=1)
+        paginator = self.cls(queryset, "id", max_limit=1)
         result = paginator.get_result(limit=2, cursor=None)
         assert len(result) == 1
 
     def test_count_hits(self):
-        self.create_user('foo@example.com')
-        self.create_user('bar@example.com')
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
 
-        queryset = User.objects.filter(email='foo@example.com')
-        paginator = self.cls(queryset, 'id')
+        queryset = User.objects.filter(email="foo@example.com")
+        paginator = self.cls(queryset, "id")
         result = paginator.count_hits(1000)
         assert result == 1
 
         queryset = User.objects.all()
-        paginator = self.cls(queryset, 'id')
+        paginator = self.cls(queryset, "id")
         result = paginator.count_hits(1000)
         assert result == 2
 
         queryset = User.objects.none()
-        paginator = self.cls(queryset, 'id')
+        paginator = self.cls(queryset, "id")
         result = paginator.count_hits(1000)
         assert result == 0
 
         queryset = User.objects.all()
-        paginator = self.cls(queryset, 'id')
+        paginator = self.cls(queryset, "id")
         result = paginator.count_hits(1)
         assert result == 1
 
     def test_prev_emptyset(self):
         queryset = User.objects.all()
 
-        paginator = self.cls(queryset, 'id')
+        paginator = self.cls(queryset, "id")
         result1 = paginator.get_result(limit=1, cursor=None)
 
-        res1 = self.create_user('foo@example.com')
+        res1 = self.create_user("foo@example.com")
 
         result2 = paginator.get_result(limit=1, cursor=result1.prev)
         assert len(result2) == 1, (result2, list(result2))
@@ -78,13 +82,13 @@ class PaginatorTest(TestCase):
 class OffsetPaginatorTest(TestCase):
     # offset paginator does not support dynamic limits on is_prev
     def test_simple(self):
-        res1 = self.create_user('foo@example.com')
-        res2 = self.create_user('bar@example.com')
-        res3 = self.create_user('baz@example.com')
+        res1 = self.create_user("foo@example.com")
+        res2 = self.create_user("bar@example.com")
+        res3 = self.create_user("baz@example.com")
 
         queryset = User.objects.all()
 
-        paginator = OffsetPaginator(queryset, 'id')
+        paginator = OffsetPaginator(queryset, "id")
         result1 = paginator.get_result(limit=1, cursor=None)
         assert len(result1) == 1, result1
         assert result1[0] == res1
@@ -114,14 +118,26 @@ class OffsetPaginatorTest(TestCase):
         assert not result5.next
         assert result5.prev
 
+    def test_negative_offset(self):
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+        cursor = Cursor(10, -1)
+        with self.assertRaises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+        cursor = Cursor(-10, 1)
+        with self.assertRaises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
     def test_order_by_multiple(self):
-        res1 = self.create_user('foo@example.com')
-        self.create_user('bar@example.com')
-        res3 = self.create_user('baz@example.com')
+        res1 = self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        res3 = self.create_user("baz@example.com")
 
         queryset = User.objects.all()
 
-        paginator = OffsetPaginator(queryset, 'id')
+        paginator = OffsetPaginator(queryset, "id")
         result = paginator.get_result(limit=1, cursor=None)
         assert len(result) == 1, result
         assert result[0] == res1
@@ -130,7 +146,7 @@ class OffsetPaginatorTest(TestCase):
 
         res3.update(is_active=False)
 
-        paginator = OffsetPaginator(queryset, ('is_active', 'id'))
+        paginator = OffsetPaginator(queryset, ("is_active", "id"))
         result = paginator.get_result(limit=1, cursor=None)
         assert len(result) == 1, result
         assert result[0] == res3
@@ -144,9 +160,9 @@ class OffsetPaginatorTest(TestCase):
         assert result.prev
 
     def test_max_offset(self):
-        self.create_user('foo@example.com')
-        self.create_user('bar@example.com')
-        self.create_user('baz@example.com')
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        self.create_user("baz@example.com")
 
         queryset = User.objects.all()
 
@@ -164,17 +180,17 @@ class DateTimePaginatorTest(TestCase):
         joined = timezone.now()
 
         # The DateTime pager only has accuracy up to 1000th of a second.
-        # Everythng can't be added within less than 10 microseconds of each
+        # Everything can't be added within less than 10 microseconds of each
         # other. This is handled by the pager (see test_rounding_offset), but
         # this case shouldn't rely on it.
-        res1 = self.create_user('foo@example.com', date_joined=joined)
-        res2 = self.create_user('bar@example.com', date_joined=joined + timedelta(seconds=1))
-        res3 = self.create_user('baz@example.com', date_joined=joined + timedelta(seconds=2))
-        res4 = self.create_user('qux@example.com', date_joined=joined + timedelta(seconds=3))
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        res2 = self.create_user("bar@example.com", date_joined=joined + timedelta(seconds=1))
+        res3 = self.create_user("baz@example.com", date_joined=joined + timedelta(seconds=2))
+        res4 = self.create_user("qux@example.com", date_joined=joined + timedelta(seconds=3))
 
         queryset = User.objects.all()
 
-        paginator = DateTimePaginator(queryset, 'date_joined')
+        paginator = DateTimePaginator(queryset, "date_joined")
         result1 = paginator.get_result(limit=2, cursor=None)
         assert len(result1) == 2, result1
         assert result1[0] == res1
@@ -204,13 +220,13 @@ class DateTimePaginatorTest(TestCase):
     def test_descending(self):
         joined = timezone.now()
 
-        res1 = self.create_user('foo@example.com', date_joined=joined)
-        res2 = self.create_user('bar@example.com', date_joined=joined + timedelta(seconds=1))
-        res3 = self.create_user('baz@example.com', date_joined=joined + timedelta(seconds=2))
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        res2 = self.create_user("bar@example.com", date_joined=joined + timedelta(seconds=1))
+        res3 = self.create_user("baz@example.com", date_joined=joined + timedelta(seconds=2))
 
         queryset = User.objects.all()
 
-        paginator = DateTimePaginator(queryset, '-date_joined')
+        paginator = DateTimePaginator(queryset, "-date_joined")
         result1 = paginator.get_result(limit=1, cursor=None)
         assert len(result1) == 1, result1
         assert result1[0] == res3
@@ -233,19 +249,19 @@ class DateTimePaginatorTest(TestCase):
     def test_prev_descending_with_new(self):
         joined = timezone.now()
 
-        res1 = self.create_user('foo@example.com', date_joined=joined)
-        res2 = self.create_user('bar@example.com', date_joined=joined + timedelta(seconds=1))
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        res2 = self.create_user("bar@example.com", date_joined=joined + timedelta(seconds=1))
 
         queryset = User.objects.all()
 
-        paginator = DateTimePaginator(queryset, '-date_joined')
+        paginator = DateTimePaginator(queryset, "-date_joined")
         result1 = paginator.get_result(limit=10, cursor=None)
         assert len(result1) == 2, result1
         assert result1[0] == res2
         assert result1[1] == res1
 
-        res3 = self.create_user('baz@example.com', date_joined=joined + timedelta(seconds=2))
-        res4 = self.create_user('qux@example.com', date_joined=joined + timedelta(seconds=3))
+        res3 = self.create_user("baz@example.com", date_joined=joined + timedelta(seconds=2))
+        res4 = self.create_user("qux@example.com", date_joined=joined + timedelta(seconds=3))
 
         result2 = paginator.get_result(limit=10, cursor=result1.prev)
         assert len(result2) == 2, result2
@@ -261,14 +277,14 @@ class DateTimePaginatorTest(TestCase):
     def test_rounding_offset(self):
         joined = timezone.now()
 
-        res1 = self.create_user('foo@example.com', date_joined=joined)
-        res2 = self.create_user('bar@example.com', date_joined=joined + timedelta(microseconds=1))
-        res3 = self.create_user('baz@example.com', date_joined=joined + timedelta(microseconds=2))
-        res4 = self.create_user('qux@example.com', date_joined=joined + timedelta(microseconds=3))
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        res2 = self.create_user("bar@example.com", date_joined=joined + timedelta(microseconds=1))
+        res3 = self.create_user("baz@example.com", date_joined=joined + timedelta(microseconds=2))
+        res4 = self.create_user("qux@example.com", date_joined=joined + timedelta(microseconds=3))
 
         queryset = User.objects.all()
 
-        paginator = DateTimePaginator(queryset, 'date_joined')
+        paginator = DateTimePaginator(queryset, "date_joined")
         result1 = paginator.get_result(limit=3, cursor=None)
         assert len(result1) == 3, result1
         assert result1[0] == res1
@@ -293,10 +309,10 @@ class DateTimePaginatorTest(TestCase):
 
     def test_same_row_updated(self):
         joined = timezone.now()
-        res1 = self.create_user('foo@example.com', date_joined=joined)
+        res1 = self.create_user("foo@example.com", date_joined=joined)
         queryset = User.objects.all()
 
-        paginator = DateTimePaginator(queryset, '-date_joined')
+        paginator = DateTimePaginator(queryset, "-date_joined")
         result1 = paginator.get_result(limit=3, cursor=None)
         assert len(result1) == 1, result1
         assert result1[0] == res1
@@ -315,16 +331,13 @@ class DateTimePaginatorTest(TestCase):
         # Make sure updates work as expected with extra rows
         res1.update(date_joined=res1.date_joined + timedelta(seconds=1))
         res2 = self.create_user(
-            'bar@example.com',
-            date_joined=res1.date_joined + timedelta(seconds=1),
+            "bar@example.com", date_joined=res1.date_joined + timedelta(seconds=1)
         )
         res3 = self.create_user(
-            'baz@example.com',
-            date_joined=res1.date_joined + timedelta(seconds=2),
+            "baz@example.com", date_joined=res1.date_joined + timedelta(seconds=2)
         )
         res4 = self.create_user(
-            'bat@example.com',
-            date_joined=res1.date_joined + timedelta(seconds=3),
+            "bat@example.com", date_joined=res1.date_joined + timedelta(seconds=3)
         )
         result4 = paginator.get_result(limit=1, cursor=result3.prev)
         assert len(result4) == 1, result4
@@ -520,3 +533,90 @@ class GenericOffsetPaginatorTest(TestCase):
         assert list(result2) == [5]
         assert result2.prev == Cursor(0, 0, True, True)
         assert result2.next == Cursor(0, 10, False, False)
+
+
+class CombinedQuerysetPaginatorTest(APITestCase):
+    def test_simple(self):
+        Rule.objects.all().delete()
+
+        alert_rule0 = self.create_alert_rule(name="alertrule0")
+        alert_rule1 = self.create_alert_rule(name="alertrule1")
+        rule1 = Rule.objects.create(label="rule1", project=self.project)
+        alert_rule2 = self.create_alert_rule(name="alertrule2")
+        alert_rule3 = self.create_alert_rule(name="alertrule3")
+        rule2 = Rule.objects.create(label="rule2", project=self.project)
+        rule3 = Rule.objects.create(label="rule3", project=self.project)
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            AlertRule.objects.all(), "date_added"
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary], desc=True,
+        )
+
+        result = paginator.get_result(limit=3, cursor=None)
+        assert len(result) == 3
+        page1_results = list(result)
+        assert page1_results[0].id == rule3.id
+        assert page1_results[1].id == rule2.id
+        assert page1_results[2].id == alert_rule3.id
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 3
+        assert page2_results[0].id == alert_rule2.id
+        assert page2_results[1].id == rule1.id
+        assert page2_results[2].id == alert_rule1.id
+
+        next_cursor = result.next
+        prev_cursor = result.prev
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page3_results = list(result)
+        assert len(result) == 2
+        assert page3_results[0].id == alert_rule0.id
+
+        result = paginator.get_result(limit=3, cursor=prev_cursor)
+        assert list(result) == page1_results
+
+        # Test reverse sorting:
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+        )
+        result = paginator.get_result(limit=3, cursor=None)
+        assert len(result) == 3
+        page1_results = list(result)
+        assert page1_results[0].id == Rule.objects.all().first().id
+        assert page1_results[1].id == alert_rule0.id
+        assert page1_results[2].id == alert_rule1.id
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 3
+        assert page2_results[0].id == rule1.id
+        assert page2_results[1].id == alert_rule2.id
+        assert page2_results[2].id == alert_rule3.id
+
+        next_cursor = result.next
+        prev_cursor = result.prev
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page3_results = list(result)
+        assert len(result) == 2
+        assert page3_results[0].id == rule2.id
+        assert page3_results[1].id == rule3.id
+
+        result = paginator.get_result(limit=3, cursor=prev_cursor)
+        assert list(result) == page1_results
+
+    def test_order_by_invalid_key(self):
+        with self.assertRaises(AssertionError):
+            rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "dontexist")
+            CombinedQuerysetPaginator(intermediaries=[rule_intermediary],)
+
+    def test_mix_date_and_not_date(self):
+        with self.assertRaises(AssertionError):
+            rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
+            rule_intermediary2 = CombinedQuerysetIntermediary(Rule.objects.all(), "label")
+            CombinedQuerysetPaginator(intermediaries=[rule_intermediary, rule_intermediary2],)
