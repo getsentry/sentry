@@ -11,6 +11,11 @@ on:
     branches:
       - master
       - releases/**
+  # XXX: We are using `pull_request_target` instead of `pull_request` because we want
+  # Visual Snapshots to run on forks.  It allows forks to access secrets safely by
+  # only running workflows from the main branch. Prefer to use `pull_request` when possible.
+  #
+  # See https://github.com/getsentry/sentry/pull/21600 for more details
   pull_request_target:
 
 jobs:
@@ -23,7 +28,7 @@ jobs:
       VISUAL_HTML_ENABLE: 1
     steps:
       - uses: actions/checkout@v2
-        name: Checkout sentry (pull_request)
+        name: Checkout sentry (pull_request_target)
         if: github.event.pull_request.head.ref != ''
         with:
           # Note this is required because of `pull_request_target`, which allows
