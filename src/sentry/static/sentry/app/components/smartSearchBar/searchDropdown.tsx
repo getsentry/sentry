@@ -134,13 +134,13 @@ const Info = styled('div')`
   color: ${p => p.theme.gray500};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 
 const ListItem = styled('li')`
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 

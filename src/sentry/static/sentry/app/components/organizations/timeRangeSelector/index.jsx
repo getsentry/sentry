@@ -431,7 +431,7 @@ const SelectorList = styled('div')`
 
 const SubmitRow = styled('div')`
   padding: ${space(0.5)} ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   border-left: 1px solid ${p => p.theme.border};
 `;
 

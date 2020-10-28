@@ -46,7 +46,7 @@ export default SidebarPanelItem;
 const SidebarPanelItemRoot = styled('div')`
   padding: 15px 20px;
   line-height: 1.2;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   background: ${p => p.theme.white};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   font-size: 14px;

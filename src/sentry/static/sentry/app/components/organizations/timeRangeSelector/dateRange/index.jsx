@@ -325,7 +325,7 @@ const TimeAndUtcPicker = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(2)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const UtcPicker = styled('div')`
