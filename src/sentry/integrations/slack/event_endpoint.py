@@ -1,18 +1,19 @@
 from __future__ import absolute_import
 
-import json
 import re
 import six
 from collections import defaultdict
 
-from django.conf import settings
 from django.db.models import Q
 
-from sentry import http
 from sentry.api.base import Endpoint
 from sentry.incidents.models import Incident
 from sentry.models import Group, Project
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.web.decorators import transaction_start
+from sentry.utils import json
 
+from .client import SlackClient
 from .requests import SlackEventRequest, SlackRequestError
 from .utils import build_group_attachment, build_incident_attachment, logger
 
@@ -89,8 +90,56 @@ class SlackEventEndpoint(Endpoint):
         except (TypeError, ValueError):
             return None, None
 
+    def _get_access_token(self, integration):
+        # the classic bot tokens must use the user auth token for URL unfurling
+        # we stored the user_access_token there
+        # but for workspace apps and new slack bot tokens, we can just use access_token
+        return integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+
     def on_url_verification(self, request, data):
         return self.respond({"challenge": data["challenge"]})
+
+    def on_message(self, request, integration, token, data):
+        channel = data["channel"]
+        # if it's a message posted by our bot, we don't want to respond since
+        # that will cause an infinite loop of messages
+        if data.get("bot_id"):
+            return self.respond()
+
+        access_token = self._get_access_token(integration)
+
+        headers = {"Authorization": "Bearer %s" % access_token}
+        payload = {
+            "channel": channel,
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Want to learn more about configuring alerts in Sentry? Check out our documentation.",
+                    },
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "Sentry Docs"},
+                            "url": "https://docs.sentry.io/product/alerts-notifications/alerts/",
+                            "value": "sentry_docs_link_clicked",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        client = SlackClient()
+        try:
+            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+        except ApiError as e:
+            logger.error("slack.event.on-message-error", extra={"error": six.text_type(e)})
+
+        return self.respond()
 
     def on_link_shared(self, request, integration, token, data):
         parsed_events = defaultdict(dict)
@@ -110,10 +159,7 @@ class SlackEventEndpoint(Endpoint):
         if not results:
             return
 
-        if settings.SLACK_INTEGRATION_USE_WST:
-            access_token = integration.metadata["access_token"]
-        else:
-            access_token = integration.metadata["user_access_token"]
+        access_token = self._get_access_token(integration)
 
         payload = {
             "token": access_token,
@@ -122,16 +168,16 @@ class SlackEventEndpoint(Endpoint):
             "unfurls": json.dumps(results),
         }
 
-        session = http.build_session()
-        req = session.post("https://slack.com/api/chat.unfurl", data=payload)
-        req.raise_for_status()
-        resp = req.json()
-        if not resp.get("ok"):
-            logger.error("slack.event.unfurl-error", extra={"response": resp})
+        client = SlackClient()
+        try:
+            client.post("/chat.unfurl", data=payload)
+        except ApiError as e:
+            logger.error("slack.event.unfurl-error", extra={"error": six.text_type(e)})
 
         return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
+    @transaction_start("SlackEventEndpoint")
     def post(self, request):
         try:
             slack_request = SlackEventRequest(request)
@@ -144,6 +190,17 @@ class SlackEventEndpoint(Endpoint):
 
         if slack_request.type == "link_shared":
             resp = self.on_link_shared(
+                request,
+                slack_request.integration,
+                slack_request.data.get("token"),
+                slack_request.data.get("event"),
+            )
+
+            if resp:
+                return resp
+
+        if slack_request.type == "message":
+            resp = self.on_message(
                 request,
                 slack_request.integration,
                 slack_request.data.get("token"),

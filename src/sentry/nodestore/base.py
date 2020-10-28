@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-from hashlib import md5
 
 from base64 import b64encode
 from threading import local
@@ -25,6 +24,7 @@ class NodeStorage(local, Service):
         "generate_id",
         "cleanup",
         "validate",
+        "bootstrap",
         "_get_cache_item",
         "_get_cache_items",
         "_set_cache_item",
@@ -95,23 +95,24 @@ class NodeStorage(local, Service):
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
 
+    def bootstrap(self):
+        raise NotImplementedError
+
     def _get_cache_item(self, id):
-        if self.cache and self.should_cache(id):
+        if self.cache:
             return self.cache.get(id)
 
     def _get_cache_items(self, id_list):
-        cacheable_ids = [id for id in id_list if self.should_cache(id)]
-        if self.cache and self.sample_rate != 0.0:
-            return self.cache.get_many(cacheable_ids)
+        if self.cache:
+            return self.cache.get_many(id_list)
         return {}
 
     def _set_cache_item(self, id, data):
         if self.cache and data:
-            if self.should_cache(id):
-                self.cache.set(id, data)
+            self.cache.set(id, data)
 
     def _set_cache_items(self, items):
-        cacheable_items = {k: v for k, v in six.iteritems(items) if v and self.should_cache(k)}
+        cacheable_items = {k: v for k, v in six.iteritems(items) if v}
         if self.cache:
             self.cache.set_many(cacheable_items)
 
@@ -129,12 +130,3 @@ class NodeStorage(local, Service):
             return caches["nodedata"]
         except InvalidCacheBackendError:
             return None
-
-    @memoize
-    def sample_rate(self):
-        from sentry import options
-
-        return options.get("nodedata.cache-sample-rate", 0.0)
-
-    def should_cache(self, id):
-        return (int(md5(id).hexdigest(), 16) % 1000) / 1000.0 < self.sample_rate

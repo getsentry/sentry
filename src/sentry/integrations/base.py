@@ -18,7 +18,7 @@ from enum import Enum
 from sentry.exceptions import InvalidIdentity
 from sentry.pipeline import PipelineProvider
 
-from .exceptions import (
+from sentry.shared_integrations.exceptions import (
     ApiHostError,
     ApiError,
     ApiUnauthorized,
@@ -26,9 +26,13 @@ from .exceptions import (
     IntegrationFormError,
     UnsupportedResponseType,
 )
-from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
-from sentry.models import Identity, OrganizationIntegration
-
+from sentry.shared_integrations.constants import (
+    ERR_UNAUTHORIZED,
+    ERR_INTERNAL,
+    ERR_UNSUPPORTED_RESPONSE_TYPE,
+)
+from sentry.models import AuditLogEntryEvent, Identity, OrganizationIntegration
+from sentry.utils.audit import create_audit_entry
 
 FeatureDescription = namedtuple(
     "FeatureDescription",
@@ -86,12 +90,17 @@ class IntegrationFeatures(Enum):
     *must* match the suffix of the organization feature flag name.
     """
 
-    ACTION_NOTIFICATION = "actionable-notification"
+    INCIDENT_MANAGEMENT = "incident-management"
     ISSUE_BASIC = "issue-basic"
     ISSUE_SYNC = "issue-sync"
     COMMITS = "commits"
     CHAT_UNFURL = "chat-unfurl"
     ALERT_RULE = "alert-rule"
+    MOBILE = "mobile"
+    # features currently only existing on plugins:
+    DATA_FORWARDING = "data-forwarding"
+    SESSION_REPLAY = "session-replay"
+    DEPLOYMENT = "deployment"
 
 
 class IntegrationProvider(PipelineProvider):
@@ -138,7 +147,9 @@ class IntegrationProvider(PipelineProvider):
     # whether or not the integration installation be initiated from Sentry
     can_add = True
 
-    # can the integration be disabled ?
+    # if the integration can be uninstalled in Sentry, set to False
+    # if True, the integration must be uninstalled from the other platform
+    # which is uninstalled/disabled via wehbook
     can_disable = False
 
     # if the integration has no application-style access token, associate
@@ -147,6 +158,13 @@ class IntegrationProvider(PipelineProvider):
 
     # can be any number of IntegrationFeatures
     features = frozenset()
+
+    # if this is hidden without the feature flag
+    requires_feature_flag = False
+
+    # whether this integration can be used for stacktrace linking
+    # will eventually be replaced with a feature flag
+    has_stacktrace_linking = False
 
     @classmethod
     def get_installation(cls, model, organization_id, **kwargs):
@@ -162,8 +180,21 @@ class IntegrationProvider(PipelineProvider):
     def get_logger(self):
         return logging.getLogger("sentry.integration.%s" % (self.key,))
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         pass
+
+    def create_audit_log_entry(self, integration, organization, request, action, extra=None):
+        """
+        Creates an audit log entry for the newly installed integration.
+        """
+        if action == "install":
+            create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=integration.id,
+                event=AuditLogEntryEvent.INTEGRATION_ADD,
+                data={"provider": integration.provider, "name": integration.name},
+            )
 
     def get_pipeline_views(self):
         """
@@ -263,6 +294,9 @@ class IntegrationInstallation(object):
 
     def get_config_data(self):
         return self.org_integration.config
+
+    def get_dynamic_display_information(self):
+        return None
 
     def get_client(self):
         # Return the api client for a given provider

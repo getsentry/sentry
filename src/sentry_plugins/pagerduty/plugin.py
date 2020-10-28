@@ -7,6 +7,7 @@ from sentry.utils.http import absolute_uri
 
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import PagerDutyClient
 
@@ -17,6 +18,22 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
     title = "PagerDuty"
     conf_key = slug
     conf_title = title
+    required_field = "service_key"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Manage incidents and outages by sending Sentry notifications to PagerDuty.
+            """,
+            IntegrationFeatures.INCIDENT_MANAGEMENT,
+        ),
+        FeatureDescription(
+            """
+            Configure rule based PagerDuty alerts to automatically be triggered in a specific
+            service - or in multiple services!
+            """,
+            IntegrationFeatures.ALERT_RULE,
+        ),
+    ]
 
     def error_message_from_json(self, data):
         message = data.get("message", "unknown error")

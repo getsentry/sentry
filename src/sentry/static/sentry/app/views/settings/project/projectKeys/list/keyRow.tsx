@@ -10,6 +10,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ClippedBox from 'app/components/clippedBox';
 import Confirm from 'app/components/confirm';
+import {IconDelete} from 'app/icons';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
@@ -68,12 +69,12 @@ class KeyRow extends React.Component<Props> {
           'Are you sure you want to remove this key? This action is irreversible.'
         )}
       >
-        <Button size="small" disabled={!controlActive} icon="icon-trash" />
+        <Button size="small" disabled={!controlActive} icon={<IconDelete />} />
       </Confirm>,
     ];
 
     return (
-      <ClientKeyItemPanel>
+      <Panel>
         <PanelHeader hasButtons>
           <Title disabled={!data.isActive}>
             <PanelHeaderLink to={editUrl}>{data.label}</PanelHeaderLink>
@@ -91,31 +92,28 @@ class KeyRow extends React.Component<Props> {
           </Controls>
         </PanelHeader>
 
-        <ClippedBox clipHeight={300} defaultClipped btnText={t('Expand')}>
+        <StyledClippedBox clipHeight={300} defaultClipped btnText={t('Expand')}>
           <StyledPanelBody disabled={!data.isActive}>
             <ProjectKeyCredentials projectId={`${data.projectId}`} data={data} />
           </StyledPanelBody>
-        </ClippedBox>
-      </ClientKeyItemPanel>
+        </StyledClippedBox>
+      </Panel>
     );
   }
 }
 
 export default KeyRow;
 
-const ClientKeyItemPanel = styled(Panel)`
-  .box-clippable {
-    padding: 0;
-    margin: 0;
-
-    .clip-fade {
-      padding-bottom: 20px;
-    }
+const StyledClippedBox = styled(ClippedBox)`
+  padding: 0;
+  margin: 0;
+  > *:last-child {
+    padding-bottom: ${space(3)};
   }
 `;
 
 const PanelHeaderLink = styled(Link)`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const Title = styled('div')<{disabled: boolean}>`

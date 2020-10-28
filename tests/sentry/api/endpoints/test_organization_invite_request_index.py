@@ -122,7 +122,7 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         )
 
         assert resp.status_code == 400
-        assert "The user %s is already a member" % user2.email in resp.content
+        assert (u"The user %s is already a member" % user2.email).encode("utf-8") in resp.content
 
     def test_existing_invite_request(self):
         self.login_as(user=self.user)
@@ -138,4 +138,6 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         )
 
         assert resp.status_code == 400
-        assert "There is an existing invite request for %s" % invite_request.email in resp.content
+        assert (u"There is an existing invite request for %s" % invite_request.email).encode(
+            "utf-8"
+        ) in resp.content

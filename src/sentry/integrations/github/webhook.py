@@ -14,7 +14,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
-from simplejson import JSONDecodeError
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models import (
@@ -28,7 +27,7 @@ from sentry.models import (
 )
 from sentry.utils import json
 
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
@@ -119,7 +118,7 @@ class InstallationEventWebhook(Webhook):
                     "github.deletion-missing-integration",
                     extra={
                         "action": event["action"],
-                        "installation_name": event["account"]["login"],
+                        "installation_name": installation["account"]["login"],
                         "external_id": six.text_type(external_id),
                     },
                 )
@@ -440,7 +439,7 @@ class GitHubWebhookBase(View):
 
         try:
             event = json.loads(body.decode("utf-8"))
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             logger.error(
                 "github.webhook.invalid-json", extra=self.get_logging_data(), exc_info=True
             )

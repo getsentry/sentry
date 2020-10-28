@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import logging
 import six
+
 from io import BytesIO
 from gzip import GzipFile
-from itertools import izip
 from rest_framework import status
 from six.moves.urllib.parse import urljoin
 from rest_framework.response import Response
@@ -15,10 +15,9 @@ from sentry import options
 from sentry.models import FileBlob
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.utils.files import get_max_file_size
+from sentry.utils.compat import zip
 
 
-# The blob size must be a power of two
-CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
@@ -60,7 +59,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(
             {
                 "url": endpoint,
-                "chunkSize": CHUNK_UPLOAD_BLOB_SIZE,
+                "chunkSize": settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE,
                 "chunksPerRequest": MAX_CHUNKS_PER_REQUEST,
                 "maxFileSize": get_max_file_size(organization),
                 "maxRequestSize": MAX_REQUEST_SIZE,
@@ -103,7 +102,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         size = 0
         for chunk in files:
             size += chunk.size
-            if chunk.size > CHUNK_UPLOAD_BLOB_SIZE:
+            if chunk.size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
                 logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
                 return Response(
                     {"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST
@@ -119,7 +118,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             return Response({"error": "Too many chunks"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            FileBlob.from_files(izip(files, checksums), organization=organization, logger=logger)
+            FileBlob.from_files(zip(files, checksums), organization=organization, logger=logger)
         except IOError as err:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": six.text_type(err)}, status=status.HTTP_400_BAD_REQUEST)

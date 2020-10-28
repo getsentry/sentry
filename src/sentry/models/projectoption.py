@@ -32,11 +32,11 @@ class ProjectOptionManager(OptionManager):
 
     def unset_value(self, project, key):
         self.filter(project=project, key=key).delete()
-        self.reload_cache(project.id)
+        self.reload_cache(project.id, "projectoption.unset_value")
 
     def set_value(self, project, key, value):
         inst, created = self.create_or_update(project=project, key=key, values={"value": value})
-        self.reload_cache(project.id)
+        self.reload_cache(project.id, "projectoption.set_value")
         return created or inst > 0
 
     def get_all_values(self, project):
@@ -49,12 +49,16 @@ class ProjectOptionManager(OptionManager):
         if cache_key not in self._option_cache:
             result = cache.get(cache_key)
             if result is None:
-                result = self.reload_cache(project_id)
+                result = self.reload_cache(project_id, "projectoption.get_all_values")
             else:
                 self._option_cache[cache_key] = result
         return self._option_cache.get(cache_key, {})
 
-    def reload_cache(self, project_id):
+    def reload_cache(self, project_id, update_reason):
+        if update_reason != "projectoption.get_all_values":
+            schedule_update_config_cache(
+                project_id=project_id, generate=True, update_reason=update_reason
+            )
         cache_key = self._make_key(project_id)
         result = dict((i.key, i.value) for i in self.filter(project=project_id))
         cache.set(cache_key, result)
@@ -62,16 +66,10 @@ class ProjectOptionManager(OptionManager):
         return result
 
     def post_save(self, instance, **kwargs):
-        schedule_update_config_cache(
-            project_id=instance.project_id, generate=True, update_reason="projectoption.post_save"
-        )
-        self.reload_cache(instance.project_id)
+        self.reload_cache(instance.project_id, "projectoption.post_save")
 
     def post_delete(self, instance, **kwargs):
-        schedule_update_config_cache(
-            project_id=instance.project_id, generate=True, update_reason="projectoption.post_delete"
-        )
-        self.reload_cache(instance.project_id)
+        self.reload_cache(instance.project_id, "projectoption.post_delete")
 
 
 class ProjectOption(Model):

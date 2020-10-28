@@ -1,5 +1,5 @@
 import {ALL_VIEWS} from 'app/views/eventsV2/data';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {
   handleCreateQuery,
   handleUpdateQuery,
@@ -11,7 +11,7 @@ describe('SavedQueries API helpers', () => {
   const api = new MockApiClient();
   const organization = TestStubs.Organization();
 
-  const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors');
+  const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors by Title');
   const errorsView = EventView.fromSavedQuery(errorsQuery);
   errorsView.id = '1'; // set id manually as errorsView.id is undefined
 

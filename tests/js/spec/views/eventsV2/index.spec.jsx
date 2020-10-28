@@ -1,13 +1,14 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {DiscoverLanding} from 'app/views/eventsV2/landing';
 
-describe('EventsV2 > Landing', function() {
+describe('EventsV2 > Landing', function () {
   const eventTitle = 'Oh no something bad';
-  const features = ['discover-basic'];
+  const features = ['discover-basic', 'discover-query'];
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -60,7 +61,7 @@ describe('EventsV2 > Landing', function() {
     });
   });
 
-  it('handles no projects', function() {
+  it('handles no projects', function () {
     const wrapper = mountWithTheme(
       <DiscoverLanding
         organization={TestStubs.Organization({features})}
@@ -72,5 +73,19 @@ describe('EventsV2 > Landing', function() {
 
     const content = wrapper.find('SentryDocumentTitle');
     expect(content.text()).toContain('You need at least one project to use this view');
+  });
+
+  it('denies access on missing feature', function () {
+    const wrapper = mountWithTheme(
+      <DiscoverLanding
+        organization={TestStubs.Organization()}
+        location={{query: {}}}
+        router={{}}
+      />,
+      TestStubs.routerContext()
+    );
+
+    const content = wrapper.find('PageContent');
+    expect(content.text()).toContain("You don't have access to this feature");
   });
 });

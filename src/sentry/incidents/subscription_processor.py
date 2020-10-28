@@ -4,35 +4,45 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import timedelta
-from itertools import izip
+
 
 from django.conf import settings
 from django.db import transaction
 
-from sentry.incidents.logic import create_incident, update_incident_status
-from sentry.snuba.subscriptions import query_aggregation_to_snuba
+from sentry import features
+from sentry.incidents.logic import (
+    create_incident,
+    CRITICAL_TRIGGER_LABEL,
+    deduplicate_trigger_actions,
+    update_incident_status,
+    WARNING_TRIGGER_LABEL,
+)
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
+    IncidentStatusMethod,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
-from sentry.snuba.models import QueryAggregations
+from sentry.models import Project
 from sentry.utils import metrics, redis
-from sentry.utils.dates import to_datetime
+from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.compat import zip
 
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
 ALERT_RULE_BASE_KEY = "{alert_rule:%s:project:%s}"
 ALERT_RULE_BASE_STAT_KEY = "%s:%s"
-ALERT_RULE_STAT_KEYS = ("last_update",)
+ALERT_RULE_STAT_KEYS = ("last_update", "resolve_triggered")
 ALERT_RULE_BASE_TRIGGER_STAT_KEY = "%s:trigger:%s:%s"
-ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
+ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered",)
 
 
 class SubscriptionProcessor(object):
@@ -52,31 +62,27 @@ class SubscriptionProcessor(object):
     def __init__(self, subscription):
         self.subscription = subscription
         try:
-            self.alert_rule = AlertRule.objects.get(query_subscriptions=subscription)
+            self.alert_rule = AlertRule.objects.get_for_subscription(subscription)
         except AlertRule.DoesNotExist:
             return
 
-        self.triggers = list(self.alert_rule.alertruletrigger_set.all().order_by("alert_threshold"))
+        self.triggers = AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        self.triggers.sort(key=lambda trigger: trigger.alert_threshold)
 
-        self.last_update, self.trigger_alert_counts, self.trigger_resolve_counts = get_alert_rule_stats(
-            self.alert_rule, self.subscription, self.triggers
-        )
+        (
+            self.last_update,
+            self.trigger_alert_counts,
+            self.rule_resolve_counts,
+        ) = get_alert_rule_stats(self.alert_rule, self.subscription, self.triggers)
         self.orig_trigger_alert_counts = deepcopy(self.trigger_alert_counts)
-        self.orig_trigger_resolve_counts = deepcopy(self.trigger_resolve_counts)
+        self.orig_rule_resolve_counts = self.rule_resolve_counts
 
     @property
     def active_incident(self):
         if not hasattr(self, "_active_incident"):
-            try:
-                # Fetch the active incident if one exists for this alert rule.
-                self._active_incident = Incident.objects.filter(
-                    type=IncidentType.ALERT_TRIGGERED.value,
-                    status=IncidentStatus.OPEN.value,
-                    alert_rule=self.alert_rule,
-                    projects=self.subscription.project,
-                ).order_by("-date_added")[0]
-            except IndexError:
-                self._active_incident = None
+            self._active_incident = Incident.objects.get_active_incident(
+                self.alert_rule, self.subscription.project
+            )
         return self._active_incident
 
     @active_incident.setter
@@ -107,7 +113,55 @@ class SubscriptionProcessor(object):
         incident_trigger = self.incident_triggers.get(trigger.id)
         return incident_trigger is not None and incident_trigger.status == status.value
 
+    def calculate_resolve_threshold(self):
+        """
+        Determine the resolve threshold for an alert rule. First checks whether an
+        explicit resolve threshold has been set on the rule. If not, calculates a
+        threshold based on the `alert_threshold` on the triggers associated with the
+        rule.
+        :return:
+        """
+        if self.alert_rule.resolve_threshold is not None:
+            return self.alert_rule.resolve_threshold
+
+        # Since we only support gt/lt thresholds we have an off-by-one with auto
+        # resolve. If we have an alert threshold of > 0, and no resolve threshold, then
+        # we'd automatically set this to < 0, which can never happen. To work around
+        # this, we add a small amount to the number so that in this case we'd have
+        # the resolve threshold be < 0.000001. This means that when we hit 0 we'll still
+        # resolve as expected.
+        # TODO: We should probably support gte/lte at some point so that we can avoid
+        # these hacks.
+        if self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value:
+            func = min
+            resolve_add = 0.000001
+        else:
+            func = max
+            resolve_add = -0.000001
+
+        return func(trigger.alert_threshold for trigger in self.triggers) + resolve_add
+
     def process_update(self, subscription_update):
+        dataset = self.subscription.snuba_query.dataset
+        try:
+            # Check that the project exists
+            self.subscription.project
+        except Project.DoesNotExist:
+            metrics.incr("incidents.alert_rules.ignore_deleted_project")
+            return
+        if dataset == "events" and not features.has(
+            "organizations:incidents", self.subscription.project.organization
+        ):
+            # They have downgraded since these subscriptions have been created. So we just ignore updates for now.
+            metrics.incr("incidents.alert_rules.ignore_update_missing_incidents")
+            return
+        elif dataset == "transactions" and not features.has(
+            "organizations:performance-view", self.subscription.project.organization
+        ):
+            # They have downgraded since these subscriptions have been created. So we just ignore updates for now.
+            metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")
+            return
+
         if not hasattr(self, "alert_rule"):
             # If the alert rule has been removed then just skip
             metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription")
@@ -123,30 +177,69 @@ class SubscriptionProcessor(object):
 
         self.last_update = subscription_update["timestamp"]
 
-        aggregation = QueryAggregations(self.alert_rule.aggregation)
-        aggregation_name = query_aggregation_to_snuba[aggregation][2]
-        aggregation_value = subscription_update["values"][aggregation_name]
+        if len(subscription_update["values"]["data"]) > 1:
+            logger.warning(
+                "Subscription returned more than 1 row of data",
+                extra={
+                    "subscription_id": self.subscription.id,
+                    "dataset": self.subscription.snuba_query.dataset,
+                    "snuba_subscription_id": self.subscription.subscription_id,
+                    "result": subscription_update,
+                },
+            )
+        aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
+        # In some cases Snuba can return a None value for an aggregation. This means
+        # there were no rows present when we made the query, for certain types of
+        # aggregations like avg. Defaulting this to 0 for now. It might turn out that
+        # we'd prefer to skip the update in the future.
+        if aggregation_value is None:
+            aggregation_value = 0
+        alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
+            AlertRuleThresholdType(self.alert_rule.threshold_type)
+        ]
+        fired_incident_triggers = []
+        with transaction.atomic():
+            for trigger in self.triggers:
+                if alert_operator(
+                    aggregation_value, trigger.alert_threshold
+                ) and not self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
+                    metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                    incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
+                    if incident_trigger is not None:
+                        fired_incident_triggers.append(incident_trigger)
+                else:
+                    self.trigger_alert_counts[trigger.id] = 0
 
-        for trigger in self.triggers:
-            alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
-                AlertRuleThresholdType(trigger.threshold_type)
-            ]
-
-            if alert_operator(
-                aggregation_value, trigger.alert_threshold
-            ) and not self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
-                with transaction.atomic():
-                    self.trigger_alert_threshold(trigger)
-            elif (
-                trigger.resolve_threshold is not None
-                and resolve_operator(aggregation_value, trigger.resolve_threshold)
-                and self.check_trigger_status(trigger, TriggerStatus.ACTIVE)
+            if (
+                resolve_operator(aggregation_value, self.calculate_resolve_threshold())
+                and self.active_incident
             ):
-                with transaction.atomic():
-                    self.trigger_resolve_threshold(trigger)
+                self.rule_resolve_counts += 1
+                if self.rule_resolve_counts >= self.alert_rule.threshold_period:
+                    # TODO: Make sure we iterate over critical then warning in order.
+                    metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
+                    for trigger in self.triggers:
+                        if self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
+                            incident_trigger = self.trigger_resolve_threshold(
+                                trigger, aggregation_value
+                            )
+                            if incident_trigger is not None:
+                                fired_incident_triggers.append(incident_trigger)
+
+                    update_incident_status(
+                        self.active_incident,
+                        IncidentStatus.CLOSED,
+                        status_method=IncidentStatusMethod.RULE_TRIGGERED,
+                        date_closed=self.calculate_event_date_from_update_date(self.last_update),
+                    )
+                    self.active_incident = None
+                    self.incident_triggers.clear()
+                    self.rule_resolve_counts = 0
             else:
-                self.trigger_alert_counts[trigger.id] = 0
-                self.trigger_resolve_counts[trigger.id] = 0
+                self.rule_resolve_counts = 0
+
+            if fired_incident_triggers:
+                self.handle_trigger_actions(fired_incident_triggers, aggregation_value)
 
         # We update the rule stats here after we commit the transaction. This guarantees
         # that we'll never miss an update, since we'll never roll back if the process
@@ -155,7 +248,26 @@ class SubscriptionProcessor(object):
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
 
-    def trigger_alert_threshold(self, trigger):
+    def calculate_event_date_from_update_date(self, update_date):
+        """
+        Calculates the date that an event actually happened based on the date that we
+        received the update. This takes into account time window and threshold period.
+        :return:
+        """
+        # Subscriptions label buckets by the end of the bucket, whereas discover
+        # labels them by the front. This causes us an off-by-one error with event dates,
+        # so to prevent this we subtract a bucket off of the date.
+        update_date -= timedelta(seconds=self.alert_rule.snuba_query.time_window)
+        # We want to also subtract `frequency * (threshold_period - 1)` from the date.
+        # This allows us to show the actual start of the event, rather than the date
+        # of the last update that we received.
+        return update_date - timedelta(
+            seconds=(
+                self.alert_rule.snuba_query.resolution * (self.alert_rule.threshold_period - 1)
+            )
+        )
+
+    def trigger_alert_threshold(self, trigger, metric_value):
         """
         Called when a subscription update exceeds the value defined in the
         `trigger.alert_threshold`, and the trigger hasn't already been activated.
@@ -166,19 +278,18 @@ class SubscriptionProcessor(object):
         """
         self.trigger_alert_counts[trigger.id] += 1
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
+            metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
-                detected_at = to_datetime(self.last_update)
+                detected_at = self.calculate_event_date_from_update_date(self.last_update)
                 self.active_incident = create_incident(
                     self.alert_rule.organization,
                     IncidentType.ALERT_TRIGGERED,
                     # TODO: Include more info in name?
                     self.alert_rule.name,
                     alert_rule=self.alert_rule,
-                    query=self.subscription.query,
-                    aggregation=QueryAggregations(self.alert_rule.aggregation),
                     date_started=detected_at,
-                    date_detected=detected_at,
+                    date_detected=self.last_update,
                     projects=[self.subscription.project],
                 )
             # Now create (or update if it already exists) the incident trigger so that
@@ -193,7 +304,7 @@ class SubscriptionProcessor(object):
                     alert_rule_trigger=trigger,
                     status=TriggerStatus.ACTIVE.value,
                 )
-            self.handle_trigger_actions(incident_trigger)
+            self.handle_incident_severity_update()
             self.incident_triggers[trigger.id] = incident_trigger
 
             # TODO: We should create an audit log, and maybe something that keeps
@@ -203,54 +314,63 @@ class SubscriptionProcessor(object):
             # We now set this threshold to 0. We don't need to count it anymore
             # once we've triggered an incident.
             self.trigger_alert_counts[trigger.id] = 0
+            return incident_trigger
 
-    def check_triggers_resolved(self):
-        """
-        Determines whether all triggers associated with the active incident are
-        resolved. A trigger is considered resolved if it either has no resolve
-        threshold, or is in the `TriggerStatus.Resolved` state.
-        :return:
-        """
-        for incident_trigger in self.incident_triggers.values():
-            if (
-                incident_trigger.alert_rule_trigger.resolve_threshold is not None
-                and incident_trigger.status != TriggerStatus.RESOLVED.value
-            ):
-                return False
-        return True
-
-    def trigger_resolve_threshold(self, trigger):
+    def trigger_resolve_threshold(self, trigger, metric_value):
         """
         Called when a subscription update exceeds the value defined in
-        `trigger.resolve_threshold` and the trigger is currently ACTIVE.
+        `alert_rule.resolve_threshold` and the trigger is currently ACTIVE.
         :return:
         """
-        self.trigger_resolve_counts[trigger.id] += 1
-        if self.trigger_resolve_counts[trigger.id] >= self.alert_rule.threshold_period:
-            incident_trigger = self.incident_triggers[trigger.id]
-            incident_trigger.status = TriggerStatus.RESOLVED.value
-            incident_trigger.save()
-            self.handle_trigger_actions(incident_trigger)
+        metrics.incr("incidents.alert_rules.trigger", tags={"type": "resolve"})
+        incident_trigger = self.incident_triggers[trigger.id]
+        incident_trigger.status = TriggerStatus.RESOLVED.value
+        incident_trigger.save()
+        return incident_trigger
 
-            if self.check_triggers_resolved():
-                update_incident_status(self.active_incident, IncidentStatus.CLOSED)
-                self.active_incident = None
-                self.incident_triggers.clear()
-            self.trigger_resolve_counts[trigger.id] = 0
-
-    def handle_trigger_actions(self, incident_trigger):
+    def handle_trigger_actions(self, incident_triggers, metric_value):
+        # These will all be for the same incident and status, so just grab the first one
+        incident_trigger = incident_triggers[0]
         method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
-
-        for action in incident_trigger.alert_rule_trigger.alertruletriggeraction_set.all():
-            handle_trigger_action.apply_async(
-                kwargs={
-                    "action_id": action.id,
-                    "incident_id": incident_trigger.incident_id,
-                    "project_id": self.subscription.project_id,
-                    "method": method,
-                },
-                countdown=5,
+        actions = deduplicate_trigger_actions(
+            list(
+                AlertRuleTriggerAction.objects.filter(
+                    alert_rule_trigger__in=[it.alert_rule_trigger for it in incident_triggers]
+                ).select_related("alert_rule_trigger")
             )
+        )
+
+        for action in actions:
+            transaction.on_commit(
+                handle_trigger_action.s(
+                    action_id=action.id,
+                    incident_id=incident_trigger.incident_id,
+                    project_id=self.subscription.project_id,
+                    metric_value=metric_value,
+                    method=method,
+                ).delay
+            )
+
+    def handle_incident_severity_update(self):
+        if self.active_incident:
+            active_incident_triggers = IncidentTrigger.objects.filter(
+                incident=self.active_incident, status=TriggerStatus.ACTIVE.value
+            )
+            severity = None
+            for active_incident_trigger in active_incident_triggers:
+                trigger = active_incident_trigger.alert_rule_trigger
+                if trigger.label == CRITICAL_TRIGGER_LABEL:
+                    severity = IncidentStatus.CRITICAL
+                    break
+                elif trigger.label == WARNING_TRIGGER_LABEL:
+                    severity = IncidentStatus.WARNING
+
+            if severity:
+                update_incident_status(
+                    self.active_incident,
+                    severity,
+                    status_method=IncidentStatusMethod.RULE_TRIGGERED,
+                )
 
     def update_alert_rule_stats(self):
         """
@@ -262,18 +382,16 @@ class SubscriptionProcessor(object):
             for trigger_id, alert_count in self.trigger_alert_counts.items()
             if alert_count != self.orig_trigger_alert_counts[trigger_id]
         }
-        updated_trigger_resolve_counts = {
-            trigger_id: resolve_count
-            for trigger_id, resolve_count in self.trigger_resolve_counts.items()
-            if resolve_count != self.orig_trigger_resolve_counts[trigger_id]
-        }
+        resolve_counts = None
+        if self.rule_resolve_counts != self.orig_rule_resolve_counts:
+            resolve_counts = self.rule_resolve_counts
 
         update_alert_rule_stats(
             self.alert_rule,
             self.subscription,
             self.last_update,
             updated_trigger_alert_counts,
-            updated_trigger_resolve_counts,
+            resolve_counts,
         )
 
 
@@ -313,7 +431,7 @@ def partition(iterable, n):
     """
     assert len(iterable) % n == 0
     args = [iter(iterable)] * n
-    return izip(*args)
+    return zip(*args)
 
 
 def get_alert_rule_stats(alert_rule, subscription, triggers):
@@ -324,35 +442,33 @@ def get_alert_rule_stats(alert_rule, subscription, triggers):
      - trigger_alert_counts: A dict of trigger alert counts, where the key is the
        trigger id, and the value is an int representing how many consecutive times we
        have triggered the alert threshold
-     - trigger_resolve_counts: A dict of trigger resolve counts, where the key is the
-       trigger id, and the value is an int representing how many consecutive times we
-       have triggered the resolve threshold
+     - rule_resolve_counts: An int representing how many consecutive times we have
+       triggered the resolve threshold
     """
 
     alert_rule_keys = build_alert_rule_stat_keys(alert_rule, subscription)
     trigger_keys = build_trigger_stat_keys(alert_rule, subscription, triggers)
     results = get_redis_client().mget(alert_rule_keys + trigger_keys)
     results = tuple(0 if result is None else int(result) for result in results)
-    last_update = results[0]
-    trigger_results = results[1:]
+    last_update = to_datetime(results[0])
+    rule_resolve_counts = results[1]
+    trigger_results = results[2:]
     trigger_alert_counts = {}
-    trigger_resolve_counts = {}
-    for trigger, trigger_result in zip(
-        triggers, partition(trigger_results, len(ALERT_RULE_TRIGGER_STAT_KEYS))
-    ):
-        trigger_alert_counts[trigger.id] = trigger_result[0]
-        trigger_resolve_counts[trigger.id] = trigger_result[1]
+    for trigger, trigger_result in zip(triggers, trigger_results):
+        trigger_alert_counts[trigger.id] = trigger_result
 
-    return last_update, trigger_alert_counts, trigger_resolve_counts
+    return last_update, trigger_alert_counts, rule_resolve_counts
 
 
-def update_alert_rule_stats(alert_rule, subscription, last_update, alert_counts, resolve_counts):
+def update_alert_rule_stats(
+    alert_rule, subscription, last_update, alert_counts, resolve_count=None
+):
     """
     Updates stats about the alert rule, subscription and triggers if they've changed.
     """
     pipeline = get_redis_client().pipeline()
 
-    counts_with_stat_keys = zip(ALERT_RULE_TRIGGER_STAT_KEYS, (alert_counts, resolve_counts))
+    counts_with_stat_keys = zip(ALERT_RULE_TRIGGER_STAT_KEYS, (alert_counts,))
     for stat_key, trigger_counts in counts_with_stat_keys:
         for trigger_id, alert_count in trigger_counts.items():
             pipeline.set(
@@ -363,15 +479,13 @@ def update_alert_rule_stats(alert_rule, subscription, last_update, alert_counts,
                 ex=REDIS_TTL,
             )
 
-    last_update_key = build_alert_rule_stat_keys(alert_rule, subscription)[0]
-    pipeline.set(last_update_key, last_update, ex=REDIS_TTL)
+    last_update_key, resolve_count_key = build_alert_rule_stat_keys(alert_rule, subscription)
+    pipeline.set(last_update_key, int(to_timestamp(last_update)), ex=REDIS_TTL)
+    if resolve_count is not None:
+        pipeline.set(resolve_count_key, resolve_count, ex=REDIS_TTL)
     pipeline.execute()
 
 
 def get_redis_client():
-    cluster_key = getattr(settings, "SENTRY_INCIDENT_RULES_REDIS_CLUSTER", None)
-    if cluster_key is None:
-        client = redis.clusters.get("default").get_local_client(0)
-    else:
-        client = redis.redis_clusters.get(cluster_key)
-    return client
+    cluster_key = getattr(settings, "SENTRY_INCIDENT_RULES_REDIS_CLUSTER", "default")
+    return redis.redis_clusters.get(cluster_key)

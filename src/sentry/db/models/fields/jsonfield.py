@@ -1,5 +1,5 @@
 from __future__ import absolute_import, unicode_literals
-import json
+
 import datetime
 import six
 
@@ -11,6 +11,7 @@ from django.db import models
 from django.db.models.lookups import Exact, IExact, In, Contains, IContains
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.utils import json
 from sentry.db.models.utils import Creator
 
 

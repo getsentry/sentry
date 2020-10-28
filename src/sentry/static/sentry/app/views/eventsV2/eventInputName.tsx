@@ -1,19 +1,16 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
-
 import {addErrorMessage} from 'app/actionCreators/indicator';
-
 import InlineInput from 'app/components/inputInline';
-import {handleUpdateQueryName} from './savedQuery/utils';
+import EventView from 'app/utils/discover/eventView';
+import {Title} from 'app/components/layouts/thirds';
 
-import EventView from './eventView';
+import {handleUpdateQueryName} from './savedQuery/utils';
 
 type Props = {
   api: Client;
@@ -68,10 +65,7 @@ class EventInputName extends React.Component<Props> {
         const renamedEventView = eventView.clone();
         renamedEventView.name = nextQueryName;
 
-        browserHistory.push({
-          pathname: location.pathname,
-          query: renamedEventView.generateQueryStringObject(),
-        });
+        browserHistory.push(renamedEventView.getResultsViewUrlTarget(organization.slug));
       }
     );
   };
@@ -80,7 +74,7 @@ class EventInputName extends React.Component<Props> {
     const {eventView} = this.props;
 
     return (
-      <StyledListHeader>
+      <Title>
         <InlineInput
           ref={this.refInput}
           name="discover2-query-name"
@@ -88,17 +82,9 @@ class EventInputName extends React.Component<Props> {
           value={eventView.name || NAME_DEFAULT}
           onBlur={this.onBlur}
         />
-      </StyledListHeader>
+      </Title>
     );
   }
 }
-
-const StyledListHeader = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
-  grid-column: 1/2;
-  align-self: center;
-  ${overflowEllipsis};
-`;
 
 export default withApi(EventInputName);

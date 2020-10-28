@@ -1,27 +1,31 @@
 import React from 'react';
 import {Location} from 'history';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import space from 'app/styles/space';
-import {Organization, Tag} from 'app/types';
+import {t} from 'app/locale';
+import {Organization, TagCollection} from 'app/types';
+import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
+import Measurements from 'app/utils/measurements/measurements';
 import Pagination from 'app/components/pagination';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
-import {DEFAULT_EVENT_VIEW} from '../data';
-import EventView, {isAPIPayloadSimilar} from '../eventView';
 import TableView from './tableView';
-import {TableData} from './types';
 
 type TableProps = {
   api: Client;
   location: Location;
   eventView: EventView;
   organization: Organization;
-  tags: {[key: string]: Tag};
+  showTags: boolean;
+  tags: TagCollection;
+  setError: (msg: string, code: number) => void;
   title: string;
+  onChangeShowTags: () => void;
+  confirmedQuery: boolean;
 };
 
 type TableState = {
@@ -51,26 +55,17 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   componentDidMount() {
-    const {location, eventView} = this.props;
-
-    if (!eventView.isValid()) {
-      const nextEventView = EventView.fromNewQueryWithLocation(
-        DEFAULT_EVENT_VIEW,
-        location
-      );
-
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: nextEventView.generateQueryStringObject(),
-      });
-      return;
-    }
-
     this.fetchData();
   }
 
   componentDidUpdate(prevProps: TableProps) {
-    if (!this.state.isLoading && this.shouldRefetchData(prevProps)) {
+    // Reload data if we aren't already loading, or if we've moved
+    // from an invalid view state to a valid one.
+    if (
+      (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
+      (prevProps.eventView.isValid() === false && this.props.eventView.isValid()) ||
+      prevProps.confirmedQuery !== this.props.confirmedQuery
+    ) {
       this.fetchData();
     }
   }
@@ -83,15 +78,25 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location} = this.props;
+    const {eventView, organization, location, setError, confirmedQuery} = this.props;
+
+    if (!eventView.isValid() || !confirmedQuery) {
+      return;
+    }
+
+    // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
+    // the API payload response
+
     const url = `/organizations/${organization.slug}/eventsv2/`;
-
     const tableFetchID = Symbol('tableFetchID');
-
-    this.setState({isLoading: true, tableFetchID});
-
     const apiPayload = eventView.getEventsAPIPayload(location);
 
+    setError('', 200);
+
+    this.setState({isLoading: true, tableFetchID});
+    metric.mark({name: `discover-events-start-${apiPayload.query}`});
+
+    this.props.api.clear();
     this.props.api
       .requestPromise(url, {
         method: 'GET',
@@ -99,29 +104,44 @@ class Table extends React.PureComponent<TableProps, TableState> {
         query: apiPayload,
       })
       .then(([data, _, jqXHR]) => {
+        // We want to measure this metric regardless of whether we use the result
+        metric.measure({
+          name: 'app.api.discover-query',
+          start: `discover-events-start-${apiPayload.query}`,
+          data: {
+            status: jqXHR && jqXHR.status,
+          },
+        });
         if (this.state.tableFetchID !== tableFetchID) {
           // invariant: a different request was initiated after this request
           return;
         }
 
-        this.setState(prevState => {
-          return {
-            isLoading: false,
-            tableFetchID: undefined,
-            error: null,
-            pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
-            tableData: data,
-          };
-        });
+        this.setState(prevState => ({
+          isLoading: false,
+          tableFetchID: undefined,
+          error: null,
+          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
+          tableData: data,
+        }));
       })
       .catch(err => {
+        metric.measure({
+          name: 'app.api.discover-query',
+          start: `discover-events-start-${apiPayload.query}`,
+          data: {
+            status: err.status,
+          },
+        });
+        const message = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({
           isLoading: false,
           tableFetchID: undefined,
-          error: err.responseJSON.detail,
+          error: message,
           pageLinks: null,
           tableData: null,
         });
+        setError(message, err.status);
       });
   };
 
@@ -132,14 +152,22 @@ class Table extends React.PureComponent<TableProps, TableState> {
 
     return (
       <Container>
-        <TableView
-          {...this.props}
-          isLoading={isLoading}
-          error={error}
-          eventView={eventView}
-          tableData={tableData}
-          tagKeys={tagKeys}
-        />
+        <Measurements>
+          {({measurements}) => {
+            const measurementKeys = Object.values(measurements).map(({key}) => key);
+            return (
+              <TableView
+                {...this.props}
+                isLoading={isLoading}
+                error={error}
+                eventView={eventView}
+                tableData={tableData}
+                tagKeys={tagKeys}
+                measurementKeys={measurementKeys}
+              />
+            );
+          }}
+        </Measurements>
         <Pagination pageLinks={pageLinks} />
       </Container>
     );
@@ -151,5 +179,4 @@ export default withApi(withTags(Table));
 const Container = styled('div')`
   min-width: 0;
   overflow: hidden;
-  margin-top: ${space(1.5)};
 `;

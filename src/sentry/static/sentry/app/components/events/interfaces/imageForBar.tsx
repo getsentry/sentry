@@ -2,23 +2,28 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
-import {FunctionName} from 'app/components/events/interfaces/frame';
+import FunctionName from 'app/components/events/interfaces/frame/functionName';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {Frame} from 'app/types';
 
 type Props = {
-  frame: object;
-  onShowAllImages: () => void;
+  frame: Frame;
+  onShowAllImages: (filter: string) => void;
 };
 
-const ImageForBar: React.FC<Props> = ({frame, onShowAllImages}) => {
+const ImageForBar = ({frame, onShowAllImages}: Props) => {
+  const handleShowAllImages = () => {
+    onShowAllImages('');
+  };
+
   return (
     <Wrapper>
       <MatchedFunctionWrapper>
         <MatchedFunctionCaption>{t('Image for: ')}</MatchedFunctionCaption>
         <FunctionName frame={frame} />
       </MatchedFunctionWrapper>
-      <ResetAddressFilterCaption onClick={onShowAllImages}>
+      <ResetAddressFilterCaption onClick={handleShowAllImages}>
         {t('Show all images')}
       </ResetAddressFilterCaption>
     </Wrapper>
@@ -35,16 +40,16 @@ const Wrapper = styled('div')`
   align-items: baseline;
   justify-content: space-between;
   padding: ${space(0.5)} ${space(2)};
-  background: ${p => p.theme.whiteDark};
+  background: ${p => p.theme.gray100};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   font-weight: 700;
   code {
-    color: ${p => p.theme.blueDark};
+    color: ${p => p.theme.blue500};
     font-size: ${p => p.theme.fontSizeSmall};
-    background: ${p => p.theme.whiteDark};
+    background: ${p => p.theme.gray100};
   }
   a {
-    color: ${p => p.theme.blueDark};
+    color: ${p => p.theme.blue500};
     &:hover {
       text-decoration: underline;
     }
@@ -59,7 +64,7 @@ const MatchedFunctionWrapper = styled('div')`
 const MatchedFunctionCaption = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   flex-shrink: 0;
 `;
 
@@ -69,9 +74,9 @@ const ResetAddressFilterCaption = styled('a')`
   padding-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
-  color: ${p => p.theme.gray2} !important;
+  color: ${p => p.theme.gray500} !important;
   &:hover {
-    color: ${p => p.theme.gray2} !important;
+    color: ${p => p.theme.gray500} !important;
   }
 `;
 

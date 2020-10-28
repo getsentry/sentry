@@ -1,11 +1,11 @@
-import {mount} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import WidgetChart from 'app/views/dashboards/widgetChart';
 
-describe('WidgetChart', function() {
+describe('WidgetChart', function () {
   const {organization, router, routerContext} = initializeOrg({
     organization: {
       features: ['global-views'],
@@ -39,7 +39,7 @@ describe('WidgetChart', function() {
     groupby: ['geo.country_code'],
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     renderMock.mockClear();
     router.push.mockRestore();
     MockApiClient.clearMockResponses();
@@ -62,8 +62,8 @@ describe('WidgetChart', function() {
     });
   });
 
-  it('renders zoomable time chart', async function() {
-    wrapper = mount(
+  it('renders zoomable time chart', async function () {
+    wrapper = mountWithTheme(
       <WidgetChart
         widget={TestStubs.Widget({
           discover: [TIME_QUERY],
@@ -79,8 +79,8 @@ describe('WidgetChart', function() {
     expect(wrapper.find('ChartZoom')).toHaveLength(1);
   });
 
-  it('renders time chart with series', async function() {
-    wrapper = mount(
+  it('renders time chart with series', async function () {
+    wrapper = mountWithTheme(
       <WidgetChart
         widget={TestStubs.Widget(
           {
@@ -100,8 +100,8 @@ describe('WidgetChart', function() {
     expect(wrapper.find('ReleaseSeries')).toHaveLength(1);
   });
 
-  it('renders non-zoomable non-time chart', async function() {
-    wrapper = mount(
+  it('renders non-zoomable non-time chart', async function () {
+    wrapper = mountWithTheme(
       <WidgetChart
         widget={TestStubs.Widget(
           {
@@ -122,8 +122,8 @@ describe('WidgetChart', function() {
     expect(wrapper.find('ChartZoom')).toHaveLength(0);
   });
 
-  it('update only if data is not reloading and data has changed', async function() {
-    wrapper = mount(
+  it('update only if data is not reloading and data has changed', async function () {
+    wrapper = mountWithTheme(
       <WidgetChart
         widget={TestStubs.Widget(
           {

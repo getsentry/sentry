@@ -5,6 +5,8 @@ import itertools
 import logging
 
 from sentry.utils.dates import to_timestamp
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 logger = logging.getLogger("sentry.similarity")
 
@@ -247,4 +249,4 @@ class FeatureSet(object):
         )
 
     def flush(self, project):
-        return self.index.flush(self.__get_scope(project), self.aliases.values())
+        return self.index.flush(self.__get_scope(project), list(self.aliases.values()))

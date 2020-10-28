@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import formatAbbreviatedNumber from 'app/utils/formatAbbreviatedNumber';
+import {formatAbbreviatedNumber} from 'app/utils/formatters';
 
 type Props = {
   value: string | number;

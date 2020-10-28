@@ -4,7 +4,6 @@ __all__ = ("Stacktrace",)
 
 import six
 
-from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from sentry.app import env
@@ -18,7 +17,7 @@ def max_addr(cur, addr):
     if addr is None:
         return cur
     length = len(addr) - 2
-    if length > cur:
+    if cur is None or length > cur:
         return length
     return cur
 
@@ -105,55 +104,6 @@ def is_newest_frame_first(event):
 
 def is_url(filename):
     return filename.startswith(("file:", "http:", "https:", "applewebdata:"))
-
-
-def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
-    """
-    Removes various excess metadata from middle frames which go beyond
-    ``frame_allowance``.
-    """
-    frames_len = 0
-    app_frames = []
-    system_frames = []
-    for frame in frames:
-        frames_len += 1
-        if frame is not None and frame.in_app:
-            app_frames.append(frame)
-        else:
-            system_frames.append(frame)
-
-    if frames_len <= frame_allowance:
-        return
-
-    remaining = frames_len - frame_allowance
-    app_count = len(app_frames)
-    system_allowance = max(frame_allowance - app_count, 0)
-    if system_allowance:
-        half_max = system_allowance / 2
-        # prioritize trimming system frames
-        for frame in system_frames[half_max:-half_max]:
-            frame.vars = None
-            frame.pre_context = None
-            frame.post_context = None
-            remaining -= 1
-
-    else:
-        for frame in system_frames:
-            frame.vars = None
-            frame.pre_context = None
-            frame.post_context = None
-            remaining -= 1
-
-    if not remaining:
-        return
-
-    app_allowance = app_count - remaining
-    half_max = app_allowance / 2
-
-    for frame in app_frames[half_max:-half_max]:
-        frame.vars = None
-        frame.pre_context = None
-        frame.post_context = None
 
 
 def validate_bool(value, required=True):
@@ -474,7 +424,7 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, slim_frames=True, raw=False):
+    def to_python(cls, data, raw=False):
         data = dict(data)
         frame_list = []
         for f in data.get("frames") or []:

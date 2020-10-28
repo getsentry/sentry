@@ -1,12 +1,10 @@
 import React from 'react';
 import Reflux from 'reflux';
-
 import createReactClass from 'create-react-class';
+
 import getDisplayName from 'app/utils/getDisplayName';
 import TagStore from 'app/stores/tagStore';
-import {Tag} from 'app/types';
-
-type TagCollection = {[key: string]: Tag};
+import {TagCollection} from 'app/types';
 
 type InjectedTagsProps = {
   tags: TagCollection;
@@ -16,6 +14,9 @@ type State = {
   tags: TagCollection;
 };
 
+/**
+ * HOC for getting *only* tags from the TagStore.
+ */
 const withTags = <P extends InjectedTagsProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
@@ -30,11 +31,14 @@ const withTags = <P extends InjectedTagsProps>(
     },
 
     onTagsUpdate(tags: TagCollection) {
-      this.setState({tags});
+      this.setState({
+        tags,
+      });
     },
 
     render() {
-      return <WrappedComponent tags={this.state.tags} {...(this.props as P)} />;
+      const {tags, ...props} = this.props as P;
+      return <WrappedComponent {...({tags: tags ?? this.state.tags, ...props} as P)} />;
     },
   });
 

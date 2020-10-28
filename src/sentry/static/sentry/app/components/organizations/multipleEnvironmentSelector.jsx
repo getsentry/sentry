@@ -12,11 +12,11 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import HeaderItem from 'app/components/organizations/headerItem';
 import Highlight from 'app/components/highlight';
-import InlineSvg from 'app/components/inlineSvg';
 import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
+import {IconWindow} from 'app/icons';
 
 /**
  * Environment Selector
@@ -184,7 +184,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   getEnvironments() {
     const {projects, selectedProjects} = this.props;
     let environments = [];
-    projects.forEach(function(project) {
+    projects.forEach(function (project) {
       const projectId = parseInt(project.id, 10);
 
       // Include environments from:
@@ -217,7 +217,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     return loadingProjects ? (
       <StyledHeaderItem
         data-test-id="global-header-environment-selector"
-        icon={<StyledInlineSvg src="icon-window" />}
+        icon={<IconWindow />}
         loading={loadingProjects}
       >
         {t('Loading\u2026')}
@@ -268,7 +268,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
             {({isOpen, getActorProps}) => (
               <StyledHeaderItem
                 data-test-id="global-header-environment-selector"
-                icon={<StyledInlineSvg src="icon-window" />}
+                icon={<IconWindow />}
                 isOpen={isOpen}
                 hasSelected={value && !!value.length}
                 onClear={this.handleClear}
@@ -288,12 +288,6 @@ export default withApi(MultipleEnvironmentSelector);
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  transform: translateY(-2px);
-  height: 17px;
-  width: 17px;
 `;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
@@ -328,7 +322,11 @@ class EnvironmentSelectorItem extends React.PureComponent {
   render() {
     const {environment, inputValue, isChecked} = this.props;
     return (
-      <GlobalSelectionHeaderRow checked={isChecked} onCheckClick={this.handleClick}>
+      <GlobalSelectionHeaderRow
+        data-test-id={`environment-${environment}`}
+        checked={isChecked}
+        onCheckClick={this.handleClick}
+      >
         <Highlight text={inputValue}>{environment}</Highlight>
       </GlobalSelectionHeaderRow>
     );

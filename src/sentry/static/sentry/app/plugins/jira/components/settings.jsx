@@ -2,16 +2,16 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Form, FormState} from 'app/components/forms';
-import BasePlugin from 'app/plugins/basePlugin';
+import DefaultSettings from 'app/plugins/components/settings';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
-class Settings extends BasePlugin.DefaultSettings {
+class Settings extends DefaultSettings {
   constructor(props) {
     super(props);
     this.PAGE_FIELD_LIST = {
-      '0': ['instance_url', 'username', 'password'],
-      '1': ['default_project'],
-      '2': ['ignored_fields', 'default_priority', 'default_issue_type', 'auto_create'],
+      0: ['instance_url', 'username', 'password'],
+      1: ['default_project'],
+      2: ['ignored_fields', 'default_priority', 'default_issue_type', 'auto_create'],
     };
 
     this.back = this.back.bind(this);
@@ -73,7 +73,7 @@ class Settings extends BasePlugin.DefaultSettings {
       this.onSaveSuccess(this.onSaveComplete);
       return;
     }
-    const body = Object.assign({}, this.state.data);
+    const body = Object.assign({}, this.state.formData);
     // if the project has changed, it's likely these values aren't valid anymore
     if (body.default_project !== this.state.initialData.default_project) {
       body.default_issue_type = null;
@@ -142,15 +142,13 @@ class Settings extends BasePlugin.DefaultSettings {
     let onSubmit;
     let submitLabel;
     if (this.state.editing) {
-      fields = this.state.fieldList.filter(f => {
-        return this.PAGE_FIELD_LIST[this.state.page].includes(f.name);
-      });
+      fields = this.state.fieldList.filter(f =>
+        this.PAGE_FIELD_LIST[this.state.page].includes(f.name)
+      );
       onSubmit = this.onSubmit;
       submitLabel = this.isLastPage() ? 'Finish' : 'Save and Continue';
     } else {
-      fields = this.state.fieldList.map(f => {
-        return Object.assign({}, f, {readonly: true});
-      });
+      fields = this.state.fieldList.map(f => Object.assign({}, f, {readonly: true}));
       onSubmit = this.startEditing;
       submitLabel = 'Edit';
     }
@@ -178,14 +176,14 @@ class Settings extends BasePlugin.DefaultSettings {
             </ul>
           </div>
         )}
-        {fields.map(f => {
-          return this.renderField({
+        {fields.map(f =>
+          this.renderField({
             config: f,
             formData: this.state.formData,
             formErrors: this.state.errors,
             onChange: this.changeField.bind(this, f.name),
-          });
-        })}
+          })
+        )}
       </Form>
     );
   }

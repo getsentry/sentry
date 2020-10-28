@@ -1,8 +1,9 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import GroupEventDetails from 'app/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
 
 describe('groupEventDetails', () => {
@@ -72,6 +73,11 @@ describe('groupEventDetails', () => {
       url: '/promptsactivity/',
       body: promptsActivity,
     });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/events/${event.id}/grouping-info/`,
+      body: {},
+    });
   };
 
   beforeEach(() => {
@@ -113,12 +119,12 @@ describe('groupEventDetails', () => {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     browserHistory.replace.mockClear();
   });
 
-  it('redirects on switching to an invalid environment selection for event', async function() {
+  it('redirects on switching to an invalid environment selection for event', async function () {
     const wrapper = mountWithTheme(
       <GroupEventDetails
         api={new MockApiClient()}
@@ -139,7 +145,7 @@ describe('groupEventDetails', () => {
     expect(browserHistory.replace).toHaveBeenCalled();
   });
 
-  it('does not redirect when switching to a valid environment selection for event', async function() {
+  it('does not redirect when switching to a valid environment selection for event', async function () {
     const wrapper = mountWithTheme(
       <GroupEventDetails
         api={new MockApiClient()}
@@ -160,7 +166,7 @@ describe('groupEventDetails', () => {
     expect(browserHistory.replace).not.toHaveBeenCalled();
   });
 
-  it('next/prev links', async function() {
+  it('next/prev links', async function () {
     event = TestStubs.Event({
       size: 1,
       dateCreated: '2019-03-20T00:00:00.000Z',
@@ -192,10 +198,7 @@ describe('groupEventDetails', () => {
 
     wrapper.update();
 
-    const buttons = wrapper
-      .find('.event-toolbar')
-      .find('.btn-group')
-      .find('Link');
+    const buttons = wrapper.find('.event-toolbar').find('ButtonBar').find('Button');
 
     expect(buttons.at(0).prop('to')).toEqual({
       pathname: '/organizations/org-slug/issues/1/events/oldest/',
@@ -217,7 +220,9 @@ describe('groupEventDetails', () => {
   });
 
   describe('EventCauseEmpty', () => {
-    it('renders empty state', async function() {
+    const proj = TestStubs.Project({firstEvent: '2020-01-01T01:00:00Z'});
+
+    it('renders empty state', async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
         body: [
@@ -232,7 +237,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
-          project={project}
+          project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
           params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
@@ -247,7 +252,7 @@ describe('groupEventDetails', () => {
       expect(wrapper.find('EventCauseEmpty').exists()).toBe(true);
     });
 
-    it('renders suspect commit', async function() {
+    it('renders suspect commit', async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
         body: [
@@ -262,7 +267,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
-          project={project}
+          project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
           params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
@@ -277,7 +282,7 @@ describe('groupEventDetails', () => {
       expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
     });
 
-    it('renders suspect commit if `releasesCompletion` empty', async function() {
+    it('renders suspect commit if `releasesCompletion` empty', async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
         body: [],
@@ -287,7 +292,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
-          project={project}
+          project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
           params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
@@ -303,7 +308,7 @@ describe('groupEventDetails', () => {
       expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
     });
 
-    it('renders suspect commit if `releasesCompletion` null', async function() {
+    it('renders suspect commit if `releasesCompletion` null', async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
         body: null,
@@ -313,7 +318,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
-          project={project}
+          project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
           params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
@@ -333,8 +338,8 @@ describe('groupEventDetails', () => {
     let wrapper; // eslint-disable-line
     let componentsRequest;
 
-    const mountWithThemeWrapper = () => {
-      return mountWithTheme(
+    const mountWithThemeWrapper = () =>
+      mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -346,7 +351,6 @@ describe('groupEventDetails', () => {
         />,
         routerContext
       );
-    };
 
     beforeEach(() => {
       const unpublishedIntegration = TestStubs.SentryApp({status: 'unpublished'});

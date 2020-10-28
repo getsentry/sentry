@@ -11,6 +11,7 @@ import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
+import {IconDelete} from 'app/icons';
 import space from 'app/styles/space';
 
 /**
@@ -52,7 +53,7 @@ class U2fEnrolledDetails extends React.Component {
             devices.map(device => (
               <DevicePanelItem key={device.name}>
                 <DeviceInformation>
-                  <DeviceName>{device.name}</DeviceName>
+                  <Name>{device.name}</Name>
                   <FadedDateTime date={device.timestamp} />
                 </DeviceInformation>
 
@@ -78,7 +79,7 @@ class U2fEnrolledDetails extends React.Component {
                         disabled={!isLastDevice}
                         title={t('Can not remove last U2F device')}
                       >
-                        <span className="icon icon-trash" />
+                        <IconDelete size="xs" />
                       </Tooltip>
                     </Button>
                   </Confirm>
@@ -118,7 +119,7 @@ const FadedDateTime = styled(DateTime)`
   opacity: 0.6;
 `;
 
-const DeviceName = styled('div')`
+const Name = styled('div')`
   flex: 1;
 `;
 

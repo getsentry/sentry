@@ -5,13 +5,16 @@ import styled from '@emotion/styled';
 import {Organization, IntegrationProvider, Integration} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {
+  trackIntegrationEvent,
+  getIntegrationFeatureGate,
+} from 'app/utils/integrationUtil';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Field from 'app/views/settings/components/forms/field';
-import HookStore from 'app/stores/hookStore';
+import {IconFlag} from 'app/icons';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
 
@@ -49,6 +52,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
       return;
     }
 
+    //TODO: Probably don't need this event anymore
     trackIntegrationEvent(
       {
         eventKey: 'integrations.install_modal_opened',
@@ -134,10 +138,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
       org.slug,
     ]);
 
-    const featureListHooks = HookStore.get('integrations:feature-gates');
-    const FeatureList = featureListHooks.length
-      ? featureListHooks[0]().FeatureList
-      : null;
+    const {FeatureList} = getIntegrationFeatureGate();
 
     return (
       <NarrowLayout>
@@ -153,7 +154,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
         </p>
 
         {selectedOrg && organization && !this.hasAccess(organization) && (
-          <Alert type="error" icon="icon-circle-exclamation">
+          <Alert type="error" icon={<IconFlag size="md" />}>
             <p>
               {tct(
                 `You do not have permission to install integrations in
@@ -185,6 +186,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
         <Field label={t('Organization')} inline={false} stacked required>
           {() => (
             <SelectControl
+              deprecatedSelectControl
               onChange={this.onSelectOrg}
               value={selectedOrg}
               placeholder={t('Select an organization')}

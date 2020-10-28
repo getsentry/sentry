@@ -11,40 +11,57 @@ class Feature(object):
     ISSUE_LINK = 1
     STACKTRACE_LINK = 2
     EVENT_HOOKS = 3
+    PROJECT_MANAGEMENT = 4
+    INCIDENT_MANAGEMENT = 5
+    FEATURE_FLAG = 6
 
     @classmethod
     def as_choices(cls):
         return (
-            (cls.API, "integrations-api"),
-            (cls.ISSUE_LINK, "integrations-issue-link"),
-            (cls.STACKTRACE_LINK, "integrations-stacktrace-link"),
-            (cls.EVENT_HOOKS, "integrations-event-hooks"),
+            (cls.API, u"integrations-api"),
+            (cls.ISSUE_LINK, u"integrations-issue-link"),
+            (cls.STACKTRACE_LINK, u"integrations-stacktrace-link"),
+            (cls.EVENT_HOOKS, u"integrations-event-hooks"),
+            (cls.PROJECT_MANAGEMENT, u"integrations-project-management"),
+            (cls.INCIDENT_MANAGEMENT, u"integrations-incident-management"),
+            (cls.FEATURE_FLAG, u"integrations-feature-flag"),
         )
 
     @classmethod
     def as_str(cls, feature):
-        if feature == cls.API:
-            return "integrations-api"
-        elif feature == cls.ISSUE_LINK:
+        if feature == cls.ISSUE_LINK:
             return "integrations-issue-link"
-        elif feature == cls.STACKTRACE_LINK:
+        if feature == cls.STACKTRACE_LINK:
             return "integrations-stacktrace-link"
-        elif feature == cls.EVENT_HOOKS:
+        if feature == cls.EVENT_HOOKS:
             return "integrations-event-hooks"
+        if feature == cls.PROJECT_MANAGEMENT:
+            return "integrations-project-management"
+        if feature == cls.INCIDENT_MANAGEMENT:
+            return "integrations-incident-management"
+        if feature == cls.FEATURE_FLAG:
+            return "integrations-feature-flag"
+        return "integrations-api"
 
     @classmethod
     def description(cls, feature, name):
-        if feature == cls.API:
-            return (
-                "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)."
-                % name
-            )
-        elif feature == cls.ISSUE_LINK:
+        if feature == cls.PROJECT_MANAGEMENT:
+            return "Create or link issues in %s from Sentry issue groups." % name
+        if feature == cls.INCIDENT_MANAGEMENT:
+            return "Manage incidents and outages by sending Sentry notifications to %s." % name
+        if feature == cls.FEATURE_FLAG:
+            return "Improve visibility into feature flagging by sending Sentry errors to %s." % name
+        if feature == cls.ISSUE_LINK:
             return "Organizations can **create or link Sentry issues** to another service."
-        elif feature == cls.STACKTRACE_LINK:
+        if feature == cls.STACKTRACE_LINK:
             return "Organizations can **open a line to Sentry's stack trace** in another service."
-        elif feature == cls.EVENT_HOOKS:
+        if feature == cls.EVENT_HOOKS:
             return "%s allows organizations to **forward events to another service**." % name
+        # default
+        return (
+            "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)."
+            % name
+        )
 
 
 class IntegrationFeature(Model):
@@ -67,5 +84,4 @@ class IntegrationFeature(Model):
     def description(self):
         if self.user_description:
             return self.user_description
-        else:
-            return Feature.description(self.feature, self.sentry_app.name)
+        return Feature.description(self.feature, self.sentry_app.name)

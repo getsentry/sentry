@@ -1,0 +1,50 @@
+name: migrations
+on:
+  pull_request:
+    paths:
+      - 'src/sentry/migrations/*'
+
+jobs:
+  sql:
+    name: Generate SQL
+    runs-on: ubuntu-16.04
+
+    steps:
+      - uses: actions/checkout@v1
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 2.7.17
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python: 2
+
+      - name: Get changed migration files
+        id: file
+        run: |
+          echo $(git diff --diff-filter=AM --name-only origin/master HEAD)
+          echo "::set-output name=modified::$(git diff --diff-filter=AM --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
+
+      - name: Generate SQL for migration
+        uses: getsentry/action-migrations@v1.0.7
+        env:
+          SENTRY_LOG_LEVEL: ERROR
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          migration: ${{ steps.file.outputs.modified }}

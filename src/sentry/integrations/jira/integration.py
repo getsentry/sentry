@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 import logging
 import six
+from operator import attrgetter
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
@@ -14,7 +16,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
-from sentry.integrations.exceptions import (
+from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     ApiError,
     IntegrationError,
@@ -23,6 +25,7 @@ from sentry.integrations.exceptions import (
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
 from sentry.utils.http import absolute_uri
+from sentry.utils.decorators import classproperty
 
 from .client import JiraApiClient, JiraCloud
 
@@ -99,6 +102,10 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
+
+    @classproperty
+    def use_email_scope(cls):
+        return settings.JIRA_USE_EMAIL_SCOPE
 
     def get_organization_config(self):
         configuration = [
@@ -283,6 +290,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             self.model.metadata["base_url"],
             JiraCloud(self.model.metadata["shared_secret"]),
             verify_ssl=True,
+            logging_context={
+                "org_id": self.organization_id,
+                "integration_id": attrgetter("org_integration.integration.id")(self),
+                "org_integration_id": attrgetter("org_integration.id")(self),
+            },
         )
 
     def get_issue(self, issue_id, **kwargs):
@@ -291,7 +303,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return {
             "key": issue_id,
             "title": issue["fields"]["summary"],
-            "description": issue["fields"]["description"],
+            "description": issue["fields"].get("description"),
         }
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -475,14 +487,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             raise IntegrationError(
                 "Jira returned: Unauthorized. " "Please check your configuration settings."
             )
-        except ApiError as exc:
+        except ApiError as e:
             logger.info(
                 "jira.fetch-issue-create-meta.error",
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
                     "jira_project": project_id,
-                    "error": exc.message,
+                    "error": six.text_type(e),
                 },
             )
             raise IntegrationError(
@@ -498,17 +510,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         defaults = self.get_project_defaults(group.project_id)
         project_id = params.get("project", defaults.get("project"))
-
         client = self.get_client()
         try:
             jira_projects = client.get_projects_list()
-        except ApiError as exc:
+        except ApiError as e:
             logger.info(
                 "jira.get-create-issue-config.no-projects",
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
-                    "error": exc.message,
+                    "error": six.text_type(e),
                 },
             )
             raise IntegrationError(
@@ -574,7 +585,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # otherwise weird ordering occurs.
         anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
 
-        dynamic_fields = issue_type_meta["fields"].keys()
+        dynamic_fields = list(issue_type_meta["fields"].keys())
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
 
         # build up some dynamic fields based on required shit.
@@ -711,20 +722,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if assign:
             for ue in user.emails.filter(is_verified=True):
                 try:
-                    res = client.search_users_for_issue(external_issue.key, ue.email)
+                    possible_users = client.search_users_for_issue(external_issue.key, ue.email)
                 except (ApiUnauthorized, ApiError):
                     continue
-                try:
-                    jira_user = [
-                        r
-                        for r in res
-                        if r.get("emailAddress") and r["emailAddress"].lower() == ue.email.lower()
-                    ][0]
-                except IndexError:
-                    pass
-                else:
-                    break
-
+                for possible_user in possible_users:
+                    email = possible_user.get("emailAddress")
+                    # pull email from API if we can use it
+                    if not email and self.use_email_scope:
+                        account_id = possible_user.get("accountId")
+                        email = client.get_email(account_id)
+                    # match on lowercase email
+                    # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
+                    if email and email.lower() == ue.email.lower():
+                        jira_user = possible_user
+                        break
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(
@@ -782,7 +793,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         transitions = client.get_transitions(external_issue.key)
 
         try:
-            transition = [t for t in transitions if t["to"]["id"] == jira_status][0]
+            transition = [t for t in transitions if t.get("to", {}).get("id") == jira_status][0]
         except IndexError:
             # TODO(jess): Email for failure
             logger.warning(
@@ -833,16 +844,23 @@ class JiraIntegrationProvider(IntegrationProvider):
         # since the integration won't have been fully configured on JIRA's side
         # yet, we can't make API calls for more details like the server name or
         # Icon.
-        return {
-            "provider": "jira",
-            "external_id": state["clientKey"],
-            "name": "JIRA",
-            "metadata": {
+        # two ways build_integration can be called
+        if state.get("jira"):
+            metadata = state["jira"]["metadata"]
+            external_id = state["jira"]["external_id"]
+        else:
+            external_id = state["clientKey"]
+            metadata = {
                 "oauth_client_id": state["oauthClientId"],
                 # public key is possibly deprecated, so we can maybe remove this
                 "public_key": state["publicKey"],
                 "shared_secret": state["sharedSecret"],
                 "base_url": state["baseUrl"],
                 "domain_name": state["baseUrl"].replace("https://", ""),
-            },
+            }
+        return {
+            "external_id": external_id,
+            "provider": "jira",
+            "name": "JIRA",
+            "metadata": metadata,
         }

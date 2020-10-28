@@ -5,11 +5,14 @@ import functools
 import math
 
 from datetime import datetime
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import connections
 from django.db.models.sql.datastructures import EmptyResultSet
 from django.utils import timezone
 
 from sentry.utils.cursors import build_cursor, Cursor, CursorResult
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 quote_name = connections["default"].ops.quote_name
 
@@ -181,7 +184,7 @@ class BasePaginator(object):
 class Paginator(BasePaginator):
     def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
-        return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+        return int(math.floor(value) if self._is_asc(for_prev) else math.ceil(value))
 
     def value_from_cursor(self, cursor):
         return cursor.value
@@ -193,7 +196,7 @@ class DateTimePaginator(BasePaginator):
     def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
         value = float(value.strftime("%s.%f")) * self.multiplier
-        return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+        return int(math.floor(value) if self._is_asc(for_prev) else math.ceil(value))
 
     def value_from_cursor(self, cursor):
         return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
@@ -247,6 +250,70 @@ class OffsetPaginator(object):
         prev_cursor = Cursor(limit, page - 1, True, page > 0)
 
         results = list(results[:limit])
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+
+
+class MergingOffsetPaginator(OffsetPaginator):
+    """This paginator uses a function to first look up items from an
+    independently paginated resource to only then fall back to a query set.
+    This is for instance useful if you want to query snuba for the primary
+    sort order and then look up data in postgres.
+    """
+
+    def __init__(
+        self,
+        queryset,
+        data_load_func,
+        apply_to_queryset,
+        key_from_model=None,
+        key_from_data=None,
+        max_limit=MAX_LIMIT,
+        on_results=None,
+    ):
+        super(MergingOffsetPaginator, self).__init__(
+            queryset, max_limit=max_limit, on_results=on_results
+        )
+        self.data_load_func = data_load_func
+        self.apply_to_queryset = apply_to_queryset
+        self.key_from_model = key_from_model or (lambda x: x.id)
+        self.key_from_data = key_from_data or (lambda x: x)
+
+    def get_result(self, limit=100, cursor=None):
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        limit = min(limit, self.max_limit)
+
+        page = cursor.offset
+        offset = cursor.offset * cursor.value
+        limit = (cursor.value or limit) + 1
+
+        if self.max_offset is not None and offset >= self.max_offset:
+            raise BadPaginationError("Pagination offset too large")
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
+        primary_results = self.data_load_func(offset=offset, limit=limit)
+
+        queryset = self.apply_to_queryset(self.queryset, primary_results)
+
+        mapping = {}
+        for model in queryset:
+            mapping[self.key_from_model(model)] = model
+
+        results = []
+        for row in primary_results:
+            model = mapping.get(self.key_from_data(row))
+            if model is not None:
+                results.append(model)
+
+        next_cursor = Cursor(limit, page + 1, False, len(primary_results) > limit)
+        prev_cursor = Cursor(limit, page - 1, True, page > 0)
+        results = list(results[:limit])
+
         if self.on_results:
             results = self.on_results(results)
 
@@ -404,3 +471,169 @@ class GenericOffsetPaginator(object):
         # TODO use Cursor.value as the `end` argument to data_fn() so that
         # subsequent pages returned using these cursors are using the same end
         # date for queries, this should stop drift from new incoming events.
+
+
+class CombinedQuerysetIntermediary(object):
+    is_empty = False
+
+    def __init__(self, queryset, order_by):
+        self.queryset = queryset
+        self.order_by = order_by
+        try:
+            instance = queryset[:1].get()
+            self.instance_type = type(instance)
+            assert hasattr(
+                instance, self.order_by
+            ), "Model of type {} does not have field {}".format(self.instance_type, self.order_by)
+            self.order_by_type = type(getattr(instance, self.order_by))
+        except ObjectDoesNotExist:
+            self.is_empty = True
+
+
+class CombinedQuerysetPaginator(object):
+    """ This paginator can be used to paginate between multiple querysets.
+    It needs to be passed a list of CombinedQuerysetIntermediary. Each CombinedQuerysetIntermediary must be populated with a queryset and an order_by key
+        i.e. intermediaries = [
+                CombinedQuerysetIntermediary(AlertRule.objects.all(), "name")
+                CombinedQuerysetIntermediary(Rule.objects.all(), "label")
+            ]
+    and an optional parameter `desc` to determine whether the sort is ascending or descending. Default is False.
+
+    There is an issue with sorting between multiple models using a mixture of
+    date fields and non-date fields. This is because the cursor value is converted differently for dates vs non-dates.
+    It assumes if _any_ field is a date key, all of them are.
+
+    There is an assertion in the constructor to help prevent this from manifesting.
+    """
+
+    multiplier = 1000000  # Use microseconds for date keys.
+    using_dates = False
+    model_key_map = {}
+
+    def __init__(self, intermediaries, desc=False, on_results=None):
+        self.desc = desc
+        self.intermediaries = intermediaries
+        self.on_results = on_results
+        for intermediary in list(self.intermediaries):
+            if intermediary.is_empty:
+                self.intermediaries.remove(intermediary)
+            else:
+                self.model_key_map[intermediary.instance_type] = intermediary.order_by
+
+        # This is an assertion to make sure date field sorts are all or nothing.###
+        # (i.e. all fields must be a date type, or none of them)
+        using_other = False
+        for intermediary in self.intermediaries:
+            if intermediary.order_by_type is datetime:
+                self.using_dates = True
+            else:
+                using_other = True
+
+        if self.using_dates:
+            assert (
+                not using_other
+            ), "When sorting by a date, it must be the key used on all intermediaries"
+
+    def key_from_item(self, item):
+        return self.model_key_map.get(type(item))
+
+    def get_item_key(self, item, for_prev=False):
+        if self.using_dates:
+            return int(
+                self.multiplier * float(getattr(item, self.key_from_item(item)).strftime("%s.%f"))
+            )
+        else:
+            value = getattr(item, self.key_from_item(item))
+            value_type = type(value)
+            if value_type is float:
+                return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+            return value
+
+    def value_from_cursor(self, cursor):
+        if self.using_dates:
+            return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
+                tzinfo=timezone.utc
+            )
+        else:
+            value = cursor.value
+            value_type = type(value)
+            if value_type is float:
+                return math.floor(value) if self._is_asc(cursor.is_prev) else math.ceil(value)
+            return value
+
+    def _is_asc(self, is_prev):
+        return (self.desc and is_prev) or not (self.desc or is_prev)
+
+    def _build_combined_querysets(self, value, is_prev, limit, extra):
+        asc = self._is_asc(is_prev)
+        combined_querysets = list()
+        for intermediary in self.intermediaries:
+            key = intermediary.order_by
+            filters = {}
+
+            if asc:
+                order_by = key
+                filter_condition = "%s__gte" % key
+            else:
+                order_by = "-%s" % key
+                filter_condition = "%s__lte" % key
+
+            if value is not None:
+                filters[filter_condition] = value
+
+            queryset = intermediary.queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
+            combined_querysets += list(queryset)
+
+        def _sort_combined_querysets(item):
+            key_value = self.get_item_key(item, is_prev)
+            return ((key_value, type(item).__name__),)
+
+        combined_querysets.sort(
+            key=_sort_combined_querysets, reverse=not asc,
+        )
+
+        return combined_querysets
+
+    def get_result(self, cursor=None, limit=100):
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        if cursor.value:
+            cursor_value = self.value_from_cursor(cursor)
+        else:
+            cursor_value = None
+
+        limit = min(limit, MAX_LIMIT)
+
+        offset = cursor.offset
+        extra = 1
+        if cursor.is_prev and cursor.value:
+            extra += 1
+        combined_querysets = self._build_combined_querysets(
+            cursor_value, cursor.is_prev, limit, extra
+        )
+
+        stop = offset + limit + extra
+        results = list(combined_querysets[offset:stop])
+
+        if cursor.is_prev and cursor.value:
+            # If the first result is equal to the cursor_value then it's safe to filter
+            # it out, since the value hasn't been updated
+            if results and self.get_item_key(results[0], for_prev=True) == cursor.value:
+                results = results[1:]
+            # Otherwise we may have fetched an extra row, just drop it off the end if so.
+            elif len(results) == offset + limit + extra:
+                results = results[:-1]
+
+        # We reversed the results when generating the querysets, so we need to reverse back now.
+        if cursor.is_prev:
+            results.reverse()
+
+        return build_cursor(
+            results=results,
+            cursor=cursor,
+            key=self.get_item_key,
+            limit=limit,
+            is_desc=self.desc,
+            on_results=self.on_results,
+        )

@@ -3,13 +3,13 @@ from __future__ import absolute_import
 import random
 import logging
 from importlib import import_module
+import six
+from six.moves.urllib.parse import parse_qs as urlparse_parse_qs
 
 from cgi import parse_qsl
-from collections import defaultdict
 from django.conf import settings
 from django.db.models import Model
 from django.contrib.contenttypes.models import ContentType
-from django.utils.functional import empty, SimpleLazyObject
 from six.moves.urllib.parse import urlencode, urlparse, urlunparse
 from six.moves.urllib.request import urlopen
 
@@ -39,24 +39,6 @@ def sanitize_log_data(secret, data=None, leave_characters=LEAVE_CHARS):
         return data.replace(secret, replace_secret)
 
     return replace_secret
-
-
-def group_backend_by_type(items, key=lambda x: x):
-    """Group items by backend type."""
-
-    # Beware of cyclical imports!
-    from social_auth.backends import get_backends, BaseOAuth, BaseOAuth2
-
-    result = defaultdict(list)
-    backends = get_backends()
-
-    for item in items:
-        backend = backends[key(item)]
-        if issubclass(backend, BaseOAuth2):
-            result["oauth2"].append(item)
-        elif issubclass(backend, BaseOAuth):
-            result["oauth"].append(item)
-    return dict(result)
 
 
 def setting(name, default=None):
@@ -126,23 +108,9 @@ def url_add_parameters(url, params):
     """Adds parameters to URL, parameter will be repeated if already present"""
     if params:
         fragments = list(urlparse(url))
-        fragments[4] = urlencode(parse_qsl(fragments[4]) + params.items())
+        fragments[4] = urlencode(parse_qsl(fragments[4]) + list(params.items()))
         url = urlunparse(fragments)
     return url
-
-
-class LazyDict(SimpleLazyObject):
-    """Lazy dict initialization."""
-
-    def __getitem__(self, name):
-        if self._wrapped is empty:
-            self._setup()
-        return self._wrapped[name]
-
-    def __setitem__(self, name, value):
-        if self._wrapped is empty:
-            self._setup()
-        self._wrapped[name] = value
 
 
 def dsa_urlopen(*args, **kwargs):
@@ -163,6 +131,15 @@ def module_member(name):
     mod, member = name.rsplit(".", 1)
     module = import_module(mod)
     return getattr(module, member)
+
+
+def parse_qs(value):
+    """Like urlparse.parse_qs but transform list values to single items"""
+    return drop_lists(urlparse_parse_qs(value))
+
+
+def drop_lists(value):
+    return dict((key, val[0]) for key, val in six.iteritems(value))
 
 
 if __name__ == "__main__":

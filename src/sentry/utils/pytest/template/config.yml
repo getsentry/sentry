@@ -1,0 +1,19 @@
+---
+relay:
+  mode: managed
+  upstream: ${SENTRY_HOST}
+  host: 0.0.0.0
+  port: ${RELAY_PORT}
+logging:
+  level: TRACE
+  enable_backtraces: true
+processing:
+  enabled: true
+  kafka_config:
+    - {name: "bootstrap.servers", value: "${KAFKA_HOST}:9093"}
+  topics:
+    events: ingest-events
+    attachments: ingest-events
+    transactions: ingest-events
+    outcomes: outcomes
+  redis: redis://${REDIS_HOST}:6379

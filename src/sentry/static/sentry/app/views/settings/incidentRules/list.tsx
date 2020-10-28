@@ -11,12 +11,12 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconDelete, IconEdit} from 'app/icons';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
 import {SavedIncidentRule} from './types';
 import {deleteRule} from './actions';
-import getMetricDisplayName from './utils/getMetricDisplayName';
 
 type State = {
   rules: SavedIncidentRule[];
@@ -86,7 +86,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
                 <RuleRow key={rule.id}>
                   <RuleLink to={ruleLink}>{rule.name}</RuleLink>
 
-                  <MetricName>{getMetricDisplayName(rule.aggregation)}</MetricName>
+                  <MetricName>{rule.aggregate}</MetricName>
 
                   <ThresholdColumn>
                     <Thresholds>
@@ -94,12 +94,9 @@ class IncidentRulesList extends AsyncView<Props, State> {
                     </Thresholds>
 
                     <Actions>
-                      <Button
-                        to={ruleLink}
-                        size="small"
-                        icon="icon-edit"
-                        aria-label={t('Edit Rule')}
-                      >
+                      <Button to={ruleLink} size="small" aria-label={t('Edit Rule')}>
+                        <IconEdit size="xs" />
+                        &nbsp;
                         {t('Edit')}
                       </Button>
 
@@ -111,7 +108,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
                         <Button
                           type="button"
                           size="small"
-                          icon="icon-trash"
+                          icon={<IconDelete />}
                           label={t('Remove Rule')}
                         />
                       </Confirm>
@@ -122,7 +119,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
             })}
 
           {!isLoading && isEmpty && (
-            <EmptyMessage>{t('No Incident rules have been created yet.')}</EmptyMessage>
+            <EmptyMessage>{t('No Alert Rules have been created yet.')}</EmptyMessage>
           )}
         </PanelBody>
       </Panel>

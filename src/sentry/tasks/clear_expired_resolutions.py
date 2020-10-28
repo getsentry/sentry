@@ -16,7 +16,7 @@ def clear_expired_resolutions(release_id):
     This is currently only used for ``in_next_release`` resolutions.
     """
     try:
-        release = Release.objects.get_from_cache(id=release_id)
+        release = Release.objects.get(id=release_id)
     except Release.DoesNotExist:
         return
 

@@ -1,4 +1,3 @@
-import {Box} from 'reflexbox';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -10,22 +9,10 @@ import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Switch from 'app/components/switch';
+import space from 'app/styles/space';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/subscriptions/';
-
-const SubscriptionName = styled('div')`
-  font-size: 1.2em;
-`;
-const Description = styled('div')`
-  font-size: 0.8em;
-  margin-top: 6px;
-  color: ${p => p.theme.gray3};
-`;
-
-const SubscribedDescription = styled(Description)`
-  color: ${p => p.theme.gray2};
-`;
 
 class AccountSubscriptions extends AsyncView {
   getEndpoints() {
@@ -95,7 +82,7 @@ class AccountSubscriptions extends AsyncView {
               <PanelBody>
                 {this.state.subscriptions.map((subscription, index) => (
                   <PanelItem p={2} alignItems="center" key={subscription.listId}>
-                    <Box width={1 / 2} pr={2}>
+                    <SubscriptionDetails>
                       <SubscriptionName>{subscription.listName}</SubscriptionName>
                       {subscription.listDescription && (
                         <Description>{subscription.listDescription}</Description>
@@ -112,14 +99,14 @@ class AccountSubscriptions extends AsyncView {
                           Not currently subscribed
                         </SubscribedDescription>
                       )}
-                    </Box>
-                    <Box>
+                    </SubscriptionDetails>
+                    <div>
                       <Switch
                         isActive={subscription.subscribed}
                         size="lg"
                         toggle={this.handleToggle.bind(this, subscription, index)}
                       />
-                    </Box>
+                    </div>
                   </PanelItem>
                 ))}{' '}
               </PanelBody>
@@ -142,5 +129,23 @@ class AccountSubscriptions extends AsyncView {
     );
   }
 }
+
+const SubscriptionDetails = styled('div')`
+  width: 50%;
+  padding-right: ${space(2)};
+`;
+
+const SubscriptionName = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+const Description = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-top: ${space(0.75)};
+  color: ${p => p.theme.gray600};
+`;
+
+const SubscribedDescription = styled(Description)`
+  color: ${p => p.theme.gray500};
+`;
 
 export default AccountSubscriptions;

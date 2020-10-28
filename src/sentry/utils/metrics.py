@@ -9,12 +9,44 @@ from contextlib import contextmanager
 from django.conf import settings
 from random import random
 from time import time
-from threading import Thread
+from threading import Thread, local
 from six.moves.queue import Queue
 
 
 metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
+
+_THREAD_LOCAL_TAGS = local()
+_GLOBAL_TAGS = []
+
+
+@contextmanager
+def global_tags(_all_threads=False, **tags):
+    if _all_threads:
+        stack = _GLOBAL_TAGS
+    else:
+        if not hasattr(_THREAD_LOCAL_TAGS, "stack"):
+            stack = _THREAD_LOCAL_TAGS.stack = []
+        else:
+            stack = _THREAD_LOCAL_TAGS.stack
+
+    stack.append(tags)
+    try:
+        yield
+    finally:
+        stack.pop()
+
+
+def _get_current_global_tags():
+    rv = {}
+
+    for tags in _GLOBAL_TAGS:
+        rv.update(tags)
+
+    for tags in getattr(_THREAD_LOCAL_TAGS, "stack", None) or ():
+        rv.update(tags)
+
+    return rv
 
 
 def get_default_backend():
@@ -100,6 +132,10 @@ def incr(
     skip_internal=True,
     sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE,
 ):
+    current_tags = _get_current_global_tags()
+    if tags is not None:
+        current_tags.update(tags)
+
     should_send_internal = (
         not metrics_skip_all_internal
         and not skip_internal
@@ -108,10 +144,10 @@ def incr(
     )
 
     if should_send_internal:
-        internal.incr(key, instance, tags, amount, sample_rate)
+        internal.incr(key, instance, current_tags, amount, sample_rate)
 
     try:
-        backend.incr(key, instance, tags, amount, sample_rate)
+        backend.incr(key, instance, current_tags, amount, sample_rate)
         if should_send_internal:
             backend.incr("internal_metrics.incr", key, None, 1, sample_rate)
     except Exception:
@@ -120,8 +156,12 @@ def incr(
 
 
 def timing(key, value, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
+    current_tags = _get_current_global_tags()
+    if tags is not None:
+        current_tags.update(tags)
+
     try:
-        backend.timing(key, value, instance, tags, sample_rate)
+        backend.timing(key, value, instance, current_tags, sample_rate)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -129,19 +169,20 @@ def timing(key, value, instance=None, tags=None, sample_rate=settings.SENTRY_MET
 
 @contextmanager
 def timer(key, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
-    if tags is None:
-        tags = {}
+    current_tags = _get_current_global_tags()
+    if tags is not None:
+        current_tags.update(tags)
 
     start = time()
     try:
-        yield tags
+        yield current_tags
     except Exception:
-        tags["result"] = "failure"
+        current_tags["result"] = "failure"
         raise
     else:
-        tags["result"] = "success"
+        current_tags["result"] = "success"
     finally:
-        timing(key, time() - start, instance, tags, sample_rate)
+        timing(key, time() - start, instance, current_tags, sample_rate)
 
 
 def wraps(key, instance=None, tags=None):

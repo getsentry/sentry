@@ -6,7 +6,7 @@ import six
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore, search
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
@@ -18,50 +18,14 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import Environment, Group, GroupStatus
-from sentry.models.savedsearch import DEFAULT_SAVED_SEARCH_QUERIES
 from sentry.signals import advanced_search
-from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
 
-@scenario("BulkUpdateIssues")
-def bulk_update_issues_scenario(runner):
-    project = runner.default_project
-    group1, group2 = Group.objects.filter(project=project)[:2]
-    runner.request(
-        method="PUT",
-        path="/projects/%s/%s/issues/?id=%s&id=%s"
-        % (runner.org.slug, project.slug, group1.id, group2.id),
-        data={"status": "unresolved", "isPublic": False},
-    )
-
-
-@scenario("BulkRemoveIssuess")
-def bulk_remove_issues_scenario(runner):
-    with runner.isolated_project("Amazing Plumbing") as project:
-        group1, group2 = Group.objects.filter(project=project)[:2]
-        runner.request(
-            method="DELETE",
-            path="/projects/%s/%s/issues/?id=%s&id=%s"
-            % (runner.org.slug, project.slug, group1.id, group2.id),
-        )
-
-
-@scenario("ListProjectIssuess")
-def list_project_issues_scenario(runner):
-    project = runner.default_project
-    runner.request(
-        method="GET",
-        path="/projects/%s/%s/issues/?statsPeriod=24h" % (runner.org.slug, project.slug),
-    )
-
-
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
-    doc_section = DocSection.EVENTS
-
     permission_classes = (ProjectEventPermission,)
 
     def _search(self, request, project, extra_query_kwargs=None):
@@ -86,7 +50,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         return result, query_kwargs
 
     # statsPeriod=24h
-    @attach_scenarios([list_project_issues_scenario])
     def get(self, request, project):
         """
         List a Project's Issues
@@ -205,7 +168,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         self.add_cursor_headers(request, response, cursor_result)
 
-        if results and query not in DEFAULT_SAVED_SEARCH_QUERIES:
+        if results and query:
             advanced_search.send(project=project, sender=request.user)
             analytics.record(
                 "project_issue.searched",
@@ -217,7 +180,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         return response
 
-    @attach_scenarios([bulk_update_issues_scenario])
     def put(self, request, project):
         """
         Bulk Mutate a List of Issues
@@ -262,8 +224,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
-        :param string assignedTo: the actor id (or username) of the user or team that should be
-                                  assigned to this issue.
+        :param string assignedTo: the user or team that should be assigned to
+                                  this issue. Can be of the form ``"<user_id>"``,
+                                  ``"user:<user_id>"``, ``"<username>"``,
+                                  ``"<user_primary_email>"``, or ``"team:<team_id>"``.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the

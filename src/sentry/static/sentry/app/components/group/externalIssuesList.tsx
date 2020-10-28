@@ -19,6 +19,7 @@ import ExternalIssueActions from 'app/components/group/externalIssueActions';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import PluginActions from 'app/components/group/pluginActions';
+import {IconGeneric} from 'app/icons';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
@@ -58,14 +59,14 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   constructor(props: Props) {
     super(props, {});
     this.state = Object.assign({}, this.state, {
-      components: [],
-      sentryAppInstallations: [],
-      externalIssues: [],
+      components: SentryAppComponentsStore.getInitialState(),
+      sentryAppInstallations: SentryAppInstallationStore.getInitialState(),
+      externalIssues: ExternalIssueStore.getInitialState(),
     });
   }
 
-  componentWillMount() {
-    super.componentWillMount();
+  UNSAFE_componentWillMount() {
+    super.UNSAFE_componentWillMount();
 
     this.unsubscribables = [
       SentryAppInstallationStore.listen(this.onSentryAppInstallationChange, this),
@@ -111,9 +112,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
           ExternalIssueStore.load(data);
           this.setState({externalIssues: data});
         })
-        .catch(_error => {
-          return;
-        });
+        .catch(_error => {});
     }
   }
 
@@ -138,7 +137,6 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   renderSentryAppIssues() {
     const {externalIssues, sentryAppInstallations, components} = this.state;
     const {group} = this.props;
-
     if (components.length === 0) {
       return null;
     }
@@ -174,11 +172,9 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     const {group, project} = this.props;
 
     return group.pluginIssues && group.pluginIssues.length
-      ? group.pluginIssues.map((plugin, i) => {
-          return (
-            <PluginActions group={group} project={project} plugin={plugin} key={i} />
-          );
-        })
+      ? group.pluginIssues.map((plugin, i) => (
+          <PluginActions group={group} project={project} plugin={plugin} key={i} />
+        ))
       : null;
   }
 
@@ -186,13 +182,11 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     const {group} = this.props;
 
     return group.pluginActions && group.pluginActions.length
-      ? group.pluginActions.map((plugin, i) => {
-          return (
-            <IssueSyncListElement externalIssueLink={plugin[1]} key={i}>
-              {plugin[0]}
-            </IssueSyncListElement>
-          );
-        })
+      ? group.pluginActions.map((plugin, i) => (
+          <IssueSyncListElement externalIssueLink={plugin[1]} key={i}>
+            {plugin[0]}
+          </IssueSyncListElement>
+        ))
       : null;
   }
 
@@ -209,7 +203,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
             <span>Linked Issues</span>
           </h6>
           <AlertLink
-            icon="icon-generic-box"
+            icon={<IconGeneric />}
             priority="muted"
             size="small"
             to={`/settings/${this.props.organization.slug}/integrations`}

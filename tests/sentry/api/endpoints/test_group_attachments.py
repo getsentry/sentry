@@ -13,13 +13,14 @@ class GroupEventAttachmentsTest(APITestCase):
             type = "event.attachment"
 
         self.file = File.objects.create(name="hello.png", type=type)
-        self.file.putfile(six.BytesIO("File contents here"))
+        self.file.putfile(six.BytesIO(b"File contents here"))
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
             project_id=self.event.project_id,
             group_id=self.group.id,
             file=self.file,
+            type=self.file.type,
             name="hello.png",
         )
 

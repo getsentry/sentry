@@ -3,6 +3,7 @@ import React from 'react';
 import {extractMultilineFields} from 'app/utils';
 import {tct} from 'app/locale';
 import {Field} from 'app/views/settings/components/forms/type';
+import ExternalLink from 'app/components/links/externalLink';
 
 const getPublicFormFields = (): Field[] => [
   {
@@ -31,7 +32,7 @@ const getPublicFormFields = (): Field[] => [
       'All webhook requests for your integration will be sent to this URL. Visit the [webhook_docs:documentation] to see the different types and payloads.',
       {
         webhook_docs: (
-          <a href="https://docs.sentry.io/workflow/integrations/integration-platform/webhooks/" />
+          <ExternalLink href="https://docs.sentry.io/workflow/integrations/integration-platform/webhooks/" />
         ),
       }
     ),
@@ -56,9 +57,11 @@ const getPublicFormFields = (): Field[] => [
     disabled: ({webhookDisabled}) => webhookDisabled,
     disabledReason: 'Cannot enable alert rule action without a webhook url',
     help: tct(
-      'If enabled, this integration will be an action under alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:here].',
+      'If enabled, this integration will be available in Issue Alert rules and Metric Alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:here].',
       {
-        learn_more: <a href="https://docs.sentry.io/product/notifications/#actions" />,
+        learn_more: (
+          <ExternalLink href="https://docs.sentry.io/product/notifications/#actions" />
+        ),
       }
     ),
   },
@@ -67,10 +70,15 @@ const getPublicFormFields = (): Field[] => [
     type: 'textarea',
     label: 'Schema',
     autosize: true,
-    help: 'Schema for your UI components',
-    getValue: (val: string) => {
-      return val === '' ? {} : JSON.parse(val);
-    },
+    help: tct(
+      'Schema for your UI components. Click [schema_docs:here] for documentation.',
+      {
+        schema_docs: (
+          <ExternalLink href="https://docs.sentry.io/workflow/integrations/integration-platform/ui-components/" />
+        ),
+      }
+    ),
+    getValue: (val: string) => (val === '' ? {} : JSON.parse(val)),
     setValue: (val: string) => {
       const schema = JSON.stringify(val, null, 2);
       if (schema === '{}') {

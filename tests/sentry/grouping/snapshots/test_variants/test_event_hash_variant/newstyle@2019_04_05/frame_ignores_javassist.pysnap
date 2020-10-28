@@ -1,26 +1,26 @@
 ---
-created: '2019-03-15T11:58:32.942554Z'
+created: '2020-02-26T19:54:30.433685Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
           module* (removed codegen marker)
-            u'com.example.api.entry.EntriesResource_$$_javassist<auto>'
+            "com.example.api.entry.EntriesResource_$$_javassist<auto>"
           function*
-            u'fn'
+            "fn"
 --------------------------------------------------------------------------
 system:
-  hash: '538bdfd8d7bb2495d0d6429c3689a420'
+  hash: "538bdfd8d7bb2495d0d6429c3689a420"
   component:
     system*
       stacktrace*
         frame*
           module* (removed codegen marker)
-            u'com.example.api.entry.EntriesResource_$$_javassist<auto>'
+            "com.example.api.entry.EntriesResource_$$_javassist<auto>"
           function*
-            u'fn'
+            "fn"

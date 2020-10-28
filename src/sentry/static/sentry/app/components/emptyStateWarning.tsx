@@ -2,35 +2,39 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import HeroIcon from 'app/components/heroIcon';
-import InlineSvg from 'app/components/inlineSvg';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {IconSearch} from 'app/icons';
+import space from 'app/styles/space';
 
 type Props = {
   small?: boolean;
+  children?: React.ReactNode;
+  withIcon?: boolean;
+  className?: string;
 };
 
-const EmptyStateWarning: React.FC<Props> = ({small, children}) =>
+const EmptyStateWarning = ({
+  small = false,
+  withIcon = true,
+  children,
+  className,
+}: Props) =>
   small ? (
-    <EmptyMessage>
+    <EmptyMessage className={className}>
       <SmallMessage>
-        <InlineSvg src="icon-circle-exclamation" width="34px" />
+        {withIcon && <StyledIconSearch color="gray500" size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
   ) : (
-    <EmptyStreamWrapper data-test-id="empty-state">
-      <HeroIcon src="icon-circle-exclamation" size="54" />
+    <EmptyStreamWrapper data-test-id="empty-state" className={className}>
+      {withIcon && <IconSearch size="54px" />}
       {children}
     </EmptyStreamWrapper>
   );
 
 EmptyStateWarning.propTypes = {
   small: PropTypes.bool,
-};
-
-EmptyStateWarning.defaultProps = {
-  small: false,
 };
 
 const EmptyStreamWrapper = styled('div')`
@@ -46,17 +50,22 @@ const EmptyStreamWrapper = styled('div')`
     }
   }
 
-  ${HeroIcon} {
-    margin-bottom: 20px;
+  svg {
+    fill: ${p => p.theme.gray400};
+    margin-bottom: ${space(2)};
   }
 `;
 
 const SmallMessage = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1em;
+`;
+
+const StyledIconSearch = styled(IconSearch)`
+  margin-right: ${space(1)};
 `;
 
 export default EmptyStateWarning;

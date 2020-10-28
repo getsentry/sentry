@@ -21,7 +21,7 @@ from django.utils import timezone
 
 from sentry.app import locks
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model
-from sentry.tasks.files import delete_file as delete_file_task
+from sentry.tasks.files import delete_file as delete_file_task, delete_unreferenced_blobs
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -431,12 +431,24 @@ class File(Model):
         tf.seek(0)
         return tf
 
+    def delete(self, *args, **kwargs):
+        blob_ids = [blob.id for blob in self.blobs.all()]
+        super(File, self).delete(*args, **kwargs)
+
+        # Wait to delete blobs. This helps prevent
+        # races around frequently used blobs in debug images and release files.
+        transaction.on_commit(
+            lambda: delete_unreferenced_blobs.apply_async(
+                kwargs={"blob_ids": blob_ids}, countdown=60 * 5
+            )
+        )
+
 
 class FileBlobIndex(Model):
     __core__ = False
 
     file = FlexibleForeignKey("sentry.File")
-    blob = FlexibleForeignKey("sentry.FileBlob")
+    blob = FlexibleForeignKey("sentry.FileBlob", on_delete=models.PROTECT)
     offset = BoundedPositiveIntegerField()
 
     class Meta:
@@ -505,7 +517,7 @@ class ChunkedFileBlobIndexWrapper(object):
 
         # Zero out the file
         f.seek(size - 1)
-        f.write("\x00")
+        f.write(b"\x00")
         f.flush()
 
         mem = mmap.mmap(f.fileno(), size)

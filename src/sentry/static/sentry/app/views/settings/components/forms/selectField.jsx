@@ -17,7 +17,7 @@ const getChoices = props => {
 export default class SelectField extends React.Component {
   static propTypes = {
     ...InputField.propTypes,
-    choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]).isRequired,
+    choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]),
     allowClear: PropTypes.bool,
     allowEmpty: PropTypes.bool,
     multiple: PropTypes.bool,
@@ -60,26 +60,14 @@ export default class SelectField extends React.Component {
       <InputField
         {...otherProps}
         alignRight={this.props.small}
-        field={({onChange, onBlur, disabled, required: _required, ...props}) => {
-          // We remove the required property here since applying it to the
-          // DOM causes the native tooltip to render in strange places.
-          const choices = getChoices(props);
-
-          return (
-            <SelectControl
-              {...props}
-              clearable={allowClear}
-              multiple={multiple}
-              disabled={disabled}
-              onChange={this.handleChange.bind(this, onBlur, onChange)}
-              value={props.value}
-              options={choices.map(([value, label]) => ({
-                value,
-                label,
-              }))}
-            />
-          );
-        }}
+        field={({onChange, onBlur, required: _required, ...props}) => (
+          <SelectControl
+            {...props}
+            clearable={allowClear}
+            multiple={multiple}
+            onChange={this.handleChange.bind(this, onBlur, onChange)}
+          />
+        )}
       />
     );
   }

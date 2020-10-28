@@ -10,8 +10,15 @@ from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
-MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
-MockResponseInstance = MockResponse({}, {}, True, 200)
+
+def raiseStatusFalse():
+    return False
+
+
+MockResponse = namedtuple(
+    "MockResponse", ["headers", "content", "ok", "status_code", "raise_for_status"]
+)
+MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
 
 
 class DictContaining(object):
@@ -43,22 +50,20 @@ class TestInstallationNotifier(TestCase):
 
         data = faux(safe_urlopen).kwargs["data"]
 
-        assert data == json.dumps(
-            {
-                "action": "created",
-                "installation": {"uuid": self.install.uuid},
-                "data": {
-                    "installation": {
-                        "app": {"uuid": self.sentry_app.uuid, "slug": self.sentry_app.slug},
-                        "organization": {"slug": self.org.slug},
-                        "uuid": self.install.uuid,
-                        "code": self.install.api_grant.code,
-                        "status": "pending",
-                    }
-                },
-                "actor": {"id": self.user.id, "name": self.user.name, "type": "user"},
-            }
-        )
+        assert json.loads(data) == {
+            "action": "created",
+            "installation": {"uuid": self.install.uuid},
+            "data": {
+                "installation": {
+                    "app": {"uuid": self.sentry_app.uuid, "slug": self.sentry_app.slug},
+                    "organization": {"slug": self.org.slug},
+                    "uuid": self.install.uuid,
+                    "code": self.install.api_grant.code,
+                    "status": "installed",
+                }
+            },
+            "actor": {"id": self.user.id, "name": self.user.name, "type": "user"},
+        }
 
         assert faux(safe_urlopen).kwarg_equals(
             "headers",
@@ -77,22 +82,20 @@ class TestInstallationNotifier(TestCase):
 
         data = faux(safe_urlopen).kwargs["data"]
 
-        assert data == json.dumps(
-            {
-                "action": "deleted",
-                "installation": {"uuid": self.install.uuid},
-                "data": {
-                    "installation": {
-                        "app": {"uuid": self.sentry_app.uuid, "slug": self.sentry_app.slug},
-                        "organization": {"slug": self.org.slug},
-                        "uuid": self.install.uuid,
-                        "code": self.install.api_grant.code,
-                        "status": "pending",
-                    }
-                },
-                "actor": {"id": self.user.id, "name": self.user.name, "type": "user"},
-            }
-        )
+        assert json.loads(data) == {
+            "action": "deleted",
+            "installation": {"uuid": self.install.uuid},
+            "data": {
+                "installation": {
+                    "app": {"uuid": self.sentry_app.uuid, "slug": self.sentry_app.slug},
+                    "organization": {"slug": self.org.slug},
+                    "uuid": self.install.uuid,
+                    "code": self.install.api_grant.code,
+                    "status": "installed",
+                }
+            },
+            "actor": {"id": self.user.id, "name": self.user.name, "type": "user"},
+        }
 
         assert faux(safe_urlopen).kwarg_equals(
             "headers",

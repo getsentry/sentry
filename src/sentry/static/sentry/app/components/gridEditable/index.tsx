@@ -1,11 +1,10 @@
 import React from 'react';
+import {Location} from 'history';
 
 import {t} from 'app/locale';
-import {openModal} from 'app/actionCreators/modal';
-
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconWarning} from 'app/icons';
 
 import {
   GridColumn,
@@ -14,44 +13,26 @@ import {
   GridColumnSortBy,
   ObjectKey,
 } from './types';
-import GridHeadCell from './gridHeadCell';
-import GridModalEditColumn from './gridModalEditColumn';
 import {
   Header,
   HeaderTitle,
-  HeaderButton,
   HeaderButtonContainer,
   Body,
   Grid,
   GridRow,
   GridHead,
+  GridHeadCell,
+  GridHeadCellStatic,
   GridBody,
   GridBodyCell,
   GridBodyCellStatus,
-  GridStatusErrorAlert,
   GridResizer,
 } from './styles';
-import {
-  COL_WIDTH_UNDEFINED,
-  COL_WIDTH_MIN,
-  COL_WIDTH_DEFAULT,
-  COL_WIDTH_BOOLEAN,
-  COL_WIDTH_DATETIME,
-  COL_WIDTH_NUMBER,
-  COL_WIDTH_STRING,
-  COL_WIDTH_STRING_LONG,
-  COL_WIDTH_STRING_SHORT,
-  ColResizeMetadata,
-} from './utils';
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED, ColResizeMetadata} from './utils';
 
 type GridEditableProps<DataRow, ColumnKey> = {
-  onToggleEdit?: (nextValue: boolean) => void;
-
-  gridHeadCellButtonProps?: {[prop: string]: any};
-
-  isEditable?: boolean;
+  location: Location;
   isLoading?: boolean;
-  isColumnDragging: boolean;
   error?: React.ReactNode | null;
 
   /**
@@ -64,10 +45,15 @@ type GridEditableProps<DataRow, ColumnKey> = {
    *   move sorting into Grid for performance
    */
   title?: string;
+  /**
+   * Inject a set of buttons into the top of the grid table.
+   * The controlling component is responsible for handling any actions
+   * in these buttons and updating props to the GridEditable instance.
+   */
+  headerButtons?: () => React.ReactNode;
   columnOrder: GridColumnOrder<ColumnKey>[];
   columnSortBy: GridColumnSortBy<ColumnKey>[];
   data: DataRow[];
-  downloadAsCsv: () => void;
 
   /**
    * GridEditable allows the parent component to determine how to display the
@@ -80,47 +66,24 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode;
     renderBodyCell?: (
       column: GridColumnOrder<ColumnKey>,
-      dataRow: DataRow
+      dataRow: DataRow,
+      rowIndex: number,
+      columnIndex: number
     ) => React.ReactNode;
     onResizeColumn?: (
       columnIndex: number,
       nextColumn: GridColumnOrder<ColumnKey>
     ) => void;
-  };
-
-  /**
-   * As GridEditable is unopinionated about the structure of GridColumn,
-   * ModalEditColumn relies on the parent component to provide the form layout
-   * and logic to create/update the columns
-   */
-  modalEditColumn: {
-    renderBodyWithForm: (
-      indexColumnOrder?: number,
-      column?: GridColumn<ColumnKey>,
-      onSubmit?: (column: GridColumn<ColumnKey>) => void,
-      onSuccess?: () => void,
-      onError?: () => void
-    ) => React.ReactNode;
-    renderFooter: () => React.ReactNode;
-  };
-
-  /**
-   * As there is no internal state being maintained, the parent component will
-   * have to provide functions to update the state of the columns, especially
-   * after moving/resizing
-   */
-  actions: {
-    moveColumnCommit: (indexFrom: number, indexTo: number) => void;
-    onDragStart: (
-      event: React.MouseEvent<SVGSVGElement, MouseEvent>,
-      indexFrom: number
-    ) => void;
-    deleteColumn: (index: number) => void;
+    renderPrependColumns?: (
+      isHeader: boolean,
+      dataRow?: any,
+      rowIndex?: number
+    ) => React.ReactNode[];
+    prependColumnWidths?: string[];
   };
 };
 
 type GridEditableState = {
-  isEditing: boolean;
   numColumn: number;
 };
 
@@ -128,10 +91,6 @@ class GridEditable<
   DataRow extends {[key: string]: any},
   ColumnKey extends ObjectKey
 > extends React.Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
-  static defaultProps = {
-    isEditable: false,
-  };
-
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
   static getDerivedStateFromProps(
@@ -146,15 +105,15 @@ class GridEditable<
 
   state = {
     numColumn: 0,
-    isEditing: false,
   };
 
   componentDidMount() {
     window.addEventListener('resize', this.redrawGridColumn);
+    this.setGridTemplateColumns(this.props.columnOrder);
   }
 
   componentDidUpdate() {
-    // Redraw columns whenever new props are recieved
+    // Redraw columns whenever new props are received
     this.setGridTemplateColumns(this.props.columnOrder);
   }
 
@@ -179,16 +138,35 @@ class GridEditable<
     });
   }
 
+  onResetColumnSize = (e: React.MouseEvent, i: number) => {
+    e.stopPropagation();
+
+    const nextColumnOrder = [...this.props.columnOrder];
+    nextColumnOrder[i] = {
+      ...nextColumnOrder[i],
+      width: COL_WIDTH_UNDEFINED,
+    };
+    this.setGridTemplateColumns(nextColumnOrder);
+
+    const onResizeColumn = this.props.grid.onResizeColumn;
+    if (onResizeColumn) {
+      onResizeColumn(i, {
+        ...nextColumnOrder[i],
+        width: COL_WIDTH_UNDEFINED,
+      });
+    }
+  };
+
   onResizeMouseDown = (e: React.MouseEvent, i: number = -1) => {
-    e.preventDefault();
+    e.stopPropagation();
 
     // Block right-click and other funky stuff
     if (i === -1 || e.type === 'contextmenu') {
       return;
     }
 
-    // <GridResizer> is nested 2 levels down from <GridHeadCell>
-    const cell = e.currentTarget!.parentElement!.parentElement;
+    // <GridResizer> is nested 1 level down from <GridHeadCell>
+    const cell = e.currentTarget!.parentElement;
     if (!cell) {
       return;
     }
@@ -235,45 +213,7 @@ class GridEditable<
     window.requestAnimationFrame(() => this.resizeGridColumn(e, resizeMetadata));
   };
 
-  toggleEdit = () => {
-    const nextValue = !this.state.isEditing;
-
-    if (this.props.onToggleEdit) {
-      this.props.onToggleEdit(nextValue);
-    }
-
-    this.setState({isEditing: nextValue});
-  };
-
-  /**
-   * Leave `insertIndex` as undefined to add new column to the end.
-   */
-  openModalAddColumnAt = (insertIndex: number = -1) => {
-    if (insertIndex < 0) {
-      insertIndex = this.props.columnOrder.length;
-    }
-
-    return this.toggleModalEditColumn(insertIndex);
-  };
-
-  toggleModalEditColumn = (
-    indexColumnOrder?: number,
-    column?: GridColumn<ColumnKey>
-  ): void => {
-    const {modalEditColumn} = this.props;
-
-    openModal(openModalProps => (
-      <GridModalEditColumn
-        {...openModalProps}
-        indexColumnOrder={indexColumnOrder}
-        column={column}
-        renderBodyWithForm={modalEditColumn.renderBodyWithForm}
-        renderFooter={modalEditColumn.renderFooter}
-      />
-    ));
-  };
-
-  resizeGridColumn = (e: MouseEvent, metadata: ColResizeMetadata) => {
+  resizeGridColumn(e: MouseEvent, metadata: ColResizeMetadata) {
     const grid = this.refGrid.current;
     if (!grid) {
       return;
@@ -284,15 +224,11 @@ class GridEditable<
     const nextColumnOrder = [...this.props.columnOrder];
     nextColumnOrder[metadata.columnIndex] = {
       ...nextColumnOrder[metadata.columnIndex],
-      width: metadata.columnWidth + widthChange,
+      width: Math.max(metadata.columnWidth + widthChange, 0),
     };
 
-    this.setGridTemplateColumns(
-      this.props.columnOrder,
-      metadata.columnIndex,
-      metadata.columnWidth + e.clientX - metadata.cursorX
-    );
-  };
+    this.setGridTemplateColumns(nextColumnOrder);
+  }
 
   /**
    * Recalculate the dimensions of Grid and Columns and redraws them
@@ -304,135 +240,70 @@ class GridEditable<
   /**
    * Set the CSS for Grid Column
    */
-  setGridTemplateColumns(
-    columnOrder: GridColumnOrder[],
-    columnIndex: number = -1,
-    columnWidth: number = 0
-  ) {
+  setGridTemplateColumns(columnOrder: GridColumnOrder[]) {
     const grid = this.refGrid.current;
     if (!grid) {
       return;
     }
 
-    let sumWidth = 0;
-    const columnWidths = columnOrder.map((c, i) => {
-      let width =
-        i === columnIndex // Case 1: Resize, then draw a specific column
-          ? columnWidth
-          : !c.width || isNaN(c.width) // Case 2: Draw a column with no width
-          ? COL_WIDTH_DEFAULT
-          : c.width; // Case 3: Draw a column with width
-
-      width = Math.max(COL_WIDTH_MIN, width);
-      sumWidth += width;
-
-      return `${width}px`;
+    const prependColumns = this.props.grid.prependColumnWidths || [];
+    const prepend = prependColumns.join(' ');
+    const widths = columnOrder.map(item => {
+      if (item.width === COL_WIDTH_UNDEFINED) {
+        return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
+      }
+      if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
+        return `${item.width}px`;
+      }
+      return `${COL_WIDTH_MINIMUM}px`;
     });
 
-    // If columns are smaller than grid, let the last column fill the remaining
-    // blank space on the right of the grid
-    if (sumWidth < grid.offsetWidth) {
-      columnWidths[columnWidths.length - 1] = '1fr';
+    // The last column has no resizer and should always be a flexible column
+    // to prevent underflows.
+    if (widths.length > 0) {
+      widths[widths.length - 1] = `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
     }
 
-    grid.style.gridTemplateColumns = columnWidths.join(' ');
+    grid.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
   }
 
-  renderHeaderButton = () => {
-    if (!this.props.isEditable) {
-      return null;
-    }
-
-    return (
-      <HeaderButton
-        onClick={() => this.openModalAddColumnAt()}
-        data-test-id="grid-add-column"
-      >
-        <InlineSvg src="icon-circle-add" />
-        {t('Add Column')}
-      </HeaderButton>
-    );
-  };
-
-  renderDownloadCsvButton = () => {
-    if (this.props.isLoading) {
-      return null;
-    }
-
-    return (
-      <HeaderButton onClick={this.props.downloadAsCsv} data-test-id="grid-download-csv">
-        <InlineSvg src="icon-download" />
-        {t('Download CSV')}
-      </HeaderButton>
-    );
-  };
-
-  renderGridHeadEditButtons = () => {
-    if (!this.props.isEditable) {
-      return null;
-    }
-
-    if (!this.state.isEditing) {
-      return (
-        <HeaderButton onClick={this.toggleEdit} data-test-id="grid-edit-enable">
-          <InlineSvg src="icon-edit-pencil" />
-          {t('Edit Columns')}
-        </HeaderButton>
-      );
-    }
-
-    return (
-      <HeaderButton onClick={this.toggleEdit} data-test-id="grid-edit-disable">
-        <InlineSvg src="icon-circle-check" />
-        {t('Save & Close')}
-      </HeaderButton>
-    );
-  };
-
-  renderGridHead = () => {
-    const {error, isLoading, columnOrder, actions, grid, data} = this.props;
-    const {isEditing} = this.state;
+  renderGridHead() {
+    const {error, isLoading, columnOrder, grid, data} = this.props;
 
     // Ensure that the last column cannot be removed
     const numColumn = columnOrder.length;
-    const enableEdit = isEditing && numColumn > 1;
 
+    const prependColumns = grid.renderPrependColumns
+      ? grid.renderPrependColumns(true)
+      : [];
     return (
       <GridRow>
-        {/* Note that this.onResizeMouseDown assumes GridResizer is nested
-            2 levels under GridHeadCell */
-        columnOrder.map((column, i) => (
-          <GridHeadCell
-            openModalAddColumnAt={this.openModalAddColumnAt}
-            isLast={columnOrder.length - 1 === i}
-            key={`${i}.${column.key}`}
-            isColumnDragging={this.props.isColumnDragging}
-            isPrimary={column.isPrimary}
-            isEditing={enableEdit}
-            indexColumnOrder={i}
-            column={column}
-            gridHeadCellButtonProps={this.props.gridHeadCellButtonProps || {}}
-            actions={{
-              moveColumnCommit: actions.moveColumnCommit,
-              onDragStart: actions.onDragStart,
-              deleteColumn: actions.deleteColumn,
-              toggleModalEditColumn: this.toggleModalEditColumn,
-            }}
-          >
-            {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-            <GridResizer
-              isLast={i === numColumn - 1}
-              dataRows={!error && !isLoading && data ? data.length : 0}
-              onMouseDown={e => this.onResizeMouseDown(e, i)}
-              onContextMenu={this.onResizeMouseDown}
-            />
-          </GridHeadCell>
-        ))}
+        {prependColumns &&
+          prependColumns.map((item, i) => (
+            <GridHeadCellStatic key={`prepend-${i}`}>{item}</GridHeadCellStatic>
+          ))}
+        {
+          /* Note that this.onResizeMouseDown assumes GridResizer is nested
+            1 levels under GridHeadCell */
+          columnOrder.map((column, i) => (
+            <GridHeadCell key={`${i}.${column.key}`} isFirst={i === 0}>
+              {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
+              {i !== numColumn - 1 && (
+                <GridResizer
+                  dataRows={!error && !isLoading && data ? data.length : 0}
+                  onMouseDown={e => this.onResizeMouseDown(e, i)}
+                  onDoubleClick={e => this.onResetColumnSize(e, i)}
+                  onContextMenu={this.onResizeMouseDown}
+                />
+              )}
+            </GridHeadCell>
+          ))
+        }
       </GridRow>
     );
-  };
+  }
 
-  renderGridBody = () => {
+  renderGridBody() {
     const {data, error, isLoading} = this.props;
 
     if (error) {
@@ -448,37 +319,42 @@ class GridEditable<
     }
 
     return data.map(this.renderGridBodyRow);
-  };
+  }
 
   renderGridBodyRow = (dataRow: DataRow, row: number) => {
     const {columnOrder, grid} = this.props;
+    const prependColumns = grid.renderPrependColumns
+      ? grid.renderPrependColumns(false, dataRow, row)
+      : [];
 
     return (
       <GridRow key={row}>
+        {prependColumns &&
+          prependColumns.map((item, i) => (
+            <GridBodyCell key={`prepend-${i}`}>{item}</GridBodyCell>
+          ))}
         {columnOrder.map((col, i) => (
           <GridBodyCell key={`${col.key}${i}`}>
-            {grid.renderBodyCell ? grid.renderBodyCell(col, dataRow) : dataRow[col.key]}
+            {grid.renderBodyCell
+              ? grid.renderBodyCell(col, dataRow, row, i)
+              : dataRow[col.key]}
           </GridBodyCell>
         ))}
       </GridRow>
     );
   };
 
-  renderError = () => {
-    const {error} = this.props;
-
+  renderError() {
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <GridStatusErrorAlert type="error" icon="icon-circle-exclamation">
-            {error}
-          </GridStatusErrorAlert>
+          <IconWarning color="gray500" size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );
-  };
+  }
 
-  renderLoading = () => {
+  renderLoading() {
     return (
       <GridRow>
         <GridBodyCellStatus>
@@ -486,9 +362,9 @@ class GridEditable<
         </GridBodyCellStatus>
       </GridRow>
     );
-  };
+  }
 
-  renderEmptyData = () => {
+  renderEmptyData() {
     return (
       <GridRow>
         <GridBodyCellStatus>
@@ -498,32 +374,23 @@ class GridEditable<
         </GridBodyCellStatus>
       </GridRow>
     );
-  };
+  }
 
   render() {
-    const {isEditable} = this.props;
-
+    const {title, headerButtons} = this.props;
+    const showHeader = title || headerButtons;
     return (
       <React.Fragment>
-        <Header>
-          <HeaderTitle>{t('Results')}</HeaderTitle>
-
-          {/* TODO(leedongwei): This is ugly but I need to move it to work on
-          resizing columns. It will be refactored in a upcoming PR */}
-          <div style={{display: 'flex', flexDirection: 'row'}}>
-            <HeaderButtonContainer>
-              {this.renderDownloadCsvButton()}
-            </HeaderButtonContainer>
-            <HeaderButtonContainer>{this.renderHeaderButton()}</HeaderButtonContainer>
-
-            <HeaderButtonContainer>
-              {isEditable && this.renderGridHeadEditButtons()}
-            </HeaderButtonContainer>
-          </div>
-        </Header>
-
+        {showHeader && (
+          <Header>
+            {title && <HeaderTitle>{title}</HeaderTitle>}
+            {headerButtons && (
+              <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
+            )}
+          </Header>
+        )}
         <Body>
-          <Grid ref={this.refGrid}>
+          <Grid data-test-id="grid-editable" ref={this.refGrid}>
             <GridHead>{this.renderGridHead()}</GridHead>
             <GridBody>{this.renderGridBody()}</GridBody>
           </Grid>
@@ -535,18 +402,10 @@ class GridEditable<
 
 export default GridEditable;
 export {
+  COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
-  COL_WIDTH_MIN,
-  COL_WIDTH_DEFAULT,
-  COL_WIDTH_BOOLEAN,
-  COL_WIDTH_DATETIME,
-  COL_WIDTH_NUMBER,
-  COL_WIDTH_STRING,
-  COL_WIDTH_STRING_LONG,
-  COL_WIDTH_STRING_SHORT,
   GridColumn,
   GridColumnHeader,
   GridColumnOrder,
   GridColumnSortBy,
-  GridModalEditColumn,
 };

@@ -3,39 +3,46 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
-import InlineSvg from 'app/components/inlineSvg';
+import {IconClose, IconLock, IconChevron, IconInfo, IconSettings} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
+type DefaultProps = {
+  allowClear: boolean;
+};
+
 type Props = {
   icon: React.ReactElement;
-  lockedMessage: string;
+  lockedMessage: React.ReactNode;
   settingsLink: string;
-  allowClear: boolean;
+  hint?: string;
   hasChanges: boolean;
   hasSelected: boolean;
   isOpen: boolean;
   locked: boolean;
   loading: boolean;
+  forwardRef?: React.Ref<HTMLDivElement>;
   onClear: () => void;
-} & React.HTMLProps<HTMLDivElement>;
+} & DefaultProps &
+  React.HTMLAttributes<HTMLDivElement>;
 
 class HeaderItem extends React.Component<Props> {
   static propTypes = {
-    allowClear: PropTypes.bool,
     icon: PropTypes.element,
     onClear: PropTypes.func,
     hasChanges: PropTypes.bool,
     hasSelected: PropTypes.bool,
     isOpen: PropTypes.bool,
     locked: PropTypes.bool,
-    lockedMessage: PropTypes.string,
+    lockedMessage: PropTypes.element,
     settingsLink: PropTypes.string,
+    hint: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     allowClear: true,
   };
 
@@ -54,8 +61,9 @@ class HeaderItem extends React.Component<Props> {
       locked,
       lockedMessage,
       settingsLink,
-      onClear, // eslint-disable-line no-unused-vars
+      hint,
       loading,
+      forwardRef,
       ...props
     } = this.props;
 
@@ -66,25 +74,41 @@ class HeaderItem extends React.Component<Props> {
     };
 
     return (
-      <StyledHeaderItem loading={loading} {...props} {...textColorProps}>
+      <StyledHeaderItem
+        ref={forwardRef}
+        loading={loading}
+        {...omit(props, 'onClear')}
+        {...textColorProps}
+      >
         <IconContainer {...textColorProps}>{icon}</IconContainer>
         <Content>{children}</Content>
+        {hint && (
+          <Hint>
+            <Tooltip title={hint} position="bottom">
+              <IconInfo size="sm" />
+            </Tooltip>
+          </Hint>
+        )}
         {hasSelected && !locked && allowClear && (
-          <StyledClose {...textColorProps} src="icon-close" onClick={this.handleClear} />
+          <StyledClose {...textColorProps} onClick={this.handleClear} />
         )}
         {settingsLink && (
           <SettingsIconLink to={settingsLink}>
-            <SettingsIcon src="icon-settings" />
+            <IconSettings />
           </SettingsIconLink>
         )}
         {!locked && !loading && (
           <StyledChevron isOpen={isOpen}>
-            <InlineSvg src="icon-chevron-down" />
+            <IconChevron
+              direction="down"
+              color={isOpen ? 'gray700' : 'gray500'}
+              size="sm"
+            />
           </StyledChevron>
         )}
         {locked && (
           <Tooltip title={lockedMessage || 'This selection is locked'} position="bottom">
-            <StyledLock src="icon-lock" />
+            <StyledLock color="gray500" />
           </Tooltip>
         )}
       </StyledHeaderItem>
@@ -95,9 +119,9 @@ class HeaderItem extends React.Component<Props> {
 // Infer props here because of styled/theme
 const getColor = p => {
   if (p.locked) {
-    return p.theme.gray2;
+    return p.theme.gray500;
   }
-  return p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2;
+  return p.isOpen || p.hasSelected ? p.theme.gray700 : p.theme.gray500;
 };
 
 type ColorProps = {
@@ -131,9 +155,17 @@ const Content = styled('div')`
 const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProps>`
   color: ${getColor};
   margin-right: ${space(1.5)};
+  display: flex;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const StyledClose = styled(InlineSvg, {shouldForwardProp: isPropValid})<ColorProps>`
+const Hint = styled('div')`
+  position: relative;
+  top: ${space(0.25)};
+  margin-right: ${space(1)};
+`;
+
+const StyledClose = styled(IconClose, {shouldForwardProp: isPropValid})<ColorProps>`
   color: ${getColor};
   height: ${space(1.5)};
   width: ${space(1.5)};
@@ -143,7 +175,8 @@ const StyledClose = styled(InlineSvg, {shouldForwardProp: isPropValid})<ColorPro
   margin: -${space(1)} 0px -${space(1)} -${space(1)};
 `;
 
-const StyledChevron = styled('div')<Pick<ColorProps, 'isOpen'>>`
+type StyledChevronProps = Pick<ColorProps, 'isOpen'>;
+const StyledChevron = styled('div')<StyledChevronProps>`
   transform: rotate(${p => (p.isOpen ? '180deg' : '0deg')});
   transition: 0.1s all;
   width: ${space(2)};
@@ -154,7 +187,7 @@ const StyledChevron = styled('div')<Pick<ColorProps, 'isOpen'>>`
 `;
 
 const SettingsIconLink = styled(Link)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -162,20 +195,15 @@ const SettingsIconLink = styled(Link)`
   transition: 0.5s opacity ease-out;
 
   &:hover {
-    color: ${p => p.theme.gray4};
+    color: ${p => p.theme.gray700};
   }
 `;
 
-const SettingsIcon = styled(InlineSvg)`
-  height: 16px;
-  width: 16px;
-`;
-
-const StyledLock = styled(InlineSvg)`
-  color: ${p => p.theme.gray2};
-  width: ${space(2)};
-  height: ${space(2)};
+const StyledLock = styled(IconLock)`
+  margin-top: ${space(0.75)};
   stroke-width: 1.5;
 `;
 
-export default HeaderItem;
+export default React.forwardRef<HTMLDivElement, Props>((props, ref) => (
+  <HeaderItem forwardRef={ref} {...props} />
+));

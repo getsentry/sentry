@@ -16,6 +16,7 @@ import requests
 import six
 import threading
 
+from requests_oauthlib import OAuth1
 from django.contrib.auth import authenticate
 from django.utils.crypto import get_random_string, constant_time_compare
 from six.moves.urllib.error import HTTPError
@@ -29,6 +30,7 @@ from social_auth.utils import (
     clean_partial_pipeline,
     url_add_parameters,
     dsa_urlopen,
+    parse_qs,
 )
 from social_auth.exceptions import (
     StopPipeline,
@@ -41,16 +43,15 @@ from social_auth.exceptions import (
     AuthStateForbidden,
     BackendError,
 )
-from social_auth.backends.utils import build_consumer_oauth_request
-from oauth2 import Consumer as OAuthConsumer, Token, Request as OAuthRequest
 
 from sentry.utils import json
+from sentry.utils.compat import map
 
 PIPELINE = setting(
     "SOCIAL_AUTH_PIPELINE",
     (
         "social_auth.backends.pipeline.social.social_auth_user",
-        # Removed by default since it can be a dangerouse behavior that
+        # Removed by default since it can be a dangerous behavior that
         # could lead to accounts take over.
         # 'social_auth.backends.pipeline.associate.associate_by_email',
         "social_auth.backends.pipeline.user.get_username",
@@ -266,7 +267,7 @@ class BaseAuth(object):
         raise NotImplementedError("Implement in subclass")
 
     def auth_complete(self, *args, **kwargs):
-        """Completes loging process, must return user instance"""
+        """Completes logging process, must return user instance"""
         raise NotImplementedError("Implement in subclass")
 
     def to_session_dict(self, next_idx, *args, **kwargs):
@@ -359,7 +360,7 @@ class BaseAuth(object):
         return uri
 
 
-class BaseOAuth(BaseAuth):
+class OAuthAuth(BaseAuth):
     """OAuth base class"""
 
     SETTINGS_KEY_NAME = ""
@@ -371,7 +372,7 @@ class BaseOAuth(BaseAuth):
 
     def __init__(self, request, redirect):
         """Init method"""
-        super(BaseOAuth, self).__init__(request, redirect)
+        super(OAuthAuth, self).__init__(request, redirect)
         self.redirect_uri = self.build_absolute_uri(self.redirect)
 
     @classmethod
@@ -405,7 +406,7 @@ class BaseOAuth(BaseAuth):
         return {}
 
 
-class ConsumerBasedOAuth(BaseOAuth):
+class BaseOAuth1(OAuthAuth):
     """Consumer based mechanism OAuth authentication, fill the needed
     parameters to communicate properly with authentication service.
 
@@ -426,7 +427,7 @@ class ConsumerBasedOAuth(BaseOAuth):
             self.request.session[name] = []
         self.request.session[name].append(token.to_string())
         self.request.session.modified = True
-        return self.oauth_authorization_request(token).to_url()
+        return self.oauth_authorization_request(token)
 
     def auth_complete(self, *args, **kwargs):
         """Return user, might be logged in"""
@@ -437,8 +438,10 @@ class ConsumerBasedOAuth(BaseOAuth):
         if not unauthed_tokens:
             raise AuthTokenError(self, "Missing unauthorized token")
         for unauthed_token in unauthed_tokens:
-            token = Token.from_string(unauthed_token)
-            if token.key == self.data.get("oauth_token", "no-token"):
+            token = unauthed_token
+            if not isinstance(unauthed_token, dict):
+                token = parse_qs(unauthed_token)
+            if token.get("oauth_token") == self.data.get("oauth_token"):
                 unauthed_tokens = list(set(unauthed_tokens) - set([unauthed_token]))
                 self.request.session[name] = unauthed_tokens
                 self.request.session.modified = True
@@ -457,9 +460,6 @@ class ConsumerBasedOAuth(BaseOAuth):
 
     def do_auth(self, access_token, *args, **kwargs):
         """Finish the auth process once the access_token was retrieved"""
-        if isinstance(access_token, six.string_types):
-            access_token = Token.from_string(access_token)
-
         data = self.user_data(access_token)
         if data is not None:
             data["access_token"] = access_token.to_string()
@@ -469,47 +469,54 @@ class ConsumerBasedOAuth(BaseOAuth):
 
     def unauthorized_token(self):
         """Return request for unauthorized token (first stage)"""
-        request = self.oauth_request(
-            token=None,
+        params = self.request_token_extra_arguments()
+        params.update(self.get_scope_argument())
+        key, secret = self.get_key_and_secret()
+        response = self.request(
             url=self.REQUEST_TOKEN_URL,
-            extra_params=self.request_token_extra_arguments(),
+            params=params,
+            auth=OAuth1(key, secret, callback_uri=self.redirect_uri),
         )
-        return Token.from_string(self.fetch_response(request))
+        return response.content
 
     def oauth_authorization_request(self, token):
         """Generate OAuth request to authorize token."""
+        if not isinstance(token, dict):
+            token = parse_qs(token)
         params = self.auth_extra_arguments() or {}
         params.update(self.get_scope_argument())
-        return OAuthRequest.from_token_and_callback(
-            token=token,
-            callback=self.redirect_uri,
-            http_url=self.AUTHORIZATION_URL,
-            parameters=params,
+        params["oauth_token"] = token.get("oauth_token")
+        params["redirect_uri"] = self.redirect_uri
+        return self.AUTHORIZATION_URL + "?" + urlencode(params)
+
+    def oauth_auth(self, token=None, oauth_verifier=None):
+        key, secret = self.get_key_and_secret()
+        oauth_verifier = oauth_verifier or self.data.get("oauth_verifier")
+        token = token or {}
+        return OAuth1(
+            key,
+            secret,
+            resource_owner_key=token.get("oauth_token"),
+            resource_owner_secret=token.get("oauth_token_secret"),
+            callback_uri=self.redirect_uri,
+            verifier=oauth_verifier,
         )
 
-    def oauth_request(self, token, url, extra_params=None):
+    def oauth_request(self, token, url, extra_params=None, method="GET"):
         """Generate OAuth request, setups callback url"""
-        return build_consumer_oauth_request(
-            self, token, url, self.redirect_uri, self.data.get("oauth_verifier"), extra_params
-        )
+        return self.request(url, auth=self.oauth_auth(token))
 
     def fetch_response(self, request):
-        """Executes request and fetchs service response"""
+        """Executes request and fetches service response"""
         response = dsa_urlopen(request.to_url())
         return "\n".join(response.readlines())
 
     def access_token(self, token):
         """Return request for access token value"""
-        request = self.oauth_request(token, self.ACCESS_TOKEN_URL)
-        return Token.from_string(self.fetch_response(request))
-
-    @property
-    def consumer(self):
-        """Setups consumer"""
-        return OAuthConsumer(*self.get_key_and_secret())
+        return self.get_querystring(self.ACCESS_TOKEN_URL, auth=self.oauth_auth(token))
 
 
-class BaseOAuth2(BaseOAuth):
+class BaseOAuth2(OAuthAuth):
     """Base class for OAuth2 providers.
 
     OAuth2 draft details at:
@@ -609,7 +616,7 @@ class BaseOAuth2(BaseOAuth):
         return {"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}
 
     def auth_complete(self, *args, **kwargs):
-        """Completes loging process, must return user instance"""
+        """Completes logging process, must return user instance"""
         self.process_error(self.data)
         params = self.auth_complete_params(self.validate_state())
         request = Request(

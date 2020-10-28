@@ -6,7 +6,6 @@ import {
   parseSavedQuery,
   generateQueryName,
 } from 'app/views/discover/utils';
-
 import createQueryBuilder from 'app/views/discover/queryBuilder';
 import {COLUMNS} from 'app/views/discover/data';
 
@@ -30,34 +29,34 @@ const query = {
   start: '2018-06-26T01:18:04',
 };
 
-describe('getQueryFromQueryString()', function() {
-  it('returns empty object if empty query string', function() {
+describe('getQueryFromQueryString()', function () {
+  it('returns empty object if empty query string', function () {
     expect(getQueryFromQueryString('')).toEqual({});
   });
 
-  it('handles aggregations', function() {
+  it('handles aggregations', function () {
     expect(getQueryFromQueryString(queryString)).toEqual(query);
   });
 
-  it('strips invalid keys', function() {
+  it('strips invalid keys', function () {
     expect(getQueryFromQueryString(queryStringWithInvalidKey)).toEqual(query);
   });
 });
 
-describe('getQueryStringFromQuery()', function() {
-  it('parses query from query string', function() {
+describe('getQueryStringFromQuery()', function () {
+  it('parses query from query string', function () {
     expect(getQueryStringFromQuery(query)).toEqual(queryString);
   });
 
-  it('keeps location in query string if provided', function() {
+  it('keeps location in query string if provided', function () {
     expect(getQueryStringFromQuery(query, {visualization: 'table'})).toEqual(
       `${queryString}&visualization=table`
     );
   });
 });
 
-describe('queryHasChanged()', function() {
-  it('checks only query fields', function() {
+describe('queryHasChanged()', function () {
+  it('checks only query fields', function () {
     const prev = '?fields=%5B"id"%5D&editing=true';
     const next = '?fields=%5B"id"%5D';
 
@@ -65,15 +64,15 @@ describe('queryHasChanged()', function() {
   });
 });
 
-describe('getOrderbyFields()', function() {
+describe('getOrderbyFields()', function () {
   const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
   const queryBuilder = createQueryBuilder({}, organization);
 
-  it('allows ordering by all fields when no aggregations except project.name', function() {
+  it('allows ordering by all fields when no aggregations except project.name', function () {
     expect(getOrderbyFields(queryBuilder)).toHaveLength(COLUMNS.length - 1);
   });
 
-  it('allows ordering by aggregations with aggregations and no fields', function() {
+  it('allows ordering by aggregations with aggregations and no fields', function () {
     queryBuilder.updateField('fields', []);
     queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
@@ -82,7 +81,7 @@ describe('getOrderbyFields()', function() {
     expect(options).toEqual([{label: 'count', value: 'count'}]);
   });
 
-  it('allows ordering by aggregations and fields', function() {
+  it('allows ordering by aggregations and fields', function () {
     queryBuilder.updateField('fields', ['message']);
     queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
@@ -95,8 +94,8 @@ describe('getOrderbyFields()', function() {
   });
 });
 
-describe('parseSavedQuery()', function() {
-  it('strips metadata', function() {
+describe('parseSavedQuery()', function () {
+  it('strips metadata', function () {
     const queryFromApi = {
       id: '1',
       name: 'Test query',
@@ -117,8 +116,8 @@ describe('parseSavedQuery()', function() {
   });
 });
 
-describe('generateQueryName()', function() {
-  it('generates name', function() {
+describe('generateQueryName()', function () {
+  it('generates name', function () {
     expect(generateQueryName()).toBe('Result - Oct 17 02:41:20');
   });
 });

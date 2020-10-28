@@ -4,7 +4,6 @@ import math
 
 from django.utils import timezone
 
-from sentry import options
 from sentry.db.models import create_or_update
 from sentry.nodestore.base import NodeStorage
 
@@ -44,9 +43,7 @@ class DjangoNodeStorage(NodeStorage):
 
     def set(self, id, data, ttl=None):
         create_or_update(Node, id=id, values={"data": data, "timestamp": timezone.now()})
-        cache_on_save = options.get("nodedata.cache-on-save")
-        if cache_on_save:
-            self._set_cache_item(id, data)
+        self._set_cache_item(id, data)
 
     def cleanup(self, cutoff_timestamp):
         from sentry.db.deletion import BulkDeleteQuery
@@ -57,3 +54,7 @@ class DjangoNodeStorage(NodeStorage):
         BulkDeleteQuery(model=Node, dtfield="timestamp", days=days).execute()
         if self.cache:
             self.cache.clear()
+
+    def bootstrap(self):
+        # Nothing for Django backend to do during bootstrap
+        pass

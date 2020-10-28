@@ -2,10 +2,10 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Form, FormState} from 'app/components/forms';
+import DefaultSettings from 'app/plugins/components/settings';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import BasePlugin from 'app/plugins/basePlugin';
 
-class Settings extends BasePlugin.DefaultSettings {
+class Settings extends DefaultSettings {
   constructor(props) {
     super(props);
 
@@ -16,20 +16,18 @@ class Settings extends BasePlugin.DefaultSettings {
   }
 
   renderFields(fields) {
-    return fields.map(f => {
-      return this.renderField({
+    return fields.map(f =>
+      this.renderField({
         config: f,
         formData: this.state.formData,
         formErrors: this.state.errors,
         onChange: this.changeField.bind(this, f.name),
-      });
-    });
+      })
+    );
   }
 
   filterFields(fields, fieldNames) {
-    return fields.filter(field => {
-      return fieldNames.includes(field.name);
-    });
+    return fields.filter(field => fieldNames.includes(field.name));
   }
 
   toggleOnPremisesConfiguration() {

@@ -77,7 +77,7 @@ class AutoComplete extends React.Component {
     this.items = new Map();
   }
 
-  componentWillReceiveProps(nextProps, nextState) {
+  UNSAFE_componentWillReceiveProps(nextProps, nextState) {
     // If we do NOT want to close on select, then we should not reset highlight state
     // when we select an item (when we select an item, `this.state.selectedItem` changes)
     if (!nextProps.closeOnSelect && this.state.selectedItem !== nextState.selectedItem) {
@@ -87,7 +87,7 @@ class AutoComplete extends React.Component {
     this.resetHighlightState();
   }
 
-  componentWillUpdate() {
+  UNSAFE_componentWillUpdate() {
     this.items.clear();
   }
 
@@ -275,12 +275,10 @@ class AutoComplete extends React.Component {
       return;
     }
 
-    this.setState(state => {
-      return {
-        isOpen: false,
-        inputValue: resetInputOnClose ? '' : state.inputValue,
-      };
-    });
+    this.setState(state => ({
+      isOpen: false,
+      inputValue: resetInputOnClose ? '' : state.inputValue,
+    }));
   };
 
   getInputProps = inputProps => ({
@@ -298,7 +296,7 @@ class AutoComplete extends React.Component {
       console.warn('getItemProps requires an object with an `item` key');
     }
 
-    const newIndex = index || this.items.size;
+    const newIndex = index ?? this.items.size;
     this.items.set(newIndex, item);
 
     return {

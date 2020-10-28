@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 
-import {IntegrationProvider, Integration, Organization} from 'app/types';
+import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -13,10 +13,14 @@ type Props = {
     openDialog: (urlParams?: {[key: string]: string}) => void
   ) => React.ReactNode;
   provider: IntegrationProvider;
-  onInstall: (data: Integration) => void;
-  reinstallId?: string;
+  onInstall: (data: IntegrationWithConfig) => void;
+  integrationId?: string;
   account?: string;
   organization?: Organization; //for analytics
+  analyticsParams?: {
+    view: 'integrations_directory_integration_detail' | 'integrations_directory';
+    already_installed: boolean;
+  };
 };
 
 export default class AddIntegration extends React.Component<Props> {
@@ -24,7 +28,7 @@ export default class AddIntegration extends React.Component<Props> {
     children: PropTypes.func.isRequired,
     provider: PropTypes.object.isRequired,
     onInstall: PropTypes.func.isRequired,
-    reinstallId: PropTypes.string,
+    integrationId: PropTypes.string,
     account: PropTypes.string,
     organization: SentryTypes.Organization,
   };
@@ -66,12 +70,19 @@ export default class AddIntegration extends React.Component<Props> {
   }
 
   openDialog = (urlParams?: {[key: string]: string}) => {
+    const {integrationId} = this.props;
+    //if we have the integrationId, it's used for the re-auth flow
     trackIntegrationEvent(
       {
-        eventKey: 'integrations.installation_start',
-        eventName: 'Integrations: Installation Start',
+        eventKey: integrationId
+          ? 'integrations.reauth_start'
+          : 'integrations.installation_start',
+        eventName: integrationId
+          ? 'Integrations: Reauth Start'
+          : 'Integrations: Installation Start',
         integration: this.props.provider.key,
         integration_type: 'first_party',
+        ...this.props.analyticsParams,
       },
       this.props.organization
     );
@@ -81,8 +92,8 @@ export default class AddIntegration extends React.Component<Props> {
 
     const query: {[key: string]: string} = {...urlParams};
 
-    if (this.props.reinstallId) {
-      query.reinstall_id = this.props.reinstallId;
+    if (integrationId) {
+      query.integration_id = integrationId;
     }
 
     if (this.props.account) {
@@ -97,6 +108,7 @@ export default class AddIntegration extends React.Component<Props> {
   };
 
   didReceiveMessage = (message: MessageEvent) => {
+    const {integrationId} = this.props;
     if (message.origin !== document.location.origin) {
       return;
     }
@@ -119,10 +131,15 @@ export default class AddIntegration extends React.Component<Props> {
     this.props.onInstall(data);
     trackIntegrationEvent(
       {
-        eventKey: 'integrations.installation_complete',
-        eventName: 'Integrations: Installation Complete',
+        eventKey: integrationId
+          ? 'integrations.reauth_complete'
+          : 'integrations.installation_complete',
+        eventName: integrationId
+          ? 'Integrations: Reauth Complete'
+          : 'Integrations: Installation Complete',
         integration: this.props.provider.key,
         integration_type: 'first_party',
+        ...this.props.analyticsParams,
       },
       this.props.organization
     );

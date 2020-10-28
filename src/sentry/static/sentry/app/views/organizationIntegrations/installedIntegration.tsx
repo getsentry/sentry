@@ -1,41 +1,44 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
-import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import CircleIndicator from 'app/components/circleIndicator';
 import Confirm from 'app/components/confirm';
-import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
-import {IntegrationProvider, Integration, Organization} from 'app/types';
-import SentryTypes from 'app/sentryTypes';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {IconDelete, IconFlag, IconSettings, IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {
+  IntegrationProvider,
+  IntegrationWithConfig,
+  Organization,
+  ObjectStatus,
+} from 'app/types';
+import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
+import theme from 'app/utils/theme';
+
+import AddIntegrationButton from './addIntegrationButton';
+import IntegrationItem from './integrationItem';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
 export type Props = {
   organization: Organization;
   provider: IntegrationProvider;
-  integration: Integration;
-  onRemove: (integration: Integration) => void;
-  onDisable: (integration: Integration) => void;
-  onReinstallIntegration: (integration: Integration) => void;
+  integration: IntegrationWithConfig;
+  onRemove: (integration: IntegrationWithConfig) => void;
+  onDisable: (integration: IntegrationWithConfig) => void;
+  onReAuthIntegration: (integration: IntegrationWithConfig) => void;
+  trackIntegrationEvent: (
+    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
+  ) => void; //analytics callback
   className?: string;
+  showReauthMessage: boolean;
 };
 
 export default class InstalledIntegration extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    provider: PropTypes.object.isRequired,
-    integration: PropTypes.object.isRequired,
-    onRemove: PropTypes.func.isRequired,
-    onDisable: PropTypes.func.isRequired,
-    onReinstallIntegration: PropTypes.func.isRequired,
-  };
-
   /**
    * Integrations have additional configuration when any of the conditions are
    * met:
@@ -52,26 +55,18 @@ export default class InstalledIntegration extends React.Component<Props> {
     );
   }
 
-  reinstallIntegration = () => {
-    const activeIntegration = Object.assign({}, this.props.integration, {
-      status: 'active',
-    });
-    this.props.onReinstallIntegration(activeIntegration);
+  handleReAuthIntegration = (integration: IntegrationWithConfig) => {
+    this.props.onReAuthIntegration(integration);
   };
 
   handleUninstallClick = () => {
-    trackIntegrationEvent(
-      {
-        eventKey: 'integrations.uninstall_clicked',
-        eventName: 'Integrations: Uninstall Clicked',
-        integration: this.props.provider.key,
-        integration_type: 'first_party',
-      },
-      this.props.organization
-    );
+    this.props.trackIntegrationEvent({
+      eventKey: 'integrations.uninstall_clicked',
+      eventName: 'Integrations: Uninstall Clicked',
+    });
   };
 
-  getRemovalBodyAndText(aspects) {
+  getRemovalBodyAndText(aspects: IntegrationWithConfig['provider']['aspects']) {
     if (aspects && aspects.removal_dialog) {
       return {
         body: aspects.removal_dialog.body,
@@ -87,17 +82,12 @@ export default class InstalledIntegration extends React.Component<Props> {
     }
   }
 
-  handleRemove(integration: Integration) {
+  handleRemove(integration: IntegrationWithConfig) {
     this.props.onRemove(integration);
-    trackIntegrationEvent(
-      {
-        eventKey: 'integrations.uninstall_completed',
-        eventName: 'Integrations: Uninstall Completed',
-        integration: this.props.provider.key,
-        integration_type: 'first_party',
-      },
-      this.props.organization
-    );
+    this.props.trackIntegrationEvent({
+      eventKey: 'integrations.uninstall_completed',
+      eventName: 'Integrations: Uninstall Completed',
+    });
   }
 
   get removeConfirmProps() {
@@ -106,8 +96,8 @@ export default class InstalledIntegration extends React.Component<Props> {
 
     const message = (
       <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
-          Deleting this integration has consequences!
+        <Alert type="error" icon={<IconFlag size="md" />}>
+          {t('Deleting this integration has consequences!')}
         </Alert>
         {body}
       </React.Fragment>
@@ -121,11 +111,11 @@ export default class InstalledIntegration extends React.Component<Props> {
 
   get disableConfirmProps() {
     const {integration} = this.props;
-    const {body, actionText} = integration.provider.aspects.disable_dialog;
+    const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
       <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
-          This integration cannot be removed on Sentry
+        <Alert type="error" icon={<IconFlag size="md" />}>
+          {t('This integration cannot be removed in Sentry')}
         </Alert>
         {body}
       </React.Fragment>
@@ -139,7 +129,13 @@ export default class InstalledIntegration extends React.Component<Props> {
   }
 
   render() {
-    const {className, integration, provider, organization} = this.props;
+    const {
+      className,
+      integration,
+      provider,
+      organization,
+      showReauthMessage,
+    } = this.props;
 
     const removeConfirmProps =
       integration.status === 'active' && integration.provider.canDisable
@@ -151,53 +147,81 @@ export default class InstalledIntegration extends React.Component<Props> {
         {({hasAccess}) => (
           <IntegrationFlex key={integration.id} className={className}>
             <IntegrationItemBox>
-              <IntegrationItem compact integration={integration} />
+              <IntegrationItem integration={integration} />
             </IntegrationItemBox>
             <div>
-              {integration.status === 'disabled' && (
-                <AddIntegrationButton
-                  size="xsmall"
-                  priority="success"
-                  provider={provider}
-                  onAddIntegration={this.reinstallIntegration}
-                  reinstall
-                />
-              )}
-              {integration.status === 'active' && (
+              {showReauthMessage && (
                 <Tooltip
-                  disabled={this.hasConfiguration()}
-                  position="left"
-                  title="Integration not configurable"
+                  disabled={hasAccess}
+                  title={t(
+                    'You must be an organization owner, manager or admin to upgrade'
+                  )}
                 >
-                  <StyledButton
-                    borderless
-                    icon="icon-settings"
-                    disabled={!this.hasConfiguration() || !hasAccess}
-                    to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
-                    data-test-id="integration-configure-button"
-                  >
-                    Configure
-                  </StyledButton>
+                  <AddIntegrationButton
+                    disabled={!hasAccess}
+                    provider={provider}
+                    onAddIntegration={this.handleReAuthIntegration}
+                    integrationId={integration.id}
+                    priority="primary"
+                    size="small"
+                    buttonText={t('Upgrade Now')}
+                    organization={organization}
+                    icon={<IconWarning size="sm" />}
+                  />
                 </Tooltip>
               )}
-            </div>
-            <div>
-              <Confirm
-                priority="danger"
-                onConfirming={this.handleUninstallClick}
-                disabled={!hasAccess}
-                {...removeConfirmProps}
+              <Tooltip
+                disabled={this.hasConfiguration() && hasAccess}
+                position="left"
+                title={
+                  !this.hasConfiguration()
+                    ? t('Integration not configurable')
+                    : t(
+                        'You must be an organization owner, manager or admin to configure'
+                      )
+                }
               >
                 <StyledButton
-                  disabled={!hasAccess}
                   borderless
-                  icon="icon-trash"
-                  data-test-id="integration-remove-button"
+                  icon={<IconSettings />}
+                  disabled={
+                    !this.hasConfiguration() ||
+                    !hasAccess ||
+                    integration.status !== 'active'
+                  }
+                  to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
+                  data-test-id="integration-configure-button"
                 >
-                  Uninstall
+                  {t('Configure')}
                 </StyledButton>
-              </Confirm>
+              </Tooltip>
             </div>
+            <div>
+              <Tooltip
+                disabled={hasAccess}
+                title={t(
+                  'You must be an organization owner, manager or admin to uninstall'
+                )}
+              >
+                <Confirm
+                  priority="danger"
+                  onConfirming={this.handleUninstallClick}
+                  disabled={!hasAccess}
+                  {...removeConfirmProps}
+                >
+                  <StyledButton
+                    disabled={!hasAccess}
+                    borderless
+                    icon={<IconDelete />}
+                    data-test-id="integration-remove-button"
+                  >
+                    {t('Uninstall')}
+                  </StyledButton>
+                </Confirm>
+              </Tooltip>
+            </div>
+
+            <IntegrationStatus status={integration.status} />
           </IntegrationFlex>
         )}
       </Access>
@@ -206,7 +230,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 }
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const IntegrationFlex = styled('div')`
@@ -216,4 +240,41 @@ const IntegrationFlex = styled('div')`
 
 const IntegrationItemBox = styled('div')`
   flex: 1;
+`;
+
+const IntegrationStatus = styled(
+  (props: React.HTMLAttributes<HTMLElement> & {status: ObjectStatus}) => {
+    const {status, ...p} = props;
+    const color = status === 'active' ? theme.success : theme.gray500;
+    const titleText =
+      status === 'active'
+        ? t('This Integration can be disabled by clicking the Uninstall button')
+        : t('This Integration has been disconnected from the external provider');
+    return (
+      <Tooltip title={titleText}>
+        <div {...p}>
+          <CircleIndicator size={6} color={color} />
+          <IntegrationStatusText>{`${
+            status === 'active' ? t('enabled') : t('disabled')
+          }`}</IntegrationStatusText>
+        </div>
+      </Tooltip>
+    );
+  }
+)`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.gray500};
+  font-weight: light;
+  text-transform: capitalize;
+  &:before {
+    content: '|';
+    color: ${p => p.theme.gray400};
+    margin-right: ${space(1)};
+    font-weight: normal;
+  }
+`;
+
+const IntegrationStatusText = styled('div')`
+  margin: 0 ${space(0.75)} 0 ${space(0.5)};
 `;

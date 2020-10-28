@@ -6,16 +6,13 @@ import shutil
 import sys
 
 from distutils import log
-from subprocess import check_output
+from subprocess import check_output, STDOUT, CalledProcessError
 from distutils.core import Command
 
 import sentry  # We just need its path via __file__
 
 
 SENTRY_ROOT_PATH = os.path.abspath(os.path.join(sentry.__file__, "..", "..", ".."))
-
-
-YARN_PATH = os.path.join(SENTRY_ROOT_PATH, "bin", "yarn")
 
 
 class BaseBuildCommand(Command):
@@ -123,14 +120,6 @@ class BaseBuildCommand(Command):
                 return True
         return False
 
-    def _setup_git(self):
-        work_path = self.work_path
-
-        if os.path.exists(os.path.join(work_path, ".git")):
-            log.info("initializing git submodules")
-            self._run_command(["git", "submodule", "init"])
-            self._run_command(["git", "submodule", "update"])
-
     def _setup_js_deps(self):
         node_version = None
         try:
@@ -141,19 +130,25 @@ class BaseBuildCommand(Command):
 
         if node_version[2] is not None:
             log.info(u"using node ({0})".format(node_version))
-            self._run_yarn_command(["install", "--production", "--pure-lockfile", "--quiet"])
+            self._run_command(["yarn", "install", "--production", "--frozen-lockfile", "--quiet"])
 
     def _run_command(self, cmd, env=None):
-        log.debug("running [%s]" % (" ".join(cmd),))
+        cmd_str = " ".join(cmd)
+        log.debug("running [%s]", cmd_str)
         try:
-            return check_output(cmd, cwd=self.work_path, env=env)
-        except Exception:
-            log.error("command failed [%s] via [%s]" % (" ".join(cmd), self.work_path))
+            return check_output(cmd, cwd=self.work_path, env=env, stderr=STDOUT)
+        except CalledProcessError as err:
+            log.error(
+                "[%s] failed with exit code [%s] on [%s]:\n%s",
+                cmd_str,
+                err.returncode,
+                self.work_path,
+                err.output,
+            )
             raise
-
-    def _run_yarn_command(self, cmd, env=None):
-        log.debug(u"yarn path: ({0})".format(YARN_PATH))
-        self._run_command([YARN_PATH] + cmd, env=env)
+        except Exception:
+            log.error("command failed [%s] via [%s]", cmd_str, self.work_path)
+            raise
 
     def update_manifests(self):
         # if we were invoked from sdist, we need to inform sdist about
@@ -185,7 +180,6 @@ class BaseBuildCommand(Command):
 
     def run(self):
         if self.force or self._needs_built():
-            self._setup_git()
             self._setup_js_deps()
             self._build()
             self.update_manifests()

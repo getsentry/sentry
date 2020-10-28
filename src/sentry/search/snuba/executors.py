@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import logging
 import time
 import six
+import sentry_sdk
 from datetime import timedelta
 from hashlib import md5
 
@@ -15,7 +16,7 @@ from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Group
-from sentry.utils import snuba, metrics
+from sentry.utils import json, metrics, snuba
 
 
 def get_search_filter(search_filters, name, operator):
@@ -27,6 +28,8 @@ def get_search_filter(search_filters, name, operator):
     :param operator: '<' or '>'
     :return: The value of the field if found, else None
     """
+    if not search_filters:
+        return None
     assert operator in ("<", ">")
     comparator = max if operator.startswith(">") else min
     found_val = None
@@ -158,7 +161,7 @@ class AbstractQueryExecutor:
 
         selected_columns = []
         if get_sample:
-            query_hash = md5(repr(conditions)).hexdigest()[:8]
+            query_hash = md5(json.dumps(conditions).encode("utf-8")).hexdigest()[:8]
             selected_columns.append(
                 ("cityHash64", ("'{}'".format(query_hash), "group_id"), "sample")
             )
@@ -191,6 +194,7 @@ class AbstractQueryExecutor:
             totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
             turbo=get_sample,  # Turn off FINAL when in sampling mode
             sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
+            condition_resolver=snuba.get_snuba_column_name,
         )
         rows = snuba_results["data"]
         total = snuba_results["totals"]["total"]
@@ -208,6 +212,9 @@ class AbstractQueryExecutor:
             By default, no transformation is done.
         """
         return converted_filter
+
+    def has_sort_strategy(self, sort_by):
+        return sort_by in self.sort_strategies.keys()
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
@@ -233,6 +240,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "freq": "times_seen",
         "new": "first_seen",
         "priority": "priority",
+        "user": "user_count",
     }
 
     aggregation_defs = {
@@ -243,10 +251,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "priority": ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", ""],
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
+        "user_count": ["uniq", "tags[sentry:user]"],
     }
 
     @property
-    @abstractmethod
     def dataset(self):
         return snuba.Dataset.Events
 
@@ -268,7 +276,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
         now = timezone.now()
         end = None
-        end_params = filter(None, [date_to, get_search_filter(search_filters, "date", "<")])
+        end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
         if end_params:
             end = min(end_params)
 
@@ -300,9 +308,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # retention date, which may be closer than 90 days in the past, but
         # apparently `retention_window_start` can be None(?), so we need a
         # fallback.
-        retention_date = max(filter(None, [retention_window_start, now - timedelta(days=90)]))
+        retention_date = max(
+            [_f for _f in [retention_window_start, now - timedelta(days=90)] if _f]
+        )
         start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
-        start = max(filter(None, start_params))
+        start = max([_f for _f in start_params if _f])
         end = max([retention_date, end])
 
         if start == retention_date and end == retention_date:
@@ -322,9 +332,14 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # to something that we can send down to Snuba in a `group_id IN (...)`
         # clause.
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
-        too_many_candidates = False
-        group_ids = list(group_queryset.values_list("id", flat=True)[: max_candidates + 1])
+
+        with sentry_sdk.start_span(op="snuba_group_query") as span:
+            group_ids = list(group_queryset.values_list("id", flat=True)[: max_candidates + 1])
+            span.set_data("Max Candidates", max_candidates)
+            span.set_data("Result Size", len(group_ids))
         metrics.timing("snuba.search.num_candidates", len(group_ids))
+
+        too_many_candidates = False
         if not group_ids:
             # no matches could possibly be found from this point on
             metrics.incr("snuba.search.no_candidates", skip_internal=False)
@@ -539,7 +554,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # +/-10% @ 95% confidence.
 
             sample_size = options.get("snuba.search.hits-sample-size")
-            snuba_groups, snuba_total = self.snuba_search(
+            kwargs = dict(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
@@ -550,6 +565,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 get_sample=True,
                 search_filters=search_filters,
             )
+            if not too_many_candidates:
+                kwargs["group_ids"] = group_ids
+
+            snuba_groups, snuba_total = self.snuba_search(**kwargs)
             snuba_count = len(snuba_groups)
             if snuba_count == 0:
                 # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.empty_result

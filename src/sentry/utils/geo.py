@@ -56,7 +56,7 @@ def _init_geoip():
 def _init_geoip_rust():
     global rust_geoip
 
-    from semaphore.processing import GeoIpLookup
+    from sentry_relay.processing import GeoIpLookup
 
     try:
         rust_geoip = GeoIpLookup.from_path(geoip_path_mmdb)

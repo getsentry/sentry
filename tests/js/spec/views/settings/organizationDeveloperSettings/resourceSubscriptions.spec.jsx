@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import FormModel from 'app/views/settings/components/forms/model';
 import Subscriptions from 'app/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
@@ -34,10 +35,7 @@ describe('Resource Subscriptions', () => {
 
     it('renders disabled checkbox with no issue permission', () => {
       expect(
-        wrapper
-          .find('SubscriptionBox')
-          .first()
-          .prop('disabledFromPermissions')
+        wrapper.find('SubscriptionBox').first().prop('disabledFromPermissions')
       ).toBe(true);
     });
 
@@ -52,10 +50,7 @@ describe('Resource Subscriptions', () => {
 
       wrapper.setProps({permissions});
       expect(
-        wrapper
-          .find('SubscriptionBox')
-          .first()
-          .prop('disabledFromPermissions')
+        wrapper.find('SubscriptionBox').first().prop('disabledFromPermissions')
       ).toBe(false);
     });
   });
@@ -86,10 +81,7 @@ describe('Resource Subscriptions', () => {
 
     it('renders nondisabled checkbox with correct permissions', () => {
       expect(
-        wrapper
-          .find('SubscriptionBox')
-          .first()
-          .prop('disabledFromPermissions')
+        wrapper.find('SubscriptionBox').first().prop('disabledFromPermissions')
       ).toBe(false);
     });
 
@@ -104,10 +96,7 @@ describe('Resource Subscriptions', () => {
 
       wrapper.setProps({permissions});
       expect(
-        wrapper
-          .find('SubscriptionBox')
-          .first()
-          .prop('disabledFromPermissions')
+        wrapper.find('SubscriptionBox').first().prop('disabledFromPermissions')
       ).toBe(true);
     });
   });

@@ -113,16 +113,51 @@ class OrganizationReleaseListTest(APITestCase):
         release2.add_project(project)
 
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
-        response = self.client.get(url + "?query=foo", format="json")
+        response = self.client.get(url + "?query=oob", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["version"] == release.version
 
-        response = self.client.get(url + "?query=bar", format="json")
+        response = self.client.get(url + "?query=baz", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_query_filter_suffix(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team], organization=org)
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        release = Release.objects.create(
+            organization_id=org.id,
+            version="com.foo.BarApp@1.0+1234",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+        )
+        release.add_project(project)
+
+        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url + "?query=1.0+(1234)", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["version"] == release.version
+
+        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url + "?query=1.0%2B1234", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["version"] == release.version
 
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -209,6 +244,54 @@ class OrganizationReleaseListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+
+class OrganizationReleaseStatsTest(APITestCase):
+    def setUp(self):
+        self.project1 = self.create_project(teams=[self.team], organization=self.organization)
+        self.project2 = self.create_project(teams=[self.team], organization=self.organization)
+        self.project3 = self.create_project(teams=[self.team], organization=self.organization)
+
+        self.login_as(user=self.user)
+
+    def test_simple(self):
+        release1 = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+        )
+        release1.add_project(self.project1)
+
+        release2 = Release.objects.create(
+            organization_id=self.organization.id,
+            version="2",
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+        )
+        release2.add_project(self.project2)
+
+        release3 = Release.objects.create(
+            organization_id=self.organization.id,
+            version="3",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+        )
+        release3.add_project(self.project3)
+
+        url = reverse(
+            "sentry-api-0-organization-releases-stats",
+            kwargs={"organization_slug": self.organization.slug},
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        # When available we use the released date
+        assert response.data[0]["version"] == release2.version
+        assert response.data[0]["date"] == release2.date_released
+        assert response.data[1]["version"] == release3.version
+        assert response.data[1]["date"] == release3.date_added
+        assert response.data[2]["version"] == release1.version
+        assert response.data[2]["date"] == release1.date_added
 
 
 class OrganizationReleaseCreateTest(APITestCase):
@@ -629,7 +712,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             url, data={"version": "1.2.1", "projects": [project.slug, "banana"]}
         )
         assert response.status_code == 400
-        assert "Invalid project slugs" in response.content
+        assert b"Invalid project slugs" in response.content
 
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -670,7 +753,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
 
         assert response.status_code == 400
-        assert "Invalid project slugs" in response.content
+        assert b"Invalid project slugs" in response.content
 
         response = self.client.post(url, data={"version": "1.2.1", "projects": [project1.slug]})
 
@@ -697,7 +780,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(bad_api_key.key)),
+            HTTP_AUTHORIZATION=b"Basic "
+            + b64encode(u"{}:".format(bad_api_key.key).encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -706,7 +790,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(wrong_org_api_key.key)),
+            HTTP_AUTHORIZATION=b"Basic "
+            + b64encode(u"{}:".format(wrong_org_api_key.key).encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -715,7 +800,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(good_api_key.key)),
+            HTTP_AUTHORIZATION=b"Basic "
+            + b64encode(u"{}:".format(good_api_key.key).encode("utf-8")),
         )
         assert response.status_code == 201, response.content
 

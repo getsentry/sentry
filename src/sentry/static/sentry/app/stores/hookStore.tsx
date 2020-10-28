@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 import isUndefined from 'lodash/isUndefined';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Hooks, HookName} from 'app/types/hooks';
 
@@ -16,25 +16,35 @@ const validHookNames = new Set<HookName>([
   'analytics:log-experiment',
   'component:header-date-range',
   'component:header-selector-items',
+  'feature-disabled:alerts-page',
   'feature-disabled:custom-inbound-filters',
   'feature-disabled:custom-symbol-sources',
   'feature-disabled:data-forwarding',
   'feature-disabled:discard-groups',
   'feature-disabled:discover-page',
+  'feature-disabled:discover-saved-query-create',
   'feature-disabled:discover-sidebar-item',
+  'feature-disabled:discover2-page',
+  'feature-disabled:discover2-sidebar-item',
   'feature-disabled:events-page',
   'feature-disabled:events-sidebar-item',
+  'feature-disabled:grid-editable-actions',
+  'feature-disabled:incidents-sidebar-item',
+  'feature-disabled:performance-page',
+  'feature-disabled:performance-sidebar-item',
   'feature-disabled:project-selector-checkbox',
   'feature-disabled:rate-limits',
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
   'footer',
+  'help-modal:footer',
   'integrations:feature-gates',
   'member-invite-modal:customization',
   'metrics:event',
   'onboarding:extra-chrome',
   'onboarding:invite-members',
+  'onboarding-wizard:skip-help',
   'organization:header',
   'routes',
   'routes:admin',
@@ -68,7 +78,7 @@ const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
 
   add(hookName, callback) {
     // Gracefully error on invalid hooks, but maintain registration
-    // TODO(ts): With typescript we can rmeove this in the future
+    // TODO(ts): With typescript we can remove this in the future
     if (!validHookNames.has(hookName)) {
       // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);
@@ -90,9 +100,7 @@ const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
     if (isUndefined(this.hooks[hookName])) {
       return;
     }
-    this.hooks[hookName] = this.hooks[hookName]!.filter(cb => {
-      return cb !== callback;
-    });
+    this.hooks[hookName] = this.hooks[hookName]!.filter(cb => cb !== callback);
     this.trigger(hookName, this.hooks[hookName]);
   },
 

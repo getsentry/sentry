@@ -4,7 +4,6 @@ import React from 'react';
 import {AvatarUser, Commit} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import TimeSince from 'app/components/timeSince';
-
 import {t} from 'app/locale';
 
 type Props = {
@@ -31,7 +30,7 @@ class LastCommit extends React.Component<Props> {
     headerClass: PropTypes.string,
   };
 
-  renderMessage(message: string): string {
+  renderMessage(message: Commit['message']): string {
     if (!message) {
       return t('No message provided');
     }

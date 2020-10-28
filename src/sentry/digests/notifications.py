@@ -19,14 +19,26 @@ Notification = namedtuple("Notification", "event rules")
 
 
 def split_key(key):
-    from sentry.plugins.base import plugins
+    from sentry.mail.adapter import ActionTargetType
 
-    plugin_slug, _, project_id = key.split(":", 2)
-    return plugins.get(plugin_slug), Project.objects.get(pk=project_id)
+    key_parts = key.split(":", 4)
+    project_id = key_parts[2]
+    # XXX: We transitioned to new style keys (len == 5) a while ago on sentry.io. But
+    # on-prem users might transition at any time, so we need to keep this transition
+    # code around for a while, maybe indefinitely.
+    if len(key_parts) == 5:
+        target_type = ActionTargetType(key_parts[3])
+        target_identifier = key_parts[4] if key_parts[4] else None
+    else:
+        target_type = ActionTargetType.ISSUE_OWNERS
+        target_identifier = None
+    return Project.objects.get(pk=project_id), target_type, target_identifier
 
 
-def unsplit_key(plugin, project):
-    return u"{plugin.slug}:p:{project.id}".format(plugin=plugin, project=project)
+def unsplit_key(project, target_type, target_identifier):
+    return u"mail:p:{}:{}:{}".format(
+        project.id, target_type.value, target_identifier if target_identifier is not None else ""
+    )
 
 
 def event_to_record(event, rules):
@@ -55,9 +67,9 @@ def fetch_state(project, records):
         "rules": Rule.objects.in_bulk(
             itertools.chain.from_iterable(record.value.rules for record in records)
         ),
-        "event_counts": tsdb.get_sums(tsdb.models.group, groups.keys(), start, end),
+        "event_counts": tsdb.get_sums(tsdb.models.group, list(groups.keys()), start, end),
         "user_counts": tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group, groups.keys(), start, end
+            tsdb.models.users_affected_by_group, list(groups.keys()), start, end
         ),
     }
 
@@ -139,7 +151,7 @@ def rewrite_record(record, project, groups, rules):
 
     return Record(
         record.key,
-        Notification(event, filter(None, [rules.get(id) for id in record.value.rules])),
+        Notification(event, [_f for _f in [rules.get(id) for id in record.value.rules] if _f]),
         record.timestamp,
     )
 

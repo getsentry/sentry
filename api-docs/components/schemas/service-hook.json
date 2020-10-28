@@ -1,0 +1,29 @@
+{
+  "ServiceHook": {
+    "type": "object",
+    "required": ["dateCreated", "events", "id", "secret", "status", "url"],
+    "properties": {
+      "dateCreated": {
+        "type": "string"
+      },
+      "events": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "id": {
+        "type": "string"
+      },
+      "secret": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string"
+      },
+      "url": {
+        "type": "string"
+      }
+    }
+  }
+}

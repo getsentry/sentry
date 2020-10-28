@@ -2,9 +2,9 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {Observer} from 'mobx-react';
 import omit from 'lodash/omit';
-import get from 'lodash/get';
 import scrollToElement from 'scroll-to-element';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
@@ -14,6 +14,7 @@ import Form from 'app/views/settings/components/forms/form';
 import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
 import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {IconAdd, IconDelete} from 'app/icons';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
@@ -23,12 +24,9 @@ import {
 } from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
 import routeTitleGen from 'app/utils/routeTitle';
-
 import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-
-import styled from '@emotion/styled';
 import {
   addSentryAppToken,
   removeSentryAppToken,
@@ -50,7 +48,7 @@ const getResourceFromScope = (scope: Scope): Resource | undefined => {
     const allChoices = Object.values(permObj.choices);
 
     const allScopes = allChoices.reduce(
-      (_allScopes: string[], choice) => _allScopes.concat(get(choice, 'scopes', [])),
+      (_allScopes: string[], choice) => _allScopes.concat(choice?.scopes ?? []),
       []
     );
 
@@ -172,7 +170,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   handleSubmitError = err => {
     let errorMessage = t('Unknown Error');
     if (err.status >= 400 && err.status < 500) {
-      errorMessage = get(err, 'responseJSON.detail', errorMessage);
+      errorMessage = err?.responseJSON.detail ?? errorMessage;
     }
     addErrorMessage(errorMessage);
 
@@ -182,6 +180,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
       if (firstErrorFieldId) {
         scrollToElement(`#${firstErrorFieldId}`, {
           align: 'middle',
+          offset: 0,
         });
       }
     }
@@ -198,10 +197,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
 
   get showAuthInfo() {
     const {app} = this.state;
-    if (app && app.clientSecret && app.clientSecret[0] === '*') {
-      return false;
-    }
-    return true;
+    return !(app && app.clientSecret && app.clientSecret[0] === '*');
   }
 
   onAddToken = async (evt: React.MouseEvent): Promise<void> => {
@@ -235,44 +231,42 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   renderTokens = () => {
     const {tokens} = this.state;
     if (tokens.length > 0) {
-      return tokens.map(token => {
-        return (
-          <StyledPanelItem key={token.token}>
-            <TokenItem>
-              <Tooltip
-                disabled={this.showAuthInfo}
-                position="right"
-                containerDisplayMode="inline"
-                title={t(
-                  'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
-                )}
-              >
-                <TextCopyInput>
-                  {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
-                </TextCopyInput>
-              </Tooltip>
-            </TokenItem>
-            <CreatedDate>
-              <CreatedTitle>Created:</CreatedTitle>
-              <DateTime
-                date={getDynamicText({
-                  value: token.dateCreated,
-                  fixed: new Date(1508208080000),
-                })}
-              />
-            </CreatedDate>
-            <Button
-              onClick={this.onRemoveToken.bind(this, token)}
-              size="small"
-              icon="icon-trash"
-              data-test-id="token-delete"
-              type="button"
+      return tokens.map(token => (
+        <StyledPanelItem key={token.token}>
+          <TokenItem>
+            <Tooltip
+              disabled={this.showAuthInfo}
+              position="right"
+              containerDisplayMode="inline"
+              title={t(
+                'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
+              )}
             >
-              {t('Revoke')}
-            </Button>
-          </StyledPanelItem>
-        );
-      });
+              <TextCopyInput>
+                {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
+              </TextCopyInput>
+            </Tooltip>
+          </TokenItem>
+          <CreatedDate>
+            <CreatedTitle>Created:</CreatedTitle>
+            <DateTime
+              date={getDynamicText({
+                value: token.dateCreated,
+                fixed: new Date(1508208080000),
+              })}
+            />
+          </CreatedDate>
+          <Button
+            onClick={this.onRemoveToken.bind(this, token)}
+            size="small"
+            icon={<IconDelete />}
+            data-test-id="token-delete"
+            type="button"
+          >
+            {t('Revoke')}
+          </Button>
+        </StyledPanelItem>
+      ));
     } else {
       return <EmptyMessage description={t('No tokens created yet.')} />;
     }
@@ -353,7 +347,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                 {t('Tokens')}
                 <Button
                   size="xsmall"
-                  icon="icon-circle-add"
+                  icon={<IconAdd size="xs" isCircled />}
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"
                   type="button"
@@ -370,19 +364,17 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
                 {app.status !== 'internal' && (
-                  <FormField name="clientId" label="Client ID" overflow>
-                    {({value}) => {
-                      return (
-                        <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
-                        </TextCopyInput>
-                      );
-                    }}
+                  <FormField name="clientId" label="Client ID">
+                    {({value}) => (
+                      <TextCopyInput>
+                        {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
+                      </TextCopyInput>
+                    )}
                   </FormField>
                 )}
-                <FormField overflow name="clientSecret" label="Client Secret">
-                  {({value}) => {
-                    return value ? (
+                <FormField name="clientSecret" label="Client Secret">
+                  {({value}) =>
+                    value ? (
                       <Tooltip
                         disabled={this.showAuthInfo}
                         position="right"
@@ -392,13 +384,13 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                         )}
                       >
                         <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                          {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
                         </TextCopyInput>
                       </Tooltip>
                     ) : (
                       <em>hidden</em>
-                    );
-                  }}
+                    )
+                  }
                 </FormField>
               </PanelBody>
             </Panel>
@@ -419,7 +411,7 @@ const TokenItem = styled('div')`
 `;
 
 const CreatedTitle = styled('span')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   margin-bottom: 2px;
 `;
 

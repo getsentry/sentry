@@ -12,6 +12,7 @@ from sentry.models import (
     WidgetDisplayTypes,
 )
 from sentry.testutils import APITestCase
+from sentry.utils.compat import zip
 
 
 class OrganizationDashboardDetailsTestCase(APITestCase):
@@ -53,7 +54,7 @@ class OrganizationDashboardDetailsTestCase(APITestCase):
             "groupby": ["time"],
             "rollup": 86400,
         }
-        self.geo_erorrs_query = {
+        self.geo_errors_query = {
             "name": "errorsByGeo",
             "fields": ["geo.country_code"],
             "conditions": [["geo.country_code", "IS NOT NULL", None]],
@@ -80,7 +81,7 @@ class OrganizationDashboardDetailsTestCase(APITestCase):
             widget=self.widget_2,
             type=WidgetDataSourceTypes.DISCOVER_SAVED_SEARCH,
             name="errorsByGeo",
-            data=self.geo_erorrs_query,
+            data=self.geo_errors_query,
             order=1,
         )
 

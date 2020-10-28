@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -8,8 +7,6 @@ from sentry.models import Release, ReleaseCommit
 
 
 class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
-    doc_section = DocSection.RELEASES
-
     def get(self, request, organization, version):
         """
         List an Organization Release's Commits

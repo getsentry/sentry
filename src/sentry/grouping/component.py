@@ -32,17 +32,33 @@ class GroupingComponent(object):
     into components to make a hash for grouping purposes.
     """
 
-    def __init__(self, id, hint=None, contributes=None, values=None):
+    def __init__(
+        self,
+        id,
+        hint=None,
+        contributes=None,
+        contributes_to_similarity=None,
+        values=None,
+        similarity_encoder=None,
+        similarity_self_encoder=None,
+    ):
         self.id = id
-        if hint is None:
-            hint = DEFAULT_HINTS.get(id)
-        self.hint = hint
-        if contributes is None:
-            contributes = _calculate_contributes(values)
-        self.contributes = contributes
-        if values is None:
-            values = []
-        self.values = values
+
+        # Default values
+        self.hint = DEFAULT_HINTS.get(id)
+        self.contributes = None
+        self.contributes_to_similarity = None
+        self.values = []
+
+        self.update(
+            hint=hint,
+            contributes=contributes,
+            contributes_to_similarity=contributes_to_similarity,
+            values=values,
+        )
+
+        self.similarity_encoder = similarity_encoder
+        self.similarity_self_encoder = similarity_self_encoder
 
     @property
     def name(self):
@@ -57,7 +73,7 @@ class GroupingComponent(object):
             for value in c.values:
                 if isinstance(value, GroupingComponent) and value.contributes:
                     _walk_components(value, stack)
-            parts = filter(None, stack)
+            parts = [_f for _f in stack if _f]
             items.append(parts)
             stack.pop()
 
@@ -84,7 +100,7 @@ class GroupingComponent(object):
                     for subcomponent in value.iter_subcomponents(id, recursive=True):
                         yield subcomponent
 
-    def update(self, hint=None, contributes=None, values=None):
+    def update(self, hint=None, contributes=None, contributes_to_similarity=None, values=None):
         """Updates an already existing component with new values."""
         if hint is not None:
             self.hint = hint
@@ -93,7 +109,11 @@ class GroupingComponent(object):
                 contributes = _calculate_contributes(values)
             self.values = values
         if contributes is not None:
+            if contributes_to_similarity is None:
+                contributes_to_similarity = contributes
             self.contributes = contributes
+        if contributes_to_similarity is not None:
+            self.contributes_to_similarity = contributes_to_similarity
 
     def iter_values(self):
         """Recursively walks the component and flattens it into a list of
@@ -112,12 +132,35 @@ class GroupingComponent(object):
         if self.contributes:
             return hash_from_values(self.iter_values())
 
+    def encode_for_similarity(self):
+        if not self.contributes_to_similarity:
+            return
+
+        id = self.id
+
+        if self.similarity_self_encoder is not None:
+            for x in self.similarity_self_encoder(id, self):
+                yield x
+
+            return
+
+        encoder = self.similarity_encoder
+
+        for i, value in enumerate(self.values):
+            if encoder is not None:
+                for x in encoder(id, value):
+                    yield x
+            elif isinstance(value, GroupingComponent):
+                for x in value.encode_for_similarity():
+                    yield x
+
     def as_dict(self):
         """Converts the component tree into a dictionary."""
         rv = {
             "id": self.id,
             "name": self.name,
             "contributes": self.contributes,
+            "contributes_to_similarity": self.contributes_to_similarity,
             "hint": self.hint,
             "values": [],
         }

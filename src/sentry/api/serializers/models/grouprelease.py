@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.app import tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import GroupRelease, Release
+from sentry.utils.compat import zip
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 

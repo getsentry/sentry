@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import SentryTypes from 'app/sentryTypes';
 import UserAvatar from 'app/components/avatar/userAvatar';
@@ -9,13 +9,18 @@ import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 import {Actor} from 'app/types';
 
-type Props = {
+type DefaultProps = {
+  hasTooltip: boolean;
+};
+
+type Props = DefaultProps & {
   actor: Actor;
   size?: number;
   default?: string;
   title?: string;
   gravatar?: boolean;
   className?: string;
+  onClick?: () => void;
 };
 
 class ActorAvatar extends React.Component<Props> {
@@ -25,6 +30,11 @@ class ActorAvatar extends React.Component<Props> {
     default: PropTypes.string,
     title: PropTypes.string,
     gravatar: PropTypes.bool,
+    hasTooltip: PropTypes.bool,
+  };
+
+  static defaultProps: DefaultProps = {
+    hasTooltip: true,
   };
 
   render() {
@@ -32,12 +42,12 @@ class ActorAvatar extends React.Component<Props> {
 
     if (actor.type === 'user') {
       const user = actor.id ? MemberListStore.getById(actor.id) : actor;
-      return <UserAvatar user={user} hasTooltip {...props} />;
+      return <UserAvatar user={user} {...props} />;
     }
 
     if (actor.type === 'team') {
       const team = TeamStore.getById(actor.id);
-      return <TeamAvatar team={team} hasTooltip {...props} />;
+      return <TeamAvatar team={team} {...props} />;
     }
 
     Sentry.withScope(scope => {

@@ -9,7 +9,7 @@ import {t, tct} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import CommitLink from 'app/components/commitLink';
 import Hovercard from 'app/components/hovercard';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconWarning} from 'app/icons';
 import Link from 'app/components/links/link';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
@@ -26,7 +26,7 @@ class CommitRow extends React.Component<Props> {
     customAvatar: PropTypes.node,
   };
 
-  renderMessage(message: string): string {
+  renderMessage(message: Commit['message']): string {
     if (!message) {
       return t('No message provided');
     }
@@ -46,6 +46,7 @@ class CommitRow extends React.Component<Props> {
             accountSettings: <StyledLink to="/settings/account/emails/" />,
             inviteUser: (
               <StyledLink
+                to=""
                 onClick={() =>
                   openInviteMembersModal({
                     initialData: [
@@ -77,7 +78,9 @@ class CommitRow extends React.Component<Props> {
           <AvatarWrapper>
             <Hovercard body={this.renderHovercardBody(author)}>
               <UserAvatar size={36} user={author} />
-              <EmailWarningIcon src="icon-circle-exclamation" />
+              <EmailWarningIcon>
+                <IconWarning size="xs" />
+              </EmailWarningIcon>
             </Hovercard>
           </AvatarWrapper>
         ) : (
@@ -124,13 +127,16 @@ const StyledLink = styled(Link)`
   }
 `;
 
-const EmailWarningIcon = styled(InlineSvg)`
+const EmailWarningIcon = styled('span')`
   position: relative;
-  margin-left: -11px;
-  border-radius: 11px;
-  margin-bottom: -25px;
+  top: 15px;
+  left: -11px;
+  display: inline-block;
+  line-height: 12px;
+  border-radius: 50%;
   border: 1px solid ${p => p.theme.white};
-  background: ${p => p.theme.yellowLight};
+  background: ${p => p.theme.yellow300};
+  padding: 1px 2px 3px 2px;
 `;
 
 const CommitMessage = styled('div')`
@@ -150,7 +156,7 @@ const Meta = styled(TextOverflow)`
   font-size: 13px;
   line-height: 1.5;
   margin: 0;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 export default styled(CommitRow)`

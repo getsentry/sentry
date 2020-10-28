@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
-import json
+import responses
 
 from sentry.utils.compat.mock import patch
 
+from django.test.utils import override_settings
 from django.core.urlresolvers import reverse
 
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.utils import json
 
 
 SAMPLE_EDIT_ISSUE_PAYLOAD_NO_ASSIGNEE = """
@@ -70,7 +72,8 @@ SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE = """
     "issue": {
         "fields": {
             "assignee": {
-                "emailAddress": "jess@sentry.io"
+                "emailAddress": "jess@sentry.io",
+                "accountId": "deadbeef123"
             }
         },
         "key": "APP-123"
@@ -130,6 +133,43 @@ class JiraWebhooksTest(APITestCase):
                 integration, "jess@sentry.io", "APP-123", assign=True
             )
 
+    @override_settings(JIRA_USE_EMAIL_SCOPE=True)
+    @patch("sentry.integrations.jira.webhooks.sync_group_assignee_inbound")
+    @responses.activate
+    def test_assign_use_email_api(self, mock_sync_group_assignee_inbound):
+        org = self.organization
+
+        integration = Integration.objects.create(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(org, self.user)
+
+        path = reverse("sentry-extensions-jira-issue-updated")
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/3/user/email",
+            json={"accountId": "deadbeef123", "email": self.user.email},
+            match_querystring=False,
+        )
+
+        with patch(
+            "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
+        ):
+            data = json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE.strip())
+            data["issue"]["fields"]["assignee"]["emailAddress"] = ""
+            resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
+            assert resp.status_code == 200
+            assert mock_sync_group_assignee_inbound.called
+            assert len(responses.calls) == 1
+
     @patch("sentry.integrations.jira.webhooks.sync_group_assignee_inbound")
     def test_assign_missing_email(self, mock_sync_group_assignee_inbound):
         org = self.organization
@@ -143,7 +183,7 @@ class JiraWebhooksTest(APITestCase):
             "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
         ):
             data = json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE.strip())
-            data["issue"]["fields"]["assignee"].pop("emailAddress")
+            data["issue"]["fields"]["assignee"]["emailAddress"] = ""
             resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
             assert not mock_sync_group_assignee_inbound.called

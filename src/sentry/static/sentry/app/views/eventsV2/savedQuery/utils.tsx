@@ -2,15 +2,13 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {Organization, NewQuery, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-
 import {
   createSavedQuery,
   deleteSavedQuery,
   updateSavedQuery,
 } from 'app/actionCreators/discoverSavedQueries';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-
-import EventView from '../eventView';
+import EventView from 'app/utils/discover/eventView';
 
 export function handleCreateQuery(
   api: Client,

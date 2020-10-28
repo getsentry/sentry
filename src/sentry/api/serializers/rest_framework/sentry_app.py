@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from jsonschema.exceptions import ValidationError as SchemaValidationError
-
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 

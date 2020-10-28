@@ -2,9 +2,9 @@ import {Body, Header} from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import intersection from 'lodash/intersection';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {SentryApp, Scope} from 'app/types';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
@@ -46,13 +46,13 @@ class PublishRequestFormModel extends FormModel {
   getTransformedData() {
     const data = this.getData();
     //map object to list of questions
-    const questionnaire = Array.from(this.fieldDescriptor.values()).map(field => {
+    const questionnaire = Array.from(this.fieldDescriptor.values()).map(field =>
       //we read the meta for the question that has a react node for the label
-      return {
+      ({
         question: field.meta || field.label,
         answer: data[field.name],
-      };
-    });
+      })
+    );
     return {questionnaire};
   }
 }
@@ -100,6 +100,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         autosize: true,
         rows: 1,
         inline: false,
+        name: 'question0',
       },
       {
         type: 'textarea',
@@ -108,6 +109,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         autosize: true,
         rows: 1,
         inline: false,
+        name: 'question1',
       },
       {
         type: 'textarea',
@@ -116,6 +118,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         autosize: true,
         rows: 1,
         inline: false,
+        name: 'question2',
       },
     ];
 
@@ -129,13 +132,11 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         rows: 1,
         inline: false,
         meta: permissionQuestionPlainText,
+        name: 'question3',
       });
     }
 
-    //dynamically generate the name based off the index
-    return baseFields.map((field, index) =>
-      Object.assign({name: `question${index}`}, field)
-    );
+    return baseFields;
   }
 
   handleSubmitSuccess = () => {

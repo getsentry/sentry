@@ -15,18 +15,25 @@ from sentry.models import (
     GroupHash,
     GroupAssignee,
     GroupBookmark,
+    GroupRelease,
     GroupResolution,
     GroupSeen,
     GroupSnooze,
     GroupSubscription,
     GroupStatus,
     GroupTombstone,
+    GroupMeta,
     Release,
+    ReleaseEnvironment,
+    Integration,
 )
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import MockClock
+from sentry.plugins.base import plugins
+from sentry.utils.compat.mock import patch
 
 
-class GroupDetailsTest(APITestCase):
+class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_with_numerical_id(self):
         self.login_as(user=self.user)
 
@@ -77,6 +84,97 @@ class GroupDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == six.text_type(group.id)
         assert response.data["firstRelease"]["version"] == "1.0"
+
+    def test_no_releases(self):
+        self.login_as(user=self.user)
+
+        event = self.store_event(data={}, project_id=self.project.id)
+
+        group = event.group
+
+        url = u"/api/0/issues/{}/".format(group.id)
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["firstRelease"] is None
+        assert response.data["lastRelease"] is None
+
+    def _test_current_release(self, group_seen_on_latest_release):
+        clock = MockClock()
+
+        # Create several of everything, to exercise all filtering clauses.
+
+        def set_up_organization():
+            organization = self.create_organization()
+
+            team = self.create_team(organization=organization)
+            self.create_team_membership(team=team, user=self.user)
+
+            prod = self.create_environment(name="production", organization=organization)
+            dev = self.create_environment(name="development", organization=organization)
+            environments = (prod, dev)
+
+            def set_up_project():
+                project = self.create_project(organization=organization, teams=[team])
+                for environment in environments:
+                    environment.add_project(project)
+
+                def set_up_release():
+                    release = self.create_release(project=project)
+                    for environment in environments:
+                        ReleaseEnvironment.get_or_create(project, release, environment, clock())
+                    return release
+
+                groups = [self.create_group(project=project) for i in range(3)]
+                target_group = groups[1]
+
+                early_release = set_up_release()
+                later_release = set_up_release()
+
+                def seen_on(group, release, environment):
+                    return GroupRelease.get_or_create(group, release, environment, clock())
+
+                def set_up_group_releases(environment):
+                    for release in (early_release, later_release):
+                        for group in groups:
+                            if group != target_group:
+                                seen_on(group, release, environment)
+
+                    latest_seen = seen_on(target_group, early_release, environment)
+                    if group_seen_on_latest_release:
+                        latest_seen = seen_on(target_group, later_release, environment)
+                    return latest_seen
+
+                target_group_release = set_up_group_releases(prod)
+                set_up_group_releases(dev)
+
+                return project, target_group, target_group_release
+
+            set_up_project()
+            target_project, target_group, target_group_release = set_up_project()
+            set_up_project()
+
+            return organization, target_project, target_group, target_group_release
+
+        set_up_organization()
+        target_org, target_project, target_group, latest_seen = set_up_organization()
+        set_up_organization()
+
+        self.login_as(user=self.user)
+        url = u"/api/0/issues/{}/".format(target_group.id)
+        response = self.client.get(url, {"environment": "production"}, format="json")
+        assert response.status_code == 200
+        return response.data["currentRelease"], latest_seen
+
+    def test_current_release_has_group(self):
+        current_release, group_release = self._test_current_release(True)
+        assert current_release is not None
+        assert current_release["firstSeen"] == group_release.first_seen
+        assert current_release["lastSeen"] == group_release.last_seen
+
+    def test_current_release_is_later(self):
+        current_release, group_release = self._test_current_release(False)
+        assert current_release is None
 
     def test_pending_delete_pending_merge_excluded(self):
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)
@@ -138,6 +236,43 @@ class GroupDetailsTest(APITestCase):
             u'<a href="https://example.com/issues/2">Issue#2</a>'
         ]
 
+    def test_plugin_external_issue_annotation(self):
+        group = self.create_group()
+        GroupMeta.objects.create(group=group, key="trello:tid", value="134")
+
+        plugins.get("trello").enable(group.project)
+        plugins.get("trello").set_option("key", "some_value", group.project)
+        plugins.get("trello").set_option("token", "another_value", group.project)
+
+        self.login_as(user=self.user)
+
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.get(url, format="json")
+
+        assert response.data["annotations"] == [
+            u'<a href="https://trello.com/c/134">Trello-134</a>'
+        ]
+
+    def test_integration_external_issue_annotation(self):
+        group = self.create_group()
+        integration = Integration.objects.create(
+            provider="jira",
+            external_id="some_id",
+            name="Hello world",
+            metadata={"base_url": "https://example.com"},
+        )
+        integration.add_organization(group.organization, self.user)
+        self.create_integration_external_issue(group=group, integration=integration, key="api-123")
+
+        self.login_as(user=self.user)
+
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.get(url, format="json")
+
+        assert response.data["annotations"] == [
+            u'<a href="https://example.com/browse/api-123">api-123</a>'
+        ]
+
     def test_permalink_superuser(self):
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
@@ -149,6 +284,32 @@ class GroupDetailsTest(APITestCase):
         result = response.data["permalink"]
         assert "http://" in result
         assert "{}/issues/{}".format(group.organization.slug, group.id) in result
+
+    def test_permalink_sentry_app_installation_token(self):
+        project = self.create_project(organization=self.organization, teams=[self.team])
+        internal_app = self.create_internal_integration(
+            name="Internal app",
+            organization=self.organization,
+            scopes=("project:read", "org:read", "event:write"),
+        )
+        token = internal_app.installations.first().api_token
+
+        group = self.create_group(project=project)
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.get(url, HTTP_AUTHORIZATION="Bearer {}".format(token), format="json")
+        result = response.data["permalink"]
+        assert "http://" in result
+        assert "{}/issues/{}".format(group.organization.slug, group.id) in result
+
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.get(url, sort_by="date", limit=1)
+        assert response.status_code == 429
 
 
 class GroupUpdateTest(APITestCase):
@@ -314,7 +475,7 @@ class GroupUpdateTest(APITestCase):
             url,
             data={"assignedTo": self.user.id},
             format="json",
-            HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(api_key.key)),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(u"{}:".format(api_key.key).encode("utf-8")),
         )
         assert response.status_code == 200, response.content
         assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
@@ -438,6 +599,16 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.project == group.project
         assert tombstone.data == group.data
 
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.put(url, sort_by="date", limit=1)
+        assert response.status_code == 429
+
 
 class GroupDeleteTest(APITestCase):
     def test_delete(self):
@@ -469,3 +640,13 @@ class GroupDeleteTest(APITestCase):
         # Now we killed everything with fire
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.delete(url, sort_by="date", limit=1)
+        assert response.status_code == 429

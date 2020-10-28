@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import pytest
-import json
 import six
 import re
 
@@ -9,11 +8,13 @@ from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 
-from sentry.utils import safe
+from sentry import quotas
+from sentry.constants import ObjectStatus
+from sentry.utils import safe, json
 from sentry.models.relay import Relay
 from sentry.models import Project
 
-from semaphore.auth import generate_key_pair
+from sentry_relay.auth import generate_key_pair
 
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
@@ -44,13 +45,13 @@ def private_key(key_pair):
 
 @pytest.fixture
 def relay_id():
-    return six.binary_type(uuid4())
+    return six.text_type(uuid4())
 
 
 @pytest.fixture
 def relay(relay_id, public_key):
     return Relay.objects.create(
-        relay_id=relay_id, public_key=six.binary_type(public_key), is_internal=True
+        relay_id=relay_id, public_key=six.text_type(public_key), is_internal=True
     )
 
 
@@ -89,7 +90,17 @@ def call_endpoint(client, relay, private_key, default_project):
 
 @pytest.fixture
 def add_org_key(default_organization, relay):
-    default_organization.update_option("sentry:trusted-relays", [relay.public_key])
+    default_organization.update_option(
+        "sentry:trusted-relays", [{"public_key": relay.public_key, "name": "main-relay"}]
+    )
+
+
+@pytest.fixture
+def no_internal_networks(monkeypatch):
+    """
+    Disable is_internal_ip functionality (make all requests appear to be from external networks)
+    """
+    monkeypatch.setattr("sentry.auth.system.INTERNAL_NETWORKS", ())
 
 
 @pytest.mark.django_db
@@ -124,7 +135,7 @@ def test_internal_relays_should_receive_full_configs(
     cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
     assert safe.get_path(cfg, "disabled") is False
 
-    public_key, = cfg["publicKeys"]
+    (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
     assert public_key["isEnabled"]
     assert "quotas" in public_key
@@ -149,17 +160,20 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubDefaults") is True
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is True
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
+    assert safe.get_path(cfg, "config", "quotas") == []
+
+    # Event retention depends on settings, so assert the actual value. Likely
+    # `None` in dev, but must not be missing.
+    assert cfg["config"]["eventRetention"] == quotas.get_event_retention(
+        default_project.organization
+    )
 
 
 @pytest.mark.django_db
 def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
-    add_org_key, relay, call_endpoint
+    add_org_key, call_endpoint, no_internal_networks
 ):
-    relay.is_internal = False
-    relay.save()
-
     result, status_code = call_endpoint(full_config=True)
-
     assert status_code == 403
 
 
@@ -205,7 +219,7 @@ def test_trusted_external_relays_should_receive_minimal_configs(
 
     cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
     assert safe.get_path(cfg, "disabled") is False
-    public_key, = cfg["publicKeys"]
+    (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
     assert public_key["isEnabled"]
     assert "quotas" not in public_key
@@ -215,11 +229,10 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert _date_regex.match(last_change) is not None
     last_fetch = safe.get_path(cfg, "lastFetch")
     assert _date_regex.match(last_fetch) is not None
+    assert safe.get_path(cfg, "organizationId") == default_project.organization.id
     assert safe.get_path(cfg, "projectId") == default_project.id
     assert safe.get_path(cfg, "slug") == default_project.slug
     assert safe.get_path(cfg, "rev") is not None
-
-    assert safe.get_path(cfg, "organizationId") is None
     assert safe.get_path(cfg, "config", "trustedRelays") == [relay.public_key]
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
@@ -227,14 +240,13 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is not None
     assert safe.get_path(cfg, "config", "piiConfig", "rules") is None
     assert safe.get_path(cfg, "config", "piiConfig", "applications") is None
+    assert safe.get_path(cfg, "config", "quotas") is None
 
 
 @pytest.mark.django_db
 def test_untrusted_external_relays_should_not_receive_configs(
-    relay, call_endpoint, default_project
+    call_endpoint, default_project, no_internal_networks
 ):
-    relay.is_internal = False
-    relay.save()
 
     result, status_code = call_endpoint(full_config=False)
 
@@ -279,8 +291,8 @@ def test_relay_projectconfig_cache_full_config(
         result, status_code = call_endpoint(full_config=True)
         assert status_code < 400
 
-    http_cfg, = six.itervalues(result["configs"])
-    call, = projectconfig_cache_set
+    (http_cfg,) = six.itervalues(result["configs"])
+    (call,) = projectconfig_cache_set
     assert len(call) == 1
     redis_cfg = call[six.text_type(default_project.id)]
 
@@ -300,7 +312,25 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
         result, status_code = call_endpoint(full_config=True, projects=[wrong_id])
         assert status_code < 400
 
-    http_cfg, = six.itervalues(result["configs"])
+    (http_cfg,) = six.itervalues(result["configs"])
+    assert http_cfg == {"disabled": True}
+
+    assert projectconfig_cache_set == [{six.text_type(wrong_id): http_cfg}]
+
+
+@pytest.mark.django_db
+def test_relay_disabled_project(
+    call_endpoint, default_project, projectconfig_cache_set, task_runner
+):
+    default_project.update(status=ObjectStatus.PENDING_DELETION)
+
+    wrong_id = default_project.id
+
+    with task_runner():
+        result, status_code = call_endpoint(full_config=True, projects=[wrong_id])
+        assert status_code < 400
+
+    (http_cfg,) = six.itervalues(result["configs"])
     assert http_cfg == {"disabled": True}
 
     assert projectconfig_cache_set == [{six.text_type(wrong_id): http_cfg}]

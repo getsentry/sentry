@@ -8,7 +8,7 @@ import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import Button from 'app/components/button';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
@@ -67,7 +67,7 @@ class Monitors extends AsyncView {
         <PageHeader>
           <HeaderTitle>
             <div>
-              {t('Monitors')} <BetaTag />
+              {t('Monitors')} <FeatureBadge type="beta" />
             </div>
             <NewMonitorButton
               to={`/organizations/${organization.slug}/monitors/create/`}
@@ -86,23 +86,21 @@ class Monitors extends AsyncView {
         </PageHeader>
         <Panel>
           <PanelBody>
-            {this.state.monitorList.map(monitor => {
-              return (
-                <PanelItemCentered key={monitor.id}>
-                  <MonitorIcon status={monitor.status} size={16} />
-                  <StyledLink
-                    to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
-                  >
-                    {monitor.name}
-                  </StyledLink>
-                  {monitor.nextCheckIn ? (
-                    <TimeSince date={monitor.lastCheckIn} />
-                  ) : (
-                    t('n/a')
-                  )}
-                </PanelItemCentered>
-              );
-            })}
+            {this.state.monitorList.map(monitor => (
+              <PanelItemCentered key={monitor.id}>
+                <MonitorIcon status={monitor.status} size={16} />
+                <StyledLink
+                  to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
+                >
+                  {monitor.name}
+                </StyledLink>
+                {monitor.nextCheckIn ? (
+                  <TimeSince date={monitor.lastCheckIn} />
+                ) : (
+                  t('n/a')
+                )}
+              </PanelItemCentered>
+            ))}
           </PanelBody>
         </Panel>
         {monitorListPageLinks && (

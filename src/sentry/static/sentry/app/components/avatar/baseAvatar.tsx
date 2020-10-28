@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import qs from 'query-string';
+import * as qs from 'query-string';
 import styled from '@emotion/styled';
 
 import LetterAvatar from 'app/components/letterAvatar';
@@ -64,8 +64,11 @@ type Props = {
 
   className?: string;
 
+  forwardedRef?: React.Ref<HTMLSpanElement>;
+
   style?: React.CSSProperties;
-} & Partial<DefaultProps>;
+} & Partial<DefaultProps> &
+  React.HTMLAttributes<HTMLSpanElement>;
 
 type State = {
   showBackupAvatar: boolean;
@@ -204,6 +207,8 @@ class BaseAvatar extends React.Component<Props, State> {
       size,
       tooltip,
       tooltipOptions,
+      forwardedRef,
+      ...props
     } = this.props;
     let sizeStyle = {};
 
@@ -217,6 +222,7 @@ class BaseAvatar extends React.Component<Props, State> {
     return (
       <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
         <StyledBaseAvatar
+          ref={forwardedRef}
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
           round={!!round}
@@ -224,6 +230,7 @@ class BaseAvatar extends React.Component<Props, State> {
             ...sizeStyle,
             ...style,
           }}
+          {...props}
         >
           {this.state.showBackupAvatar && this.renderLetterAvatar()}
           {this.renderImg()}

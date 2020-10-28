@@ -9,6 +9,7 @@ import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
+import {IconFlag} from 'app/icons';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import space from 'app/styles/space';
@@ -81,6 +82,7 @@ class KeyRateLimitsForm extends React.Component<Props> {
           features={['projects:rate-limits']}
           hookName="feature-disabled:rate-limits"
           renderDisabled={({children, ...props}) =>
+            typeof children === 'function' &&
             children({...props, renderDisabled: disabledAlert})
           }
         >
@@ -89,7 +91,7 @@ class KeyRateLimitsForm extends React.Component<Props> {
               <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
               <PanelBody>
-                <PanelAlert type="info" icon="icon-circle-exclamation">
+                <PanelAlert type="info" icon={<IconFlag size="md" />}>
                   {t(
                     `Rate limits provide a flexible way to manage your event
                       volume. If you have a noisy project or environment you
@@ -97,13 +99,22 @@ class KeyRateLimitsForm extends React.Component<Props> {
                       number of events processed.`
                   )}
                 </PanelAlert>
-                {!hasFeature && renderDisabled({organization, project, features})}
+                {!hasFeature &&
+                  typeof renderDisabled === 'function' &&
+                  renderDisabled({
+                    organization,
+                    project,
+                    features,
+                    hasFeature,
+                    children: null,
+                  })}
                 <FormField
                   className="rate-limit-group"
                   name="rateLimit"
                   label={t('Rate Limit')}
                   disabled={disabled || !hasFeature}
                   validate={({form}) => {
+                    //TODO(TS): is validate actually doing anything because it's an unexpected prop
                     const isValid =
                       form &&
                       form.rateLimit &&

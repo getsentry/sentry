@@ -1,76 +1,76 @@
 ---
-created: '2019-09-10T09:49:13.787660Z'
+created: '2020-02-26T19:54:36.092768Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             filename*
-              u'exe_common.inl'
+              "exe_common.inl"
             function*
-              u'__scrt_common_main_seh'
+              "__scrt_common_main_seh"
           frame (non app frame)
             filename*
-              u'exe_common.inl'
+              "exe_common.inl"
             function*
-              u'invoke_main'
+              "invoke_main"
           frame (non app frame)
             filename*
-              u'main.cpp'
+              "main.cpp"
             function*
-              u'main'
+              "main"
           frame (non app frame)
             filename*
-              u'main.cpp'
+              "main.cpp"
             function*
-              u"`anonymous namespace'::start"
+              "`anonymous namespace'::start"
           frame (non app frame)
             filename*
-              u'main.cpp'
+              "main.cpp"
             function*
-              u"`anonymous namespace'::crash"
+              "`anonymous namespace'::crash"
         type (ignored because exception is synthetic)
-          u'EXCEPTION_ACCESS_VIOLATION_WRITE'
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value*
-          u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: '15d397771f229af8dc42783542f81dd4'
+  hash: "15d397771f229af8dc42783542f81dd4"
   component:
     system*
       exception*
         stacktrace*
           frame*
             filename*
-              u'exe_common.inl'
+              "exe_common.inl"
             function*
-              u'__scrt_common_main_seh'
+              "__scrt_common_main_seh"
           frame*
             filename*
-              u'exe_common.inl'
+              "exe_common.inl"
             function*
-              u'invoke_main'
+              "invoke_main"
           frame*
             filename*
-              u'main.cpp'
+              "main.cpp"
             function*
-              u'main'
+              "main"
           frame*
             filename*
-              u'main.cpp'
+              "main.cpp"
             function*
-              u"`anonymous namespace'::start"
+              "`anonymous namespace'::start"
           frame*
             filename*
-              u'main.cpp'
+              "main.cpp"
             function*
-              u"`anonymous namespace'::crash"
+              "`anonymous namespace'::crash"
         type (ignored because exception is synthetic)
-          u'EXCEPTION_ACCESS_VIOLATION_WRITE'
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
-          u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

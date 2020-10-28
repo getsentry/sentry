@@ -1,4 +1,5 @@
 from __future__ import absolute_import, print_function
+from sentry.utils.compat import map
 
 __all__ = ("Attribute", "Event", "Map")
 
@@ -68,7 +69,7 @@ class Map(Attribute):
 
 
 class Event(object):
-    __slots__ = ["uuid", "attributes", "data", "datetime", "type"]
+    __slots__ = ["uuid", "data", "datetime"]
 
     type = None
 

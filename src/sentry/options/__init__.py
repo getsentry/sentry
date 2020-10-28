@@ -27,7 +27,7 @@ set = default_manager.set
 delete = default_manager.delete
 register = default_manager.register
 all = default_manager.all
-filter = default_manager.filter
+filter = default_manager.filter  # NOQA
 isset = default_manager.isset
 lookup_key = default_manager.lookup_key
 

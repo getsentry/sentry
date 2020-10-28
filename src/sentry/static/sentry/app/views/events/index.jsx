@@ -6,16 +6,17 @@ import isEqual from 'lodash/isEqual';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryTypes from 'app/sentryTypes';
 import PageHeading from 'app/components/pageHeading';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {PageContent, PageHeader} from 'app/styles/organization';
+import space from 'app/styles/space';
 
 import SearchBar from './searchBar';
 
@@ -34,6 +35,7 @@ class EventsContainer extends React.Component {
 
   componentDidUpdate(prevProps) {
     const {api, organization, selection} = this.props;
+
     if (
       !isEqual(prevProps.selection.projects, selection.projects) ||
       !isEqual(prevProps.selection.datetime, selection.datetime)
@@ -62,29 +64,31 @@ class EventsContainer extends React.Component {
         hookName="feature-disabled:events-page"
         renderDisabled
       >
-        <GlobalSelectionHeader
-          organization={organization}
-          resetParamsOnChange={['cursor']}
-        />
-        <PageContent>
-          <NoProjectMessage organization={organization}>
-            <Body>
-              <PageHeader>
-                <HeaderTitle>
-                  {t('Events')} <BetaTag />
-                </HeaderTitle>
-                <StyledSearchBar
-                  organization={organization}
-                  projectIds={selection.projects}
-                  query={(location.query && location.query.query) || ''}
-                  placeholder={t('Search for events, users, tags, and everything else.')}
-                  onSearch={this.handleSearch}
-                />
-              </PageHeader>
-              {children}
-            </Body>
-          </NoProjectMessage>
-        </PageContent>
+        <GlobalSelectionHeader resetParamsOnChange={['cursor']}>
+          <PageContent>
+            <LightWeightNoProjectMessage organization={organization}>
+              <Body>
+                <PageHeader>
+                  <HeaderTitle>
+                    {t('Events')} <FeatureBadge type="beta" />
+                  </HeaderTitle>
+                </PageHeader>
+                <div>
+                  <StyledSearchBar
+                    organization={organization}
+                    projectIds={selection.projects}
+                    query={(location.query && location.query.query) || ''}
+                    placeholder={t(
+                      'Search for events, users, tags, and everything else.'
+                    )}
+                    onSearch={this.handleSearch}
+                  />
+                </div>
+                {children}
+              </Body>
+            </LightWeightNoProjectMessage>
+          </PageContent>
+        </GlobalSelectionHeader>
       </Feature>
     );
   }
@@ -93,7 +97,7 @@ export default withApi(withOrganization(withGlobalSelection(EventsContainer)));
 export {EventsContainer};
 
 const Body = styled('div')`
-  background-color: ${p => p.theme.whiteDark};
+  background-color: ${p => p.theme.gray100};
   flex-direction: column;
   flex: 1;
 `;
@@ -104,4 +108,5 @@ const HeaderTitle = styled(PageHeading)`
 
 const StyledSearchBar = styled(SearchBar)`
   flex: 1;
+  margin-bottom: ${space(2)};
 `;

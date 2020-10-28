@@ -52,7 +52,7 @@ def get(option, silent):
 
 @config.command()
 @click.option(
-    "--secret", default=False, is_flag=True, help="Hide prompt input when inputing secret data."
+    "--secret", default=False, is_flag=True, help="Hide prompt input when inputting secret data."
 )
 @click.argument("key")
 @click.argument("value", required=False)

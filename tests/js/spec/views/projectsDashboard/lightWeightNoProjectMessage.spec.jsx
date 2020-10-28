@@ -1,15 +1,16 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import ProjectsStore from 'app/stores/projectsStore';
 
-describe('LightWeightNoProjectMessage', function() {
-  beforeEach(function() {
+describe('LightWeightNoProjectMessage', function () {
+  beforeEach(function () {
     ProjectsStore.reset();
   });
 
-  it('renders', async function() {
+  it('renders', async function () {
     const project1 = TestStubs.Project();
     const project2 = TestStubs.Project();
     const organization = TestStubs.Organization({slug: 'org-slug'});
@@ -25,7 +26,7 @@ describe('LightWeightNoProjectMessage', function() {
     expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
   });
 
-  it('does not remount when the projects store loads', async function() {
+  it('does not remount when the projects store loads', async function () {
     const mount = jest.fn();
     const unmount = jest.fn();
     class MockComponent extends React.Component {

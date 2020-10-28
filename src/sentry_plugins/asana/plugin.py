@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.exceptions import PluginError, PluginIdentityRequired
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry.utils.http import absolute_uri
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from sentry_plugins.base import CorePluginMixin
 from .client import AsanaClient
@@ -15,14 +16,36 @@ from .client import AsanaClient
 
 ERR_AUTH_NOT_CONFIGURED = "You still need to associate an Asana identity with this account."
 
+DESCRIPTION = """
+Improve your productivity by creating tasks in Asana directly
+from Sentry issues. This integration also allows you to link Sentry
+issues to existing tasks in Asana.
+"""
+
 
 class AsanaPlugin(CorePluginMixin, IssuePlugin2):
-    description = "Integrate Asana issues by linking a repository to a project."
+    description = DESCRIPTION
     slug = "asana"
     title = "Asana"
     conf_title = title
     conf_key = "asana"
     auth_provider = "asana"
+    required_field = "workspace"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Create and link Sentry issue groups directly to an Asana ticket in any of your
+            projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+        FeatureDescription(
+            """
+            Link Sentry issues to existing Asana tickets.
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+    ]
 
     def get_group_urls(self):
         return super(AsanaPlugin, self).get_group_urls() + [

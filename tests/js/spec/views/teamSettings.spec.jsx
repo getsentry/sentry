@@ -1,20 +1,21 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TeamStore from 'app/stores/teamStore';
 import TeamSettings from 'app/views/settings/organizationTeams/teamSettings';
 
-describe('TeamSettings', function() {
-  beforeEach(function() {
+describe('TeamSettings', function () {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     jest.spyOn(window.location, 'assign');
   });
 
-  afterEach(function() {
+  afterEach(function () {
     window.location.assign.mockRestore();
   });
 
-  it('can change slug', async function() {
+  it('can change slug', async function () {
     const team = TestStubs.Team();
     const putMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
@@ -54,7 +55,7 @@ describe('TeamSettings', function() {
     expect(router.replace).toHaveBeenCalledWith('/settings/org/teams/new-slug/settings/');
   });
 
-  it('needs team:admin in order to see an enabled Remove Team button', function() {
+  it('needs team:admin in order to see an enabled Remove Team button', function () {
     const team = TestStubs.Team();
 
     const wrapper = mountWithTheme(
@@ -66,16 +67,10 @@ describe('TeamSettings', function() {
       />,
       TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
     );
-    expect(
-      wrapper
-        .find('Panel')
-        .last()
-        .find('Button')
-        .prop('disabled')
-    ).toBe(true);
+    expect(wrapper.find('Panel').last().find('Button').prop('disabled')).toBe(true);
   });
 
-  it('can remove team', async function() {
+  it('can remove team', async function () {
     const team = TestStubs.Team({hasAccess: true});
     const deleteMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
@@ -119,7 +114,7 @@ describe('TeamSettings', function() {
     await tick();
     expect(routerPushMock).toHaveBeenCalledWith('/settings/org/teams/');
 
-    expect(TeamStore.items).toEqual([]);
+    expect(TeamStore.getAll()).toEqual([]);
 
     TeamStore.trigger.mockRestore();
   });

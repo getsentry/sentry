@@ -5,10 +5,10 @@ import marked from 'app/utils/marked';
 
 type Props = {
   text: string;
-  className: string;
+  className?: string;
 };
 
-const NoteBody: React.FC<Props> = ({className, text}) => (
+const NoteBody = ({className, text}: Props) => (
   <div
     className={className}
     data-test-id="activity-note-body"

@@ -7,6 +7,7 @@ from sentry.models import (
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
     OrganizationOption,
+    Rule,
 )
 from sentry.signals import (
     event_processed,
@@ -17,11 +18,12 @@ from sentry.signals import (
     member_joined,
     plugin_enabled,
     issue_tracker_used,
+    alert_rule_created,
 )
 from sentry.plugins.bases import IssueTrackingPlugin
-from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.samples import load_data
 
 
 class OrganizationOnboardingTaskTest(TestCase):
@@ -204,6 +206,25 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert second_task.data["platform"] == "python"
         assert task.data["platform"] != second_task.data["platform"]
 
+    def test_first_transaction_received(self):
+        project = self.create_project()
+
+        event_data = load_data("transaction")
+        min_ago = iso_format(before_now(minutes=1))
+        event_data.update({"start_timestamp": min_ago, "timestamp": min_ago})
+
+        event = self.store_event(data=event_data, project_id=project.id)
+
+        first_event_received.send(project=project, event=event, sender=type(project))
+
+        task = OrganizationOnboardingTask.objects.get(
+            organization=project.organization,
+            task=OnboardingTask.FIRST_TRANSACTION,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+
+        assert task is not None
+
     def test_member_invited(self):
         user = self.create_user(email="test@example.org")
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
@@ -266,16 +287,17 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_notification_added(self):
-        plugin_enabled.send(
-            plugin=NotificationPlugin(),
+    def test_alert_added(self):
+        alert_rule_created.send(
+            rule=Rule(id=1),
             project=self.project,
             user=self.user,
-            sender=type(NotificationPlugin),
+            rule_type="issue",
+            sender=type(Rule),
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
-            task=OnboardingTask.NOTIFICATION_SERVICE,
+            task=OnboardingTask.ALERT_RULE,
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
@@ -318,6 +340,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             },
             project_id=project.id,
         )
+
+        event_data = load_data("transaction")
+        min_ago = iso_format(before_now(minutes=1))
+        event_data.update({"start_timestamp": min_ago, "timestamp": min_ago})
+
+        transaction = self.store_event(data=event_data, project_id=project.id)
+
+        first_event_received.send(project=project, event=transaction, sender=type(project))
+
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
 
         event_processed.send(project=project, event=event, sender=type(project))
@@ -341,8 +372,12 @@ class OrganizationOnboardingTaskTest(TestCase):
             user=user,
             sender=type(IssueTrackingPlugin),
         )
-        plugin_enabled.send(
-            plugin=NotificationPlugin(), project=project, user=user, sender=type(NotificationPlugin)
+        alert_rule_created.send(
+            rule=Rule(id=1),
+            project=self.project,
+            user=self.user,
+            rule_type="issue",
+            sender=type(Rule),
         )
 
         assert (

@@ -2,24 +2,25 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import withApi from 'app/utils/withApi';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import space from 'app/styles/space';
+import {sortProjects} from 'app/utils';
+import {IconFlag, IconSubtract} from 'app/icons';
+import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
-import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
-import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import InlineSvg from 'app/components/inlineSvg';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import {sortProjects} from 'app/utils';
-import {t} from 'app/locale';
-import withOrganization from 'app/utils/withOrganization';
+import ProjectActions from 'app/actions/projectActions';
+import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 import SentryTypes from 'app/sentryTypes';
+import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 class TeamProjects extends React.Component {
   static propTypes = {
@@ -106,24 +107,23 @@ class TeamProjects extends React.Component {
     const {orgId, teamId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
       method: action === 'add' ? 'POST' : 'DELETE',
-      success: () => {
+      success: resp => {
         this.fetchAll();
+        ProjectActions.updateSuccess(resp);
         addSuccessMessage(
           action === 'add'
             ? t('Successfully added project to team.')
             : t('Successfully removed project from team')
         );
       },
-      error: e => {
+      error: () => {
         addErrorMessage(t("Wasn't able to change project association."));
       },
     });
   };
 
   handleProjectSelected = selection => {
-    const project = this.state.unlinkedProjects.find(p => {
-      return p.id === selection.value;
-    });
+    const project = this.state.unlinkedProjects.find(p => p.id === selection.value);
 
     this.handleLinkProject(project, 'add');
   };
@@ -138,7 +138,7 @@ class TeamProjects extends React.Component {
     const canWrite = access.has('org:write');
 
     return projects.length ? (
-      sortProjects(projects).map((project, i) => (
+      sortProjects(projects).map(project => (
         <StyledPanelItem key={project.id}>
           <ProjectListItem project={project} organization={organization} />
           <Tooltip
@@ -148,17 +148,18 @@ class TeamProjects extends React.Component {
             <Button
               size="small"
               disabled={!canWrite}
+              icon={<IconSubtract isCircled size="xs" />}
               onClick={() => {
                 this.handleLinkProject(project, 'remove');
               }}
             >
-              <RemoveIcon /> {t('Remove')}
+              {t('Remove')}
             </Button>
           </Tooltip>
         </StyledPanelItem>
       ))
     ) : (
-      <EmptyMessage size="large" icon="icon-circle-exclamation">
+      <EmptyMessage size="large" icon={<IconFlag size="xl" />}>
         {t("This team doesn't have access to any projects.")}
       </EmptyMessage>
     );
@@ -177,13 +178,11 @@ class TeamProjects extends React.Component {
 
     const access = new Set(this.props.organization.access);
 
-    const otherProjects = unlinkedProjects.map(p => {
-      return {
-        value: p.id,
-        searchKey: p.slug,
-        label: <ProjectListElement>{p.slug}</ProjectListElement>,
-      };
-    });
+    const otherProjects = unlinkedProjects.map(p => ({
+      value: p.id,
+      searchKey: p.slug,
+      label: <ProjectListElement>{p.slug}</ProjectListElement>,
+    }));
 
     return (
       <React.Fragment>
@@ -206,7 +205,7 @@ class TeamProjects extends React.Component {
                   onSelect={this.handleProjectSelected}
                   emptyMessage={t('No projects')}
                 >
-                  {({isOpen, selectedItem}) => (
+                  {({isOpen}) => (
                     <DropdownButton isOpen={isOpen} size="xsmall">
                       {t('Add Project')}
                     </DropdownButton>
@@ -222,16 +221,6 @@ class TeamProjects extends React.Component {
     );
   }
 }
-
-const RemoveIcon = styled(props => (
-  <InlineSvg {...props} src="icon-circle-subtract">
-    {t('Remove')}
-  </InlineSvg>
-))`
-  min-height: 1.25em;
-  min-width: 1.25em;
-  margin-right: ${space(1)};
-`;
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;

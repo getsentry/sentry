@@ -22,8 +22,8 @@ class OrganizationMemberTest(TestCase):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
         with self.settings(
             SECRET_KEY=(
-                "\xfc]C\x8a\xd2\x93\x04\x00\x81\xeak\x94\x02H"
-                "\x1d\xcc&P'q\x12\xa2\xc0\xf2v\x7f\xbb*lX"
+                b"\xfc]C\x8a\xd2\x93\x04\x00\x81\xeak\x94\x02H"
+                b"\x1d\xcc&P'q\x12\xa2\xc0\xf2v\x7f\xbb*lX"
             )
         ):
             assert member.legacy_token == "df41d9dfd4ba25d745321e654e15b5d0"
@@ -186,3 +186,19 @@ class OrganizationMemberTest(TestCase):
         member.approve_invite()
         assert member.invite_approved
         member.invite_status == InviteStatus.APPROVED.value
+
+    def test_scopes_with_member_admin_config(self):
+        organization = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=organization, role="member", email="test@example.com",
+        )
+
+        assert "event:admin" in member.get_scopes()
+
+        organization.update_option("sentry:events_member_admin", True)
+
+        assert "event:admin" in member.get_scopes()
+
+        organization.update_option("sentry:events_member_admin", False)
+
+        assert "event:admin" not in member.get_scopes()

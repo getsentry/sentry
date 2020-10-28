@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SearchBar from 'app/views/events/searchBar';
@@ -8,7 +9,7 @@ const focusInput = el => el.find('input[name="query"]').simulate('focus');
 const selectFirstAutocompleteItem = async el => {
   focusInput(el);
 
-  el.find('SearchItem[data-test-id="search-autocomplete-item"]')
+  el.find('SearchListItem[data-test-id="search-autocomplete-item"]')
     .first()
     .simulate('click');
   const input = el.find('input');
@@ -30,7 +31,7 @@ const setQuery = async (el, query) => {
   await el.update();
 };
 
-describe('SearchBar', function() {
+describe('SearchBar', function () {
   let options;
   let tagValuesMock;
   const organization = TestStubs.Organization();
@@ -39,7 +40,7 @@ describe('SearchBar', function() {
     projectIds: [1, 2],
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     TagStore.reset();
     TagStore.onLoadTagsSuccess([
       {count: 3, key: 'gpu', name: 'Gpu'},
@@ -66,37 +67,54 @@ describe('SearchBar', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('searches and selects an event field value', async function() {
+  it('autocompletes has suggestions correctly', async function () {
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    await tick();
+    setQuery(wrapper, 'has:');
+
+    await tick();
+    await wrapper.update();
+
+    expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
+    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual('gpu');
+
+    selectFirstAutocompleteItem(wrapper);
+    await wrapper.update();
+    // the trailing space is important here as without it, autocomplete suggestions will
+    // try to complete `has:gpu` thinking the token has not ended yet
+    expect(wrapper.find('input').prop('value')).toBe('has:gpu ');
+  });
+
+  it('searches and selects an event field value', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     setQuery(wrapper, 'gpu:');
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
+      expect.objectContaining({
+        query: {project: ['1', '2'], statsPeriod: '14d', includeTransactions: '1'},
+      })
     );
 
     await tick();
     await wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(
-      wrapper
-        .find('SearchDropdown Description')
-        .first()
-        .text()
-    ).toEqual('"Nvidia 1080ti"');
+    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
+      '"Nvidia 1080ti"'
+    );
 
     selectFirstAutocompleteItem(wrapper);
     await wrapper.update();
     expect(wrapper.find('input').prop('value')).toBe('gpu:"Nvidia 1080ti" ');
   });
 
-  it('if `useFormWrapper` is false, pressing enter when there are no dropdown items selected should blur and call `onSearch` callback', async function() {
+  it('if `useFormWrapper` is false, pressing enter when there are no dropdown items selected should blur and call `onSearch` callback', async function () {
     const onBlur = jest.fn();
     const onSearch = jest.fn();
     const wrapper = mountWithTheme(
@@ -112,23 +130,22 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
+      expect.objectContaining({
+        query: {project: ['1', '2'], statsPeriod: '14d', includeTransactions: '1'},
+      })
     );
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(
-      wrapper
-        .find('SearchDropdown Description')
-        .first()
-        .text()
-    ).toEqual('"Nvidia 1080ti"');
+    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
+      '"Nvidia 1080ti"'
+    );
 
     wrapper.find('input').simulate('keydown', {key: 'Enter'});
 
     expect(onSearch).toHaveBeenCalledTimes(1);
   });
 
-  it('does not requery for event field values if query does not change', async function() {
+  it('does not requery for event field values if query does not change', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     await wrapper.update();
@@ -145,7 +162,7 @@ describe('SearchBar', function() {
     expect(tagValuesMock).toHaveBeenCalledTimes(1);
   });
 
-  it('removes highlight when query is empty', async function() {
+  it('removes highlight when query is empty', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     await wrapper.update();
@@ -165,7 +182,7 @@ describe('SearchBar', function() {
     expect(wrapper.find('Description strong')).toHaveLength(0);
   });
 
-  it('ignores negation ("!") at the beginning of search term', async function() {
+  it('ignores negation ("!") at the beginning of search term', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     await wrapper.update();
@@ -175,14 +192,14 @@ describe('SearchBar', function() {
     await wrapper.update();
 
     expect(
-      wrapper.find('SearchItem[data-test-id="search-autocomplete-item"]')
+      wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
     ).toHaveLength(1);
     expect(
-      wrapper.find('SearchItem[data-test-id="search-autocomplete-item"]').text()
+      wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]').text()
     ).toBe('gpu:');
   });
 
-  it('ignores wildcard ("*") at the beginning of tag value query', async function() {
+  it('ignores wildcard ("*") at the beginning of tag value query', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     await wrapper.update();
@@ -193,13 +210,15 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
+      expect.objectContaining({
+        query: {project: ['1', '2'], statsPeriod: '14d', includeTransactions: '1'},
+      })
     );
     selectFirstAutocompleteItem(wrapper);
-    expect(wrapper.find('input').prop('value')).toBe('!gpu:*"Nvidia 1080ti" ');
+    expect(wrapper.find('input').prop('value')).toBe('!gpu:"Nvidia 1080ti" ');
   });
 
-  it('stops searching after no values are returned', async function() {
+  it('stops searching after no values are returned', async function () {
     const emptyTagValuesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/browser/values/',
       body: [],
@@ -222,7 +241,7 @@ describe('SearchBar', function() {
     expect(emptyTagValuesMock).toHaveBeenCalledTimes(1);
   });
 
-  it('continues searching after no values if query changes', async function() {
+  it('continues searching after no values if query changes', async function () {
     const emptyTagValuesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/browser/values/',
       body: [],

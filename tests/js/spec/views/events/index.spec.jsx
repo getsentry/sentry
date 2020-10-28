@@ -3,14 +3,19 @@ import React from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import EventsContainer from 'app/views/events';
 import ProjectsStore from 'app/stores/projectsStore';
 
-describe('EventsContainer', function() {
+describe('EventsContainer', function () {
   let wrapper;
   const environments = ['production', 'staging'];
+  const params = {
+    orgId: 'org-slug',
+  };
+
   const {organization, router, routerContext} = initializeOrg({
     projects: [
       {isMember: true, environments, isBookmarked: true},
@@ -24,10 +29,11 @@ describe('EventsContainer', function() {
         pathname: '/organizations/org-slug/events/',
         query: {},
       },
+      params,
     },
   });
 
-  beforeAll(async function() {
+  beforeAll(async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -44,8 +50,8 @@ describe('EventsContainer', function() {
     await tick();
   });
 
-  describe('Header', function() {
-    beforeEach(function() {
+  describe('Header', function () {
+    beforeEach(async function () {
       GlobalSelectionStore.reset();
       ProjectsStore.loadInitialData(organization.projects);
 
@@ -64,10 +70,13 @@ describe('EventsContainer', function() {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       mockRouterPush(wrapper, router);
     });
 
-    it('updates router when changing environments', async function() {
+    it('updates router when changing environments', async function () {
       expect(wrapper.find('PageContent')).toHaveLength(1);
       expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([]);
 
@@ -75,10 +84,7 @@ describe('EventsContainer', function() {
       await tick();
       wrapper.update();
 
-      wrapper
-        .find('EnvironmentSelectorItem')
-        .at(0)
-        .simulate('click');
+      wrapper.find('EnvironmentSelectorItem').at(0).simulate('click');
 
       await tick();
       wrapper.update();
@@ -107,18 +113,19 @@ describe('EventsContainer', function() {
         .find('CheckboxHitbox')
         .simulate('click');
 
-      expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([
-        'production',
-        'staging',
-      ]);
-
-      // close dropdown
+      // Value only updates if "Apply" is clicked or menu is closed
       wrapper
         .find('MultipleEnvironmentSelector StyledInput')
         .simulate('keyDown', {key: 'Escape'});
 
       await tick();
       wrapper.update();
+
+      expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([
+        'production',
+        'staging',
+      ]);
+
       expect(router.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/events/',
         query: {
@@ -152,7 +159,7 @@ describe('EventsContainer', function() {
       });
     });
 
-    it('updates router when changing projects', async function() {
+    it('updates router when changing projects', async function () {
       expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([]);
 
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
@@ -165,16 +172,17 @@ describe('EventsContainer', function() {
       await tick();
       wrapper.update();
 
-      expect(router.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/events/',
         query: {
+          environment: [],
           project: [2],
         },
       });
       expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([2]);
     });
 
-    it('selects multiple projects', async function() {
+    it('selects multiple projects', async function () {
       expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([]);
 
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
@@ -195,15 +203,16 @@ describe('EventsContainer', function() {
 
       wrapper.find('MultipleProjectSelector StyledChevron').simulate('click');
 
-      expect(router.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/events/',
         query: {
+          environment: [],
           project: [2, 3],
         },
       });
     });
 
-    it('changes to absolute time (utc is default)', async function() {
+    it('changes to absolute time (utc is default)', async function () {
       const start = new Date('2017-10-01T00:00:00.000Z');
       const end = new Date('2017-10-01T23:59:59.000Z');
       wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
@@ -211,10 +220,7 @@ describe('EventsContainer', function() {
       await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
 
       // Oct 1st
-      wrapper
-        .find('DayCell')
-        .at(0)
-        .simulate('mouseUp');
+      wrapper.find('DayCell').at(0).simulate('mouseUp');
       expect(wrapper.find('UtcPicker Checkbox').prop('checked')).toBe(true);
 
       wrapper.find('TimeRangeSelector StyledChevron').simulate('click');
@@ -241,7 +247,7 @@ describe('EventsContainer', function() {
       expect(wrapper.find('UtcPicker Checkbox').prop('checked')).toBe(true);
     });
 
-    it('does not update router when toggling environment selector without changes', async function() {
+    it('does not update router when toggling environment selector without changes', async function () {
       const prevCallCount = router.push.mock.calls.length;
 
       wrapper.setProps({
@@ -265,7 +271,7 @@ describe('EventsContainer', function() {
       expect(router.push).toHaveBeenCalledTimes(prevCallCount);
     });
 
-    it('updates router when changing periods', async function() {
+    it('updates router when changing periods', async function () {
       expect(wrapper.find('TimeRangeSelector').prop('start')).toEqual(null);
       expect(wrapper.find('TimeRangeSelector').prop('end')).toEqual(null);
       expect(wrapper.find('TimeRangeSelector').prop('relative')).toEqual('14d');
@@ -326,54 +332,6 @@ describe('EventsContainer', function() {
           relative: '7d',
         })
       );
-    });
-
-    it('updates TimeRangeSelector when changing routes', async function() {
-      let newRouter = {
-        router: {
-          ...router,
-          location: {
-            pathname: '/organizations/org-slug/events2/',
-            query: {
-              end: '2017-10-17T02:41:20',
-              start: '2017-10-03T02:41:20',
-              utc: 'true',
-            },
-          },
-        },
-      };
-      wrapper.setProps(newRouter);
-      wrapper.setContext(newRouter);
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('TimeRangeSelector').text()).toEqual(
-        'Oct 3, 201702:41toOct 17, 201702:41'
-      );
-
-      newRouter = {
-        router: {
-          ...router,
-          location: {
-            pathname: '/organizations/org-slug/events/',
-            query: {
-              statsPeriod: '7d',
-              end: null,
-              start: null,
-              utc: 'true',
-            },
-          },
-        },
-      };
-
-      wrapper.setProps(newRouter);
-      wrapper.setContext(newRouter);
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('TimeRangeSelector').text()).toEqual('Last 7 days');
     });
   });
 });

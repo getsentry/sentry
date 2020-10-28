@@ -10,6 +10,7 @@ from dateutil.parser import parse
 
 from sentry.runner.decorators import configuration
 from sentry.utils.iterators import chunked
+from sentry.utils.compat import map
 
 
 class DateTimeParamType(click.ParamType):
@@ -98,7 +99,7 @@ def organizations(metrics, since, until):
 
         results = {}
         for metric in metrics.values():
-            results[metric] = tsdb.get_range(metric, instances.keys(), since, until)
+            results[metric] = tsdb.get_range(metric, list(instances.keys()), since, until)
 
         for key, instance in six.iteritems(instances):
             values = []
@@ -107,6 +108,6 @@ def organizations(metrics, since, until):
 
             stdout.write(
                 u"{} {} {}\n".format(
-                    instance.id, instance.slug, " ".join(map(six.binary_type, values))
+                    instance.id, instance.slug, " ".join(map(six.text_type, values))
                 )
             )

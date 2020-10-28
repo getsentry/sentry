@@ -1,14 +1,17 @@
 from __future__ import absolute_import
 
-import pkg_resources
 import sentry_plugins
 import six
 import sys
 
 from sentry.exceptions import InvalidIdentity, PluginError
 
-from sentry_plugins.constants import ERR_INTERNAL, ERR_UNAUTHORIZED, ERR_UNSUPPORTED_RESPONSE_TYPE
-from sentry_plugins.exceptions import (
+from sentry.shared_integrations.constants import (
+    ERR_INTERNAL,
+    ERR_UNAUTHORIZED,
+    ERR_UNSUPPORTED_RESPONSE_TYPE,
+)
+from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
     ApiUnauthorized,
@@ -21,8 +24,8 @@ class CorePluginMixin(object):
     author_url = "https://github.com/getsentry/sentry"
     version = sentry_plugins.VERSION
     resource_links = [
-        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
-        ("Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins"),
+        ("Report Issue", "https://github.com/getsentry/sentry/issues"),
+        ("View Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins"),
     ]
 
     # HACK(dcramer): work around MRO issue with plugin metaclass
@@ -45,7 +48,7 @@ class CorePluginMixin(object):
             if exc.json:
                 msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
-                msg = "unknown error"
+                msg = getattr(exc, "text", "unknown error")
             return "Error Communicating with %s (HTTP %s): %s" % (self.title, exc.code, msg)
         else:
             return ERR_INTERNAL
@@ -64,14 +67,3 @@ class CorePluginMixin(object):
         else:
             self.logger.exception(six.text_type(exc))
             six.reraise(PluginError, PluginError(self.message_from_error(exc)), sys.exc_info()[2])
-
-
-def assert_package_not_installed(name):
-    try:
-        pkg_resources.get_distribution(name)
-    except pkg_resources.DistributionNotFound:
-        return
-    else:
-        raise RuntimeError(
-            "Found %r. This has been superseded by 'sentry-plugins', so please uninstall." % name
-        )

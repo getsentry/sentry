@@ -14,6 +14,7 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import features
 from sentry.app import locks
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.provider import MigratingIdentityId
@@ -29,7 +30,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.signals import sso_enabled
+from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
@@ -150,7 +151,16 @@ def handle_existing_identity(
         return HttpResponseRedirect(auth.get_login_redirect(request))
 
     state.clear()
-    metrics.incr("sso.login-success", tags={"provider": provider.key}, skip_internal=False)
+    metrics.incr(
+        "sso.login-success",
+        tags={
+            "provider": provider.key,
+            "organization_id": organization.id,
+            "user_id": request.user.id,
+        },
+        skip_internal=False,
+        sample_rate=1.0,
+    )
 
     return HttpResponseRedirect(auth.get_login_redirect(request))
 
@@ -497,6 +507,10 @@ def handle_new_user(auth_provider, organization, request, identity):
         auth_identity.update(user=user, data=identity.get("data", {}))
 
     user.send_confirm_emails(is_new_user=True)
+    provider = auth_provider.provider if auth_provider else None
+    user_signup.send_robust(
+        sender=handle_new_user, user=user, source="sso", provider=provider, referrer="in-app"
+    )
 
     handle_new_membership(auth_provider, organization, request, auth_identity)
 
@@ -631,7 +645,7 @@ class AuthHelper(object):
     def finish_pipeline(self):
         data = self.fetch_state()
 
-        # The state data may have expried, in which case the state data will
+        # The state data may have expired, in which case the state data will
         # simply be None.
         if not data:
             return self.error(ERR_INVALID_IDENTITY)
@@ -689,6 +703,23 @@ class AuthHelper(object):
                     auth_identity = None
 
             if not auth_identity:
+                # XXX(leedongwei): Workaround for migrating Okta instance
+                if features.has(
+                    "organizations:sso-migration", self.organization, actor=self.request.user
+                ) and (auth_provider.provider == "okta" or auth_provider.provider == "saml2"):
+                    identity["email_verified"] = True
+
+                    logger.info(
+                        "sso.login-pipeline.okta-verified-workaround",
+                        extra={
+                            "organization_id": self.organization.id,
+                            "user_id": self.request.user.id,
+                            "auth_provider_id": self.auth_provider.id,
+                            "idp_identity_id": identity["id"],
+                            "idp_identity_email": identity["email"],
+                        },
+                    )
+
                 return handle_unknown_identity(
                     self.request,
                     self.organization,
@@ -803,8 +834,14 @@ class AuthHelper(object):
 
         metrics.incr(
             "sso.error",
-            tags={"provider": self.provider.key, "flow": self.state.flow},
+            tags={
+                "flow": self.state.flow,
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": self.request.user.id,
+            },
             skip_internal=False,
+            sample_rate=1.0,
         )
 
         messages.add_message(

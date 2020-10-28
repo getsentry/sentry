@@ -18,14 +18,13 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
-from sentry.integrations.client import ApiError
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError, ApiError
 from sentry.integrations.jira import JiraIntegration
 from sentry.pipeline import PipelineView
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.decorators import classproperty
 from sentry.web.helpers import render_to_response
-from sentry.integrations.jira.client import JiraApiClient
-from .client import JiraServer, JiraServerSetupClient
+from .client import JiraServer, JiraServerSetupClient, JiraServerClient
 
 
 logger = logging.getLogger("sentry.integrations.jira_server")
@@ -66,7 +65,7 @@ setup_alert = {
     "text": "Your Jira instance must be able to communicate with Sentry."
     " Sentry makes outbound requests from a [static set of IP"
     " addresses](https://docs.sentry.io/ip-ranges/) that you may wish"
-    " to whitelist to support this integration.",
+    " to allow in your firewall to support this integration.",
 }
 
 
@@ -99,15 +98,13 @@ class InstallationForm(forms.Form):
     )
     consumer_key = forms.CharField(
         label=_("Jira Consumer Key"),
-        widget=forms.TextInput(attrs={"placeholder": _("sentry-consumer-key")}),
+        widget=forms.TextInput(attrs={"placeholder": "sentry-consumer-key"}),
     )
     private_key = forms.CharField(
         label=_("Jira Consumer Private Key"),
         widget=forms.Textarea(
             attrs={
-                "placeholder": _(
-                    "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
-                )
+                "placeholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
             }
         ),
     )
@@ -224,11 +221,16 @@ class JiraServerIntegration(JiraIntegration):
 
     default_identity = None
 
+    @classproperty
+    def use_email_scope(cls):
+        # jira server doesn't need the email scope since it's not restricted by GDPR
+        return False
+
     def get_client(self):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        return JiraApiClient(
+        return JiraServerClient(
             self.model.metadata["base_url"],
             JiraServer(self.default_identity.data),
             self.model.metadata["verify_ssl"],
@@ -316,8 +318,8 @@ class JiraServerIntegrationProvider(IntegrationProvider):
                 extra={"error": six.text_type(err), "external_id": external_id},
             )
             try:
-                details = err.json["messages"][0].values().pop()
-            except Exception:
+                details = next(x for x in err.json["messages"][0].values())
+            except (KeyError, TypeError, StopIteration):
                 details = ""
             message = u"Could not create issue webhook in Jira. {}".format(details)
             raise IntegrationError(message)

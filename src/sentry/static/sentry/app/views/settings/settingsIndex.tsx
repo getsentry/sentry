@@ -1,8 +1,10 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import omit from 'lodash/omit';
 
 import {t} from 'app/locale';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
@@ -10,10 +12,10 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/links/externalLink';
 import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {IconDocs, IconLock, IconStack, IconSupport} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import SentryTypes from 'app/sentryTypes';
 import SettingsLayout from 'app/views/settings/components/settingsLayout';
@@ -23,9 +25,9 @@ import {Organization} from 'app/types';
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
   DOCUMENTATION_PLATFORMS: 'https://docs.sentry.io/clients/',
-  DOCUMENATATION_QUICKSTART: 'https://docs.sentry.io/quickstart/',
-  DOCUMENTATION_CLI: 'https://docs.sentry.io/learn/cli/',
-  DOCUMENTATION_API: 'https://docs.sentry.io/hosted/api/',
+  DOCUMENATATION_QUICKSTART: 'https://docs.sentry.io/error-reporting/quickstart/',
+  DOCUMENTATION_CLI: 'https://docs.sentry.io/cli/',
+  DOCUMENTATION_API: 'https://docs.sentry.io/api/',
   API: '/settings/account/api/',
   MANAGE: '/manage/',
   FORUM: 'https://forum.sentry.io/',
@@ -33,7 +35,7 @@ const LINKS = {
   SERVICE_STATUS: 'https://status.sentry.io/',
 };
 
-const HOME_ICON_SIZE = 76;
+const HOME_ICON_SIZE = 56;
 
 const flexCenter = css`
   display: flex;
@@ -43,7 +45,7 @@ const flexCenter = css`
 
 type Props = {
   organization: Organization;
-};
+} & RouteComponentProps<{}, {}>;
 
 class SettingsIndex extends React.Component<Props> {
   static propTypes = {
@@ -129,8 +131,8 @@ class SettingsIndex extends React.Component<Props> {
                       />
                     </AvatarContainer>
                   ) : (
-                    <HomeIcon color="green">
-                      <InlineSvg src="icon-stack" size="44px" />
+                    <HomeIcon color="green400">
+                      <IconStack size="lg" />
                     </HomeIcon>
                   )}
                   <OrganizationName>
@@ -163,8 +165,8 @@ class SettingsIndex extends React.Component<Props> {
             <GridPanel>
               <HomePanelHeader>
                 <ExternalHomeLink isCentered href={LINKS.DOCUMENTATION}>
-                  <HomeIcon color="orange">
-                    <InlineSvg src="icon-docs" size="48px" />
+                  <HomeIcon color="orange400">
+                    <IconDocs size="lg" />
                   </HomeIcon>
                 </ExternalHomeLink>
                 <ExternalHomeLink href={LINKS.DOCUMENTATION}>
@@ -197,8 +199,8 @@ class SettingsIndex extends React.Component<Props> {
             <GridPanel>
               <HomePanelHeader>
                 <SupportLinkComponent isCentered {...supportLinkProps}>
-                  <HomeIcon color="purple">
-                    <InlineSvg src="icon-support" size="48px" />
+                  <HomeIcon color="purple400">
+                    <IconSupport size="lg" />
                   </HomeIcon>
                   {t('Support')}
                 </SupportLinkComponent>
@@ -230,7 +232,7 @@ class SettingsIndex extends React.Component<Props> {
               <HomePanelHeader>
                 <HomeLinkIcon to={LINKS.API}>
                   <HomeIcon>
-                    <InlineSvg src="icon-lock" size="48px" />
+                    <IconLock size="lg" />
                   </HomeIcon>
                   {t('API Keys')}
                 </HomeLinkIcon>
@@ -287,22 +289,21 @@ const HomePanelBody = styled(PanelBody)`
     li {
       line-height: 1.6;
       /* Bullet color */
-      color: ${p => p.theme.gray1};
+      color: ${p => p.theme.gray400};
     }
   }
 `;
 
 const HomeIcon = styled('div')<{color?: string}>`
-  background: ${p => p.theme[p.color || 'gray2']};
-  color: #fff;
+  background: ${p => p.theme[p.color || 'gray500']};
+  color: ${p => p.theme.white};
   width: ${HOME_ICON_SIZE}px;
   height: ${HOME_ICON_SIZE}px;
   border-radius: ${HOME_ICON_SIZE}px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin-bottom: 20px;
-
-  ${InlineSvg} {
-    margin-top: 14px;
-  }
 `;
 
 type CenterableProps = {
@@ -310,10 +311,10 @@ type CenterableProps = {
 };
 
 const HomeLink = styled(Link)`
-  color: ${p => p.theme.purple};
+  color: ${p => p.theme.purple400};
 
   &:hover {
-    color: ${p => p.theme.purpleDark};
+    color: ${p => p.theme.purple400};
   }
 `;
 
@@ -324,39 +325,33 @@ const HomeLinkIcon = styled(HomeLink)`
 `;
 
 const ExternalHomeLink = styled(
-  ({
-    isCentered,
-    ...props
-  }: CenterableProps & React.ComponentProps<typeof ExternalLink>) => (
-    <ExternalLink {...props} />
+  (props: CenterableProps & React.ComponentPropsWithRef<typeof ExternalLink>) => (
+    <ExternalLink {...omit(props, 'isCentered')} />
   )
 )<CenterableProps>`
-  color: ${p => p.theme.purple};
+  color: ${p => p.theme.purple400};
 
   &:hover {
-    color: ${p => p.theme.purpleDark};
+    color: ${p => p.theme.purple400};
   }
 
   ${p => p.isCentered && flexCenter};
 `;
 
-type SupportLinkProps = {
-  isOnPremise: boolean;
+type SupportLinkProps<T extends boolean> = {
+  isOnPremise: T;
   href: string;
   to: string;
   isCentered?: boolean;
-} & (
-  | ({isOnPremise: true} & React.ComponentProps<typeof ExternalLink>)
-  | ({isOnPremise: false} & React.ComponentProps<typeof HomeLink>)
-);
+} & React.ComponentPropsWithRef<T extends true ? typeof ExternalLink : typeof HomeLink>;
 
-const SupportLinkComponent = ({
+const SupportLinkComponent = <T extends boolean>({
   isCentered,
   isOnPremise,
   href,
   to,
   ...props
-}: SupportLinkProps) => {
+}: SupportLinkProps<T>) => {
   if (isOnPremise) {
     return <ExternalHomeLink isCentered={isCentered} href={href} {...props} />;
   }

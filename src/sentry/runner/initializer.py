@@ -1,14 +1,18 @@
 from __future__ import absolute_import, print_function
 
 import click
+import logging
 import os
 import six
 
 from django.conf import settings
 
-from sentry.utils import warnings
+from sentry.utils import metrics, warnings
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
+from sentry.utils.compat import map
+
+logger = logging.getLogger("sentry.runner.initializer")
 
 
 def register_plugins(settings, raise_on_plugin_load_failure=False):
@@ -128,9 +132,23 @@ options_mapper = {
     "mail.use-tls": "EMAIL_USE_TLS",
     "mail.from": "SERVER_EMAIL",
     "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
-    "github-app.client-id": "GITHUB_APP_ID",
-    "github-app.client-secret": "GITHUB_API_SECRET",
+    "github-login.client-id": "GITHUB_APP_ID",
+    "github-login.client-secret": "GITHUB_API_SECRET",
+    "github-login.require-verified-email": "GITHUB_REQUIRE_VERIFIED_EMAIL",
+    "github-login.base-domain": "GITHUB_BASE_DOMAIN",
+    "github-login.api-domain": "GITHUB_API_DOMAIN",
+    "github-login.extended-permissions": "GITHUB_EXTENDED_PERMISSIONS",
+    "github-login.organization": "GITHUB_ORGANIZATION",
 }
+
+
+# Just reuse the integration app for Single Org / Self-Hosted as
+# it doesn't make much sense to use 2 separate apps for SSO and
+# integration.
+if settings.SENTRY_SINGLE_ORGANIZATION:
+    options_mapper.update(
+        {"github-app.client-id": "GITHUB_APP_ID", "github-app.client-secret": "GITHUB_API_SECRET"}
+    )
 
 
 def bootstrap_options(settings, config=None):
@@ -245,8 +263,10 @@ def configure_structlog():
 
     lvl = os.environ.get("SENTRY_LOG_LEVEL")
 
-    if lvl and lvl not in logging._levelNames:
-        raise AttributeError("%s is not a valid logging level." % lvl)
+    if lvl:
+        levelNames = logging._levelNames if not six.PY3 else logging._nameToLevel
+        if lvl not in levelNames:
+            raise AttributeError("%s is not a valid logging level." % lvl)
 
     settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})
 
@@ -400,12 +420,14 @@ model_unpickle = django.db.models.base.model_unpickle
 
 
 def __model_unpickle_compat(model_id, attrs=None, factory=None):
-    from django import VERSION
-
-    if VERSION[:2] in [(1, 10), (1, 11)]:
-        return model_unpickle(model_id)
-    else:
-        raise NotImplementedError
+    if attrs is not None or factory is not None:
+        metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat", sample_rate=1)
+        logger.error(
+            "django.compat.model-unpickle-compat",
+            extra={"model_id": model_id, "attrs": attrs, "factory": factory},
+            exc_info=True,
+        )
+    return model_unpickle(model_id)
 
 
 def __simple_class_factory_compat(model, attrs):

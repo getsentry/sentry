@@ -1,29 +1,27 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import {AvatarUser, Member} from 'app/types';
+import omit from 'lodash/omit';
+
+import {Member, AvatarUser} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
-import omit from 'lodash/omit';
-
-const defaultProps = {
-  useLink: true,
-  hideEmail: false,
-};
 
 type Props = {
-  avatarSize: UserAvatar['props']['size'];
   member: Member;
-  className?: string;
-  displayName?: string;
+  avatarSize?: UserAvatar['props']['size'];
+  displayName?: React.ReactNode;
   displayEmail?: string;
   orgId?: string;
-} & Partial<typeof defaultProps>;
+  useLink?: boolean;
+  hideEmail?: boolean;
+  className?: string;
+};
 
-function getUser(member: Member): AvatarUser {
+function getMemberUser(member: Member): AvatarUser {
   if (member.user) {
     return member.user;
   }
@@ -38,16 +36,16 @@ function getUser(member: Member): AvatarUser {
 }
 
 const MemberBadge = ({
-  className,
+  avatarSize = 24,
+  useLink = true,
+  hideEmail = false,
   displayName,
   displayEmail,
   member,
   orgId,
-  avatarSize,
-  useLink,
-  hideEmail,
+  className,
 }: Props) => {
-  const user = getUser(member);
+  const user = getMemberUser(member);
   const title =
     displayName ||
     user.name ||
@@ -63,9 +61,9 @@ const MemberBadge = ({
       <StyledAvatar user={user} size={avatarSize} />
       <StyledNameAndEmail>
         <StyledName
-          useLink={useLink && orgId}
+          useLink={useLink && !!orgId}
           hideEmail={hideEmail}
-          to={member && orgId && `/settings/${orgId}/members/${member.id}/`}
+          to={(member && orgId && `/settings/${orgId}/members/${member.id}/`) || ''}
         >
           {title}
         </StyledName>
@@ -88,8 +86,6 @@ MemberBadge.propTypes = {
   hideEmail: PropTypes.bool,
 };
 
-MemberBadge.defaultProps = defaultProps;
-
 const StyledUserBadge = styled('div')`
   display: flex;
   align-items: center;
@@ -104,16 +100,16 @@ const StyledNameAndEmail = styled('div')`
 const StyledEmail = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   ${overflowEllipsis};
 `;
 
 type NameProps = {
   useLink: boolean;
   hideEmail: boolean;
-} & Link['props'];
+} & Pick<Link['props'], 'to'>;
 
-const StyledName = styled<NameProps>(({useLink, to, ...props}) => {
+const StyledName = styled(({useLink, to, ...props}: NameProps) => {
   const forwardProps = omit(props, 'hideEmail');
   return useLink ? <Link to={to} {...forwardProps} /> : <span {...forwardProps} />;
 })`

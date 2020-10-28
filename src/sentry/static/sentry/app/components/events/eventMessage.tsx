@@ -2,37 +2,39 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Level} from 'app/types';
 import ErrorLevel from 'app/components/events/errorLevel';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
 type Props = {
-  level?: 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+  level?: Level;
   levelIndicatorSize?: string;
   message?: React.ReactNode;
   annotations?: React.ReactNode;
   className?: string;
+  hasGuideAnchor?: boolean;
 };
 
-const EventMessage: React.FC<Props> = ({
+const EventMessage = ({
   className,
   level,
   levelIndicatorSize,
   message,
   annotations,
-}) => {
-  return (
-    <div className={className}>
-      {level && (
-        <StyledErrorLevel size={levelIndicatorSize} level={level}>
-          {level}
-        </StyledErrorLevel>
-      )}
-      {message && <Message>{message}</Message>}
-      {annotations}
-    </div>
-  );
-};
+}: Props) => (
+  <div className={className}>
+    {level && (
+      <StyledErrorLevel size={levelIndicatorSize} level={level}>
+        {level}
+      </StyledErrorLevel>
+    )}
+
+    {message && <Message>{message}</Message>}
+
+    {annotations}
+  </div>
+);
 
 EventMessage.propTypes = {
   level: PropTypes.oneOf(['error', 'fatal', 'info', 'warning', 'sample']),
@@ -47,10 +49,7 @@ const StyledEventMessage = styled(EventMessage)`
   align-items: center;
   position: relative;
   line-height: 1.2;
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    margin-bottom: ${space(2)};
-  }
+  overflow: hidden;
 `;
 
 const StyledErrorLevel = styled(ErrorLevel)`

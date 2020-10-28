@@ -3,7 +3,7 @@ import debounce from 'lodash/debounce';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
@@ -11,6 +11,7 @@ import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import withLatestContext from 'app/utils/withLatestContext';
+import {documentIntegrationList} from 'app/views/organizationIntegrations/constants';
 
 // event ids must have string length of 32
 const shouldSearchEventIds = query => typeof query === 'string' && query.length === 32;
@@ -81,16 +82,27 @@ async function createMemberResults(membersPromise, orgId) {
   }));
 }
 
-async function createLegacyIntegrationResults(pluginsPromise, orgId) {
+async function createPluginResults(pluginsPromise, orgId) {
   const plugins = (await pluginsPromise) || [];
-  return plugins.map(plugin => ({
-    title: `${plugin.name} (Legacy)`,
-    description: plugin.description,
-    model: plugin,
-    sourceType: 'plugin',
-    resultType: 'integration',
-    to: `/settings/${orgId}/projects/:projectId/plugins/${plugin.id}/`,
-  }));
+  return plugins
+    .filter(plugin => {
+      //show a plugin if it is not hidden (aka legacy) or if we have projects with it configured
+      return !plugin.isHidden || !!plugin.projectList.length;
+    })
+    .map(plugin => ({
+      title: plugin.isHidden ? `${plugin.name} (Legacy)` : plugin.name,
+      description: (
+        <span
+          dangerouslySetInnerHTML={{
+            __html: markedSingleLine(plugin.description),
+          }}
+        />
+      ),
+      model: plugin,
+      sourceType: 'plugin',
+      resultType: 'integration',
+      to: `/settings/${orgId}/plugins/${plugin.id}/`,
+    }));
 }
 
 async function createIntegrationResults(integrationsPromise, orgId) {
@@ -115,6 +127,42 @@ async function createIntegrationResults(integrationsPromise, orgId) {
   );
 }
 
+async function createSentryAppResults(sentryAppPromise, orgId) {
+  const sentryApps = (await sentryAppPromise) || [];
+  return sentryApps.map(sentryApp => ({
+    title: sentryApp.name,
+    description: (
+      <span
+        dangerouslySetInnerHTML={{
+          __html: markedSingleLine(sentryApp.overview || ''),
+        }}
+      />
+    ),
+    model: sentryApp,
+    sourceType: 'sentryApp',
+    resultType: 'integration',
+    to: `/settings/${orgId}/sentry-apps/${sentryApp.slug}/`,
+  }));
+}
+
+//Not really async but we need to return a promise
+async function creatDocIntegrationResults(orgId) {
+  return documentIntegrationList.map(integration => ({
+    title: integration.name,
+    description: (
+      <span
+        dangerouslySetInnerHTML={{
+          __html: markedSingleLine(integration.description),
+        }}
+      />
+    ),
+    model: integration,
+    sourceType: 'docIntegration',
+    resultType: 'integration',
+    to: `/settings/${orgId}/document-integrations/${integration.slug}/`,
+  }));
+}
+
 async function createShortIdLookupResult(shortIdLookupPromise) {
   const shortIdLookup = await shortIdLookupPromise;
   if (!shortIdLookup) {
@@ -124,8 +172,9 @@ async function createShortIdLookupResult(shortIdLookupPromise) {
   const issue = shortIdLookup && shortIdLookup.group;
   return {
     item: {
-      title: `${(issue && issue.metadata && issue.metadata.type) ||
-        shortIdLookup.shortId}`,
+      title: `${
+        (issue && issue.metadata && issue.metadata.type) || shortIdLookup.shortId
+      }`,
       description: `${(issue && issue.metadata && issue.metadata.value) || t('Issue')}`,
       model: shortIdLookup.group,
       sourceType: 'issue',
@@ -194,7 +243,7 @@ class ApiSource extends React.Component {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // Limit the number of times we perform API queries by only attempting API queries
     // using first two characters, otherwise perform in-memory search.
     //
@@ -225,8 +274,9 @@ class ApiSource extends React.Component {
         `/organizations/${orgId}/projects/`,
         `/organizations/${orgId}/teams/`,
         `/organizations/${orgId}/members/`,
-        `/organizations/${orgId}/plugins/?plugins=_all`,
+        `/organizations/${orgId}/plugins/configs/`,
         `/organizations/${orgId}/config/integrations/`,
+        '/sentry-apps/?status=published',
       ];
 
       directUrls = [
@@ -302,6 +352,7 @@ class ApiSource extends React.Component {
       members,
       plugins,
       integrations,
+      sentryApps,
     ] = searchRequests;
     const [shortIdLookup, eventIdLookup] = directRequests;
 
@@ -313,10 +364,12 @@ class ApiSource extends React.Component {
         members,
         plugins,
         integrations,
+        sentryApps,
       ]),
       this.getDirectResults([shortIdLookup, eventIdLookup]),
     ]);
 
+    //TODO(XXX): Might consider adding logic to maintain consistent ordering of results so things don't switch positions
     const fuzzy = createFuzzySearch(searchResults, {
       ...searchOptions,
       keys: ['title', 'description'],
@@ -334,15 +387,25 @@ class ApiSource extends React.Component {
   async getSearchableResults(requests) {
     const {params, organization} = this.props;
     const orgId = (params && params.orgId) || (organization && organization.slug);
-    const [organizations, projects, teams, members, plugins, integrations] = requests;
+    const [
+      organizations,
+      projects,
+      teams,
+      members,
+      plugins,
+      integrations,
+      sentryApps,
+    ] = requests;
     const searchResults = flatten(
       await Promise.all([
         createOrganizationResults(organizations),
         createProjectResults(projects, orgId),
         createTeamResults(teams, orgId),
         createMemberResults(members, orgId),
-        createLegacyIntegrationResults(plugins, orgId),
         createIntegrationResults(integrations, orgId),
+        createPluginResults(plugins, orgId),
+        createSentryAppResults(sentryApps, orgId),
+        creatDocIntegrationResults(orgId),
       ])
     );
 
@@ -351,7 +414,7 @@ class ApiSource extends React.Component {
 
   // Create result objects from API requests that do not require fuzzy search
   // i.e. these responses only return 1 object or they should always be displayed regardless of query input
-  async getDirectResults(requests, query) {
+  async getDirectResults(requests) {
     const [shortIdLookup, eventIdLookup] = requests;
 
     const directResults = (

@@ -4,7 +4,6 @@ import {
   isValidCondition,
   ignoreCase,
 } from 'app/views/discover/conditions/utils';
-
 import {COLUMNS} from 'app/views/discover/data';
 
 const conditionList = [
@@ -46,8 +45,8 @@ const conditionList = [
   },
 ];
 
-describe('Conditions', function() {
-  it('getExternal()', function() {
+describe('Conditions', function () {
+  it('getExternal()', function () {
     conditionList.forEach(({internal, external}) => {
       expect(getExternal(internal, COLUMNS)).toEqual(external);
     });
@@ -57,24 +56,24 @@ describe('Conditions', function() {
     expect(getExternal('timestamp = 2018-05-05', COLUMNS)).toEqual(expectedTimestamp);
   });
 
-  it('getInternal()', function() {
+  it('getInternal()', function () {
     conditionList.forEach(({internal, external}) => {
       expect(getInternal(external, COLUMNS)).toEqual(internal);
     });
   });
 
-  describe('isValidCondition()', function() {
-    it('validates column name exists', function() {
+  describe('isValidCondition()', function () {
+    it('validates column name exists', function () {
       expect(isValidCondition(['device.name', '=', 'something'], COLUMNS)).toBe(true);
       expect(isValidCondition(['device_name', '=', 'something'], COLUMNS)).toBe(false);
     });
 
-    it('validates column type', function() {
+    it('validates column type', function () {
       expect(isValidCondition(['device.battery_level', '=', 5], COLUMNS)).toBe(true);
       expect(isValidCondition(['device.battery_level', '=', '5'], COLUMNS)).toBe(false);
     });
 
-    it('validates operator', function() {
+    it('validates operator', function () {
       expect(isValidCondition(['device.name', 'LIKE', '%something%'], COLUMNS)).toBe(
         true
       );
@@ -82,7 +81,7 @@ describe('Conditions', function() {
     });
   });
 
-  describe('ignoreCase()', function() {
+  describe('ignoreCase()', function () {
     const conditionCases = [
       {
         input: '',
@@ -106,7 +105,7 @@ describe('Conditions', function() {
       },
     ];
 
-    it('uppercases condition operators', function() {
+    it('uppercases condition operators', function () {
       conditionCases.forEach(({input, output}) => {
         expect(ignoreCase(input)).toBe(output);
       });

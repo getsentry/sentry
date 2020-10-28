@@ -1,13 +1,11 @@
 import {Route} from 'react-router';
 
 import {NavigationSection} from 'app/views/settings/types';
-import {
-  User,
-  Organization,
-  Project,
-  IntegrationProvider,
-  IntegrationFeature,
-} from 'app/types';
+import {User, Organization, Project, IntegrationProvider} from 'app/types';
+import {ExperimentKey} from 'app/types/experiments';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import SidebarItem from 'app/components/sidebar/sidebarItem';
+import {StepProps} from 'app/views/onboarding/types';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -20,7 +18,7 @@ import {
 
 /**
  * The Hooks type mapping is the master interface for all external Hooks into
- * the sentry frontent application.
+ * the sentry frontend application.
  */
 export type Hooks = {_: any} & RouteHooks &
   ComponentHooks &
@@ -81,19 +79,27 @@ export type AnalyticsHooks = {
  * rendered in place for Feature components when the feature is not enabled.
  */
 export type FeatureDisabledHooks = {
+  'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
-  'feature-disabled:discard-groups': FeatureDisabledHook;
+  'feature-disabled:custom-symbol-sources': FeatureDisabledHook;
   'feature-disabled:data-forwarding': FeatureDisabledHook;
+  'feature-disabled:discard-groups': FeatureDisabledHook;
+  'feature-disabled:discover-page': FeatureDisabledHook;
+  'feature-disabled:discover-saved-query-create': FeatureDisabledHook;
+  'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:discover2-page': FeatureDisabledHook;
+  'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:events-page': FeatureDisabledHook;
+  'feature-disabled:events-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:grid-editable-actions': FeatureDisabledHook;
+  'feature-disabled:incidents-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:performance-page': FeatureDisabledHook;
+  'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-rippling': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
-  'feature-disabled:events-page': FeatureDisabledHook;
-  'feature-disabled:events-sidebar-item': FeatureDisabledHook;
-  'feature-disabled:discover-page': FeatureDisabledHook;
-  'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
-  'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
-  'feature-disabled:custom-symbol-sources': FeatureDisabledHook;
 };
 
 /**
@@ -101,11 +107,12 @@ export type FeatureDisabledHooks = {
  */
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
-  'organization:header': GenericOrganizationComponentHook;
+  'organization:header': OrganizationHeaderComponentHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:item-label': SidebarItemLabelHook;
+  'help-modal:footer': HelpModalFooterHook;
 };
 
 /**
@@ -114,6 +121,7 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding:invite-members': OnboardingInviteMembersHook;
   'onboarding:extra-chrome': GenericComponentHook;
+  'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
 };
 
 /**
@@ -141,6 +149,11 @@ type GenericOrganizationComponentHook = (opts: {
   organization: Organization;
 }) => React.ReactNode;
 
+// TODO(ts): We should correct the organization header hook to conform to the
+// GenericOrganizationComponentHook, passing org as a prop object, not direct
+// as the only argument.
+type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
+
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.
  */
@@ -161,6 +174,8 @@ type FeatureDisabledHook = (opts: {
    * Weather the feature is or is not enabled.
    */
   hasFeature: boolean;
+
+  children: FeatureDisabled['props']['children'];
 }) => React.ReactNode;
 
 /**
@@ -187,36 +202,31 @@ type AnalyticsTrackEvent = (opts: {
 }) => void;
 
 /**
- * Trigger adhoc analytics tracking in the hook store.
+ * Trigger ad hoc analytics tracking in the hook store.
  */
-type AnalyticsTrackAdhocEvent = (
-  opts: Omit<Parameters<AnalyticsTrackEvent>[0], 'eventName'>
-) => void;
+type AnalyticsTrackAdhocEvent = (opts: {
+  /**
+   * The key used to identify the event.
+   */
+  eventKey: string;
+  /**
+   * Arbitrary data to track
+   */
+  [key: string]: any;
+}) => void;
 
 /**
  * Trigger experiment observed logging.
  */
 type AnalyticsLogExperiment = (opts: {
   /**
-   * The organiation with the experiment
+   * The organization. Must be provided for organization experiments.
    */
-  organization: Organization;
+  organization?: Organization;
   /**
    * The experiment key
    */
-  key: string;
-  /**
-   * The name of the exposed unit
-   */
-  unitName: string;
-  /**
-   * The value of the unit to group by
-   */
-  unitId: string | number;
-  /**
-   * The parameter name used for the exposed key
-   */
-  param: string;
+  key: ExperimentKey;
 }) => void;
 
 /**
@@ -234,7 +244,7 @@ type LegacyAnalyticsEvent = (
   /**
    * Arbitrary data to track
    */
-  data: {[key: string]: number | string | boolean}
+  data: {[key: string]: any}
 ) => void;
 
 /**
@@ -275,43 +285,55 @@ type SidebarItemLabelHook = () => React.ComponentType<{
    * the hook will have no effect.
    */
   id?: string;
+  /**
+   * The item label being wrapped
+   */
+  children: React.ReactNode;
 }>;
+
+type SidebarProps = Pick<
+  React.ComponentProps<typeof SidebarItem>,
+  'orientation' | 'collapsed' | 'hasPanel'
+>;
 
 /**
  * Returns an additional list of sidebar items.
- *
- * TODO(ts): These types should likely come from the Sidebar.tsx itself once it
- * is converted to typescript.
  */
-type SidebarBottomItemsHook = (opts: {
+type SidebarBottomItemsHook = (
+  opts: SidebarProps & {organization: Organization}
+) => React.ReactNode;
+
+/**
+ * Provides augmentation of the help modal footer
+ */
+type HelpModalFooterHook = (opts: {
+  closeModal: () => void;
   organization: Organization;
-  /**
-   * The current orientation of the sidebar.
-   */
-  orientation: 'top' | 'left';
-  /**
-   * Is the sidebar collapsed.
-   */
-  collapsed: boolean;
-  /**
-   * Does the sidebar currently have a panel displayed.
-   */
-  hasPanel: boolean;
 }) => React.ReactNode;
 
 /**
  * Wrapper component to allow for customization of the onboarding member
  * invitation component.
  */
-type OnboardingInviteMembersHook = () => React.ComponentType<{
-  organization: Organization;
-}>;
+type OnboardingInviteMembersHook = () => React.ComponentType<StepProps>;
+
+/**
+ * The DecoratedIntegrationFeature differs from the IntegrationFeature as it is
+ * expected to have been transformed into marked up content.
+ */
+type DecoratedIntegrationFeature = {
+  /**
+   * Marked up description
+   */
+  description: React.ReactNode;
+  featureGate: string;
+};
 
 type IntegrationFeatureGroup = {
   /**
    * The list of features within this group
    */
-  features: IntegrationFeature[];
+  features: DecoratedIntegrationFeature[];
   /**
    * Weather the group has all of the features enabled within this group
    * or not.
@@ -327,7 +349,7 @@ type FeatureGateSharedProps = {
   /**
    * The list of features, typically this is provided by the backend.
    */
-  features: IntegrationFeature[];
+  features: DecoratedIntegrationFeature[];
 };
 
 type IntegrationFeaturesProps = FeatureGateSharedProps & {
@@ -338,7 +360,7 @@ type IntegrationFeaturesProps = FeatureGateSharedProps & {
     /**
      * This is the list of features which have *not* been gated in any way.
      */
-    ungatedFeatures: IntegrationFeature[];
+    ungatedFeatures: DecoratedIntegrationFeature[];
     /**
      * Features grouped based on specific gating criteria (for example, in
      * sentry.io this is features grouped by plans).
@@ -370,10 +392,12 @@ type IntegrationsFeatureGatesHook = () => {
    * features.
    */
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
+  IntegrationDirectoryFeatures: React.ComponentType<IntegrationFeaturesProps>;
   /**
    * This component renders the list of integration features.
    */
   FeatureList: React.ComponentType<IntegrationFeatureListProps>;
+  IntegrationDirectoryFeatureList: React.ComponentType<IntegrationFeatureListProps>;
 };
 
 /**

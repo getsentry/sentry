@@ -1,4 +1,4 @@
-**Note**: This plugin has been deprecated in favor of the `Bitbucket Global Integration <https://docs.sentry.io/workflow/integrations/global-integrations/#bitbucket>`_.
+**Note**: This plugin has been deprecated in favor of the `Bitbucket Global Integration <https://docs.sentry.io/product/integrations/bitbucket/>`_.
 
 Go to https://bitbucket.org/account/user/**YOUR_USERNAME**/api
 
@@ -11,4 +11,3 @@ Create OAuth consumer key and secret and then put
 
 
 into ``sentry.conf.py``
-

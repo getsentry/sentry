@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -12,13 +13,21 @@ type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 type Options = {
   duration?: number;
   append?: boolean;
+  modelArg?: {
+    model: FormModel;
+    id: string;
+    undo: () => void;
+  };
+  disableDismiss?: boolean;
+  undo?: () => void;
 };
 
-type Indicator = {
+export type Indicator = {
   type: IndicatorType;
   id: string | number;
   message: React.ReactNode;
   options: Options;
+  clearId?: null | number;
 };
 
 // Removes a single indicator
@@ -37,36 +46,48 @@ export function addMessage(
   type: IndicatorType,
   options: Options = {}
 ): void {
-  let {duration} = options;
+  const {duration: optionsDuration, append, ...rest} = options;
+
+  // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
+  if (
+    // @ts-expect-error
+    typeof msg?.message !== 'undefined' &&
+    // @ts-expect-error
+    typeof msg?.code !== 'undefined' &&
+    // @ts-expect-error
+    typeof msg?.extra !== 'undefined'
+  ) {
+    Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
+  }
 
   // use default only if undefined, as 0 is a valid duration
-  duration = typeof duration === 'undefined' ? DEFAULT_TOAST_DURATION : duration;
+  const duration =
+    typeof optionsDuration === 'undefined' ? DEFAULT_TOAST_DURATION : optionsDuration;
 
-  const action = options.append ? 'append' : 'replace';
+  const action = append ? 'append' : 'replace';
   // XXX: This differs from `IndicatorStore.add` since it won't return the indicator that is created
   // because we are firing an action. You can just add a new message and it will, by default,
   // replace active indicator
-  IndicatorActions[action](msg, type, {...options, duration});
+  IndicatorActions[action](msg, type, {...rest, duration});
 }
 
 function addMessageWithType(type: IndicatorType) {
-  return (msg: React.ReactNode, duration?: number, options?: Omit<Options, 'duration'>) =>
-    addMessage(msg, type, {...options, duration});
+  return (msg: React.ReactNode, options?: Options) => addMessage(msg, type, options);
 }
 
 export function addLoadingMessage(
   msg: React.ReactNode = t('Saving changes...'),
-  ...args
+  options?: Options
 ) {
-  return addMessageWithType('loading')(msg, ...args);
+  return addMessageWithType('loading')(msg, options);
 }
 
-export function addErrorMessage(msg: React.ReactNode, ...args) {
-  return addMessageWithType('error')(msg, ...args);
+export function addErrorMessage(msg: React.ReactNode, options?: Options) {
+  return addMessageWithType('error')(msg, options);
 }
 
-export function addSuccessMessage(msg: React.ReactNode, ...args) {
-  return addMessageWithType('success')(msg, ...args);
+export function addSuccessMessage(msg: React.ReactNode, options?: Options) {
+  return addMessageWithType('success')(msg, options);
 }
 
 const PRETTY_VALUES: Map<unknown, string> = new Map([
@@ -142,65 +163,66 @@ export function saveOnBlurUndoMessage(
         newValue: <FormValue>{prettifyValue(change.new)}</FormValue>,
       }
     ),
-    DEFAULT_TOAST_DURATION,
     {
-      model,
-      id: fieldName,
-      undo: () => {
-        if (!model || !fieldName) {
-          return;
-        }
+      modelArg: {
+        model,
+        id: fieldName,
+        undo: () => {
+          if (!model || !fieldName) {
+            return;
+          }
 
-        const oldValue = model.getValue(fieldName);
-        const didUndo = model.undo();
-        const newValue = model.getValue(fieldName);
+          const oldValue = model.getValue(fieldName);
+          const didUndo = model.undo();
+          const newValue = model.getValue(fieldName);
 
-        if (!didUndo) {
-          return;
-        }
-        if (!label) {
-          return;
-        }
+          if (!didUndo) {
+            return;
+          }
+          if (!label) {
+            return;
+          }
 
-        // `saveField` can return null if it can't save
-        const saveResult = model.saveField(fieldName, newValue);
+          // `saveField` can return null if it can't save
+          const saveResult = model.saveField(fieldName, newValue);
 
-        if (!saveResult) {
-          addErrorMessage(
-            tct(
-              showChangeText
-                ? 'Unable to restore [fieldName] from [oldValue] to [newValue]'
-                : 'Unable to restore [fieldName]',
+          if (!saveResult) {
+            addErrorMessage(
+              tct(
+                showChangeText
+                  ? 'Unable to restore [fieldName] from [oldValue] to [newValue]'
+                  : 'Unable to restore [fieldName]',
+                {
+                  root: <MessageContainer />,
+                  fieldName: <FieldName>{label}</FieldName>,
+                  oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
+                  newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
+                }
+              )
+            );
+            return;
+          }
+
+          saveResult.then(() => {
+            addMessage(
+              tct(
+                showChangeText
+                  ? 'Restored [fieldName] from [oldValue] to [newValue]'
+                  : 'Restored [fieldName]',
+                {
+                  root: <MessageContainer />,
+                  fieldName: <FieldName>{label}</FieldName>,
+                  oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
+                  newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
+                }
+              ),
+              'undo',
               {
-                root: <MessageContainer />,
-                fieldName: <FieldName>{label}</FieldName>,
-                oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
-                newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
+                duration: DEFAULT_TOAST_DURATION,
               }
-            )
-          );
-          return;
-        }
-
-        saveResult.then(() => {
-          addMessage(
-            tct(
-              showChangeText
-                ? 'Restored [fieldName] from [oldValue] to [newValue]'
-                : 'Restored [fieldName]',
-              {
-                root: <MessageContainer />,
-                fieldName: <FieldName>{label}</FieldName>,
-                oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
-                newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
-              }
-            ),
-            'undo',
-            {
-              duration: DEFAULT_TOAST_DURATION,
-            }
-          );
-        });
+            );
+          });
+        },
       },
     }
   );

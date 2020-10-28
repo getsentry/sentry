@@ -5,6 +5,7 @@ from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
+import logging
 import functools
 import os
 import pytz
@@ -13,9 +14,11 @@ import six
 import time
 import urllib3
 import sentry_sdk
+from sentry_sdk import Hub
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
+from six.moves.urllib.parse import urlparse
 
 from sentry import quotas
 from sentry.models import (
@@ -33,13 +36,25 @@ from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
+from sentry.utils.compat import map
+
+
+logger = logging.getLogger(__name__)
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
+# We limit the number of fields an user can ask for
+# in a single query to lessen the load on snuba
+MAX_FIELDS = 20
+
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
-QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
+# Match any text surrounded by quotes, can't use `.*` here since it
+# doesn't include new lines,
+QUOTED_LITERAL_RE = re.compile(r"^'[\s\S]*'$")
+
+MEASUREMENTS_KEY_RE = re.compile(r"^measurements\.([a-zA-Z0-9-_.]+)$")
 
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
@@ -48,6 +63,9 @@ OVERRIDE_OPTIONS = {
     "consistent": os.environ.get("SENTRY_SNUBA_CONSISTENT", "false").lower() in ("true", "1")
 }
 
+# Show the snuba query params and the corresponding sql or errors in the server logs
+SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
 # so we support <real_column_name>.name to refer to the top level column name.
@@ -55,6 +73,11 @@ SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
 
+TRANSACTIONS_SNUBA_MAP = {
+    col.value.alias: col.value.transaction_name
+    for col in Columns
+    if col.value.transaction_name is not None
+}
 
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
@@ -67,15 +90,39 @@ DISCOVER_COLUMN_MAP = {
 }
 
 
-DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Discover: DISCOVER_COLUMN_MAP}
+DATASETS = {
+    Dataset.Events: SENTRY_SNUBA_MAP,
+    Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
+    Dataset.Discover: DISCOVER_COLUMN_MAP,
+}
 
 # Store the internal field names to save work later on.
 # Add `group_id` to the events dataset list as we don't want to publically
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
+    Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
 }
+
+SNUBA_OR = "or"
+SNUBA_AND = "and"
+OPERATOR_TO_FUNCTION = {
+    "LIKE": "like",
+    "NOT LIKE": "notLike",
+    "=": "equals",
+    "!=": "notEquals",
+    ">": "greater",
+    "<": "less",
+    ">=": "greaterOrEquals",
+    "<=": "lessOrEquals",
+}
+FUNCTION_TO_OPERATOR = {v: k for k, v in OPERATOR_TO_FUNCTION.items()}
+
+
+def parse_snuba_datetime(value):
+    """Parses a datetime value from snuba."""
+    return parse_datetime(value)
 
 
 class SnubaError(Exception):
@@ -133,10 +180,41 @@ class QueryTooManySimultaneous(QueryExecutionError):
     """
 
 
+class QuerySizeExceeded(QueryExecutionError):
+    """
+    The generated query has exceeded the maximum length allowed by clickhouse
+    """
+
+
+class QueryExecutionTimeMaximum(QueryExecutionError):
+    """
+    The query has or will take over 30 seconds to run, exceeding the limit
+    that has been set
+    """
+
+
+class DatasetSelectionError(QueryExecutionError):
+    """
+    This query has resulted in needing to check multiple datasets in a way
+    that is not currently handled, clickhouse errors with data being compressed
+    by different methods when this happens
+    """
+
+
+class QueryConnectionFailed(QueryExecutionError):
+    """
+    The connection to clickhouse has failed, and so the query cannot be run
+    """
+
+
 clickhouse_error_codes_map = {
     43: QueryIllegalTypeOfArgument,
-    241: QueryMemoryLimitExceeded,
+    62: QuerySizeExceeded,
+    160: QueryExecutionTimeMaximum,
     202: QueryTooManySimultaneous,
+    241: QueryMemoryLimitExceeded,
+    271: DatasetSelectionError,
+    279: QueryConnectionFailed,
 }
 
 
@@ -204,6 +282,10 @@ class RetrySkipTimeout(urllib3.Retry):
         if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
             raise six.reraise(type(error), error, _stacktrace)
 
+        metrics.incr(
+            "snuba.client.retry",
+            tags={"method": method, "path": urlparse(url).path if url else None},
+        )
         return super(RetrySkipTimeout, self).increment(
             method=method,
             url=url,
@@ -218,11 +300,11 @@ _snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
     retries=RetrySkipTimeout(
         total=5,
-        # Expand our retries to POST since all of
-        # our requests are POST and they don't mutate, so they
-        # are safe to retry. Without this, we aren't
-        # actually retrying at all.
-        method_whitelist={"GET", "POST"},
+        # Our calls to snuba frequently fail due to network issues. We want to
+        # automatically retry most requests. Some of our POSTs and all of our DELETEs
+        # do cause mutations, but we have other things in place to handle duplicate
+        # mutations.
+        method_whitelist={"GET", "POST", "DELETE"},
     ),
     timeout=30,
     maxsize=10,
@@ -252,10 +334,16 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     if name in no_conversion:
         return name
 
-    if not name or QUOTED_LITERAL_RE.match(name):
+    if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
 
-    return DATASETS[dataset].get(name, u"tags[{}]".format(name))
+    match = MEASUREMENTS_KEY_RE.match(name)
+    if "measurements_key" in DATASETS[dataset] and match:
+        default = u"measurements[{}]".format(match.group(1).lower())
+    else:
+        default = u"tags[{}]".format(name)
+
+    return DATASETS[dataset].get(name, default)
 
 
 def get_function_index(column_expr, depth=0):
@@ -301,7 +389,7 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
-def get_query_params_to_update_for_projects(query_params):
+def get_query_params_to_update_for_projects(query_params, with_org=False):
     """
     Get the project ID and query params that need to be updated for project
     based datasets, before we send the query to Snuba.
@@ -317,6 +405,11 @@ def get_query_params_to_update_for_projects(query_params):
                 for k in query_params.filter_keys
             ]
             project_ids = list(set.union(*map(set, ids)))
+    elif query_params.conditions:
+        project_ids = []
+        for cond in query_params.conditions:
+            if cond[0] == "project_id":
+                project_ids = [cond[2]] if cond[1] == "=" else cond[2]
     else:
         project_ids = []
 
@@ -326,9 +419,21 @@ def get_query_params_to_update_for_projects(query_params):
         )
 
     # any project will do, as they should all be from the same organization
-    organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
+    try:
+        # Most of the time the project should exist, so get from cache to keep it fast
+        organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
+    except Project.DoesNotExist:
+        # But in the case the first project doesn't exist, grab the first non deleted project
+        project = Project.objects.filter(pk__in=project_ids).values("organization_id").first()
+        if project is None:
+            raise UnqualifiedQueryError("All project_ids from the filter no longer exist")
+        organization_id = project.get("organization_id")
 
-    return organization_id, {"project": project_ids}
+    params = {"project": project_ids}
+    if with_org:
+        params["organization"] = organization_id
+
+    return organization_id, params
 
 
 def get_query_params_to_update_for_organizations(query_params):
@@ -369,8 +474,15 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [Dataset.Events, Dataset.Discover]:
-        (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
+    if query_params.dataset in [
+        Dataset.Events,
+        Dataset.Discover,
+        Dataset.Sessions,
+        Dataset.Transactions,
+    ]:
+        (organization_id, params_to_update) = get_query_params_to_update_for_projects(
+            query_params, with_org=query_params.dataset == Dataset.Sessions
+        )
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
             query_params
@@ -393,7 +505,9 @@ def _prepare_query_params(query_params):
     if retention:
         start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
-            raise QueryOutsideRetentionError
+            raise QueryOutsideRetentionError(
+                "Invalid date range. Please try a more recent date range."
+            )
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
@@ -472,6 +586,10 @@ class SnubaQueryParams(object):
         # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or Dataset.Events
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
+        # Snuba has end exclusive but our UI wants it generally to be inclusive.
+        # This shows up in unittests: https://github.com/getsentry/sentry/pull/15939
+        # We generally however require that the API user is aware of the exclusive
+        # end.
         self.end = end or datetime.utcnow() + timedelta(seconds=1)
         self.groupby = groupby or []
         self.conditions = conditions or []
@@ -523,14 +641,20 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     query_param_list = map(_prepare_query_params, snuba_param_list)
 
     def snuba_query(params):
-        query_params, forward, reverse = params
+        query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
+                referrer = headers.get("referer", "<unknown>")
+                if SNUBA_INFO:
+                    logger.info("{}.body: {}".format(referrer, json.dumps(query_params)))
+                    query_params["debug"] = True
                 body = json.dumps(query_params)
-                with sentry_sdk.start_span(
-                    op="snuba", description=u"query {}".format(body)
+                with thread_hub.start_span(
+                    op="snuba", description=u"query {}".format(referrer)
                 ) as span:
-                    span.set_tag("referrer", headers.get("referer", "<unknown>"))
+                    span.set_tag("referrer", referrer)
+                    for param_key, param_data in six.iteritems(query_params):
+                        span.set_data(param_key, param_data)
                     return (
                         _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
                         forward,
@@ -539,18 +663,39 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         except urllib3.exceptions.HTTPError as err:
             raise SnubaError(err)
 
-    if len(snuba_param_list) > 1:
-        query_results = _query_thread_pool.map(snuba_query, query_param_list)
-    else:
-        # No need to submit to the thread pool if we're just performing a
-        # single query
-        query_results = [snuba_query(query_param_list[0])]
+    with sentry_sdk.start_span(
+        op="start_snuba_query",
+        description=u"running {} snuba queries".format(len(snuba_param_list)),
+    ) as span:
+        span.set_tag("referrer", headers.get("referer", "<unknown>"))
+        if len(snuba_param_list) > 1:
+            query_results = list(
+                _query_thread_pool.map(
+                    snuba_query, [params + (Hub(Hub.current),) for params in query_param_list]
+                )
+            )
+        else:
+            # No need to submit to the thread pool if we're just performing a
+            # single query
+            query_results = [snuba_query(query_param_list[0] + (Hub(Hub.current),))]
 
     results = []
     for response, _, reverse in query_results:
         try:
             body = json.loads(response.data)
+            if SNUBA_INFO:
+                if "sql" in body:
+                    logger.info(
+                        "{}.sql: {}".format(headers.get("referer", "<unknown>"), body["sql"])
+                    )
+                if "error" in body:
+                    logger.info(
+                        "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
+                    )
         except ValueError:
+            if response.status != 200:
+                logger.error("snuba.query.invalid-json")
+                raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(
                 u"Could not decode JSON response: {}".format(response.data)
             )
@@ -655,25 +800,44 @@ def nest_groups(data, groups, aggregate_cols):
         )
 
 
-def resolve_column(col, dataset):
-    if col.startswith("tags["):
-        return col
+def resolve_column(dataset):
+    def _resolve_column(col):
+        if col is None:
+            return col
+        if isinstance(col, six.integer_types) or isinstance(col, float):
+            return col
+        if isinstance(col, six.string_types) and (
+            col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
+        ):
+            return col
 
-    if not col or QUOTED_LITERAL_RE.match(col):
-        return col
-    if col in DATASETS[dataset]:
-        return DATASETS[dataset][col]
-    if col in DATASET_FIELDS[dataset]:
-        return col
+        # Some dataset specific logic:
+        if dataset == Dataset.Discover:
+            if isinstance(col, (list, tuple)) or col == "project_id":
+                return col
+        else:
+            if (
+                col in DATASET_FIELDS[dataset]
+            ):  # Discover does not allow internal aliases to be used by customers, so doesn't get this logic.
+                return col
 
-    return u"tags[{}]".format(col)
+        if col in DATASETS[dataset]:
+            return DATASETS[dataset][col]
+
+        match = MEASUREMENTS_KEY_RE.match(col)
+        if "measurements_key" in DATASETS[dataset] and match:
+            return u"measurements[{}]".format(match.group(1).lower())
+
+        return u"tags[{}]".format(col)
+
+    return _resolve_column
 
 
 def resolve_condition(cond, column_resolver):
     """
     When conditions have been parsed by the api.event_search module
     we can end up with conditions that are not valid on the current dataset
-    due to how ap.event_search checks for valid field names without
+    due to how api.event_search checks for valid field names without
     being aware of the dataset.
 
     We have the dataset context here, so we need to re-scope conditions to the
@@ -688,6 +852,24 @@ def resolve_condition(cond, column_resolver):
         # IN conditions are detected as a function but aren't really.
         if cond[index] == "IN":
             cond[0] = column_resolver(cond[0])
+            return cond
+        elif cond[index] in FUNCTION_TO_OPERATOR:
+            func_args = cond[index + 1]
+            for i, arg in enumerate(func_args):
+                if i == 0:
+                    if isinstance(arg, (list, tuple)):
+                        func_args[i] = resolve_condition(arg, column_resolver)
+                    else:
+                        func_args[i] = column_resolver(arg)
+                else:
+                    if isinstance(arg, six.string_types):
+                        func_args[i] = u"'{}'".format(arg)
+                    elif isinstance(arg, datetime):
+                        func_args[i] = u"'{}'".format(arg.isoformat())
+                    else:
+                        func_args[i] = arg
+
+            cond[index + 1] = func_args
             return cond
 
         func_args = cond[index + 1]
@@ -716,20 +898,7 @@ def resolve_condition(cond, column_resolver):
     raise ValueError("Unexpected condition format %s" % cond)
 
 
-def aliased_query(
-    start=None,
-    end=None,
-    groupby=None,
-    conditions=None,
-    filter_keys=None,
-    aggregations=None,
-    selected_columns=None,
-    arrayjoin=None,
-    having=None,
-    dataset=None,
-    orderby=None,
-    **kwargs
-):
+def aliased_query(**kwargs):
     """
     Wrapper around raw_query that selects the dataset based on the
     selected_columns, conditions and groupby parameters.
@@ -741,28 +910,52 @@ def aliased_query(
     This method should be used sparingly. Instead prefer to use sentry.eventstore
     sentry.tagstore, or sentry.snuba.discover instead when reading data.
     """
+    with sentry_sdk.start_span(op="sentry.snuba.aliased_query"):
+        return _aliased_query_impl(**kwargs)
+
+
+def _aliased_query_impl(
+    start=None,
+    end=None,
+    groupby=None,
+    conditions=None,
+    filter_keys=None,
+    aggregations=None,
+    selected_columns=None,
+    arrayjoin=None,
+    having=None,
+    dataset=None,
+    orderby=None,
+    condition_resolver=None,
+    **kwargs
+):
     if dataset is None:
         raise ValueError("A dataset is required, and is no longer automatically detected.")
 
     derived_columns = []
+    resolve_func = resolve_column(dataset)
     if selected_columns:
         for (i, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
                 derived_columns.append(col[2])
             else:
-                selected_columns[i] = resolve_column(col, dataset)
-        selected_columns = list(filter(None, selected_columns))
+                selected_columns[i] = resolve_func(col)
+        selected_columns = [c for c in selected_columns if c]
 
     if aggregations:
         for aggregation in aggregations:
             derived_columns.append(aggregation[2])
 
     if conditions:
-        column_resolver = functools.partial(resolve_column, dataset=dataset)
+        column_resolver = (
+            functools.partial(condition_resolver, dataset=dataset)
+            if condition_resolver
+            else resolve_func
+        )
         for (i, condition) in enumerate(conditions):
             replacement = resolve_condition(condition, column_resolver)
             conditions[i] = replacement
-        conditions = list(filter(None, conditions))
+        conditions = [c for c in conditions if c]
 
     if orderby:
         # Don't mutate in case we have a default order passed.
@@ -770,7 +963,7 @@ def aliased_query(
         for (i, order) in enumerate(orderby):
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
-                order_field = resolve_column(order_field, dataset)
+                order_field = resolve_func(order_field)
             updated_order.append(u"{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
 
@@ -790,6 +983,106 @@ def aliased_query(
     )
 
 
+# TODO (evanh) Since we are assuming that all string values are columns,
+# this will get tricky if we ever have complex columns where there are
+# string arguments to the functions that aren't columns
+def resolve_complex_column(col, resolve_func):
+    args = col[1]
+
+    for i in range(len(args)):
+        if isinstance(args[i], (list, tuple)):
+            resolve_complex_column(args[i], resolve_func)
+        elif isinstance(args[i], six.string_types):
+            args[i] = resolve_func(args[i])
+
+
+def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None):
+    resolved = snuba_filter.clone()
+    translated_columns = {}
+    derived_columns = set()
+    if function_translations:
+        for snuba_name, sentry_name in six.iteritems(function_translations):
+            derived_columns.add(snuba_name)
+            translated_columns[snuba_name] = sentry_name
+
+    selected_columns = resolved.selected_columns
+    if selected_columns:
+        for (idx, col) in enumerate(selected_columns):
+            if isinstance(col, (list, tuple)):
+                if len(col) == 3:
+                    # Add the name from columns, and remove project backticks so its not treated as a new col
+                    derived_columns.add(col[2].strip("`"))
+                resolve_complex_column(col, resolve_func)
+            else:
+                name = resolve_func(col)
+                selected_columns[idx] = name
+                translated_columns[name] = col
+
+        resolved.selected_columns = selected_columns
+
+    groupby = resolved.groupby
+    if groupby:
+        for (idx, col) in enumerate(groupby):
+            name = col
+            if isinstance(col, (list, tuple)):
+                if len(col) == 3:
+                    name = col[2]
+            elif col not in derived_columns:
+                name = resolve_func(col)
+
+            groupby[idx] = name
+        resolved.groupby = groupby
+
+    aggregations = resolved.aggregations
+    # need to get derived_columns first, so that they don't get resolved as functions
+    derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
+    for aggregation in aggregations or []:
+        if isinstance(aggregation[1], six.string_types):
+            aggregation[1] = resolve_func(aggregation[1])
+        elif isinstance(aggregation[1], (set, tuple, list)):
+            formatted = []
+            for argument in aggregation[1]:
+                # The aggregation has another function call as its parameter
+                func_index = get_function_index(argument)
+                if func_index is not None:
+                    # Resolve the columns on the nested function, and add a wrapping
+                    # list to become a valid query expression.
+                    formatted.append([argument[0], [resolve_func(col) for col in argument[1]]])
+                else:
+                    # Parameter is a list of fields.
+                    formatted.append(
+                        resolve_func(argument)
+                        if not isinstance(argument, (set, tuple, list))
+                        and argument not in derived_columns
+                        else argument
+                    )
+            aggregation[1] = formatted
+    resolved.aggregations = aggregations
+
+    conditions = resolved.conditions
+    if conditions:
+        for (i, condition) in enumerate(conditions):
+            replacement = resolve_condition(condition, resolve_func)
+            conditions[i] = replacement
+        resolved.conditions = [c for c in conditions if c]
+
+    orderby = resolved.orderby
+    if orderby:
+        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+        resolved_orderby = []
+
+        for field_with_order in orderby:
+            field = field_with_order.lstrip("-")
+            resolved_orderby.append(
+                u"{}{}".format(
+                    "-" if field_with_order.startswith("-") else "",
+                    field if field in derived_columns else resolve_func(field),
+                )
+            )
+        resolved.orderby = resolved_orderby
+    return resolved, translated_columns
+
+
 JSON_TYPE_MAP = {
     "UInt8": "boolean",
     "UInt16": "integer",
@@ -806,6 +1099,9 @@ def get_json_type(snuba_type):
     Convert Snuba/Clickhouse type to JSON type
     Default is string
     """
+    if snuba_type is None:
+        return "string"
+
     # Ignore Nullable part
     nullable_match = re.search(r"^Nullable\((.+)\)$", snuba_type)
 
@@ -969,11 +1265,62 @@ def shrink_time_window(issues, start):
     stale groups.
     """
     if issues and len(issues) == 1:
-        group = Group.objects.get(pk=list(issues)[0])
-        start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
+        try:
+            group = Group.objects.get(pk=list(issues)[0])
+            start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
+        except Group.DoesNotExist:
+            return start
 
     return start
 
 
 def naiveify_datetime(dt):
     return dt if not dt.tzinfo else dt.astimezone(pytz.utc).replace(tzinfo=None)
+
+
+def quantize_time(time, key_hash, duration=300):
+    """ Adds jitter based on the key_hash around start/end times for caching snuba queries
+
+        Given a time and a key_hash this should result in a timestamp that remains the same for a duration
+        The end of the duration will be different per key_hash which avoids spikes in the number of queries
+        Must be based on the key_hash so they cache keys are consistent per query
+
+        For example: the time is 17:02:00, there's two queries query A has a key_hash of 30, query B has a key_hash of
+        60, we have the default duration of 300 (5 Minutes)
+        - query A will have the suffix of 17:00:30 for a timewindow from 17:00:30 until 17:05:30
+            - eg. Even when its 17:05:00 the suffix will still be 17:00:30
+        - query B will have the suffix of 17:01:00 for a timewindow from 17:01:00 until 17:06:00
+    """
+    # Use the hash so that seconds past the hour gets rounded differently per query.
+    jitter = key_hash % duration
+    seconds_past_hour = time.minute * 60 + time.second
+    # Round seconds to a multiple of duration, because this uses "floor" division shouldn't give us a future window
+    time_window_start = seconds_past_hour // duration * duration + jitter
+    # If the time is past the rounded seconds then we want our key to be for this timewindow
+    if time_window_start < seconds_past_hour:
+        seconds_past_hour = time_window_start
+    # Otherwise we're in the previous time window, subtract duration to give us the previous timewindows start
+    else:
+        seconds_past_hour = time_window_start - duration
+    return (
+        # Since we're adding seconds past the hour, we want time but without minutes or seconds
+        time.replace(minute=0, second=0, microsecond=0)
+        +
+        # Use timedelta here so keys are consistent around hour boundaries
+        timedelta(seconds=seconds_past_hour)
+    )
+
+
+def is_measurement(key):
+    return isinstance(key, six.string_types) and MEASUREMENTS_KEY_RE.match(key)
+
+
+def is_duration_measurement(key):
+    return key in [
+        "measurements.fp",
+        "measurements.fcp",
+        "measurements.lcp",
+        "measurements.fid",
+        "measurements.ttfb",
+        "measurements.ttfb.requesttime",
+    ]

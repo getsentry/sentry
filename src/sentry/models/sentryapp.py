@@ -9,6 +9,7 @@ from django.db import models
 from django.utils import timezone
 from django.template.defaultfilters import slugify
 from hashlib import sha256
+from sentry.utils import metrics
 from sentry.constants import SentryAppStatus, SENTRY_APP_SLUG_MAX_LENGTH
 from sentry.models.apiscopes import HasApiScopes
 from sentry.db.models import (
@@ -53,7 +54,7 @@ UUID_CHARS_IN_SLUG = 6
 
 
 def default_uuid():
-    return six.binary_type(uuid.uuid4())
+    return six.text_type(uuid.uuid4())
 
 
 def generate_slug(name, is_internal=False):
@@ -63,6 +64,14 @@ def generate_slug(name, is_internal=False):
         slug = u"{}-{}".format(slug, default_uuid()[:UUID_CHARS_IN_SLUG])
 
     return slug
+
+
+def track_response_code(status, integration_slug, webhook_event):
+    metrics.incr(
+        "integration-platform.http_response",
+        sample_rate=1.0,
+        tags={"status": status, "integration": integration_slug, "webhook_event": webhook_event},
+    )
 
 
 class SentryApp(ParanoidModel, HasApiScopes):
@@ -91,7 +100,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
     uuid = models.CharField(max_length=64, default=default_uuid)
 
     redirect_url = models.URLField(null=True)
-    webhook_url = models.URLField(null=True)
+    webhook_url = models.URLField(max_length=512, null=True)
     # does the application subscribe to `event.alert`,
     # meaning can it be used in alert rules as a {service} ?
     is_alertable = models.BooleanField(default=False)
@@ -110,6 +119,11 @@ class SentryApp(ParanoidModel, HasApiScopes):
     date_updated = models.DateTimeField(default=timezone.now)
     date_published = models.DateTimeField(null=True, blank=True)
 
+    creator_user = FlexibleForeignKey(
+        "sentry.User", null=True, on_delete=models.SET_NULL, db_constraint=False
+    )
+    creator_label = models.TextField(null=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryapp"
@@ -123,6 +137,15 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
         return cls.objects.filter(status=SentryAppStatus.PUBLISHED)
 
+    # this method checks if a user from a sentry app has permission to a specific project
+    # for now, only checks if app is installed on the org of the project
+    @classmethod
+    def check_project_permission_for_sentry_app_user(cls, user, project):
+        assert user.is_sentry_app
+        # if the user exists, so should the sentry_app
+        sentry_app = cls.objects.get(proxy_user=user)
+        return sentry_app.is_installed_on(project.organization)
+
     @property
     def is_published(self):
         return self.status == SentryAppStatus.PUBLISHED
@@ -135,12 +158,22 @@ class SentryApp(ParanoidModel, HasApiScopes):
     def is_internal(self):
         return self.status == SentryAppStatus.INTERNAL
 
+    @property
+    def slug_for_metrics(self):
+        if self.is_internal:
+            return "internal"
+        if self.is_unpublished:
+            return "unpublished"
+        return self.slug
+
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
         return super(SentryApp, self).save(*args, **kwargs)
 
     def is_installed_on(self, organization):
-        return SentryAppInstallation.objects.filter(organization=organization).exists()
+        return SentryAppInstallation.objects.filter(
+            organization=organization, sentry_app=self,
+        ).exists()
 
     def build_signature(self, body):
         secret = self.application.client_secret

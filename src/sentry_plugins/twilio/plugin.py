@@ -6,15 +6,25 @@ import phonenumbers
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import http
 from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+
+from .client import TwilioApiClient
+from sentry_plugins.base import CorePluginMixin
 
 import sentry
+from sentry.utils.compat import map
+from sentry.utils.compat import filter
 
 DEFAULT_REGION = "US"
 MAX_SMS_LENGTH = 160
 
-twilio_sms_endpoint = "https://api.twilio.com/2010-04-01/Accounts/{0}/SMS/Messages.json"
+DESCRIPTION = """
+Get notified of Sentry alerts via SMS.
+
+Twilio allows users to send and receive text messages globally with
+the API that over a million developers depend on.
+"""
 
 
 def validate_phone(phone):
@@ -36,10 +46,9 @@ def clean_phone(phone):
     )
 
 
-def basic_auth(user, password):
-    return "Basic " + (user + ":" + password).encode("base64").replace("\n", "")
-
-
+# XXX: can likely remove the dedupe here after notify_users has test coverage;
+#      in theory only cleaned data would make it to the plugin via the form,
+#      and cleaned numbers are deduped already.
 def split_sms_to(data):
     return set(filter(bool, re.split(r"\s*,\s*|\s+", data)))
 
@@ -82,25 +91,28 @@ class TwilioConfigurationForm(forms.Form):
         for phone in phones:
             if not validate_phone(phone):
                 raise forms.ValidationError("{0} is not a valid phone number.".format(phone))
-        return ",".join(sorted(map(clean_phone, phones)))
+        return ",".join(sorted(set(map(clean_phone, phones))))
 
     def clean(self):
         # TODO: Ping Twilio and check credentials (?)
         return self.cleaned_data
 
 
-class TwilioPlugin(NotificationPlugin):
+class TwilioPlugin(CorePluginMixin, NotificationPlugin):
     author = "Matt Robenolt"
     author_url = "https://github.com/mattrobenolt"
     version = sentry.VERSION
-    description = "A plugin for Sentry which sends SMS notifications via Twilio"
+    description = DESCRIPTION
     resource_links = (
         (
             "Documentation",
             "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/twilio/Twilio_Instructions.md",
         ),
-        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
-        ("Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins/twilio"),
+        ("Report Issue", "https://github.com/getsentry/sentry/issues"),
+        (
+            "View Source",
+            "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins/twilio",
+        ),
         ("Twilio", "https://www.twilio.com/"),
     )
 
@@ -108,7 +120,22 @@ class TwilioPlugin(NotificationPlugin):
     title = _("Twilio (SMS)")
     conf_title = title
     conf_key = "twilio"
+    required_field = "account_sid"
     project_conf_form = TwilioConfigurationForm
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Set up SMS notifications to be sent to your mobile device via Twilio.
+            """,
+            IntegrationFeatures.MOBILE,
+        ),
+        FeatureDescription(
+            """
+            Configure Sentry rules to trigger notifications based on conditions you set.
+            """,
+            IntegrationFeatures.ALERT_RULE,
+        ),
+    ]
 
     def is_configured(self, project, **kwargs):
         return all(
@@ -122,47 +149,52 @@ class TwilioPlugin(NotificationPlugin):
         # This doesn't depend on email permission... stuff.
         return True
 
+    def error_message_from_json(self, data):
+        code = data.get("code")
+        message = data.get("message")
+        more_info = data.get("more_info")
+        error_message = "%s - %s %s" % (code, message, more_info)
+        if message:
+            return error_message
+        return None
+
     def notify_users(self, group, event, **kwargs):
+        if not self.is_configured(group.project):
+            return
         project = group.project
 
-        body = "Sentry [{0}] {1}: {2}".format(
+        body = b"Sentry [%s] %s: %s" % (
             project.name.encode("utf-8"),
             event.group.get_level_display().upper().encode("utf-8"),
             event.title.encode("utf-8").splitlines()[0],
         )
         body = body[:MAX_SMS_LENGTH]
 
-        account_sid = self.get_option("account_sid", project)
-        auth_token = self.get_option("auth_token", project)
-        sms_from = clean_phone(self.get_option("sms_from", project))
-        endpoint = twilio_sms_endpoint.format(account_sid)
+        client = self.get_client(group.project)
 
-        sms_to = self.get_option("sms_to", project)
-        if not sms_to:
-            return
-        sms_to = split_sms_to(sms_to)
-
-        headers = {"Authorization": basic_auth(account_sid, auth_token)}
+        payload = {"From": client.sms_from, "Body": body}
 
         errors = []
 
-        for phone in sms_to:
+        for phone in client.sms_to:
             if not phone:
                 continue
             try:
+                # TODO: Use API client with raise_error
                 phone = clean_phone(phone)
-                http.safe_urlopen(
-                    endpoint,
-                    method="POST",
-                    headers=headers,
-                    data={"From": sms_from, "To": phone, "Body": body},
-                ).raise_for_status()
+                payload = payload.copy()
+                payload["To"] = phone
+                client.request(payload)
             except Exception as e:
                 errors.append(e)
 
         if errors:
-            if len(errors) == 1:
-                raise errors[0]
+            self.raise_error(errors[0])
 
-            # TODO: multi-exception
-            raise Exception(errors)
+    def get_client(self, project):
+        account_sid = self.get_option("account_sid", project)
+        auth_token = self.get_option("auth_token", project)
+        sms_from = clean_phone(self.get_option("sms_from", project))
+        sms_to = self.get_option("sms_to", project)
+        sms_to = split_sms_to(sms_to)
+        return TwilioApiClient(account_sid, auth_token, sms_from, sms_to)

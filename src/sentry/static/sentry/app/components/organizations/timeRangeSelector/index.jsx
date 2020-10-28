@@ -19,22 +19,20 @@ import DateSummary from 'app/components/organizations/timeRangeSelector/dateSumm
 import DropdownMenu from 'app/components/dropdownMenu';
 import HeaderItem from 'app/components/organizations/headerItem';
 import HookOrDefault from 'app/components/hookOrDefault';
-import InlineSvg from 'app/components/inlineSvg';
 import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
 import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import {IconCalendar} from 'app/icons';
 
 // Strips timezone from local date, creates a new moment date object with timezone
 // Then returns as a Date object
 const getDateWithTimezoneInUtc = (date, utc) =>
   moment
     .tz(
-      moment(date)
-        .local()
-        .format('YYYY-MM-DD HH:mm:ss'),
+      moment(date).local().format('YYYY-MM-DD HH:mm:ss'),
       utc ? 'UTC' : getUserTimezone()
     )
     .utc()
@@ -62,6 +60,12 @@ const SelectorItemsHook = HookOrDefault({
 
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
+    /**
+     * When the default period is selected, it is visually dimmed and
+     * makes the selector unclearable.
+     */
+    defaultPeriod: PropTypes.string,
+
     /**
      * Show absolute date selectors
      */
@@ -111,15 +115,20 @@ class TimeRangeSelector extends React.PureComponent {
      * Just used for metrics
      */
     organization: SentryTypes.Organization,
+
+    /**
+     * Small info icon with tooltip hint text
+     */
+    hint: PropTypes.string,
+  };
+
+  static contextTypes = {
+    router: PropTypes.object,
   };
 
   static defaultProps = {
     showAbsolute: true,
     showRelative: true,
-  };
-
-  static contextTypes = {
-    router: PropTypes.object,
   };
 
   constructor(props) {
@@ -139,6 +148,7 @@ class TimeRangeSelector extends React.PureComponent {
       utc: defined(props.utc) ? props.utc : getUserTimezone() === 'UTC',
       isOpen: false,
       hasChanges: false,
+      hasDateRangeErrors: false,
       start,
       end,
       relative: props.relative,
@@ -229,6 +239,7 @@ class TimeRangeSelector extends React.PureComponent {
 
   handleClear = () => {
     const {onChange} = this.props;
+
     const newDateTime = {
       relative: null,
       start: null,
@@ -240,7 +251,12 @@ class TimeRangeSelector extends React.PureComponent {
     this.handleUpdate(newDateTime);
   };
 
-  handleSelectDateRange = ({start, end}) => {
+  handleSelectDateRange = ({start, end, hasDateRangeErrors = false}) => {
+    if (hasDateRangeErrors) {
+      this.setState({hasDateRangeErrors});
+      return;
+    }
+
     const {onChange} = this.props;
 
     const newDateTime = {
@@ -253,7 +269,7 @@ class TimeRangeSelector extends React.PureComponent {
       newDateTime.utc = this.state.utc;
     }
 
-    this.setState({hasChanges: true, ...newDateTime});
+    this.setState({hasChanges: true, hasDateRangeErrors, ...newDateTime});
     this.callCallback(onChange, newDateTime);
   };
 
@@ -294,7 +310,7 @@ class TimeRangeSelector extends React.PureComponent {
   };
 
   render() {
-    const {showAbsolute, showRelative, organization} = this.props;
+    const {defaultPeriod, showAbsolute, showRelative, organization, hint} = this.props;
     const {start, end, relative} = this.state;
 
     const shouldShowAbsolute = showAbsolute;
@@ -304,10 +320,10 @@ class TimeRangeSelector extends React.PureComponent {
     const summary = isAbsoluteSelected ? (
       <DateSummary utc={this.state.utc} start={start} end={end} />
     ) : (
-      getRelativeSummary(relative || DEFAULT_STATS_PERIOD)
+      getRelativeSummary(relative || defaultPeriod)
     );
 
-    const relativeSelected = isAbsoluteSelected ? null : relative || DEFAULT_STATS_PERIOD;
+    const relativeSelected = isAbsoluteSelected ? null : relative || defaultPeriod;
 
     return (
       <DropdownMenu
@@ -320,15 +336,16 @@ class TimeRangeSelector extends React.PureComponent {
           <TimeRangeRoot {...getRootProps()}>
             <StyledHeaderItem
               data-test-id="global-header-timerange-selector"
-              icon={<StyledInlineSvg src="icon-calendar" />}
+              icon={<IconCalendar />}
               isOpen={isOpen}
               hasSelected={
-                (!!this.props.relative && this.props.relative !== DEFAULT_STATS_PERIOD) ||
+                (!!this.props.relative && this.props.relative !== defaultPeriod) ||
                 isAbsoluteSelected
               }
               hasChanges={this.state.hasChanges}
               onClear={this.handleClear}
               allowClear
+              hint={hint}
               {...getActorProps()}
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}
@@ -361,13 +378,12 @@ class TimeRangeSelector extends React.PureComponent {
                       onChange={this.handleSelectDateRange}
                       onChangeUtc={this.handleUseUtc}
                     />
-                    {this.state.hasChanges && (
-                      <SubmitRow>
-                        <MultipleSelectorSubmitRow
-                          onSubmit={() => this.handleCloseMenu()}
-                        />
-                      </SubmitRow>
-                    )}
+                    <SubmitRow>
+                      <MultipleSelectorSubmitRow
+                        onSubmit={this.handleCloseMenu}
+                        disabled={!this.state.hasChanges || this.state.hasDateRangeErrors}
+                      />
+                    </SubmitRow>
                   </div>
                 )}
               </Menu>
@@ -385,12 +401,6 @@ const TimeRangeRoot = styled('div')`
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  transform: translateY(-2px);
-  height: 17px;
-  width: 17px;
 `;
 
 const Menu = styled('div')`

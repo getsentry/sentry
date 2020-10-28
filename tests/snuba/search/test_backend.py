@@ -41,9 +41,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             data={
                 "fingerprint": ["put-me-in-group1"],
                 "event_id": "a" * 32,
-                "message": "foo. Also,this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messsages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
+                "message": "foo. Also, this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
                 "environment": "production",
-                "tags": {"server": "example.com"},
+                "tags": {"server": "example.com", "sentry:user": "event1@example.com"},
                 "timestamp": event1_timestamp,
                 "stacktrace": {"frames": [{"module": "group1"}]},
             },
@@ -55,7 +55,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 "event_id": "c" * 32,
                 "message": "group1",
                 "environment": "production",
-                "tags": {"server": "example.com"},
+                "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
                 "timestamp": iso_format(self.base_datetime),
                 "stacktrace": {"frames": [{"module": "group1"}]},
             },
@@ -82,7 +82,11 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 "message": "bar",
                 "stacktrace": {"frames": [{"module": "group2"}]},
                 "environment": "staging",
-                "tags": {"server": "example.com", "url": "http://example.com"},
+                "tags": {
+                    "server": "example.com",
+                    "url": "http://example.com",
+                    "sentry:user": "event2@example.com",
+                },
             },
             project_id=self.project.id,
         )
@@ -257,6 +261,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(sort_by="priority")
         assert list(results) == [self.group1, self.group2]
 
+        results = self.make_query(sort_by="user")
+        assert list(results) == [self.group1, self.group2]
+
     def test_sort_with_environment(self):
         for dt in [
             self.group1.first_seen + timedelta(days=1),
@@ -286,6 +293,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             environments=[self.environments["production"]], sort_by="priority"
         )
         assert list(results) == [self.group2, self.group1]
+
+        results = self.make_query(environments=[self.environments["production"]], sort_by="user")
+        assert list(results) == [self.group1, self.group2]
 
     def test_status(self):
         results = self.make_query(search_filter_query="is:unresolved")
@@ -425,6 +435,22 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         results = self.make_query(search_filter_query="priority:%s" % priority, sort_by="priority")
         assert list(results) == [self.group1, self.group2]
+
+    def test_search_tag_overlapping_with_internal_fields(self):
+        # Using a tag of email overlaps with the promoted user.email column in events.
+        # We don't want to bypass public schema limits in issue search.
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "timestamp": iso_format(self.group2.first_seen + timedelta(days=1)),
+                "stacktrace": {"frames": [{"module": "group2"}]},
+                "message": "group2",
+                "tags": {"email": "tags@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        results = self.make_query(search_filter_query="email:tags@example.com")
+        assert set(results) == set([self.group2])
 
     def test_project(self):
         results = self.make_query([self.create_project(name="other")])
@@ -900,34 +926,49 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             search_filter_query="last_seen:>=%s foo" % date_to_query_format(timezone.now()),
             sort_by="date",
         )
+        query_mock.call_args[1]["aggregations"].sort()
         assert query_mock.call_args == mock.call(
             orderby=["-last_seen", "group_id"],
             aggregations=[
-                ["uniq", "group_id", "total"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
+                ["uniq", "group_id", "total"],
             ],
             having=[["last_seen", ">=", Any(int)]],
             **common_args
         )
 
         self.make_query(search_filter_query="foo", sort_by="priority")
+        query_mock.call_args[1]["aggregations"].sort()
         assert query_mock.call_args == mock.call(
             orderby=["-priority", "group_id"],
             aggregations=[
-                ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
                 ["count()", "", "times_seen"],
-                ["uniq", "group_id", "total"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
+                ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
+                ["uniq", "group_id", "total"],
             ],
             having=[],
             **common_args
         )
 
         self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
+        query_mock.call_args[1]["aggregations"].sort()
         assert query_mock.call_args == mock.call(
             orderby=["-times_seen", "group_id"],
             aggregations=[["count()", "", "times_seen"], ["uniq", "group_id", "total"]],
             having=[["times_seen", "=", 5]],
+            **common_args
+        )
+
+        self.make_query(search_filter_query="foo", sort_by="user")
+        query_mock.call_args[1]["aggregations"].sort()
+        assert query_mock.call_args == mock.call(
+            orderby=["-user_count", "group_id"],
+            aggregations=[
+                ["uniq", "group_id", "total"],
+                ["uniq", "tags[sentry:user]", "user_count"],
+            ],
+            having=[],
             **common_args
         )
 
@@ -980,7 +1021,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         for i in range(400):
             event = self.store_event(
                 data={
-                    "event_id": md5("event {}".format(i)).hexdigest(),
+                    "event_id": md5("event {}".format(i).encode("utf-8")).hexdigest(),
                     "fingerprint": ["put-me-in-group{}".format(i)],
                     "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
                     "message": "group {} event".format(i),
@@ -1048,15 +1089,22 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(search_filter_query="first_release:%s" % release_1.version)
         assert set(results) == set([])
 
-        # mark group1's first_release to be release_1.
-        # group1 should show up for the same query as the previous query (see above)
-
-        self.group1.first_release = release_1
-        self.group1.save()
-        self.store_group(self.group1)
+        # Create a new event so that we get a group in this release
+        group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group9001"],
+                "event_id": "a" * 32,
+                "message": "hello",
+                "environment": "production",
+                "tags": {"server": "example.com"},
+                "release": release_1.version,
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        ).group
 
         results = self.make_query(search_filter_query="first_release:%s" % release_1.version)
-        assert set(results) == set([self.group1])
+        assert set(results) == set([group])
 
     def test_first_release_environments(self):
         results = self.make_query(
@@ -1223,6 +1271,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query([self.project, self.project2], sort_by="priority")
         assert list(results) == [self.group1, self.group2, self.group_p2]
 
+        results = self.make_query([self.project, self.project2], sort_by="user")
+        assert list(results) == [self.group1, self.group2, self.group_p2]
+
     def test_first_release_any_or_no_environments(self):
         # test scenarios for tickets:
         # SEN-571
@@ -1371,10 +1422,14 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 continue
             test_query("has:%s" % key)
             test_query("!has:%s" % key)
-            if key in IssueSearchVisitor.numeric_keys:
+            if key == "error.handled":
+                val = 1
+            elif key in IssueSearchVisitor.numeric_keys:
                 val = "123"
             elif key in IssueSearchVisitor.date_keys:
                 val = "2019-01-01"
+            elif key in IssueSearchVisitor.boolean_keys:
+                val = "true"
             else:
                 val = "abadcafedeadbeefdeaffeedabadfeed"
                 test_query("!%s:%s" % (key, val))

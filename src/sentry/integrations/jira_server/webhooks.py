@@ -6,7 +6,7 @@ import six
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.integrations.jira.webhooks import handle_assignee_change, handle_status_change
 from sentry.models import Integration
 

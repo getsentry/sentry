@@ -8,6 +8,7 @@ import itertools
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
+from django.utils.functional import cached_property
 from time import time
 
 from sentry.app import locks
@@ -20,9 +21,10 @@ from sentry.db.models import (
     sane_repr,
 )
 
+from sentry_relay import parse_release, RelayError
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.models import CommitFileChange
-from sentry.signals import issue_resolved, release_commits_updated
+from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -34,6 +36,14 @@ logger = logging.getLogger(__name__)
 _sha1_re = re.compile(r"^[a-f0-9]{40}$")
 _dotted_path_prefix_re = re.compile(r"^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-")
 DB_VERSION_LENGTH = 250
+
+
+ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
+ERR_RELEASE_HEALTH_DATA = "This release has health data and cannot be removed."
+
+
+class UnsafeReleaseDeletion(Exception):
+    pass
 
 
 class ReleaseProject(Model):
@@ -84,6 +94,13 @@ class Release(Model):
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
 
+    # HACK HACK HACK
+    # As a transitionary step we permit release rows to exist multiple times
+    # where they are "specialized" for a specific project.  The goal is to
+    # later split up releases by project again.  This is for instance used
+    # by the org release listing.
+    _for_project_id = None
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_release"
@@ -91,12 +108,19 @@ class Release(Model):
 
     __repr__ = sane_repr("organization_id", "version")
 
+    def __eq__(self, other):
+        """Make sure that specialized releases are only comparable to the same
+        other specialized release.  This for instance lets us treat them
+        separately for serialization purposes.
+        """
+        return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
+
     @staticmethod
     def is_valid_version(value):
         return not (
-            any(c in value for c in BAD_RELEASE_CHARS)
+            not value
+            or any(c in value for c in BAD_RELEASE_CHARS)
             or value in (".", "..")
-            or not value
             or value.lower() == "latest"
         )
 
@@ -129,6 +153,11 @@ class Release(Model):
 
     @classmethod
     def get_or_create(cls, project, version, date_added=None):
+        with metrics.timer("models.release.get_or_create") as metric_tags:
+            return cls._get_or_create_impl(project, version, date_added, metric_tags)
+
+    @classmethod
+    def _get_or_create_impl(cls, project, version, date_added, metric_tags):
         from sentry.models import Project
 
         if date_added is None:
@@ -137,6 +166,7 @@ class Release(Model):
         cache_key = cls.get_cache_key(project.organization_id, version)
 
         release = cache.get(cache_key)
+
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
@@ -148,11 +178,13 @@ class Release(Model):
                     projects=project,
                 )
             )
+
             if releases:
                 try:
                     release = [r for r in releases if r.version == project_version][0]
                 except IndexError:
                     release = releases[0]
+                metric_tags["created"] = "false"
             else:
                 try:
                     with transaction.atomic():
@@ -162,10 +194,14 @@ class Release(Model):
                             date_added=date_added,
                             total_deploys=0,
                         )
+
+                    metric_tags["created"] = "true"
                 except IntegrityError:
+                    metric_tags["created"] = "false"
                     release = cls.objects.get(
                         organization_id=project.organization_id, version=version
                     )
+
                 release.add_project(project)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
@@ -174,8 +210,19 @@ class Release(Model):
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
+            metric_tags["cache_hit"] = "false"
+        else:
+            metric_tags["cache_hit"] = "true"
 
         return release
+
+    @cached_property
+    def version_info(self):
+        try:
+            return parse_release(self.version)
+        except RelayError:
+            # This can happen on invalid legacy releases
+            return None
 
     @classmethod
     def merge(cls, to_release, from_releases):
@@ -341,7 +388,7 @@ class Release(Model):
         """
 
         # Sort commit list in reverse order
-        commit_list.sort(key=lambda commit: commit.get("timestamp"), reverse=True)
+        commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
         # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
         from sentry.models import (
@@ -372,9 +419,6 @@ class Release(Model):
             with transaction.atomic():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
-                initial_commit_ids = set(
-                    ReleaseCommit.objects.filter(release=self).values_list("commit_id", flat=True)
-                )
                 ReleaseCommit.objects.filter(release=self).delete()
 
                 authors = {}
@@ -447,7 +491,8 @@ class Release(Model):
 
                     commit_author_by_commit[commit.id] = author
 
-                    patch_set = data.get("patch_set", [])
+                    # Guard against patch_set being None
+                    patch_set = data.get("patch_set") or []
                     for patched_file in patch_set:
                         try:
                             with transaction.atomic():
@@ -508,16 +553,6 @@ class Release(Model):
             .select_related("commit")
             .values("commit_id", "commit__key")
         )
-        final_commit_ids = set(rc["commit_id"] for rc in release_commits)
-        removed_commit_ids = initial_commit_ids - final_commit_ids
-        added_commit_ids = final_commit_ids - initial_commit_ids
-        if removed_commit_ids or added_commit_ids:
-            release_commits_updated.send_robust(
-                release=self,
-                removed_commit_ids=removed_commit_ids,
-                added_commit_ids=added_commit_ids,
-                sender=self.__class__,
-            )
 
         commit_resolutions = list(
             GroupLink.objects.filter(
@@ -601,3 +636,32 @@ class Release(Model):
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group_project_lookup[group_id], "group_id": group_id}
             )
+
+    def safe_delete(self):
+        """Deletes a release if possible or raises a `UnsafeReleaseDeletion`
+        exception.
+        """
+        from sentry.models import Group, ReleaseFile
+        from sentry.snuba.sessions import check_has_health_data
+
+        # we don't want to remove the first_release metadata on the Group, and
+        # while people might want to kill a release (maybe to remove files),
+        # removing the release is prevented
+        if Group.objects.filter(first_release=self).exists():
+            raise UnsafeReleaseDeletion(ERR_RELEASE_REFERENCED)
+
+        # We do not allow releases with health data to be deleted because
+        # the upserting from snuba data would create the release again.
+        # We would need to be able to delete this data from snuba which we
+        # can't do yet.
+        project_ids = list(self.projects.values_list("id").all())
+        if check_has_health_data([(p[0], self.version) for p in project_ids]):
+            raise UnsafeReleaseDeletion(ERR_RELEASE_HEALTH_DATA)
+
+        # TODO(dcramer): this needs to happen in the queue as it could be a long
+        # and expensive operation
+        file_list = ReleaseFile.objects.filter(release=self).select_related("file")
+        for releasefile in file_list:
+            releasefile.file.delete()
+            releasefile.delete()
+        self.delete()

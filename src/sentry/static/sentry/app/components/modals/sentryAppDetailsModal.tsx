@@ -1,69 +1,38 @@
-import {Box, Flex} from 'reflexbox';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
-
 import AsyncComponent from 'app/components/asyncComponent';
-import HookStore from 'app/stores/hookStore';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-import InlineSvg from 'app/components/inlineSvg';
-import Tag from 'app/views/settings/components/tag';
+import {IconFlag} from 'app/icons';
+import Tag from 'app/components/tagDeprecated';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
-import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
-import {Hooks} from 'app/types/hooks';
-import {IntegrationFeature} from 'app/types';
+import {IntegrationFeature, SentryApp, Organization} from 'app/types';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {
+  trackIntegrationEvent,
+  getIntegrationFeatureGate,
+} from 'app/utils/integrationUtil';
 
 type Props = {
-  view?: 'integrations_page' | 'external_install';
   closeModal: () => void;
-} & SentryAppDetailsModalOptions &
-  AsyncComponent['props'];
-
-const defaultFeatureGateComponents = {
-  IntegrationFeatures: p =>
-    p.children({
-      disabled: false,
-      disabledReason: null,
-      ungatedFeatures: p.features,
-      gatedFeatureGroups: [],
-    }),
-  FeatureList: p => (
-    <ul>
-      {p.features.map((f, i) => (
-        <li key={i}>{f.description}</li>
-      ))}
-    </ul>
-  ),
-} as ReturnType<Hooks['integrations:feature-gates']>;
+  sentryApp: SentryApp;
+  isInstalled: boolean;
+  onInstall: () => Promise<void>;
+  organization: Organization;
+} & AsyncComponent['props'];
 
 type State = {
   featureData: IntegrationFeature[];
 } & AsyncComponent['state'];
 
+//No longer a modal anymore but yea :)
 export default class SentryAppDetailsModal extends AsyncComponent<Props, State> {
-  static propTypes = {
-    sentryApp: SentryTypes.SentryApplication.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    onInstall: PropTypes.func.isRequired,
-    isInstalled: PropTypes.bool.isRequired,
-    closeModal: PropTypes.func.isRequired,
-    view: PropTypes.string.isRequired,
-  };
-
-  static defaultProps = {
-    view: 'integrations_page',
-  };
-
   componentDidUpdate(prevProps: Props) {
     //if the user changes org, count this as a fresh event to track
     if (this.props.organization.id !== prevProps.organization.id) {
@@ -76,7 +45,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
   }
 
   trackOpened() {
-    const {sentryApp, organization, isInstalled, view} = this.props;
+    const {sentryApp, organization, isInstalled} = this.props;
     recordInteraction(sentryApp.slug, 'sentry_app_viewed');
 
     trackIntegrationEvent(
@@ -86,11 +55,11 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
         integration_type: 'sentry_app',
         integration: sentryApp.slug,
         already_installed: isInstalled,
-        view,
+        view: 'external_install',
         integration_status: sentryApp.status,
       },
       organization,
-      {startSession: view === 'external_install'} //new session on external installs
+      {startSession: true}
     );
   }
 
@@ -99,7 +68,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
   }
 
-  featureTags(features: IntegrationFeature[]) {
+  featureTags(features: Pick<IntegrationFeature, 'featureGate'>[]) {
     return features.map(feature => {
       const feat = feature.featureGate.replace(/integrations/g, '');
       return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;
@@ -110,11 +79,15 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     return toPermissions(this.props.sentryApp.scopes);
   }
 
-  onInstall() {
-    const {onInstall, closeModal, view} = this.props;
-    onInstall();
-    // let onInstall handle redirection post install on the external install flow
-    view !== 'external_install' && closeModal();
+  async onInstall() {
+    const {onInstall} = this.props;
+    //we want to make sure install finishes before we close the modal
+    //and we should close the modal if there is an error as well
+    try {
+      await onInstall();
+    } catch (_err) {
+      /* stylelint-disable-next-line no-empty-block */
+    }
   }
 
   renderPermissions() {
@@ -146,7 +119,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
               {tct('[read] and [write] access to [resources] resources', {
                 read: <strong>Read</strong>,
                 write: <strong>Write</strong>,
-                resources: permissions.read.join(', '),
+                resources: permissions.write.join(', '),
               })}
             </Text>
           </Permission>
@@ -157,7 +130,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
             <Text key="admin">
               {tct('[admin] access to [resources] resources', {
                 admin: <strong>Admin</strong>,
-                resources: permissions.read.join(', '),
+                resources: permissions.admin.join(', '),
               })}
             </Text>
           </Permission>
@@ -177,28 +150,21 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
       ),
     }));
 
-    const defaultHook = () => defaultFeatureGateComponents;
-    const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
-    const {FeatureList, IntegrationFeatures} = featureHook();
+    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
 
     const overview = sentryApp.overview || '';
     const featureProps = {organization, features};
 
     return (
       <React.Fragment>
-        <Flex alignItems="center" mb={2}>
+        <Heading>
           <PluginIcon pluginId={sentryApp.slug} size={50} />
 
-          <Flex
-            pl={1}
-            alignItems="flex-start"
-            flexDirection="column"
-            justifyContent="center"
-          >
+          <HeadingInfo>
             <Name>{sentryApp.name}</Name>
-            <Flex>{features.length && this.featureTags(features)}</Flex>
-          </Flex>
-        </Flex>
+            <div>{features.length && this.featureTags(features)}</div>
+          </HeadingInfo>
+        </Heading>
 
         <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
         <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
@@ -241,10 +207,24 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
   }
 }
 
-const Name = styled(Box)`
+const Heading = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(1)};
+  align-items: center;
+  margin-bottom: ${space(2)};
+`;
+
+const HeadingInfo = styled('div')`
+  display: grid;
+  grid-template-rows: max-content max-content;
+  grid-gap: ${space(0.5)};
+  align-items: start;
+`;
+
+const Name = styled('div')`
   font-weight: bold;
   font-size: 1.4em;
-  margin-bottom: ${space(1)};
 `;
 
 const Description = styled('div')`
@@ -257,17 +237,21 @@ const Description = styled('div')`
   }
 `;
 
-const Author = styled(Box)`
-  color: ${p => p.theme.gray2};
+const Author = styled('div')`
+  color: ${p => p.theme.gray500};
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
-  <Flex alignItems="center" flex={1} {...p}>
-    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
-    <Box ml={1}>{reason}</Box>
-  </Flex>
+  <div {...p}>
+    <IconFlag color="red400" size="1.5em" />
+    {reason}
+  </div>
 ))`
-  color: ${p => p.theme.red};
+  display: grid;
+  align-items: center;
+  flex: 1;
+  grid-template-columns: max-content 1fr;
+  color: ${p => p.theme.red400};
   font-size: 0.9em;
 `;
 

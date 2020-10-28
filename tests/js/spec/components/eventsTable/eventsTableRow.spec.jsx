@@ -1,17 +1,24 @@
 import React from 'react';
-import {shallow} from 'sentry-test/enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {EventsTableRow} from 'app/components/eventsTable/eventsTableRow';
 
-describe('EventsTableRow', function() {
-  it('renders', function() {
-    const wrapper = shallow(
-      <EventsTableRow
-        organization={TestStubs.Organization()}
-        tagList={[]}
-        {...{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
-        event={TestStubs.DetailedEvents()[0]}
-      />
+describe('EventsTableRow', function () {
+  it('renders', function () {
+    const wrapper = mountWithTheme(
+      <table>
+        <tbody>
+          <EventsTableRow
+            organization={TestStubs.Organization()}
+            tagList={[]}
+            {...{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
+            event={TestStubs.DetailedEvents()[0]}
+          />
+        </tbody>
+      </table>,
+      TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

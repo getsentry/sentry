@@ -1,87 +1,87 @@
 ---
-created: '2019-05-08T07:33:32.167071Z'
+created: '2020-08-25T09:17:20.134951Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 'd59239f5aad3304d60beb1fde3369b78'
+  hash: "d59239f5aad3304d60beb1fde3369b78"
   component:
     app*
       exception*
         stacktrace*
           frame*
             module*
-              u'sentry.utils.safe'
+              "sentry.utils.safe"
             filename (module takes precedence)
-              u'safe.py'
+              "safe.py"
             function*
-              u'safe_execute'
+              "safe_execute"
             context-line*
-              u'result = func(*args, **kwargs)'
+              "result = func(*args, **kwargs)"
           frame*
             module*
-              u'sentry.integrations.slack.notify_action'
+              "sentry.integrations.slack.notify_action"
             filename (module takes precedence)
-              u'notify_action.py'
+              "notify_action.py"
             function*
-              u'send_notification'
+              "send_notification"
             context-line*
-              u'resp.raise_for_status()'
+              "resp.raise_for_status()"
           frame (non app frame)
             module*
-              u'requests.models'
+              "requests.models"
             filename (module takes precedence)
-              u'models.py'
+              "models.py"
             function*
-              u'raise_for_status'
+              "raise_for_status"
             context-line*
-              u'raise HTTPError(http_error_msg, response=self)'
+              "raise HTTPError(http_error_msg, response=self)"
         type*
-          u'HTTPError'
+          "HTTPError"
         value (ignored because stacktrace takes precedence)
-          u'<int> Client Error: Too Many Requests for url: <url>'
+          "<int> Client Error: Too Many Requests for url: <url>"
 --------------------------------------------------------------------------
 default:
-  hash: None
+  hash: null
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
-        u'%s.process_error'
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
+        "%s.process_error"
 --------------------------------------------------------------------------
 system:
-  hash: '133db3f366b1327dab4e661f66dfb961'
+  hash: "133db3f366b1327dab4e661f66dfb961"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'sentry.utils.safe'
+              "sentry.utils.safe"
             filename (module takes precedence)
-              u'safe.py'
+              "safe.py"
             function*
-              u'safe_execute'
+              "safe_execute"
             context-line*
-              u'result = func(*args, **kwargs)'
+              "result = func(*args, **kwargs)"
           frame*
             module*
-              u'sentry.integrations.slack.notify_action'
+              "sentry.integrations.slack.notify_action"
             filename (module takes precedence)
-              u'notify_action.py'
+              "notify_action.py"
             function*
-              u'send_notification'
+              "send_notification"
             context-line*
-              u'resp.raise_for_status()'
+              "resp.raise_for_status()"
           frame*
             module*
-              u'requests.models'
+              "requests.models"
             filename (module takes precedence)
-              u'models.py'
+              "models.py"
             function*
-              u'raise_for_status'
+              "raise_for_status"
             context-line*
-              u'raise HTTPError(http_error_msg, response=self)'
+              "raise HTTPError(http_error_msg, response=self)"
         type*
-          u'HTTPError'
+          "HTTPError"
         value (ignored because stacktrace takes precedence)
-          u'<int> Client Error: Too Many Requests for url: <url>'
+          "<int> Client Error: Too Many Requests for url: <url>"

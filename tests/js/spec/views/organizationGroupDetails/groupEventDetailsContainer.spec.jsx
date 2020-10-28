@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
 import GroupEventDetailsContainer from 'app/views/organizationGroupDetails/groupEventDetails';
@@ -16,12 +17,12 @@ describe('groupEventDetailsContainer', () => {
     OrganizationEnvironmentsStore.init();
   });
 
-  it('fetches environments', async function() {
+  it('fetches environments', async function () {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       body: TestStubs.Environments(),
     });
-    const wrapper = mount(<GroupEventDetailsContainer organization={org} />);
+    const wrapper = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
     // should be in loading state
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
     await tick();
@@ -31,19 +32,19 @@ describe('groupEventDetailsContainer', () => {
     expect(wrapper.find('LoadingIndicator').exists()).toBe(false);
     expect(wrapper.text('GroupEventDetails')).toBe('GroupEventDetails');
 
-    // remounting will not rerender
-    const wrapper2 = mount(<GroupEventDetailsContainer organization={org} />);
+    // remountWithThemeing will not rerender
+    const wrapper2 = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper2.find('LoadingIndicator').exists()).toBe(false);
     expect(wrapper.text('GroupEventDetails')).toBe('GroupEventDetails');
     expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 
-  it('displays an error on error', async function() {
+  it('displays an error on error', async function () {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       statusCode: 400,
     });
-    const wrapper = mount(<GroupEventDetailsContainer organization={org} />);
+    const wrapper = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
     await tick();
     await tick();
@@ -53,12 +54,12 @@ describe('groupEventDetailsContainer', () => {
     expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 
-  it('displays an error on falsey environment', async function() {
+  it('displays an error on falsey environment', async function () {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       body: null,
     });
-    const wrapper = mount(<GroupEventDetailsContainer organization={org} />);
+    const wrapper = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
     await tick();
     await tick();
@@ -68,7 +69,7 @@ describe('groupEventDetailsContainer', () => {
     expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 
-  it('unsubscribes on unmount', async function() {
+  it('unsubscribes on unmount', async function () {
     const unsubscribeMock = jest.fn();
     jest
       .spyOn(OrganizationEnvironmentsStore, 'listen')
@@ -78,7 +79,7 @@ describe('groupEventDetailsContainer', () => {
       url: `/organizations/${org.slug}/environments/`,
       body: TestStubs.Environments(),
     });
-    const wrapper = mount(<GroupEventDetailsContainer organization={org} />);
+    const wrapper = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
     wrapper.unmount();
     expect(unsubscribeMock).toHaveBeenCalled();

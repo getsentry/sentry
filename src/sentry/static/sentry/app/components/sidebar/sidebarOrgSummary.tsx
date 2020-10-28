@@ -2,17 +2,17 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Organization} from 'app/types';
+import {Organization, OrganizationSummary} from 'app/types';
 import {tn} from 'app/locale';
 
 type Props = {
-  organization: Organization;
+  organization: OrganizationSummary;
 };
 
-const SidebarOrgSummary: React.FC<Props> = ({organization}) => {
-  const projects = organization.projects && organization.projects.length;
+const SidebarOrgSummary = ({organization}: Props) => {
+  const fullOrg = organization as Organization;
+  const projects = fullOrg.projects && fullOrg.projects.length;
   const extra: string[] = [];
 
   if (projects) {
@@ -31,17 +31,13 @@ const SidebarOrgSummary: React.FC<Props> = ({organization}) => {
   );
 };
 
-SidebarOrgSummary.propTypes = {
-  organization: SentryTypes.Organization,
-};
-
 const OrgSummary = styled('div')`
   display: flex;
   padding: 10px 15px;
   overflow: hidden;
 `;
 const SummaryOrgName = styled('div')`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   font-size: 16px;
   line-height: 1.1;
   font-weight: bold;
@@ -49,7 +45,7 @@ const SummaryOrgName = styled('div')`
   ${overflowEllipsis};
 `;
 const SummaryOrgDetails = styled('div')`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: 14px;
   line-height: 1;
   ${overflowEllipsis};

@@ -9,12 +9,16 @@ from six import BytesIO
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.testutils import TransactionTestCase
+from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models import EventAttachment
-from sentry import eventstore
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 
 from tests.symbolicator import get_fixture_path
+
+
+# IMPORTANT:
+# For these tests to run, write `symbolicator.enabled: true` into your
+# `~/.sentry/config.yml` and run `sentry devservices up`
 
 
 def get_unreal_crash_file():
@@ -25,7 +29,7 @@ def get_unreal_crash_apple_file():
     return get_fixture_path("unreal_crash_apple")
 
 
-class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
+class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
     # `~/.sentry/config.yml` and run `sentry devservices up`
 
@@ -76,11 +80,7 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
         # attachments feature has to be on for the files extract stick around
         with self.feature("organizations:event-attachments"):
             with open(filename, "rb") as f:
-                resp = self._postUnrealWithHeader(f.read())
-                assert resp.status_code == 200
-                event_id = resp.content
-
-        event = eventstore.get_event_by_id(self.project.id, event_id)
+                event = self.post_and_retrieve_unreal(f.read())
 
         self.insta_snapshot(
             {
@@ -100,7 +100,7 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
         context, config, minidump, log = attachments
 
         assert context.name == "CrashContext.runtime-xml"
-        assert context.file.type == "event.attachment"
+        assert context.file.type == "unreal.context"
         assert context.file.checksum == "835d3e10db5d1799dc625132c819c047261ddcfb"
 
         assert config.name == "CrashReportClient.ini"
@@ -112,7 +112,7 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
         assert minidump.file.checksum == "089d9fd3b5c0cc4426339ab46ec3835e4be83c0f"
 
         assert log.name == "YetAnother.log"  # Log file is named after the project
-        assert log.file.type == "event.attachment"
+        assert log.file.type == "unreal.logs"
         assert log.file.checksum == "24d1c5f75334cd0912cc2670168d593d5fe6c081"
 
     def test_unreal_apple_crash_with_attachments(self):
@@ -122,7 +122,7 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
         context, config, diagnostics, log, info, minidump = attachments
 
         assert context.name == "CrashContext.runtime-xml"
-        assert context.file.type == "event.attachment"
+        assert context.file.type == "unreal.context"
         assert context.file.checksum == "5d2723a7d25111645702fcbbcb8e1d038db56c6e"
 
         assert config.name == "CrashReportClient.ini"
@@ -134,7 +134,7 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
         assert diagnostics.file.checksum == "aa271bf4e307a78005410234081945352e8fb236"
 
         assert log.name == "YetAnotherMac.log"  # Log file is named after the project
-        assert log.file.type == "event.attachment"
+        assert log.file.type == "unreal.logs"
         assert log.file.checksum == "735e751a8b6b943dbc0abce0e6d096f4d48a0c1e"
 
         assert info.name == "info.txt"

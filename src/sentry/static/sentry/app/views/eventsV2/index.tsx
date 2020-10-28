@@ -32,6 +32,7 @@ class DiscoverContainer extends React.Component<Props> {
       <Feature
         features={['discover-basic']}
         organization={organization}
+        hookName="feature-disabled:discover2-page"
         renderDisabled={this.renderNoAccess}
       >
         {children}

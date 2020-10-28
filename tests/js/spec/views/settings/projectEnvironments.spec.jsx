@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectEnvironments from 'app/views/settings/project/projectEnvironments';
@@ -25,10 +26,10 @@ function mountComponent(isHidden) {
   );
 }
 
-describe('ProjectEnvironments', function() {
+describe('ProjectEnvironments', function () {
   let project;
 
-  beforeEach(function() {
+  beforeEach(function () {
     project = TestStubs.Project({
       defaultEnvironment: 'production',
     });
@@ -38,12 +39,12 @@ describe('ProjectEnvironments', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('render active', function() {
-    it('renders empty message', function() {
+  describe('render active', function () {
+    it('renders empty message', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: [],
@@ -53,10 +54,10 @@ describe('ProjectEnvironments', function() {
       const errorMessage = wrapper.find('div').first();
 
       expect(errorMessage.text()).toContain("You don't have any environments yet");
-      expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
+      expect(wrapper.find('ProjectEnvironments')).toSnapshot();
     });
 
-    it('renders environment list', async function() {
+    it('renders environment list', async function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: TestStubs.Environments(false),
@@ -69,8 +70,8 @@ describe('ProjectEnvironments', function() {
     });
   });
 
-  describe('render hidden', function() {
-    it('renders empty message', function() {
+  describe('render hidden', function () {
+    it('renders empty message', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: [],
@@ -81,10 +82,10 @@ describe('ProjectEnvironments', function() {
 
       expect(errorMessage.text()).toContain("You don't have any hidden environments");
 
-      expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
+      expect(wrapper.find('ProjectEnvironments')).toSnapshot();
     });
 
-    it('renders environment list', function() {
+    it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: TestStubs.Environments(true),
@@ -93,14 +94,14 @@ describe('ProjectEnvironments', function() {
 
       // Hidden buttons should not have "Set as default"
       expect(wrapper.find('Button').text()).toBe('Show');
-      expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
+      expect(wrapper.find('ProjectEnvironments')).toSnapshot();
     });
   });
 
-  describe('toggle', function() {
+  describe('toggle', function () {
     let hideMock, showMock;
     const baseUrl = '/projects/org-slug/project-slug/environments/';
-    beforeEach(function() {
+    beforeEach(function () {
       hideMock = MockApiClient.addMockResponse({
         url: `${baseUrl}production/`,
         method: 'PUT',
@@ -114,7 +115,7 @@ describe('ProjectEnvironments', function() {
         url: baseUrl,
       });
     });
-    it('hides', function() {
+    it('hides', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: TestStubs.Environments(false),
@@ -130,7 +131,7 @@ describe('ProjectEnvironments', function() {
       );
     });
 
-    it('hides names requiring encoding', function() {
+    it('hides names requiring encoding', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: [{id: '1', name: '%app_env%', isHidden: false}],
@@ -154,7 +155,7 @@ describe('ProjectEnvironments', function() {
       );
     });
 
-    it('shows', function() {
+    it('shows', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: TestStubs.Environments(true),
@@ -170,7 +171,7 @@ describe('ProjectEnvironments', function() {
       );
     });
 
-    it('does not have "All Environments" rows', function() {
+    it('does not have "All Environments" rows', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: TestStubs.Environments(true),

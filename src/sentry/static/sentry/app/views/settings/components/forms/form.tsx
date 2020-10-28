@@ -6,15 +6,12 @@ import styled from '@emotion/styled';
 import {APIRequestMethod} from 'app/api';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import FormModel, {
-  FormOptions,
-  FieldValue,
-} from 'app/views/settings/components/forms/model';
+import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
 import Panel from 'app/components/panels/panel';
 import space from 'app/styles/space';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
 
-type Data = {};
+type Data = Record<string, any>;
 
 type RenderProps = {
   model: FormModel;
@@ -25,7 +22,7 @@ type RenderFunc = (props: RenderProps) => React.ReactNode;
 type Props = {
   apiMethod?: APIRequestMethod;
   apiEndpoint?: string;
-  children: React.ReactNode | RenderFunc;
+  children?: React.ReactNode | RenderFunc;
   className?: string;
   cancelLabel?: string;
   submitDisabled?: boolean;
@@ -54,6 +51,7 @@ type Props = {
     e: React.FormEvent,
     model: FormModel
   ) => void;
+  onPreSubmit?: () => void;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
 type Context = {
@@ -151,6 +149,8 @@ export default class Form extends React.Component<Props> {
     if (this.model.isSaving) {
       return;
     }
+
+    this.props.onPreSubmit?.();
 
     if (this.props.onSubmit) {
       this.props.onSubmit(
@@ -296,5 +296,3 @@ const DefaultButtons = styled('div')`
   justify-content: flex-end;
   flex: 1;
 `;
-
-export {FieldValue};

@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import json
-
 from six.moves.urllib.parse import urlparse
 
 from django.forms.utils import ErrorList
@@ -11,6 +9,7 @@ from django.views.generic import View
 from django.core.urlresolvers import reverse
 from django.utils.decorators import method_decorator
 
+from sentry.utils import json
 from sentry.models import Organization
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -33,12 +32,7 @@ class BaseJiraWidgetView(View):
 
     def get_context(self):
         return {
-            "ac_js_src": "%s%s%s"
-            % (
-                self.request.GET["xdm_e"],
-                self.request.GET.get("cp", ""),
-                "/atlassian-connect/all.js",
-            ),
+            "ac_js_src": "https://connect-cdn.atl-paas.net/all.js",
             "login_url": absolute_uri(reverse("sentry-login")),
             "body_class": "",
         }

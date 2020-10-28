@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
 import functools
 import logging
 import posixpath
@@ -11,15 +12,17 @@ import rb
 from django.utils.functional import SimpleLazyObject
 from pkg_resources import resource_string
 from redis.client import Script, StrictRedis
-from redis.connection import ConnectionPool
+from redis.connection import ConnectionPool, Encoder
 from redis.exceptions import ConnectionError, BusyLoadingError
-from rediscluster import StrictRedisCluster
+from rediscluster import RedisCluster
+from rediscluster.exceptions import ClusterError
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 from sentry.utils.versioning import Version, check_versions
+from sentry.utils.compat import map
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +80,7 @@ class _RBCluster(object):
         return "Redis Blaster Cluster"
 
 
-class RetryingStrictRedisCluster(StrictRedisCluster):
+class RetryingRedisCluster(RedisCluster):
     """
     Execute a command with cluster reinitialization retry logic.
 
@@ -92,6 +95,7 @@ class RetryingStrictRedisCluster(StrictRedisCluster):
         except (
             ConnectionError,
             BusyLoadingError,
+            ClusterError,
             KeyError,  # see: https://github.com/Grokzen/redis-py-cluster/issues/287
         ):
             self.connection_pool.nodes.reset()
@@ -110,14 +114,22 @@ class _RedisCluster(object):
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         hosts = config.get("hosts")
-        hosts = hosts.values() if isinstance(hosts, dict) else hosts
+        # TODO(joshuarli): modernize dict_six fixer
+        hosts = list(hosts.values()) if isinstance(hosts, dict) else hosts
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
             if config.get("is_redis_cluster", False):
-                return RetryingStrictRedisCluster(
-                    startup_nodes=hosts,
+                return RetryingRedisCluster(
+                    # Intentionally copy hosts here because redis-cluster-py
+                    # mutates the inner dicts and this closure can be run
+                    # concurrently, as SimpleLazyObject is not threadsafe. This
+                    # is likely triggered by RetryingRedisCluster running
+                    # reset() after startup
+                    #
+                    # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
+                    startup_nodes=deepcopy(hosts),
                     decode_responses=True,
                     skip_full_coverage_check=True,
                     max_connections=16,
@@ -143,19 +155,20 @@ class ClusterManager(object):
     def get(self, key):
         cluster = self.__clusters.get(key)
 
-        if cluster:
-            return cluster
+        # Do not access attributes of the `cluster` object to prevent
+        # setup/init of lazy objects. The _RedisCluster type will try to
+        # connect to the cluster during initialization.
+        if cluster is None:
+            # TODO: This would probably be safer with a lock, but I'm not sure
+            # that it's necessary.
+            configuration = self.__options_manager.get("redis.clusters").get(key)
+            if configuration is None:
+                raise KeyError(u"Invalid cluster name: {}".format(key))
 
-        # TODO: This would probably be safer with a lock, but I'm not sure
-        # that it's necessary.
-        configuration = self.__options_manager.get("redis.clusters").get(key)
-        if configuration is None:
-            raise KeyError(u"Invalid cluster name: {}".format(key))
+            if not self.__cluster_type.supports(configuration):
+                raise KeyError(u"Invalid cluster type, expected: {}".format(self.__cluster_type))
 
-        if not self.__cluster_type.supports(configuration):
-            raise KeyError(u"Invalid cluster type, expected: {}".format(self.__cluster_type))
-
-        cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
+            cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
 
         return cluster
 
@@ -246,7 +259,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
 
 
 def load_script(path):
-    script = Script(None, resource_string("sentry", posixpath.join("scripts", path)))
+    script = []
 
     # This changes the argument order of the ``Script.__call__`` method to
     # encourage using the script with a specific Redis client, rather
@@ -263,6 +276,48 @@ def load_script(path):
         """.format(
             path
         )
-        return script(keys, args, client)
+        # XXX: Script is a list here. We're doing this to work around the lack of
+        # `nonlocal` in python 3, so that we only instantiate the script once.
+        if not script:
+            script.append(
+                Script(client, resource_string("sentry", posixpath.join("scripts", path)))
+            )
+            # Unset the client here to keep things as close to how they worked before
+            # as possible. It will always be overridden on `__call__` anyway.
+            script[0].registered_client = None
+        return script[0](keys, args, client)
 
     return call_script
+
+
+class SentryScript(Script):
+    """
+    XXX: This is a gross workaround to fix a breaking api change in redis-py. When we
+    instantiate a script, we've historically been passing `None` as the client. Then
+    when we call the script we pass the actual client, which Redis uses as an override.
+    The breaking changes relies on there being a client passed in the constructor to
+    determine the encoding of the script before generating the sha.
+
+    To work around this, we create a fake client with a fake connection pool that just
+    returns an encoder that will work. Once this has been done we then set the
+    `registered_client` back to None, so that the behaviour is the same as before.
+
+    This is only needed when we can't use `load_script`, since we have the client
+    available there and can pass it through. So once we remove `RedisTSDB` we can also
+    kill this hack.
+    """
+
+    class FakeConnectionPool(object):
+        def get_encoder(self):
+            return Encoder(encoding="utf-8", encoding_errors="strict", decode_responses=False)
+
+    class FakeEncoderClient(object):
+        def __init__(self):
+            self.connection_pool = SentryScript.FakeConnectionPool()
+
+    def __init__(self, registered_client, script):
+        if registered_client is None:
+            registered_client = self.FakeEncoderClient()
+        super(SentryScript, self).__init__(registered_client, script)
+        if isinstance(self.registered_client, self.FakeEncoderClient):
+            self.registered_client = None

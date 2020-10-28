@@ -8,7 +8,7 @@ import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import HookOrDefault from 'app/components/hookOrDefault';
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tagDeprecated';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
@@ -83,6 +83,7 @@ const InviteRequestRow = ({
       />
 
       <TeamSelectControl
+        deprecatedSelectControl
         name="teams"
         placeholder={t('Add to teams...')}
         onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
@@ -184,7 +185,7 @@ const UserName = styled('div')`
 
 const Description = styled('div')`
   display: block;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;

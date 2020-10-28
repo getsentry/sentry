@@ -3,45 +3,80 @@ import * as PopperJS from 'popper.js';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import styled from '@emotion/styled';
+import styled, {SerializedStyles} from '@emotion/styled';
+import memoize from 'lodash/memoize';
 
 import {domId} from 'app/utils/domId';
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
 
-type Props = {
-  children: React.ReactElement;
-  disabled?: boolean;
-  title: React.ReactNode;
+const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
+
+type DefaultProps = {
+  /**
+   * Position for the tooltip.
+   */
   position: PopperJS.Placement;
-  popperStyle?: React.CSSProperties;
-  containerDisplayMode?: React.CSSProperties['display'];
+
+  /**
+   * Display mode for the container element
+   */
+  containerDisplayMode: React.CSSProperties['display'];
+};
+
+type Props = DefaultProps & {
+  /**
+   * The node to attach the Tooltip to
+   */
+  children: React.ReactNode;
+
+  /**
+   * Disable the tooltip display entirely
+   */
+  disabled?: boolean;
+
+  /**
+   * The content to show in the tooltip popover
+   */
+  title: React.ReactNode;
+
+  /**
+   * Additional style rules for the tooltip content.
+   */
+  popperStyle?: React.CSSProperties | SerializedStyles;
+
+  /**
+   * Time to wait (in milliseconds) before showing the tooltip
+   */
   delay?: number;
+
+  /**
+   * If true, user is able to hover tooltip without it disappearing.
+   * (nice if you want to be able to copy tooltip contents to clipboard)
+   */
+  isHoverable?: boolean;
+
+  /**
+   * If child node supports ref forwarding, you can skip apply a wrapper
+   */
+  skipWrapper?: boolean;
+
+  /**
+   * Stops tooltip from being opened during tooltip visual acceptance.
+   * Should be set to true if tooltip contains unisolated data (eg. dates)
+   */
+  disableForVisualTest?: boolean;
+  className?: string;
 };
 
 type State = {
   isOpen: boolean;
+  usesGlobalPortal: boolean;
 };
-
-// Using an inline-block solves the container being smaller
-// than the elements it is wrapping
-const Container = styled('span')<{
-  containerDisplayMode?: React.CSSProperties['display'];
-}>`
-  ${p => p.containerDisplayMode && `display: ${p.containerDisplayMode}`};
-`;
 
 class Tooltip extends React.Component<Props, State> {
   static propTypes = {
-    /**
-     * Disable the tooltip display entirely
-     */
     disabled: PropTypes.bool,
-    /**
-     * The content to show in the tooltip popover
-     */
     title: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
-    /**
-     * Position for the tooltip.
-     */
     position: PropTypes.oneOf([
       'bottom',
       'top',
@@ -57,76 +92,106 @@ class Tooltip extends React.Component<Props, State> {
       'right-end',
       'auto',
     ]),
-    /**
-     * Additional style rules for the tooltip content.
-     */
     popperStyle: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-
-    /**
-     * Display mode for the container element
-     */
-    containerDisplayMode: PropTypes.oneOf([
-      'block',
-      'inline-block',
-      'inline',
-      'inline-flex',
-    ]),
-
-    /**
-     * Time to wait (in milliseconds) before showing the tooltip
-     */
+    containerDisplayMode: PropTypes.string,
     delay: PropTypes.number,
+    isHoverable: PropTypes.bool,
+    skipWrapper: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     position: 'top',
     containerDisplayMode: 'inline-block',
   };
 
-  constructor(props: Props) {
-    super(props);
-
-    let portal = document.getElementById('tooltip-portal');
-    if (!portal) {
-      portal = document.createElement('div');
-      portal.setAttribute('id', 'tooltip-portal');
-      document.body.appendChild(portal);
-    }
-    this.portalEl = portal;
-  }
-
-  state = {
+  state: State = {
     isOpen: false,
+    usesGlobalPortal: true,
   };
 
-  portalEl: HTMLElement;
+  async componentDidMount() {
+    if (IS_ACCEPTANCE_TEST) {
+      const TooltipStore = (
+        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
+      ).default;
+      TooltipStore.addTooltip(this);
+    }
+  }
+
+  async componentWillUnmount() {
+    const {usesGlobalPortal} = this.state;
+
+    if (IS_ACCEPTANCE_TEST) {
+      const TooltipStore = (
+        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
+      ).default;
+      TooltipStore.removeTooltip(this);
+    }
+    if (!usesGlobalPortal) {
+      document.body.removeChild(this.getPortal(usesGlobalPortal));
+    }
+  }
+
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
+  delayHideTimeout: number | null = null;
+
+  getPortal = memoize(
+    (usesGlobalPortal): HTMLElement => {
+      if (usesGlobalPortal) {
+        let portal = document.getElementById('tooltip-portal');
+        if (!portal) {
+          portal = document.createElement('div');
+          portal.setAttribute('id', 'tooltip-portal');
+          document.body.appendChild(portal);
+        }
+        return portal;
+      }
+      const portal = document.createElement('div');
+      document.body.appendChild(portal);
+      return portal;
+    }
+  );
 
   setOpen = () => {
     this.setState({isOpen: true});
   };
 
-  handleOpen = () => {
-    const {delay} = this.props;
+  setClose = () => {
+    this.setState({isOpen: false});
+  };
 
-    if (delay) {
-      this.delayTimeout = window.setTimeout(this.setOpen, delay);
+  handleOpen = () => {
+    const {delay, isHoverable} = this.props;
+
+    if (this.delayHideTimeout) {
+      window.clearTimeout(this.delayHideTimeout);
+      this.delayHideTimeout = null;
+    }
+
+    if (delay || isHoverable) {
+      this.delayTimeout = window.setTimeout(this.setOpen, delay || IS_HOVERABLE_DELAY);
     } else {
       this.setOpen();
     }
   };
 
   handleClose = () => {
-    this.setState({isOpen: false});
+    const {isHoverable} = this.props;
 
     if (this.delayTimeout) {
       window.clearTimeout(this.delayTimeout);
       this.delayTimeout = null;
     }
+
+    if (isHoverable) {
+      this.delayHideTimeout = window.setTimeout(this.setClose, IS_HOVERABLE_DELAY);
+    } else {
+      this.setClose();
+    }
   };
 
-  renderTrigger(children: React.ReactElement, ref: React.Ref<HTMLElement>) {
+  renderTrigger(children: React.ReactNode, ref: React.Ref<HTMLElement>) {
     const propList: {[key: string]: any} = {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
@@ -140,7 +205,10 @@ class Tooltip extends React.Component<Props, State> {
     // Because we can't rely on the child element implementing forwardRefs we wrap
     // it with a span tag so that popper has ref
 
-    if (typeof children.type === 'string') {
+    if (
+      React.isValidElement(children) &&
+      (this.props.skipWrapper || typeof children.type === 'string')
+    ) {
       // Basic DOM nodes can be cloned and have more props applied.
       return React.cloneElement(children, {
         ...propList,
@@ -150,16 +218,16 @@ class Tooltip extends React.Component<Props, State> {
 
     propList.containerDisplayMode = this.props.containerDisplayMode;
     return (
-      <Container {...propList} ref={ref}>
+      <Container {...propList} className={this.props.className} ref={ref}>
         {children}
       </Container>
     );
   }
 
   render() {
-    const {disabled, children, title, position, popperStyle} = this.props;
-    const {isOpen} = this.state;
-    if (disabled || title === '') {
+    const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
+    const {isOpen, usesGlobalPortal} = this.state;
+    if (disabled) {
       return children;
     }
 
@@ -183,19 +251,23 @@ class Tooltip extends React.Component<Props, State> {
               aria-hidden={!isOpen}
               ref={ref}
               style={style}
+              hide={!title}
               data-placement={placement}
               popperStyle={popperStyle}
+              onMouseEnter={() => isHoverable && this.handleOpen()}
+              onMouseLeave={() => isHoverable && this.handleClose()}
             >
               {title}
               <TooltipArrow
                 ref={arrowProps.ref}
                 data-placement={placement}
                 style={arrowProps.style}
+                background={(popperStyle as React.CSSProperties)?.background || '#000'}
               />
             </TooltipContent>
           )}
         </Popper>,
-        this.portalEl
+        this.getPortal(usesGlobalPortal)
       );
     }
 
@@ -208,8 +280,17 @@ class Tooltip extends React.Component<Props, State> {
   }
 }
 
-const TooltipContent = styled('div')<Pick<Props, 'popperStyle'>>`
-  color: #fff;
+// Using an inline-block solves the container being smaller
+// than the elements it is wrapping
+const Container = styled('span')<{
+  containerDisplayMode?: React.CSSProperties['display'];
+}>`
+  ${p => p.containerDisplayMode && `display: ${p.containerDisplayMode}`};
+  max-width: 100%;
+`;
+
+const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'>>`
+  color: ${p => p.theme.white};
   background: #000;
   opacity: 0.9;
   padding: 5px 10px;
@@ -226,9 +307,10 @@ const TooltipContent = styled('div')<Pick<Props, 'popperStyle'>>`
   margin: 6px;
   text-align: center;
   ${p => p.popperStyle as any};
+  ${p => p.hide && `display: none`};
 `;
 
-const TooltipArrow = styled('span')`
+const TooltipArrow = styled('span')<{background: string | number}>`
   position: absolute;
   width: 10px;
   height: 5px;
@@ -239,7 +321,7 @@ const TooltipArrow = styled('span')`
     margin-top: -5px;
     &::before {
       border-width: 0 5px 5px 5px;
-      border-color: transparent transparent #000 transparent;
+      border-color: transparent transparent ${p => p.background} transparent;
     }
   }
 
@@ -249,7 +331,7 @@ const TooltipArrow = styled('span')`
     margin-bottom: -5px;
     &::before {
       border-width: 5px 5px 0 5px;
-      border-color: #000 transparent transparent transparent;
+      border-color: ${p => p.background} transparent transparent transparent;
     }
   }
 
@@ -258,7 +340,7 @@ const TooltipArrow = styled('span')`
     margin-left: -5px;
     &::before {
       border-width: 5px 5px 5px 0;
-      border-color: transparent #000 transparent transparent;
+      border-color: transparent ${p => p.background} transparent transparent;
     }
   }
 
@@ -267,7 +349,7 @@ const TooltipArrow = styled('span')`
     margin-right: -5px;
     &::before {
       border-width: 5px 0 5px 5px;
-      border-color: transparent transparent transparent #000;
+      border-color: transparent transparent transparent ${p => p.background};
     }
   }
 

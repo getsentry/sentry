@@ -22,7 +22,7 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
 
         try:
             kwargs["alert_rule"] = AlertRule.objects.get(
-                query_subscriptions__project=project, id=alert_rule_id
+                snuba_query__subscriptions__project=project, id=alert_rule_id
             )
         except AlertRule.DoesNotExist:
             raise ResourceDoesNotExist

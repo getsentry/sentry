@@ -4,8 +4,10 @@ import logging
 import warnings
 
 from bitfield import BitField
+from django.contrib.auth.signals import user_logged_out
 from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.core.urlresolvers import reverse
+from django.dispatch import receiver
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -45,7 +47,7 @@ class User(BaseModel, AbstractBaseUser):
     username = models.CharField(_("username"), max_length=128, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
-    name = models.CharField(_("name"), max_length=200, blank=True, db_column="first_name")
+    name = models.CharField(_("name"), max_length=200, blank=True, db_column=u"first_name")
     email = models.EmailField(_("email address"), blank=True, max_length=75)
     is_staff = models.BooleanField(
         _("staff status"),
@@ -101,7 +103,7 @@ class User(BaseModel, AbstractBaseUser):
 
     flags = BitField(
         flags=(
-            ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
+            (u"newsletter_consent_prompt", u"Do we need to ask this user for newsletter consent?"),
         ),
         default=0,
         null=True,
@@ -112,7 +114,7 @@ class User(BaseModel, AbstractBaseUser):
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
-    objects = UserManager(cache_fields=["pk"])
+    objects = UserManager(cache_fields=[u"pk"])
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]
@@ -326,3 +328,12 @@ class User(BaseModel, AbstractBaseUser):
 
 # HACK(dcramer): last_login needs nullable for Django 1.8
 User._meta.get_field("last_login").null = True
+
+# When a user logs out, we want to always log them out of all
+# sessions and refresh their nonce.
+@receiver(user_logged_out, sender=User)
+def refresh_user_nonce(sender, request, user, **kwargs):
+    if user is None:
+        return
+    user.refresh_session_nonce()
+    user.save(update_fields=["session_nonce"])

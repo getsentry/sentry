@@ -1,37 +1,48 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
 import {ALL_VIEWS} from 'app/views/eventsV2/data';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import * as utils from 'app/views/eventsV2/savedQuery/utils';
+import {setBannerHidden, isBannerHidden} from 'app/views/eventsV2/utils';
 
 const SELECTOR_BUTTON_SAVE_AS = 'ButtonSaveAs';
-const SELECTOR_BUTTON_SAVED = 'ButtonSaved';
+const SELECTOR_BUTTON_SAVED = '[data-test-id="discover2-savedquery-button-saved"]';
 const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-update"]';
 const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
+const SELECTOR_BUTTON_CREATE_ALERT = '[data-test-id="discover2-create-from-discover"]';
 
-function generateWrappedComponent(location, organization, eventView, savedQuery) {
+function generateWrappedComponent(
+  location,
+  organization,
+  eventView,
+  savedQuery,
+  disabled = false
+) {
   return mountWithTheme(
     <SavedQueryButtonGroup
       location={location}
       organization={organization}
       eventView={eventView}
       savedQuery={savedQuery}
+      disabled={disabled}
+      updateCallback={() => {}}
     />,
     TestStubs.routerContext()
   );
 }
 
-describe('EventsV2 > SaveQueryButtonGroup', function() {
+describe('EventsV2 > SaveQueryButtonGroup', function () {
   // Organization + Location does not affect state in this component
-  const organization = TestStubs.Organization();
+  const organization = TestStubs.Organization({features: ['discover-query']});
   const location = {
     pathname: '/organization/eventsv2/',
     query: {},
   };
 
-  const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors');
+  const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors by Title');
   const errorsView = EventView.fromSavedQuery(errorsQuery);
 
   const errorsViewSaved = EventView.fromSavedQuery(errorsQuery);
@@ -52,6 +63,19 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       mockUtils.mockClear();
     });
 
+    it('renders disabled buttons when disabled prop is used', () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        undefined,
+        true
+      );
+
+      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
+      expect(buttonSaveAs.props().disabled).toBe(true);
+    });
+
     it('renders the correct set of buttons', () => {
       const wrapper = generateWrappedComponent(
         location,
@@ -69,6 +93,31 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       expect(buttonSaved.exists()).toBe(false);
       expect(buttonUpdate.exists()).toBe(false);
       expect(buttonDelete.exists()).toBe(false);
+    });
+
+    it('hides the banner when save is complete.', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        undefined
+      );
+      setBannerHidden(false);
+
+      // Click on ButtonSaveAs to open dropdown
+      const buttonSaveAs = wrapper.find('DropdownControl').first();
+      buttonSaveAs.simulate('click');
+
+      // Fill in the Input
+      buttonSaveAs
+        .find('ButtonSaveInput')
+        .simulate('change', {target: {value: 'My New Query Name'}}); // currentTarget.value does not work
+      await tick();
+
+      // Click on Save in the Dropdown
+      await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      // Banner should be hidden.
+      expect(isBannerHidden()).toEqual(true);
     });
 
     it('saves a well-formed query', async () => {
@@ -122,15 +171,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
 
       // Check that EventView has a name
-      expect(errorsView.name).toBe('Errors');
-
-      /**
-       * This does not work because SavedQueryButtonGroup is wrapped by 2 HOCs
-       * and we cannot access the state of the inner component. But it should
-       * be empty because we didn't fill in Input. If it has a value, then the
-       * test will fail anyway
-       */
-      // expect(wrapper.state('queryName')).toBe('');
+      expect(errorsView.name).toBe('Errors by Title');
 
       expect(mockUtils).not.toHaveBeenCalled();
     });
@@ -284,6 +325,34 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
           false
         );
       });
+    });
+  });
+  describe('create alert from discover', () => {
+    it('renders create alert button when metrics alerts is enabled', () => {
+      const metricAlertOrg = {
+        ...organization,
+        features: ['incidents'],
+      };
+      const wrapper = generateWrappedComponent(
+        location,
+        metricAlertOrg,
+        errorsViewModified,
+        savedQuery
+      );
+      const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
+
+      expect(buttonCreateAlert.exists()).toBe(true);
+    });
+    it('does not render create alert button without metric alerts', () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery
+      );
+      const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
+
+      expect(buttonCreateAlert.exists()).toBe(false);
     });
   });
 });

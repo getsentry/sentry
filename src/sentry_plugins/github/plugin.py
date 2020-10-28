@@ -18,8 +18,9 @@ from sentry.plugins import providers
 from sentry.utils.http import absolute_uri
 
 from sentry_plugins.base import CorePluginMixin
-from sentry_plugins.constants import ERR_UNAUTHORIZED, ERR_INTERNAL
-from sentry_plugins.exceptions import ApiError
+from sentry.shared_integrations.constants import ERR_UNAUTHORIZED, ERR_INTERNAL
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import GitHubClient, GitHubAppsClient
 
@@ -67,7 +68,26 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
     conf_title = title
     conf_key = "github"
     auth_provider = "github"
+    required_field = "repo"
     logger = logging.getLogger("sentry.plugins.github")
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Authorize repositories to be added to your Sentry organization to augment
+            sentry issues with commit data with [deployment
+            tracking](https://docs.sentry.io/learn/releases/).
+            """,
+            IntegrationFeatures.COMMITS,
+        ),
+        FeatureDescription(
+            """
+            Create and link Sentry issue groups directly to a GitHub issue or pull
+            request in any of your repositories, providing a quick way to jump from
+            Sentry bug to tracked issue or PR!
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+    ]
 
     def get_group_urls(self):
         return super(GitHubPlugin, self).get_group_urls() + [
@@ -220,10 +240,10 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
                 "type": "text",
                 "placeholder": "e.g. getsentry/sentry",
                 "help": (
-                    "Enter your repository name, including the owner. "
-                    "<p><b>Looking to integrate commit data with releases?</b> You'll need to configure this through our"
-                    '<a href="/organizations/{}/repos/" '
-                    "> repos page</a>.</p>"
+                    "If you want to add a repository to integrate commit data with releases, please install the "
+                    'new <a href="/settings/{}/integrations/github/">'
+                    "Github global integration</a>.  "
+                    "You cannot add repositories to the legacy Github integration."
                 ).format(project.organization.slug),
                 "required": True,
             }

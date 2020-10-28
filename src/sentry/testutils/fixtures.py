@@ -111,6 +111,33 @@ class Fixtures(object):
             project = self.project
         return Factories.create_project_key(project=project, *args, **kwargs)
 
+    def create_project_rule(
+        self, project=None, action_match=None, condition_match=None, *args, **kwargs
+    ):
+        if project is None:
+            project = self.project
+        return Factories.create_project_rule(
+            project=project,
+            action_match=action_match,
+            condition_match=condition_match,
+            *args,
+            **kwargs
+        )
+
+    def create_slack_project_rule(
+        self, project=None, integration_id=None, channel_id=None, channel_name=None, *args, **kwargs
+    ):
+        if project is None:
+            project = self.project
+        return Factories.create_slack_project_rule(
+            project,
+            integration_id=integration_id,
+            channel_id=channel_id,
+            channel_name=channel_name,
+            *args,
+            **kwargs
+        )
+
     def create_release(self, project=None, user=None, *args, **kwargs):
         if project is None:
             project = self.project
@@ -210,6 +237,9 @@ class Fixtures(object):
     def create_platform_external_issue(self, *args, **kwargs):
         return Factories.create_platform_external_issue(*args, **kwargs)
 
+    def create_integration_external_issue(self, *args, **kwargs):
+        return Factories.create_integration_external_issue(*args, **kwargs)
+
     def create_incident(self, organization=None, projects=None, *args, **kwargs):
         if not organization:
             organization = self.organization
@@ -241,13 +271,21 @@ class Fixtures(object):
         return Factories.create_alert_rule_trigger(alert_rule, *args, **kwargs)
 
     def create_alert_rule_trigger_action(
-        self, alert_rule_trigger=None, target_identifier=None, *args, **kwargs
+        self,
+        alert_rule_trigger=None,
+        target_identifier=None,
+        triggered_for_incident=None,
+        *args,
+        **kwargs
     ):
         if not alert_rule_trigger:
             alert_rule_trigger = self.create_alert_rule_trigger()
 
         if not target_identifier:
             target_identifier = six.text_type(self.user.id)
+
+        if triggered_for_incident is not None:
+            Factories.create_incident_trigger(triggered_for_incident, alert_rule_trigger)
 
         return Factories.create_alert_rule_trigger_action(
             alert_rule_trigger, target_identifier=target_identifier, **kwargs

@@ -4,9 +4,10 @@ import six
 
 from sentry.utils.snuba import Dataset, aliased_query, get_snuba_column_name, get_function_index
 
-# TODO(mark) Once this import is removed, transform_results should not
+# TODO(mark) Once this import is removed, transform_data should not
 # be exported.
-from sentry.snuba.discover import transform_results
+from sentry import eventstore
+from sentry.snuba.discover import transform_data
 
 
 def parse_columns_in_functions(col, context=None, index=None):
@@ -107,7 +108,7 @@ def transform_aliases_and_query(**kwargs):
         elif isinstance(aggregation[1], (set, tuple, list)):
             aggregation[1] = [get_snuba_column_name(col) for col in aggregation[1]]
 
-    for col in filter_keys.keys():
+    for col in list(filter_keys.keys()):
         name = get_snuba_column_name(col)
         filter_keys[name] = filter_keys.pop(col)
 
@@ -144,4 +145,10 @@ def transform_aliases_and_query(**kwargs):
 
     result = aliased_query(**kwargs)
 
-    return transform_results(result, translated_columns, kwargs)
+    snuba_filter = eventstore.Filter(
+        rollup=kwargs.get("rollup"),
+        start=kwargs.get("start"),
+        end=kwargs.get("end"),
+        orderby=kwargs.get("orderby"),
+    )
+    return transform_data(result, translated_columns, snuba_filter)

@@ -1,12 +1,13 @@
-import {mount} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {mount} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 
 import DiscoverQuery from 'app/views/dashboards/discoverQuery';
+import ProjectsStore from 'app/stores/projectsStore';
 
-describe('DiscoverQuery', function() {
+describe('DiscoverQuery', function () {
   const {organization, router, routerContext} = initializeOrg({
     organization: {
       features: ['global-views'],
@@ -24,7 +25,10 @@ describe('DiscoverQuery', function() {
   let discoverMock;
   const renderMock = jest.fn(() => null);
 
-  beforeEach(function() {
+  beforeEach(async function () {
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    await tick();
+
     renderMock.mockClear();
     router.push.mockRestore();
     MockApiClient.clearMockResponses();
@@ -55,7 +59,7 @@ describe('DiscoverQuery', function() {
     mockRouterPush(wrapper, router);
   });
 
-  it('fetches data on mount', async function() {
+  it('fetches data on mount', async function () {
     expect(discoverMock).toHaveBeenCalledTimes(2);
     await tick();
     wrapper.update();
@@ -89,7 +93,7 @@ describe('DiscoverQuery', function() {
     );
   });
 
-  it('re-renders if props.selection changes', function() {
+  it('re-renders if props.selection changes', function () {
     renderMock.mockClear();
     wrapper.setProps({selection: {datetime: {period: '7d'}}});
     wrapper.update();
@@ -98,7 +102,7 @@ describe('DiscoverQuery', function() {
     expect(renderMock).toHaveBeenCalledTimes(2);
   });
 
-  it('re-renders if props.org changes', function() {
+  it('re-renders if props.org changes', function () {
     renderMock.mockClear();
     wrapper.update();
     expect(renderMock).toHaveBeenCalledTimes(0);
@@ -113,7 +117,7 @@ describe('DiscoverQuery', function() {
   });
 
   // I think this behavior can go away if necessary in the future
-  it('does not re-render if `props.queries` changes', function() {
+  it('does not re-render if `props.queries` changes', function () {
     renderMock.mockClear();
     wrapper.setProps({queries: []});
     wrapper.update();
@@ -121,7 +125,7 @@ describe('DiscoverQuery', function() {
     expect(renderMock).toHaveBeenCalledTimes(0);
   });
 
-  it('does not re-render if `props.children` "changes" (e.g. new function instance gets passed every render)', function() {
+  it('does not re-render if `props.children` "changes" (e.g. new function instance gets passed every render)', function () {
     renderMock.mockClear();
     const newRender = jest.fn(() => null);
     wrapper.setProps({children: newRender});
@@ -130,7 +134,7 @@ describe('DiscoverQuery', function() {
     expect(renderMock).toHaveBeenCalledTimes(0);
   });
 
-  it('has the right period and rollup queries when we include previous period', function() {
+  it('has the right period and rollup queries when we include previous period', function () {
     renderMock.mockClear();
     wrapper = mount(
       <DiscoverQuery
@@ -156,7 +160,7 @@ describe('DiscoverQuery', function() {
     );
   });
 
-  it('queries using "recentReleases" constraint', function() {
+  it('queries using "recentReleases" constraint', function () {
     const release = TestStubs.Release();
     renderMock.mockClear();
     wrapper = mount(

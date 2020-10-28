@@ -1,20 +1,13 @@
 from __future__ import absolute_import
 
-import pytest
 import responses
 
+from sentry.utils.compat import mock
 from time import time
-from sentry.utils.compat.mock import Mock
 from sentry.testutils import TestCase
 
-from sentry.integrations.exceptions import (
-    ApiError,
-    ApiHostError,
-    ApiUnauthorized,
-    UnsupportedResponseType,
-)
 from sentry.identity import register
-from sentry.integrations.client import ApiClient, AuthApiClient, OAuth2RefreshMixin
+from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.models import Identity, IdentityProvider
 
@@ -55,66 +48,51 @@ class ApiClientTest(TestCase):
         resp = ApiClient().patch("http://example.com")
         assert resp.status_code == 200
 
-
-class AuthApiClientTest(TestCase):
+    @mock.patch("django.core.cache.cache.set")
+    @mock.patch("django.core.cache.cache.get")
     @responses.activate
-    def test_without_authorization(self):
-        responses.add(responses.GET, "http://example.com", json={})
+    def test_cache_mocked(self, cache_get, cache_set):
+        cache_get.return_value = None
+        responses.add(responses.GET, "http://example.com", json={"key": "value1"})
+        resp = ApiClient().get_cached("http://example.com")
+        assert resp == {"key": "value1"}
 
-        resp = AuthApiClient().get("http://example.com")
-        assert resp.status_code == 200
-
-        request = responses.calls[-1].request
-        assert not request.headers.get("Authorization")
-
-    @responses.activate
-    def test_with_authorization(self):
-        responses.add(responses.GET, "http://example.com", json={})
-
-        auth = Mock()
-        auth.tokens = {"access_token": "access-token"}
-
-        resp = AuthApiClient(auth=auth).get("http://example.com")
-        assert resp.status_code == 200
-
-        request = responses.calls[-1].request
-        assert request.headers.get("Authorization") == "Bearer access-token"
+        key = "integration.undefined.client:a9b9f04336ce0181a08e774e01113b31"
+        cache_get.assert_called_with(key)
+        cache_set.assert_called_with(key, {"key": "value1"}, 900)
 
     @responses.activate
-    def test_with_authorization_and_no_auth(self):
-        responses.add(responses.GET, "http://example.com", json={})
+    def test_get_cached_basic(self):
+        responses.add(responses.GET, "http://example.com", json={"key": "value1"})
 
-        auth = Mock()
-        auth.tokens = {"access_token": "access-token"}
+        resp = ApiClient().get_cached("http://example.com")
+        assert resp == {"key": "value1"}
+        assert len(responses.calls) == 1
 
-        resp = AuthApiClient(auth=auth).get("http://example.com", auth=None)
-        assert resp.status_code == 200
+        # should still return old value
+        responses.replace(responses.GET, "http://example.com", json={"key": "value2"})
+        resp = ApiClient().get_cached("http://example.com")
+        assert resp == {"key": "value1"}
+        assert len(responses.calls) == 1
 
-        request = responses.calls[-1].request
-        assert not request.headers.get("Authorization")
-
-    @responses.activate
-    def test_invalid_host(self):
-        with pytest.raises(ApiHostError):
-            AuthApiClient().get("http://example.com")
-
-    @responses.activate
-    def test_unauthorized(self):
-        responses.add(responses.GET, "http://example.com", status=404)
-        with pytest.raises(ApiError):
-            AuthApiClient().get("http://example.com")
+        # make sure normal get isn't impacted
+        resp = ApiClient().get("http://example.com")
+        assert resp == {"key": "value2"}
+        assert len(responses.calls) == 2
 
     @responses.activate
-    def test_forbidden(self):
-        responses.add(responses.GET, "http://example.com", status=401)
-        with pytest.raises(ApiUnauthorized):
-            AuthApiClient().get("http://example.com")
+    def test_get_cached_query_param(self):
+        responses.add(responses.GET, "http://example.com?param=val", json={})
+        responses.add(responses.GET, "http://example.com?param=different", json={})
 
-    @responses.activate
-    def test_invalid_plaintext(self):
-        responses.add(responses.GET, "http://example.com", body="")
-        with pytest.raises(UnsupportedResponseType):
-            AuthApiClient().get("http://example.com")
+        ApiClient().get_cached("http://example.com", params={"param": "val"})
+        assert len(responses.calls) == 1
+
+        ApiClient().get_cached("http://example.com", params={"param": "val"})
+        assert len(responses.calls) == 1
+
+        ApiClient().get_cached("http://example.com", params={"param": "different"})
+        assert len(responses.calls) == 2
 
 
 class OAuthProvider(OAuth2Provider):

@@ -1,8 +1,10 @@
 from __future__ import absolute_import
+
 from time import time
 import logging
 import re
 
+import six
 from django import forms
 from django.utils.translation import ugettext as _
 
@@ -22,13 +24,13 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.vsts import VSTSIdentityProvider, get_user_info
+from sentry.identity.vsts import get_user_info, use_limited_scopes
 from sentry.pipeline import PipelineView
 from sentry.web.helpers import render_to_response
 from sentry.tasks.integrations import migrate_repo
@@ -46,6 +48,14 @@ your Sentry and Azure DevOps organization together.
 FEATURES = [
     FeatureDescription(
         """
+        Authorize repositories to be added to your Sentry organization to augment
+        sentry issues with commit data with [deployment
+        tracking](https://docs.sentry.io/learn/releases/).
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
         Create and link Sentry issue groups directly to a Azure DevOps work item in any of
         your projects, providing a quick way to jump from Sentry bug to tracked
         work item!
@@ -54,7 +64,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Automatically synchronize assignees to and from Azure DevOps. Don't get
+        Automatically synchronize comments and assignees to and from Azure DevOps. Don't get
         confused who's fixing what, let us handle ensuring your issues and work
         items match up to your Sentry and Azure DevOps assignees.
         """,
@@ -63,14 +73,7 @@ FEATURES = [
     FeatureDescription(
         """
         Never forget to close a resolved workitem! Resolving an issue in Sentry
-        will resolve your linked workitems and viceversa.
-        """,
-        IntegrationFeatures.ISSUE_SYNC,
-    ),
-    FeatureDescription(
-        """
-        Synchronize comments on Sentry Issues directly to the linked Azure
-        DevOps workitems.
+        will resolve your linked workitems and vice versa.
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
@@ -160,7 +163,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         project_selector = []
 
         try:
-            projects = client.get_projects(instance)["value"]
+            projects = client.get_projects(instance)
             all_states = set()
 
             for idx, project in enumerate(projects):
@@ -321,7 +324,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     VSTS_ACCOUNT_LOOKUP_URL = "https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1"
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["visualstudio", "integrations:vsts"],
@@ -337,8 +340,17 @@ class VstsIntegrationProvider(IntegrationProvider):
                 }
             )
 
+    def get_scopes(self):
+        if use_limited_scopes(self.pipeline):
+            return ("vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
+
+        return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
+
     def get_pipeline_views(self):
-        identity_pipeline_config = {"redirect_url": absolute_uri(self.oauth_redirect_url)}
+        identity_pipeline_config = {
+            "redirect_url": absolute_uri(self.oauth_redirect_url),
+            "oauth_scopes": self.get_scopes(),
+        }
 
         identity_pipeline_view = NestedPipelineView(
             bind_key="identity",
@@ -354,7 +366,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         oauth_data = self.get_oauth_data(data)
         account = state["account"]
         user = get_user_info(data["access_token"])
-        scopes = sorted(VSTSIdentityProvider.oauth_scopes)
+        scopes = sorted(self.get_scopes())
         base_url = self.get_base_url(data["access_token"], account["accountId"])
 
         integration = {
@@ -397,7 +409,9 @@ class VstsIntegrationProvider(IntegrationProvider):
             )
         except ApiError as e:
             auth_codes = (400, 401, 403)
-            permission_error = "permission" in e.message or "not authorized" in e.message
+            permission_error = "permission" in six.text_type(
+                e
+            ) or "not authorized" in six.text_type(e)
             if e.code in auth_codes or permission_error:
                 raise IntegrationError(
                     "You do not have sufficient account access to create webhooks "

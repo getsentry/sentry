@@ -4,29 +4,28 @@ import functools
 import logging
 import six
 import time
+import sentry_sdk
 
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils.http import urlquote
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from simplejson import JSONDecodeError
 
 from sentry import tsdb
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
-from sentry.utils.http import absolute_uri, is_valid_origin
+from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.sdk import capture_exception
 from sentry.utils import json
-from sentry.web.api import allow_cors_options
 
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
@@ -34,13 +33,13 @@ from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
 
-__all__ = ["DocSection", "Endpoint", "EnvironmentMixin", "StatsMixin"]
+__all__ = ["Endpoint", "EnvironmentMixin", "StatsMixin"]
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
-LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+LINK_HEADER = u'<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 
 DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication)
 
@@ -48,13 +47,49 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 
 
-class DocSection(Enum):
-    ACCOUNTS = "Accounts"
-    EVENTS = "Events"
-    ORGANIZATIONS = "Organizations"
-    PROJECTS = "Projects"
-    RELEASES = "Releases"
-    TEAMS = "Teams"
+def allow_cors_options(func):
+    """
+    Decorator that adds automatic handling of OPTIONS requests for CORS
+
+    If the request is OPTIONS (i.e. pre flight CORS) construct a OK (200) response
+    in which we explicitly enable the caller and add the custom headers that we support
+    For other requests just add the appropriate CORS headers
+
+    :param func: the original request handler
+    :return: a request handler that shortcuts OPTIONS requests and just returns an OK (CORS allowed)
+    """
+
+    @functools.wraps(func)
+    def allow_cors_options_wrapper(self, request, *args, **kwargs):
+
+        if request.method == "OPTIONS":
+            response = HttpResponse(status=200)
+            response["Access-Control-Max-Age"] = "3600"  # don't ask for options again for 1 hour
+        else:
+            response = func(self, request, *args, **kwargs)
+
+        allow = ", ".join(self._allowed_methods())
+        response["Allow"] = allow
+        response["Access-Control-Allow-Methods"] = allow
+        response["Access-Control-Allow-Headers"] = (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding"
+        )
+        response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
+
+        if request.META.get("HTTP_ORIGIN") == "null":
+            origin = "null"  # if ORIGIN header is explicitly specified as 'null' leave it alone
+        else:
+            origin = origin_from_request(request)
+
+        if origin is None or origin == "null":
+            response["Access-Control-Allow-Origin"] = "*"
+        else:
+            response["Access-Control-Allow-Origin"] = origin
+
+        return response
+
+    return allow_cors_options_wrapper
 
 
 class Endpoint(APIView):
@@ -121,7 +156,7 @@ class Endpoint(APIView):
 
         try:
             request.json_body = json.loads(request.body)
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             return
 
     def initialize_request(self, request, *args, **kwargs):
@@ -149,19 +184,20 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        self.args = args
-        self.kwargs = kwargs
-        request = self.initialize_request(request, *args, **kwargs)
-        self.load_json_body(request)
-        self.request = request
-        self.headers = self.default_response_headers  # deprecate?
+        with sentry_sdk.start_span(op="base.dispatch.setup", description=type(self).__name__):
+            self.args = args
+            self.kwargs = kwargs
+            request = self.initialize_request(request, *args, **kwargs)
+            self.load_json_body(request)
+            self.request = request
+            self.headers = self.default_response_headers  # deprecate?
 
         # Tags that will ultimately flow into the metrics backend at the end of
         # the request (happens via middleware/stats.py).
         request._metric_tags = {}
 
         if settings.SENTRY_API_RESPONSE_DELAY:
-            time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
+            start_time = time.time()
 
         origin = request.META.get("HTTP_ORIGIN", "null")
         # A "null" value should be treated as no Origin for us.
@@ -170,30 +206,35 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            if origin and request.auth:
-                allowed_origins = request.auth.get_allowed_origins()
-                if not is_valid_origin(origin, allowed=allowed_origins):
-                    response = Response("Invalid origin: %s" % (origin,), status=400)
-                    self.response = self.finalize_response(request, response, *args, **kwargs)
-                    return self.response
+            with sentry_sdk.start_span(op="base.dispatch.request", description=type(self).__name__):
+                if origin and request.auth:
+                    allowed_origins = request.auth.get_allowed_origins()
+                    if not is_valid_origin(origin, allowed=allowed_origins):
+                        response = Response("Invalid origin: %s" % (origin,), status=400)
+                        self.response = self.finalize_response(request, response, *args, **kwargs)
+                        return self.response
 
-            self.initial(request, *args, **kwargs)
+                self.initial(request, *args, **kwargs)
 
-            # Get the appropriate handler method
-            if request.method.lower() in self.http_method_names:
-                handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
+                # Get the appropriate handler method
+                if request.method.lower() in self.http_method_names:
+                    handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
 
-                (args, kwargs) = self.convert_args(request, *args, **kwargs)
-                self.args = args
-                self.kwargs = kwargs
-            else:
-                handler = self.http_method_not_allowed
+                    (args, kwargs) = self.convert_args(request, *args, **kwargs)
+                    self.args = args
+                    self.kwargs = kwargs
+                else:
+                    handler = self.http_method_not_allowed
 
-            if getattr(request, "access", None) is None:
-                # setup default access
-                request.access = access.from_request(request)
+                if getattr(request, "access", None) is None:
+                    # setup default access
+                    request.access = access.from_request(request)
 
-            response = handler(request, *args, **kwargs)
+            with sentry_sdk.start_span(
+                op="base.dispatch.execute",
+                description="{}.{}".format(type(self).__name__, handler.__name__),
+            ):
+                response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
@@ -202,6 +243,16 @@ class Endpoint(APIView):
             self.add_cors_headers(request, response)
 
         self.response = self.finalize_response(request, response, *args, **kwargs)
+
+        if settings.SENTRY_API_RESPONSE_DELAY:
+            duration = time.time() - start_time
+
+            if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
+                with sentry_sdk.start_span(
+                    op="base.dispatch.sleep", description=type(self).__name__,
+                ) as span:
+                    span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
+                    time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         return self.response
 
@@ -236,7 +287,10 @@ class Endpoint(APIView):
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
 
-        per_page = int(request.GET.get("per_page", default_per_page))
+        try:
+            per_page = int(request.GET.get("per_page", default_per_page))
+        except ValueError:
+            raise ParseError(detail="Invalid per_page parameter.")
 
         input_cursor = None
         if request.GET.get("cursor"):
@@ -245,19 +299,30 @@ class Endpoint(APIView):
             except ValueError:
                 raise ParseError(detail="Invalid cursor parameter.")
 
-        assert per_page <= max(max_per_page, default_per_page)
+        max_per_page = max(max_per_page, default_per_page)
+        if per_page > max_per_page:
+            raise ParseError(
+                detail="Invalid per_page value. Cannot exceed {}.".format(max_per_page)
+            )
 
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)
 
         try:
-            cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
+            with sentry_sdk.start_span(
+                op="base.paginate.get_result", description=type(self).__name__,
+            ) as span:
+                span.set_data("Limit", per_page)
+                cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
         except BadPaginationError as e:
-            return Response({"detail": e.message}, status=400)
+            raise ParseError(detail=six.text_type(e))
 
         # map results based on callback
         if on_results:
-            results = on_results(cursor_result.results)
+            with sentry_sdk.start_span(
+                op="base.paginate.on_results", description=type(self).__name__,
+            ):
+                results = on_results(cursor_result.results)
         else:
             results = cursor_result.results
 

@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
+
+import sentry_sdk
 
 from sentry import nodestore
 from sentry.snuba.events import Columns
@@ -18,8 +21,14 @@ class Filter(object):
     conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
     having (Sequence[str, str, Any]]): List of having conditions to filter by - default None
     project_ids (Sequence[int]): List of project IDs to fetch - default None
-    group_ids (Sequence[int]): List of group IDs to fetch - defualt None
+    group_ids (Sequence[int]): List of group IDs to fetch - default None
     event_ids (Sequence[int]): List of event IDs to fetch - default None
+
+    selected_columns (Sequence[str]): List of columns to select
+    aggregations (Sequence[Any, str|None, str]): Aggregate functions to fetch.
+    groupby (Sequence[str]): List of columns to group results by
+
+    condition_aggregates (Sequence[str]): List of aggregates used in the condition
     """
 
     def __init__(
@@ -28,17 +37,34 @@ class Filter(object):
         end=None,
         conditions=None,
         having=None,
+        user_id=None,
+        organization_id=None,
         project_ids=None,
         group_ids=None,
         event_ids=None,
+        selected_columns=None,
+        aggregations=None,
+        rollup=None,
+        groupby=None,
+        orderby=None,
+        condition_aggregates=None,
     ):
         self.start = start
         self.end = end
         self.conditions = conditions
         self.having = having
+        self.user_id = user_id
+        self.organization_id = organization_id
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
+
+        self.rollup = rollup
+        self.selected_columns = selected_columns if selected_columns is not None else []
+        self.aggregations = aggregations if aggregations is not None else []
+        self.groupby = groupby
+        self.orderby = orderby
+        self.condition_aggregates = condition_aggregates
 
     @property
     def filter_keys(self):
@@ -58,14 +84,37 @@ class Filter(object):
 
         return filter_keys
 
+    @property
+    def params(self):
+        """
+        Get the datetime parameters as a dictionary
+        """
+        return {
+            "start": self.start,
+            "end": self.end,
+            # needed for the key transaction column
+            "user_id": self.user_id,
+            "organization_id": self.organization_id,
+            "project_id": self.project_ids,
+        }
+
+    def update_with(self, updates):
+        keys = ("selected_columns", "aggregations", "conditions", "orderby", "groupby")
+        for key in keys:
+            if key in updates:
+                setattr(self, key, updates[key])
+
+    def clone(self):
+        return deepcopy(self)
+
 
 class EventStorage(Service):
     __all__ = (
         "minimal_columns",
-        "full_columns",
         "create_event",
         "get_event_by_id",
         "get_events",
+        "get_unfetched_events",
         "get_prev_event_id",
         "get_next_event_id",
         "get_earliest_event_id",
@@ -79,44 +128,49 @@ class EventStorage(Service):
     # avoid duplicated work.
     minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
 
-    # A list of all useful columns we can get from snuba.
-    full_columns = minimal_columns + [
-        Columns.CULPRIT,
-        Columns.LOCATION,
-        Columns.MESSAGE,
-        Columns.PLATFORM,
-        Columns.TITLE,
-        Columns.TYPE,
-        Columns.TRANSACTION,
-        # Required to provide snuba-only tags
-        Columns.TAGS_KEY,
-        Columns.TAGS_VALUE,
-        # Required to provide snuba-only 'user' interface
-        Columns.USER_EMAIL,
-        Columns.USER_IP_ADDRESS,
-        Columns.USER_ID,
-        Columns.USER_USERNAME,
-    ]
-
     def get_events(
         self,
-        filter,
-        additional_columns=None,
+        snuba_filter,
         orderby=None,
         limit=100,
         offset=0,
-        referrer="eventstore.get_events",
+        referrer="eventstore.get_events",  # NOQA
     ):
         """
         Fetches a list of events given a set of criteria.
 
         Arguments:
-        filter (Filter): Filter
-        additional_columns (Sequence[Column]): List of additional columns to fetch - default None
+        snuba_filter (Filter): Filter
         orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
         referrer (string): Referrer - default "eventstore.get_events"
+        """
+        raise NotImplementedError
+
+    def get_unfetched_events(
+        self,
+        snuba_filter,
+        orderby=None,
+        limit=100,
+        offset=0,
+        referrer="eventstore.get_unfetched_events",  # NOQA
+    ):
+        """
+        Same as get_events but returns events without their node datas loaded.
+        Only the event ID, projectID, groupID and timestamp field will be present without
+        an additional fetch to nodestore.
+
+        Used for fetching large volumes of events that do not need data loaded
+        from nodestore. Currently this is just used for event data deletions where
+        we just need the event IDs in order to process the deletions.
+
+        Arguments:
+        snuba_filter (Filter): Filter
+        orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
+        limit (int): Query limit - default 100
+        offset (int): Query offset - default 0
+        referrer (string): Referrer - default "eventstore.get_unfetched_events"
         """
         raise NotImplementedError
 
@@ -130,47 +184,47 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_next_event_id(self, event, filter):
+    def get_next_event_id(self, event, snuba_filter):  # NOQA
         """
         Gets the next event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:
         event (Event): Event object
-        filter (Filter): Filter
+        snuba_filter (Filter): Filter
         """
         raise NotImplementedError
 
-    def get_prev_event_id(self, event, filter):
+    def get_prev_event_id(self, event, snuba_filter):  # NOQA
         """
         Gets the previous event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:
         event (Event): Event object
-        filter (Filter): Filter
+        snuba_filter (Filter): Filter
         """
         raise NotImplementedError
 
-    def get_earliest_event_id(self, event, filter):
+    def get_earliest_event_id(self, event, snuba_filter):  # NOQA
         """
         Gets the earliest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:
         event (Event): Event object
-        filter (Filter): Filter
+        snuba_filter (Filter): Filter
         """
         raise NotImplementedError
 
-    def get_latest_event_id(self, event, filter):
+    def get_latest_event_id(self, event, snuba_filter):  # NOQA
         """
         Gets the latest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:
         event (Event): Event object
-        filter (Filter): Filter
+        snuba_filter (Filter): Filter
         """
         raise NotImplementedError
 
@@ -190,20 +244,18 @@ class EventStorage(Service):
         It's not necessary to bind a single Event object since data will be lazily
         fetched on any attempt to access a property.
         """
-        # Temporarily make bind_nodes noop to prevent unnecessary additional calls
-        # to nodestore by the event serializer.
-        unfetched_object_list = [i for i in object_list if not getattr(i, node_name)._node_data]
+        with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
+            object_node_list = [
+                (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
+            ]
 
-        object_node_list = [
-            (i, getattr(i, node_name)) for i in unfetched_object_list if getattr(i, node_name).id
-        ]
+            # Remove duplicates from the list of nodes to be fetched
+            node_ids = list({n.id for _, n in object_node_list})
+            if not node_ids:
+                return
 
-        node_ids = [n.id for _, n in object_node_list]
-        if not node_ids:
-            return
+            node_results = nodestore.get_multi(node_ids)
 
-        node_results = nodestore.get_multi(node_ids)
-
-        for item, node in object_node_list:
-            data = node_results.get(node.id) or {}
-            node.bind_data(data, ref=node.get_ref(item))
+            for item, node in object_node_list:
+                data = node_results.get(node.id) or {}
+                node.bind_data(data, ref=node.get_ref(item))

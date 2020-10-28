@@ -30,10 +30,16 @@ from sentry.utils.hashlib import md5_text
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 from sentry_plugins.anonymizeip import anonymize_ip
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+
 
 logger = logging.getLogger(__name__)
 
 SETUP_URL = "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/splunk/Splunk_Instructions.rst"
+
+DESCRIPTION = """
+Send Sentry events to Splunk.
+"""
 
 
 class SplunkError(Exception):
@@ -93,9 +99,18 @@ class SplunkConfigError(SplunkError):
 class SplunkPlugin(CorePluginMixin, Plugin):
     title = "Splunk"
     slug = "splunk"
-    description = "Send Sentry events into Splunk."
+    description = DESCRIPTION
     conf_key = "splunk"
     resource_links = [("Splunk Setup Instructions", SETUP_URL)] + CorePluginMixin.resource_links
+    required_field = "instance"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Forward Sentry errors and events to Splunk.
+            """,
+            IntegrationFeatures.DATA_FORWARDING,
+        )
+    ]
 
     def configure(self, project, request):
         return react_plugin_config(self, project, request)
@@ -277,6 +292,11 @@ class SplunkPlugin(CorePluginMixin, Plugin):
                 # If we get a ReadTimeout we don't need to raise an error here.
                 # Just log and return.
                 return
+
+            if isinstance(exc, SplunkError) and exc.status_code == 403:
+                # 403s are not errors or actionable for us do not re-raise
+                return
+
             raise
 
         metrics.incr(

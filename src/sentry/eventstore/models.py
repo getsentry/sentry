@@ -21,6 +21,7 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
+from sentry.utils.compat import zip
 
 
 def ref_func(x):
@@ -260,7 +261,7 @@ class Event(object):
         be saved under this key in nodestore so it can be retrieved using the
         same generated id when we only have project_id and event_id.
         """
-        return md5("{}:{}".format(project_id, event_id)).hexdigest()
+        return md5(u"{}:{}".format(project_id, event_id).encode("utf-8")).hexdigest()
 
     # TODO We need a better way to cache these properties.  functools32
     # doesn't quite do the trick as there is a reference bug with unsaved
@@ -338,9 +339,11 @@ class Event(object):
             if hashes is not None:
                 return hashes
 
-        return filter(
-            None, [x.get_hash() for x in self.get_grouping_variants(force_config).values()]
-        )
+        return [
+            _f
+            for _f in [x.get_hash() for x in self.get_grouping_variants(force_config).values()]
+            if _f
+        ]
 
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """
@@ -404,9 +407,7 @@ class Event(object):
             template = EventSubjectTemplate(template)
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
-        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128).encode(
-            "utf-8"
-        )
+        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
 
     def as_dict(self):
         """Returns the data in normalized form for external consumers."""

@@ -16,6 +16,7 @@ import Field from 'app/views/settings/components/forms/field';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Switch from 'app/components/switch';
 import Truncate from 'app/components/truncate';
+import {IconAdd, IconFlag} from 'app/icons';
 
 class ServiceHookRow extends React.Component {
   static propTypes = {
@@ -72,7 +73,7 @@ export default class ProjectServiceHooks extends AsyncView {
   onToggleActive = hook => {
     const {orgId, projectId} = this.props.params;
 
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     this.api.request(`/projects/${orgId}/${projectId}/hooks/${hook.id}/`, {
       method: 'PUT',
@@ -113,21 +114,20 @@ export default class ProjectServiceHooks extends AsyncView {
       <React.Fragment>
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
-          <PanelAlert type="info" icon="icon-circle-exclamation">
-            Service Hooks are an early adopter preview feature and will change in the
-            future.
+          <PanelAlert type="info" icon={<IconFlag size="md" />}>
+            {t(
+              'Service Hooks are an early adopter preview feature and will change in the future.'
+            )}
           </PanelAlert>
-          {this.state.hookList.map(hook => {
-            return (
-              <ServiceHookRow
-                key={hook.id}
-                orgId={orgId}
-                projectId={projectId}
-                hook={hook}
-                onToggleActive={this.onToggleActive.bind(this, hook)}
-              />
-            );
-          })}
+          {this.state.hookList.map(hook => (
+            <ServiceHookRow
+              key={hook.id}
+              orgId={orgId}
+              projectId={projectId}
+              hook={hook}
+              onToggleActive={this.onToggleActive.bind(this, hook)}
+            />
+          ))}
         </PanelBody>
       </React.Fragment>
     );
@@ -155,9 +155,9 @@ export default class ProjectServiceHooks extends AsyncView {
                 to={`/settings/${orgId}/projects/${projectId}/hooks/new/`}
                 size="small"
                 priority="primary"
+                icon={<IconAdd size="xs" isCircled />}
               >
-                <span className="icon-plus" />
-                &nbsp;{t('Create New Hook')}
+                {t('Create New Hook')}
               </Button>
             ) : null
           }

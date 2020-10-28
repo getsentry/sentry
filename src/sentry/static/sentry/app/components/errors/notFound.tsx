@@ -1,35 +1,54 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
+import {IconInfo} from 'app/icons';
+import space from 'app/styles/space';
+import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 
-// TODO(chrissy): use scale for margin values
 const NotFound = () => (
-  <div className="alert alert-block alert-error" style={{margin: '30px 0 10px'}}>
-    <div style={{fontSize: 24, marginBottom: 10}}>
-      <span className="icon-exclamation" style={{fontSize: 20, marginRight: 10}} />
-      <span>{t('Page Not Found')}</span>
-    </div>
-    <p>The page you are looking for was not found.</p>
-    <p>You may wish to try the following:</p>
+  <NotFoundAlert type="error" icon={<IconInfo size="lg" />}>
+    <Heading>{t('Page Not Found')}</Heading>
+    <p>{t('The page you are looking for was not found.')}</p>
+    <p>{t('You may wish to try the following:')}</p>
     <ul>
       <li>
-        If you entered the address manually, double check the path. Did you forget a
-        trailing slash?
+        {t(
+          `If you entered the address manually, double check the path. Did you
+           forget a trailing slash?`
+        )}
       </li>
       <li>
-        If you followed a link here, try hitting back and reloading the page. It's
-        possible the resource was moved out from under you.
+        {t(
+          `If you followed a link here, try hitting back and reloading the
+           page. It's possible the resource was moved out from under you.`
+        )}
       </li>
       <li>
-        If all else fails,{' '}
-        <a href="http://github.com/getsentry/sentry/issues">create an issue</a> with more
-        details.
+        {tct('If all else fails, [link:contact us] with more details', {
+          link: (
+            <ExternalLink href="https://github.com/getsentry/sentry/issues/new/choose" />
+          ),
+        })}
       </li>
     </ul>
     <p>
-      Not sure what to do? <a href="/">Return to the dashboard</a>
+      {tct('Not sure what to do? [link:Return to the dashboard]', {
+        link: <Link to="/" />,
+      })}
     </p>
-  </div>
+  </NotFoundAlert>
 );
+
+const NotFoundAlert = styled(Alert)`
+  margin: ${space(3)} 0;
+`;
+
+const Heading = styled('h1')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin: ${space(1)} 0;
+`;
 
 export default NotFound;

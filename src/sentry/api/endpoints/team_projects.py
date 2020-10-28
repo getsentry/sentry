@@ -4,31 +4,14 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize, ProjectSummarySerializer
 from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
 from sentry.signals import project_created
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
-
-
-@scenario("ListTeamProjects")
-def list_team_projects_scenario(runner):
-    runner.request(
-        method="GET", path="/teams/%s/%s/projects/" % (runner.org.slug, runner.default_team.slug)
-    )
-
-
-@scenario("CreateNewProject")
-def create_project_scenario(runner):
-    runner.request(
-        method="POST",
-        path="/teams/%s/%s/projects/" % (runner.org.slug, runner.default_team.slug),
-        data={"name": "The Spoiled Yoghurt"},
-    )
 
 
 class ProjectSerializer(serializers.Serializer):
@@ -61,10 +44,8 @@ class TeamProjectPermission(TeamPermission):
 
 
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
-    doc_section = DocSection.TEAMS
     permission_classes = (TeamProjectPermission,)
 
-    @attach_scenarios([list_team_projects_scenario])
     def get(self, request, team):
         """
         List a Team's Projects
@@ -109,7 +90,6 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             paginator_cls=OffsetPaginator,
         )
 
-    @attach_scenarios([create_project_scenario])
     def post(self, request, team):
         """
         Create a New Project

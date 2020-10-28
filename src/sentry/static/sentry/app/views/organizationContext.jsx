@@ -2,9 +2,9 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';
@@ -13,7 +13,6 @@ import {openSudo} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import ConfigStore from 'app/stores/configStore';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import HookStore from 'app/stores/hookStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -22,7 +21,6 @@ import ProjectActions from 'app/actions/projectActions';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
@@ -37,7 +35,6 @@ const OrganizationContext = createReactClass({
     useLastOrganization: PropTypes.bool,
     organizationsLoading: PropTypes.bool,
     organizations: PropTypes.arrayOf(SentryTypes.Organization),
-    finishProfile: PropTypes.func,
     detailed: PropTypes.bool,
   },
 
@@ -105,10 +102,6 @@ const OrganizationContext = createReactClass({
     ) {
       this.remountComponent();
     }
-
-    if (this.state.organization && this.props.finishProfile) {
-      this.props.finishProfile();
-    }
   },
 
   remountComponent() {
@@ -119,7 +112,7 @@ const OrganizationContext = createReactClass({
     // If a new project was created, we need to re-fetch the
     // org details endpoint, which will propagate re-rendering
     // for the entire component tree
-    fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true);
+    fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true, true);
   },
 
   getOrganizationSlug() {
@@ -177,7 +170,7 @@ const OrganizationContext = createReactClass({
       return;
     }
 
-    metric.mark('organization-details-fetch-start');
+    metric.mark({name: 'organization-details-fetch-start'});
     fetchOrganizationDetails(
       this.props.api,
       this.getOrganizationSlug(),
@@ -197,20 +190,11 @@ const OrganizationContext = createReactClass({
 
       // Configure scope to have organization tag
       Sentry.configureScope(scope => {
+        // XXX(dcramer): this is duplicated in sdk.py on the backend
         scope.setTag('organization', organization.id);
+        scope.setTag('organization.slug', organization.slug);
+        scope.setContext('organization', {id: organization.id, slug: organization.slug});
       });
-      // Make an exception for issue details in the case where it is accessed directly (e.g. from email)
-      // We do not want to load the user's last used env/project in this case, otherwise will
-      // lead to very confusing behavior.
-      if (
-        !this.props.routes.find(
-          ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
-        )
-      ) {
-        GlobalSelectionStore.loadInitialData(organization, this.props.location.query, {
-          api: this.props.api,
-        });
-      }
     } else if (error) {
       // If user is superuser, open sudo window
       const user = ConfigStore.get('user');
@@ -309,7 +293,7 @@ const OrganizationContext = createReactClass({
   },
 });
 
-export default withApi(withOrganizations(profiler()(OrganizationContext)));
+export default withApi(withOrganizations(Sentry.withProfiler(OrganizationContext)));
 export {OrganizationContext};
 
 const ErrorWrapper = styled('div')`

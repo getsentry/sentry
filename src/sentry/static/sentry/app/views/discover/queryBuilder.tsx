@@ -8,7 +8,6 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {Project, Organization} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-
 import {openModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
 
@@ -21,7 +20,7 @@ const API_LIMIT = 10000;
 
 const DEFAULTS = {
   projects: [],
-  fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
+  fields: ['id', 'issue', 'project.name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
   orderby: '-timestamp',
@@ -57,7 +56,8 @@ export interface QueryBuilder {
  */
 export default function createQueryBuilder(
   initial = {},
-  organization: Organization
+  organization: Organization,
+  specificProjects?: Project[]
 ): QueryBuilder {
   const api = new Client();
   let query = applyDefaults(initial);
@@ -66,15 +66,20 @@ export default function createQueryBuilder(
     query.range = DEFAULT_STATS_PERIOD;
   }
 
-  const defaultProjects = organization.projects.filter(projects => projects.isMember);
-
-  const defaultProjectIds = getProjectIds(defaultProjects);
-
   const hasGlobalProjectAccess =
     ConfigStore.get('user').isSuperuser || organization.access.includes('org:admin');
 
+  // TODO(lightweight-org): This needs to be refactored so that queries
+  // do not depend on organization.projects
+  const projectsToUse = specificProjects ?? organization.projects;
+  const defaultProjects = projectsToUse.filter(projects =>
+    hasGlobalProjectAccess ? projects.hasAccess : projects.isMember
+  );
+
+  const defaultProjectIds = getProjectIds(defaultProjects);
+
   const projectsToFetchTags = getProjectIds(
-    hasGlobalProjectAccess ? organization.projects : defaultProjects
+    hasGlobalProjectAccess ? projectsToUse : defaultProjects
   );
 
   const columns = COLUMNS.map(col => ({...col, isTag: false}));

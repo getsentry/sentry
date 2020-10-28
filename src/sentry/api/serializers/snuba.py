@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import six
 import itertools
@@ -126,11 +126,22 @@ def value_from_row(row, tagkey):
 
 def zerofill(data, start, end, rollup):
     rv = []
-    start = ((int(to_timestamp(start)) / rollup) * rollup) - rollup
-    end = ((int(to_timestamp(end)) / rollup) * rollup) + rollup
+    end = int(to_timestamp(end))
+    rollup_start = (int(to_timestamp(start)) // rollup) * rollup
+    rollup_end = (end // rollup) * rollup
+
+    # Fudge the end value when we're only getting a single window.
+    # This ensure that we get both values for a single large window that
+    # straddles two buckets. An example of this is a 1d window that starts
+    # mid day.
+    if rollup_end - rollup_start == rollup:
+        rollup_end += 1
     i = 0
-    for key in six.moves.xrange(start, end, rollup):
+    for key in six.moves.xrange(rollup_start, rollup_end, rollup):
         try:
+            while data[i][0] < key:
+                rv.append(data[i])
+                i += 1
             if data[i][0] == key:
                 rv.append(data[i])
                 i += 1
@@ -139,6 +150,11 @@ def zerofill(data, start, end, rollup):
             pass
 
         rv.append((key, []))
+    # Add any remaining rows that are not aligned to the rollup and are lower than the
+    # end date.
+    if i < len(data):
+        rv.extend(row for row in data[i:] if row[0] < rollup_end)
+
     return rv
 
 
@@ -290,7 +306,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
     Serializer for time-series Snuba data.
     """
 
-    def serialize(self, result):
+    def serialize(self, result, column="count", order=None):
         data = [
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
@@ -303,7 +319,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         for k, v in data:
             row = []
             for r in v:
-                item = {"count": r.get("count", 0)}
+                item = {"count": r.get(column, 0)}
                 if self.lookup:
                     value = value_from_row(r, self.lookup.columns)
                     item[self.lookup.name] = (attrs.get(value),)
@@ -313,6 +329,11 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         res = {"data": zerofill(rv, result.start, result.end, result.rollup)}
 
         if result.data.get("totals"):
-            res["totals"] = {"count": result.data["totals"]["count"]}
+            res["totals"] = {"count": result.data["totals"][column]}
+        # If order is passed let that overwrite whats in data since its order for multi-axis
+        if order is not None:
+            res["order"] = order
+        elif "order" in result.data:
+            res["order"] = result.data["order"]
 
         return res

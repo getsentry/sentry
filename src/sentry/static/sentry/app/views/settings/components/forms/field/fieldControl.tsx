@@ -3,8 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import FieldControlState from 'app/views/settings/components/forms/field/fieldControlState';
-import InlineSvg from 'app/components/inlineSvg';
-import Tooltip from 'app/components/tooltip';
+import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 
 const defaultProps = {
@@ -15,6 +14,7 @@ type Props = Partial<typeof defaultProps> & {
   inline?: boolean;
   alignRight?: boolean;
   disabled?: boolean;
+  hideControlState?: boolean;
   disabledReason?: React.ReactNode;
   controlState?: React.ReactNode;
   errorState?: React.ReactNode;
@@ -43,6 +43,7 @@ class FieldControl extends React.Component<Props> {
       errorState,
       controlState,
       children,
+      hideControlState,
     } = this.props;
 
     return (
@@ -52,18 +53,18 @@ class FieldControl extends React.Component<Props> {
 
           {disabled && disabledReason && (
             <DisabledIndicator className="disabled-indicator">
-              <Tooltip title={disabledReason}>
-                <StyledInlineSvg src="icon-circle-question" size="18px" />
-              </Tooltip>
+              <StyledQuestionTooltip title={disabledReason} size="sm" position="top" />
             </DisabledIndicator>
           )}
 
-          <FieldControlState flexibleControlStateSize={!!flexibleControlStateSize}>
-            {controlState}
-          </FieldControlState>
+          {!hideControlState && (
+            <FieldControlState flexibleControlStateSize={!!flexibleControlStateSize}>
+              {controlState}
+            </FieldControlState>
+          )}
         </FieldControlWrapper>
 
-        {errorState}
+        {!hideControlState && errorState}
       </FieldControlErrorWrapper>
     );
   }
@@ -78,7 +79,7 @@ const FieldControlErrorWrapper = styled('div')<{inline?: boolean}>`
 `;
 
 const FieldControlStyled = styled('div')<{alignRight?: boolean}>`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -91,16 +92,9 @@ const FieldControlWrapper = styled('div')`
   flex-shrink: 0;
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
+const StyledQuestionTooltip = styled(QuestionTooltip)`
   display: block;
-  color: ${p => p.theme.gray1};
   margin: 0 auto;
-  cursor: pointer;
-  transition: 0.15s color;
-
-  &:hover {
-    color: ${p => p.theme.gray3};
-  }
 `;
 
 const DisabledIndicator = styled('div')`

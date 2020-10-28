@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
+import {SectionHeading} from 'app/components/charts/styles';
+import {IconWarning} from 'app/icons';
 import GroupChart from 'app/components/stream/groupChart';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
@@ -13,7 +16,6 @@ import ShortId from 'app/components/shortId';
 import Times from 'app/components/group/times';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
-import {SectionHeading} from '../styles';
 
 type Props = {
   groupId: string;
@@ -44,6 +46,20 @@ class LinkedIssue extends AsyncComponent<
     return <Placeholder height="120px" bottomGutter={2} />;
   }
 
+  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+    const {errors} = this.state;
+    const hasNotFound = Object.values(errors).find(resp => resp && resp.status === 404);
+    if (hasNotFound) {
+      return (
+        <Alert type="warning" icon={<IconWarning size="md" />}>
+          {t('The linked issue cannot be found. It may have been deleted, or merged.')}
+        </Alert>
+      );
+    }
+
+    return super.renderError(error, disableLog, disableReport);
+  }
+
   renderBody() {
     const {eventId} = this.props;
     const {group} = this.state;
@@ -63,7 +79,7 @@ class LinkedIssue extends AsyncComponent<
             <StyledSeenByList seenBy={group.seenBy} maxVisibleAvatars={5} />
           </IssueCardHeader>
           <IssueCardBody>
-            <GroupChart id={group.id} statsPeriod="30d" data={group} height={56} />
+            <GroupChart statsPeriod="30d" data={group} height={56} />
           </IssueCardBody>
           <IssueCardFooter>
             <Times lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
@@ -95,7 +111,7 @@ const StyledLink = styled(Link)`
 `;
 
 const IssueCardBody = styled('div')`
-  background: ${p => p.theme.offWhiteLight};
+  background: ${p => p.theme.gray200};
   padding-top: ${space(1)};
 `;
 
@@ -105,11 +121,11 @@ const StyledSeenByList = styled(SeenByList)`
 
 const StyledShortId = styled(ShortId)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 const IssueCardFooter = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
   padding: ${space(0.5)} ${space(1)};
 `;

@@ -1,14 +1,15 @@
 import React from 'react';
-import {shallow} from 'sentry-test/enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import ProjectOwnership from 'app/views/settings/project/projectOwnership';
 
-describe('ProjectTeamsSettings', function() {
+describe('ProjectTeamsSettings', function () {
   let org;
   let project;
 
-  beforeEach(function() {
+  beforeEach(function () {
     org = TestStubs.Organization();
     project = TestStubs.ProjectDetails();
 
@@ -28,9 +29,9 @@ describe('ProjectTeamsSettings', function() {
     });
   });
 
-  describe('render()', function() {
-    it('renders', function() {
-      const wrapper = shallow(
+  describe('render()', function () {
+    it('renders', function () {
+      const wrapper = mountWithTheme(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
@@ -38,7 +39,7 @@ describe('ProjectTeamsSettings', function() {
         />,
         TestStubs.routerContext()
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

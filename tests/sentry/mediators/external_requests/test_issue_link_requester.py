@@ -124,7 +124,6 @@ class TestIssueLinkRequester(TestCase):
 
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         requests = buffer.get_requests()
-
         assert len(requests) == 1
         assert requests[0]["response_code"] == 500
         assert requests[0]["event_type"] == "external_issue.created"

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from sentry.projectoptions import register
 
 # latest epoch
-LATEST_EPOCH = 4
+LATEST_EPOCH = 6
 
 # grouping related configs
 #
@@ -44,13 +44,16 @@ register(key="sentry:default_loader_version", epoch_defaults={1: "4.x", 2: "5.x"
 # Default symbol sources.  The ios source does not exist by default and
 # will be skipped later.  The microsoft source exists by default and is
 # unlikely to be disabled.
-register(key="sentry:builtin_symbol_sources", epoch_defaults={1: ["ios"], 2: ["ios", "microsoft"]})
+register(
+    key="sentry:builtin_symbol_sources",
+    epoch_defaults={1: ["ios"], 2: ["ios", "microsoft"], 5: ["ios", "microsoft", "android"]},
+)
 
 # Default legacy-browsers filter
 register(key="filters:legacy-browsers", epoch_defaults={1: "0"})
 
 # Default legacy-browsers filter
-register(key="filters:web-crawlers", epoch_defaults={1: "1"})
+register(key="filters:web-crawlers", epoch_defaults={1: "1", 6: "0"})
 
 # Default legacy-browsers filter
 register(key="filters:browser-extensions", epoch_defaults={1: "0"})

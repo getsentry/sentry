@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from collections import Mapping, Set, Sequence
 
 import six
+from sentry.utils.compat import map
 
 
 class Encoder(object):
@@ -26,10 +27,12 @@ class Encoder(object):
         elif isinstance(value, self.number_types):
             return six.text_type(value).encode("utf8")
         elif isinstance(value, Set):
-            return "\x00".join(sorted(map(self.dumps, value)))
+            return b"\x00".join(sorted(map(self.dumps, value)))
         elif isinstance(value, Sequence):
-            return "\x01".join(map(self.dumps, value))
+            return b"\x01".join(map(self.dumps, value))
         elif isinstance(value, Mapping):
-            return "\x02".join(sorted("\x01".join(map(self.dumps, item)) for item in value.items()))
+            return b"\x02".join(
+                sorted(b"\x01".join(map(self.dumps, item)) for item in value.items())
+            )
         else:
             raise TypeError(u"Unsupported type: {}".format(type(value)))

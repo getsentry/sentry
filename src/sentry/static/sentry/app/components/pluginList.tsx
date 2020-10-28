@@ -6,6 +6,7 @@ import {enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 import InactivePlugins from 'app/components/inactivePlugins';
 import PluginConfig from 'app/components/pluginConfig';
 import {t} from 'app/locale';
+
 import {Panel, PanelItem} from './panels';
 
 type Props = {
@@ -57,17 +58,15 @@ const PluginList = ({
     <div>
       {pluginList
         .filter(p => p.enabled)
-        .map(data => {
-          return (
-            <PluginConfig
-              data={data}
-              organization={organization}
-              project={project}
-              key={data.id}
-              onDisablePlugin={handleDisablePlugin}
-            />
-          );
-        })}
+        .map(data => (
+          <PluginConfig
+            data={data}
+            organization={organization}
+            project={project}
+            key={data.id}
+            onDisablePlugin={handleDisablePlugin}
+          />
+        ))}
 
       <InactivePlugins
         plugins={pluginList.filter(p => !p.enabled && !p.isHidden)}

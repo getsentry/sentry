@@ -1,288 +1,288 @@
 ---
-created: '2019-10-31T12:42:12.381966Z'
+created: '2020-02-26T19:54:42.450770Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '4a3cf3893b6485428dd02da116c8370e'
+  hash: "4a3cf3893b6485428dd02da116c8370e"
   component:
     app*
       exception*
         stacktrace*
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              "[native code]"
             function*
-              u'promiseReactionJob'
+              "promiseReactionJob"
           frame (non app frame)
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator'
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
             filename (module takes precedence)
-              u'asynctogenerator.js'
+              "asynctogenerator.js"
             function (ignored because sourcemap used and context line available)
-              u'_next'
+              "_next"
             context-line*
-              u'asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);'
+              "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
           frame (non app frame)
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator'
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
             filename (module takes precedence)
-              u'asynctogenerator.js'
+              "asynctogenerator.js"
             function (ignored because sourcemap used and context line available)
-              u'asyncGeneratorStep'
+              "asyncGeneratorStep"
             context-line*
-              u'var info = gen[key](arg);'
+              "var info = gen[key](arg);"
           frame (non app frame)
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime'
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
-              u'runtime.js'
+              "runtime.js"
             function (ignored because sourcemap used and context line available)
-              u'key'
+              "key"
             context-line*
-              u'var record = tryCatch(innerFn, self, context);'
+              "var record = tryCatch(innerFn, self, context);"
           frame (non app frame)
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime'
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
-              u'runtime.js'
+              "runtime.js"
             function (ignored because sourcemap used and context line available)
-              u'tryCatch'
+              "tryCatch"
             context-line*
-              u'return { type: "normal", arg: fn.call(obj, arg) };'
+              "return { type: \"normal\", arg: fn.call(obj, arg) };"
           frame*
             module*
-              u'app/components/lazyLoad'
+              "app/components/lazyLoad"
             filename (module takes precedence)
-              u'lazyload.jsx'
+              "lazyload.jsx"
             function (ignored because sourcemap used and context line available)
-              u'call'
+              "call"
             context-line*
-              u'this.setState({'
+              "this.setState({"
           frame (non app frame)
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production'
+              "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
             filename (module takes precedence)
-              u'react.production.min.js'
+              "react.production.min.js"
             function*
-              u'setState'
+              "setState"
             context-line (discarded because line too long)
-              u'{snip} ructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={key:!0, {snip}'
+              "{snip} ructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={key:!0, {snip}"
           frame (non app frame)
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
-              u'react-dom.production.min.js'
+              "react-dom.production.min.js"
             function*
-              u'enqueueSetState'
+              "enqueueSetState"
             context-line (discarded because line too long)
-              u'{snip} &(e.callback=c);ff(a,e);If(a,d)},enqueueForceUpdate:function(a,b){a=a._reactInternalFiber;var c=Gf();c=Hf(c,a);var d=df(c);d.tag=2;void 0!=='
+              "{snip} &(e.callback=c);ff(a,e);If(a,d)},enqueueForceUpdate:function(a,b){a=a._reactInternalFiber;var c=Gf();c=Hf(c,a);var d=df(c);d.tag=2;void 0!=="
           frame (non app frame)
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
-              u'react-dom.production.min.js'
+              "react-dom.production.min.js"
             function*
-              u'tag'
+              "tag"
             context-line (discarded because line too long)
-              u'var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}'
+              "var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}"
           frame (non app frame)
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
-              u'react-dom.production.min.js'
+              "react-dom.production.min.js"
             function*
-              u'Yg'
+              "Yg"
             context-line (discarded because line too long)
-              u'function Xg(a,b,c){V?t("245"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis {snip}'
+              "function Xg(a,b,c){V?t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis {snip}"
           frame (non app frame)
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
-              u'react-dom.production.min.js'
+              "react-dom.production.min.js"
             function*
-              u'Xg'
+              "Xg"
             context-line (discarded because line too long)
-              u'function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati {snip}'
+              "function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati {snip}"
           frame (non app frame)
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
-              u'react-dom.production.min.js'
+              "react-dom.production.min.js"
             function*
-              u'ih'
+              "ih"
             context-line (discarded because line too long)
-              u'{snip} .__reactInternalSnapshotBeforeUpdate)}var kg=q.updateQueue;null!==kg&&(X.props=q.memoizedProps,X.state=q.memoizedState,lf(q,kg,X,p));break;c {snip}'
+              "{snip} .__reactInternalSnapshotBeforeUpdate)}var kg=q.updateQueue;null!==kg&&(X.props=q.memoizedProps,X.state=q.memoizedState,lf(q,kg,X,p));break;c {snip}"
           frame*
             module*
-              u'app/views/groupDetails/shared/groupEventDetails'
+              "app/views/groupDetails/shared/groupEventDetails"
             filename (module takes precedence)
-              u'groupeventdetails.jsx'
+              "groupeventdetails.jsx"
             function (ignored because sourcemap used and context line available)
-              u'q'
+              "q"
             context-line*
-              u'this.fetchData();'
+              "this.fetchData();"
           frame*
             module*
-              u'app/views/groupDetails/shared/groupEventDetails'
+              "app/views/groupDetails/shared/groupEventDetails"
             filename (module takes precedence)
-              u'groupeventdetails.jsx'
+              "groupeventdetails.jsx"
             function (ignored because sourcemap used and context line available)
-              u'fetchData'
+              "fetchData"
             context-line*
-              u'fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)'
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
           frame*
             module*
-              u'app/api'
+              "app/api"
             filename (module takes precedence)
-              u'api.jsx'
+              "api.jsx"
             function (ignored because sourcemap used and context line available)
-              u'fetchGroupEventAndMarkSeen'
+              "fetchGroupEventAndMarkSeen"
             context-line*
-              u'const preservedError = new Error();'
+              "const preservedError = new Error();"
         type*
-          u'NotFoundError'
+          "NotFoundError"
         value (ignored because stacktrace takes precedence)
-          u'GET /issues/<int>/events/latest/ <int>'
+          "GET /issues/<int>/events/latest/ <int>"
 --------------------------------------------------------------------------
 system:
-  hash: '0b81da6ea3d7cc82b1d4825b7aac0b8d'
+  hash: "0b81da6ea3d7cc82b1d4825b7aac0b8d"
   component:
     system*
       exception*
         stacktrace*
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              "[native code]"
             function*
-              u'promiseReactionJob'
+              "promiseReactionJob"
           frame*
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator'
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
             filename (module takes precedence)
-              u'asynctogenerator.js'
+              "asynctogenerator.js"
             function (ignored because sourcemap used and context line available)
-              u'_next'
+              "_next"
             context-line*
-              u'asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);'
+              "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
           frame*
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator'
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
             filename (module takes precedence)
-              u'asynctogenerator.js'
+              "asynctogenerator.js"
             function (ignored because sourcemap used and context line available)
-              u'asyncGeneratorStep'
+              "asyncGeneratorStep"
             context-line*
-              u'var info = gen[key](arg);'
+              "var info = gen[key](arg);"
           frame*
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime'
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
-              u'runtime.js'
+              "runtime.js"
             function (ignored because sourcemap used and context line available)
-              u'key'
+              "key"
             context-line*
-              u'var record = tryCatch(innerFn, self, context);'
+              "var record = tryCatch(innerFn, self, context);"
           frame*
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime'
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
-              u'runtime.js'
+              "runtime.js"
             function (ignored because sourcemap used and context line available)
-              u'tryCatch'
+              "tryCatch"
             context-line*
-              u'return { type: "normal", arg: fn.call(obj, arg) };'
+              "return { type: \"normal\", arg: fn.call(obj, arg) };"
           frame*
             module*
-              u'app/components/lazyLoad'
+              "app/components/lazyLoad"
             filename (module takes precedence)
-              u'lazyload.jsx'
+              "lazyload.jsx"
             function (ignored because sourcemap used and context line available)
-              u'call'
+              "call"
             context-line*
-              u'this.setState({'
+              "this.setState({"
           frame*
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production'
+              "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
             filename (module takes precedence)
-              u'react.production.min.js'
+              "react.production.min.js"
             function*
-              u'setState'
+              "setState"
             context-line (discarded because line too long)
-              u'{snip} ructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={key:!0, {snip}'
+              "{snip} ructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={key:!0, {snip}"
           frame*
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
-              u'react-dom.production.min.js'
+              "react-dom.production.min.js"
             function*
-              u'enqueueSetState'
+              "enqueueSetState"
             context-line (discarded because line too long)
-              u'{snip} &(e.callback=c);ff(a,e);If(a,d)},enqueueForceUpdate:function(a,b){a=a._reactInternalFiber;var c=Gf();c=Hf(c,a);var d=df(c);d.tag=2;void 0!=='
+              "{snip} &(e.callback=c);ff(a,e);If(a,d)},enqueueForceUpdate:function(a,b){a=a._reactInternalFiber;var c=Gf();c=Hf(c,a);var d=df(c);d.tag=2;void 0!=="
           frame*
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
-              u'react-dom.production.min.js'
+              "react-dom.production.min.js"
             function*
-              u'tag'
+              "tag"
             context-line (discarded because line too long)
-              u'var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}'
+              "var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}"
           frame*
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
-              u'react-dom.production.min.js'
+              "react-dom.production.min.js"
             function*
-              u'Yg'
+              "Yg"
             context-line (discarded because line too long)
-              u'function Xg(a,b,c){V?t("245"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis {snip}'
+              "function Xg(a,b,c){V?t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis {snip}"
           frame*
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
-              u'react-dom.production.min.js'
+              "react-dom.production.min.js"
             function*
-              u'Xg'
+              "Xg"
             context-line (discarded because line too long)
-              u'function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati {snip}'
+              "function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati {snip}"
           frame*
             module*
-              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
-              u'react-dom.production.min.js'
+              "react-dom.production.min.js"
             function*
-              u'ih'
+              "ih"
             context-line (discarded because line too long)
-              u'{snip} .__reactInternalSnapshotBeforeUpdate)}var kg=q.updateQueue;null!==kg&&(X.props=q.memoizedProps,X.state=q.memoizedState,lf(q,kg,X,p));break;c {snip}'
+              "{snip} .__reactInternalSnapshotBeforeUpdate)}var kg=q.updateQueue;null!==kg&&(X.props=q.memoizedProps,X.state=q.memoizedState,lf(q,kg,X,p));break;c {snip}"
           frame*
             module*
-              u'app/views/groupDetails/shared/groupEventDetails'
+              "app/views/groupDetails/shared/groupEventDetails"
             filename (module takes precedence)
-              u'groupeventdetails.jsx'
+              "groupeventdetails.jsx"
             function (ignored because sourcemap used and context line available)
-              u'q'
+              "q"
             context-line*
-              u'this.fetchData();'
+              "this.fetchData();"
           frame*
             module*
-              u'app/views/groupDetails/shared/groupEventDetails'
+              "app/views/groupDetails/shared/groupEventDetails"
             filename (module takes precedence)
-              u'groupeventdetails.jsx'
+              "groupeventdetails.jsx"
             function (ignored because sourcemap used and context line available)
-              u'fetchData'
+              "fetchData"
             context-line*
-              u'fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)'
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
           frame*
             module*
-              u'app/api'
+              "app/api"
             filename (module takes precedence)
-              u'api.jsx'
+              "api.jsx"
             function (ignored because sourcemap used and context line available)
-              u'fetchGroupEventAndMarkSeen'
+              "fetchGroupEventAndMarkSeen"
             context-line*
-              u'const preservedError = new Error();'
+              "const preservedError = new Error();"
         type*
-          u'NotFoundError'
+          "NotFoundError"
         value (ignored because stacktrace takes precedence)
-          u'GET /issues/<int>/events/latest/ <int>'
+          "GET /issues/<int>/events/latest/ <int>"

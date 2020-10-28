@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Commit, Release
+from sentry.models import Commit, Group, Release
 from sentry.utils.committers import get_serialized_event_file_committers
 
 
@@ -30,6 +30,8 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             committers = get_serialized_event_file_committers(
                 project, event, frame_limit=int(request.GET.get("frameLimit", 25))
             )
+        except Group.DoesNotExist:
+            return Response({"detail": "Issue not found"}, status=404)
         except Release.DoesNotExist:
             return Response({"detail": "Release not found"}, status=404)
         except Commit.DoesNotExist:

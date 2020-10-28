@@ -61,6 +61,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     author = None
     author_url = None
     resource_links = ()
+    feature_descriptions = []
 
     # Configuration specifics
     conf_key = None
@@ -78,6 +79,9 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     # Should this plugin be enabled by default for projects?
     project_default_enabled = False
+
+    # used by queries to determine if the plugin is configured
+    required_field = None
 
     def _get_option_key(self, key):
         return "%s:%s" % (self.get_conf_key(), key)
@@ -295,8 +299,8 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>> def get_resource_links(self):
         >>>     return [
         >>>         ('Documentation', 'https://docs.sentry.io'),
-        >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
-        >>>         ('Source', 'https://github.com/getsentry/sentry'),
+        >>>         ('Report Issue', 'https://github.com/getsentry/sentry/issues'),
+        >>>         ('View Source', 'https://github.com/getsentry/sentry'),
         >>>     ]
         """
         return self.resource_links

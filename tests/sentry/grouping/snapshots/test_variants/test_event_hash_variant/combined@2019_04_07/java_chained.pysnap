@@ -1,10 +1,10 @@
 ---
-created: '2019-04-07T10:03:31.387173Z'
+created: '2020-08-25T09:17:17.962011Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 'ca1e356d85bc74d82d4ae8f3f8bfbbf7'
+  hash: "ca1e356d85bc74d82d4ae8f3f8bfbbf7"
   component:
     app*
       chained-exception*
@@ -12,496 +12,496 @@ app:
           stacktrace*
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'io.sentry.example.Application'
+                "io.sentry.example.Application"
               filename (module takes precedence)
-                u'Application.java'
+                "Application.java"
               function*
-                u'main'
+                "main"
               lineno (function takes precedence)
                 86
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1151
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1162
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 314
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refreshContext'
+                "refreshContext"
               lineno (function takes precedence)
                 370
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 737
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 122
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.context.support.AbstractApplicationContext'
+                "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
-                u'AbstractApplicationContext.java'
+                "AbstractApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 545
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'finishRefresh'
+                "finishRefresh"
               lineno (function takes precedence)
                 145
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'startEmbeddedServletContainer'
+                "startEmbeddedServletContainer"
               lineno (function takes precedence)
                 297
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 190
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'addPreviouslyRemovedConnectors'
+                "addPreviouslyRemovedConnectors"
               lineno (function takes precedence)
                 247
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.apache.catalina.core.StandardService'
+                "org.apache.catalina.core.StandardService"
               filename (module takes precedence)
-                u'StandardService.java'
+                "StandardService.java"
               function*
-                u'addConnector'
+                "addConnector"
               lineno (function takes precedence)
                 225
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.apache.catalina.util.LifecycleBase'
+                "org.apache.catalina.util.LifecycleBase"
               filename (module takes precedence)
-                u'LifecycleBase.java'
+                "LifecycleBase.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 150
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.apache.catalina.connector.Connector'
+                "org.apache.catalina.connector.Connector"
               filename (module takes precedence)
-                u'Connector.java'
+                "Connector.java"
               function*
-                u'startInternal'
+                "startInternal"
               lineno (function takes precedence)
                 993
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.apache.coyote.AbstractProtocol'
+                "org.apache.coyote.AbstractProtocol"
               filename (module takes precedence)
-                u'AbstractProtocol.java'
+                "AbstractProtocol.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 573
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.apache.tomcat.util.net.AbstractEndpoint'
+                "org.apache.tomcat.util.net.AbstractEndpoint"
               filename (module takes precedence)
-                u'AbstractEndpoint.java'
+                "AbstractEndpoint.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 980
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.apache.tomcat.util.net.NioEndpoint'
+                "org.apache.tomcat.util.net.NioEndpoint"
               filename (module takes precedence)
-                u'NioEndpoint.java'
+                "NioEndpoint.java"
               function*
-                u'bind'
+                "bind"
               lineno (function takes precedence)
                 210
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'sun.nio.ch.ServerSocketAdaptor'
+                "sun.nio.ch.ServerSocketAdaptor"
               filename (module takes precedence)
-                u'ServerSocketAdaptor.java'
+                "ServerSocketAdaptor.java"
               function*
-                u'bind'
+                "bind"
               lineno (function takes precedence)
                 74
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'sun.nio.ch.ServerSocketChannelImpl'
+                "sun.nio.ch.ServerSocketChannelImpl"
               filename (module takes precedence)
-                u'ServerSocketChannelImpl.java'
+                "ServerSocketChannelImpl.java"
               function*
-                u'bind'
+                "bind"
               lineno (function takes precedence)
                 223
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'sun.nio.ch.Net'
+                "sun.nio.ch.Net"
               filename (module takes precedence)
-                u'Net.java'
+                "Net.java"
               function*
-                u'bind'
+                "bind"
               lineno (function takes precedence)
                 425
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'sun.nio.ch.Net'
+                "sun.nio.ch.Net"
               filename (module takes precedence)
-                u'Net.java'
+                "Net.java"
               function*
-                u'bind'
+                "bind"
               lineno (function takes precedence)
                 433
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'sun.nio.ch.Net'
+                "sun.nio.ch.Net"
               filename (module takes precedence)
-                u'Net.java'
+                "Net.java"
               function*
-                u'bind0'
+                "bind0"
           type*
-            u'BindException'
+            "BindException"
           value (stacktrace and type take precedence)
-            u'Address already in use'
+            "Address already in use"
         exception*
           stacktrace*
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'io.sentry.example.Application'
+                "io.sentry.example.Application"
               filename (module takes precedence)
-                u'Application.java'
+                "Application.java"
               function*
-                u'main'
+                "main"
               lineno (function takes precedence)
                 86
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1151
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1162
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 314
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refreshContext'
+                "refreshContext"
               lineno (function takes precedence)
                 370
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 737
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 122
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.context.support.AbstractApplicationContext'
+                "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
-                u'AbstractApplicationContext.java'
+                "AbstractApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 545
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'finishRefresh'
+                "finishRefresh"
               lineno (function takes precedence)
                 145
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'startEmbeddedServletContainer'
+                "startEmbeddedServletContainer"
               lineno (function takes precedence)
                 297
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 190
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'addPreviouslyRemovedConnectors'
+                "addPreviouslyRemovedConnectors"
               lineno (function takes precedence)
                 247
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.apache.catalina.core.StandardService'
+                "org.apache.catalina.core.StandardService"
               filename (module takes precedence)
-                u'StandardService.java'
+                "StandardService.java"
               function*
-                u'addConnector'
+                "addConnector"
               lineno (function takes precedence)
                 225
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.apache.catalina.util.LifecycleBase'
+                "org.apache.catalina.util.LifecycleBase"
               filename (module takes precedence)
-                u'LifecycleBase.java'
+                "LifecycleBase.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 150
             frame* (frame considered in-app because no frame is in-app)
               module*
-                u'org.apache.catalina.connector.Connector'
+                "org.apache.catalina.connector.Connector"
               filename (module takes precedence)
-                u'Connector.java'
+                "Connector.java"
               function*
-                u'startInternal'
+                "startInternal"
               lineno (function takes precedence)
                 1000
           type*
-            u'LifecycleException'
+            "LifecycleException"
           value (stacktrace and type take precedence)
-            u'service.getName(): "Tomcat";  Protocol handler start failed'
+            "service.getName(): \"Tomcat\";  Protocol handler start failed"
         exception (exception has no stacktrace)
           stacktrace (less than 10% of frames are in-app)
             frame*
               module*
-                u'io.sentry.example.Application'
+                "io.sentry.example.Application"
               filename (module takes precedence)
-                u'Application.java'
+                "Application.java"
               function*
-                u'main'
+                "main"
               lineno (function takes precedence)
                 86
             frame (non app frame)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1151
             frame (non app frame)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1162
             frame (non app frame)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 314
             frame (non app frame)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refreshContext'
+                "refreshContext"
               lineno (function takes precedence)
                 370
             frame (non app frame)
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 737
             frame (non app frame)
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 122
             frame (non app frame)
               module*
-                u'org.springframework.context.support.AbstractApplicationContext'
+                "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
-                u'AbstractApplicationContext.java'
+                "AbstractApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 545
             frame (non app frame)
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'finishRefresh'
+                "finishRefresh"
               lineno (function takes precedence)
                 145
             frame (non app frame)
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'startEmbeddedServletContainer'
+                "startEmbeddedServletContainer"
               lineno (function takes precedence)
                 297
             frame (non app frame)
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 190
             frame (non app frame)
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'addPreviouslyRemovedConnectors'
+                "addPreviouslyRemovedConnectors"
               lineno (function takes precedence)
                 247
             frame (non app frame)
               module*
-                u'org.apache.catalina.core.StandardService'
+                "org.apache.catalina.core.StandardService"
               filename (module takes precedence)
-                u'StandardService.java'
+                "StandardService.java"
               function*
-                u'addConnector'
+                "addConnector"
               lineno (function takes precedence)
                 225
             frame (non app frame)
               module*
-                u'org.apache.catalina.util.LifecycleBase'
+                "org.apache.catalina.util.LifecycleBase"
               filename (module takes precedence)
-                u'LifecycleBase.java'
+                "LifecycleBase.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 167
           type*
-            u'LifecycleException'
+            "LifecycleException"
           value*
-            u'Failed to start component [Connector[HTTP/1.1-8080]]'
+            "Failed to start component [Connector[HTTP/1.1-8080]]"
 --------------------------------------------------------------------------
 default:
-  hash: None
+  hash: null
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
-        u'Failed to start connector [Connector[HTTP/1.1-8080]]'
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
+        "Failed to start connector [Connector[HTTP/1.1-8080]]"
 --------------------------------------------------------------------------
 system:
-  hash: '8924849495809d42431719c2b9ab65c8'
+  hash: "8924849495809d42431719c2b9ab65c8"
   component:
     system*
       chained-exception*
@@ -509,483 +509,483 @@ system:
           stacktrace*
             frame*
               module*
-                u'io.sentry.example.Application'
+                "io.sentry.example.Application"
               filename (module takes precedence)
-                u'Application.java'
+                "Application.java"
               function*
-                u'main'
+                "main"
               lineno (function takes precedence)
                 86
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1151
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1162
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 314
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refreshContext'
+                "refreshContext"
               lineno (function takes precedence)
                 370
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 737
             frame*
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 122
             frame*
               module*
-                u'org.springframework.context.support.AbstractApplicationContext'
+                "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
-                u'AbstractApplicationContext.java'
+                "AbstractApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 545
             frame*
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'finishRefresh'
+                "finishRefresh"
               lineno (function takes precedence)
                 145
             frame*
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'startEmbeddedServletContainer'
+                "startEmbeddedServletContainer"
               lineno (function takes precedence)
                 297
             frame*
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 190
             frame*
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'addPreviouslyRemovedConnectors'
+                "addPreviouslyRemovedConnectors"
               lineno (function takes precedence)
                 247
             frame*
               module*
-                u'org.apache.catalina.core.StandardService'
+                "org.apache.catalina.core.StandardService"
               filename (module takes precedence)
-                u'StandardService.java'
+                "StandardService.java"
               function*
-                u'addConnector'
+                "addConnector"
               lineno (function takes precedence)
                 225
             frame*
               module*
-                u'org.apache.catalina.util.LifecycleBase'
+                "org.apache.catalina.util.LifecycleBase"
               filename (module takes precedence)
-                u'LifecycleBase.java'
+                "LifecycleBase.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 150
             frame*
               module*
-                u'org.apache.catalina.connector.Connector'
+                "org.apache.catalina.connector.Connector"
               filename (module takes precedence)
-                u'Connector.java'
+                "Connector.java"
               function*
-                u'startInternal'
+                "startInternal"
               lineno (function takes precedence)
                 993
             frame*
               module*
-                u'org.apache.coyote.AbstractProtocol'
+                "org.apache.coyote.AbstractProtocol"
               filename (module takes precedence)
-                u'AbstractProtocol.java'
+                "AbstractProtocol.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 573
             frame*
               module*
-                u'org.apache.tomcat.util.net.AbstractEndpoint'
+                "org.apache.tomcat.util.net.AbstractEndpoint"
               filename (module takes precedence)
-                u'AbstractEndpoint.java'
+                "AbstractEndpoint.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 980
             frame*
               module*
-                u'org.apache.tomcat.util.net.NioEndpoint'
+                "org.apache.tomcat.util.net.NioEndpoint"
               filename (module takes precedence)
-                u'NioEndpoint.java'
+                "NioEndpoint.java"
               function*
-                u'bind'
+                "bind"
               lineno (function takes precedence)
                 210
             frame*
               module*
-                u'sun.nio.ch.ServerSocketAdaptor'
+                "sun.nio.ch.ServerSocketAdaptor"
               filename (module takes precedence)
-                u'ServerSocketAdaptor.java'
+                "ServerSocketAdaptor.java"
               function*
-                u'bind'
+                "bind"
               lineno (function takes precedence)
                 74
             frame*
               module*
-                u'sun.nio.ch.ServerSocketChannelImpl'
+                "sun.nio.ch.ServerSocketChannelImpl"
               filename (module takes precedence)
-                u'ServerSocketChannelImpl.java'
+                "ServerSocketChannelImpl.java"
               function*
-                u'bind'
+                "bind"
               lineno (function takes precedence)
                 223
             frame*
               module*
-                u'sun.nio.ch.Net'
+                "sun.nio.ch.Net"
               filename (module takes precedence)
-                u'Net.java'
+                "Net.java"
               function*
-                u'bind'
+                "bind"
               lineno (function takes precedence)
                 425
             frame*
               module*
-                u'sun.nio.ch.Net'
+                "sun.nio.ch.Net"
               filename (module takes precedence)
-                u'Net.java'
+                "Net.java"
               function*
-                u'bind'
+                "bind"
               lineno (function takes precedence)
                 433
             frame*
               module*
-                u'sun.nio.ch.Net'
+                "sun.nio.ch.Net"
               filename (module takes precedence)
-                u'Net.java'
+                "Net.java"
               function*
-                u'bind0'
+                "bind0"
           type*
-            u'BindException'
+            "BindException"
           value (stacktrace and type take precedence)
-            u'Address already in use'
+            "Address already in use"
         exception*
           stacktrace*
             frame*
               module*
-                u'io.sentry.example.Application'
+                "io.sentry.example.Application"
               filename (module takes precedence)
-                u'Application.java'
+                "Application.java"
               function*
-                u'main'
+                "main"
               lineno (function takes precedence)
                 86
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1151
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1162
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 314
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refreshContext'
+                "refreshContext"
               lineno (function takes precedence)
                 370
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 737
             frame*
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 122
             frame*
               module*
-                u'org.springframework.context.support.AbstractApplicationContext'
+                "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
-                u'AbstractApplicationContext.java'
+                "AbstractApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 545
             frame*
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'finishRefresh'
+                "finishRefresh"
               lineno (function takes precedence)
                 145
             frame*
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'startEmbeddedServletContainer'
+                "startEmbeddedServletContainer"
               lineno (function takes precedence)
                 297
             frame*
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 190
             frame*
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'addPreviouslyRemovedConnectors'
+                "addPreviouslyRemovedConnectors"
               lineno (function takes precedence)
                 247
             frame*
               module*
-                u'org.apache.catalina.core.StandardService'
+                "org.apache.catalina.core.StandardService"
               filename (module takes precedence)
-                u'StandardService.java'
+                "StandardService.java"
               function*
-                u'addConnector'
+                "addConnector"
               lineno (function takes precedence)
                 225
             frame*
               module*
-                u'org.apache.catalina.util.LifecycleBase'
+                "org.apache.catalina.util.LifecycleBase"
               filename (module takes precedence)
-                u'LifecycleBase.java'
+                "LifecycleBase.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 150
             frame*
               module*
-                u'org.apache.catalina.connector.Connector'
+                "org.apache.catalina.connector.Connector"
               filename (module takes precedence)
-                u'Connector.java'
+                "Connector.java"
               function*
-                u'startInternal'
+                "startInternal"
               lineno (function takes precedence)
                 1000
           type*
-            u'LifecycleException'
+            "LifecycleException"
           value (stacktrace and type take precedence)
-            u'service.getName(): "Tomcat";  Protocol handler start failed'
+            "service.getName(): \"Tomcat\";  Protocol handler start failed"
         exception*
           stacktrace*
             frame*
               module*
-                u'io.sentry.example.Application'
+                "io.sentry.example.Application"
               filename (module takes precedence)
-                u'Application.java'
+                "Application.java"
               function*
-                u'main'
+                "main"
               lineno (function takes precedence)
                 86
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1151
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 1162
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'run'
+                "run"
               lineno (function takes precedence)
                 314
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refreshContext'
+                "refreshContext"
               lineno (function takes precedence)
                 370
             frame*
               module*
-                u'org.springframework.boot.SpringApplication'
+                "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
-                u'SpringApplication.java'
+                "SpringApplication.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 737
             frame*
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 122
             frame*
               module*
-                u'org.springframework.context.support.AbstractApplicationContext'
+                "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
-                u'AbstractApplicationContext.java'
+                "AbstractApplicationContext.java"
               function*
-                u'refresh'
+                "refresh"
               lineno (function takes precedence)
                 545
             frame*
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'finishRefresh'
+                "finishRefresh"
               lineno (function takes precedence)
                 145
             frame*
               module*
-                u'org.springframework.boot.context.embedded.EmbeddedWebApplicationContext'
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
-                u'EmbeddedWebApplicationContext.java'
+                "EmbeddedWebApplicationContext.java"
               function*
-                u'startEmbeddedServletContainer'
+                "startEmbeddedServletContainer"
               lineno (function takes precedence)
                 297
             frame*
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 190
             frame*
               module*
-                u'org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer'
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
-                u'TomcatEmbeddedServletContainer.java'
+                "TomcatEmbeddedServletContainer.java"
               function*
-                u'addPreviouslyRemovedConnectors'
+                "addPreviouslyRemovedConnectors"
               lineno (function takes precedence)
                 247
             frame*
               module*
-                u'org.apache.catalina.core.StandardService'
+                "org.apache.catalina.core.StandardService"
               filename (module takes precedence)
-                u'StandardService.java'
+                "StandardService.java"
               function*
-                u'addConnector'
+                "addConnector"
               lineno (function takes precedence)
                 225
             frame*
               module*
-                u'org.apache.catalina.util.LifecycleBase'
+                "org.apache.catalina.util.LifecycleBase"
               filename (module takes precedence)
-                u'LifecycleBase.java'
+                "LifecycleBase.java"
               function*
-                u'start'
+                "start"
               lineno (function takes precedence)
                 167
           type*
-            u'LifecycleException'
+            "LifecycleException"
           value (stacktrace and type take precedence)
-            u'Failed to start component [Connector[HTTP/1.1-8080]]'
+            "Failed to start component [Connector[HTTP/1.1-8080]]"

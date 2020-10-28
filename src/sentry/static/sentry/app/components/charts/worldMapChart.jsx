@@ -1,10 +1,13 @@
 import max from 'lodash/max';
 import PropTypes from 'prop-types';
 import React from 'react';
+import echarts from 'echarts';
 
 import theme from 'app/utils/theme';
+
 import BaseChart from './baseChart';
 import MapSeries from './series/mapSeries';
+import VisualMap from './components/visualMap';
 
 export default class WorldMapChart extends React.Component {
   static propTypes = {
@@ -16,38 +19,39 @@ export default class WorldMapChart extends React.Component {
     super(props);
     this.state = {
       countryToCodeMap: null,
+      map: null,
     };
   }
 
   async componentDidMount() {
-    const countryToCodeMap = await import(
-      /* webpackChunkName: "countryCodesMap" */ 'app/data/countryCodesMap'
-    );
+    const [countryToCodeMap, worldMap] = await Promise.all([
+      import(/* webpackChunkName: "countryCodesMap" */ 'app/data/countryCodesMap'),
+      import(/* webpackChunkName: "worldMapGeoJson" */ 'app/data/world.json'),
+    ]);
+
+    echarts.registerMap('sentryWorld', worldMap.default);
 
     // eslint-disable-next-line
     this.setState({
       countryToCodeMap: countryToCodeMap.default,
-      codeToCountryMap: Object.entries(countryToCodeMap.default).reduce(
-        (acc, [country, code]) => ({
-          ...acc,
-          [code]: country,
-        }),
-        {}
+      map: worldMap.default,
+      codeToCountryMap: Object.fromEntries(
+        Object.entries(countryToCodeMap.default).map(([country, code]) => [code, country])
       ),
     });
   }
 
   render() {
-    if (this.state.countryToCodeMap === null) {
+    if (this.state.countryToCodeMap === null || this.state.map === null) {
       return null;
     }
 
     const {series, seriesOptions, ...props} = this.props;
-    const processedSeries = series.map(({seriesName, data, ...options}) => {
-      return MapSeries({
+    const processedSeries = series.map(({seriesName, data, ...options}) =>
+      MapSeries({
         ...seriesOptions,
         ...options,
-        mapType: 'world',
+        mapType: 'sentryWorld',
         name: seriesName,
         nameMap: this.state.countryToCodeMap,
         aspectScale: 0.85,
@@ -55,11 +59,11 @@ export default class WorldMapChart extends React.Component {
         center: [10.97, 9.71],
         itemStyle: {
           normal: {
-            areaColor: theme.gray1,
+            areaColor: theme.gray400,
             borderColor: theme.borderLighter,
           },
           emphasis: {
-            areaColor: theme.yellowOrange,
+            areaColor: theme.orange300,
           },
         },
         label: {
@@ -68,8 +72,8 @@ export default class WorldMapChart extends React.Component {
           },
         },
         data,
-      });
-    });
+      })
+    );
 
     // TODO(billy):
     // For absolute values, we want min/max to based on min/max of series
@@ -80,26 +84,26 @@ export default class WorldMapChart extends React.Component {
       <BaseChart
         options={{
           backgroundColor: theme.borderLighter,
-          visualMap: {
+          visualMap: VisualMap({
             left: 'right',
             min: 0,
             max: maxValue,
             inRange: {
-              color: [theme.purpleLightest, theme.purpleDarkest],
+              color: [theme.purple300, theme.purple500],
             },
             text: ['High', 'Low'],
 
             // Whether show handles, which can be dragged to adjust "selected range".
             // False because the handles are pretty ugly
             calculable: false,
-          },
+          }),
         }}
         {...props}
         yAxis={null}
         xAxis={null}
         series={processedSeries}
         tooltip={{
-          formatter: ({marker, name, value, seriesName}) => {
+          formatter: ({marker, name, value}) => {
             // If value is NaN, don't show anything because we won't have a country code either
             if (isNaN(value)) {
               return '';
@@ -110,7 +114,12 @@ export default class WorldMapChart extends React.Component {
               typeof value === 'number' ? value.toLocaleString() : '';
             const countryOrCode = this.state.codeToCountryMap[name] || name;
 
-            return `<div>${marker} ${countryOrCode}: ${formattedValue}</div>`;
+            return [
+              `<div class="tooltip-series tooltip-series-solo">
+                 <div><span class="tooltip-label">${marker} <strong>${countryOrCode}</strong></span> ${formattedValue}</div>
+              </div>`,
+              '<div class="tooltip-arrow"></div>',
+            ].join('');
           },
         }}
       />

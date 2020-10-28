@@ -1,347 +1,347 @@
 ---
-created: '2019-05-08T07:29:41.980976Z'
+created: '2020-08-25T09:17:15.093586Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '228c649a3aa0901622c0a0e66ab0522c'
+  hash: "228c649a3aa0901622c0a0e66ab0522c"
   component:
     app*
       exception*
         stacktrace*
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware'
+              "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware"
             function*
-              u'Invoke'
+              "Invoke"
           frame (non app frame)
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame (non app frame)
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware'
+              "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"
             function*
-              u'Invoke'
+              "Invoke"
           frame (non app frame)
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame (non app frame)
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Routing.EndpointMiddleware'
+              "Microsoft.AspNetCore.Routing.EndpointMiddleware"
             function*
-              u'Invoke'
+              "Invoke"
           frame (non app frame)
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame (non app frame)
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
-              u'InvokeAsync'
+              "InvokeAsync"
           frame (non app frame)
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame (non app frame)
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
-              u'InvokeFilterPipelineAsync'
+              "InvokeFilterPipelineAsync"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
-              u'Next'
+              "Next"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
-              u'Rethrow'
+              "Rethrow"
           frame (non app frame)
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
-              u'InvokeNextResourceFilter'
+              "InvokeNextResourceFilter"
           frame (non app frame)
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame (non app frame)
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
-              u'InvokeInnerFilterAsync'
+              "InvokeInnerFilterAsync"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
-              u'Next'
+              "Next"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
-              u'Rethrow'
+              "Rethrow"
           frame (non app frame)
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
-              u'InvokeNextActionFilterAsync'
+              "InvokeNextActionFilterAsync"
           frame (non app frame)
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame (non app frame)
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
-              u'InvokeActionMethodAsync'
+              "InvokeActionMethodAsync"
           frame (non app frame)
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor'
+              "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"
             function*
-              u'Execute'
+              "Execute"
           frame (non app frame)
             module*
-              u'Microsoft.Extensions.Internal.ObjectMethodExecutor'
+              "Microsoft.Extensions.Internal.ObjectMethodExecutor"
             function*
-              u'Execute'
+              "Execute"
           frame*
             module*
-              u'(unknown)'
+              "(unknown)"
             function*
-              u'lambda_method'
+              "lambda_method"
           frame*
             module*
-              u'SentryTest2.Controllers.ValuesController'
+              "SentryTest2.Controllers.ValuesController"
             filename (module takes precedence)
-              u'valuescontroller.cs'
+              "valuescontroller.cs"
             function*
-              u'Get'
+              "Get"
         type*
-          u'System.Exception'
+          "System.Exception"
         value (ignored because stacktrace takes precedence)
-          u'sync exception'
+          "sync exception"
 --------------------------------------------------------------------------
 default:
-  hash: None
+  hash: null
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
-        u'An unhandled exception has occurred while executing the request.'
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
+        "An unhandled exception has occurred while executing the request."
 --------------------------------------------------------------------------
 system:
-  hash: '4ccd0f1953483581ba360c7518f90332'
+  hash: "4ccd0f1953483581ba360c7518f90332"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware'
+              "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware"
             function*
-              u'Invoke'
+              "Invoke"
           frame*
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame*
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame*
             module*
-              u'Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware'
+              "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"
             function*
-              u'Invoke'
+              "Invoke"
           frame*
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame*
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame*
             module*
-              u'Microsoft.AspNetCore.Routing.EndpointMiddleware'
+              "Microsoft.AspNetCore.Routing.EndpointMiddleware"
             function*
-              u'Invoke'
+              "Invoke"
           frame*
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame*
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
-              u'InvokeAsync'
+              "InvokeAsync"
           frame*
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame*
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
-              u'InvokeFilterPipelineAsync'
+              "InvokeFilterPipelineAsync"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
-              u'Next'
+              "Next"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
-              u'Rethrow'
+              "Rethrow"
           frame*
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
-              u'InvokeNextResourceFilter'
+              "InvokeNextResourceFilter"
           frame*
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame*
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
-              u'InvokeInnerFilterAsync'
+              "InvokeInnerFilterAsync"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
-              u'Next'
+              "Next"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
-              u'Rethrow'
+              "Rethrow"
           frame*
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
-              u'InvokeNextActionFilterAsync'
+              "InvokeNextActionFilterAsync"
           frame*
             module*
-              u'System.Runtime.CompilerServices.TaskAwaiter'
+              "System.Runtime.CompilerServices.TaskAwaiter"
             function*
-              u'HandleNonSuccessAndDebuggerNotification'
+              "HandleNonSuccessAndDebuggerNotification"
           frame*
             module*
-              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
-              u'Throw'
+              "Throw"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
-              u'InvokeActionMethodAsync'
+              "InvokeActionMethodAsync"
           frame*
             module*
-              u'Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor'
+              "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"
             function*
-              u'Execute'
+              "Execute"
           frame*
             module*
-              u'Microsoft.Extensions.Internal.ObjectMethodExecutor'
+              "Microsoft.Extensions.Internal.ObjectMethodExecutor"
             function*
-              u'Execute'
+              "Execute"
           frame*
             module*
-              u'(unknown)'
+              "(unknown)"
             function*
-              u'lambda_method'
+              "lambda_method"
           frame*
             module*
-              u'SentryTest2.Controllers.ValuesController'
+              "SentryTest2.Controllers.ValuesController"
             filename (module takes precedence)
-              u'valuescontroller.cs'
+              "valuescontroller.cs"
             function*
-              u'Get'
+              "Get"
         type*
-          u'System.Exception'
+          "System.Exception"
         value (ignored because stacktrace takes precedence)
-          u'sync exception'
+          "sync exception"

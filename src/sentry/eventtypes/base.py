@@ -1,22 +1,41 @@
 from __future__ import absolute_import
 
+import six
+
 from warnings import warn
 
 from sentry.utils.strings import truncatechars, strip
 from sentry.utils.safe import get_path
 
-# Note: Detecting eventtypes is implemented in the semaphore Rust
-# library.
+# Note: Detecting eventtypes is implemented in the Relay Rust library.
 
 
 class BaseEvent(object):
     id = None
 
     def get_metadata(self, data):
-        raise NotImplementedError
+        metadata = {}
+        title = data.get("title")
+        if title is not None:
+            metadata["title"] = title
+        for key, value in six.iteritems(self.extract_metadata(data)):
+            # If we already have a custom title, do not override with the
+            # computed title.
+            if key not in metadata:
+                metadata[key] = value
+        return metadata
 
     def get_title(self, metadata):
-        raise NotImplementedError
+        title = metadata.get("title")
+        if title is not None:
+            return title
+        return self.compute_title(metadata) or "<untitled>"
+
+    def compute_title(self, metadata):
+        return None
+
+    def extract_metadata(self, metadata):
+        return {}
 
     def get_location(self, metadata):
         return None
@@ -29,7 +48,7 @@ class BaseEvent(object):
 class DefaultEvent(BaseEvent):
     key = "default"
 
-    def get_metadata(self, data):
+    def extract_metadata(self, data):
         message = strip(
             get_path(data, "logentry", "formatted") or get_path(data, "logentry", "message")
         )
@@ -40,6 +59,3 @@ class DefaultEvent(BaseEvent):
             title = "<unlabeled event>"
 
         return {"title": title}
-
-    def get_title(self, metadata):
-        return metadata.get("title") or "<untitled>"

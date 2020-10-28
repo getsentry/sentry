@@ -1,16 +1,21 @@
 import React from 'react';
+
 import {mount} from 'sentry-test/enzyme';
 
 import ProjectPlugins from 'app/views/settings/projectPlugins';
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 
-jest.mock('app/actionCreators/plugins');
+jest.mock('app/actionCreators/plugins', () => ({
+  fetchPlugins: jest.fn().mockResolvedValue([]),
+  enablePlugin: jest.fn(),
+  disablePlugin: jest.fn(),
+}));
 
-describe('ProjectPluginsContainer', function() {
+describe('ProjectPluginsContainer', function () {
   let org, project, plugins, wrapper, params, organization;
   const routerContext = TestStubs.routerContext();
 
-  beforeEach(function() {
+  beforeEach(function () {
     org = TestStubs.Organization();
     project = TestStubs.Project();
     plugins = TestStubs.Plugins();
@@ -52,11 +57,11 @@ describe('ProjectPluginsContainer', function() {
     );
   });
 
-  it('calls `fetchPlugins` action creator after mount', function() {
+  it('calls `fetchPlugins` action creator after mount', function () {
     expect(fetchPlugins).toHaveBeenCalled();
   });
 
-  it('calls `enablePlugin` action creator when enabling plugin', function() {
+  it('calls `enablePlugin` action creator when enabling plugin', function () {
     const onChange = wrapper.find('ProjectPlugins').prop('onChange');
 
     expect(enablePlugin).not.toHaveBeenCalled();
@@ -66,7 +71,7 @@ describe('ProjectPluginsContainer', function() {
     expect(enablePlugin).toHaveBeenCalled();
   });
 
-  it('calls `disablePlugin` action creator when disabling plugin', function() {
+  it('calls `disablePlugin` action creator when disabling plugin', function () {
     const onChange = wrapper.find('ProjectPlugins').prop('onChange');
 
     expect(disablePlugin).not.toHaveBeenCalled();

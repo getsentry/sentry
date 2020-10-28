@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import {SubscriptionBox} from 'app/views/settings/organizationDeveloperSettings/subscriptionBox';
 
 describe('SubscriptionBox', () => {
@@ -23,7 +24,7 @@ describe('SubscriptionBox', () => {
   });
 
   it('renders resource checkbox', () => {
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('calls onChange prop when checking checkbox', () => {

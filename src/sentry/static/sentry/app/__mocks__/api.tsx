@@ -82,7 +82,7 @@ class Client {
 
   wrapCallback(_id, error) {
     return (...args) => {
-      // @ts-ignore
+      // @ts-expect-error
       if (this.hasProjectBeenRenamed(...args)) {
         return;
       }
@@ -122,12 +122,19 @@ class Client {
         `No mocked response found for request:\n\t${options.method || 'GET'} ${url}`
       );
 
+      // Mutate stack to drop frames since test file so that we know where in the test
+      // this needs to be mocked
+      const lines = err.stack?.split('\n');
+      const startIndex = lines?.findIndex(line => line.includes('tests/js/spec'));
+      err.stack = ['\n', lines?.[0], ...lines?.slice(startIndex)].join('\n');
+
       // Throwing an error here does not do what we want it to do....
       // Because we are mocking an API client, we generally catch errors to show
       // user-friendly error messages, this means in tests this error gets gobbled
-      // up and developer frustration ensues.
-      console.warn(err.message); // eslint-disable-line no-console
-      throw err;
+      // up and developer frustration ensues. Use `setTimeout` to get around this
+      setTimeout(() => {
+        throw err;
+      });
     } else {
       // has mocked response
 

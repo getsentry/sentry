@@ -10,7 +10,7 @@ from sentry.utils.compat import mock
 @pytest.mark.skip(reason="Bigtable is not available in CI")
 class BigtableNodeStorageTest(TestCase):
     def setUp(self):
-        self.ns = BigtableNodeStorage()
+        self.ns = BigtableNodeStorage(project="test")
         self.ns.bootstrap()
 
     def test_get(self):
@@ -52,61 +52,61 @@ class BigtableNodeStorageTest(TestCase):
         assert not self.ns.get(nodes[0][0])
         assert not self.ns.get(nodes[1][0])
 
+    def test_compression(self):
+        self.ns.compression = True
+        self.test_get()
+
     def test_cache(self):
-        with self.options({"nodedata.cache-sample-rate": 1.0, "nodedata.cache-on-save": True}):
-            node_1 = ("a" * 32, {"foo": "a"})
-            node_2 = ("b" * 32, {"foo": "b"})
-            node_3 = ("c" * 32, {"foo": "c"})
+        node_1 = ("a" * 32, {"foo": "a"})
+        node_2 = ("b" * 32, {"foo": "b"})
+        node_3 = ("c" * 32, {"foo": "c"})
 
-            for node_id, data in [node_1, node_2, node_3]:
-                self.ns.set(node_id, data)
+        for node_id, data in [node_1, node_2, node_3]:
+            self.ns.set(node_id, data)
 
-            # Get / get multi populates cache
+        # Get / get multi populates cache
+        assert self.ns.get(node_1[0]) == node_1[1]
+        assert self.ns.get_multi([node_2[0], node_3[0]]) == {
+            node_2[0]: node_2[1],
+            node_3[0]: node_3[1],
+        }
+        with mock.patch.object(self.ns.connection, "read_row") as mock_read_row:
             assert self.ns.get(node_1[0]) == node_1[1]
-            assert self.ns.get_multi([node_2[0], node_3[0]]) == {
-                node_2[0]: node_2[1],
-                node_3[0]: node_3[1],
-            }
-            with mock.patch.object(self.ns.connection, "read_row") as mock_read_row:
-                assert self.ns.get(node_1[0]) == node_1[1]
-                assert self.ns.get(node_2[0]) == node_2[1]
-                assert self.ns.get(node_3[0]) == node_3[1]
-                assert mock_read_row.call_count == 0
+            assert self.ns.get(node_2[0]) == node_2[1]
+            assert self.ns.get(node_3[0]) == node_3[1]
+            assert mock_read_row.call_count == 0
 
-            with mock.patch.object(self.ns.connection, "read_rows") as mock_read_rows:
-                assert self.ns.get_multi([node_1[0], node_2[0], node_3[0]])
-                assert mock_read_rows.call_count == 0
+        with mock.patch.object(self.ns.connection, "read_rows") as mock_read_rows:
+            assert self.ns.get_multi([node_1[0], node_2[0], node_3[0]])
+            assert mock_read_rows.call_count == 0
 
-            # Manually deleted item should still retreivable from cache
-            row = self.ns.connection.row(node_1[0])
-            row.delete()
-            row.commit()
-            assert self.ns.get(node_1[0]) == node_1[1]
-            assert self.ns.get_multi([node_1[0], node_2[0]]) == {
-                node_1[0]: node_1[1],
-                node_2[0]: node_2[1],
-            }
+        # Manually deleted item should still retrievable from cache
+        row = self.ns.connection.row(node_1[0])
+        row.delete()
+        row.commit()
+        assert self.ns.get(node_1[0]) == node_1[1]
+        assert self.ns.get_multi([node_1[0], node_2[0]]) == {
+            node_1[0]: node_1[1],
+            node_2[0]: node_2[1],
+        }
 
-            # Deletion clars cache
-            self.ns.delete(node_1[0])
-            assert self.ns.get_multi([node_1[0], node_2[0]]) == {
-                node_1[0]: None,
-                node_2[0]: node_2[1],
-            }
-            self.ns.delete_multi([node_1[0], node_2[0]])
-            assert self.ns.get_multi([node_1[0], node_2[0]]) == {node_1[0]: None, node_2[0]: None}
+        # Deletion clears cache
+        self.ns.delete(node_1[0])
+        assert self.ns.get_multi([node_1[0], node_2[0]]) == {node_1[0]: None, node_2[0]: node_2[1]}
+        self.ns.delete_multi([node_1[0], node_2[0]])
+        assert self.ns.get_multi([node_1[0], node_2[0]]) == {node_1[0]: None, node_2[0]: None}
 
-            # Setting the item updates cache
-            new_value = {"event_id": "d" * 32}
-            self.ns.set(node_1[0], new_value)
-            with mock.patch.object(self.ns.connection, "read_row") as mock_read_row:
-                assert self.ns.get(node_1[0]) == new_value
-                assert mock_read_row.call_count == 0
+        # Setting the item updates cache
+        new_value = {"event_id": "d" * 32}
+        self.ns.set(node_1[0], new_value)
+        with mock.patch.object(self.ns.connection, "read_row") as mock_read_row:
+            assert self.ns.get(node_1[0]) == new_value
+            assert mock_read_row.call_count == 0
 
-            # Missing rows are never cached
-            assert self.ns.get("node_4") is None
-            with mock.patch.object(self.ns.connection, "read_row") as mock_read_row:
-                mock_read_row.return_value = None
-                self.ns.get("node_4")
-                self.ns.get("node_4")
-                assert mock_read_row.call_count == 2
+        # Missing rows are never cached
+        assert self.ns.get("node_4") is None
+        with mock.patch.object(self.ns.connection, "read_row") as mock_read_row:
+            mock_read_row.return_value = None
+            self.ns.get("node_4")
+            self.ns.get("node_4")
+            assert mock_read_row.call_count == 2

@@ -1,6 +1,6 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -25,9 +25,7 @@ class IntegrationAlertRules extends React.Component {
 
     return (
       <Panel>
-        <PanelHeader disablePadding>
-          <Box pl={2}>{t('Project Configuration')}</Box>
-        </PanelHeader>
+        <PanelHeader>{t('Project Configuration')}</PanelHeader>
         <PanelBody>
           {projects.length === 0 && (
             <EmptyMessage size="large">
@@ -35,24 +33,25 @@ class IntegrationAlertRules extends React.Component {
             </EmptyMessage>
           )}
           {projects.map(project => (
-            <PanelItem key={project.slug} alignItems="center">
-              <Box flex="1">
-                <ProjectBadge project={project} avatarSize={16} />
-              </Box>
-              <Box pr={1}>
-                <Button
-                  to={`/settings/${orgId}/projects/${project.slug}/alerts/rules/new/`}
-                  size="xsmall"
-                >
-                  {t('Add Alert Rule')}
-                </Button>
-              </Box>
-            </PanelItem>
+            <ProjectItem key={project.slug}>
+              <ProjectBadge project={project} avatarSize={16} />
+              <Button
+                to={`/organizations/${orgId}/alerts/${project.slug}/new/`}
+                size="xsmall"
+              >
+                {t('Add Alert Rule')}
+              </Button>
+            </ProjectItem>
           ))}
         </PanelBody>
       </Panel>
     );
   }
 }
+
+const ProjectItem = styled(PanelItem)`
+  align-items: center;
+  justify-content: space-between;
+`;
 
 export default withProjects(IntegrationAlertRules);

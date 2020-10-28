@@ -3,6 +3,7 @@ import debounce from 'lodash/debounce';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Client} from 'app/api';
@@ -14,35 +15,39 @@ type RenderProps = {
   value: string;
 };
 
-type Props = ReactRouter.WithRouterProps & {
-  api: Client;
-  className?: string;
-  /**
-   * URL to make the search request to
-   */
-  url: string;
+type DefaultProps = {
   /**
    * Placeholder text in the search input
    */
-  placeholder?: string;
+  placeholder: string;
   /**
    * Time in milliseconds to wait before firing off the request
    */
-  debounceWait?: number;
-  /**
-   * Updates URL with search query in the URL param: `query`
-   */
-  updateRoute?: boolean;
-
-  onSearchSubmit?: (query: string, event: React.FormEvent) => void;
-  onSuccess: (data: object, jqXHR: JQueryXHR | undefined) => void;
-  onError: () => void;
-
-  /**
-   * A render-prop child may be passed to handle custom rendering of the input.
-   */
-  children?: (otps: RenderProps) => React.ReactNode;
+  debounceWait?: number; // optional, otherwise src/sentry/static/sentry/app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy
 };
+
+type Props = ReactRouter.WithRouterProps &
+  DefaultProps & {
+    api: Client;
+    className?: string;
+    /**
+     * URL to make the search request to
+     */
+    url: string;
+    /**
+     * Updates URL with search query in the URL param: `query`
+     */
+    updateRoute?: boolean;
+
+    onSearchSubmit?: (query: string, event: React.FormEvent) => void;
+    onSuccess: (data: object, jqXHR: JQueryXHR | undefined) => void;
+    onError: () => void;
+
+    /**
+     * A render-prop child may be passed to handle custom rendering of the input.
+     */
+    children?: (otps: RenderProps) => React.ReactNode;
+  };
 
 type State = {
   query: string;
@@ -55,8 +60,8 @@ type State = {
  * It probably doesn't make too much sense outside of an AsyncComponent atm.
  */
 class AsyncComponentSearchInput extends React.Component<Props, State> {
-  static defaultProps = {
-    placeholder: 'Search...',
+  static defaultProps: DefaultProps = {
+    placeholder: t('Search...'),
     debounceWait: 200,
   };
 
@@ -153,11 +158,4 @@ const Form = styled('form')`
   position: relative;
 `;
 
-// XXX(epurkhiser): The withRouter HoC has incorrect typings. It does not
-// correctly remove the WithRouterProps from the return type of the HoC, thus
-// we manually have to do this.
-type PropsWithoutRouter = Omit<Props, keyof ReactRouter.WithRouterProps>;
-
-export default ReactRouter.withRouter(AsyncComponentSearchInput) as React.ComponentClass<
-  PropsWithoutRouter
->;
+export default ReactRouter.withRouter(AsyncComponentSearchInput);

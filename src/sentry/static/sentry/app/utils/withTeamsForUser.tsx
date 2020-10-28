@@ -5,6 +5,7 @@ import {Organization, Project, Team, TeamWithProjects} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import ConfigStore from 'app/stores/configStore';
+
 import {metric} from './analytics';
 
 // We require these props when using this HOC
@@ -39,19 +40,12 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
     }
 
     async fetchTeams() {
-      // check if we can use organization teams/projects instead of fetching data
-      const {projects, teams} = this.props.organization;
-      if (projects && teams) {
-        // populate teams with projects information for use by wrapped components
-        this.populateTeamsWithProjects(teams, projects);
-        return;
-      }
-
       this.setState({
         loadingTeams: true,
       });
+
       try {
-        metric.mark('user-teams-fetch-start');
+        metric.mark({name: 'user-teams-fetch-start'});
         const teamsWithProjects: TeamWithProjects[] = await this.props.api.requestPromise(
           this.getUsersTeamsEndpoint()
         );
