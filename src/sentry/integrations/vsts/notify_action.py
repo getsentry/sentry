@@ -19,7 +19,7 @@ class AzureDevopsNotifyServiceForm(forms.Form):
         return super(AzureDevopsNotifyServiceForm, self).clean()
 
 
-class AzureDevopsCreateTicketAction(EventAction):
+class AzureDevopsCreateTicketAction(IntegrationEventAction):
     form_cls = AzureDevopsNotifyServiceForm
     label = u"TODO Create a {name} AzureDevops workitem"
     prompt = "Create a AzureDevops workitem"

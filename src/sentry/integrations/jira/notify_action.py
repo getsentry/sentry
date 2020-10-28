@@ -19,7 +19,7 @@ class JiraNotifyServiceForm(forms.Form):
         return super(JiraNotifyServiceForm, self).clean()
 
 
-class JiraCreateTicketAction(EventAction):
+class JiraCreateTicketAction(IntegrationEventAction):
     form_cls = JiraNotifyServiceForm
     label = u"TODO Create a {name} Jira ticket"
     prompt = "Create a Jira ticket"
