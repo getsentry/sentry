@@ -231,6 +231,16 @@ def worker(ignore_unknown_queues, **options):
                 else:
                     raise click.ClickException(message)
 
+    if options["exclude_queues"] is not None:
+        if not options["exclude_queues"].issubset(known_queues):
+            unknown_queues = options["exclude_queues"] - known_queues
+            message = ("Following queues cannot be excluded as they don't exist: %s".format(unkown_queues)
+            if ignore_unknown_queues:
+                    options["exclude_queues"] -= unknown_queues
+                    click.echo(message)
+                else:
+                    raise click.ClickException(message)
+
     if options["autoreload"]:
         from django.utils import autoreload
 
