@@ -1,24 +1,16 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {css} from '@emotion/core';
 
 import IssueDiff from 'app/components/issueDiff';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 
-class DiffModal extends React.Component {
-  static propTypes = {
-    Body: PropTypes.func,
-  };
+type Props = ModalRenderProps & React.ComponentProps<typeof IssueDiff>;
 
-  render() {
-    const {className, Body} = this.props;
-
-    return (
-      <Body>
-        <IssueDiff className={className} {...this.props} />
-      </Body>
-    );
-  }
-}
+const DiffModal = ({className, Body, ...props}: Props) => (
+  <Body>
+    <IssueDiff className={className} {...props} />
+  </Body>
+);
 
 const modalCss = css`
   .modal-dialog {
