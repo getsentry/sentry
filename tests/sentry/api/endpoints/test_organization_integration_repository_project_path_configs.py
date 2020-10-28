@@ -130,16 +130,23 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "nonFieldErrors": [u"Code path config already exists with this project and stack root"]
         }
 
-    def test_invalid_characters_stack_root(self):
+    def test_space_in_stack_root(self):
         response = self.make_post({"stackRoot": "has space"})
         assert response.status_code == 400
         assert response.data == {
-            "stackRoot": ["Path may not contain spaces"],
+            "stackRoot": ["Path may not contain spaces or quotations"],
         }
 
-    def test_invalid_characters_source_root(self):
+    def test_space_in_source_root(self):
         response = self.make_post({"sourceRoot": "has space"})
         assert response.status_code == 400
         assert response.data == {
-            "sourceRoot": ["Path may not contain spaces"],
+            "sourceRoot": ["Path may not contain spaces or quotations"],
+        }
+
+    def test_quote_in_stack_root(self):
+        response = self.make_post({"stackRoot": "f'f"})
+        assert response.status_code == 400
+        assert response.data == {
+            "stackRoot": ["Path may not contain spaces or quotations"],
         }

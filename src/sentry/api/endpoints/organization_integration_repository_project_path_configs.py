@@ -13,10 +13,10 @@ from sentry.utils.compat import map
 
 def gen_regex_field():
     return serializers.RegexField(
-        r"^[^\s]+$",  # may need to add more characters to prevent in the future
+        r"^[^\s'\"]+$",  # may need to add more characters to prevent in the future
         required=True,
         allow_blank=True,
-        error_messages={"invalid": _("Path may not contain spaces")},
+        error_messages={"invalid": _("Path may not contain spaces or quotations")},
     )
 
 
