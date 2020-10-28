@@ -35,7 +35,7 @@ type State = {
   similarItems: [];
   filteredSimilarItems: [];
   similarLinks: string;
-  mergeState: Record<string, any>;
+  mergeState: Map<any, any>;
   mergeList: Array<string>;
   mergedLinks: string;
   mergeDisabled: boolean;
@@ -179,7 +179,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       similarItems: [],
       filteredSimilarItems: [],
       similarLinks: '',
-      mergeState: {},
+      mergeState: new Map(),
       mergeList: [],
       mergedLinks: '',
       mergeDisabled: false,
@@ -363,7 +363,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       return;
     }
 
-    if (this.mergedList.includes(id)) {
+    if (this.mergeList.includes(id)) {
       this.mergeList = this.mergeList.filter(item => item !== id);
     } else {
       this.mergeList = [...this.mergeList, id];
