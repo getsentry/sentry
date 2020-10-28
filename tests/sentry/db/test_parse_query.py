@@ -18,10 +18,6 @@ class ParseQuery(TestCase):
                     u"sql": u'SELECT "sentry_reprocessingreport"."id", "sentry_reprocessingreport"."project_id", "sentry_reprocessingreport"."event_id", "sentry_reprocessingreport"."datetime" FROM "sentry_reprocessingreport" WHERE ("sentry_reprocessingreport"."event_id" = \'1fba9e314001443b93285dc4411f1593\'  AND "sentry_reprocessingreport"."project_id" = 864 )',
                     u"time": u"0.001",
                 },
-                {
-                    u"sql": u'SELECT "sentry_message"."id", "sentry_message"."group_id", "sentry_message"."message_id", "sentry_message"."project_id", "sentry_message"."message", "sentry_message"."platform", "sentry_message"."datetime", "sentry_message"."time_spent", "sentry_message"."data" FROM "sentry_message" WHERE ("sentry_message"."message_id" = \'1fba9e314001443b93285dc4411f1593\'  AND "sentry_message"."project_id" = 864 )',
-                    u"time": u"0.001",
-                },
                 {u"sql": u'SAVEPOINT "s47890194282880_x50"', u"time": u"0.000"},
                 {
                     u"sql": u'INSERT INTO "sentry_eventuser" ("project_id", "hash", "ident", "email", "username", "name", "ip_address", "date_added") VALUES (864, \'f528764d624db129b32c21fbca0cb8d6\', NULL, NULL, NULL, NULL, \'127.0.0.1\', \'2018-05-22 09:12:12.357888+00:00\') RETURNING "sentry_eventuser"."id"',
@@ -69,113 +65,9 @@ class ParseQuery(TestCase):
                     u"time": u"0.000",
                 },
                 {u"sql": u'RELEASE SAVEPOINT "s47890194282880_x53"', u"time": u"0.000"},
-                {
-                    u"sql": u'INSERT INTO "sentry_message" ("group_id", "message_id", "project_id", "message", "platform", "datetime", "time_spent", "data") VALUES (662, \'1fba9e314001443b93285dc4411f1593\', 864, \'hello http://example.com\', \'javascript\', \'2018-05-22 09:12:12+00:00\', NULL, \'eJzTSCkw5ApWz8tPSY3PTFHnKjAC8kotM8sMPTNMglwKq0zdS3LKI4y1QxxtbYHSxlzFegCZxA8W\') RETURNING "sentry_message"."id"',
-                    u"time": u"0.000",
-                },
                 {u"sql": u'RELEASE SAVEPOINT "s47890194282880_x52"', u"time": u"0.000"},
-                {
-                    u"sql": u'SELECT "sentry_filterkey"."id", "sentry_filterkey"."project_id", "sentry_filterkey"."key", "sentry_filterkey"."values_seen", "sentry_filterkey"."label", "sentry_filterkey"."status" FROM "sentry_filterkey" WHERE ("sentry_filterkey"."project_id" = 864  AND "sentry_filterkey"."key" = \'level\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filtervalue"."id", "sentry_filtervalue"."project_id", "sentry_filtervalue"."key", "sentry_filtervalue"."value", "sentry_filtervalue"."data", "sentry_filtervalue"."times_seen", "sentry_filtervalue"."last_seen", "sentry_filtervalue"."first_seen" FROM "sentry_filtervalue" WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'error\'  AND "sentry_filtervalue"."key" = \'level\' )',
-                    u"time": u"0.000",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filterkey"."id", "sentry_filterkey"."project_id", "sentry_filterkey"."key", "sentry_filterkey"."values_seen", "sentry_filterkey"."label", "sentry_filterkey"."status" FROM "sentry_filterkey" WHERE ("sentry_filterkey"."project_id" = 864  AND "sentry_filterkey"."key" = \'url\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filtervalue"."id", "sentry_filtervalue"."project_id", "sentry_filtervalue"."key", "sentry_filtervalue"."value", "sentry_filtervalue"."data", "sentry_filtervalue"."times_seen", "sentry_filtervalue"."last_seen", "sentry_filtervalue"."first_seen" FROM "sentry_filtervalue" WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'http://example.com\'  AND "sentry_filtervalue"."key" = \'url\' )',
-                    u"time": u"0.000",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filterkey"."id", "sentry_filterkey"."project_id", "sentry_filterkey"."key", "sentry_filterkey"."values_seen", "sentry_filterkey"."label", "sentry_filterkey"."status" FROM "sentry_filterkey" WHERE ("sentry_filterkey"."project_id" = 864  AND "sentry_filterkey"."key" = \'sentry:user\' )',
-                    u"time": u"0.000",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filtervalue"."id", "sentry_filtervalue"."project_id", "sentry_filtervalue"."key", "sentry_filtervalue"."value", "sentry_filtervalue"."data", "sentry_filtervalue"."times_seen", "sentry_filtervalue"."last_seen", "sentry_filtervalue"."first_seen" FROM "sentry_filtervalue" WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'ip:127.0.0.1\'  AND "sentry_filtervalue"."key" = \'sentry:user\' )',
-                    u"time": u"0.000",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filterkey"."id", "sentry_filterkey"."project_id", "sentry_filterkey"."key", "sentry_filterkey"."values_seen", "sentry_filterkey"."label", "sentry_filterkey"."status" FROM "sentry_filterkey" WHERE ("sentry_filterkey"."project_id" = 864  AND "sentry_filterkey"."key" = \'os.name\' )',
-                    u"time": u"0.000",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filtervalue"."id", "sentry_filtervalue"."project_id", "sentry_filtervalue"."key", "sentry_filtervalue"."value", "sentry_filtervalue"."data", "sentry_filtervalue"."times_seen", "sentry_filtervalue"."last_seen", "sentry_filtervalue"."first_seen" FROM "sentry_filtervalue" WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'Windows 8\'  AND "sentry_filtervalue"."key" = \'os.name\' )',
-                    u"time": u"0.000",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filterkey"."id", "sentry_filterkey"."project_id", "sentry_filterkey"."key", "sentry_filterkey"."values_seen", "sentry_filterkey"."label", "sentry_filterkey"."status" FROM "sentry_filterkey" WHERE ("sentry_filterkey"."project_id" = 864  AND "sentry_filterkey"."key" = \'browser.name\' )',
-                    u"time": u"0.000",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filtervalue"."id", "sentry_filtervalue"."project_id", "sentry_filtervalue"."key", "sentry_filtervalue"."value", "sentry_filtervalue"."data", "sentry_filtervalue"."times_seen", "sentry_filtervalue"."last_seen", "sentry_filtervalue"."first_seen" FROM "sentry_filtervalue" WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'Chrome\'  AND "sentry_filtervalue"."key" = \'browser.name\' )',
-                    u"time": u"0.000",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filterkey"."id", "sentry_filterkey"."project_id", "sentry_filterkey"."key", "sentry_filterkey"."values_seen", "sentry_filterkey"."label", "sentry_filterkey"."status" FROM "sentry_filterkey" WHERE ("sentry_filterkey"."project_id" = 864  AND "sentry_filterkey"."key" = \'browser\' )',
-                    u"time": u"0.000",
-                },
-                {
-                    u"sql": u'SELECT "sentry_filtervalue"."id", "sentry_filtervalue"."project_id", "sentry_filtervalue"."key", "sentry_filtervalue"."value", "sentry_filtervalue"."data", "sentry_filtervalue"."times_seen", "sentry_filtervalue"."last_seen", "sentry_filtervalue"."first_seen" FROM "sentry_filtervalue" WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'Chrome 28.0.1500\'  AND "sentry_filtervalue"."key" = \'browser\' )',
-                    u"time": u"0.000",
-                },
                 {u"sql": u'SAVEPOINT "s47890194282880_x54"', u"time": u"0.000"},
-                {
-                    u"sql": u'INSERT INTO "sentry_eventtag" ("project_id", "group_id", "event_id", "key_id", "value_id", "date_added") VALUES (864, 662, 454, 108, 108, \'2018-05-22 09:12:12+00:00\'), (864, 662, 454, 109, 109, \'2018-05-22 09:12:12+00:00\'), (864, 662, 454, 110, 110, \'2018-05-22 09:12:12+00:00\'), (864, 662, 454, 111, 111, \'2018-05-22 09:12:12+00:00\'), (864, 662, 454, 112, 112, \'2018-05-22 09:12:12+00:00\'), (864, 662, 454, 113, 113, \'2018-05-22 09:12:12+00:00\')',
-                    u"time": u"0.000",
-                },
                 {u"sql": u'RELEASE SAVEPOINT "s47890194282880_x54"', u"time": u"0.000"},
-                {
-                    u"sql": u'UPDATE "sentry_filtervalue" SET "times_seen" = "sentry_filtervalue"."times_seen" + 1, "data" = NULL, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'error\'  AND "sentry_filtervalue"."key" = \'level\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_messagefiltervalue" SET "times_seen" = "sentry_messagefiltervalue"."times_seen" + 1, "project_id" = 864, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_messagefiltervalue"."group_id" = 662  AND "sentry_messagefiltervalue"."value" = \'error\'  AND "sentry_messagefiltervalue"."key" = \'level\' )',
-                    u"time": u"0.000",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_filtervalue" SET "times_seen" = "sentry_filtervalue"."times_seen" + 1, "data" = NULL, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'http://example.com\'  AND "sentry_filtervalue"."key" = \'url\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_messagefiltervalue" SET "times_seen" = "sentry_messagefiltervalue"."times_seen" + 1, "project_id" = 864, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_messagefiltervalue"."group_id" = 662  AND "sentry_messagefiltervalue"."value" = \'http://example.com\'  AND "sentry_messagefiltervalue"."key" = \'url\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_filtervalue" SET "times_seen" = "sentry_filtervalue"."times_seen" + 1, "data" = NULL, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'ip:127.0.0.1\'  AND "sentry_filtervalue"."key" = \'sentry:user\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_messagefiltervalue" SET "times_seen" = "sentry_messagefiltervalue"."times_seen" + 1, "project_id" = 864, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_messagefiltervalue"."group_id" = 662  AND "sentry_messagefiltervalue"."value" = \'ip:127.0.0.1\'  AND "sentry_messagefiltervalue"."key" = \'sentry:user\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_filtervalue" SET "times_seen" = "sentry_filtervalue"."times_seen" + 1, "data" = NULL, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'Windows 8\'  AND "sentry_filtervalue"."key" = \'os.name\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_messagefiltervalue" SET "times_seen" = "sentry_messagefiltervalue"."times_seen" + 1, "project_id" = 864, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_messagefiltervalue"."group_id" = 662  AND "sentry_messagefiltervalue"."value" = \'Windows 8\'  AND "sentry_messagefiltervalue"."key" = \'os.name\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_filtervalue" SET "times_seen" = "sentry_filtervalue"."times_seen" + 1, "data" = NULL, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'Chrome\'  AND "sentry_filtervalue"."key" = \'browser.name\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_messagefiltervalue" SET "times_seen" = "sentry_messagefiltervalue"."times_seen" + 1, "project_id" = 864, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_messagefiltervalue"."group_id" = 662  AND "sentry_messagefiltervalue"."value" = \'Chrome\'  AND "sentry_messagefiltervalue"."key" = \'browser.name\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_filtervalue" SET "times_seen" = "sentry_filtervalue"."times_seen" + 1, "data" = NULL, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_filtervalue"."project_id" = 864  AND "sentry_filtervalue"."value" = \'Chrome 28.0.1500\'  AND "sentry_filtervalue"."key" = \'browser\' )',
-                    u"time": u"0.001",
-                },
-                {
-                    u"sql": u'UPDATE "sentry_messagefiltervalue" SET "times_seen" = "sentry_messagefiltervalue"."times_seen" + 1, "project_id" = 864, "last_seen" = \'2018-05-22 09:12:12+00:00\' WHERE ("sentry_messagefiltervalue"."group_id" = 662  AND "sentry_messagefiltervalue"."value" = \'Chrome 28.0.1500\'  AND "sentry_messagefiltervalue"."key" = \'browser\' )',
-                    u"time": u"0.001",
-                },
                 {
                     u"sql": u'SELECT "sentry_groupedmessage"."id", "sentry_groupedmessage"."project_id", "sentry_groupedmessage"."logger", "sentry_groupedmessage"."level", "sentry_groupedmessage"."message", "sentry_groupedmessage"."view", "sentry_groupedmessage"."num_comments", "sentry_groupedmessage"."platform", "sentry_groupedmessage"."status", "sentry_groupedmessage"."times_seen", "sentry_groupedmessage"."last_seen", "sentry_groupedmessage"."first_seen", "sentry_groupedmessage"."first_release_id", "sentry_groupedmessage"."resolved_at", "sentry_groupedmessage"."active_at", "sentry_groupedmessage"."time_spent_total", "sentry_groupedmessage"."time_spent_count", "sentry_groupedmessage"."score", "sentry_groupedmessage"."is_public", "sentry_groupedmessage"."data", "sentry_groupedmessage"."short_id" FROM "sentry_groupedmessage" WHERE "sentry_groupedmessage"."id" = 662 ',
                     u"time": u"0.001",
@@ -196,11 +88,7 @@ class ParseQuery(TestCase):
         assert result == {
             "nodestore_node": 2,
             "sentry_environmentproject": 1,
-            "sentry_eventtag": 1,
             "sentry_eventuser": 1,
-            "sentry_filtervalue": 6,
             "sentry_groupedmessage": 1,
-            "sentry_message": 1,
-            "sentry_messagefiltervalue": 6,
             "sentry_userreport": 1,
         }

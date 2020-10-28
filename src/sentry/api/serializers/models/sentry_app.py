@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+from sentry.api.serializers import serialize, Serializer, register
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
-from sentry.api.serializers import Serializer, register
-from sentry.models import SentryApp
+from sentry.constants import SentryAppStatus
+from sentry.models import IntegrationFeature, SentryApp
 from sentry.models.sentryapp import MASKED_VALUE
+from sentry.utils.compat import map
 
 
 @register(SentryApp)
@@ -29,7 +31,16 @@ class SentryAppSerializer(Serializer):
             "allowedOrigins": obj.application.get_allowed_origins(),
         }
 
-        if is_active_superuser(env.request) or (
+        data["featureData"] = []
+
+        if obj.status != SentryAppStatus.INTERNAL:
+            features = IntegrationFeature.objects.filter(sentry_app_id=obj.id)
+            data["featureData"] = map(lambda x: serialize(x, user), features)
+
+        if obj.status == SentryAppStatus.PUBLISHED and obj.date_published:
+            data.update({"datePublished": obj.date_published})
+
+        if (env.request and is_active_superuser(env.request)) or (
             hasattr(user, "get_orgs") and obj.owner in user.get_orgs()
         ):
             client_secret = (

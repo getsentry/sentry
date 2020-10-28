@@ -92,11 +92,13 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     viewWindowEnd: 1,
   };
 
+  componentWillUnmount() {
+    this.cleanUpListeners();
+  }
+
   previousUserSelect: UserSelectValues | null = null;
 
-  hasInteractiveLayer = (): boolean => {
-    return !!this.props.interactiveLayerRef.current;
-  };
+  hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
 
   onDragStart = (viewHandle: ViewHandleType) => (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>
@@ -114,6 +116,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       userSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
+      webkitUserSelect: 'none',
     });
 
     // attach event listeners so that the mouse cursor can drag outside of the
@@ -203,27 +206,23 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
     switch (this.state.currentDraggingHandle) {
       case ViewHandleType.Left: {
-        this.setState(state => {
-          return {
-            isDragging: false,
-            currentDraggingHandle: void 0,
+        this.setState(state => ({
+          isDragging: false,
+          currentDraggingHandle: void 0,
 
-            // commit leftHandlePosition to be viewWindowStart
-            viewWindowStart: state.leftHandlePosition,
-          };
-        });
+          // commit leftHandlePosition to be viewWindowStart
+          viewWindowStart: state.leftHandlePosition,
+        }));
         return;
       }
       case ViewHandleType.Right: {
-        this.setState(state => {
-          return {
-            isDragging: false,
-            currentDraggingHandle: void 0,
+        this.setState(state => ({
+          isDragging: false,
+          currentDraggingHandle: void 0,
 
-            // commit rightHandlePosition to be viewWindowEnd
-            viewWindowEnd: state.rightHandlePosition,
-          };
-        });
+          // commit rightHandlePosition to be viewWindowEnd
+          viewWindowEnd: state.rightHandlePosition,
+        }));
         return;
       }
       default: {
@@ -246,6 +245,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       userSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
+      webkitUserSelect: 'none',
     });
 
     // attach event listeners so that the mouse cursor can drag outside of the
@@ -368,10 +368,6 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       window.removeEventListener('mouseup', this.onWindowSelectionDragEnd);
     }
   };
-
-  componentWillUnmount() {
-    this.cleanUpListeners();
-  }
 
   render() {
     const childrenProps = {

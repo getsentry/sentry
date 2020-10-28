@@ -22,12 +22,13 @@ class CreateAttachmentMixin(object):
         )
 
         self.file = File.objects.create(name="hello.png", type="image/png")
-        self.file.putfile(six.BytesIO("File contents here"))
+        self.file.putfile(six.BytesIO(b"File contents here"))
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
             project_id=self.event.project_id,
             file=self.file,
+            type=self.file.type,
             name="hello.png",
         )
 
@@ -64,7 +65,21 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
         assert response.get("Content-Length") == six.text_type(self.file.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert "File contents here" == six.BytesIO(b"".join(response.streaming_content)).getvalue()
+        assert b"File contents here" == six.BytesIO(b"".join(response.streaming_content)).getvalue()
+
+    def test_delete(self):
+        self.login_as(user=self.user)
+
+        self.create_attachment()
+        path = u"/api/0/projects/{}/{}/events/{}/attachments/{}/".format(
+            self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
+        )
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.delete(path)
+
+        assert response.status_code == 204, response.content
+        assert EventAttachment.objects.count() == 0
 
 
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):

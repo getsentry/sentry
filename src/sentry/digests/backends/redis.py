@@ -13,6 +13,7 @@ from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_script
 from sentry.utils.versioning import Version
+from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.digests")
 
@@ -144,7 +145,7 @@ class RedisBackend(Backend):
         for host in self.cluster.hosts:
             try:
                 for key, timestamp in self.__schedule_partition(host, deadline, timestamp):
-                    yield ScheduleEntry(key, float(timestamp))
+                    yield ScheduleEntry(key.decode("utf-8"), float(timestamp))
             except Exception as error:
                 logger.error(
                     "Failed to perform scheduling for partition %r due to error: %r",
@@ -199,14 +200,14 @@ class RedisBackend(Backend):
                     ],
                 )
             except ResponseError as e:
-                if "err(invalid_state):" in e.message:
+                if "err(invalid_state):" in six.text_type(e):
                     six.raise_from(InvalidState("Timeline is not in the ready state."), e)
                 else:
                     raise
 
             records = map(
                 lambda key__value__timestamp: Record(
-                    key__value__timestamp[0],
+                    key__value__timestamp[0].decode("utf-8"),
                     self.codec.decode(key__value__timestamp[1])
                     if key__value__timestamp[1] is not None
                     else None,
@@ -218,7 +219,7 @@ class RedisBackend(Backend):
             # If the record value is `None`, this means the record data was
             # missing (it was presumably evicted by Redis) so we don't need to
             # return it here.
-            yield filter(lambda record: record.value is not None, records)
+            yield [record for record in records if record.value is not None]
 
             script(
                 connection,

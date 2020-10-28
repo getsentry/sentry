@@ -11,7 +11,7 @@ def get_crash_location(data):
     from sentry.stacktraces.processing import get_crash_frame_from_event_data
 
     frame = get_crash_frame_from_event_data(
-        data, frame_filter=lambda x: x.get("filename") or x.get("abs_path")
+        data, frame_filter=lambda x: x.get("function") not in (None, "<redacted>", "<unknown>")
     )
     if frame is not None:
         from sentry.stacktraces.functions import get_function_name_for_frame
@@ -23,7 +23,7 @@ def get_crash_location(data):
 class ErrorEvent(BaseEvent):
     key = "error"
 
-    def get_metadata(self, data):
+    def extract_metadata(self, data):
         exception = get_path(data, "exception", "values", -1)
         if not exception:
             return {}
@@ -46,7 +46,7 @@ class ErrorEvent(BaseEvent):
 
         return rv
 
-    def get_title(self, metadata):
+    def compute_title(self, metadata):
         ty = metadata.get("type")
         if ty is None:
             return metadata.get("function") or "<unknown>"

@@ -1,132 +1,128 @@
 ---
-created: '2019-05-10T12:58:20.731060Z'
+created: '2020-02-26T19:54:38.816076Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             filename*
-              u'test.html'
-            function (ignored unknown function name)
+              "test.html"
           frame (non app frame)
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'testMethod'
+              "testMethod"
           frame (non app frame)
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'aha'
+              "aha"
           frame (non app frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              "[native code]"
             function*
-              u'eval'
+              "eval"
           frame (non app frame)
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'test'
+              "test"
           frame (non app frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              "[native code]"
             function*
-              u'map'
+              "map"
           frame (non app frame)
             filename*
-              u'test.html'
-            function (ignored unknown function name)
+              "test.html"
           frame (non app frame)
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'callback'
+              "callback"
           frame (non app frame)
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'callAnotherThing'
+              "callAnotherThing"
           frame (non app frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              "[native code]"
             function*
-              u'aha'
+              "aha"
           frame (non app frame)
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'aha'
+              "aha"
         type*
-          u'Error'
+          "Error"
         value*
-          u'bad'
+          "bad"
 --------------------------------------------------------------------------
 system:
-  hash: 'c63e8727af1a8fe75872b6a762797113'
+  hash: "c63e8727af1a8fe75872b6a762797113"
   component:
     system*
       exception*
         stacktrace*
           frame*
             filename*
-              u'test.html'
-            function (ignored unknown function name)
+              "test.html"
           frame*
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'testMethod'
+              "testMethod"
           frame*
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'aha'
+              "aha"
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              "[native code]"
             function*
-              u'eval'
+              "eval"
           frame*
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'test'
+              "test"
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              "[native code]"
             function*
-              u'map'
+              "map"
           frame*
             filename*
-              u'test.html'
-            function (ignored unknown function name)
+              "test.html"
           frame*
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'callback'
+              "callback"
           frame*
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'callAnotherThing'
+              "callAnotherThing"
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              "[native code]"
             function*
-              u'aha'
+              "aha"
           frame*
             filename*
-              u'test.html'
+              "test.html"
             function*
-              u'aha'
+              "aha"
         type*
-          u'Error'
+          "Error"
         value (ignored because stacktrace takes precedence)
-          u'bad'
+          "bad"

@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 import re
 
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 
-urlpatterns = patterns("")
+urlpatterns = []
 
 for _plugin in plugins.all():
     _plugin_url_module = _plugin.get_url_module()

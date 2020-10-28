@@ -1,25 +1,26 @@
 // Sentry variable overrides
 @import url('./variables.less');
+@import url('./base.less');
 
-// Vendor componenents
+// Vendor components
 @import url('./includes/bootstrap.less');
-@import url('./includes/github.less');
 @import url('./includes/pygments.less');
-@import url('./includes/typeahead.less');
 @import url('./includes/animate.less');
-@import url('./includes/tooltips.less');
 @import url('./includes/react-select.less');
-@import '~platformicons/platformicons/platformicons.css';
 
-// App Components
+// Shared components
+@import url('./shared/alerts.less');
+@import url('./shared/tooltip.less');
+@import url('./shared/modal.less');
+@import url('./shared/panel.less');
+@import url('./shared/forms.less');
+
+// App components
 @import url('./shared-components.less');
 @import url('./sentry-grid.less');
 @import url('./sentry-hovercard.less');
-@import url('./sentry-list-group.less');
-@import url('./sentry-panel.less');
 @import url('./layout.less');
 @import url('./fonts.less');
-@import url('./forms.less');
 @import url('./misc.less');
 @import url('./result-grid.less');
 @import url('./type.less');
@@ -28,14 +29,12 @@
 @import url('./errors.less');
 
 // Page specific
-
 @import url('./auth.less');
 @import url('./docs.less');
 @import url('./group-detail.less');
 @import url('./organization.less');
 @import url('./project-settings.less');
 @import url('./releases.less');
-@import url('./setup-wizard.less');
 @import url('./spacing.less');
 @import url('./stream.less');
 @import url('./group-similar.less');

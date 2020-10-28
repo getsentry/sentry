@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
@@ -16,13 +16,14 @@ type DefaultProps = Readonly<typeof defaultProps>;
 type Props = {
   className?: string;
   children?: React.ReactNode;
+  error?: React.ReactNode;
 } & Partial<DefaultProps>;
 
 const Placeholder = styled((props: Props) => {
-  const {className, children} = props;
+  const {className, children, error} = props;
   return (
     <div data-test-id="loading-placeholder" className={className}>
-      {children}
+      {error || children}
     </div>
   );
 })<Props>`
@@ -31,7 +32,8 @@ const Placeholder = styled((props: Props) => {
   flex-shrink: 0;
   justify-content: center;
 
-  background-color: ${p => p.theme.placeholderBackground};
+  background-color: ${p => (p.error ? p.theme.red100 : p.theme.gray200)};
+  ${p => p.error && `color: ${p.theme.red300};`}
   width: ${p => p.width};
   height: ${p => p.height};
   ${p => (p.shape === 'circle' ? 'border-radius: 100%;' : '')}

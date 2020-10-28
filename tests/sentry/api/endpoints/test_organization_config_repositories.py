@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
+from sentry.utils.compat import filter
 
 
 class OrganizationConfigRepositoriesTest(APITestCase):
@@ -15,8 +16,6 @@ class OrganizationConfigRepositoriesTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert len(response.data["providers"]) == 1
-        provider = response.data["providers"][0]
-        assert provider["id"] == "dummy"
+        provider = filter(lambda x: x["id"] == "dummy", response.data["providers"])[0]
         assert provider["name"] == "Example"
         assert provider["config"]

@@ -1,19 +1,21 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mockRouterPush} from 'sentry-test/mockRouterPush';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import DashboardsContainer from 'app/views/dashboards';
 import OverviewDashboard from 'app/views/dashboards/overviewDashboard';
+import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('app/utils/withLatestContext');
 
-describe('OverviewDashboard', function() {
+describe('OverviewDashboard', function () {
   let wrapper;
   let discoverMock;
   let releasesMock;
 
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, projects, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
     organization: {
       features: ['discover', 'global-views'],
@@ -28,17 +30,25 @@ describe('OverviewDashboard', function() {
 
   const org = organization;
 
-  const createWrapper = props => {
-    wrapper = mount(
+  const createWrapper = async props => {
+    ProjectsStore.loadInitialData(organization.projects);
+    wrapper = mountWithTheme(
       <DashboardsContainer>
         <OverviewDashboard params={{orgId: organization.slug}} {...props} />
       </DashboardsContainer>,
       routerContext
     );
+    await tick();
+    wrapper.update();
     mockRouterPush(wrapper, router);
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
+    ProjectsStore.loadInitialData(projects);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       body: TestStubs.Environments(),
@@ -58,7 +68,7 @@ describe('OverviewDashboard', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     router.push.mockRestore();
     MockApiClient.clearMockResponses();
     if (wrapper) {
@@ -68,7 +78,7 @@ describe('OverviewDashboard', function() {
     releasesMock.mockRestore();
   });
 
-  it('renders and updates "recentReleases" constraint ', async function() {
+  it('renders and updates "recentReleases" constraint ', async function () {
     const eventsByReleaseWidget = TestStubs.Widget({
       discover: [
         {
@@ -90,7 +100,7 @@ describe('OverviewDashboard', function() {
       eventsByReleaseWidget,
     ]);
 
-    createWrapper(dashboardData);
+    await createWrapper(dashboardData);
 
     // TODO(billy): Figure out why releases gets called twice
     expect(discoverMock).toHaveBeenCalledTimes(4);
@@ -103,7 +113,7 @@ describe('OverviewDashboard', function() {
       expect.objectContaining({
         data: expect.objectContaining({
           environments: [],
-          projects: [2, 3],
+          projects: expect.arrayContaining([2, 3]),
           range: '14d',
 
           fields: [],
@@ -123,7 +133,7 @@ describe('OverviewDashboard', function() {
       expect.objectContaining({
         data: expect.objectContaining({
           environments: [],
-          projects: [2, 3],
+          projects: expect.arrayContaining([2, 3]),
           range: '14d',
 
           fields: [],
@@ -143,7 +153,7 @@ describe('OverviewDashboard', function() {
       expect.objectContaining({
         data: expect.objectContaining({
           environments: [],
-          projects: [2, 3],
+          projects: expect.arrayContaining([2, 3]),
           range: '14d',
 
           fields: [],
@@ -153,10 +163,7 @@ describe('OverviewDashboard', function() {
             [
               'if',
               [
-                [
-                  'in',
-                  ['release', 'tuple', ["'92eccef279d966b2319f0802fa4b22b430a5f72b'"]],
-                ],
+                ['in', ['release', 'tuple', ["'sentry-android-shop@1.2.0'"]]],
                 'release',
                 "'other'",
               ],
@@ -201,7 +208,7 @@ describe('OverviewDashboard', function() {
       expect.objectContaining({
         data: expect.objectContaining({
           environments: [],
-          projects: [2, 3],
+          projects: expect.arrayContaining([2, 3]),
           range: '7d',
 
           fields: [],
@@ -211,10 +218,7 @@ describe('OverviewDashboard', function() {
             [
               'if',
               [
-                [
-                  'in',
-                  ['release', 'tuple', ["'92eccef279d966b2319f0802fa4b22b430a5f72b'"]],
-                ],
+                ['in', ['release', 'tuple', ["'sentry-android-shop@1.2.0'"]]],
                 'release',
                 "'other'",
               ],

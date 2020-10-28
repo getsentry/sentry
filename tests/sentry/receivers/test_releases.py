@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 from hashlib import sha1
-from mock import patch
+from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
 from sentry.models import (
@@ -54,7 +54,7 @@ class ResolvedInCommitTest(TestCase):
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),
@@ -68,7 +68,7 @@ class ResolvedInCommitTest(TestCase):
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
         )
@@ -86,7 +86,7 @@ class ResolvedInCommitTest(TestCase):
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),
@@ -105,7 +105,7 @@ class ResolvedInCommitTest(TestCase):
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),
@@ -122,7 +122,7 @@ class ResolvedInCommitTest(TestCase):
         repo = Repository.objects.create(name="example", organization_id=self.organization.id)
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=self.organization.id,
             message=u"Foo Biz\n\nFixes {}-12F".format(self.project.slug.upper()),
@@ -143,7 +143,7 @@ class ResolvedInCommitTest(TestCase):
         UserOption.objects.set_value(user=user, key="self_assign_issue", value="1")
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             organization_id=group.organization.id,
             repository_id=repo.id,
             message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),
@@ -177,7 +177,7 @@ class ResolvedInCommitTest(TestCase):
         UserOption.objects.set_value(user=user, key="self_assign_issue", value="0")
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             organization_id=group.organization.id,
             repository_id=repo.id,
             message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),

@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 import os
+from hashlib import md5
 
 from django.conf import settings
 from sentry_sdk import Hub
 
+import six
 
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
@@ -44,8 +46,6 @@ def pytest_configure(config):
             # an actual migration.
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
-
-    settings.TEMPLATE_DEBUG = True
 
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
@@ -86,7 +86,7 @@ def pytest_configure(config):
         settings.SENTRY_NEWSLETTER_OPTIONS = {}
 
     settings.BROKER_BACKEND = "memory"
-    settings.BROKER_URL = None
+    settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
@@ -96,11 +96,16 @@ def pytest_configure(config):
 
     settings.DISABLE_RAVEN = True
 
-    settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+    settings.CACHES = {
+        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+        "nodedata": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    }
+
+    settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
+    settings.SENTRY_RATELIMITER_OPTIONS = {}
 
     if os.environ.get("USE_SNUBA", False):
-        settings.SENTRY_SEARCH = "sentry.search.snuba.SnubaSearchBackend"
-        settings.SENTRY_TAGSTORE = "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
+        settings.SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
@@ -115,11 +120,18 @@ def pytest_configure(config):
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
+            "slack.legacy-app": True,
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
             "vsts.client-id": "vsts-client-id",
             "vsts.client-secret": "vsts-client-secret",
+            "vsts-limited.client-id": "vsts-limited-client-id",
+            "vsts-limited.client-secret": "vsts-limited-client-secret",
+            "vercel.client-id": "vercel-client-id",
+            "vercel.client-secret": "vercel-client-secret",
+            "msteams.client-id": "msteams-client-id",
+            "msteams.client-secret": "msteams-client-secret",
         }
     )
 
@@ -128,26 +140,31 @@ def pytest_configure(config):
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
     patcher.start()
 
-    if not settings.SOUTH_TESTS_MIGRATE:
-        settings.INSTALLED_APPS = tuple(i for i in settings.INSTALLED_APPS if i != "south")
+    if not settings.MIGRATIONS_TEST_MIGRATE:
+        # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
+        # This is a hack to force django to sync the database state from the models rather than use migrations.
+        settings.MIGRATION_MODULES["sentry"] = None
 
     from sentry.runner.initializer import (
+        bind_cache_to_option_store,
         bootstrap_options,
         configure_structlog,
         initialize_receivers,
-        fix_south,
-        bind_cache_to_option_store,
+        monkeypatch_model_unpickle,
+        monkeypatch_django_migrations,
         setup_services,
     )
 
     bootstrap_options(settings)
     configure_structlog()
-    fix_south(settings)
+
+    monkeypatch_model_unpickle()
 
     import django
 
-    if hasattr(django, "setup"):
-        django.setup()
+    django.setup()
+
+    monkeypatch_django_migrations()
 
     bind_cache_to_option_store()
 
@@ -170,17 +187,20 @@ def pytest_configure(config):
 
 
 def register_extensions():
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
     from sentry.plugins.utils import TestIssuePlugin2
 
     plugins.register(TestIssuePlugin2)
 
     from sentry import integrations
     from sentry.integrations.bitbucket import BitbucketIntegrationProvider
+    from sentry.integrations.bitbucket_server import BitbucketServerIntegrationProvider
     from sentry.integrations.example import (
         ExampleIntegrationProvider,
         AliasedIntegrationProvider,
         ExampleRepositoryProvider,
+        ServerExampleProvider,
+        FeatureFlagIntegration,
     )
     from sentry.integrations.github import GitHubIntegrationProvider
     from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
@@ -190,10 +210,14 @@ def register_extensions():
     from sentry.integrations.slack import SlackIntegrationProvider
     from sentry.integrations.vsts import VstsIntegrationProvider
     from sentry.integrations.vsts_extension import VstsExtensionIntegrationProvider
+    from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 
     integrations.register(BitbucketIntegrationProvider)
+    integrations.register(BitbucketServerIntegrationProvider)
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
+    integrations.register(ServerExampleProvider)
+    integrations.register(FeatureFlagIntegration)
     integrations.register(GitHubIntegrationProvider)
     integrations.register(GitHubEnterpriseIntegrationProvider)
     integrations.register(GitlabIntegrationProvider)
@@ -202,8 +226,9 @@ def register_extensions():
     integrations.register(SlackIntegrationProvider)
     integrations.register(VstsIntegrationProvider)
     integrations.register(VstsExtensionIntegrationProvider)
+    integrations.register(PagerDutyIntegrationProvider)
 
-    from sentry.plugins import bindings
+    from sentry.plugins.base import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
 
     bindings.add("repository.provider", DummyRepositoryProvider, id="dummy")
@@ -240,3 +265,57 @@ def pytest_runtest_teardown(item):
         model.objects.clear_local_cache()
 
     Hub.main.bind_client(None)
+
+
+def pytest_collection_modifyitems(config, items):
+    """
+    After collection, we need to:
+
+    - Filter tests that subclass SnubaTestCase as tests in `tests/acceptance` are not being marked as `snuba`
+    - Select tests based on group and group strategy
+
+    """
+
+    total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
+    current_group = int(os.environ.get("TEST_GROUP", 0))
+    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "file")
+
+    accepted, keep, discard = [], [], []
+
+    for index, item in enumerate(items):
+        # XXX: For some reason tests in `tests/acceptance` are not being
+        # marked as snuba, so deselect test cases not a subclass of SnubaTestCase
+        if os.environ.get("RUN_SNUBA_TESTS_ONLY"):
+            from sentry.testutils import SnubaTestCase
+            import inspect
+
+            if inspect.isclass(item.cls) and not issubclass(item.cls, SnubaTestCase):
+                # No need to group if we are deselecting this
+                discard.append(item)
+                continue
+            accepted.append(item)
+        else:
+            accepted.append(item)
+
+        # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
+        # we want to only include items in `accepted` list
+
+        # TODO(joshuarli): six 1.12.0 adds ensure_binary: six.ensure_binary(item.location[0])
+        item_to_group = (
+            int(md5(six.text_type(item.location[0]).encode("utf-8")).hexdigest(), 16)
+            if grouping_strategy == "file"
+            else len(accepted) - 1
+        )
+
+        # Split tests in different groups
+        group_num = item_to_group % total_groups
+
+        if group_num == current_group:
+            keep.append(item)
+        else:
+            discard.append(item)
+
+    # This only needs to be done if there are items to be de-selected
+    if len(discard) > 0:
+        items[:] = keep
+        config.hook.pytest_deselected(items=discard)

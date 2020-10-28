@@ -4,12 +4,8 @@ import progressbar
 import re
 import six
 
-from django.db import connections, IntegrityError, router, transaction
-from django.db.models import ForeignKey
-from django.db.models.deletion import Collector
-from django.db.models.signals import pre_delete, pre_save, post_save, post_delete
+from django.db import connections, router
 
-from sentry.utils import db
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
@@ -148,137 +144,6 @@ class WithProgressBar(object):
             pbar.finish()
 
 
-class EverythingCollector(Collector):
-    """
-    More or less identical to the default Django collector except we always
-    return relations (even when they shouldn't matter).
-    """
-
-    def collect(
-        self,
-        objs,
-        source=None,
-        nullable=False,
-        collect_related=True,
-        source_attr=None,
-        reverse_dependency=False,
-    ):
-        new_objs = self.add(objs)
-        if not new_objs:
-            return
-
-        model = type(new_objs[0])
-
-        # Recursively collect concrete model's parent models, but not their
-        # related objects. These will be found by meta.get_all_related_objects()
-        concrete_model = model._meta.concrete_model
-        for ptr in six.iteritems(concrete_model._meta.parents):
-            if ptr:
-                # FIXME: This seems to be buggy and execute a query for each
-                # parent object fetch. We have the parent data in the obj,
-                # but we don't have a nice way to turn that data into parent
-                # object instance.
-                parent_objs = [getattr(obj, ptr.name) for obj in new_objs]
-                self.collect(
-                    parent_objs,
-                    source=model,
-                    source_attr=ptr.rel.related_name,
-                    collect_related=False,
-                    reverse_dependency=True,
-                )
-
-        if collect_related:
-            for related in model._meta.get_all_related_objects(
-                include_hidden=True, include_proxy_eq=True
-            ):
-                sub_objs = self.related_objects(related, new_objs)
-                self.add(sub_objs)
-
-            # TODO This entire block is only needed as a special case to
-            # support cascade-deletes for GenericRelation. It should be
-            # removed/fixed when the ORM gains a proper abstraction for virtual
-            # or composite fields, and GFKs are reworked to fit into that.
-            for relation in model._meta.many_to_many:
-                if not relation.rel.through:
-                    sub_objs = relation.bulk_related_objects(new_objs, self.using)
-                    self.collect(
-                        sub_objs, source=model, source_attr=relation.rel.related_name, nullable=True
-                    )
-
-
-def merge_into(self, other, callback=lambda x: x, using="default"):
-    """
-    Collects objects related to ``self`` and updates their foreign keys to
-    point to ``other``.
-
-    If ``callback`` is specified, it will be executed on each collected chunk
-    before any changes are made, and should return a modified list of results
-    that still need updated.
-
-    NOTE: Duplicates (unique constraints) which exist and are bound to ``other``
-    are preserved, and relations on ``self`` are discarded.
-    """
-    # TODO: proper support for database routing
-    s_model = type(self)
-
-    # Find all the objects than need to be deleted.
-    collector = EverythingCollector(using=using)
-    collector.collect([self])
-
-    for model, objects in six.iteritems(collector.data):
-        # find all potential keys which match our type
-        fields = set(
-            f.name
-            for f in model._meta.fields
-            if isinstance(f, ForeignKey) and f.rel.to == s_model
-            if f.rel.to
-        )
-        if not fields:
-            # the collector pulls in the self reference, so if it's our model
-            # we actually assume it's probably not related to itself, and its
-            # perfectly ok
-            if model == s_model:
-                continue
-            raise TypeError("Unable to determine related keys on %r" % model)
-
-        for obj in objects:
-            send_signals = not model._meta.auto_created
-
-            # find fields which need changed
-            update_kwargs = {}
-            for f_name in fields:
-                if getattr(obj, f_name) == self:
-                    update_kwargs[f_name] = other
-
-            if not update_kwargs:
-                # as before, if we're referencing ourself, this is ok
-                if obj == self:
-                    continue
-                raise ValueError("Mismatched row present in related results")
-
-            signal_kwargs = {"sender": model, "instance": obj, "using": using, "migrated": True}
-
-            if send_signals:
-                pre_delete.send(**signal_kwargs)
-                post_delete.send(**signal_kwargs)
-
-            for k, v in six.iteritems(update_kwargs):
-                setattr(obj, k, v)
-
-            if send_signals:
-                pre_save.send(created=True, **signal_kwargs)
-
-            try:
-                with transaction.atomic(using=using):
-                    model.objects.using(using).filter(pk=obj.pk).update(**update_kwargs)
-            except IntegrityError:
-                # duplicate key exists, destroy the relations
-                model.objects.using(using).filter(pk=obj.pk).delete()
-
-            if send_signals:
-                post_save.send(created=True, **signal_kwargs)
-
-
 def bulk_delete_objects(
     model, limit=10000, transaction_id=None, logger=None, partition_key=None, **filters
 ):
@@ -298,29 +163,20 @@ def bulk_delete_objects(
         query.append("%s = %%s" % (quote_name(column),))
         params.append(value)
 
-    if db.is_postgres():
-        query = """
-            delete from %(table)s
-            where %(partition_query)s id = any(array(
-                select id
-                from %(table)s
-                where (%(query)s)
-                limit %(limit)d
-            ))
-        """ % dict(
-            partition_query=(" AND ".join(partition_query)) + (" AND " if partition_query else ""),
-            query=" AND ".join(query),
-            table=model._meta.db_table,
-            limit=limit,
-        )
-    else:
-        if logger is not None:
-            logger.warning("Using slow deletion strategy due to unknown database")
-        has_more = False
-        for obj in model.objects.filter(**filters)[:limit]:
-            obj.delete()
-            has_more = True
-        return has_more
+    query = """
+        delete from %(table)s
+        where %(partition_query)s id = any(array(
+            select id
+            from %(table)s
+            where (%(query)s)
+            limit %(limit)d
+        ))
+    """ % dict(
+        partition_query=(" AND ".join(partition_query)) + (" AND " if partition_query else ""),
+        query=" AND ".join(query),
+        table=model._meta.db_table,
+        limit=limit,
+    )
 
     cursor = connection.cursor()
     cursor.execute(query, params)
@@ -330,9 +186,7 @@ def bulk_delete_objects(
     if has_more and logger is not None and _leaf_re.search(model.__name__) is None:
         logger.info(
             "object.delete.bulk_executed",
-            extra=dict(
-                filters.items() + [("model", model.__name__), ("transaction_id", transaction_id)]
-            ),
+            extra=dict(filters, model=model.__name__, transaction_id=transaction_id),
         )
 
     return has_more

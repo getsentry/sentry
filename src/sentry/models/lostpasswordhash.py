@@ -71,6 +71,12 @@ class LostPasswordHash(Model):
 
     @classmethod
     def for_user(cls, user):
+        # NOTE(mattrobenolt): Some security people suggest we invalidate
+        # existing password hashes, but this opens up the possibility
+        # of a DoS vector where then password resets are continually
+        # requested, thus preventing someone from actually resetting
+        # their password.
+        # See: https://github.com/getsentry/sentry/pull/17299
         password_hash, created = cls.objects.get_or_create(user=user)
         if not password_hash.is_valid():
             password_hash.date_added = timezone.now()

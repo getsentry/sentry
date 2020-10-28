@@ -51,3 +51,9 @@ class GroupEventsLatestTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data["id"] == six.text_type(self.event2.event_id)
+
+    def test_simple(self):
+        url = u"/api/0/issues/{}/events/latest/".format(self.group.id)
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert response.data["eventID"] == six.text_type(self.event2.event_id)

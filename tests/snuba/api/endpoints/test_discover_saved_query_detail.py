@@ -45,7 +45,21 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == six.text_type(self.query_id)
-        assert response.data["projects"] == self.project_ids
+        assert set(response.data["projects"]) == set(self.project_ids)
+        assert response.data["fields"] == ["test"]
+        assert response.data["conditions"] == []
+        assert response.data["limit"] == 10
+
+    def test_get_discover_query_flag(self):
+        with self.feature("organizations:discover-query"):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(self.query_id)
+        assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == ["test"]
         assert response.data["conditions"] == []
         assert response.data["limit"] == 10
@@ -65,7 +79,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == six.text_type(model.id)
-        assert response.data["projects"] == self.project_ids
+        assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == ["event_id"]
         assert response.data["query"] == "event.type:error"
         assert response.data["limit"] == 10

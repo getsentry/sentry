@@ -8,15 +8,17 @@ import functools
 
 from django.utils.encoding import force_bytes
 
-from sentry.utils import metrics
-
 logger = logging.getLogger(__name__)
 
 
 class RetryException(Exception):
     def __init__(self, message, exception):
+        super(RetryException, self).__init__(message)
         self.message = message
         self.exception = exception
+
+    def __reduce__(self):
+        return RetryException, (self.message, self.exception)
 
     def __str__(self):
         return force_bytes(self.message, errors="replace")
@@ -57,7 +59,13 @@ class TimedRetryPolicy(RetryPolicy):
     """
 
     def __init__(
-        self, timeout, delay=None, exceptions=(Exception,), metric_instance=None, metric_tags=None
+        self,
+        timeout,
+        delay=None,
+        exceptions=(Exception,),
+        metric_instance=None,
+        metric_tags=None,
+        log_original_error=False,
     ):
         if delay is None:
             # 100ms +/- 50ms of randomized jitter
@@ -70,6 +78,7 @@ class TimedRetryPolicy(RetryPolicy):
         self.clock = time
         self.metric_instance = metric_instance
         self.metric_tags = metric_tags or {}
+        self.log_original_error = log_original_error
 
     def __call__(self, function):
         start = self.clock.time()
@@ -78,6 +87,8 @@ class TimedRetryPolicy(RetryPolicy):
                 try:
                     return function()
                 except self.exceptions as error:
+                    if self.log_original_error:
+                        logger.info(error)
                     delay = self.delay(i)
                     now = self.clock.time()
                     if (now + delay) > (start + self.timeout):
@@ -97,6 +108,8 @@ class TimedRetryPolicy(RetryPolicy):
                         self.clock.sleep(delay)
         finally:
             if self.metric_instance:
+                from sentry.utils import metrics
+
                 metrics.timing(
                     "timedretrypolicy.duration",
                     self.clock.time() - start,

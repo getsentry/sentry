@@ -1,13 +1,14 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import OrganizationCrumb from 'app/views/settings/components/settingsBreadcrumb/organizationCrumb';
 
 jest.unmock('app/utils/recreateRoute');
 
-describe('OrganizationCrumb', function() {
+describe('OrganizationCrumb', function () {
   const {organization, project, routerContext} = initializeOrg();
   const organizations = [
     organization,
@@ -21,14 +22,11 @@ describe('OrganizationCrumb', function() {
     wrapper.find('Crumb').simulate('mouseEnter');
     await tick();
     wrapper.update();
-    wrapper
-      .find('AutoCompleteItem')
-      .at(1)
-      .simulate('click');
+    wrapper.find('AutoCompleteItem').at(1).simulate('click');
   };
 
   const createWrapper = props =>
-    mount(
+    mountWithTheme(
       <OrganizationCrumb
         organizations={organizations}
         organization={organization}
@@ -38,11 +36,11 @@ describe('OrganizationCrumb', function() {
       routerContext
     );
 
-  beforeEach(function() {
+  beforeEach(function () {
     browserHistory.push.mockReset();
   });
 
-  it('switches organizations on settings index', async function() {
+  it('switches organizations on settings index', async function () {
     const routes = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
@@ -63,7 +61,7 @@ describe('OrganizationCrumb', function() {
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/');
   });
 
-  it('switches organizations while on API Keys Details route', async function() {
+  it('switches organizations while on API Keys Details route', async function () {
     const routes = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
@@ -87,7 +85,7 @@ describe('OrganizationCrumb', function() {
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/api-keys/');
   });
 
-  it('switches organizations while on API Keys List route', async function() {
+  it('switches organizations while on API Keys List route', async function () {
     const routes = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
@@ -110,7 +108,7 @@ describe('OrganizationCrumb', function() {
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/api-keys/');
   });
 
-  it('switches organizations while in Project Client Keys Details route', async function() {
+  it('switches organizations while in Project Client Keys Details route', async function () {
     const routes = [
       {path: '/', childRoutes: []},
       {path: '/settings/', name: 'Settings', childRoutes: []},

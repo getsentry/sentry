@@ -2,11 +2,10 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import message_filters
+from sentry.ingest import inbound_filters
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.auditlogentry import AuditLogEntryEvent
-import six
 
 
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
@@ -20,34 +19,28 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
 
         """
         current_filter = None
-        for flt in message_filters.get_all_filters():
-            if flt.spec.id == filter_id:
+        for flt in inbound_filters.get_all_filter_specs():
+            if flt.id == filter_id:
                 current_filter = flt
                 break
         else:
             raise ResourceDoesNotExist  # could not find filter with the requested id
 
-        serializer = current_filter.spec.serializer_cls(data=request.data, partial=True)
+        serializer = current_filter.serializer_cls(data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        current_state = message_filters.get_filter_state(filter_id, project)
+        current_state = inbound_filters.get_filter_state(filter_id, project)
 
-        new_state = message_filters.set_filter_state(filter_id, project, serializer.validated_data)
+        new_state = inbound_filters.set_filter_state(filter_id, project, serializer.validated_data)
         audit_log_state = AuditLogEntryEvent.PROJECT_ENABLE
 
         if filter_id == "legacy-browsers":
-            if (
-                isinstance(current_state, bool)
-                or new_state == 0
-                or isinstance(new_state, six.binary_type)
-            ):
+            if isinstance(current_state, bool) or isinstance(new_state, bool):
                 returned_state = new_state
-
-                if isinstance(new_state, six.binary_type):
+                if not new_state:
                     audit_log_state = AuditLogEntryEvent.PROJECT_DISABLE
-                    returned_state = current_state
 
             elif current_state - new_state:
                 returned_state = current_state - new_state

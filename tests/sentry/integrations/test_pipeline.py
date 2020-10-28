@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.models import IdentityProvider, Identity, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 from sentry.integrations.example import ExampleIntegrationProvider, AliasedIntegrationProvider
 from sentry.models import Repository
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 
 

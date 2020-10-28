@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
+from datetime import datetime
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from mock import patch
 import pytz
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
+current_time = datetime.utcnow().replace(tzinfo=pytz.utc)
 
 
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
@@ -19,7 +22,8 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
         self.path = u"/settings/{}/projects/{}/tags/".format(self.org.slug, self.project.slug)
 
-    def test_tags_list(self):
+    @patch("django.utils.timezone.now", return_value=current_time)
+    def test_tags_list(self, mock_timezone):
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -35,10 +39,10 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_not(".loading-indicator")
         self.browser.snapshot("project settings - tags")
 
-        self.browser.wait_until(".ref-tag-row")
-        self.browser.click('.ref-tag-row [data-test-id="delete"]')
+        self.browser.wait_until_test_id("tag-row")
+        self.browser.click('[data-test-id="tag-row"] [data-test-id="delete"]')
         self.browser.wait_until('.modal-footer [data-test-id="confirm-button"]')
 
         self.browser.click('.modal-footer [data-test-id="confirm-button"]')
-        self.browser.wait_until_not(".ref-tag-row")
+        self.browser.wait_until_not('[data-test-id="tag-row"]')
         self.browser.snapshot("project settings - tags - after remove")

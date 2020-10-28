@@ -3,6 +3,7 @@ import React from 'react';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
+import {Scope} from 'app/types';
 
 import {FieldObject, JsonFormObject} from './type';
 
@@ -10,16 +11,15 @@ type Props = {
   /**
    * Panel title
    */
-  title?: string;
+  title?: React.ReactNode;
 
   /**
    * List of fields to render
    */
   fields: FieldObject[];
 
-  // TODO(ts): See if this is still in use
-  access: any;
-  features: any;
+  access?: Set<Scope>;
+  features?: Record<string, any>;
 
   additionalFieldProps: {[key: string]: any};
 
@@ -58,7 +58,7 @@ export default class FormPanel extends React.Component<Props> {
     } = this.props;
 
     return (
-      <Panel key={title} id={sanitizeQuerySelector(title)}>
+      <Panel id={typeof title === 'string' ? sanitizeQuerySelector(title) : undefined}>
         {title && <PanelHeader>{title}</PanelHeader>}
         <PanelBody>
           {typeof renderHeader === 'function' && renderHeader({title, fields})}
@@ -68,8 +68,7 @@ export default class FormPanel extends React.Component<Props> {
               return field();
             }
 
-            // eslint-disable-next-line no-unused-vars
-            const {defaultValue, ...fieldWithoutDefaultValue} = field;
+            const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
 
             // Allow the form panel disabled prop to override the fields
             // disabled prop, with fallback to the fields disabled state.

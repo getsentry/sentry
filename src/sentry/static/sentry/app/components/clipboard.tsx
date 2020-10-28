@@ -3,17 +3,20 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import IndicatorStore from 'app/stores/indicatorStore';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+
+type DefaultProps = {
+  successMessage: string;
+  errorMessage: string;
+  hideMessages: boolean;
+};
 
 type Props = {
   value: string;
-  successMessage: string;
-  errorMessage: string;
-  hideMessages: string;
-  hideUnsupported: boolean;
-  onSuccess: () => void;
-  onError: () => void;
-};
+  hideUnsupported?: boolean;
+  onSuccess?: () => void;
+  onError?: () => void;
+} & DefaultProps;
 
 class Clipboard extends React.Component<Props> {
   static propTypes = {
@@ -30,19 +33,19 @@ class Clipboard extends React.Component<Props> {
     onError: PropTypes.func,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     hideMessages: false,
     successMessage: 'Copied to clipboard',
     errorMessage: 'Error copying to clipboard',
   };
-
-  clipboard!: ClipboardJS;
 
   componentWillUnmount() {
     if (this.clipboard) {
       this.clipboard.destroy();
     }
   }
+
+  clipboard!: ClipboardJS;
 
   handleMount = (ref: HTMLElement) => {
     if (!ref) {
@@ -54,6 +57,7 @@ class Clipboard extends React.Component<Props> {
     const hasErrorCb = typeof onError === 'function';
     const bindEventHandlers = !hideMessages || hasSuccessCb || hasErrorCb;
 
+    // eslint-disable-next-line react/no-find-dom-node
     this.clipboard = new Clip(ReactDOM.findDOMNode(ref) as Element, {
       text: () => this.props.value,
     });
@@ -65,17 +69,17 @@ class Clipboard extends React.Component<Props> {
     this.clipboard
       .on('success', () => {
         if (!hideMessages) {
-          IndicatorStore.add(successMessage, 'success', {duration: 2000});
+          addSuccessMessage(successMessage);
         }
-        if (hasSuccessCb) {
+        if (onSuccess && hasSuccessCb) {
           onSuccess();
         }
       })
       .on('error', () => {
         if (!hideMessages) {
-          IndicatorStore.add(errorMessage, 'error', {duration: 2000});
+          addErrorMessage(errorMessage);
         }
-        if (hasErrorCb) {
+        if (onError && hasErrorCb) {
           onError();
         }
       });

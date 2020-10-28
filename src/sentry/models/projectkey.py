@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from six.moves.urllib.parse import urlparse
 
-from sentry import options
+from sentry import options, features
 from sentry.db.models import (
     Model,
     BaseManager,
@@ -23,6 +23,7 @@ from sentry.db.models import (
     JSONField,
     sane_repr,
 )
+from sentry.tasks.relay import schedule_update_config_cache
 
 _uuid4_re = re.compile(r"^[a-f0-9]{32}$")
 
@@ -32,6 +33,18 @@ _uuid4_re = re.compile(r"^[a-f0-9]{32}$")
 class ProjectKeyStatus(object):
     ACTIVE = 0
     INACTIVE = 1
+
+
+class ProjectKeyManager(BaseManager):
+    def post_save(self, instance, **kwargs):
+        schedule_update_config_cache(
+            project_id=instance.project_id, generate=True, update_reason="projectkey.post_save"
+        )
+
+    def post_delete(self, instance, **kwargs):
+        schedule_update_config_cache(
+            project_id=instance.project_id, generate=True, update_reason="projectkey.post_delete"
+        )
 
 
 class ProjectKey(Model):
@@ -44,9 +57,9 @@ class ProjectKey(Model):
     roles = BitField(
         flags=(
             # access to post events to the store endpoint
-            ("store", "Event API access"),
+            (u"store", u"Event API access"),
             # read/write access to rest API
-            ("api", "Web API access"),
+            (u"api", u"Web API access"),
         ),
         default=["store"],
     )
@@ -63,7 +76,12 @@ class ProjectKey(Model):
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
-    objects = BaseManager(cache_fields=("public_key", "secret_key"))
+    objects = ProjectKeyManager(
+        cache_fields=("public_key", "secret_key"),
+        # store projectkeys in memcached for longer than other models,
+        # specifically to make the relay_projectconfig endpoint faster.
+        cache_ttl=60 * 30,
+    )
 
     data = JSONField()
 
@@ -138,17 +156,12 @@ class ProjectKey(Model):
         super(ProjectKey, self).save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
+        urlparts = urlparse(self.get_endpoint(public=public))
+
         if not public:
             key = "%s:%s" % (self.public_key, self.secret_key)
-            url = settings.SENTRY_ENDPOINT
         else:
             key = self.public_key
-            url = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-
-        if url:
-            urlparts = urlparse(url)
-        else:
-            urlparts = urlparse(options.get("system.url-prefix"))
 
         # If we do not have a scheme or domain/hostname, dsn is never valid
         if not urlparts.netloc or not urlparts.scheme:
@@ -181,37 +194,23 @@ class ProjectKey(Model):
     def csp_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s%s?sentry_key=%s" % (
-            endpoint,
-            reverse("sentry-api-csp-report", args=[self.project_id]),
-            self.public_key,
-        )
+        return "%s/api/%s/csp-report/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
 
     @property
     def security_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s%s?sentry_key=%s" % (
-            endpoint,
-            reverse("sentry-api-security-report", args=[self.project_id]),
-            self.public_key,
-        )
+        return "%s/api/%s/security/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
 
     @property
     def minidump_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s%s/?sentry_key=%s" % (
-            endpoint,
-            reverse("sentry-api-minidump", args=[self.project_id]),
-            self.public_key,
-        )
+        return "%s/api/%s/minidump/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
 
     @property
     def unreal_endpoint(self):
-        return self.get_endpoint() + reverse(
-            "sentry-api-unreal", args=[self.project_id, self.public_key]
-        )
+        return "%s/api/%s/unreal/%s/" % (self.get_endpoint(), self.project_id, self.public_key)
 
     @property
     def js_sdk_loader_cdn_url(self):
@@ -224,10 +223,27 @@ class ProjectKey(Model):
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
             )
 
-    def get_endpoint(self):
-        endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
+    def get_endpoint(self, public=True):
+        if public:
+            endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
+        else:
+            endpoint = settings.SENTRY_ENDPOINT
+
         if not endpoint:
             endpoint = options.get("system.url-prefix")
+
+        if features.has("organizations:org-subdomains", self.project.organization):
+            urlparts = urlparse(endpoint)
+            if urlparts.scheme and urlparts.netloc:
+                endpoint = "%s://%s.%s%s" % (
+                    urlparts.scheme,
+                    settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(
+                        organization_id=self.project.organization_id
+                    ),
+                    urlparts.netloc,
+                    urlparts.path,
+                )
+
         return endpoint
 
     def get_allowed_origins(self):

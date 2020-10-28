@@ -1,0 +1,186 @@
+---
+created: '2020-08-21T21:07:51.828140Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","<::log::macros::log macros>"],["function","actix_web::pipeline::ProcessResponse<T>::poll_io"]],[["filename","lib.rs"],["function","log::__private_api_log"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","acceptor.rs"],["function","actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll"]],[["filename","and_then.rs"],["function","actix_net::service::and_then::AndThenFuture<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","and_then.rs"],["function","actix_net::service::and_then::AndThenFuture<T>::poll"]],[["filename","map_err.rs"],["function","actix_net::service::map_err::MapErrFuture<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","arbiter.rs"],["function","actix::arbiter::Arbiter::new_with_builder::{{closure}}"]],[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::block_on"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","backtrace.rs"],["function","std::sys_common::backtrace::__rust_begin_short_backtrace"]],[["filename","arbiter.rs"],["function","actix::arbiter::Arbiter::new_with_builder::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","boxed.rs"],["function","alloc::boxed::FnBox<T>::call_box"]],[["filename","mod.rs"],["function","std::thread::Builder::spawn_unchecked::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","chain.rs"],["function","futures::future::chain::Chain<T>::poll"]],[["filename","either.rs"],["function","futures::future::either::Either<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","channel.rs"],["function","actix_web::server::channel::HttpChannel<T>::poll"]],[["filename","channel.rs"],["function","actix_web::server::channel::HttpChannel<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","channel.rs"],["function","actix_web::server::channel::HttpChannel<T>::poll"]],[["filename","h1.rs"],["function","actix_web::server::h1::Http1Dispatcher<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","clock.rs"],["function","tokio_timer::clock::clock::with_default"]],[["filename","clock.rs"],["function","tokio_timer::clock::clock::with_default::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","clock.rs"],["function","tokio_timer::clock::clock::with_default"]],[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::with"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","clock.rs"],["function","tokio_timer::clock::clock::with_default::{{closure}}"]],[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","either.rs"],["function","futures::future::either::Either<T>::poll"]],[["filename","acceptor.rs"],["function","actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","global.rs"],["function","tokio_executor::global::with_default"]],[["filename","global.rs"],["function","tokio_executor::global::with_default::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","global.rs"],["function","tokio_executor::global::with_default"]],[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::with"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","global.rs"],["function","tokio_executor::global::with_default::{{closure}}"]],[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","h1.rs"],["function","actix_web::server::h1::Http1Dispatcher<T>::parse"]],[["filename","pipeline.rs"],["function","actix_web::pipeline::Pipeline<T>::poll_io"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","h1.rs"],["function","actix_web::server::h1::Http1Dispatcher<T>::poll"]],[["filename","h1.rs"],["function","actix_web::server::h1::Http1Dispatcher<T>::poll_handler"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","h1.rs"],["function","actix_web::server::h1::Http1Dispatcher<T>::poll_handler"]],[["filename","h1.rs"],["function","actix_web::server::h1::Http1Dispatcher<T>::poll_io"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","h1.rs"],["function","actix_web::server::h1::Http1Dispatcher<T>::poll_io"]],[["filename","h1.rs"],["function","actix_web::server::h1::Http1Dispatcher<T>::parse"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","handle.rs"],["function","tokio_timer::timer::handle::with_default"]],[["filename","handle.rs"],["function","tokio_timer::timer::handle::with_default::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","handle.rs"],["function","tokio_timer::timer::handle::with_default"]],[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::with"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","handle.rs"],["function","tokio_timer::timer::handle::with_default::{{closure}}"]],[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","hub.rs"],["function","sentry::hub::Hub::with"]],[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::with"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","hub.rs"],["function","sentry::hub::Hub::with::{{closure}}"]],[["filename","hub.rs"],["function","sentry::hub::Hub::with_active::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","hub.rs"],["function","sentry::hub::Hub::with_active"]],[["filename","hub.rs"],["function","sentry::hub::Hub::with"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","___rust_maybe_catch_panic"]],[["filename","arbiter.rs"],["function","actix::arbiter::Arbiter::new_with_builder::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","___rust_maybe_catch_panic"]],[["filename","panicking.rs"],["function","std::panicking::try::do_call"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","log::__private_api_log"]],[["filename","log.rs"],["function","sentry::integrations::log::Logger::log"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","tokio_current_thread::Borrow<T>::enter"]],[["filename","lib.rs"],["function","tokio_current_thread::Borrow<T>::enter::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","tokio_current_thread::Borrow<T>::enter"]],[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::with"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","tokio_current_thread::Borrow<T>::enter::{{closure}}"]],[["filename","lib.rs"],["function","tokio_current_thread::CurrentRunner::set_spawn"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}}"]],[["filename","scheduler.rs"],["function","tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","tokio_current_thread::CurrentRunner::set_spawn"]],[["filename","lib.rs"],["function","tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","tokio_current_thread::Entered<T>::block_on"]],[["filename","lib.rs"],["function","tokio_current_thread::Entered<T>::tick"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","tokio_current_thread::Entered<T>::tick"]],[["filename","scheduler.rs"],["function","tokio_current_thread::scheduler::Scheduler<T>::tick"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","tokio_reactor::with_default"]],[["filename","lib.rs"],["function","tokio_reactor::with_default::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","tokio_reactor::with_default"]],[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::with"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","tokio_reactor::with_default::{{closure}}"]],[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::try_with"]],[["filename","clock.rs"],["function","tokio_timer::clock::clock::with_default::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::try_with"]],[["filename","global.rs"],["function","tokio_executor::global::with_default::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::try_with"]],[["filename","handle.rs"],["function","tokio_timer::timer::handle::with_default::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::try_with"]],[["filename","hub.rs"],["function","sentry::hub::Hub::with::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::try_with"]],[["filename","lib.rs"],["function","tokio_current_thread::Borrow<T>::enter::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::try_with"]],[["filename","lib.rs"],["function","tokio_reactor::with_default::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::with"]],[["filename","local.rs"],["function","std::thread::local::LocalKey<T>::try_with"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","log.rs"],["function","sentry::integrations::log::Logger::log"]],[["filename","hub.rs"],["function","sentry::hub::Hub::with_active"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","map_err.rs"],["function","actix_net::service::map_err::MapErrFuture<T>::poll"]],[["filename","channel.rs"],["function","actix_web::server::channel::HttpChannel<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mod.rs"],["function","alloc::boxed::Box<T>::poll"]],[["filename","then.rs"],["function","futures::future::then::Then<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::enter"]],[["filename","mod.rs"],["function","futures::task_impl::std::set"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::enter::{{closure}}"]],[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::poll_fn_notify"]],[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::enter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::poll_future_notify"]],[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::poll_fn_notify"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}"]],[["filename","mod.rs"],["function","alloc::boxed::Box<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}"]],[["filename","then.rs"],["function","futures::future::then::Then<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mod.rs"],["function","futures::task_impl::std::set"]],[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::enter::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mod.rs"],["function","std::thread::Builder::spawn_unchecked::{{closure}}"]],[["filename","panic.rs"],["function","std::panic::catch_unwind"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mod.rs"],["function","std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"]],[["filename","backtrace.rs"],["function","std::sys_common::backtrace::__rust_begin_short_backtrace"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","panic.rs"],["function","std::panic::AssertUnwindSafe<T>::call_once"]],[["filename","mod.rs"],["function","std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","panic.rs"],["function","std::panic::catch_unwind"]],[["filename","panicking.rs"],["function","std::panicking::try"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","panicking.rs"],["function","std::panicking::try"]],[["filename","lib.rs"],["function","___rust_maybe_catch_panic"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","panicking.rs"],["function","std::panicking::try::do_call"]],[["filename","panic.rs"],["function","std::panic::AssertUnwindSafe<T>::call_once"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","pipeline.rs"],["function","actix_web::pipeline::Pipeline<T>::poll_io"]],[["filename","<::log::macros::log macros>"],["function","actix_web::pipeline::ProcessResponse<T>::poll_io"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::block_on"]],[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::enter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"]],[["filename","lib.rs"],["function","tokio_current_thread::Entered<T>::block_on"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::enter"]],[["filename","lib.rs"],["function","tokio_reactor::with_default"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"]],[["filename","clock.rs"],["function","tokio_timer::clock::clock::with_default"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"]],[["filename","handle.rs"],["function","tokio_timer::timer::handle::with_default"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"]],[["filename","global.rs"],["function","tokio_executor::global::with_default"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"]],[["filename","runtime.rs"],["function","tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","scheduler.rs"],["function","tokio_current_thread::scheduler::Scheduled<T>::tick"]],[["filename","mod.rs"],["function","futures::task_impl::Spawn<T>::poll_future_notify"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","scheduler.rs"],["function","tokio_current_thread::scheduler::Scheduler<T>::tick"]],[["filename","lib.rs"],["function","tokio_current_thread::Borrow<T>::enter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","scheduler.rs"],["function","tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}}"]],[["filename","scheduler.rs"],["function","tokio_current_thread::scheduler::Scheduled<T>::tick"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","then.rs"],["function","futures::future::then::Then<T>::poll"]],[["filename","chain.rs"],["function","futures::future::chain::Chain<T>::poll"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","thread.rs"],["function","std::sys::unix::thread::Thread::new::thread_start"]],[["filename","boxed.rs"],["function","alloc::boxed::FnBox<T>::call_box"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__pthread_body"]],[["filename","lib.rs"],["function","___rust_maybe_catch_panic"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__pthread_body"]],[["filename","thread.rs"],["function","std::sys::unix::thread::Thread::new::thread_start"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__pthread_start"]],[["function","__pthread_body"]]]
+similarity:2020-07-23:type:ident-shingle: "actix_web::pipeline"
+similarity:2020-07-23:value:character-5-shingle: " <int"
+similarity:2020-07-23:value:character-5-shingle: " Erro"
+similarity:2020-07-23:value:character-5-shingle: " Inte"
+similarity:2020-07-23:value:character-5-shingle: " Serv"
+similarity:2020-07-23:value:character-5-shingle: " Some"
+similarity:2020-07-23:value:character-5-shingle: " duri"
+similarity:2020-07-23:value:character-5-shingle: " hand"
+similarity:2020-07-23:value:character-5-shingle: " here"
+similarity:2020-07-23:value:character-5-shingle: " occu"
+similarity:2020-07-23:value:character-5-shingle: " real"
+similarity:2020-07-23:value:character-5-shingle: " requ"
+similarity:2020-07-23:value:character-5-shingle: " stat"
+similarity:2020-07-23:value:character-5-shingle: " went"
+similarity:2020-07-23:value:character-5-shingle: " wron"
+similarity:2020-07-23:value:character-5-shingle: ", sta"
+similarity:2020-07-23:value:character-5-shingle: ": <in"
+similarity:2020-07-23:value:character-5-shingle: "<int>"
+similarity:2020-07-23:value:character-5-shingle: "> Int"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "Inter"
+similarity:2020-07-23:value:character-5-shingle: "Serve"
+similarity:2020-07-23:value:character-5-shingle: "Somet"
+similarity:2020-07-23:value:character-5-shingle: "al Se"
+similarity:2020-07-23:value:character-5-shingle: "ally "
+similarity:2020-07-23:value:character-5-shingle: "andli"
+similarity:2020-07-23:value:character-5-shingle: "atus:"
+similarity:2020-07-23:value:character-5-shingle: "ccurr"
+similarity:2020-07-23:value:character-5-shingle: "curre"
+similarity:2020-07-23:value:character-5-shingle: "d dur"
+similarity:2020-07-23:value:character-5-shingle: "dling"
+similarity:2020-07-23:value:character-5-shingle: "durin"
+similarity:2020-07-23:value:character-5-shingle: "eally"
+similarity:2020-07-23:value:character-5-shingle: "ed du"
+similarity:2020-07-23:value:character-5-shingle: "ent r"
+similarity:2020-07-23:value:character-5-shingle: "eques"
+similarity:2020-07-23:value:character-5-shingle: "er Er"
+similarity:2020-07-23:value:character-5-shingle: "ernal"
+similarity:2020-07-23:value:character-5-shingle: "erver"
+similarity:2020-07-23:value:character-5-shingle: "est h"
+similarity:2020-07-23:value:character-5-shingle: "ethin"
+similarity:2020-07-23:value:character-5-shingle: "g her"
+similarity:2020-07-23:value:character-5-shingle: "g req"
+similarity:2020-07-23:value:character-5-shingle: "g wen"
+similarity:2020-07-23:value:character-5-shingle: "g, st"
+similarity:2020-07-23:value:character-5-shingle: "handl"
+similarity:2020-07-23:value:character-5-shingle: "hing "
+similarity:2020-07-23:value:character-5-shingle: "ing r"
+similarity:2020-07-23:value:character-5-shingle: "ing w"
+similarity:2020-07-23:value:character-5-shingle: "ing, "
+similarity:2020-07-23:value:character-5-shingle: "int> "
+similarity:2020-07-23:value:character-5-shingle: "l Ser"
+similarity:2020-07-23:value:character-5-shingle: "ling,"
+similarity:2020-07-23:value:character-5-shingle: "lly w"
+similarity:2020-07-23:value:character-5-shingle: "ly wr"
+similarity:2020-07-23:value:character-5-shingle: "methi"
+similarity:2020-07-23:value:character-5-shingle: "nal S"
+similarity:2020-07-23:value:character-5-shingle: "ndlin"
+similarity:2020-07-23:value:character-5-shingle: "ng he"
+similarity:2020-07-23:value:character-5-shingle: "ng re"
+similarity:2020-07-23:value:character-5-shingle: "ng we"
+similarity:2020-07-23:value:character-5-shingle: "ng, s"
+similarity:2020-07-23:value:character-5-shingle: "nt re"
+similarity:2020-07-23:value:character-5-shingle: "nt> I"
+similarity:2020-07-23:value:character-5-shingle: "ntern"
+similarity:2020-07-23:value:character-5-shingle: "occur"
+similarity:2020-07-23:value:character-5-shingle: "ometh"
+similarity:2020-07-23:value:character-5-shingle: "ong h"
+similarity:2020-07-23:value:character-5-shingle: "or So"
+similarity:2020-07-23:value:character-5-shingle: "or oc"
+similarity:2020-07-23:value:character-5-shingle: "quest"
+similarity:2020-07-23:value:character-5-shingle: "r Err"
+similarity:2020-07-23:value:character-5-shingle: "r Som"
+similarity:2020-07-23:value:character-5-shingle: "r occ"
+similarity:2020-07-23:value:character-5-shingle: "reall"
+similarity:2020-07-23:value:character-5-shingle: "red d"
+similarity:2020-07-23:value:character-5-shingle: "reque"
+similarity:2020-07-23:value:character-5-shingle: "ring "
+similarity:2020-07-23:value:character-5-shingle: "rnal "
+similarity:2020-07-23:value:character-5-shingle: "rong "
+similarity:2020-07-23:value:character-5-shingle: "ror S"
+similarity:2020-07-23:value:character-5-shingle: "ror o"
+similarity:2020-07-23:value:character-5-shingle: "rred "
+similarity:2020-07-23:value:character-5-shingle: "rror "
+similarity:2020-07-23:value:character-5-shingle: "rver "
+similarity:2020-07-23:value:character-5-shingle: "s: <i"
+similarity:2020-07-23:value:character-5-shingle: "st ha"
+similarity:2020-07-23:value:character-5-shingle: "statu"
+similarity:2020-07-23:value:character-5-shingle: "t han"
+similarity:2020-07-23:value:character-5-shingle: "t rea"
+similarity:2020-07-23:value:character-5-shingle: "t> In"
+similarity:2020-07-23:value:character-5-shingle: "tatus"
+similarity:2020-07-23:value:character-5-shingle: "terna"
+similarity:2020-07-23:value:character-5-shingle: "thing"
+similarity:2020-07-23:value:character-5-shingle: "tus: "
+similarity:2020-07-23:value:character-5-shingle: "uest "
+similarity:2020-07-23:value:character-5-shingle: "uring"
+similarity:2020-07-23:value:character-5-shingle: "urred"
+similarity:2020-07-23:value:character-5-shingle: "us: <"
+similarity:2020-07-23:value:character-5-shingle: "ver E"
+similarity:2020-07-23:value:character-5-shingle: "went "
+similarity:2020-07-23:value:character-5-shingle: "wrong"
+similarity:2020-07-23:value:character-5-shingle: "y wro"

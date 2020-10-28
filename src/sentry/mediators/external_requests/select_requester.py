@@ -5,10 +5,10 @@ import logging
 from uuid import uuid4
 
 from six.moves.urllib.parse import urlparse, urlencode, urlunparse
-from sentry.http import safe_urlopen, safe_urlread
+from sentry.http import safe_urlread
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param
-from sentry.mediators.external_requests.util import validate
+from sentry.mediators.external_requests.util import validate, send_and_save_sentry_app_request
 from sentry.utils import json
 from sentry.utils.cache import memoize
 
@@ -29,6 +29,7 @@ class SelectRequester(Mediator):
     project = Param("sentry.models.Project", required=False)
     uri = Param(six.string_types)
     query = Param(six.string_types, required=False)
+    dependent_data = Param(six.string_types, required=False)
 
     def call(self):
         return self._make_request()
@@ -45,12 +46,23 @@ class SelectRequester(Mediator):
         if self.query:
             query["query"] = self.query
 
+        if self.dependent_data:
+            query["dependentData"] = self.dependent_data
+
         urlparts[4] = urlencode(query)
         return urlunparse(urlparts)
 
     def _make_request(self):
         try:
-            body = safe_urlread(safe_urlopen(url=self._build_url(), headers=self._build_headers()))
+            body = safe_urlread(
+                send_and_save_sentry_app_request(
+                    self._build_url(),
+                    self.sentry_app,
+                    self.install.organization_id,
+                    "select_options.requested",
+                    headers=self._build_headers(),
+                )
+            )
 
             response = json.loads(body)
         except Exception as e:
@@ -61,7 +73,7 @@ class SelectRequester(Mediator):
                     "install": self.install.uuid,
                     "project": self.project and self.project.slug,
                     "uri": self.uri,
-                    "error_message": e.message,
+                    "error_message": six.text_type(e),
                 },
             )
             response = {}

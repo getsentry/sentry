@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import qs from 'query-string';
-import styled from 'react-emotion';
+import * as qs from 'query-string';
+import styled from '@emotion/styled';
 
 import LetterAvatar from 'app/components/letterAvatar';
 import Tooltip from 'app/components/tooltip';
@@ -14,6 +14,30 @@ const DEFAULT_GRAVATAR_SIZE = 64;
 const ALLOWED_SIZES = [20, 32, 36, 48, 52, 64, 80, 96, 120];
 const DEFAULT_REMOTE_SIZE = 120;
 
+const defaultProps = {
+  // No default size to ease transition from CSS defined sizes
+  // size: 64,
+  style: {},
+  /**
+   * Enable to display tooltips.
+   */
+  hasTooltip: false,
+  /**
+   * The type of avatar being rendered.
+   */
+  type: 'letter_avatar',
+  /**
+   * Path to uploaded avatar (differs based on model type)
+   */
+  uploadPath: 'avatar',
+  /**
+   * Should avatar be round instead of a square
+   */
+  round: false,
+};
+
+type DefaultProps = Readonly<typeof defaultProps>;
+
 type Props = {
   size?: number;
   /**
@@ -24,38 +48,27 @@ type Props = {
    * Default gravatar to display
    */
   default?: string;
-  /**
-   * Enable to display tooltips.
-   */
-  hasTooltip?: boolean;
-  /**
-   * The type of avatar being rendered.
-   */
-  type?: string;
-  /**
-   * Path to uploaded avatar (differs based on model type)
-   */
   uploadPath?: 'avatar' | 'team-avatar' | 'organization-avatar' | 'project-avatar';
-  uploadId?: string;
+  uploadId?: string | null | undefined;
   gravatarId?: string;
   letterId?: string;
   title?: string;
   /**
    * The content for the tooltip. Requires hasTooltip to display
    */
-  tooltip?: Pick<Tooltip['props'], 'title'>;
+  tooltip?: React.ReactNode;
   /**
    * Additional props for the tooltip
    */
   tooltipOptions?: Tooltip['props'];
-  /**
-   * Should avatar be round instead of a square
-   */
-  round: boolean;
 
   className?: string;
-  style: React.CSSProperties;
-};
+
+  forwardedRef?: React.Ref<HTMLSpanElement>;
+
+  style?: React.CSSProperties;
+} & Partial<DefaultProps> &
+  React.HTMLAttributes<HTMLSpanElement>;
 
 type State = {
   showBackupAvatar: boolean;
@@ -109,15 +122,7 @@ class BaseAvatar extends React.Component<Props, State> {
     round: PropTypes.bool,
   };
 
-  static defaultProps = {
-    // No default size to ease transition from CSS defined sizes
-    // size: 64,
-    style: {},
-    hasTooltip: false,
-    type: 'letter_avatar',
-    uploadPath: 'avatar',
-    round: false,
-  };
+  static defaultProps = defaultProps;
 
   constructor(props: Props) {
     super(props);
@@ -202,6 +207,8 @@ class BaseAvatar extends React.Component<Props, State> {
       size,
       tooltip,
       tooltipOptions,
+      forwardedRef,
+      ...props
     } = this.props;
     let sizeStyle = {};
 
@@ -215,13 +222,15 @@ class BaseAvatar extends React.Component<Props, State> {
     return (
       <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
         <StyledBaseAvatar
+          ref={forwardedRef}
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
-          round={round}
+          round={!!round}
           style={{
             ...sizeStyle,
             ...style,
           }}
+          {...props}
         >
           {this.state.showBackupAvatar && this.renderLetterAvatar()}
           {this.renderImg()}

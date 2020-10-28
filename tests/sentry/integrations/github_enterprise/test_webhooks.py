@@ -16,7 +16,7 @@ from .testutils import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
 )
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 
 class WebhookTest(APITestCase):
@@ -107,7 +107,7 @@ class PushEventWebhookTest(APITestCase):
     @patch("sentry.integrations.github_enterprise.client.get_jwt")
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_simple(self, mock_get_installation_metadata, mock_get_jwt):
-        mock_get_jwt.return_value = ""
+        mock_get_jwt.return_value = b""
 
         project = self.project  # force creation
 
@@ -257,7 +257,7 @@ class PushEventWebhookTest(APITestCase):
     @patch("sentry.integrations.github_enterprise.client.get_jwt")
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_multiple_orgs(self, mock_get_installation_metadata, mock_get_jwt):
-        mock_get_jwt.return_value = ""
+        mock_get_jwt.return_value = b""
 
         project = self.project  # force creation
 

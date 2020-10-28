@@ -58,28 +58,7 @@ class TagStorage(Service):
             "get_tag_value_paginator_for_projects",
             "get_group_tag_value_iter",
             "get_group_tag_value_qs",
-        ]
-    )
-
-    __write_methods__ = frozenset(
-        [
-            "create_tag_key",
-            "get_or_create_tag_key",
-            "create_tag_value",
-            "get_or_create_tag_value",
-            "create_group_tag_key",
-            "get_or_create_group_tag_key",
-            "create_group_tag_value",
-            "get_or_create_group_tag_value",
-            "create_event_tags",
-            "delete_tag_key",
-            "delete_all_group_tag_keys",
-            "delete_all_group_tag_values",
-            "incr_tag_value_times_seen",
-            "incr_group_tag_value_times_seen",
-            "update_group_tag_key_values_seen",
-            "update_group_for_events",
-            "delay_index_event_tags",
+            "get_group_seen_values_for_environments",
         ]
     )
 
@@ -96,7 +75,6 @@ class TagStorage(Service):
             ]
         )
         | __read_methods__
-        | __write_methods__
     )
 
     def setup_merge(self, grouptagkey_model, grouptagvalue_model):
@@ -129,7 +107,7 @@ class TagStorage(Service):
     def get_tag_value_label(self, key, value):
         label = value
 
-        if key == "sentry:user":
+        if key == "sentry:user" and value:
             if value.startswith("id:"):
                 label = value[len("id:") :]
             elif value.startswith("email:"):
@@ -140,64 +118,6 @@ class TagStorage(Service):
                 label = value[len("ip:") :]
 
         return label
-
-    def create_tag_key(self, project_id, environment_id, key, **kwargs):
-        """
-        >>> create_tag_key(1, 2, "key1")
-        """
-        raise NotImplementedError
-
-    def get_or_create_tag_key(self, project_id, environment_id, key, **kwargs):
-        """
-        >>> get_or_create_tag_key(1, 2, "key1")
-        """
-        raise NotImplementedError
-
-    def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
-        """
-        >>> create_tag_key(1, 2, "key1", "value1")
-        """
-        raise NotImplementedError
-
-    def get_or_create_tag_value(self, project_id, environment_id, key, value, **kwargs):
-        """
-        >>> get_or_create_tag_key(1, 2, "key1", "value1")
-        """
-        raise NotImplementedError
-
-    def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
-        """
-        >>> create_group_tag_key(1, 2, 3, "key1")
-        """
-        raise NotImplementedError
-
-    def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
-        """
-        >>> get_or_create_group_tag_key(1, 2, 3, "key1")
-        """
-        raise NotImplementedError
-
-    def create_group_tag_value(self, project_id, group_id, environment_id, key, value, **kwargs):
-        """
-        >>> create_group_tag_value(1, 2, 3, "key1", "value1")
-        """
-        raise NotImplementedError
-
-    def get_or_create_group_tag_value(
-        self, project_id, group_id, environment_id, key, value, **kwargs
-    ):
-        """
-        >>> get_or_create_group_tag_value(1, 2, 3, "key1", "value1")
-        """
-        raise NotImplementedError
-
-    def create_event_tags(
-        self, project_id, group_id, environment_id, event_id, tags, date_added=None
-    ):
-        """
-        >>> create_event_tags(1, 2, 3, 4, [('foo', 'bar'), ('baz', 'qux')])
-        """
-        raise NotImplementedError
 
     @raises([TagKeyNotFound])
     def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
@@ -267,40 +187,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def delete_tag_key(self, project_id, key):
-        """
-        >>> delete_tag_key(1, "key1")
-        """
-        raise NotImplementedError
-
-    def delete_all_group_tag_keys(self, project_id, group_id):
-        """
-        >>> delete_all_group_tag_keys(1, 2)
-        """
-        raise NotImplementedError
-
-    def delete_all_group_tag_values(self, project_id, group_id):
-        """
-        >>> delete_all_group_tag_values(1, 2)
-        """
-        raise NotImplementedError
-
-    def incr_tag_value_times_seen(
-        self, project_id, environment_id, key, value, extra=None, count=1
-    ):
-        """
-        >>> incr_tag_value_times_seen(1, 2, "key1", "value1")
-        """
-        raise NotImplementedError
-
-    def incr_group_tag_value_times_seen(
-        self, project_id, group_id, environment_id, key, value, extra=None, count=1
-    ):
-        """
-        >>> incr_group_tag_value_times_seen(1, 2, 3, "key1", "value1")
-        """
-        raise NotImplementedError
-
     def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
         """
         >>> get_group_event_filter(1, 2, 3, {'key1': 'value1', 'key2': 'value2'})
@@ -325,14 +211,16 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
+    def get_group_tag_value_iter(
+        self, project_id, group_id, environment_ids, key, callbacks=(), offset=0
+    ):
         """
         >>> get_group_tag_value_iter(1, 2, 3, 'environment')
         """
         raise NotImplementedError
 
     def get_group_tag_value_paginator(
-        self, project_id, group_id, environment_id, key, order_by="-id"
+        self, project_id, group_id, environment_ids, key, order_by="-id"
     ):
         """
         >>> get_group_tag_value_paginator(1, 2, 3, 'environment')
@@ -396,18 +284,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def update_group_for_events(self, project_id, event_ids, destination_id):
-        """
-        >>> update_group_for_events(1, [2, 3], 4)
-        """
-        raise NotImplementedError
-
-    def update_group_tag_key_values_seen(self, project_id, group_ids):
-        """
-        >>> update_group_tag_key_values_seen(1, [2, 3])
-        """
-        raise NotImplementedError
-
     def get_group_tag_keys_and_top_values(
         self,
         project_id,
@@ -437,7 +313,7 @@ class TagStorage(Service):
 
         return tag_keys
 
-    def delay_index_event_tags(
-        self, organization_id, project_id, group_id, environment_id, event_id, tags, date_added
+    def get_group_seen_values_for_environments(
+        self, project_ids, group_id_list, environment_ids, start=None, end=None
     ):
         raise NotImplementedError

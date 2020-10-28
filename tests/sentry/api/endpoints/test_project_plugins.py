@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase
-from mock import patch
+from sentry.utils.compat.mock import patch
+from sentry.utils.compat import filter
 
 
 class ProjectPluginsTest(APITestCase):
@@ -27,7 +28,7 @@ class ProjectPluginsTest(APITestCase):
         assert response.status_code == 200, (response.status_code, response.content)
         assert len(response.data) >= 9
 
-        auto_tag = response.data[0]
+        auto_tag = filter(lambda p: p["slug"] == "browsers", response.data)[0]
         assert auto_tag["name"] == "Auto Tag: Browsers"
         assert auto_tag["enabled"] is True
         assert auto_tag["isHidden"] is False
@@ -46,3 +47,5 @@ class ProjectPluginsTest(APITestCase):
         assert "slug" in plugin
         assert "type" in plugin
         assert "status" in plugin
+        assert "features" in plugin
+        assert "featureDescriptions" in plugin

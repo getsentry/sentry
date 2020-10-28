@@ -30,8 +30,8 @@ class ProjectKeysTest(AcceptanceTestCase):
     def test_simple(self):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_test_id("project-keys")
         self.browser.snapshot("project keys")
-        self.browser.wait_until(".ref-keys")
 
 
 class ProjectKeyDetailsTest(AcceptanceTestCase):
@@ -59,5 +59,6 @@ class ProjectKeyDetailsTest(AcceptanceTestCase):
     def test_simple(self):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_test_id("key-details")
+        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
         self.browser.snapshot("project key details")
-        self.browser.wait_until(".ref-key-details")

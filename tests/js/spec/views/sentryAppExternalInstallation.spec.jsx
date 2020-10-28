@@ -1,7 +1,7 @@
 import React from 'react';
-import _ from 'lodash';
+import pick from 'lodash/pick';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SentryAppExternalInstallation from 'app/views/sentryAppExternalInstallation';
 
@@ -11,7 +11,7 @@ describe('SentryAppExternalInstallation', () => {
     getOrgsMock,
     getOrgMock,
     getAppMock,
-    getInstalltionsMock,
+    getInstallationsMock,
     getFeaturesMock,
     getMountedComponent,
     org1,
@@ -30,8 +30,8 @@ describe('SentryAppExternalInstallation', () => {
       name: 'Organization 2',
     });
 
-    org1Lite = _.pick(org1, ['slug', 'name', 'id']);
-    org2Lite = _.pick(org2, ['slug', 'name', 'id']);
+    org1Lite = pick(org1, ['slug', 'name', 'id']);
+    org2Lite = pick(org2, ['slug', 'name', 'id']);
 
     sentryApp = TestStubs.SentryApp({
       status: 'published',
@@ -46,8 +46,15 @@ describe('SentryAppExternalInstallation', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
+      method: 'POST',
+      statusCode: 200,
+      body: {},
+    });
+
     getMountedComponent = () =>
-      mount(
+      mountWithTheme(
         <SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />,
         TestStubs.routerContext()
       );
@@ -63,7 +70,7 @@ describe('SentryAppExternalInstallation', () => {
         url: `/organizations/${org1.slug}/`,
         body: org1,
       });
-      getInstalltionsMock = MockApiClient.addMockResponse({
+      getInstallationsMock = MockApiClient.addMockResponse({
         url: `/organizations/${org1.slug}/sentry-app-installations/`,
         body: [],
       });
@@ -75,7 +82,7 @@ describe('SentryAppExternalInstallation', () => {
       expect(getAppMock).toHaveBeenCalled();
       expect(getOrgsMock).toHaveBeenCalled();
       expect(getOrgMock).toHaveBeenCalled();
-      expect(getInstalltionsMock).toHaveBeenCalled();
+      expect(getInstallationsMock).toHaveBeenCalled();
       expect(getFeaturesMock).toHaveBeenCalled();
       expect(wrapper.state('organization')).toBe(org1);
       expect(wrapper.find('.Select-multi-value-wrapper')).toHaveLength(0);
@@ -111,9 +118,7 @@ describe('SentryAppExternalInstallation', () => {
       );
 
       expect(window.location.assign).toHaveBeenCalledWith(
-        `https://google.com/?code=${install.code}&installationId=${
-          install.uuid
-        }&orgSlug=${org1.slug}`
+        `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}`
       );
       window.location.assign.mockRestore();
     });
@@ -140,7 +145,7 @@ describe('SentryAppExternalInstallation', () => {
         body: org2,
       });
 
-      getInstalltionsMock = MockApiClient.addMockResponse({
+      getInstallationsMock = MockApiClient.addMockResponse({
         url: `/organizations/${org2.slug}/sentry-app-installations/`,
         body: [],
       });
@@ -159,7 +164,7 @@ describe('SentryAppExternalInstallation', () => {
       expect(wrapper.state('selectedOrgSlug')).toBe(org2.slug);
       expect(wrapper.state('organization')).toBe(org2);
       expect(getOrgMock).toHaveBeenCalled();
-      expect(getInstalltionsMock).toHaveBeenCalled();
+      expect(getInstallationsMock).toHaveBeenCalled();
       expect(getFeaturesMock).toHaveBeenCalled();
     });
   });

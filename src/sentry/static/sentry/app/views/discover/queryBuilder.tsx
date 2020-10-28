@@ -1,12 +1,13 @@
 import React from 'react';
-import {uniq, partition} from 'lodash';
+import uniq from 'lodash/uniq';
+import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {Project, Organization} from 'app/types';
-
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {openModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
 
@@ -19,7 +20,7 @@ const API_LIMIT = 10000;
 
 const DEFAULTS = {
   projects: [],
-  fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
+  fields: ['id', 'issue', 'project.name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
   orderby: '-timestamp',
@@ -55,7 +56,8 @@ export interface QueryBuilder {
  */
 export default function createQueryBuilder(
   initial = {},
-  organization: Organization
+  organization: Organization,
+  specificProjects?: Project[]
 ): QueryBuilder {
   const api = new Client();
   let query = applyDefaults(initial);
@@ -64,15 +66,20 @@ export default function createQueryBuilder(
     query.range = DEFAULT_STATS_PERIOD;
   }
 
-  const defaultProjects = organization.projects.filter(projects => projects.isMember);
-
-  const defaultProjectIds = getProjectIds(defaultProjects);
-
   const hasGlobalProjectAccess =
     ConfigStore.get('user').isSuperuser || organization.access.includes('org:admin');
 
+  // TODO(lightweight-org): This needs to be refactored so that queries
+  // do not depend on organization.projects
+  const projectsToUse = specificProjects ?? organization.projects;
+  const defaultProjects = projectsToUse.filter(projects =>
+    hasGlobalProjectAccess ? projects.hasAccess : projects.isMember
+  );
+
+  const defaultProjectIds = getProjectIds(defaultProjects);
+
   const projectsToFetchTags = getProjectIds(
-    hasGlobalProjectAccess ? organization.projects : defaultProjects
+    hasGlobalProjectAccess ? projectsToUse : defaultProjects
   );
 
   const columns = COLUMNS.map(col => ({...col, isTag: false}));
@@ -148,11 +155,11 @@ export default function createQueryBuilder(
     const projects = query.projects.length ? query.projects : defaultProjectIds;
 
     // Default to DEFAULT_STATS_PERIOD when no date range selected (either relative or absolute)
-    const {range, start, end} = query;
+    const {statsPeriod, start, end} = getParams({...query, statsPeriod: query.range});
     const hasAbsolute = start && end;
     const daterange = {
       ...(hasAbsolute && {start, end}),
-      ...(range ? {range} : !hasAbsolute && {range: DEFAULT_STATS_PERIOD}),
+      ...(statsPeriod && {range: statsPeriod}),
     };
 
     // Default to all fields if there are none selected, and no aggregation is
@@ -226,9 +233,7 @@ export default function createQueryBuilder(
    */
   function fetch(data = getExternal(), cursor = '0:0:1') {
     const limit = data.limit || 1000;
-    const endpoint = `/organizations/${
-      organization.slug
-    }/discover/query/?per_page=${limit}&cursor=${cursor}`;
+    const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
 
     // Reject immediately if no projects are available
     if (!data.projects.length) {
@@ -243,6 +248,17 @@ export default function createQueryBuilder(
 
     if (moment.utc(data.start).isAfter(moment.utc(data.end))) {
       return Promise.reject(new Error('Start date cannot be after end date'));
+    }
+
+    const {start, end, statsPeriod} = getParams({...data, statsPeriod: data.range});
+
+    if (start && end) {
+      data.start = start;
+      data.end = end;
+    }
+
+    if (statsPeriod) {
+      data.range = statsPeriod;
     }
 
     return api
@@ -281,6 +297,17 @@ export default function createQueryBuilder(
 
     if (moment.utc(data.start).isAfter(moment.utc(data.end))) {
       return Promise.reject(new Error('Start date cannot be after end date'));
+    }
+
+    const {start, end, statsPeriod} = getParams({...data, statsPeriod: data.range});
+
+    if (start && end) {
+      data.start = start;
+      data.end = end;
+    }
+
+    if (statsPeriod) {
+      data.range = statsPeriod;
     }
 
     return api.requestPromise(endpoint, {method: 'POST', data} as any).catch(() => {
@@ -349,7 +376,8 @@ export default function createQueryBuilder(
    */
   function reset(q: any) {
     const [validProjects, invalidProjects] = partition(q.projects || [], project =>
-      defaultProjectIds.includes(project)
+      // -1 means all projects
+      project === -1 ? true : defaultProjectIds.includes(project)
     );
 
     if (invalidProjects.length) {

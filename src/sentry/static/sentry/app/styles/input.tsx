@@ -1,15 +1,17 @@
-import {css} from 'react-emotion';
+import {css} from '@emotion/core';
+
+import {Theme} from 'app/utils/theme';
 
 type Props = {
   disabled?: boolean;
   monospace?: boolean;
   readOnly?: boolean;
-  theme: any;
+  theme: Theme;
 };
 
 const inputStyles = (props: Props) =>
   css`
-    color: ${props.disabled ? props.theme.disabled : props.theme.gray5};
+    color: ${props.disabled ? props.theme.disabled : props.theme.gray800};
     display: block;
     width: 100%;
     background: #fff;
@@ -35,16 +37,16 @@ const inputStyles = (props: Props) =>
     &:hover,
     &:focus,
     &:active {
-      border: 1px solid ${props.theme.gray1};
+      border: 1px solid ${props.theme.borderDark};
     }
 
     &::placeholder {
-      color: ${props.theme.gray2};
+      color: ${props.theme.gray500};
     }
 
     &[disabled] {
-      background: ${props.theme.whiteDark};
-      color: ${props.theme.gray2};
+      background: ${props.theme.gray100};
+      color: ${props.theme.gray500};
       border: 1px solid ${props.theme.borderDark};
       cursor: not-allowed;
 

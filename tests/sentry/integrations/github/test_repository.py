@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import datetime
-import mock
+from sentry.utils.compat import mock
 import responses
 import pytest
 
@@ -12,7 +12,7 @@ from sentry.testutils import PluginTestCase
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
 
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from .testutils import COMPARE_COMMITS_EXAMPLE, GET_LAST_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE
 
@@ -21,7 +21,7 @@ def stub_installation_token():
     ten_hours = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
     responses.add(
         responses.POST,
-        "https://api.github.com/installations/654321/access_tokens",
+        "https://api.github.com/app/installations/654321/access_tokens",
         json={"token": "v1.install-token", "expires_at": ten_hours.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )
 
@@ -70,7 +70,7 @@ class GitHubAppsProviderTest(PluginTestCase):
             "url": "https://github.com/getsentry/example-repo",
         }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_compare_commits_no_start(self, get_jwt):
         stub_installation_token()
@@ -99,7 +99,7 @@ class GitHubAppsProviderTest(PluginTestCase):
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, None, "abcdef")
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_compare_commits(self, get_jwt):
         stub_installation_token()
@@ -117,7 +117,7 @@ class GitHubAppsProviderTest(PluginTestCase):
         for commit in result:
             assert_commit_shape(commit)
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_compare_commits_patchset_handling(self, get_jwt):
         stub_installation_token()
@@ -140,6 +140,25 @@ class GitHubAppsProviderTest(PluginTestCase):
         assert patchset[3] == {"path": "old_name.txt", "type": "D"}
         assert patchset[4] == {"path": "renamed.txt", "type": "A"}
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_patchset_caching(self, get_jwt):
+        stub_installation_token()
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/abcdef",
+            json=json.loads(GET_COMMIT_EXAMPLE),
+        )
+        client = self.integration.get_installation(self.repository.organization_id).get_client()
+
+        self.provider._get_patchset(client, self.repository.config["name"], "abcdef")
+        # One call for auth token, another for the patchset
+        assert len(responses.calls) == 2
+
+        self.provider._get_patchset(client, self.repository.config["name"], "abcdef")
+        # Now that patchset was cached, github shouldn't have been called again
+        assert len(responses.calls) == 2
+
     @responses.activate
     def test_compare_commits_failure(self):
         stub_installation_token()
@@ -151,7 +170,7 @@ class GitHubAppsProviderTest(PluginTestCase):
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, "xyz123", "abcdef")
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_compare_commits_force_refresh(self, get_jwt):
         stub_installation_token()
@@ -196,7 +215,7 @@ class GitHubAppsProviderTest(PluginTestCase):
         assert responses.calls[0].response.status_code == 404
         assert (
             responses.calls[1].response.url
-            == u"https://api.github.com/installations/654321/access_tokens"
+            == u"https://api.github.com/app/installations/654321/access_tokens"
         )
         assert responses.calls[1].response.status_code == 200
         assert (

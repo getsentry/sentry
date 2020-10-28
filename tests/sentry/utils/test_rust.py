@@ -30,6 +30,49 @@ stacktrace: stack backtrace:
   12:        0x10f069f43 - _Py_Main
 """
 
+STACKTRACE_SEMAPHORE_LINUX = """
+stacktrace: stack backtrace:
+   0: failure::backtrace::internal::InternalBacktrace::new::hc23de41c89e8c745 (0x7f2d0af481ba)
+             at /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.5/src/backtrace/internal.rs:44
+   1: <T as core::convert::Into<U>>::into::hd4b72738b7e18e92 (0x7f2d0b070e3a)
+             at /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.5/src/backtrace/mod.rs:111
+      semaphore::utils::set_panic_hook::{{closure}}::hacec55cb6b285e6a
+             at src/utils.rs:45
+   2: std::panicking::rust_panic_with_hook::h3c82d7c1012a629a (0x7f2d0b3d6fb6)
+             at src/libstd/panicking.rs:477
+   3: std::panicking::begin_panic::h3db9895361250d80 (0x7f2d0b06ba94)
+             at /rustc/224f0bc90c010b88ca6ec600c9b02f6e3638d78e/src/libstd/panicking.rs:407
+   4: semaphore::processing::semaphore_test_panic::{{closure}}::hb800a646d3f454a4 (0x7f2d0b06e999)
+             at src/processing.rs:119
+   5: std::panic::catch_unwind::hdc352a616e262d7e (0x7f2d0b03c59a)
+             at /rustc/224f0bc90c010b88ca6ec600c9b02f6e3638d78e/src/libstd/panicking.rs:292
+      semaphore_test_panic
+             at src/utils.rs:53
+   6: ffi_call_unix64 (0x7f2d0b839df0)
+   7: ffi_call (0x7f2d0b839858)
+             at ../src/x86/ffi64.c:525
+   8: cdata_call (0x7f2d0ba57d64)
+             at c/_cffi_backend.c:3025
+   9: PyObject_Call (0x459eee)
+  10: _PyEval_EvalFrameDefault (0x552c49)
+  11: <unknown> (0x54fbe1)
+  12: <unknown> (0x54fe6d)
+  13: _PyEval_EvalFrameDefault (0x5546cf)
+  14: <unknown> (0x54f0e8)
+  15: <unknown> (0x550116)
+  16: _PyEval_EvalFrameDefault (0x5546cf)
+  17: <unknown> (0x54fbe1)
+  18: PyEval_EvalCode (0x550b93)
+  19: <unknown> (0x42ca41)
+  20: PyRun_InteractiveLoopFlags (0x42ccb6)
+  21: PyRun_AnyFileExFlags (0x42ce5c)
+  22: Py_Main (0x442143)
+  23: main (0x421ff4)
+  24: __libc_start_main (0x7f2d0e8beb97)
+  25: _start (0x4220aa)
+  26: <unknown> (0x0)
+"""
+
 
 def get_event(stacktrace):
     return {
@@ -98,6 +141,31 @@ def test_merge_rust_info():
     assert frames[6]["in_app"] is False
     assert frames[6]["filename"] == "convert.rs"
     assert frames[6]["lineno"] == 456
+
+
+def test_merge_rust_info_linux():
+    event = get_event(STACKTRACE_SEMAPHORE_LINUX)
+    exc_info = get_exc_info(STACKTRACE_SEMAPHORE_LINUX)
+
+    merge_rust_info_frames(event, {"exc_info": exc_info})
+
+    assert event["platform"] == "native"
+    assert event["logentry"]["formatted"] == "invalid debug identifier"
+
+    exception = event["exception"]["values"][0]
+    assert exception["value"] == "invalid debug identifier"
+
+    frames = exception["stacktrace"]["frames"]
+    assert len(frames) == 4
+    assert frames[0]["platform"] == "python"
+
+    # Top frame
+    assert frames[-1]["instruction_addr"] == "0x7f2d0b06e999"
+    assert frames[-1]["function"] == "semaphore::processing::semaphore_test_panic::{{closure}}"
+
+    # Inlined frame, same address
+    assert frames[-2]["instruction_addr"] == "0x7f2d0b03c59a"
+    assert frames[-2]["function"] == "std::panic::catch_unwind"
 
 
 def test_without_exc_info():

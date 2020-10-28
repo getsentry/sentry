@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from exam import fixture
-from six.moves.urllib.parse import parse_qs
+from six.moves.urllib.parse import parse_qs, urlparse
 
 from sentry.models import ApiApplication, ApiAuthorization, ApiGrant, ApiToken
 from sentry.testutils import TestCase
@@ -142,7 +142,12 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert grant.get_scopes() == ["org:read"]
 
         assert resp.status_code == 302
-        assert resp["Location"] == u"https://example.com?state=foo&code={}".format(grant.code)
+
+        # XXX: Compare parsed query strings to avoid ordering differences
+        # between py2/3
+        assert parse_qs(urlparse(resp["Location"]).query) == parse_qs(
+            u"state=foo&code={}".format(grant.code)
+        )
 
         assert not ApiToken.objects.filter(user=self.user).exists()
 
@@ -233,8 +238,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         resp = self.client.post(
             full_path, {"username": self.user.username, "password": "admin", "op": "login"}
         )
-        assert resp.status_code == 302
-        assert resp.get("Location") == u"http://testserver{}".format(full_path)
+        self.assertRedirects(resp, full_path)
 
         resp = self.client.get(full_path)
         self.assertTemplateUsed("sentry/oauth-authorize.html")

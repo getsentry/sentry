@@ -1,0 +1,11 @@
+---
+created: '2020-07-23T17:38:23.528624Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "329b29efcf1f77067a063e34f56e7791"
+  component:
+    default*
+      message*
+        "Hello there world!"

@@ -10,6 +10,7 @@ from rest_framework import serializers
 from sentry.models import MonitorStatus, MonitorType, ScheduleType
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.utils.compat import zip
 
 
 SCHEDULE_TYPES = OrderedDict(
@@ -89,7 +90,7 @@ class MonitorValidator(serializers.Serializer):
     project = ProjectField()
     name = serializers.CharField()
     status = serializers.ChoiceField(
-        choices=zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys()), default="active"
+        choices=zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys()), default=u"active"
     )
     type = serializers.ChoiceField(choices=zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys()))
     config = ObjectField()

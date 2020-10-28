@@ -15,15 +15,14 @@
   <meta name="robots" content="NONE,NOARCHIVE">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link href="{% absolute_asset_url "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
+  <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
 
-  <link rel="icon" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
-  <link rel="apple-touch-icon" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
-  <link rel="apple-touch-icon" sizes="76x76" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-76x76.png" %}">
-  <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-120x120.png" %}">
-  <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-152x152.png" %}">
+  <link rel="apple-touch-icon" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon.png" %}">
+  <link rel="apple-touch-icon" sizes="76x76" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-76x76.png" %}">
+  <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-120x120.png" %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-152x152.png" %}">
 
-  <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
+  <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
   <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
 
@@ -38,7 +37,7 @@
   {% block scripts %}
   {% locale_js_include %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
-  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
+  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %} data-entry="true"></script>
 
   <script>
     // if the ads.js file loads below it will mark this variable as false
@@ -68,12 +67,12 @@
       <div class="container">
         {% block footer %}
         <div class="pull-right">
-          <a href="https://docs.sentry.io/hosted/api/">{% trans "API" %}</a>
+          <a href="https://docs.sentry.io/api/">{% trans "API" %}</a>
           <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
           {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
         </div>
-        {% if ONPREMISE %}<div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>{% endif %}
+        {% if ONPREMISE %}<div class="version pull-left">Sentry {{ sentry_version.current }} ({{ sentry_version.build }}) {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>{% endif %}
         <a href="/" class="icon-sentry-logo"></a>
         {% endblock %}
       </div>

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.constants import (
     get_integration_id_for_marketing_slug,

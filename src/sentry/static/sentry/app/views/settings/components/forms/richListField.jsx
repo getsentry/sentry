@@ -1,12 +1,13 @@
-import _ from 'lodash';
+import pickBy from 'lodash/pickBy';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
+import {IconAdd, IconDelete, IconSettings} from 'app/icons';
 import InputField from 'app/views/settings/components/forms/inputField';
 import Confirm from 'app/components/confirm';
 
@@ -49,7 +50,7 @@ const RichListProps = {
 };
 
 function getDefinedProps(propTypes, props) {
-  return _.pickBy(props, (_prop, key) => key in propTypes);
+  return pickBy(props, (_prop, key) => key in propTypes);
 }
 
 class RichList extends React.PureComponent {
@@ -123,8 +124,8 @@ class RichList extends React.PureComponent {
       <ItemButton
         onClick={onClick}
         disabled={disabled}
-        size="micro"
-        icon="icon-trash"
+        size="zero"
+        icon={<IconDelete size="xs" />}
         borderless
       />
     );
@@ -150,8 +151,8 @@ class RichList extends React.PureComponent {
           <ItemButton
             onClick={() => this.onEditItem(item, index)}
             disabled={disabled}
-            icon="icon-settings"
-            size="micro"
+            icon={<IconSettings />}
+            size="zero"
             borderless
           />
         )}
@@ -167,13 +168,12 @@ class RichList extends React.PureComponent {
       <DropdownAutoComplete
         {...this.props.addDropdown}
         disabled={disabled}
-        alignMenu="left"
         onSelect={this.onSelectDropdownItem}
       >
         {({isOpen}) => (
           <DropdownButton
             disabled={disabled}
-            icon="icon-circle-add"
+            icon={<IconAdd size="xs" isCircled />}
             isOpen={isOpen}
             size="small"
           >
@@ -249,8 +249,8 @@ const Item = styled('li')`
 
 const ItemButton = styled(Button)`
   margin-left: 10px;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   &:hover {
-    color: ${p => (p.disabled ? p.theme.gray2 : p.theme.button.default.color)};
+    color: ${p => (p.disabled ? p.theme.gray500 : p.theme.button.default.color)};
   }
 `;

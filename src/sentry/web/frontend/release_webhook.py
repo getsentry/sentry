@@ -4,7 +4,6 @@ from hashlib import sha256
 import hmac
 import logging
 import six
-from simplejson import JSONDecodeError
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -15,7 +14,7 @@ from django.utils.decorators import method_decorator
 from sentry.api import client
 from sentry.exceptions import HookValidationError
 from sentry.models import ApiKey, Project, ProjectOption
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
@@ -41,7 +40,7 @@ class ReleaseWebhookView(View):
 
         try:
             data = json.loads(request.body)
-        except JSONDecodeError as exc:
+        except json.JSONDecodeError as exc:
             return HttpResponse(
                 status=400,
                 content=json.dumps({"error": six.text_type(exc)}),

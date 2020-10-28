@@ -1,13 +1,13 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {throttle} from 'lodash';
+import throttle from 'lodash/throttle';
 
 import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import InlineSvg from 'app/components/inlineSvg';
 import PageHeading from 'app/components/pageHeading';
+import {IconEdit} from 'app/icons';
 
 import {
   getChartData,
@@ -43,7 +43,7 @@ type ResultProps = {
   savedQuery: SavedQuery | null; // Provided if it's a saved search
   onFetchPage: (nextOrPrev: string) => void;
   onToggleEdit: () => void;
-  utc: boolean;
+  utc: boolean | null;
 };
 
 type ResultState = {
@@ -53,9 +53,6 @@ type ResultState = {
 };
 
 class Result extends React.Component<ResultProps, ResultState> {
-  // This is the ref of the table container component
-  private container: any;
-
   constructor(props: ResultProps) {
     super(props);
     this.state = {
@@ -69,7 +66,7 @@ class Result extends React.Component<ResultProps, ResultState> {
     window.addEventListener('resize', this.throttledUpdateDimensions);
   }
 
-  componentWillReceiveProps(nextProps: ResultProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: ResultProps) {
     const {data, location} = nextProps;
     const visualization = getVisualization(data, location.query.visualization);
 
@@ -89,6 +86,9 @@ class Result extends React.Component<ResultProps, ResultState> {
   componentWillUnmount() {
     window.removeEventListener('resize', this.throttledUpdateDimensions);
   }
+
+  // This is the ref of the table container component
+  private container: any;
 
   setDimensions = (ref: any) => {
     this.container = ref;
@@ -167,7 +167,7 @@ class Result extends React.Component<ResultProps, ResultState> {
       `query time: ${getDynamicText({
         value: summaryData.timing.duration_ms,
         fixed: '10',
-      })} ms`,
+      })}ms`,
     ];
     if (this.state.view === 'table') {
       summary.push(getRowsPageRange(baseQuery));
@@ -187,8 +187,8 @@ class Result extends React.Component<ResultProps, ResultState> {
         <PageHeading>
           {getDynamicText({value: this.props.savedQuery!.name, fixed: 'saved query'})}
         </PageHeading>
-        <SavedQueryAction onClick={this.props.onToggleEdit}>
-          <InlineSvg src="icon-edit" />
+        <SavedQueryAction to="" onClick={this.props.onToggleEdit}>
+          <IconEdit />
         </SavedQueryAction>
       </React.Fragment>
     );
@@ -230,7 +230,7 @@ class Result extends React.Component<ResultProps, ResultState> {
           </HeadingContainer>
           {this.renderToggle()}
         </div>
-        <ResultInnerContainer innerRef={this.setDimensions}>
+        <ResultInnerContainer ref={this.setDimensions}>
           {view === 'table' && (
             <Table
               data={baseQuery.data}
@@ -272,7 +272,7 @@ class Result extends React.Component<ResultProps, ResultState> {
                 tooltip={tooltipOptions}
                 legend={legendData}
                 renderer="canvas"
-                isGroupedByDate={true}
+                isGroupedByDate
                 utc={utc}
               />
               {this.renderNote()}
@@ -282,12 +282,12 @@ class Result extends React.Component<ResultProps, ResultState> {
             <ChartWrapper>
               <BarChart
                 series={byDayChartData}
-                stacked={true}
+                stacked
                 height={300}
                 tooltip={tooltipOptions}
                 legend={legendData}
                 renderer="canvas"
-                isGroupedByDate={true}
+                isGroupedByDate
                 utc={utc}
                 options={{animation: false}}
               />

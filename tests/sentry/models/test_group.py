@@ -6,7 +6,6 @@ import pytest
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry import tagstore
 from sentry.models import (
     Group,
     GroupRedirect,
@@ -15,11 +14,11 @@ from sentry.models import (
     Release,
     get_group_with_redirect,
 )
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class GroupTest(TestCase):
+class GroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(GroupTest, self).setUp()
         self.min_ago = iso_format(before_now(minutes=1))
@@ -174,17 +173,12 @@ class GroupTest(TestCase):
     def test_first_last_release(self):
         project = self.create_project()
         release = Release.objects.create(version="a", organization_id=project.organization_id)
-        release.add_project(project)
-
-        group = self.create_group(project=project, first_release=release)
-
-        tagstore.create_group_tag_value(
-            project_id=project.id,
-            group_id=group.id,
-            environment_id=self.environment.id,
-            key="sentry:release",
-            value=release.version,
+        event = self.store_event(
+            data={"release": "a", "timestamp": self.min_ago}, project_id=project.id
         )
+        group = event.group
+
+        release = Release.objects.get(version="a")
 
         assert group.first_release == release
         assert group.get_first_release() == release.version
@@ -192,22 +186,14 @@ class GroupTest(TestCase):
 
     def test_first_release_from_tag(self):
         project = self.create_project()
-        release = Release.objects.create(version="a", organization_id=project.organization_id)
-        release.add_project(project)
-
-        group = self.create_group(project=project)
-
-        tagstore.create_group_tag_value(
-            project_id=project.id,
-            group_id=group.id,
-            environment_id=self.environment.id,
-            key="sentry:release",
-            value=release.version,
+        event = self.store_event(
+            data={"release": "a", "timestamp": self.min_ago}, project_id=project.id
         )
 
-        assert group.first_release is None
-        assert group.get_first_release() == release.version
-        assert group.get_last_release() == release.version
+        group = event.group
+
+        assert group.get_first_release() == "a"
+        assert group.get_last_release() == "a"
 
     def test_first_last_release_miss(self):
         project = self.create_project()
@@ -224,16 +210,27 @@ class GroupTest(TestCase):
         project = self.create_project()
         group = self.create_group(project=project)
 
-        assert group.get_email_subject() == "%s - %s" % (group.qualified_short_id, group.title)
+        expect = u"{} - {}".format(group.qualified_short_id, group.title)
+        assert group.get_email_subject() == expect
 
     def test_get_absolute_url(self):
-        project = self.create_project(name="pumped-quagga")
-        group = self.create_group(project=project)
-
-        result = group.get_absolute_url({"environment": u"d\u00E9v"})
-        assert (
-            result
-            == u"http://testserver/organizations/baz/issues/{}/?environment=d%C3%A9v".format(
-                group.id
-            )
-        )
+        for (org_slug, group_id, params, expected) in [
+            ("org1", 23, None, "http://testserver/organizations/org1/issues/23/"),
+            (
+                "org2",
+                42,
+                {"environment": "dev"},
+                "http://testserver/organizations/org2/issues/42/?environment=dev",
+            ),
+            (
+                u"\u00F6rg3",
+                86,
+                {u"env\u00EDronment": u"d\u00E9v"},
+                "http://testserver/organizations/%C3%B6rg3/issues/86/?env%C3%ADronment=d%C3%A9v",
+            ),
+        ]:
+            org = self.create_organization(slug=org_slug)
+            project = self.create_project(organization=org)
+            group = self.create_group(id=group_id, project=project)
+            actual = group.get_absolute_url(params)
+            assert actual == expected

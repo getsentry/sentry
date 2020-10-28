@@ -17,6 +17,7 @@ from uuid import uuid4
 from six.moves.urllib.parse import urlencode
 
 from sentry import roles
+from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT
 from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
@@ -35,6 +36,13 @@ class InviteStatus(Enum):
     APPROVED = 0
     REQUESTED_TO_BE_INVITED = 1
     REQUESTED_TO_JOIN = 2
+
+
+invite_status_names = {
+    InviteStatus.APPROVED.value: "approved",
+    InviteStatus.REQUESTED_TO_BE_INVITED.value: "requested_to_be_invited",
+    InviteStatus.REQUESTED_TO_JOIN.value: "requested_to_join",
+}
 
 
 class OrganizationMemberTeam(BaseModel):
@@ -84,11 +92,9 @@ class OrganizationMember(Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
     email = models.EmailField(null=True, blank=True, max_length=75)
-    role = models.CharField(
-        choices=roles.get_choices(), max_length=32, default=roles.get_default().id
-    )
+    role = models.CharField(max_length=32, default=six.text_type(roles.get_default().id))
     flags = BitField(
-        flags=(("sso:linked", "sso:linked"), ("sso:invalid", "sso:invalid")), default=0
+        flags=((u"sso:linked", u"sso:linked"), (u"sso:invalid", u"sso:invalid")), default=0
     )
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -148,6 +154,15 @@ class OrganizationMember(Model):
     def refresh_expires_at(self):
         now = timezone.now()
         self.token_expires_at = now + timedelta(days=INVITE_DAYS_VALID)
+
+    def approve_invite(self):
+        self.invite_status = InviteStatus.APPROVED.value
+        self.regenerate_token()
+
+    def get_invite_status_name(self):
+        if self.invite_status is None:
+            return
+        return invite_status_names[self.invite_status]
 
     @property
     def invite_approved(self):
@@ -314,6 +329,7 @@ class OrganizationMember(Model):
             "teams_slugs": [t["slug"] for t in teams],
             "has_global_access": self.has_global_access,
             "role": self.role,
+            "invite_status": invite_status_names[self.invite_status],
         }
 
     def get_teams(self):
@@ -327,7 +343,14 @@ class OrganizationMember(Model):
         )
 
     def get_scopes(self):
-        return roles.get(self.role).scopes
+        scopes = roles.get(self.role).scopes
+
+        if self.role == "member" and not self.organization.get_option(
+            "sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT
+        ):
+            scopes = frozenset(s for s in scopes if s != "event:admin")
+
+        return scopes
 
     @classmethod
     def delete_expired(cls, threshold):

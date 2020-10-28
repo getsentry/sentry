@@ -1,9 +1,3 @@
-"""
-sentry.management.commands.serve_normalize
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-:copyright: (c) 2018 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import SocketServer
@@ -13,13 +7,14 @@ import stat
 import sys
 import time
 import traceback
-import json
 import resource
-import multiprocessing
 from optparse import make_option
 
+import six
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.encoding import force_str
+
+from sentry.utils import json
 
 
 class ForkingUnixStreamServer(SocketServer.ForkingMixIn, SocketServer.UnixStreamServer):
@@ -32,7 +27,7 @@ def catch_errors(f):
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            error = force_str(e.message) + " " + force_str(traceback.format_exc())
+            error = force_str(six.text_type(e)) + " " + force_str(traceback.format_exc())
 
         try:
             return encode({"result": None, "error": error, "metrics": None})
@@ -42,7 +37,9 @@ def catch_errors(f):
                 return encode(
                     {
                         "result": None,
-                        "error": force_str(e.message) + " " + force_str(traceback.format_exc()),
+                        "error": force_str(six.text_type(e))
+                        + " "
+                        + force_str(traceback.format_exc()),
                         "metrics": None,
                         "encoding_error": True,
                     }
@@ -54,9 +51,13 @@ def catch_errors(f):
 
 
 # Here's where the normalization itself happens
-def process_event(data, meta):
+def process_event(data, meta, project_config):
     from sentry.event_manager import EventManager
     from sentry.tasks.store import should_process
+    from sentry.web.api import _scrub_event_data
+    from sentry.relay.config import ProjectConfig
+
+    project_config = ProjectConfig(None, **project_config)
 
     event_manager = EventManager(
         data,
@@ -71,15 +72,18 @@ def process_event(data, meta):
     event = event_manager.get_data()
     group_hash = None
 
+    datascrubbing_settings = project_config.config.get("datascrubbingSettings") or {}
+    event = _scrub_event_data(event, datascrubbing_settings)
+
     if not should_process(event):
         group_hash = event_manager._get_event_instance(project_id=1).get_hashes()
     return {"event": dict(event), "group_hash": group_hash}
 
 
 def decode(message):
-    meta, data_encoded = json.loads(message)
+    meta, data_encoded, project_config = json.loads(message)
     data = base64.b64decode(data_encoded)
-    return data, meta
+    return data, meta, project_config
 
 
 def encode(data):
@@ -92,17 +96,13 @@ def handle_data(data):
     mc = MetricCollector()
 
     metrics_before = mc.collect_metrics()
-    data, meta = decode(data)
-    rv = process_event(data, meta)
+    data, meta, project_config = decode(data)
+    rv = process_event(data, meta, project_config)
     metrics_after = mc.collect_metrics()
 
     return encode(
         {"result": rv, "metrics": {"before": metrics_before, "after": metrics_after}, "error": None}
     )
-
-
-def handle_data_piped(pipe, data):
-    pipe.send(handle_data(data))
 
 
 class MetricCollector(object):
@@ -157,17 +157,7 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         self.request.close()
 
     def handle_data(self):
-        @catch_errors
-        def inner():
-            # TODO: Remove this contraption once we no longer get segfaults
-            parent_conn, child_conn = multiprocessing.Pipe()
-            p = multiprocessing.Process(target=handle_data_piped, args=(child_conn, self.data))
-            p.start()
-            p.join(1)
-            assert parent_conn.poll(), "Process crashed"
-            return parent_conn.recv()
-
-        return inner()
+        return handle_data(self.data)
 
 
 class Command(BaseCommand):

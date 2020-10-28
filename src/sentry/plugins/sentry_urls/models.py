@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import sentry
 
-from sentry.plugins import register
 from sentry.plugins.bases.tag import TagPlugin
 
 
@@ -27,6 +26,3 @@ class UrlsPlugin(TagPlugin):
         if not http.url:
             return []
         return [http.url]
-
-
-register(UrlsPlugin)

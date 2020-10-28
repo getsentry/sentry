@@ -10,6 +10,7 @@ import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
+import {IconFlag} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginList from 'app/components/pluginList';
 import SentryTypes from 'app/sentryTypes';
@@ -17,6 +18,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import getDynamicText from 'app/utils/getDynamicText';
 import withPlugins from 'app/utils/withPlugins';
+import routeTitleGen from 'app/utils/routeTitle';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
@@ -29,7 +31,8 @@ class ProjectReleaseTracking extends AsyncView {
   };
 
   getTitle() {
-    return 'Release Tracking';
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Releases'), projectId, false);
   }
 
   getEndpoints() {
@@ -108,7 +111,7 @@ class ProjectReleaseTracking extends AsyncView {
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
         {!hasWrite && (
-          <Alert icon="icon-circle-exclamation" type="warning">
+          <Alert icon={<IconFlag size="md" />} type="warning">
             {t(
               'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
             )}
@@ -122,7 +125,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
-          <PanelBody disablePadding={false} flex>
+          <PanelBody flexible withPadding>
             <p>
               {tct(
                 'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
@@ -151,7 +154,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('Deploy Token')}</PanelHeader>
-          <PanelBody flex>
+          <PanelBody flexible>
             <Field
               label={t('Token')}
               help={t('A unique secret which is used to generate deploy hook URLs')}
@@ -184,7 +187,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('Webhook')}</PanelHeader>
-          <PanelBody disablePadding={false} flex>
+          <PanelBody flexible withPadding>
             <p>
               {t(
                 'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
@@ -227,7 +230,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('API')}</PanelHeader>
-          <PanelBody disablePadding={false} flex>
+          <PanelBody flexible withPadding>
             <p>
               {t(
                 'You can notify Sentry when you release new versions of your application via our HTTP API.'

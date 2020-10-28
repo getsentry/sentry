@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
-from django.core.context_processors import csrf
+from django.template.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponse,
@@ -139,7 +139,7 @@ class OrganizationMixin(object):
 
     def get_active_project(self, request, organization, project_slug):
         try:
-            project = Project.objects.get_from_cache(slug=project_slug, organization=organization)
+            project = Project.objects.get(slug=project_slug, organization=organization)
         except Project.DoesNotExist:
             return None
 

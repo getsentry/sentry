@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
-from mock import patch
+from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
 import pytest
 
-from sentry import tagstore
-from sentry.tagstore.models import EventTag
+from sentry import nodestore
 from sentry.constants import ObjectStatus
+from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
     ApiApplication,
@@ -19,7 +19,6 @@ from sentry.models import (
     CommitAuthor,
     Environment,
     EnvironmentProject,
-    Event,
     Group,
     GroupAssignee,
     GroupHash,
@@ -50,6 +49,7 @@ from sentry.tasks.deletion import (
     revoke_api_tokens,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class DeleteOrganizationTest(TestCase):
@@ -176,121 +176,52 @@ class DeleteProjectTest(TestCase):
         assert Project.objects.filter(id=project.id).exists()
 
 
-class DeleteTagKeyTest(TestCase):
-    def test_simple(self):
-        from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
-
-        team = self.create_team(name="test", slug="test")
-        project = self.create_project(teams=[team], name="test1", slug="test1")
-        group = self.create_group(project=project)
-        key = "foo"
-        value = "bar"
-        tk = tagstore.create_tag_key(
-            key=key, project_id=project.id, environment_id=self.environment.id
-        )
-        tv = tagstore.create_tag_value(
-            key=key, value=value, project_id=project.id, environment_id=self.environment.id
-        )
-        tagstore.create_group_tag_key(
-            key=key, group_id=group.id, project_id=project.id, environment_id=self.environment.id
-        )
-        tagstore.create_group_tag_value(
-            key=key,
-            value=value,
-            group_id=group.id,
-            project_id=project.id,
-            environment_id=self.environment.id,
-        )
-        tagstore.create_event_tags(
-            group_id=group.id,
-            project_id=project.id,
-            environment_id=self.environment.id,
-            event_id=1,
-            tags=[(tk.key, tv.value)],
-        )
-
-        project2 = self.create_project(teams=[team], name="test2")
-        env2 = self.create_environment(project=project2)
-        group2 = self.create_group(project=project2)
-        tk2 = tagstore.create_tag_key(key=key, project_id=project2.id, environment_id=env2.id)
-        tv2 = tagstore.create_tag_value(
-            project_id=project2.id, environment_id=env2.id, key=key, value=value
-        )
-        tagstore.create_group_tag_key(
-            key=key, group_id=group2.id, project_id=project2.id, environment_id=env2.id
-        )
-        tagstore.create_group_tag_value(
-            key=key, value=value, group_id=group2.id, project_id=project2.id, environment_id=env2.id
-        )
-        tagstore.create_event_tags(
-            group_id=group2.id,
-            project_id=project2.id,
-            environment_id=env2.id,
-            event_id=1,
-            tags=[(tk2.key, tv2.value)],
-        )
-
-        with self.tasks():
-            from sentry.tagstore.models import TagKey
-
-            delete_tag_key_task(object_id=tk.id, model=TagKey)
-
-            try:
-                tagstore.get_group_tag_value(group.project_id, group.id, None, key, value)
-                assert False  # verify exception thrown
-            except tagstore.GroupTagValueNotFound:
-                pass
-            try:
-                tagstore.get_group_tag_key(group.project_id, group.id, None, key)
-                assert False  # verify exception thrown
-            except tagstore.GroupTagKeyNotFound:
-                pass
-            try:
-                tagstore.get_tag_value(project.id, None, key, value)
-                assert False  # verify exception thrown
-            except tagstore.TagValueNotFound:
-                pass
-            try:
-                tagstore.get_tag_key(project.id, None, key)
-                assert False  # verify exception thrown
-            except tagstore.TagKeyNotFound:
-                pass
-
-        assert tagstore.get_tag_key(project2.id, env2.id, key) is not None
-        assert tagstore.get_group_tag_key(group2.project_id, group2.id, env2.id, key) is not None
-        assert (
-            tagstore.get_group_tag_value(group2.project_id, group2.id, env2.id, key, value)
-            is not None
-        )
-        assert EventTag.objects.filter(key_id=tk2.id).exists()
-
-
 class DeleteGroupTest(TestCase):
     def test_simple(self):
+        event_id = "a" * 32
+        event_id_2 = "b" * 32
         project = self.create_project()
-        group = self.create_group(project=project, status=GroupStatus.PENDING_DELETION)
-        event = self.create_event(group=group)
-        tv, _ = tagstore.get_or_create_tag_value(project.id, self.environment.id, "key1", "value1")
-        tagstore.create_event_tags(
-            event_id=event.id,
-            group_id=group.id,
+
+        node_id = Event.generate_node_id(project.id, event_id)
+        node_id_2 = Event.generate_node_id(project.id, event_id_2)
+
+        event = self.store_event(
+            data={
+                "event_id": event_id,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group1"],
+            },
             project_id=project.id,
-            environment_id=self.environment.id,
-            tags=[(tv.key, tv.value)],
         )
+
+        self.store_event(
+            data={
+                "event_id": event_id_2,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group1"],
+            },
+            project_id=project.id,
+        )
+
+        group = event.group
+        group.update(status=GroupStatus.PENDING_DELETION)
+
         GroupAssignee.objects.create(group=group, project=project, user=self.user)
         GroupHash.objects.create(project=project, group=group, hash=uuid4().hex)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
 
+        assert nodestore.get(node_id)
+        assert nodestore.get(node_id_2)
+
         with self.tasks():
             delete_groups(object_ids=[group.id])
 
-        assert not Event.objects.filter(id=event.id).exists()
-        assert not EventTag.objects.filter(event_id=event.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
+        assert not nodestore.get(node_id)
+        assert not nodestore.get(node_id_2)
 
 
 class DeleteApplicationTest(TestCase):

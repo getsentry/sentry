@@ -1,8 +1,8 @@
 import {Link} from 'react-router';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {t} from 'app/locale';
@@ -19,16 +19,32 @@ import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
+import Badge from 'app/components/badge';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import {getMessage} from 'app/utils/events';
 
 import GroupActions from './actions';
+import UnhandledTag, {TagAndMessageWrapper} from './unhandledTag';
+
+const TAB = {
+  DETAILS: 'details',
+  COMMENTS: 'comments',
+  USER_FEEDBACK: 'user-feedback',
+  ATTACHMENTS: 'attachments',
+  TAGS: 'tags',
+  EVENTS: 'events',
+  MERGED: 'merged',
+  SIMILAR_ISSUES: 'similar-issues',
+};
 
 class GroupHeader extends React.Component {
   static propTypes = {
-    api: PropTypes.object,
+    currentTab: PropTypes.string.isRequired,
+    baseUrl: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project,
+    api: PropTypes.object,
   };
 
   static contextTypes = {
@@ -48,22 +64,11 @@ class GroupHeader extends React.Component {
     });
   }
 
-  getMessage() {
-    const data = this.props.group;
-    const metadata = data.metadata;
-    switch (data.type) {
-      case 'error':
-        return metadata.value;
-      case 'csp':
-        return metadata.message;
-      default:
-        return this.props.group.culprit || '';
-    }
-  }
-
   render() {
-    const {project, group} = this.props;
+    const {project, group, currentTab, baseUrl} = this.props;
+    const {organization, location} = this.context;
     const projectFeatures = new Set(project ? project.features : []);
+    const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
 
     let className = 'group-detail';
@@ -79,18 +84,15 @@ class GroupHeader extends React.Component {
     }
 
     const {memberList} = this.state;
-    const {organization, location} = this.context;
-    const groupId = group.id;
     const orgId = organization.slug;
-    const message = this.getMessage();
+    const message = getMessage(group);
 
     const hasSimilarView = projectFeatures.has('similarity-view');
-
-    const baseUrl = `/organizations/${orgId}/issues/`;
+    const hasEventAttachments = organizationFeatures.has('event-attachments');
 
     const searchTermWithoutQuery = omit(location.query, 'query');
     const eventRouteToObject = {
-      pathname: `${baseUrl}${groupId}/events/`,
+      pathname: `${baseUrl}events/`,
       query: searchTermWithoutQuery,
     };
 
@@ -99,44 +101,44 @@ class GroupHeader extends React.Component {
         <div className="row">
           <div className="col-sm-7">
             <h3>
-              <GuideAnchor target="issue_title">
-                <EventOrGroupTitle data={group} />
-              </GuideAnchor>
+              <EventOrGroupTitle hasGuideAnchor data={group} />
             </h3>
-
-            <EventMessage
-              message={message}
-              level={group.level}
-              annotations={
-                <React.Fragment>
-                  {group.logger && (
-                    <EventAnnotationWithSpace>
-                      <Link
-                        to={{
-                          pathname: baseUrl,
-                          query: {query: 'logger:' + group.logger},
-                        }}
-                      >
-                        {group.logger}
-                      </Link>
-                    </EventAnnotationWithSpace>
-                  )}
-                  {group.annotations.map((annotation, i) => (
-                    <EventAnnotationWithSpace
-                      key={i}
-                      dangerouslySetInnerHTML={{__html: annotation}}
-                    />
-                  ))}
-                </React.Fragment>
-              }
-            />
+            <StyledTagAndMessageWrapper>
+              {group.isUnhandled && <UnhandledTag />}
+              <EventMessage
+                message={message}
+                level={group.level}
+                annotations={
+                  <React.Fragment>
+                    {group.logger && (
+                      <EventAnnotationWithSpace>
+                        <Link
+                          to={{
+                            pathname: `/organizations/${orgId}/issues/`,
+                            query: {query: 'logger:' + group.logger},
+                          }}
+                        >
+                          {group.logger}
+                        </Link>
+                      </EventAnnotationWithSpace>
+                    )}
+                    {group.annotations.map((annotation, i) => (
+                      <EventAnnotationWithSpace
+                        key={i}
+                        dangerouslySetInnerHTML={{__html: annotation}}
+                      />
+                    ))}
+                  </React.Fragment>
+                }
+              />
+            </StyledTagAndMessageWrapper>
           </div>
 
           <div className="col-sm-5 stats">
             <div className="flex flex-justify-right">
               {group.shortId && (
-                <div className="short-id-box count align-right">
-                  <GuideAnchor target="issue_number" position="right">
+                <GuideAnchor target="issue_number" position="bottom">
+                  <div className="short-id-box count align-right">
                     <h6 className="nav-header">
                       <Tooltip
                         title={t(
@@ -152,14 +154,14 @@ class GroupHeader extends React.Component {
                         </a>
                       </Tooltip>
                     </h6>
-                  </GuideAnchor>
-                  <ShortId
-                    shortId={group.shortId}
-                    avatar={
-                      <StyledProjectBadge project={project} avatarSize={20} hideName />
-                    }
-                  />
-                </div>
+                    <ShortId
+                      shortId={group.shortId}
+                      avatar={
+                        <StyledProjectBadge project={project} avatarSize={20} hideName />
+                      }
+                    />
+                  </div>
+                </GuideAnchor>
               )}
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Events')}</h6>
@@ -170,7 +172,7 @@ class GroupHeader extends React.Component {
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
-                  <Link to={`${baseUrl}${groupId}/tags/user/${location.search}`}>
+                  <Link to={`${baseUrl}tags/user/${location.search}`}>
                     <Count className="count" value={userCount} />
                   </Link>
                 ) : (
@@ -191,52 +193,50 @@ class GroupHeader extends React.Component {
         <GroupActions group={group} project={project} />
         <NavTabs>
           <ListLink
-            to={`${baseUrl}${groupId}/${location.search}`}
-            isActive={() => {
-              const rootGroupPath = `${baseUrl}${groupId}/`;
-              const pathname = location.pathname;
-
-              // Because react-router 1.0 removes router.isActive(route)
-              return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);
-            }}
+            to={`${baseUrl}${location.search}`}
+            isActive={() => currentTab === TAB.DETAILS}
           >
             {t('Details')}
           </ListLink>
           <ListLink
-            to={`${baseUrl}${groupId}/activity/${location.search}`}
-            isActive={() => location.pathname.includes('/activity/')}
+            to={`${baseUrl}activity/${location.search}`}
+            isActive={() => currentTab === TAB.COMMENTS}
           >
-            {t('Comments')} <span className="badge animated">{group.numComments}</span>
+            {t('Activity')} <Badge text={group.numComments} />
           </ListLink>
           <ListLink
-            to={`${baseUrl}${groupId}/feedback/${location.search}`}
-            isActive={() => location.pathname.includes('/feedback/')}
+            to={`${baseUrl}feedback/${location.search}`}
+            isActive={() => currentTab === TAB.USER_FEEDBACK}
           >
-            {t('User Feedback')}
-            <span className="badge animated">{group.userReportCount}</span>
+            {t('User Feedback')} <Badge text={group.userReportCount} />
           </ListLink>
+          {hasEventAttachments && (
+            <ListLink
+              to={`${baseUrl}attachments/${location.search}`}
+              isActive={() => currentTab === TAB.ATTACHMENTS}
+            >
+              {t('Attachments')}
+            </ListLink>
+          )}
           <ListLink
-            to={`${baseUrl}${groupId}/tags/${location.search}`}
-            isActive={() => location.pathname.includes('/tags/')}
+            to={`${baseUrl}tags/${location.search}`}
+            isActive={() => currentTab === TAB.TAGS}
           >
             {t('Tags')}
           </ListLink>
-          <ListLink
-            to={eventRouteToObject}
-            isActive={() => location.pathname.endsWith('/events/')}
-          >
+          <ListLink to={eventRouteToObject} isActive={() => currentTab === 'events'}>
             {t('Events')}
           </ListLink>
           <ListLink
-            to={`${baseUrl}${groupId}/merged/${location.search}`}
-            isActive={() => location.pathname.includes('/merged/')}
+            to={`${baseUrl}merged/${location.search}`}
+            isActive={() => currentTab === TAB.MERGED}
           >
             {t('Merged')}
           </ListLink>
           {hasSimilarView && (
             <ListLink
-              to={`${baseUrl}${groupId}/similar/${location.search}`}
-              isActive={() => location.pathname.includes('/similar/')}
+              to={`${baseUrl}similar/${location.search}`}
+              isActive={() => currentTab === TAB.SIMILAR_ISSUES}
             >
               {t('Similar Issues')}
             </ListLink>
@@ -247,6 +247,12 @@ class GroupHeader extends React.Component {
   }
 }
 
+const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-bottom: ${space(2)};
+  }
+`;
+
 const StyledProjectBadge = styled(ProjectBadge)`
   flex-shrink: 0;
 `;
@@ -254,6 +260,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
 `;
-export {GroupHeader};
+
+export {GroupHeader, TAB};
 
 export default withApi(GroupHeader);

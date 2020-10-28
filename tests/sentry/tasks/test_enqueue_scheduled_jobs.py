@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 from datetime import timedelta
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 import pytest
 

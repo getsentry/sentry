@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import copy
-import mock
+from sentry.utils.compat import mock
 
+from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
@@ -21,7 +22,6 @@ from sentry.models import (
     ReleaseEnvironment,
     ReleaseFile,
     Team,
-    TotpInterface,
     User,
 )
 from sentry.testutils import TestCase
@@ -193,10 +193,10 @@ class OrganizationTest(TestCase):
         assert f.has_changed("value") is False
 
         OrganizationOption.objects.create(
-            organization=org, key="sentry:store_crash_reports", value=False
+            organization=org, key="sentry:store_crash_reports", value=0
         )
         p = OrganizationOption.objects.get(organization=org, key="sentry:store_crash_reports")
-        p.value = True
+        p.value = 10
         assert p.has_changed("value") is True
 
 

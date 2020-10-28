@@ -1,36 +1,63 @@
-import {mount} from 'enzyme';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {selectByLabel} from 'app-test/helpers/select';
-import {RuleFormContainer} from 'app/views/settings/incidentRules/ruleForm';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
-describe('Incident Rules Form', function() {
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import RuleFormContainer from 'app/views/settings/incidentRules/ruleForm';
+import FormModel from 'app/views/settings/components/forms/model';
+
+jest.mock('app/actionCreators/indicator');
+
+describe('Incident Rules Form', function () {
   const {organization, project, routerContext} = initializeOrg();
   const createWrapper = props =>
-    mount(
+    mountWithTheme(
       <RuleFormContainer
+        params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
-        orgId={organization.slug}
-        projects={[project, TestStubs.Project({slug: 'project-2', id: '3'})]}
+        project={project}
         {...props}
       />,
       routerContext
     );
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/environments/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: TestStubs.EventsStats(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/available-actions/',
+      body: [
+        {
+          allowedTargetTypes: ['user', 'team'],
+          integrationName: null,
+          type: 'email',
+          integrationId: null,
+        },
+      ],
+    });
   });
 
-  describe('Creating a new rule', function() {
+  describe('Creating a new rule', function () {
     let createRule;
-    beforeEach(function() {
+    beforeEach(function () {
       createRule = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/alert-rules/',
+        url: '/projects/org-slug/project-slug/alert-rules/',
         method: 'POST',
       });
     });
@@ -38,38 +65,14 @@ describe('Incident Rules Form', function() {
     /**
      * Note this isn't necessarily the desired behavior, as it is just documenting the behavior
      */
-    it('keeps state of projects and excluded projects when toggling "Include all projects"', async function() {
-      const wrapper = createWrapper();
-
-      selectByLabel(wrapper, 'project-slug', {name: 'projects'});
-
-      // Toggle include all projects to on
-      wrapper.find('button#includeAllProjects').simulate('click');
-
-      // Exclude 2nd project
-      selectByLabel(wrapper, 'project-2', {name: 'excludedProjects'});
-
-      // Toggle back to not include all projects
-      wrapper.find('button#includeAllProjects').simulate('click');
-
-      // Select field should have project-slug selected
-      expect(
-        wrapper
-          .find('SelectField[name="projects"] .Select-value-label')
-          .text()
-          .trim()
-      ).toBe('project-slug');
-
-      // Toggle back include all projects
-      wrapper.find('button#includeAllProjects').simulate('click');
-
-      // Select field should have project-slug selected
-      expect(
-        wrapper
-          .find('SelectField[name="excludedProjects"] .Select-value-label')
-          .text()
-          .trim()
-      ).toBe('project-2');
+    it('creates a rule', async function () {
+      const rule = TestStubs.IncidentRule();
+      const wrapper = createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+        },
+      });
 
       // Enter in name so we can submit
       wrapper
@@ -82,81 +85,162 @@ describe('Incident Rules Form', function() {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'Incident Rule',
-
-            // Note, backend handles this when ideally `includeAllProjects: true` should only send excludedProjects,
-            // and `includeAllProjects: false` send `projects`
-            includeAllProjects: true,
-            excludedProjects: ['project-2'],
             projects: ['project-slug'],
           }),
         })
       );
     });
+    describe('Slack async lookup', () => {
+      const uuid = 'xxxx-xxxx-xxxx';
+      let model;
+      beforeEach(() => {
+        jest.useFakeTimers();
+        model = new FormModel();
+      });
+      afterEach(() => {
+        jest.clearAllTimers();
+      });
+      it('success status updates the rule', async () => {
+        const endpoint = `/projects/org-slug/project-slug/alert-rule-task/${uuid}/`;
+        const alertRule = TestStubs.IncidentRule({name: 'Slack Alert Rule'});
+        MockApiClient.addMockResponse({
+          url: endpoint,
+          body: {
+            status: 'success',
+            alertRule,
+          },
+        });
+
+        const onSubmitSuccess = jest.fn();
+        const wrapper = createWrapper({
+          ruleId: alertRule.id,
+          rule: alertRule,
+          onSubmitSuccess,
+        });
+        const ruleFormContainer = wrapper.find('RuleFormContainer');
+        ruleFormContainer.setState({uuid, loading: true});
+        await Promise.resolve();
+        ruleFormContainer.update();
+
+        ruleFormContainer.instance().fetchStatus(model);
+        jest.runOnlyPendingTimers();
+
+        await Promise.resolve();
+        ruleFormContainer.update();
+        expect(ruleFormContainer.state('loading')).toBe(false);
+        expect(onSubmitSuccess).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: alertRule.id,
+            name: alertRule.name,
+          }),
+          expect.anything()
+        );
+      });
+
+      it('pending status keeps loading true', async () => {
+        const endpoint = `/projects/org-slug/project-slug/alert-rule-task/${uuid}/`;
+        const alertRule = TestStubs.IncidentRule({name: 'Slack Alert Rule'});
+        MockApiClient.addMockResponse({
+          url: endpoint,
+          body: {
+            status: 'pending',
+          },
+        });
+
+        const onSubmitSuccess = jest.fn();
+        const wrapper = createWrapper({
+          ruleId: alertRule.id,
+          rule: alertRule,
+          onSubmitSuccess,
+        });
+        const ruleFormContainer = wrapper.find('RuleFormContainer');
+        ruleFormContainer.setState({uuid, loading: true});
+        await Promise.resolve();
+        ruleFormContainer.update();
+
+        ruleFormContainer.instance().fetchStatus(model);
+        jest.runOnlyPendingTimers();
+
+        await Promise.resolve();
+        ruleFormContainer.update();
+        expect(ruleFormContainer.state('loading')).toBe(true);
+        expect(onSubmitSuccess).not.toHaveBeenCalled();
+      });
+
+      it('failed status renders error message', async () => {
+        const endpoint = `/projects/org-slug/project-slug/alert-rule-task/${uuid}/`;
+        const alertRule = TestStubs.IncidentRule({name: 'Slack Alert Rule'});
+        MockApiClient.addMockResponse({
+          url: endpoint,
+          body: {
+            status: 'failed',
+            error: 'An error occurred',
+          },
+        });
+
+        const onSubmitSuccess = jest.fn();
+        const wrapper = createWrapper({
+          ruleId: alertRule.id,
+          rule: alertRule,
+          onSubmitSuccess,
+        });
+        const ruleFormContainer = wrapper.find('RuleFormContainer');
+        ruleFormContainer.setState({uuid, loading: true});
+        await Promise.resolve();
+        ruleFormContainer.update();
+
+        ruleFormContainer.instance().fetchStatus(model);
+        jest.runOnlyPendingTimers();
+
+        await Promise.resolve();
+        ruleFormContainer.update();
+        expect(ruleFormContainer.state('loading')).toBe(false);
+        expect(onSubmitSuccess).not.toHaveBeenCalled();
+        expect(addErrorMessage).toHaveBeenCalledWith('An error occurred');
+      });
+    });
   });
 
-  describe('Editing a rule', function() {
+  describe('Editing a rule', function () {
     let editRule;
+    let editTrigger;
     const rule = TestStubs.IncidentRule();
 
-    beforeEach(function() {
+    beforeEach(function () {
       editRule = MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/alert-rules/${rule.id}/`,
+        url: `/projects/org-slug/project-slug/alert-rules/${rule.id}/`,
         method: 'PUT',
         body: rule,
       });
+      editTrigger = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/alert-rules/${rule.id}/triggers/1/`,
+        method: 'PUT',
+        body: TestStubs.IncidentTrigger({id: 1}),
+      });
+    });
+    afterEach(function () {
+      editRule.mockReset();
+      editTrigger.mockReset();
     });
 
-    it('keeps state of projects and excluded projects when toggling "Include all projects"', async function() {
+    it('edits metric', async function () {
       const wrapper = createWrapper({
-        incidentRuleId: rule.id,
-        initialData: rule,
-        saveOnBlur: true,
+        ruleId: rule.id,
+        rule,
       });
 
-      selectByLabel(wrapper, 'project-slug', {name: 'projects'});
+      wrapper
+        .find('input[name="name"]')
+        .simulate('change', {target: {value: 'new name'}});
+
+      wrapper.find('form').simulate('submit');
 
       expect(editRule).toHaveBeenLastCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {
-            projects: ['project-slug'],
-          },
-        })
-      );
-      editRule.mockReset();
-
-      // Toggle include all projects to on
-      wrapper.find('button#includeAllProjects').simulate('click');
-      expect(editRule).toHaveBeenLastCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            includeAllProjects: true,
-          },
-        })
-      );
-      editRule.mockReset();
-
-      // Exclude 2nd project
-      selectByLabel(wrapper, 'project-2', {name: 'excludedProjects'});
-      expect(editRule).toHaveBeenLastCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            excludedProjects: ['project-2'],
-          },
-        })
-      );
-      editRule.mockReset();
-
-      // Toggle back to not include all projects
-      wrapper.find('button#includeAllProjects').simulate('click');
-      expect(editRule).toHaveBeenLastCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            includeAllProjects: false,
-          },
+          data: expect.objectContaining({
+            name: 'new name',
+          }),
         })
       );
     });

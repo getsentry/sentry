@@ -1,16 +1,18 @@
 from __future__ import absolute_import
 
 from jsonschema.exceptions import ValidationError as SchemaValidationError
-
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
-from django.template.defaultfilters import slugify
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
-from sentry.models import ApiScopes, SentryApp
-from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
+from sentry.models import ApiScopes
+from sentry.models.sentryapp import (
+    VALID_EVENT_RESOURCES,
+    REQUIRED_EVENT_PERMISSIONS,
+    UUID_CHARS_IN_SLUG,
+)
 
 
 class ApiScopesField(serializers.Field):
@@ -80,6 +82,11 @@ class SentryAppSerializer(Serializer):
     verifyInstall = serializers.BooleanField(required=False, default=True)
     allowedOrigins = ListField(child=serializers.CharField(max_length=255), required=False)
 
+    def __init__(self, *args, **kwargs):
+        self.access = kwargs["access"]
+        del kwargs["access"]
+        Serializer.__init__(self, *args, **kwargs)
+
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
     def get_current_value_wrapper(self, attrs):
         def get_current_value(field_name):
@@ -95,22 +102,36 @@ class SentryAppSerializer(Serializer):
         return get_current_value
 
     def validate_name(self, value):
-        if not value:
-            return value
-
-        queryset = SentryApp.with_deleted.filter(slug=slugify(value))
-
-        if self.instance:
-            queryset = queryset.exclude(id=self.instance.id)
-
-        if queryset.exists():
-            raise ValidationError(u"Name {} is already taken, please use another.".format(value))
+        max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit
+        if len(value) > max_length:
+            raise ValidationError("Cannot exceed %d characters" % max_length)
         return value
 
     def validate_allowedOrigins(self, value):
         for allowed_origin in value:
             if "*" in allowed_origin:
                 raise ValidationError("'*' not allowed in origin")
+        return value
+
+    def validate_scopes(self, value):
+        if not value:
+            return value
+
+        validation_errors = []
+        for scope in value:
+            # if the existing instance already has this scope, skip the check
+            if self.instance and self.instance.has_scope(scope):
+                continue
+            # add an error if the requester lacks permissions being requested
+            if not self.access.has_scope(scope):
+                validation_errors.append(
+                    "Requested permission of %s exceeds requester's permission. Please contact an administrator to make the requested change."
+                    % (scope)
+                )
+
+        if validation_errors:
+            raise ValidationError(validation_errors)
+
         return value
 
     def validate(self, attrs):

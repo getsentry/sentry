@@ -1,9 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {MemberRole} from 'app/types';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {t} from 'app/locale';
 import Radio from 'app/components/radio';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
@@ -14,18 +15,11 @@ const Label = styled('label')`
   margin-bottom: 0;
 `;
 
-type Role = {
-  id: string;
-  name: string;
-  desc: string;
-  allowed: boolean;
-};
-
 type Props = {
   enforceAllowed: boolean;
   disabled: boolean;
   selectedRole: string;
-  roleList: Role[];
+  roleList: MemberRole[];
   setRole: (id: string) => void;
 };
 

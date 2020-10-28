@@ -1,9 +1,9 @@
 import React from 'react';
-import {css} from 'react-emotion';
+import {css} from '@emotion/core';
 import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import ModalActions from 'app/actions/modalActions';
-import {Integration, IntegrationProvider, Organization, SentryApp} from 'app/types';
+import {Organization, SentryApp, Project, Team, Group, Event} from 'app/types';
 
 export type ModalRenderProps = {
   closeModal: () => void;
@@ -14,22 +14,10 @@ export type ModalRenderProps = {
 
 export type ModalOptions = {
   onClose?: () => void;
+  modalCss?: ReturnType<typeof css>;
   modalClassName?: string;
   dialogClassName?: string;
   type?: string;
-};
-
-export type IntegrationDetailsModalOptions = {
-  onAddIntegration: (integration: Integration) => void;
-  provider: IntegrationProvider;
-  organization: Organization;
-};
-
-export type SentryAppDetailsModalOptions = {
-  sentryApp: SentryApp;
-  isInstalled: boolean;
-  onInstall: () => void;
-  organization: Organization;
 };
 
 /**
@@ -49,165 +37,165 @@ export function closeModal() {
   ModalActions.closeModal();
 }
 
-export function openSudo({
-  onClose,
-  ...args
-}: {
+type OpenSudoModalOptions = {
   onClose?: () => void;
   superuser?: boolean;
   sudo?: boolean;
   retryRequest?: () => Promise<any>;
-} = {}) {
-  import(/* webpackChunkName: "SudoModal" */ 'app/components/modals/sudoModal')
-    .then(mod => mod.default)
-    .then(SudoModal =>
-      openModal(deps => <SudoModal {...deps} {...args} />, {
-        modalClassName: 'sudo-modal',
-        onClose,
-      })
-    );
+};
+
+export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
+  const mod = await import(
+    /* webpackChunkName: "SudoModal" */ 'app/components/modals/sudoModal'
+  );
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...args} />, {onClose});
 }
 
-export function openDiffModal(options: ModalOptions) {
-  import(/* webpackChunkName: "DiffModal" */ 'app/components/modals/diffModal')
-    .then(mod => mod.default)
-    .then(Modal => {
-      // This is the only way to style the different Modal children
-      const diffModalCss = css`
-        .modal-dialog {
-          display: flex;
-          margin: 0;
-          left: 10px;
-          right: 10px;
-          top: 10px;
-          bottom: 10px;
-          width: auto;
-        }
-        .modal-content {
-          display: flex;
-          flex: 1;
-        }
-        .modal-body {
-          display: flex;
-          overflow: hidden;
-          flex: 1;
-        }
-      `;
+type OpenDiffModalOptions = {
+  targetIssueId: string;
+  project: Project;
+  baseIssueId: Group['id'];
+  orgId: Organization['id'];
+  baseEventId?: Event['id'];
+};
 
-      openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: diffModalCss,
-      });
-    });
+export async function openDiffModal(options: OpenDiffModalOptions) {
+  const mod = await import(
+    /* webpackChunkName: "DiffModal" */ 'app/components/modals/diffModal'
+  );
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-/**
- * @param Object options
- * @param Object options.organization The organization to create a team for
- */
-export function openCreateIncidentModal(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "CreateIncidentModal" */ 'app/components/modals/createIncidentModal')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => (
-        <Modal data-test-id="create-incident-modal" {...deps} {...options} />
-      ));
-    });
+type CreateTeamModalOptions = {
+  /**
+   * The organization to create a team for
+   */
+  organization: Organization;
+  /**
+   * An initial project to add the team to. This may be deprecated soon as we may add a project selection inside of the modal flow
+   */
+  project?: Project;
+  onClose?: (team: Team) => void;
+};
+
+export async function openCreateTeamModal(options: CreateTeamModalOptions) {
+  const mod = await import(
+    /* webpackChunkName: "CreateTeamModal" */ 'app/components/modals/createTeamModal'
+  );
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />);
 }
 
-/**
- * @param Object options
- * @param Object options.organization The organization to create a team for
- * @param Object options.project (optional) An initial project to add the team to. This may be deprecated soon as
- * we may add a project selection inside of the modal flow
- */
-export function openCreateTeamModal(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "CreateTeamModal" */ 'app/components/modals/createTeamModal')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: 'create-team-modal',
-      });
-    });
+type CreateOwnershipRuleModalOptions = {
+  /**
+   * The organization to create a rules for
+   */
+  organization: Organization;
+  /**
+   * The project to create a rules for
+   */
+  project: Project;
+  issueId: string;
+};
+
+export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
+  const mod = await import(
+    /* webpackChunkName: "CreateOwnershipRuleModal" */ 'app/components/modals/createOwnershipRuleModal'
+  );
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-/**
- * @param Object options.organization The organization to create a rules for
- * @param Object options.project The project to create a rules for
- */
-export function openCreateOwnershipRule(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "CreateOwnershipRuleModal" */ 'app/components/modals/createOwnershipRuleModal')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: 'create-ownership-rule-modal',
-      });
-    });
+export async function openCommandPalette(options: ModalOptions = {}) {
+  const mod = await import(
+    /* webpackChunkName: "CommandPalette" */ 'app/components/modals/commandPalette'
+  );
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal Body={deps.Body} {...options} />, {modalCss});
 }
 
-export function openCommandPalette(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "CommandPalette" */ 'app/components/modals/commandPalette')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: 'command-palette',
-      });
-    });
+export async function openRecoveryOptions(options: ModalOptions = {}) {
+  const mod = await import(
+    /* webpackChunkName: "RecoveryOptionsModal" */ 'app/components/modals/recoveryOptionsModal'
+  );
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {
+    modalClassName: 'recovery-options',
+  });
 }
 
-export function openRecoveryOptions(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "RecoveryOptionsModal" */ 'app/components/modals/recoveryOptionsModal')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: 'recovery-options',
-      });
-    });
+export type TeamAccessRequestModalOptions = {
+  memberId: string;
+  teamId: string;
+  orgId: string;
+};
+
+export async function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
+  const mod = await import(
+    /* webpackChunkName: "TeamAccessRequestModal" */ 'app/components/modals/teamAccessRequestModal'
+  );
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {
+    modalClassName: 'confirm-team-request',
+  });
 }
 
-/**
- * @param Object options.provider The integration provider to show the details for
- * @param Function options.onAddIntegration Called after a new integration is added
- */
-export function openIntegrationDetails(options: IntegrationDetailsModalOptions) {
-  import(/* webpackChunkName: "IntegrationDetailsModal" */ 'app/components/modals/integrationDetailsModal')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => <Modal {...deps} {...options} />);
-    });
+export async function redirectToProject(newProjectSlug: string) {
+  const mod = await import(
+    /* webpackChunkName: "RedirectToProjectModal" */ 'app/components/modals/redirectToProject'
+  );
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
 }
 
-export function redirectToProject(newProjectSlug: string) {
-  import(/* webpackChunkName: "RedirectToProjectModal" */ 'app/components/modals/redirectToProject')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
-    });
+type HelpSearchModalOptipons = {
+  organization: Organization;
+  placeholder?: string;
+};
+
+export async function openHelpSearchModal(options: HelpSearchModalOptipons) {
+  const mod = await import(
+    /* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal'
+  );
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export function openHelpSearchModal() {
-  import(/* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => <Modal {...deps} />, {
-        modalClassName: 'help-search-modal',
-      });
-    });
+export type SentryAppDetailsModalOptions = {
+  sentryApp: SentryApp;
+  isInstalled: boolean;
+  onInstall: () => Promise<void>;
+  organization: Organization;
+  onCloseModal?: () => void; //used for analytics
+};
+
+export async function openDebugFileSourceModal(options: ModalOptions = {}) {
+  const mod = await import(
+    /* webpackChunkName: "DebugFileSourceModal" */ 'app/components/modals/debugFileSourceModal'
+  );
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {
+    modalClassName: 'debug-file-source',
+  });
 }
 
-export function openSentryAppDetailsModal(options: SentryAppDetailsModalOptions) {
-  import(/* webpackChunkName: "SentryAppDetailsModal" */ 'app/components/modals/sentryAppDetailsModal')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => <Modal {...deps} {...options} />);
-    });
-}
+export async function openInviteMembersModal(options = {}) {
+  const mod = await import(
+    /* webpackChunkName: "InviteMembersModal" */ 'app/components/modals/inviteMembersModal'
+  );
+  const {default: Modal, modalCss} = mod;
 
-export function openDebugFileSourceModal(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "DebugFileSourceModal" */ 'app/components/modals/debugFileSourceModal')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: 'debug-file-source',
-      });
-    });
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }

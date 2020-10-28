@@ -26,7 +26,7 @@ export const getPeriod = (
   }
 
   // you can not specify both relative and absolute periods
-  // relative period takes precendence
+  // relative period takes precedence
   if (period) {
     if (!shouldDoublePeriod) {
       return {statsPeriod: period};

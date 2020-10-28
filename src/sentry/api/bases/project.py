@@ -1,17 +1,25 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.base import Endpoint
+from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.api.helpers.environments import get_environments
 from sentry.api.exceptions import ResourceDoesNotExist, ProjectMoved
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
-from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect
-from sentry.utils.sdk import configure_scope
+from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect, SentryApp
+from sentry.utils.sdk import configure_scope, bind_organization_context
 
 from .organization import OrganizationPermission
 from .team import has_team_permission
+
+
+class ProjectEventsError(Exception):
+    pass
 
 
 class ProjectPermission(OrganizationPermission):
@@ -35,10 +43,12 @@ class ProjectPermission(OrganizationPermission):
             )
         elif is_system_auth(request.auth):
             return True
-        elif request.user.is_authenticated():
+        elif request.user and request.user.is_authenticated():
             # this is only for team-less projects
             if is_active_superuser(request):
                 return True
+            elif request.user.is_sentry_app:
+                return SentryApp.check_project_permission_for_sentry_app_user(request.user, project)
             try:
                 role = (
                     OrganizationMember.objects.filter(
@@ -123,6 +133,8 @@ class ProjectEndpoint(Endpoint):
                 redirect = redirect.get(
                     organization__slug=organization_slug, redirect_slug=project_slug
                 )
+                # Without object permissions don't reveal the rename
+                self.check_object_permissions(request, redirect.project)
 
                 # get full path so that we keep query strings
                 requested_url = request.get_full_path()
@@ -147,12 +159,29 @@ class ProjectEndpoint(Endpoint):
 
         with configure_scope() as scope:
             scope.set_tag("project", project.id)
-            scope.set_tag("organization", project.organization_id)
+
+        bind_organization_context(project.organization)
 
         request._request.organization = project.organization
 
         kwargs["project"] = project
         return (args, kwargs)
+
+    def get_filter_params(self, request, project, date_filter_optional=False):
+        """Similar to the version on the organization just for a single project."""
+        # get the top level params -- projects, time range, and environment
+        # from the request
+        try:
+            start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
+        except InvalidParams as e:
+            raise ProjectEventsError(six.text_type(e))
+
+        environments = [env.name for env in get_environments(request, project.organization)]
+        params = {"start": start, "end": end, "project_id": [project.id]}
+        if environments:
+            params["environment"] = environments
+
+        return params
 
     def handle_exception(self, request, exc):
         if isinstance(exc, ProjectMoved):

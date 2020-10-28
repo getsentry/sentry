@@ -96,6 +96,13 @@ def _get_public_dsn():
     return result
 
 
+def _get_dsn_requests():
+    if settings.SENTRY_FRONTEND_REQUESTS_DSN:
+        return settings.SENTRY_FRONTEND_REQUESTS_DSN
+
+    return ""
+
+
 def get_client_config(request=None):
     """
     Provides initial bootstrap data needed to boot the frontend application.
@@ -110,13 +117,14 @@ def get_client_config(request=None):
         # User identity is used by the sentry SDK
         user_identity = {"ip_address": request.META["REMOTE_ADDR"]}
         if user and user.is_authenticated():
-            user_identity.update({"email": user.email, "id": user.id})
+            user_identity.update({"email": user.email, "id": user.id, "isStaff": user.is_staff})
             if user.name:
                 user_identity["name"] = user.name
     else:
         user = None
         user_identity = {}
         messages = []
+        session = None
         is_superuser = False
         language_code = "en"
 
@@ -133,6 +141,8 @@ def get_client_config(request=None):
     if is_superuser:
         needs_upgrade = _needs_upgrade()
 
+    public_dsn = _get_public_dsn()
+
     context = {
         "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
         "supportEmail": get_support_mail(),
@@ -141,9 +151,11 @@ def get_client_config(request=None):
         "features": enabled_features,
         "distPrefix": get_asset_url("sentry", "dist/"),
         "needsUpgrade": needs_upgrade,
-        "dsn": _get_public_dsn(),
+        "dsn": public_dsn,
+        "dsn_requests": _get_dsn_requests(),
         "statuspage": _get_statuspage(),
         "messages": [{"message": msg.message, "level": msg.tags} for msg in messages],
+        "apmSampling": float(settings.SENTRY_APM_SAMPLING or 0),
         "isOnPremise": settings.SENTRY_ONPREMISE,
         "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
         "gravatarBaseUrl": settings.SENTRY_GRAVATAR_BASE_URL,
@@ -157,16 +169,30 @@ def get_client_config(request=None):
         "userIdentity": user_identity,
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
         "sentryConfig": {
-            "dsn": _get_public_dsn(),
-            "release": version_info["build"],
-            "whitelistUrls": list(settings.ALLOWED_HOSTS),
+            "dsn": public_dsn,
+            "release": settings.SENTRY_SDK_CONFIG["release"],
+            "environment": settings.SENTRY_SDK_CONFIG["environment"],
+            # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
+            "whitelistUrls": (
+                settings.SENTRY_FRONTEND_WHITELIST_URLS
+                if settings.SENTRY_FRONTEND_WHITELIST_URLS
+                else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
+            ),
         },
     }
     if user and user.is_authenticated():
         context.update(
             {"isAuthenticated": True, "user": serialize(user, user, DetailedUserSerializer())}
         )
-        context["user"]["isSuperuser"] = is_superuser
+
+        if request.user.is_superuser:
+            # Note: This intentionally does not use the "active" superuser flag as
+            # the frontend should only ever use this flag as a hint that the user can be a superuser
+            # the API will always need to check for active superuser.
+            #
+            # This is needed in the case where you access a different org and get denied, but the UI
+            # can open the sudo dialog if you are an "inactive" superuser
+            context["user"]["isSuperuser"] = request.user.is_superuser
     else:
         context.update({"isAuthenticated": False, "user": None})
 

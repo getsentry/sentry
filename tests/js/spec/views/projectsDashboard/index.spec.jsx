@@ -1,5 +1,6 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Dashboard} from 'app/views/projectsDashboard';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
@@ -8,24 +9,22 @@ import * as projectsActions from 'app/actionCreators/projects';
 jest.unmock('lodash/debounce');
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
-  const mockDebounce = (fn, timeout) => {
-    return (...args) => {
-      if (debounceMap.has(fn)) {
-        clearTimeout(debounceMap.get(fn));
-      }
-      debounceMap.set(
-        fn,
-        setTimeout(() => {
-          fn.apply(fn, args);
-          debounceMap.delete(fn);
-        }, timeout)
-      );
-    };
+  const mockDebounce = (fn, timeout) => (...args) => {
+    if (debounceMap.has(fn)) {
+      clearTimeout(debounceMap.get(fn));
+    }
+    debounceMap.set(
+      fn,
+      setTimeout(() => {
+        fn.apply(fn, args);
+        debounceMap.delete(fn);
+      }, timeout)
+    );
   };
   return mockDebounce;
 });
 
-describe('OrganizationDashboard', function() {
+describe('ProjectsDashboard', function () {
   const org = TestStubs.Organization();
   const routerContext = TestStubs.routerContext([
     {router: TestStubs.router({params: {orgId: org.slug}})},
@@ -34,7 +33,7 @@ describe('OrganizationDashboard', function() {
   const team = TestStubs.Team();
   const teams = [team];
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: `/teams/${org.slug}/${team.slug}/members/`,
       body: [],
@@ -42,16 +41,17 @@ describe('OrganizationDashboard', function() {
     ProjectsStatsStore.reset();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('empty state', function() {
-    it('renders with no projects', function() {
-      const wrapper = mount(
+  describe('empty state', function () {
+    it('renders with no projects', function () {
+      const noProjectTeams = [TestStubs.Team({projects: []})];
+
+      const wrapper = mountWithTheme(
         <Dashboard
-          teams={teams}
-          projects={[]}
+          teams={noProjectTeams}
           organization={org}
           params={{orgId: org.slug}}
         />,
@@ -62,13 +62,14 @@ describe('OrganizationDashboard', function() {
       expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
     });
 
-    it('renders with 1 project, with no first event', function() {
+    it('renders with 1 project, with no first event', function () {
       const projects = [TestStubs.Project({teams})];
 
-      const wrapper = mount(
+      const teamsWithOneProject = [TestStubs.Team({projects})];
+
+      const wrapper = mountWithTheme(
         <Dashboard
-          teams={teams}
-          projects={projects}
+          teams={teamsWithOneProject}
           organization={org}
           params={{orgId: org.slug}}
         />,
@@ -81,8 +82,8 @@ describe('OrganizationDashboard', function() {
     });
   });
 
-  describe('with projects', function() {
-    it('renders TeamSection with two projects', function() {
+  describe('with projects', function () {
+    it('renders TeamSection with two projects', function () {
       const projects = [
         TestStubs.Project({
           teams,
@@ -90,16 +91,18 @@ describe('OrganizationDashboard', function() {
         }),
 
         TestStubs.Project({
+          slug: 'project2',
           teams,
           isBookmarked: true,
           firstEvent: true,
         }),
       ];
 
-      const wrapper = shallow(
+      const teamsWithTwoProjects = [TestStubs.Team({projects})];
+
+      const wrapper = mountWithTheme(
         <Dashboard
-          teams={teams}
-          projects={projects}
+          teams={teamsWithTwoProjects}
           organization={org}
           params={{orgId: org.slug}}
         />,
@@ -112,7 +115,7 @@ describe('OrganizationDashboard', function() {
       expect(wrapper.find('Resources').exists()).toBe(false);
     });
 
-    it('renders bookmarked projects first in team list', function() {
+    it('renders bookmarked projects first in team list', function () {
       const projects = [
         TestStubs.Project({
           id: '1',
@@ -157,21 +160,26 @@ describe('OrganizationDashboard', function() {
           stats: [],
         }),
       ];
+
+      const teamsWithFavProjects = [TestStubs.Team({projects})];
+
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
         body: [
           TestStubs.Project({
             teams,
-            stats: [[1517281200, 2], [1517310000, 1]],
+            stats: [
+              [1517281200, 2],
+              [1517310000, 1],
+            ],
           }),
         ],
       });
 
       jest.useFakeTimers();
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Dashboard
-          teams={teams}
-          projects={projects}
+          teams={teamsWithFavProjects}
           organization={org}
           params={{orgId: org.slug}}
         />,
@@ -191,7 +199,7 @@ describe('OrganizationDashboard', function() {
     });
   });
 
-  describe('ProjectsStatsStore', function() {
+  describe('ProjectsStatsStore', function () {
     const projects = [
       TestStubs.Project({
         id: '1',
@@ -231,7 +239,9 @@ describe('OrganizationDashboard', function() {
       }),
     ];
 
-    it('uses ProjectsStatsStore to load stats', async function() {
+    const teamsWithStatTestProjects = [TestStubs.Team({projects})];
+
+    it('uses ProjectsStatsStore to load stats', async function () {
       jest.useFakeTimers();
       ProjectsStatsStore.onStatsLoadSuccess([{...projects[0], stats: [[1517281200, 2]]}]);
       const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
@@ -239,14 +249,16 @@ describe('OrganizationDashboard', function() {
         url: `/organizations/${org.slug}/projects/`,
         body: projects.map(project => ({
           ...project,
-          stats: [[1517281200, 2], [1517310000, 1]],
+          stats: [
+            [1517281200, 2],
+            [1517310000, 1],
+          ],
         })),
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Dashboard
-          teams={teams}
-          projects={projects}
+          teams={teamsWithStatTestProjects}
           organization={org}
           params={{orgId: org.slug}}
         />,
@@ -282,6 +294,15 @@ describe('OrganizationDashboard', function() {
       // Resets store when it unmounts
       wrapper.unmount();
       expect(ProjectsStatsStore.getAll()).toEqual({});
+    });
+
+    it('renders an error from withTeamsForUser', function () {
+      const wrapper = mountWithTheme(
+        <Dashboard error={Error('uhoh')} organization={org} params={{orgId: org.slug}} />,
+        routerContext
+      );
+
+      expect(wrapper.find('LoadingError').exists()).toBe(true);
     });
   });
 });

@@ -12,10 +12,6 @@ from bitfield.compat import bitor
 
 
 class BitFieldListFilter(FieldListFilter):
-    """
-    BitField list filter.
-    """
-
     def __init__(self, field, request, params, model, model_admin, field_path):
         self.lookup_kwarg = field_path
         self.lookup_val = int(request.GET.get(self.lookup_kwarg, 0))
@@ -26,9 +22,9 @@ class BitFieldListFilter(FieldListFilter):
         )
 
     def queryset(self, request, queryset):
-        filter = dict((p, bitor(F(p), v)) for p, v in six.iteritems(self.used_parameters))
+        _filter = dict((p, bitor(F(p), v)) for p, v in six.iteritems(self.used_parameters))
         try:
-            return queryset.filter(**filter)
+            return queryset.filter(**_filter)
         except ValidationError as e:
             raise IncorrectLookupParameters(e)
 

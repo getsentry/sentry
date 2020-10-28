@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
 from django.db import connection, connections
-from django.db.models.signals import post_syncdb
+from django.db.models.signals import post_migrate
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
-from sentry.utils.db import is_postgres
 
 
 class Counter(Model):
@@ -32,33 +31,29 @@ def increment_project_counter(project, delta=1):
 
     cur = connection.cursor()
     try:
-        if is_postgres():
-            cur.execute(
-                """
-                select sentry_increment_project_counter(%s, %s)
-            """,
-                [project.id, delta],
-            )
-            return cur.fetchone()[0]
-        else:
-            raise AssertionError("Not implemented database engine path")
+        cur.execute(
+            """
+            select sentry_increment_project_counter(%s, %s)
+        """,
+            [project.id, delta],
+        )
+        return cur.fetchone()[0]
     finally:
         cur.close()
 
 
 # this must be idempotent because it seems to execute twice
 # (at least during test runs)
-def create_counter_function(db, created_models, app=None, **kwargs):
-    if app and app.__name__ != "sentry.models":
+def create_counter_function(app_config, using, **kwargs):
+    if app_config and app_config.name != "sentry":
         return
 
-    if not is_postgres(db):
+    try:
+        app_config.get_model("Counter")
+    except LookupError:
         return
 
-    if Counter not in created_models:
-        return
-
-    cursor = connections[db].cursor()
+    cursor = connections[using].cursor()
     try:
         cursor.execute(
             """
@@ -90,6 +85,4 @@ def create_counter_function(db, created_models, app=None, **kwargs):
         cursor.close()
 
 
-# TODO(dcramer): Remove when Django 1.6 is no longer supported, as this does
-# nothing with Django migrations
-post_syncdb.connect(create_counter_function, dispatch_uid="create_counter_function", weak=False)
+post_migrate.connect(create_counter_function, dispatch_uid="create_counter_function", weak=False)

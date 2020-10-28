@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 import six
-import mock
+from sentry.utils.compat import mock
 import copy
 
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import Activity, ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
@@ -51,6 +51,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "status": integration.get_status_display(),
                 "provider": {
                     "key": provider.key,
+                    "slug": provider.key,
                     "name": provider.name,
                     "canAdd": provider.can_add,
                     "canDisable": provider.can_disable,
@@ -90,6 +91,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "status": integration.get_status_display(),
                 "provider": {
                     "key": provider.key,
+                    "slug": provider.key,
                     "name": provider.name,
                     "canAdd": provider.can_add,
                     "canDisable": provider.can_disable,

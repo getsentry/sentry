@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.utils import auth
+from sentry_sdk import Hub
 
 ERR_BAD_SIGNATURE = _("The link you followed is invalid or expired.")
 
@@ -37,3 +38,15 @@ def signed_auth_required(func):
         return func(request, *args, **kwargs)
 
     return wrapped
+
+
+def transaction_start(endpoint):
+    def decorator(func):
+        @wraps(func)
+        def wrapped(request, *args, **kwargs):
+            with Hub.current.start_transaction(op="http.server", name=endpoint, sampled=True):
+                return func(request, *args, **kwargs)
+
+        return wrapped
+
+    return decorator

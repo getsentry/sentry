@@ -5,26 +5,26 @@ import logging
 import operator
 import random
 import uuid
-from binascii import crc32
 from collections import defaultdict, namedtuple
 from hashlib import md5
 
 import six
 from django.utils import timezone
+from django.utils.encoding import force_bytes
 from pkg_resources import resource_string
-from redis.client import Script
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
+from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, SentryScript
 from sentry.utils.versioning import Version
 from six.moves import reduce
+from sentry.utils.compat import map, zip, crc32
 
 logger = logging.getLogger(__name__)
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
-CountMinScript = Script(None, resource_string("sentry", "scripts/tsdb/cmsketch.lua"))
+CountMinScript = SentryScript(None, resource_string("sentry", "scripts/tsdb/cmsketch.lua"))
 
 
 class SuppressionWrapper(object):
@@ -138,7 +138,7 @@ class RedisTSDB(BaseTSDB):
         results = defaultdict(list)
         for environment_id in environment_ids:
             results[self.get_cluster(environment_id)].append(environment_id)
-        return results.items()
+        return list(results.items())
 
     def add_environment_parameter(self, key, environment_id):
         if environment_id is not None:
@@ -172,9 +172,7 @@ class RedisTSDB(BaseTSDB):
         if isinstance(model_key, six.integer_types):
             vnode = model_key % self.vnodes
         else:
-            if isinstance(model_key, six.text_type):
-                model_key = model_key.encode("utf-8")
-            vnode = crc32(model_key) % self.vnodes
+            vnode = crc32(force_bytes(model_key)) % self.vnodes
 
         return (
             u"{prefix}{model}:{epoch}:{vnode}".format(
@@ -194,7 +192,21 @@ class RedisTSDB(BaseTSDB):
             # enforce utf-8 encoding
             if isinstance(key, six.text_type):
                 key = key.encode("utf-8")
-            return md5(repr(key)).hexdigest()
+
+            key_repr = repr(key)
+            if six.PY3:
+                # TODO(python3): Once we're fully on py3, we can remove the condition
+                # here and make this the default behaviour.
+                # XXX: Python 3 reprs bytes differently to Python 2. In py2,
+                # `repr("foo")` would produce a bytestring like `"'foo'"`. In Python 3,
+                # we'll end up with a unicode string like `"b'foo'"`. To keep this
+                # compatible between versions, we strip off the `b` from the beginning
+                # of the string and then encode back to bytes so that md5 can hash the
+                # value.
+                key_repr = key_repr[1:].encode("utf-8")
+
+            return md5(key_repr).hexdigest()
+
         return key
 
     def incr(self, model, key, timestamp=None, count=1, environment_id=None):
@@ -207,11 +219,20 @@ class RedisTSDB(BaseTSDB):
         Increment project ID=1 and group ID=5:
 
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
-        """
-        self.validate_arguments([model for model, _ in items], [environment_id])
 
-        if timestamp is None:
-            timestamp = timezone.now()
+        Increment individual timestamps:
+
+        >>> incr_multi([(TimeSeriesModel.project, 1, {"timestamp": ...}),
+        ...             (TimeSeriesModel.group, 5, {"timestamp": ...})])
+        """
+
+        default_timestamp = timestamp
+        default_count = count
+
+        self.validate_arguments([item[0] for item in items], [environment_id])
+
+        if default_timestamp is None:
+            default_timestamp = timezone.now()
 
         for (cluster, durable), environment_ids in self.get_cluster_groups(
             set([None, environment_id])
@@ -221,16 +242,38 @@ class RedisTSDB(BaseTSDB):
                 manager = SuppressionWrapper(manager)
 
             with manager as client:
+                # (hash_key, hash_field) -> count
+                key_operations = defaultdict(lambda: 0)
+                # (hash_key) -> "max expiration encountered"
+                key_expiries = defaultdict(lambda: 0.0)
+
                 for rollup, max_values in six.iteritems(self.rollups):
-                    for model, key in items:
+                    for item in items:
+                        if len(item) == 2:
+                            model, key = item
+                            options = {}
+                        else:
+                            model, key, options = item
+
+                        count = options.get("count", default_count)
+                        timestamp = options.get("timestamp", default_timestamp)
+
+                        expiry = self.calculate_expiry(rollup, max_values, timestamp)
+
                         for environment_id in environment_ids:
                             hash_key, hash_field = self.make_counter_key(
                                 model, rollup, timestamp, key, environment_id
                             )
-                            client.hincrby(hash_key, hash_field, count)
-                            client.expireat(
-                                hash_key, self.calculate_expiry(rollup, max_values, timestamp)
-                            )
+
+                            if key_expiries[hash_key] < expiry:
+                                key_expiries[hash_key] = expiry
+
+                            key_operations[(hash_key, hash_field)] += count
+
+                for (hash_key, hash_field), count in six.iteritems(key_operations):
+                    client.hincrby(hash_key, hash_field, count)
+                    if key_expiries.get(hash_key):
+                        client.expireat(hash_key, key_expiries.pop(hash_key))
 
     def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
         """
@@ -307,7 +350,10 @@ class RedisTSDB(BaseTSDB):
                         for environment_id, promises in results.items():
                             total = sum([int(p.value) for p in promises if p.value])
                             if total:
-                                destination_hash_key, destination_hash_field = self.make_counter_key(
+                                (
+                                    destination_hash_key,
+                                    destination_hash_field,
+                                ) = self.make_counter_key(
                                     model, rollup, timestamp, destination, environment_id
                                 )
                                 client.hincrby(destination_hash_key, destination_hash_field, total)
@@ -349,7 +395,7 @@ class RedisTSDB(BaseTSDB):
 
     def record_multi(self, items, timestamp=None, environment_id=None):
         """
-        Record an occurence of an item in a distinct counter.
+        Record an occurrence of an item in a distinct counter.
         """
         self.validate_arguments([model for model, key, values in items], [environment_id])
 
@@ -421,7 +467,7 @@ class RedisTSDB(BaseTSDB):
                 # ``PFCOUNT`` correctly (although this is fixed in the Git
                 # master, so should be available in the next release) and only
                 # supports a single key argument -- not the variadic signature
-                # supported by the protocol -- so we have to call the commnand
+                # supported by the protocol -- so we have to call the command
                 # directly here instead.
                 ks = []
                 for timestamp in series:
@@ -692,7 +738,9 @@ class RedisTSDB(BaseTSDB):
         results = {}
         cluster, _ = self.get_cluster(environment_id)
         for key, responses in cluster.execute_commands(commands).items():
-            results[key] = [(member, float(score)) for member, score in responses[0].value]
+            results[key] = [
+                (member.decode("utf-8"), float(score)) for member, score in responses[0].value
+            ]
 
         return results
 
@@ -722,7 +770,7 @@ class RedisTSDB(BaseTSDB):
             ]
 
         def unpack_response(response):
-            return {item: float(score) for item, score in response.value}
+            return {item.decode("utf-8"): float(score) for item, score in response.value}
 
         results = {}
         cluster, _ = self.get_cluster(environment_id)
@@ -743,7 +791,7 @@ class RedisTSDB(BaseTSDB):
         # as positional arguments to the Redis script and later associating the
         # results (which are returned in the same order that the arguments were
         # provided) with the original input values to compose the result.
-        for key, members in items.items():
+        for key, members in list(items.items()):
             items[key] = list(members)
 
         commands = {}

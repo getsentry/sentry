@@ -1,28 +1,25 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
+import PropTypes from 'prop-types';
 import {withInfo} from '@storybook/addon-info';
-import styled from 'react-emotion';
 
 import Button from 'app/components/button';
-import GlobalModal from 'app/components/globalModal';
 import GridEditable from 'app/components/gridEditable';
-
-const Section = styled('div')`
-  margin-bottom: 32px;
-`;
 
 const COLUMN_ORDER = [
   {
     key: 'farm',
     name: 'farm',
+    width: -1,
   },
   {
     key: 'count(apple)',
     name: 'apples sold',
+    width: -1,
   },
   {
     key: 'count(banana)',
     name: 'banana sold',
+    width: -1,
   },
 ];
 const COLUMN_SORT_BY = [
@@ -59,167 +56,106 @@ const DATA = [
 ];
 
 class GridParent extends React.Component {
+  static propTypes = {
+    withHeader: PropTypes.bool,
+    title: PropTypes.string,
+  };
+
   state = {
     columnOrder: [...COLUMN_ORDER],
     columnSortBy: [...COLUMN_SORT_BY],
   };
 
-  createColumn = () => {
-    const dataRow = DATA[0];
-    const keys = Object.keys(dataRow);
-    const randomKey = keys[Math.floor(Math.random() * keys.length)];
-
-    this.setState({
-      columnOrder: [
-        ...this.state.columnOrder,
-        {
-          key: randomKey,
-          name: randomKey,
-        },
-      ],
-    });
-  };
-
-  updateColumn = (i, nextColumn) => {
-    const {columnOrder} = this.state;
-
-    this.setState({
-      columnOrder: [...columnOrder.slice(0, i), nextColumn, ...columnOrder.slice(i + 1)],
-    });
-  };
-
-  deleteColumn = i => {
-    const {columnOrder} = this.state;
-
-    this.setState({
-      columnOrder: [...columnOrder.slice(0, i), ...columnOrder.slice(i + 1)],
-    });
-  };
-
-  renderModalBodyWithForm = (i, column) => {
-    return (
-      <React.Fragment>
-        {column ? (
-          <Button onClick={() => this.updateColumn(i, {...column, name: 'Sentry'})}>
-            Rename this column to "Sentry"
-          </Button>
-        ) : (
-          <Button onClick={this.createColumn}>Add a random column</Button>
-        )}
-        <br />
-        <br />
-        <div>You should create a user-friendly form here to edit the columns</div>
-      </React.Fragment>
-    );
-  };
-
-  renderModalFooter = () => {
-    return <div>This is the footer</div>;
+  handleResizeColumn = (index, newColumn) => {
+    const columnOrder = [...this.state.columnOrder];
+    columnOrder[index] = {...columnOrder[index], width: newColumn.width};
+    this.setState({columnOrder});
   };
 
   render() {
+    const {withHeader, title} = this.props;
+    const headerButtons = withHeader
+      ? () => <Button size="small">Action Button</Button>
+      : null;
     return (
       <GridEditable
-        isEditable={true}
+        headerButtons={headerButtons}
         isLoading={false}
         error={null}
         data={DATA}
         columnOrder={this.state.columnOrder}
         columnSortBy={this.state.columnSortBy}
-        grid={{}}
-        modalEditColumn={{
-          renderBodyWithForm: this.renderModalBodyWithForm,
-          renderFooter: this.renderModalFooter,
-        }}
-        actions={{
-          deleteColumn: this.deleteColumn,
-          moveColumn: () => {},
+        title={title}
+        grid={{
+          onResizeColumn: this.handleResizeColumn,
         }}
       />
     );
   }
 }
 
-storiesOf('UI|GridEditable', module)
-  .add(
-    'default',
-    withInfo('There is a dependency on GlobalModal to display the Modal')(() => (
-      <React.Fragment>
-        <Section>
-          <h2>{'isEditable={true}'}</h2>
-          <GridParent />
-        </Section>
-        <Section>
-          <h2>{'isEditable={false}'}</h2>
-          <GridEditable
-            isEditable={false}
-            isLoading={false}
-            error={null}
-            data={DATA}
-            columnOrder={COLUMN_ORDER}
-            columnSortBy={COLUMN_SORT_BY}
-            grid={{}}
-            modalEditColumn={{
-              renderBodyWithForm: () => {},
-              renderFooter: () => {},
-            }}
-            actions={{
-              deleteColumn: () => {},
-              moveColumn: () => {},
-            }}
-          />
-        </Section>
-        <GlobalModal />
-      </React.Fragment>
-    ))
-  )
-  .add(
-    'isLoading',
-    withInfo('')(() => (
-      <Section>
-        <h2>Loading</h2>
-        <GridEditable
-          isEditable={false}
-          isLoading={true}
-          error={null}
-          data={DATA}
-          columnOrder={COLUMN_ORDER}
-          columnSortBy={COLUMN_SORT_BY}
-          grid={{}}
-          modalEditColumn={{
-            renderBodyWithForm: () => <div>ModalBody</div>,
-            renderFooter: () => <div>ModalFooter</div>,
-          }}
-          actions={{
-            deleteColumn: () => {},
-            moveColumn: () => {},
-          }}
-        />
-      </Section>
-    ))
-  )
-  .add(
-    'isError',
-    withInfo('')(() => (
-      <Section>
-        <h2>Error</h2>
-        <GridEditable
-          isEditable={false}
-          isLoading={true}
-          error="These aren't the droids you're looking for."
-          data={DATA}
-          columnOrder={COLUMN_ORDER}
-          columnSortBy={COLUMN_SORT_BY}
-          grid={{}}
-          modalEditColumn={{
-            renderBodyWithForm: () => <div>ModalBody</div>,
-            renderFooter: () => <div>ModalFooter</div>,
-          }}
-          actions={{
-            deleteColumn: () => {},
-            moveColumn: () => {},
-          }}
-        />
-      </Section>
-    ))
-  );
+export default {
+  title: 'Core/Tables/GridEditable',
+};
+
+export const Default = withInfo('Render a simple resizable table')(() => (
+  <React.Fragment>
+    <div className="section">
+      <h2>Basic Table</h2>
+      <GridParent />
+    </div>
+  </React.Fragment>
+));
+
+Default.story = {
+  name: 'default',
+};
+
+export const WithAHeader = withInfo('Include a header and action buttons')(() => (
+  <div className="section">
+    <h2>Table with title & header buttons</h2>
+    <GridParent withHeader title="Results" />
+  </div>
+));
+
+WithAHeader.story = {
+  name: 'with a header',
+};
+
+export const IsLoading = withInfo('')(() => (
+  <div className="section">
+    <h2>Loading</h2>
+    <GridEditable
+      isEditable={false}
+      isLoading
+      error={null}
+      data={DATA}
+      columnOrder={COLUMN_ORDER}
+      columnSortBy={COLUMN_SORT_BY}
+      grid={{}}
+    />
+  </div>
+));
+
+IsLoading.story = {
+  name: 'isLoading',
+};
+
+export const IsError = withInfo('')(() => (
+  <div className="section">
+    <h2>Error</h2>
+    <GridEditable
+      isEditable={false}
+      isLoading
+      error="These aren't the droids you're looking for."
+      data={DATA}
+      columnOrder={COLUMN_ORDER}
+      columnSortBy={COLUMN_SORT_BY}
+      grid={{}}
+    />
+  </div>
+));
+
+IsError.story = {
+  name: 'isError',
+};

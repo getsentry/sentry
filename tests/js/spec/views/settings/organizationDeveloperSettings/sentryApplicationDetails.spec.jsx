@@ -1,13 +1,14 @@
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
+
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
 import SentryApplicationDetails from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
-import {selectByValue} from '../../../../helpers/select';
 
-describe('Sentry Application Details', function() {
+describe('Sentry Application Details', function () {
   let org;
   let orgId;
   let sentryApp;
@@ -35,7 +36,7 @@ describe('Sentry Application Details', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-public/'}} />,
         TestStubs.routerContext()
       );
@@ -46,7 +47,7 @@ describe('Sentry Application Details', function() {
       expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
     });
 
-    it('it shows empty scopes and no credentials', function() {
+    it('it shows empty scopes and no credentials', function () {
       // new app starts off with no scopes selected
       expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([]);
       expect(
@@ -54,7 +55,7 @@ describe('Sentry Application Details', function() {
       ).toBeDefined();
     });
 
-    it('saves', function() {
+    it('saves', function () {
       wrapper
         .find('Input[name="name"]')
         .simulate('change', {target: {value: 'Test App'}});
@@ -117,7 +118,7 @@ describe('Sentry Application Details', function() {
 
   describe('Creating a new internal Sentry App', () => {
     beforeEach(() => {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-internal/'}} />,
         TestStubs.routerContext()
       );
@@ -128,7 +129,7 @@ describe('Sentry Application Details', function() {
     });
   });
 
-  describe('Renders public app', function() {
+  describe('Renders public app', function () {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
@@ -143,7 +144,7 @@ describe('Sentry Application Details', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -154,14 +155,14 @@ describe('Sentry Application Details', function() {
       expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
     });
 
-    it('it shows application data', function() {
+    it('it shows application data', function () {
       // data should be filled out
       expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
         'project:read',
       ]);
     });
 
-    it('renders clientId and clientSecret for public apps', function() {
+    it('renders clientId and clientSecret for public apps', function () {
       expect(wrapper.find('#clientId').exists()).toBe(true);
       expect(wrapper.find('#clientSecret').exists()).toBe(true);
     });
@@ -185,7 +186,7 @@ describe('Sentry Application Details', function() {
         body: [token],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -196,17 +197,12 @@ describe('Sentry Application Details', function() {
       expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
     });
 
-    it('shows tokens', function() {
-      expect(
-        wrapper
-          .find('PanelHeader')
-          .at(3)
-          .text()
-      ).toContain('Tokens');
+    it('shows tokens', function () {
+      expect(wrapper.find('PanelHeader').at(3).text()).toContain('Tokens');
       expect(wrapper.find('TokenItem').exists()).toBe(true);
     });
 
-    it('shows just clientSecret', function() {
+    it('shows just clientSecret', function () {
       expect(wrapper.find('#clientSecret').exists()).toBe(true);
       expect(wrapper.find('#clientId').exists()).toBe(false);
     });
@@ -231,22 +227,17 @@ describe('Sentry Application Details', function() {
         body: [token],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
     });
 
-    it('shows masked tokens', function() {
-      expect(
-        wrapper
-          .find('TextCopyInput input')
-          .first()
-          .prop('value')
-      ).toBe(maskedValue);
+    it('shows masked tokens', function () {
+      expect(wrapper.find('TextCopyInput input').first().prop('value')).toBe(maskedValue);
     });
 
-    it('shows masked clientSecret', function() {
+    it('shows masked clientSecret', function () {
       expect(wrapper.find('#clientSecret input').prop('value')).toBe(maskedValue);
     });
   });
@@ -270,12 +261,12 @@ describe('Sentry Application Details', function() {
         body: [token],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
     });
-    it('adding token to list', async function() {
+    it('adding token to list', async function () {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         method: 'POST',
@@ -294,7 +285,7 @@ describe('Sentry Application Details', function() {
       expect(tokenItems).toHaveLength(2);
     });
 
-    it('removing token from list', async function() {
+    it('removing token from list', async function () {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.token}/`,
         method: 'DELETE',
@@ -340,13 +331,13 @@ describe('Sentry Application Details', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
     });
 
-    it('it updates app with correct data', function() {
+    it('it updates app with correct data', function () {
       wrapper
         .find(redirectUrlInput)
         .simulate('change', {target: {value: 'https://hello.com/'}});
@@ -392,6 +383,49 @@ describe('Sentry Application Details', function() {
           }),
           method: 'PUT',
         })
+      );
+    });
+  });
+
+  describe('Editing an existing public Sentry App with a scope error', () => {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp();
+
+      editAppRequest = Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'PUT',
+        statusCode: 400,
+        body: {
+          scopes: [
+            "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
+            "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+          ],
+        },
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
+      });
+
+      wrapper = mountWithTheme(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('renders the error', async () => {
+      wrapper.find('form').simulate('submit');
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div FieldErrorReason').text()).toEqual(
+        "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
       );
     });
   });

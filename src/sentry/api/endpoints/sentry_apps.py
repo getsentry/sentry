@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
 import logging
 
@@ -79,7 +80,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppSerializer(data=data)
+        serializer = SentryAppSerializer(data=data, access=request.access)
 
         if serializer.is_valid():
             data["redirect_url"] = data["redirectUrl"]
@@ -87,9 +88,14 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             data["is_alertable"] = data["isAlertable"]
             data["verify_install"] = data["verifyInstall"]
             data["allowed_origins"] = data["allowedOrigins"]
+            data["is_internal"] = data.get("isInternal")
 
             creator = InternalCreator if data.get("isInternal") else Creator
-            sentry_app = creator.run(request=request, **data)
+            try:
+                sentry_app = creator.run(request=request, **data)
+            except ValidationError as e:
+                # we generate and validate the slug here instead of the serializer since the slug never changes
+                return Response(e.detail, status=400)
 
             return Response(serialize(sentry_app, access=request.access), status=201)
 

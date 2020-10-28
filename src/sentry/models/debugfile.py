@@ -4,7 +4,6 @@ import re
 import os
 import six
 import uuid
-import time
 import errno
 import shutil
 import hashlib
@@ -18,15 +17,12 @@ from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject, norma
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager, JSONField
-from sentry.models.file import File
+from sentry.models.file import File, clear_cached_files
 from sentry.reprocessing import resolve_processing_issue, bump_reprocessing_revision
 from sentry.utils.zip import safe_extract_zip
 
 
 logger = logging.getLogger(__name__)
-
-ONE_DAY = 60 * 60 * 24
-ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 
 # How long we cache a conversion failure by checksum in cache.  Currently
 # 10 minutes is assumed to be a reasonable value here.
@@ -49,12 +45,12 @@ class ProjectDebugFileManager(BaseManager):
         checksums = [x.lower() for x in checksums]
         missing = set(checksums)
 
-        found = ProjectDebugFile.objects.filter(
-            file__checksum__in=checksums, project=project
-        ).values("file__checksum")
+        found = ProjectDebugFile.objects.filter(checksum__in=checksums, project=project).values(
+            "checksum"
+        )
 
         for values in found:
-            missing.discard(values.values()[0])
+            missing.discard(list(values.values())[0])
 
         return sorted(missing)
 
@@ -62,7 +58,7 @@ class ProjectDebugFileManager(BaseManager):
         if not checksums:
             return []
         checksums = [x.lower() for x in checksums]
-        return ProjectDebugFile.objects.filter(file__checksum__in=checksums, project=project)
+        return ProjectDebugFile.objects.filter(checksum__in=checksums, project=project)
 
     def find_by_debug_ids(self, project, debug_ids, features=None):
         """Finds debug information files matching the given debug identifiers.
@@ -111,10 +107,11 @@ class ProjectDebugFile(Model):
     __core__ = False
 
     file = FlexibleForeignKey("sentry.File")
+    checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey("sentry.Project", null=True)
-    debug_id = models.CharField(max_length=64, db_column="uuid")
+    debug_id = models.CharField(max_length=64, db_column=u"uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()
@@ -216,9 +213,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
 
     dif = (
         ProjectDebugFile.objects.select_related("file")
-        .filter(
-            project=project, debug_id=meta.debug_id, file__checksum=checksum, data__isnull=False
-        )
+        .filter(project=project, debug_id=meta.debug_id, checksum=checksum, data__isnull=False)
         .order_by("-id")
         .first()
     )
@@ -240,6 +235,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
 
     dif = ProjectDebugFile.objects.create(
         file=file,
+        checksum=file.checksum,
         debug_id=meta.debug_id,
         code_id=meta.code_id,
         cpu_name=meta.arch,
@@ -427,30 +423,7 @@ class DIFCache(object):
         return rv
 
     def clear_old_entries(self):
-        try:
-            cache_folders = os.listdir(self.cache_path)
-        except OSError:
-            return
-
-        cutoff = int(time.time()) - ONE_DAY_AND_A_HALF
-
-        for cache_folder in cache_folders:
-            cache_folder = os.path.join(self.cache_path, cache_folder)
-            try:
-                items = os.listdir(cache_folder)
-            except OSError:
-                continue
-            for cached_file in items:
-                cached_file = os.path.join(cache_folder, cached_file)
-                try:
-                    mtime = os.path.getmtime(cached_file)
-                except OSError:
-                    continue
-                if mtime < cutoff:
-                    try:
-                        os.remove(cached_file)
-                    except OSError:
-                        pass
+        clear_cached_files(self.cache_path)
 
 
 ProjectDebugFile.difcache = DIFCache()

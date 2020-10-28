@@ -1,6 +1,15 @@
 from __future__ import absolute_import
 
-from sentry.api.event_search import InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
+import six
+
+from sentry.api.event_search import (
+    InvalidSearchQuery,
+    AggregateFilter,
+    AggregateKey,
+    SearchFilter,
+    SearchKey,
+    SearchValue,
+)
 from sentry.api.issue_search import (
     convert_actor_value,
     convert_query_values,
@@ -65,7 +74,9 @@ class ParseSearchQueryTest(TestCase):
         with self.assertRaises(InvalidSearchQuery) as cm:
             parse_search_query("is:wrong")
 
-        assert cm.exception.message.startswith('Invalid value for "is" search, valid values are')
+        assert six.text_type(cm.exception).startswith(
+            'Invalid value for "is" search, valid values are'
+        )
 
     def test_numeric_filter(self):
         # test numeric format
@@ -112,6 +123,22 @@ class ParseSearchQueryTest(TestCase):
             ):
                 parse_search_query(invalid_query)
 
+    def test_parens_in_query(self):
+        assert parse_search_query(
+            "TypeError Anonymous function(app/javascript/utils/transform-object-keys)"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value="TypeError Anonymous function"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value="(app/javascript/utils/transform-object-keys)"),
+            ),
+        ]
+
 
 class ConvertQueryValuesTest(TestCase):
     def test_valid_converter(self):
@@ -143,6 +170,13 @@ class ConvertStatusValueTest(TestCase):
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("status"), "=", SearchValue("wrong"))]
         with self.assertRaises(InvalidSearchQuery, expected_regex="invalid status value"):
+            convert_query_values(filters, [self.project], self.user, None)
+
+        filters = [AggregateFilter(AggregateKey("count_unique(user)"), ">", SearchValue("1"))]
+        with self.assertRaises(
+            InvalidSearchQuery,
+            expected_regex="Aggregate filters (count_unique(user)) are not supported in issue searches.",
+        ):
             convert_query_values(filters, [self.project], self.user, None)
 
 

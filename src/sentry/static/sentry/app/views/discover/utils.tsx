@@ -1,7 +1,9 @@
-import {Client} from 'app/api';
-import {isEqual, pick} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 import moment from 'moment';
-import qs from 'query-string';
+import * as qs from 'query-string';
+
+import {Client} from 'app/api';
 
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
@@ -125,8 +127,14 @@ export function queryHasChanged(prev: string, next: string): boolean {
  * our internal representation of queries.
  */
 export function parseSavedQuery(savedQuery: any): SavedQuery {
-  // eslint-disable-next-line no-unused-vars
-  const {id, name, dateCreated, dateUpdated, createdBy, ...query} = savedQuery;
+  const {
+    id: _id,
+    name: _name,
+    dateCreated: _dateCreated,
+    dateUpdated: _dateUpdated,
+    createdBy: _createdBy,
+    ...query
+  } = savedQuery;
   return query;
 }
 
@@ -136,7 +144,7 @@ export function fetchSavedQuery(organization: any, queryId: string): Promise<any
 
   return api.requestPromise(endpoint, {
     method: 'GET',
-  } as any); // TODO: Remove as any
+  } as any); // TODO(ts): Remove as any
 }
 
 export function fetchSavedQueries(organization: any): Promise<any> {
@@ -145,7 +153,8 @@ export function fetchSavedQueries(organization: any): Promise<any> {
 
   return api.requestPromise(endpoint, {
     method: 'GET',
-  } as any); // TODO: Remove as any
+    query: {all: 1, query: 'version:1', sortBy: '-dateUpdated'},
+  } as any); // TODO(ts): Remove as any
 }
 
 export function createSavedQuery(organization: any, data: any): Promise<any> {
@@ -155,7 +164,7 @@ export function createSavedQuery(organization: any, data: any): Promise<any> {
   return api.requestPromise(endpoint, {
     data,
     method: 'POST',
-  } as any); // TODO: Remove as any
+  } as any); // TODO(ts): Remove as any
 }
 
 export function updateSavedQuery(organization: any, id: any, data: any): Promise<any> {
@@ -165,7 +174,7 @@ export function updateSavedQuery(organization: any, id: any, data: any): Promise
   return api.requestPromise(endpoint, {
     data,
     method: 'PUT',
-  } as any); // TODO: Remove as any
+  } as any); // TODO(ts): Remove as any
 }
 
 export function deleteSavedQuery(organization: any, id: any): Promise<any> {
@@ -174,7 +183,7 @@ export function deleteSavedQuery(organization: any, id: any): Promise<any> {
 
   return api.requestPromise(endpoint, {
     method: 'DELETE',
-  } as any); // TODO: Remove as any
+  } as any); // TODO(ts): Remove as any
 }
 
 /**

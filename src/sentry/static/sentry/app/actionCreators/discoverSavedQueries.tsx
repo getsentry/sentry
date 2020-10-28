@@ -1,24 +1,38 @@
 import {Client} from 'app/api';
-
-import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
-import DiscoverSavedQueryActions from 'app/actions/discoverSavedQueryActions';
+import {SavedQuery, NewQuery} from 'app/types';
 import {t} from 'app/locale';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 
 export function fetchSavedQueries(api: Client, orgId: string): Promise<SavedQuery[]> {
-  DiscoverSavedQueryActions.startFetchSavedQueries();
+  const promise: Promise<SavedQuery[]> = api.requestPromise(
+    `/organizations/${orgId}/discover/saved/`,
+    {
+      method: 'GET',
+      query: {query: 'version:2'},
+    }
+  );
 
-  const promise = api.requestPromise(`/organizations/${orgId}/discover/saved/`, {
-    method: 'GET',
+  promise.catch(() => {
+    addErrorMessage(t('Unable to load saved queries'));
   });
-  promise
-    .then(resp => {
-      DiscoverSavedQueryActions.fetchSavedQueriesSuccess(resp);
-    })
-    .catch(() => {
-      DiscoverSavedQueryActions.fetchSavedQueriesError();
-      addErrorMessage(t('Unable to load saved queries'));
-    });
+  return promise;
+}
+
+export function fetchSavedQuery(
+  api: Client,
+  orgId: string,
+  queryId: string
+): Promise<SavedQuery> {
+  const promise: Promise<SavedQuery> = api.requestPromise(
+    `/organizations/${orgId}/discover/saved/${queryId}/`,
+    {
+      method: 'GET',
+    }
+  );
+
+  promise.catch(() => {
+    addErrorMessage(t('Unable to load saved query'));
+  });
   return promise;
 }
 
@@ -27,17 +41,17 @@ export function createSavedQuery(
   orgId: string,
   query: NewQuery
 ): Promise<SavedQuery> {
-  const promise = api.requestPromise(`/organizations/${orgId}/discover/saved/`, {
-    method: 'POST',
-    data: query,
+  const promise: Promise<SavedQuery> = api.requestPromise(
+    `/organizations/${orgId}/discover/saved/`,
+    {
+      method: 'POST',
+      data: query,
+    }
+  );
+
+  promise.catch(() => {
+    addErrorMessage(t('Unable to create your saved query'));
   });
-  promise
-    .then(resp => {
-      DiscoverSavedQueryActions.createSavedQuerySuccess(resp);
-    })
-    .catch(() => {
-      addErrorMessage(t('Unable to create your saved query'));
-    });
   return promise;
 }
 
@@ -46,20 +60,17 @@ export function updateSavedQuery(
   orgId: string,
   query: NewQuery
 ): Promise<SavedQuery> {
-  const promise = api.requestPromise(
+  const promise: Promise<SavedQuery> = api.requestPromise(
     `/organizations/${orgId}/discover/saved/${query.id}/`,
     {
       method: 'PUT',
       data: query,
     }
   );
-  promise
-    .then(resp => {
-      DiscoverSavedQueryActions.updateSavedQuerySuccess(resp);
-    })
-    .catch(() => {
-      addErrorMessage(t('Unable to update your saved query'));
-    });
+
+  promise.catch(() => {
+    addErrorMessage(t('Unable to update your saved query'));
+  });
   return promise;
 }
 
@@ -67,18 +78,14 @@ export function deleteSavedQuery(
   api: Client,
   orgId: string,
   queryId: string
-): Promise<null> {
-  const promise = api.requestPromise(
+): Promise<void> {
+  const promise: Promise<void> = api.requestPromise(
     `/organizations/${orgId}/discover/saved/${queryId}/`,
     {method: 'DELETE'}
   );
-  promise
-    .then(() => {
-      DiscoverSavedQueryActions.deleteSavedQuerySuccess(queryId);
-    })
-    .catch(() => {
-      addErrorMessage(t('Unable to delete the saved query'));
-    });
 
+  promise.catch(() => {
+    addErrorMessage(t('Unable to delete the saved query'));
+  });
   return promise;
 }

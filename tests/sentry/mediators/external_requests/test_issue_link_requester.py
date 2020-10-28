@@ -6,6 +6,7 @@ from sentry.coreapi import APIError
 from sentry.mediators.external_requests import IssueLinkRequester
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 
 class TestIssueLinkRequester(TestCase):
@@ -48,6 +49,7 @@ class TestIssueLinkRequester(TestCase):
             uri="/link-issue",
             fields=fields,
             user=self.user,
+            action="create",
         )
         assert result == {
             "project": "ProjectName",
@@ -67,6 +69,13 @@ class TestIssueLinkRequester(TestCase):
         }
         payload = json.loads(request.body)
         assert payload == data
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 200
+        assert requests[0]["event_type"] == "external_issue.created"
 
     @responses.activate
     def test_invalid_response_format(self):
@@ -90,6 +99,7 @@ class TestIssueLinkRequester(TestCase):
                 uri="/link-issue",
                 fields={},
                 user=self.user,
+                action="create",
             )
 
     @responses.activate
@@ -109,4 +119,11 @@ class TestIssueLinkRequester(TestCase):
                 uri="/link-issue",
                 fields={},
                 user=self.user,
+                action="create",
             )
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 500
+        assert requests[0]["event_type"] == "external_issue.created"

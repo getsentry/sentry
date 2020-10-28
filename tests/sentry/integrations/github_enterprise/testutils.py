@@ -212,7 +212,7 @@ PUSH_EVENT_EXAMPLE = r"""{
   }
 }"""
 
-PUSH_EVENT_EXAMPLE_INSTALLATION = b"""{
+PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
   "ref": "refs/heads/changes",
   "installation" : {
     "id": 12345

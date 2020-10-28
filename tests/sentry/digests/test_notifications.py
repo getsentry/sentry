@@ -12,7 +12,10 @@ from sentry.digests.notifications import (
     group_records,
     sort_group_contents,
     sort_rule_groups,
+    split_key,
+    unsplit_key,
 )
+from sentry.mail.adapter import ActionTargetType
 from sentry.models import Rule
 from sentry.testutils import TestCase
 
@@ -32,7 +35,11 @@ class RewriteRecordTestCase(TestCase):
             project=self.event.project,
             groups={self.event.group.id: self.event.group},
             rules={self.rule.id: self.rule},
-        ) == Record(self.record.key, Notification(self.event, [self.rule]), self.record.timestamp)
+        ) == Record(
+            self.record.key,
+            Notification(self.record.value.event, [self.rule]),
+            self.record.timestamp,
+        )
 
     def test_without_group(self):
         # If the record can't be associated with a group, it should be returned as None.
@@ -44,13 +51,14 @@ class RewriteRecordTestCase(TestCase):
         )
 
     def test_filters_invalid_rules(self):
-        # If the record can't be associated with a group, it should be returned as None.
         assert rewrite_record(
             self.record,
             project=self.event.project,
             groups={self.event.group.id: self.event.group},
             rules={},
-        ) == Record(self.record.key, Notification(self.event, []), self.record.timestamp)
+        ) == Record(
+            self.record.key, Notification(self.record.value.event, []), self.record.timestamp
+        )
 
 
 class GroupRecordsTestCase(TestCase):
@@ -59,12 +67,17 @@ class GroupRecordsTestCase(TestCase):
         return self.project.rule_set.all()[0]
 
     def test_success(self):
-        events = [self.create_event(group=self.group) for _ in range(3)]
+        events = [
+            self.store_event(data={"fingerprint": ["group-1"]}, project_id=self.project.id)
+            for i in range(3)
+        ]
+        group = events[0].group
         records = [
-            Record(event.id, Notification(event, [self.rule]), event.datetime) for event in events
+            Record(event.event_id, Notification(event, [self.rule]), event.datetime)
+            for event in events
         ]
         assert reduce(group_records, records, defaultdict(lambda: defaultdict(list))) == {
-            self.rule: {self.group: records}
+            self.rule: {group: records}
         }
 
 
@@ -101,4 +114,41 @@ class SortRecordsTestCase(TestCase):
                 (rules[1], OrderedDict(((groups[1], []), (groups[2], [])))),
                 (rules[0], OrderedDict(((groups[0], []),))),
             )
+        )
+
+
+class SplitKeyTestCase(TestCase):
+    def test_old_style_key(self):
+        assert split_key("mail:p:{}".format(self.project.id)) == (
+            self.project,
+            ActionTargetType.ISSUE_OWNERS,
+            None,
+        )
+
+    def test_new_style_key_no_identifier(self):
+        assert split_key(
+            "mail:p:{}:{}:".format(self.project.id, ActionTargetType.ISSUE_OWNERS.value)
+        ) == (self.project, ActionTargetType.ISSUE_OWNERS, None)
+
+    def test_new_style_key_identifier(self):
+        identifier = "123"
+        assert split_key(
+            "mail:p:{}:{}:{}".format(
+                self.project.id, ActionTargetType.ISSUE_OWNERS.value, identifier
+            )
+        ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier)
+
+
+class UnsplitKeyTestCase(TestCase):
+    def test_no_identifier(self):
+        assert unsplit_key(
+            self.project, ActionTargetType.ISSUE_OWNERS, None
+        ) == "mail:p:{}:{}:".format(self.project.id, ActionTargetType.ISSUE_OWNERS.value)
+
+    def test_identifier(self):
+        identifier = "123"
+        assert unsplit_key(
+            self.project, ActionTargetType.ISSUE_OWNERS, identifier
+        ) == "mail:p:{}:{}:{}".format(
+            self.project.id, ActionTargetType.ISSUE_OWNERS.value, identifier
         )

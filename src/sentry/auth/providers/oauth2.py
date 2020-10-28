@@ -6,7 +6,8 @@ from six.moves.urllib.parse import parse_qsl, urlencode
 from time import time
 from uuid import uuid4
 
-from sentry.auth import Provider, AuthView
+from sentry.auth.provider import Provider
+from sentry.auth.view import AuthView
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
@@ -152,7 +153,7 @@ class OAuth2Provider(Provider):
     def get_oauth_data(self, payload):
         data = {"access_token": payload["access_token"], "token_type": payload["token_type"]}
         if "expires_in" in payload:
-            data["expires"] = int(time()) + payload["expires_in"]
+            data["expires"] = int(time()) + int(payload["expires_in"])
         if "refresh_token" in payload:
             data["refresh_token"] = payload["refresh_token"]
         return data

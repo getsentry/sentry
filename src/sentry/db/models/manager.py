@@ -5,22 +5,31 @@ import six
 import threading
 import weakref
 
+from contextlib import contextmanager
+
 from django.conf import settings
 from django.db import router
 from django.db.models import Model
 from django.db.models.manager import Manager, QuerySet
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
+from django.core.signals import request_finished
 from django.utils.encoding import smart_text
+from celery.signals import task_postrun
 
-from sentry import nodestore
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
+from sentry.utils.compat import zip
 
-__all__ = ("BaseManager",)
+__all__ = ("BaseManager", "OptionManager")
 
 logger = logging.getLogger("sentry")
+
+
+_local_cache = threading.local()
+_local_cache_generation = 0
+_local_cache_enabled = False
 
 
 def __prep_value(model, key, value):
@@ -58,6 +67,10 @@ class BaseQuerySet(QuerySet):
         raise NotImplementedError("Use ``values_list`` instead [performance].")
 
     def only(self, *args, **kwargs):
+        # In rare cases Django can use this if a field is unexpectedly deferred. This
+        # mostly can happen if a field is added to a model, and then an old pickle is
+        # passed to a process running the new code. So if you see this error after a
+        # deploy of a model with a new field, it'll likely fix itself post-deploy.
         raise NotImplementedError("Use ``values_list`` instead [performance].")
 
 
@@ -68,11 +81,44 @@ class BaseManager(Manager):
     _queryset_class = BaseQuerySet
 
     def __init__(self, *args, **kwargs):
+        #: Model fields for which we should build up a cache to be used with
+        #: Model.objects.get_from_cache(fieldname=value)`.
+        #:
+        #: Note that each field by its own needs to be a potential primary key
+        #: (uniquely identify a row), so for example organization slug is ok,
+        #: project slug is not.
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
-        self.cache_version = kwargs.pop("cache_version", None)
+        self._cache_version = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
         super(BaseManager, self).__init__(*args, **kwargs)
+
+    @staticmethod
+    @contextmanager
+    def local_cache():
+        """Enables local caching for the entire process."""
+        global _local_cache_enabled, _local_cache_generation
+        if _local_cache_enabled:
+            raise RuntimeError("nested use of process global local cache")
+        _local_cache_enabled = True
+        try:
+            yield
+        finally:
+            _local_cache_enabled = False
+            _local_cache_generation += 1
+
+    def _get_local_cache(self):
+        if not _local_cache_enabled:
+            return
+
+        gen = _local_cache_generation
+        cache_gen = getattr(_local_cache, "generation", None)
+
+        if cache_gen != gen or not hasattr(_local_cache, "cache"):
+            _local_cache.cache = {}
+            _local_cache.generation = gen
+
+        return _local_cache.cache
 
     def _get_cache(self):
         if not hasattr(self.__local_cache, "value"):
@@ -82,10 +128,13 @@ class BaseManager(Manager):
     def _set_cache(self, value):
         self.__local_cache.value = value
 
-    def _generate_cache_version(self):
-        return md5_text("&".join(sorted(f.attname for f in self.model._meta.fields))).hexdigest()[
-            :3
-        ]
+    @property
+    def cache_version(self):
+        if self._cache_version is None:
+            self._cache_version = md5_text(
+                "&".join(sorted(f.attname for f in self.model._meta.fields))
+            ).hexdigest()[:3]
+        return self._cache_version
 
     __cache = property(_get_cache, _set_cache)
 
@@ -109,9 +158,6 @@ class BaseManager(Manager):
 
         if not self.cache_fields:
             return
-
-        if not self.cache_version:
-            self.cache_version = self._generate_cache_version()
 
         post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
@@ -226,7 +272,7 @@ class BaseManager(Manager):
         the cache key is cleared on save.
         """
         if not self.cache_fields or len(kwargs) > 1:
-            return self.get(**kwargs)
+            raise ValueError("We cannot cache this query. Just hit the database.")
 
         key, value = next(six.iteritems(kwargs))
         pk_name = self.model._meta.pk.name
@@ -243,18 +289,28 @@ class BaseManager(Manager):
 
         if key in self.cache_fields or key == pk_name:
             cache_key = self.__get_lookup_cache_key(**{key: value})
+            local_cache = self._get_local_cache()
+            if local_cache is not None:
+                result = local_cache.get(cache_key)
+                if result is not None:
+                    return result
 
             retval = cache.get(cache_key, version=self.cache_version)
             if retval is None:
                 result = self.get(**kwargs)
                 # Ensure we're pushing it into the cache
                 self.__post_save(instance=result)
+                if local_cache is not None:
+                    local_cache[cache_key] = result
                 return result
 
             # If we didn't look up by pk we need to hit the reffed
             # key
             if key != pk_name:
-                return self.get_from_cache(**{pk_name: retval})
+                result = self.get_from_cache(**{pk_name: retval})
+                if local_cache is not None:
+                    local_cache[cache_key] = result
+                return result
 
             if not isinstance(retval, self.model):
                 if settings.DEBUG:
@@ -272,7 +328,124 @@ class BaseManager(Manager):
 
             return retval
         else:
-            return self.get(**kwargs)
+            raise ValueError("We cannot cache this query. Just hit the database.")
+
+    def get_many_from_cache(self, values, key="pk"):
+        """
+        Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
+        the intermediate value.  Callee is responsible for making sure the
+        cache key is cleared on save.
+
+        NOTE: We can only query by primary key or some other unique identifier.
+        It is not possible to e.g. run `Project.objects.get_many_from_cache([1,
+        2, 3], key="organization_id")` and get back all projects belonging to
+        those orgs. The length of the return value is bounded by the length of
+        `values`.
+
+        For most models, if one attempts to use a non-PK value this will just
+        degrade to a DB query, like with `get_from_cache`.
+        """
+
+        pk_name = self.model._meta.pk.name
+
+        if key == "pk":
+            key = pk_name
+
+        # Kill __exact since it's the default behavior
+        if key.endswith("__exact"):
+            key = key.split("__exact", 1)[0]
+
+        if key not in self.cache_fields and key != pk_name:
+            raise ValueError("We cannot cache this query. Just hit the database.")
+
+        final_results = []
+        cache_lookup_cache_keys = []
+        cache_lookup_values = []
+
+        local_cache = self._get_local_cache()
+        for value in values:
+            cache_key = self.__get_lookup_cache_key(**{key: value})
+            result = local_cache and local_cache.get(cache_key)
+            if result is not None:
+                final_results.append(result)
+            else:
+                cache_lookup_cache_keys.append(cache_key)
+                cache_lookup_values.append(value)
+
+        if not cache_lookup_cache_keys:
+            return final_results
+
+        cache_results = cache.get_many(cache_lookup_cache_keys, version=self.cache_version)
+
+        db_lookup_cache_keys = []
+        db_lookup_values = []
+
+        nested_lookup_cache_keys = []
+        nested_lookup_values = []
+
+        for cache_key, value in zip(cache_lookup_cache_keys, cache_lookup_values):
+            cache_result = cache_results.get(cache_key)
+            if cache_result is None:
+                db_lookup_cache_keys.append(cache_key)
+                db_lookup_values.append(value)
+                continue
+
+            # If we didn't look up by pk we need to hit the reffed key
+            if key != pk_name:
+                nested_lookup_cache_keys.append(cache_key)
+                nested_lookup_values.append(cache_result)
+                continue
+
+            if not isinstance(cache_result, self.model):
+                if settings.DEBUG:
+                    raise ValueError("Unexpected value type returned from cache")
+                logger.error("Cache response returned invalid value %r", cache_result)
+                db_lookup_cache_keys.append(cache_key)
+                db_lookup_values.append(value)
+                continue
+
+            if key == pk_name and int(value) != cache_result.pk:
+                if settings.DEBUG:
+                    raise ValueError("Unexpected value returned from cache")
+                logger.error("Cache response returned invalid value %r", cache_result)
+                db_lookup_cache_keys.append(cache_key)
+                db_lookup_values.append(value)
+                continue
+
+            final_results.append(cache_result)
+
+        if nested_lookup_values:
+            nested_results = self.get_many_from_cache(nested_lookup_values, key=pk_name)
+            final_results.extend(nested_results)
+            if local_cache is not None:
+                for nested_result in nested_results:
+                    value = getattr(nested_result, key)
+                    cache_key = self.__get_lookup_cache_key(**{key: value})
+                    local_cache[cache_key] = nested_result
+
+        if not db_lookup_values:
+            return final_results
+
+        cache_writes = []
+
+        db_results = {getattr(x, key): x for x in self.filter(**{key + "__in": db_lookup_values})}
+        for cache_key, value in zip(db_lookup_cache_keys, db_lookup_values):
+            db_result = db_results.get(value)
+            if db_result is None:
+                continue  # This model ultimately does not exist
+
+            # Ensure we're pushing it into the cache
+            cache_writes.append(db_result)
+            if local_cache is not None:
+                local_cache[cache_key] = db_result
+
+            final_results.append(db_result)
+
+        # XXX: Should use set_many here, but __post_save code is too complex
+        for instance in cache_writes:
+            self.__post_save(instance=instance)
+
+        return final_results
 
     def create_or_update(self, **kwargs):
         return create_or_update(self.model, **kwargs)
@@ -302,27 +475,21 @@ class BaseManager(Manager):
         return self._queryset_class(self.model, using=self._db)
 
 
-class EventManager(BaseManager):
-    # TODO: Remove method in favour of eventstore.bind_nodes
-    def bind_nodes(self, object_list, *node_names):
-        """
-        For a list of Event objects, and a property name where we might find an
-        (unfetched) NodeData on those objects, fetch all the data blobs for
-        those NodeDatas with a single multi-get command to nodestore, and bind
-        the returned blobs to the NodeDatas
-        """
-        object_node_list = []
-        for name in node_names:
-            object_node_list.extend(
-                ((i, getattr(i, name)) for i in object_list if getattr(i, name).id)
-            )
+class OptionManager(BaseManager):
+    @property
+    def _option_cache(self):
+        if not hasattr(_local_cache, "option_cache"):
+            _local_cache.option_cache = {}
+        return _local_cache.option_cache
 
-        node_ids = [n.id for _, n in object_node_list]
-        if not node_ids:
-            return
+    def clear_local_cache(self, **kwargs):
+        self._option_cache.clear()
 
-        node_results = nodestore.get_multi(node_ids)
+    def contribute_to_class(self, model, name):
+        super(OptionManager, self).contribute_to_class(model, name)
+        task_postrun.connect(self.clear_local_cache)
+        request_finished.connect(self.clear_local_cache)
 
-        for item, node in object_node_list:
-            data = node_results.get(node.id) or {}
-            node.bind_data(data, ref=node.get_ref(item))
+    def _make_key(self, instance_id):
+        assert instance_id
+        return u"%s:%s" % (self.model._meta.db_table, instance_id)

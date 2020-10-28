@@ -61,6 +61,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     author = None
     author_url = None
     resource_links = ()
+    feature_descriptions = []
 
     # Configuration specifics
     conf_key = None
@@ -78,6 +79,9 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     # Should this plugin be enabled by default for projects?
     project_default_enabled = False
+
+    # used by queries to determine if the plugin is configured
+    required_field = None
 
     def _get_option_key(self, key):
         return "%s:%s" % (self.get_conf_key(), key)
@@ -295,15 +299,13 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>> def get_resource_links(self):
         >>>     return [
         >>>         ('Documentation', 'https://docs.sentry.io'),
-        >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
-        >>>         ('Source', 'https://github.com/getsentry/sentry'),
+        >>>         ('Report Issue', 'https://github.com/getsentry/sentry/issues'),
+        >>>         ('View Source', 'https://github.com/getsentry/sentry'),
         >>>     ]
         """
         return self.resource_links
 
     def get_view_response(self, request, group):
-        from sentry.models import Event
-
         self.selected = request.path == self.get_url(group)
 
         if not self.selected:
@@ -320,8 +322,9 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         if not isinstance(response, Response):
             raise NotImplementedError("Use self.render() when returning responses.")
 
-        event = group.get_latest_event() or Event()
-        event.group = group
+        event = group.get_latest_event()
+        if event:
+            event.group = group
 
         request.access = access.from_request(request, group.organization)
 

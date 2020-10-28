@@ -1,9 +1,9 @@
 import React from 'react';
 
 import {defined} from 'app/utils';
-
 import InputField from 'app/components/forms/inputField';
 import Tooltip from 'app/components/tooltip';
+import {IconQuestion} from 'app/icons';
 
 type Props = InputField['props'];
 
@@ -48,7 +48,7 @@ export default class BooleanField extends InputField<Props, State> {
             {this.props.label}
             {this.props.disabled && this.props.disabledReason && (
               <Tooltip title={this.props.disabledReason}>
-                <span className="icon-question" />
+                <IconQuestion size="xs" />
               </Tooltip>
             )}
           </label>

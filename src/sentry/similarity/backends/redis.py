@@ -3,9 +3,13 @@ from __future__ import absolute_import
 import itertools
 import time
 
+from django.utils.encoding import force_text
+
 from sentry.similarity.backends.abstract import AbstractIndexBackend
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 
 index = load_script("similarity/index.lua")
@@ -57,14 +61,14 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
         def decode_search_result(result):
             key, scores = result
             return (
-                key,
+                force_text(key),
                 map(lambda score: score_replacements.get(score, score), map(float, scores)),
             )
 
         def get_comparison_key(result):
             key, scores = result
 
-            scores = filter(lambda score: score is not None, scores)
+            scores = [score for score in scores if score is not None]
 
             return (
                 sum(scores) / len(scores) * -1,  # average score, descending

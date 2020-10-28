@@ -32,9 +32,7 @@ export function parseStatsPeriod(statsPeriod) {
   }[result[2]];
 
   return {
-    start: moment()
-      .subtract(value, unit)
-      .format(DATE_TIME_FORMAT),
+    start: moment().subtract(value, unit).format(DATE_TIME_FORMAT),
     end: moment().format(DATE_TIME_FORMAT),
   };
 }

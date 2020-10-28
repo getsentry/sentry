@@ -3,16 +3,12 @@ from __future__ import absolute_import
 import datetime
 import jwt
 import re
-import json
 import logging
-from hashlib import md5 as _md5
 from six.moves.urllib.parse import parse_qs, urlparse, urlsplit
 
-from sentry.utils.cache import cache
-from django.utils.encoding import force_bytes
 
 from sentry.integrations.atlassian_connect import get_query_hash
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.integrations.client import ApiClient
 from sentry.utils.http import absolute_uri
 
@@ -20,10 +16,6 @@ logger = logging.getLogger("sentry.integrations.jira")
 
 JIRA_KEY = "%s.jira" % (urlparse(absolute_uri()).hostname,)
 ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
-
-
-def md5(*bits):
-    return _md5(":".join((force_bytes(bit, errors="replace") for bit in bits)))
 
 
 class JiraCloud(object):
@@ -66,8 +58,15 @@ class JiraCloud(object):
         """
         return "accountId"
 
+    def query_field(self):
+        """
+        Jira-Cloud requires GDPR compliant API usage so we have to use query
+        """
+        return "query"
+
 
 class JiraApiClient(ApiClient):
+    # TODO: Update to v3 endpoints
     COMMENTS_URL = "/rest/api/2/issue/%s/comment"
     COMMENT_URL = "/rest/api/2/issue/%s/comment/%s"
     STATUS_URL = "/rest/api/2/status"
@@ -82,16 +81,25 @@ class JiraApiClient(ApiClient):
     SERVER_INFO_URL = "/rest/api/2/serverInfo"
     ASSIGN_URL = "/rest/api/2/issue/%s/assignee"
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
+    EMAIL_URL = "/rest/api/3/user/email"
 
     integration_name = "jira"
 
-    def __init__(self, base_url, jira_style, verify_ssl):
+    # This timeout is completely arbitrary. Jira doesn't give us any
+    # caching headers to work with. Ideally we want a duration that
+    # lets the user make their second jira issue with cached data.
+    cache_time = 240
+
+    def __init__(self, base_url, jira_style, verify_ssl, logging_context=None):
         self.base_url = base_url
         # `jira_style` encapsulates differences between jira server & jira cloud.
         # We only support one API version for Jira, but server/cloud require different
         # authentication mechanisms and caching.
         self.jira_style = jira_style
-        super(JiraApiClient, self).__init__(verify_ssl)
+        super(JiraApiClient, self).__init__(verify_ssl, logging_context)
+
+    def get_cache_prefix(self):
+        return self.jira_style.cache_prefix
 
     def request(self, method, path, data=None, params=None, **kwargs):
         """
@@ -111,22 +119,8 @@ class JiraApiClient(ApiClient):
     def user_id_field(self):
         return self.jira_style.user_id_field()
 
-    def get_cached(self, url, params=None):
-        """
-        Basic Caching mechanism for Jira metadata which changes infrequently
-        """
-        query = ""
-        if params:
-            query = json.dumps(params, sort_keys=True)
-        key = self.jira_style.cache_prefix + md5(url, query, self.base_url).hexdigest()
-        cached_result = cache.get(key)
-        if not cached_result:
-            cached_result = self.get(url, params=params)
-            # This timeout is completely arbitrary. Jira doesn't give us any
-            # caching headers to work with. Ideally we want a duration that
-            # lets the user make their second jira issue with cached data.
-            cache.set(key, cached_result, 240)
-        return cached_result
+    def query_field(self):
+        return self.jira_style.query_field()
 
     def get_issue(self, issue_id):
         return self.get(self.ISSUE_URL % (issue_id,))
@@ -194,13 +188,15 @@ class JiraApiClient(ApiClient):
 
     def search_users_for_project(self, project, username):
         # Jira Server wants a project key, while cloud is indifferent.
-        # Use the query parameter as our implemention follows jira's gdpr practices
         project_key = self.get_project_key_for_id(project)
-        return self.get_cached(self.USERS_URL, params={"project": project_key, "query": username})
+        return self.get_cached(
+            self.USERS_URL, params={"project": project_key, self.query_field(): username}
+        )
 
     def search_users_for_issue(self, issue_key, email):
-        # Use the query parameter as our implemention follows jira's gdpr practices
-        return self.get_cached(self.USERS_URL, params={"issueKey": issue_key, "query": email})
+        return self.get_cached(
+            self.USERS_URL, params={"issueKey": issue_key, self.query_field(): email}
+        )
 
     def create_issue(self, raw_form_data):
         data = {"fields": raw_form_data}
@@ -221,3 +217,7 @@ class JiraApiClient(ApiClient):
     def assign_issue(self, key, name_or_account_id):
         user_id_field = self.user_id_field()
         return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
+
+    def get_email(self, account_id):
+        user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
+        return user.get("email")

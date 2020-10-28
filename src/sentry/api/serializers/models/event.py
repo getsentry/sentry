@@ -4,13 +4,15 @@ import six
 
 from datetime import datetime
 from django.utils import timezone
-from semaphore import meta_with_chunks
+from sentry_relay import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Event, EventError, EventAttachment, Release, UserReport, SnubaEvent
+from sentry.models import EventAttachment, EventError, Release, UserReport
 from sentry.search.utils import convert_user_tag_to_query
+from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 from sentry.sdk_updates import get_suggested_updates, SdkSetupState
+from sentry.eventstore.models import Event
 
 
 CRASH_FILE_TYPES = set(["event.minidump"])
@@ -22,12 +24,11 @@ def get_crash_files(events):
     if event_ids:
         attachments = EventAttachment.objects.filter(event_id__in=event_ids).select_related("file")
         for attachment in attachments:
-            if attachment.file.type in CRASH_FILE_TYPES:
+            if attachment.type in CRASH_FILE_TYPES:
                 rv[attachment.event_id] = attachment
     return rv
 
 
-@register(SnubaEvent)
 @register(Event)
 class EventSerializer(Serializer):
     _reserved_keys = frozenset(["user", "sdk", "device", "contexts"])
@@ -98,12 +99,18 @@ class EventSerializer(Serializer):
         tags = sorted(
             [
                 {
-                    "key": kv[0].split("sentry:", 1)[-1],
+                    "key": kv[0] and kv[0].split("sentry:", 1)[-1],
                     "value": kv[1],
-                    "_meta": meta.get(kv[0]) or get_path(meta, six.text_type(i), "1") or None,
+                    "_meta": prune_empty_keys(
+                        {
+                            "key": get_path(meta, six.text_type(i), "0"),
+                            "value": get_path(meta, six.text_type(i), "1"),
+                        }
+                    )
+                    or None,
                 }
                 for i, kv in enumerate(raw_tags)
-                if kv is not None and kv[0] is not None and kv[1] is not None
+                if kv is not None
             ],
             key=lambda x: x["key"],
         )
@@ -115,11 +122,7 @@ class EventSerializer(Serializer):
             if query:
                 tag["query"] = query
 
-        tags_meta = {
-            six.text_type(i): {"value": e.pop("_meta")}
-            for i, e in enumerate(tags)
-            if e.get("_meta")
-        }
+        tags_meta = prune_empty_keys({six.text_type(i): e.pop("_meta") for i, e in enumerate(tags)})
 
         return (tags, meta_with_chunks(tags, tags_meta))
 
@@ -166,8 +169,6 @@ class EventSerializer(Serializer):
         return serialize(user_report, user)
 
     def get_attrs(self, item_list, user, is_public=False):
-        Event.objects.bind_nodes(item_list, "data")
-
         crash_files = get_crash_files(item_list)
         results = {}
         for item in item_list:
@@ -205,6 +206,7 @@ class EventSerializer(Serializer):
         return (
             not name.startswith("breadcrumbs.")
             and not name.startswith("extra.")
+            and not name.startswith("tags.")
             and ".frames." not in name
         )
 
@@ -232,9 +234,9 @@ class EventSerializer(Serializer):
                 received = None
 
         d = {
-            "id": six.text_type(obj.id),
+            "id": obj.event_id,
             "groupID": six.text_type(obj.group_id) if obj.group_id else None,
-            "eventID": six.text_type(obj.event_id),
+            "eventID": obj.event_id,
             "projectID": six.text_type(obj.project_id),
             "size": obj.size,
             "entries": attrs["entries"],
@@ -280,6 +282,7 @@ class EventSerializer(Serializer):
         return {
             "startTimestamp": obj.data.get("start_timestamp"),
             "endTimestamp": obj.data.get("timestamp"),
+            "measurements": obj.data.get("measurements"),
         }
 
     def __serialize_error_attrs(self, attrs, obj):
@@ -358,8 +361,8 @@ class SimpleEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "id": six.text_type(obj.id),
-            "event.type": six.text_type(obj.type),
+            "id": six.text_type(obj.event_id),
+            "event.type": six.text_type(obj.get_event_type()),
             "groupID": six.text_type(obj.group_id) if obj.group_id else None,
             "eventID": six.text_type(obj.event_id),
             "projectID": six.text_type(obj.project_id),
@@ -375,4 +378,36 @@ class SimpleEventSerializer(EventSerializer):
             "dateCreated": obj.datetime,
             # Needed to generate minidump links in UI
             "crashFile": attrs["crash_file"],
+        }
+
+
+class ExternalEventSerializer(EventSerializer):
+    """
+    Event serializer for the minimum event data needed to send to an external service. This
+    should be used for Integrations that need to include event data.
+    """
+
+    def serialize(self, obj, attrs, user):
+        tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
+        for tag in tags:
+            query = convert_user_tag_to_query(tag["key"], tag["value"])
+            if query:
+                tag["query"] = query
+
+        user = obj.get_minimal_user()
+
+        return {
+            "groupID": six.text_type(obj.group_id) if obj.group_id else None,
+            "eventID": six.text_type(obj.event_id),
+            "project": six.text_type(obj.project_id),
+            # XXX for 'message' this doesn't do the proper resolution of logentry
+            # etc. that _get_legacy_message_with_meta does.
+            "message": obj.message,
+            "title": obj.title,
+            "location": obj.location,
+            "culprit": obj.culprit,
+            "user": user and user.get_api_context(),
+            "tags": tags,
+            "platform": obj.platform,
+            "datetime": obj.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         }

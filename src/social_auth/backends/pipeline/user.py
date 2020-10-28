@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from social_auth.utils import setting, module_member
 from social_auth.models import UserSocialAuth
+from social_auth.django_compat import get_all_field_names
 
 
 slugify = module_member(
@@ -31,7 +32,7 @@ def get_username(
     elif details.get("username"):
         username = six.text_type(details["username"])
     else:
-        username = uuid4().get_hex()
+        username = uuid4().hex
 
     max_length = UserSocialAuth.username_max_length()
     short_username = username[: max_length - uuid_length]
@@ -43,7 +44,7 @@ def get_username(
     # as base but adding a unique hash at the end. Original
     # username is cut to avoid any field max_length.
     while user_exists(username=final_username):
-        username = short_username + uuid4().get_hex()[:uuid_length]
+        username = short_username + uuid4().hex[:uuid_length]
         username = username[:max_length]
         final_username = UserSocialAuth.clean_username(username)
         if do_slugify:
@@ -87,7 +88,7 @@ def django_orm_maxlength_truncate(backend, details, user=None, is_new=False, *ar
     if user is None:
         return
     out = {}
-    names = user._meta.get_all_field_names()
+    names = get_all_field_names(user)
     for name, value in six.iteritems(details):
         if name in names and not _ignore_field(name, is_new):
             max_length = user._meta.get_field(name).max_length

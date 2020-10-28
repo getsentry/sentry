@@ -5,7 +5,7 @@ __all__ = ["Feature", "with_feature"]
 import six
 import collections
 from contextlib import contextmanager
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 
 @contextmanager
@@ -13,7 +13,7 @@ def Feature(names):
     """
     Control whether a feature is enabled.
 
-    A single feature may be conviniently enabled with
+    A single feature may be conveniently enabled with
 
     >>> with Feature('feature-1'):
     >>>   # Executes with feature-1 enabled

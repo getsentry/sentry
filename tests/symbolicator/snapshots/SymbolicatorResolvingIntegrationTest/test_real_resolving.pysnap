@@ -1,5 +1,5 @@
 ---
-created: '2019-06-12T09:33:28.301298Z'
+created: '2020-07-23T19:33:42.975020Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -9,6 +9,12 @@ debug_meta:
   - arch: x86_64
     code_file: Foo.app/Contents/Foo
     debug_id: 502fc0a5-1ec1-3e47-9998-684fa139dca7
+    debug_status: found
+    features:
+      has_debug_info: true
+      has_sources: false
+      has_symbols: true
+      has_unwind_info: false
     image_addr: '0x100000000'
     image_size: 4096
     image_vmaddr: '0x100000000'
@@ -18,7 +24,7 @@ debug_meta:
     version_major: 10
     version_minor: 12
     version_patchlevel: 4
-errors: null
+errors: []
 exception:
   values:
   - raw_stacktrace:

@@ -65,11 +65,7 @@ if settings.SENTRY_USE_BIG_INTS:
         MAX_VALUE = 9223372036854775807
 
         def db_type(self, connection):
-            engine = connection.settings_dict["ENGINE"]
-            if "postgres" in engine:
-                return "bigserial"
-            else:
-                raise NotImplementedError
+            return "bigserial"
 
         def get_related_db_type(self, connection):
             return BoundedBigIntegerField().db_type(connection)
@@ -91,15 +87,3 @@ else:
 
     class BoundedBigAutoField(BoundedAutoField):
         pass
-
-
-if "south" in settings.INSTALLED_APPS:
-    from south.modelsinspector import add_introspection_rules
-
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedAutoField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigAutoField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedIntegerField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigIntegerField"])
-    add_introspection_rules(
-        [], ["^sentry\.db\.models\.fields\.bounded\.BoundedPositiveIntegerField"]
-    )

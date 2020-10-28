@@ -144,7 +144,7 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
         assert not SavedSearch.objects.filter(id=saved_search.id).exists()
         assert SavedSearch.objects.filter(id=other_saved_search.id).exists()
 
-        # Test calling mulitple times works ok, doesn't cause other rows to
+        # Test calling multiple times works ok, doesn't cause other rows to
         # delete
         self.get_valid_response(type=saved_search.type, status_code=204)
         assert SavedSearch.objects.filter(id=other_saved_search.id).exists()

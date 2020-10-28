@@ -3,60 +3,24 @@ from __future__ import absolute_import
 import re
 import logging
 from django.db import IntegrityError, transaction
-from six import BytesIO
+from django.db.models import Q
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.endpoints.organization_release_files import load_dist
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import File, Release, ReleaseFile
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
 
 
-@scenario("UploadReleaseFile")
-def upload_file_scenario(runner):
-    runner.request(
-        method="POST",
-        path="/projects/%s/%s/releases/%s/files/"
-        % (runner.org.slug, runner.default_project.slug, runner.default_release.version),
-        data={
-            "header": "Content-Type:text/plain; encoding=utf-8",
-            "name": "/demo/hello.py",
-            "file": ("hello.py", BytesIO(b'print "Hello World!"')),
-        },
-        format="multipart",
-    )
-
-
-@scenario("ListReleaseFiles")
-def list_files_scenario(runner):
-    runner.utils.create_release_file(
-        project=runner.default_project,
-        release=runner.default_release,
-        path="/demo/message-for-you.txt",
-        contents="Hello World!",
-    )
-    runner.request(
-        method="GET",
-        path="/projects/%s/%s/releases/%s/files/"
-        % (runner.org.slug, runner.default_project.slug, runner.default_release.version),
-    )
-
-
 class ProjectReleaseFilesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.RELEASES
-    content_negotiation_class = ConditionalContentNegotiation
     permission_classes = (ProjectReleasePermission,)
 
-    @attach_scenarios([list_files_scenario])
     def get(self, request, project, version):
         """
         List a Project Release's Files
@@ -69,8 +33,11 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to list the
                                      release files of.
         :pparam string version: the version identifier of the release.
+        :qparam string query: If set, this parameter is used to search files.
         :auth: required
         """
+        query = request.GET.get("query")
+
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
@@ -82,6 +49,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             ReleaseFile.objects.filter(release=release).select_related("file").order_by("name")
         )
 
+        if query:
+            file_list = file_list.filter(Q(name__icontains=query))
+
         return self.paginate(
             request=request,
             queryset=file_list,
@@ -91,7 +61,6 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             on_results=lambda r: serialize(load_dist(r), request.user),
         )
 
-    @attach_scenarios([upload_file_scenario])
     def post(self, request, project, version):
         """
         Upload a New Project Release File

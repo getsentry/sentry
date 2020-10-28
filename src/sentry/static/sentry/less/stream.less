@@ -1,60 +1,7 @@
 /**
-* Stream Actions
-* ============================================================================
-*/
-
-.stream-select-all-notice {
-  background: @sidebar-bg-color;
-  border: 1px solid #e7d796;
-  margin: 0 -1px -1px;
-  position: relative;
-  z-index: 2;
-
-  > div {
-    background-color: #fffdf7;
-    text-align: center;
-    padding: 3px 10px;
-
-    a {
-      margin-left: 0.5em;
-    }
-  }
-}
-
-/**
 * Stream / Group List
 * ============================================================================
 */
-
-.stream-content .processing-issues {
-  padding-left: 0;
-  font-size: 14px;
-  font-weight: 400;
-  padding: 10px 20px 8px;
-
-  // TODO(ckj) make this a component-level option
-  &.alert-error {
-    .icon-alert {
-      opacity: 1;
-      color: #f2261e;
-      margin-top: 1px;
-
-      &:before {
-        content: '\E906';
-      }
-    }
-  }
-
-  &.alert-info {
-    .icon {
-      display: inline-block;
-    }
-  }
-
-  .pull-right {
-    margin-top: -5px;
-  }
-}
 
 .group-list,
 .similar-list,
@@ -96,44 +43,6 @@
 
       &:hover {
         background-color: @white-dark;
-      }
-    }
-
-    .icon-star-solid,
-    .icon-soundoff {
-      padding-right: 5px;
-      font-size: 95%;
-      position: relative;
-      .transition(all 0.2s ease-in-out);
-      width: auto;
-    }
-
-    .icon-star-solid {
-      font-size: 15px;
-      display: none;
-      color: @yellow-orange;
-      overflow: hidden;
-    }
-
-    .icon-soundoff {
-      display: none;
-      font-size: 90%;
-      top: 1px;
-      color: @red;
-      width: auto;
-      overflow: hidden;
-      padding-left: 1px;
-    }
-
-    &.isBookmarked {
-      .icon-star-solid {
-        display: inline-block;
-      }
-    }
-
-    &.isIgnored {
-      .icon-soundoff {
-        display: inline-block;
       }
     }
 
@@ -379,128 +288,13 @@
 .app-icon {
   width: 28px;
   height: 28px;
-  background: url(../images/icons/empty-app-icon-180x180.png) center no-repeat;
+  background: url(../images/logos/empty-app-icon-180x180.png) center no-repeat;
   margin-right: 8px;
   display: inline-block;
   background-size: contain;
   vertical-align: middle;
   border-radius: 6px;
   box-shadow: 0px 0px 2px #e3e3e3;
-}
-
-/**
- * Awaiting Events - Stream First Run Experience
- * ============================================================================
- */
-
-.awaiting-events {
-  padding: 10px 20px 30px;
-
-  .wrap {
-    position: relative;
-    max-width: 740px;
-    margin: 0 auto;
-    padding: 60px 0 10px 260px;
-    font-size: 18px;
-    min-height: 260px;
-  }
-
-  .robot {
-    position: absolute;
-    left: 0;
-    top: 30px;
-    width: 220px;
-    height: 260px;
-    background: url(../images/sentry-robot.png);
-    background-size: cover;
-
-    .eye {
-      display: block;
-      .square(12px);
-      border-radius: 12px;
-      position: absolute;
-      top: 70px;
-      left: 82px;
-      transform: translateZ(0);
-
-      -webkit-animation: blink-eye 0.6s infinite;
-      -moz-animation: blink-eye 0.6s infinite;
-      -o-animation: blink-eye 0.6s infinite;
-      animation: blink-eye 0.6s infinite;
-    }
-  }
-
-  .strikethrough {
-    text-decoration: line-through;
-  }
-}
-
-@-webkit-keyframes blink-eye {
-  0% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-
-  50% {
-    background: #4a4d67;
-    box-shadow: none;
-  }
-
-  100% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-}
-
-@-moz-keyframes blink-eye {
-  0% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-
-  50% {
-    background: #4a4d67;
-    box-shadow: none;
-  }
-
-  100% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-}
-
-@-o-keyframes blink-eye {
-  0% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-
-  50% {
-    background: #4a4d67;
-    box-shadow: none;
-  }
-
-  100% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-}
-
-@keyframes blink-eye {
-  0% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-
-  50% {
-    background: #4a4d67;
-    box-shadow: none;
-  }
-
-  100% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
 }
 
 /**
@@ -516,49 +310,11 @@
 
   .issue {
     h3 {
-      .icon-star-solid,
-      .icon-soundoff {
-        padding-right: 5px;
-        font-size: 12px;
-        position: relative;
-        .transition(all 0.2s ease-in-out);
-        width: auto;
-      }
-
-      .icon-star-solid {
-        font-size: 14px;
-        top: -1px;
-        display: none;
-        color: @yellow-orange;
-        overflow: hidden;
-      }
-
-      .icon-soundoff {
-        display: none;
-        top: 1px;
-        color: @red;
-        width: auto;
-        overflow: hidden;
-        padding-left: 1px;
-      }
-
       em {
         font-style: normal;
         font-size: 14px;
         color: @60;
         font-weight: normal;
-      }
-    }
-
-    &.isBookmarked {
-      h3 .icon-star-solid {
-        display: inline-block;
-      }
-    }
-
-    &.isIgnored {
-      h3 .icon-soundoff {
-        display: inline-block;
       }
     }
 
@@ -602,13 +358,6 @@
       position: relative;
       top: 1px;
       margin-right: 3px;
-    }
-
-    .icon-more {
-      font-size: 24px;
-      width: 12px;
-      height: 24px;
-      text-align: center;
     }
 
     .more-menu {
@@ -819,36 +568,6 @@
 }
 
 /**
-* Empty Stream/Empty Alert box
-* ============================================================================
-*/
-
-.alert-box {
-  border: 1px solid @trim;
-  border-radius: 0 0 2px 2px;
-  text-align: center;
-  font-size: 22px;
-  padding: 48px 0;
-
-  p {
-    line-height: 1.2;
-    margin: 0 auto 20px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  .icon {
-    display: block;
-    font-size: 54px;
-    color: lighten(@gray, 20);
-    opacity: 0.45;
-    margin-bottom: 20px;
-  }
-}
-
-/**
 * Stream assignee selector
 * ============================================================================
 */
@@ -910,53 +629,5 @@
 
   .group-list .group {
     padding-right: 0;
-  }
-
-  .awaiting-events {
-    padding: 25px 20px 0px;
-
-    .wrap {
-      padding: 0;
-      text-align: center;
-    }
-
-    .robot {
-      position: relative;
-      top: 0;
-      left: 0;
-      margin: 0 auto;
-      width: 110px;
-      height: 130px;
-
-      .eye {
-        .square(6px);
-        top: 34px;
-        left: 40px;
-      }
-    }
-  }
-}
-
-.event-issue-header {
-  h3 {
-    font-size: 16px;
-    line-height: 1.1;
-    margin: 0 0 5px;
-    font-weight: 600;
-
-    em {
-      font-style: normal;
-      font-size: 14px;
-      color: @60;
-      font-weight: normal;
-    }
-
-    a {
-      color: @gray-darker;
-
-      &:hover {
-        color: @gray-darkest;
-      }
-    }
   }
 }

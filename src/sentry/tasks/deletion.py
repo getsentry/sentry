@@ -2,20 +2,17 @@ from __future__ import absolute_import
 
 from uuid import uuid4
 
-from django.conf import settings
+from django.apps import apps
 from django.db import transaction
-from django.db.models import get_model
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 
-# in prod we run with infinite retries to recover from errors
-# in debug/development, we assume these tasks generally shouldn't fail
-MAX_RETRIES = 1 if settings.DEBUG else None
-MAX_RETRIES = 1
+
+MAX_RETRIES = 5
 
 
 @instrumented_task(name="sentry.tasks.deletion.run_scheduled_deletions", queue="cleanup")
@@ -209,6 +206,7 @@ def delete_project(object_id, transaction_id=None, **kwargs):
     max_retries=MAX_RETRIES,
 )
 @retry(exclude=(DeleteAborted,))
+@track_group_async_operation
 def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwargs):
     from sentry import deletions, eventstream
     from sentry.models import Group
@@ -277,7 +275,7 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None, actor_
     from sentry import deletions
     from sentry.models import User
 
-    model = get_model(app_label, model_name)
+    model = apps.get_model(app_label, model_name)
 
     try:
         instance = model.objects.get(id=object_id)

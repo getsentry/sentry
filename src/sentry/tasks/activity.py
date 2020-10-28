@@ -9,8 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_activity_notifiers(project):
+    from sentry.mail import mail_adapter
     from sentry.plugins.bases.notify import NotificationPlugin
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
 
     results = []
     for plugin in plugins.for_project(project, version=1):
@@ -20,6 +21,8 @@ def get_activity_notifiers(project):
     for plugin in plugins.for_project(project, version=2):
         for notifier in safe_execute(plugin.get_notifiers, _with_transaction=False) or ():
             results.append(notifier)
+
+    results.append(mail_adapter)
 
     return results
 

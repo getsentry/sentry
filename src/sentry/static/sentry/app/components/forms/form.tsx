@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
-import styled from 'react-emotion';
+import isEqual from 'lodash/isEqual';
+import styled from '@emotion/styled';
 
 import FormState from 'app/components/forms/state';
 import {t} from 'app/locale';
@@ -64,6 +64,10 @@ class Form<
     resetOnError: PropTypes.bool,
   };
 
+  static childContextTypes = {
+    form: PropTypes.object.isRequired,
+  };
+
   static defaultProps = {
     cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),
@@ -76,10 +80,6 @@ class Form<
     errorMessage: t(
       'Unable to save your changes. Please ensure all fields are valid and try again.'
     ),
-  };
-
-  static childContextTypes = {
-    form: PropTypes.object.isRequired,
   };
 
   constructor(props: Props, context: Context) {
@@ -163,7 +163,7 @@ class Form<
     const {initialData, data} = this.state;
     const {errorMessage, hideErrors, requireChanges} = this.props;
     const hasChanges = requireChanges
-      ? Object.keys(data).length && !_.isEqual(data, initialData)
+      ? Object.keys(data).length && !isEqual(data, initialData)
       : true;
     const isError = this.state.state === FormState.ERROR;
     const nonFieldErrors = this.state.errors && this.state.errors.non_field_errors;

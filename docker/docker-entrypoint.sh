@@ -8,17 +8,18 @@ if [ "${1:0:1}" = '-' ]; then
 	set -- sentry "$@"
 fi
 
-case "$1" in
-	celery|cleanup|config|createuser|devserver|django|exec|export|help|import|init|plugins|queues|repair|run|shell|start|tsdb|upgrade)
-		set -- sentry "$@"
-	;;
-esac
+if [[ $1 =~ ^[[:alnum:]]+$ ]] && grep -Fxq "$1" /sentry-commands.txt; then
+	set -- sentry "$@";
+fi
 
 if [ "$1" = 'sentry' ]; then
 	set -- tini -- "$@"
 	if [ "$(id -u)" = '0' ]; then
-		mkdir -p "$SENTRY_FILESTORE_DIR"
-		find "$SENTRY_FILESTORE_DIR" ! -user sentry -exec chown sentry {} \;
+		mkdir -p /data/files
+		sentry_uid=$(id -u sentry)
+		if [ "$(stat -c %u /data)" != "$sentry_uid" ] || [ "$(stat -c %u /data/files)" != "$sentry_uid" ]; then
+			find /data ! -user sentry -exec chown sentry {} \;
+		fi
 		set -- gosu sentry "$@"
 	fi
 fi

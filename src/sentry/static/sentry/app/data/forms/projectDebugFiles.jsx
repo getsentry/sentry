@@ -1,4 +1,6 @@
-import _ from 'lodash';
+import isObject from 'lodash/isObject';
+import forEach from 'lodash/forEach';
+import set from 'lodash/set';
 import React from 'react';
 
 import {t} from 'app/locale';
@@ -13,9 +15,9 @@ export const route = '/settings/:orgId/projects/:projectId/debug-symbols/';
 
 function flattenKeys(obj) {
   const result = {};
-  _.forEach(obj, (value, key) => {
-    if (_.isObject(value)) {
-      _.forEach(value, (innerValue, innerKey) => {
+  forEach(obj, (value, key) => {
+    if (isObject(value)) {
+      forEach(value, (innerValue, innerKey) => {
         result[`${key}.${innerKey}`] = innerValue;
       });
     } else {
@@ -27,8 +29,8 @@ function flattenKeys(obj) {
 
 function unflattenKeys(obj) {
   const result = {};
-  _.forEach(obj, (value, key) => {
-    _.set(result, key.split('.'), value);
+  forEach(obj, (value, key) => {
+    set(result, key.split('.'), value);
   });
   return result;
 }
@@ -42,9 +44,22 @@ export const fields = {
     help: t(
       'Configures which built-in repositories Sentry should use to resolve debug files.'
     ),
+    formatMessageValue: (value, {builtinSymbolSources}) => {
+      const rv = [];
+      value.forEach(key => {
+        builtinSymbolSources.forEach(source => {
+          if (source.sentry_key === key) {
+            rv.push(source.name);
+          }
+        });
+      });
+      return rv.join(', ');
+    },
     choices: ({builtinSymbolSources}) =>
       builtinSymbolSources &&
-      builtinSymbolSources.map(source => [source.sentry_key, t(source.name)]),
+      builtinSymbolSources
+        .filter(source => !source.hidden)
+        .map(source => [source.sentry_key, t(source.name)]),
   },
   symbolSources: {
     name: 'symbolSources',
@@ -54,7 +69,7 @@ export const fields = {
     help: ({organization}) => (
       <Feature
         features={['organizations:custom-symbol-sources']}
-        hookName="custom-symbol-sources"
+        hookName="feature-disabled:custom-symbol-sources"
         organization={organization}
         renderDisabled={p => (
           <FeatureDisabled

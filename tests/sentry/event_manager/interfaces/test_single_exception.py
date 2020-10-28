@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.models import Event
+from sentry import eventstore
 from sentry.event_manager import EventManager
 
 
@@ -13,7 +13,7 @@ def make_single_exception_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"exception": {"values": [data]}})
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
 
         excs = evt.interfaces["exception"].values
         if excs:

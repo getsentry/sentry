@@ -5,9 +5,8 @@ import logging
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
-from django.template import loader, RequestContext, Context
+from django.template import loader
 
-from sentry.api.serializers.base import serialize
 from sentry.auth import access
 from sentry.models import Team
 from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
@@ -17,7 +16,7 @@ logger = logging.getLogger("sentry")
 
 def get_default_context(request, existing_context=None, team=None):
     from sentry import options
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
 
     context = {
         "URL_PREFIX": options.get("system.url-prefix"),
@@ -45,8 +44,6 @@ def get_default_context(request, existing_context=None, team=None):
         organization = None
 
     if request:
-        context.update({"request": request})
-
         if (not existing_context or "TEAM_LIST" not in existing_context) and team:
             context["TEAM_LIST"] = Team.objects.get_for_user(
                 organization=team.organization, user=request.user, with_projects=True
@@ -55,13 +52,6 @@ def get_default_context(request, existing_context=None, team=None):
         user = request.user
     else:
         user = AnonymousUser()
-
-    if organization:
-        context["selectedOrganization"] = serialize(organization, user)
-    if team:
-        context["selectedTeam"] = serialize(team, user)
-    if project:
-        context["selectedProject"] = serialize(project, user)
 
     if not existing_context or "ACCESS" not in existing_context:
         if request:
@@ -92,12 +82,7 @@ def render_to_string(template, context=None, request=None):
         context = dict(context)
         context.update(default_context)
 
-    if request:
-        context = RequestContext(request, context)
-    else:
-        context = Context(context)
-
-    return loader.render_to_string(template, context)
+    return loader.render_to_string(template, context=context, request=request)
 
 
 def render_to_response(template, context=None, request=None, status=200, content_type="text/html"):

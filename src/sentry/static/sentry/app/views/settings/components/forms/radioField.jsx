@@ -9,6 +9,7 @@ class RadioField extends React.Component {
     id: PropTypes.string,
     value: PropTypes.string,
     choices: PropTypes.arrayOf(PropTypes.array),
+    orientInline: PropTypes.bool,
     disabled: PropTypes.bool,
   };
 
@@ -21,10 +22,11 @@ class RadioField extends React.Component {
     return (
       <InputField
         {...this.props}
-        field={({onChange, onBlur, value, disabled, ...props}) => (
+        field={({onChange, onBlur, value, disabled, orientInline, ...props}) => (
           <RadioGroup
             choices={props.choices}
             disabled={disabled}
+            orientInline={orientInline}
             value={value === '' ? null : value}
             label={props.label}
             onChange={(id, e) => this.onChange(id, onChange, onBlur, e)}

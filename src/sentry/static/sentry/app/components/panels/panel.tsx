@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import PanelBody from 'app/components/panels/panelBody';
 import PanelHeader from 'app/components/panels/panelHeader';
@@ -14,22 +14,24 @@ type Props = {
 
 type PanelProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
 
-const Panel = styled(({title, body, dashedBorder, ...props}: PanelProps) => {
-  const hasHeaderAndBody = !!title && !!body;
+const Panel = styled(
+  ({title, body, dashedBorder: _dashedBorder, ...props}: PanelProps) => {
+    const hasHeaderAndBody = !!title && !!body;
 
-  return !hasHeaderAndBody ? (
-    <div {...props} />
-  ) : (
-    <div {...props}>
-      <PanelHeader>{title}</PanelHeader>
-      <PanelBody>{body}</PanelBody>
-    </div>
-  );
-})<PanelProps>`
-  background: ${p => (p.dashedBorder ? p.theme.offWhite : '#fff')};
+    return !hasHeaderAndBody ? (
+      <div {...props} />
+    ) : (
+      <div {...props}>
+        <PanelHeader>{title}</PanelHeader>
+        <PanelBody>{body}</PanelBody>
+      </div>
+    );
+  }
+)<PanelProps>`
+  background: ${p => (p.dashedBorder ? p.theme.gray100 : '#fff')};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px
-    ${p => (p.dashedBorder ? 'dashed' + p.theme.gray2 : 'solid ' + p.theme.borderDark)};
+    ${p => (p.dashedBorder ? 'dashed' + p.theme.gray500 : 'solid ' + p.theme.borderDark)};
   box-shadow: ${p => (p.dashedBorder ? 'none' : p.theme.dropShadowLight)};
   margin-bottom: ${space(3)};
   position: relative;

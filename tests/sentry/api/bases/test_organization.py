@@ -13,7 +13,8 @@ from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, Orga
 from sentry.api.exceptions import ResourceDoesNotExist, TwoFactorRequired
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import from_request, NoAccess
-from sentry.models import ApiKey, Organization, TotpInterface
+from sentry.auth.authenticators import TotpInterface
+from sentry.models import ApiKey, Organization
 from sentry.testutils import TestCase
 
 
@@ -241,6 +242,20 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         request.user = None
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result
+
+    def test_all_accessible_sigil_value_no_open_join(self):
+        assert self.org.flags.allow_joinleave.number == 0, "precondition not met"
+
+        self.create_team_membership(user=self.user, team=self.team_1)
+        self.run_test([self.project_1], project_ids=[-1])
+
+    def test_all_accessible_sigil_value_allow_joinleave(self):
+        self.org.flags.allow_joinleave = True
+        self.org.save()
+
+        # With membership on only one team you get all projects
+        self.create_team_membership(user=self.user, team=self.team_1)
+        self.run_test([self.project_1, self.project_2], project_ids=[-1])
 
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):

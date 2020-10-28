@@ -1,154 +1,44 @@
 import React from 'react';
-import DocumentTitle from 'react-document-title';
-import PropTypes from 'prop-types';
-import styled from 'react-emotion';
-import * as ReactRouter from 'react-router';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
 
-import {Organization} from 'app/types';
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
+import {PageContent} from 'app/styles/organization';
 import SentryTypes from 'app/sentryTypes';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import PageHeading from 'app/components/pageHeading';
-import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
-import Link from 'app/components/links/link';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import space from 'app/styles/space';
+import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
-
-import Events from './events';
-import EventDetails from './eventDetails';
-import EventsSaveQueryButton from './saveQueryButton';
-import {getFirstQueryString} from './utils';
-import {ALL_VIEWS} from './data';
-import EventView from './eventView';
 
 type Props = {
   organization: Organization;
-  location: Location;
-  router: ReactRouter.InjectedRouter;
-  params: Params;
 };
 
-class EventsV2 extends React.Component<Props> {
-  static propTypes: any = {
+class DiscoverContainer extends React.Component<Props> {
+  static propTypes = {
     organization: SentryTypes.Organization.isRequired,
-    location: PropTypes.object.isRequired,
-    router: PropTypes.object.isRequired,
   };
 
-  renderQueryList() {
-    const {location} = this.props;
-
-    const list = ALL_VIEWS.map((eventViewv1, index) => {
-      const eventView = EventView.fromEventViewv1(eventViewv1);
-      const to = {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          ...eventView.generateQueryStringObject(),
-        },
-      };
-
-      return (
-        <LinkContainer key={index}>
-          <Link to={to}>{eventView.name}</Link>
-        </LinkContainer>
-      );
-    });
-
-    return <LinkList>{list}</LinkList>;
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
   }
 
-  getEventViewName = (): Array<string> => {
-    const {location} = this.props;
-
-    const name = getFirstQueryString(location.query, 'name');
-
-    if (typeof name === 'string' && String(name).trim().length > 0) {
-      return [t('Events'), String(name).trim()];
-    }
-
-    return [t('Events')];
-  };
-
   render() {
-    const {organization, location, router} = this.props;
-    const eventSlug = getFirstQueryString(location.query, 'eventSlug');
+    const {organization, children} = this.props;
 
-    const eventView = EventView.fromLocation(location);
-
-    const hasQuery =
-      location.query.field || location.query.eventSlug || location.query.view;
-
-    const documentTitle = this.getEventViewName()
-      .reverse()
-      .join(' - ');
-    const pageTitle = this.getEventViewName().join(' \u2014 ');
     return (
-      <Feature features={['events-v2']} organization={organization} renderDisabled>
-        <DocumentTitle title={`${documentTitle} - ${organization.slug} - Sentry`}>
-          <React.Fragment>
-            <GlobalSelectionHeader organization={organization} />
-            <PageContent>
-              <NoProjectMessage organization={organization}>
-                <PageHeader>
-                  <PageHeading>
-                    {pageTitle} <BetaTag />
-                  </PageHeading>
-                  {hasQuery && (
-                    <EventsSaveQueryButton
-                      isEditing={!!location.query.edit}
-                      location={location}
-                      organization={organization}
-                      eventView={eventView}
-                    />
-                  )}
-                </PageHeader>
-                {!hasQuery && this.renderQueryList()}
-                {hasQuery && (
-                  <Events
-                    organization={organization}
-                    location={location}
-                    router={router}
-                    eventView={eventView}
-                  />
-                )}
-                {hasQuery && eventSlug && (
-                  <EventDetails
-                    organization={organization}
-                    params={this.props.params}
-                    eventSlug={eventSlug}
-                    eventView={eventView}
-                    location={location}
-                  />
-                )}
-              </NoProjectMessage>
-            </PageContent>
-          </React.Fragment>
-        </DocumentTitle>
+      <Feature
+        features={['discover-basic']}
+        organization={organization}
+        hookName="feature-disabled:discover2-page"
+        renderDisabled={this.renderNoAccess}
+      >
+        {children}
       </Feature>
     );
   }
 }
 
-const LinkList = styled('ul')`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-`;
-
-const LinkContainer = styled('li')`
-  background: ${p => p.theme.white};
-  line-height: 1.4;
-  border: 1px solid ${p => p.theme.borderLight};
-  border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: ${space(1)};
-  padding: ${space(1)};
-`;
-
-export default withOrganization(EventsV2);
-export {EventsV2};
+export default withOrganization(DiscoverContainer);

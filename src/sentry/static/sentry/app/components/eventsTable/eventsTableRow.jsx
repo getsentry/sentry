@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import AttachmentUrl from 'app/utils/attachmentUrl';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import DateTime from 'app/components/dateTime';
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';
@@ -30,11 +30,15 @@ class EventsTableRow extends React.Component {
       event.crashFile.type === 'event.minidump' ? 'Minidump' : 'Crash file';
 
     return (
-      <AttachmentUrl projectId={projectId} event={event} attachment={event.crashFile}>
-        {downloadUrl =>
-          downloadUrl && (
+      <AttachmentUrl
+        projectId={projectId}
+        eventId={event.id}
+        attachment={event.crashFile}
+      >
+        {url =>
+          url && (
             <small>
-              {crashFileType}: <a href={downloadUrl}>{event.crashFile.name}</a> (
+              {crashFileType}: <a href={`${url}?download=1`}>{event.crashFile.name}</a> (
               <FileSize bytes={event.crashFile.size} />)
             </small>
           )
@@ -67,7 +71,12 @@ class EventsTableRow extends React.Component {
           <td className="event-user table-user-info">
             {event.user ? (
               <div>
-                <Avatar user={event.user} size={24} className="avatar" gravatar={false} />
+                <UserAvatar
+                  user={event.user}
+                  size={24}
+                  className="avatar"
+                  gravatar={false}
+                />
                 {event.user.email}
               </div>
             ) : (
@@ -76,19 +85,17 @@ class EventsTableRow extends React.Component {
           </td>
         )}
 
-        {tagList.map(tag => {
-          return (
-            <td key={tag.key}>
-              <div>
-                {tag.key === 'device' ? (
-                  <DeviceName>{tagMap[tag.key]}</DeviceName>
-                ) : (
-                  tagMap[tag.key]
-                )}
-              </div>
-            </td>
-          );
-        })}
+        {tagList.map(tag => (
+          <td key={tag.key}>
+            <div>
+              {tag.key === 'device' ? (
+                <DeviceName value={tagMap[tag.key]} />
+              ) : (
+                tagMap[tag.key]
+              )}
+            </div>
+          </td>
+        ))}
       </tr>
     );
   }

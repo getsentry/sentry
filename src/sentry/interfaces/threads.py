@@ -13,7 +13,7 @@ def get_stacktrace(value, raw=False):
     # stacktrace to none.  Otherwise this will fail really
     # badly.
     if value and value.get("frames"):
-        return Stacktrace.to_python(value, slim_frames=True, raw=raw)
+        return Stacktrace.to_python(value, raw=raw)
 
 
 class Threads(Interface):

@@ -29,15 +29,17 @@ const withSentryAppComponents = <P extends InjectedAppComponentsProps>(
     State
   >({
     displayName: `withSentryAppComponents(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.connect(SentryAppComponentsStore, 'components')],
+    mixins: [Reflux.connect(SentryAppComponentsStore, 'components') as any],
 
     render() {
+      const {components, ...props} = this.props as P;
       return (
         <WrappedComponent
-          components={
-            SentryAppComponentsStore.getComponentByType(componentType) as Component[]
-          }
-          {...this.props as P}
+          {...({
+            components:
+              components ?? SentryAppComponentsStore.getComponentByType(componentType),
+            ...props,
+          } as P)}
         />
       );
     },

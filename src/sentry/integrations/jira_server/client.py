@@ -7,8 +7,14 @@ from oauthlib.oauth1 import SIGNATURE_RSA
 from requests_oauthlib import OAuth1
 from six.moves.urllib.parse import parse_qsl
 
-from sentry.integrations.client import ApiClient, ApiError
+from sentry.integrations.jira.client import JiraApiClient
+from sentry.integrations.client import ApiClient
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
+
+
+class JiraServerClient(JiraApiClient):
+    integration_name = "jira_server"
 
 
 class JiraServerSetupClient(ApiClient):
@@ -141,3 +147,9 @@ class JiraServer(object):
         Jira-Server doesn't require GDPR compliant API usage so we can use `name`
         """
         return "name"
+
+    def query_field(self):
+        """
+        Jira-Server doesn't require GDPR compliant API usage so we can use `username`
+        """
+        return "username"

@@ -29,7 +29,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         ```````````````````````````````
         :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project.
-        :pparam string team_slug: the slug of the project.
+        :pparam string team_slug: the slug of the team.
         :auth: required
         """
         try:
@@ -49,7 +49,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         ```````````````````````````````````
         :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project.
-        :pparam string team_slug: the slug of the project.
+        :pparam string team_slug: the slug of the team.
         :auth: required
         """
         try:

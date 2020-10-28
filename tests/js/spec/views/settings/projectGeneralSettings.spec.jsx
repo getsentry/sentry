@@ -1,16 +1,16 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
+
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
 import ProjectsStore from 'app/stores/projectsStore';
 
-import {selectByValue} from 'app-test/helpers/select';
-
 jest.mock('jquery');
 
-describe('projectGeneralSettings', function() {
+describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.ProjectDetails();
   const groupingConfigs = TestStubs.GroupingConfigs();
@@ -18,7 +18,7 @@ describe('projectGeneralSettings', function() {
   let routerContext;
   let putMock;
 
-  beforeEach(function() {
+  beforeEach(function () {
     jest.spyOn(window.location, 'assign');
     routerContext = TestStubs.routerContext([
       {
@@ -59,12 +59,12 @@ describe('projectGeneralSettings', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     window.location.assign.mockRestore();
   });
 
-  it('renders form fields', function() {
-    const wrapper = mount(
+  it('renders form fields', function () {
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -72,17 +72,6 @@ describe('projectGeneralSettings', function() {
     expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('project-slug');
     expect(wrapper.find('Input[name="subjectPrefix"]').prop('value')).toBe('[my-org]');
     expect(wrapper.find('RangeSlider[name="resolveAge"]').prop('value')).toBe(48);
-    expect(wrapper.find('Switch[name="dataScrubber"]').prop('isActive')).toBeFalsy();
-    expect(
-      wrapper.find('Switch[name="dataScrubberDefaults"]').prop('isActive')
-    ).toBeFalsy();
-    expect(wrapper.find('Switch[name="scrubIPAddresses"]').prop('isActive')).toBeFalsy();
-    expect(wrapper.find('TextArea[name="sensitiveFields"]').prop('value')).toBe(
-      'creditcard\nssn'
-    );
-    expect(wrapper.find('TextArea[name="safeFields"]').prop('value')).toBe(
-      'business-email\ncompany'
-    );
     expect(wrapper.find('TextArea[name="allowedDomains"]').prop('value')).toBe(
       'example.com\nhttps://example.com'
     );
@@ -99,24 +88,9 @@ describe('projectGeneralSettings', function() {
     expect(wrapper.find('Switch[name="verifySSL"]').prop('isActive')).toBeTruthy();
   });
 
-  it('disables field when equivalent org setting is true', function() {
-    routerContext.context.organization.dataScrubber = true;
-    routerContext.context.organization.scrubIPAddresses = false;
-    const wrapper = mount(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      routerContext
-    );
-    expect(wrapper.find('Switch[name="scrubIPAddresses"]').prop('isDisabled')).toBe(
-      false
-    );
-    expect(wrapper.find('Switch[name="scrubIPAddresses"]').prop('isActive')).toBeFalsy();
-    expect(wrapper.find('Switch[name="dataScrubber"]').prop('isDisabled')).toBe(true);
-    expect(wrapper.find('Switch[name="dataScrubber"]').prop('isActive')).toBe(true);
-  });
-
-  it('disables scrapeJavaScript when equivalent org setting is false', function() {
+  it('disables scrapeJavaScript when equivalent org setting is false', function () {
     routerContext.context.organization.scrapeJavaScript = false;
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -124,13 +98,13 @@ describe('projectGeneralSettings', function() {
     expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isActive')).toBeFalsy();
   });
 
-  it('project admins can remove project', function() {
+  it('project admins can remove project', function () {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'DELETE',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -148,13 +122,13 @@ describe('projectGeneralSettings', function() {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('project admins can transfer project', function() {
+  it('project admins can transfer project', function () {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/transfer/`,
       method: 'POST',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -183,9 +157,9 @@ describe('projectGeneralSettings', function() {
     );
   });
 
-  it('displays transfer/remove message for non-admins', function() {
+  it('displays transfer/remove message for non-admins', function () {
     routerContext.context.organization.access = ['org:read'];
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -198,25 +172,20 @@ describe('projectGeneralSettings', function() {
     );
   });
 
-  it('disables the form for users without write permissions', function() {
+  it('disables the form for users without write permissions', function () {
     routerContext.context.organization.access = ['org:read'];
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
 
     expect(wrapper.find('FormField[disabled=false]')).toHaveLength(0);
-    expect(
-      wrapper
-        .find('Alert')
-        .first()
-        .text()
-    ).toBe(
+    expect(wrapper.find('Alert').first().text()).toBe(
       'These settings can only be edited by users with the organization owner, manager, or admin role.'
     );
   });
 
-  it('changing project platform updates ProjectsStore', async function() {
+  it('changing project platform updates ProjectsStore', async function () {
     const params = {orgId: org.slug, projectId: project.slug};
     ProjectsStore.loadInitialData([project]);
     putMock = MockApiClient.addMockResponse({
@@ -227,7 +196,7 @@ describe('projectGeneralSettings', function() {
         platform: 'javascript',
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -254,7 +223,7 @@ describe('projectGeneralSettings', function() {
     expect(ProjectsStore.itemsById['2'].platform).toBe('javascript');
   });
 
-  it('changing slug updates ProjectsStore', async function() {
+  it('changing slug updates ProjectsStore', async function () {
     const params = {orgId: org.slug, projectId: project.slug};
     ProjectsStore.loadInitialData([project]);
     putMock = MockApiClient.addMockResponse({
@@ -265,7 +234,7 @@ describe('projectGeneralSettings', function() {
         slug: 'new-project',
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -318,10 +287,10 @@ describe('projectGeneralSettings', function() {
     expect(newProjectMembers).toHaveBeenCalled();
   });
 
-  describe('Non-"save on blur" Field', function() {
+  describe('Non-"save on blur" Field', function () {
     let wrapper;
 
-    beforeEach(function() {
+    beforeEach(function () {
       const params = {orgId: org.slug, projectId: project.slug};
       ProjectsStore.loadInitialData([project]);
       putMock = MockApiClient.addMockResponse({
@@ -332,7 +301,7 @@ describe('projectGeneralSettings', function() {
           slug: 'new-project',
         },
       });
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ProjectContext orgId={org.slug} projectId={project.slug}>
           <ProjectGeneralSettings
             routes={[]}
@@ -344,7 +313,7 @@ describe('projectGeneralSettings', function() {
       );
     });
 
-    it('can cancel unsaved changes for a field', async function() {
+    it('can cancel unsaved changes for a field', async function () {
       await tick();
       wrapper.update();
       // Initially does not have "Cancel" button
@@ -373,7 +342,7 @@ describe('projectGeneralSettings', function() {
       expect(putMock).not.toHaveBeenCalled();
     });
 
-    it('saves when value is changed and "Save" clicked', async function() {
+    it('saves when value is changed and "Save" clicked', async function () {
       await tick();
       wrapper.update();
       // Initially does not have "Save" button

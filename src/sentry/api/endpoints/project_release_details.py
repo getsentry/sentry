@@ -1,17 +1,21 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
 
-from sentry.models import Activity, Group, Release, ReleaseFile
+from sentry.models import Activity, Release
+from sentry.models.release import UnsafeReleaseDeletion
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 
-
-ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
+from sentry.snuba.sessions import STATS_PERIODS
+from sentry.api.endpoints.organization_releases import get_stats_period_detail
 
 
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
@@ -31,6 +35,14 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         :pparam string version: the version identifier of the release.
         :auth: required
         """
+        with_health = request.GET.get("health") == "1"
+        summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
+        health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+        if summary_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
+        if health_stats_period and health_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS))
+
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
@@ -38,7 +50,19 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        return Response(serialize(release, request.user, project=project))
+        if with_health:
+            release._for_project_id = project.id
+
+        return Response(
+            serialize(
+                release,
+                request.user,
+                project=project,
+                with_health_data=with_health,
+                summary_stats_period=summary_stats_period,
+                health_stats_period=health_stats_period,
+            )
+        )
 
     def put(self, request, project, version):
         """
@@ -128,18 +152,9 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # we don't want to remove the first_release metadata on the Group, and
-        # while people might want to kill a release (maybe to remove files),
-        # removing the release is prevented
-        if Group.objects.filter(first_release=release).exists():
-            return Response({"detail": ERR_RELEASE_REFERENCED}, status=400)
-
-        # TODO(dcramer): this needs to happen in the queue as it could be a long
-        # and expensive operation
-        file_list = ReleaseFile.objects.filter(release=release).select_related("file")
-        for releasefile in file_list:
-            releasefile.file.delete()
-            releasefile.delete()
-        release.delete()
+        try:
+            release.safe_delete()
+        except UnsafeReleaseDeletion as e:
+            return Response({"detail": six.text_type(e)}, status=400)
 
         return Response(status=204)

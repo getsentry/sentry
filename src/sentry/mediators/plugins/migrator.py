@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry.mediators import Mediator, Param
 from sentry.models import Repository
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.utils.cache import memoize
 
 
@@ -36,7 +36,7 @@ class Migrator(Mediator):
                 pass
 
     def repos_for_provider(self, provider):
-        return filter(lambda r: r.provider == provider, self.repositories)
+        return [r for r in self.repositories if r.provider == provider]
 
     @property
     def repositories(self):

@@ -1,17 +1,17 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
-import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {Integration} from 'app/types';
 
-type Props = {
+type DefaultProps = {
+  compact: boolean;
+};
+
+type Props = DefaultProps & {
   integration: Integration;
-  compact?: boolean;
 };
 export default class IntegrationItem extends React.Component<Props> {
   static propTypes = {
@@ -19,30 +19,20 @@ export default class IntegrationItem extends React.Component<Props> {
     compact: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     compact: false,
   };
 
   render() {
     const {integration, compact} = this.props;
-
     return (
       <Flex>
-        <Box>
+        <div>
           <IntegrationIcon size={compact ? 22 : 32} integration={integration} />
-        </Box>
+        </div>
         <Labels compact={compact}>
           <IntegrationName data-test-id="integration-name">
             {integration.name}
-            {integration.status === 'disabled' && (
-              <Tooltip
-                title={t(
-                  'This Integration has been disconnected from the external provider'
-                )}
-              >
-                <small> — {t('Disabled')}</small>
-              </Tooltip>
-            )}
           </IntegrationName>
           <DomainName compact={compact}>{integration.domainName}</DomainName>
         </Labels>
@@ -51,6 +41,9 @@ export default class IntegrationItem extends React.Component<Props> {
   }
 }
 
+const Flex = styled('div')`
+  display: flex;
+`;
 type StyledProps = Pick<Props, 'compact'>;
 const Labels = styled('div')<StyledProps>`
   box-sizing: border-box;
@@ -59,6 +52,7 @@ const Labels = styled('div')<StyledProps>`
   flex-direction: ${p => (p.compact ? 'row' : 'column')};
   padding-left: ${space(1)};
   min-width: 0;
+  justify-content: center;
 `;
 
 const IntegrationName = styled('div')`
@@ -69,7 +63,7 @@ const IntegrationName = styled('div')`
 // as it sets width 100% which causes layout issues in the
 // integration list.
 const DomainName = styled('div')<StyledProps>`
-  color: ${p => (p.compact ? p.theme.gray1 : p.theme.gray3)};
+  color: ${p => (p.compact ? p.theme.gray400 : p.theme.gray600)};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (!p.compact ? space(0.25) : 'inherit')};
   font-size: 1.4rem;

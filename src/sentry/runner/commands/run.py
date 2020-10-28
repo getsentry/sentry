@@ -8,6 +8,7 @@ import click
 
 from sentry.runner.decorators import configuration, log_options
 from sentry.bgtasks.api import managed_bgtasks
+from sentry.ingest.types import ConsumerType
 
 
 class AddressParamType(click.ParamType):
@@ -84,15 +85,9 @@ def run():
 @click.option(
     "--noinput", default=False, is_flag=True, help="Do not prompt the user for input of any kind."
 )
-@click.option(
-    "--uwsgi/--no-uwsgi",
-    default=True,
-    is_flag=True,
-    help="Use uWSGI (default) or non-uWSGI (useful for debuggers such as PyCharm's)",
-)
 @log_options()
 @configuration
-def web(bind, workers, upgrade, with_lock, noinput, uwsgi):
+def web(bind, workers, upgrade, with_lock, noinput):
     "Run web service."
     if upgrade:
         click.echo("Performing upgrade before service startup...")
@@ -112,28 +107,9 @@ def web(bind, workers, upgrade, with_lock, noinput, uwsgi):
                 raise
 
     with managed_bgtasks(role="web"):
-        if not uwsgi:
-            click.echo(
-                "Running simple HTTP server. Note that chunked file "
-                "uploads will likely not work.",
-                err=True,
-            )
+        from sentry.services.http import SentryHTTPServer
 
-            from django.conf import settings
-
-            host = bind[0] or settings.SENTRY_WEB_HOST
-            port = bind[1] or settings.SENTRY_WEB_PORT
-            click.echo("Address: http://%s:%s/" % (host, port))
-
-            from wsgiref.simple_server import make_server
-            from sentry.wsgi import application
-
-            httpd = make_server(host, port, application)
-            httpd.serve_forever()
-        else:
-            from sentry.services.http import SentryHTTPServer
-
-            SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
+        SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
 
 
 @run.command()
@@ -155,6 +131,45 @@ def smtp(bind, upgrade, noinput):
 
     with managed_bgtasks(role="smtp"):
         SentrySMTPServer(host=bind[0], port=bind[1]).run()
+
+
+def run_worker(**options):
+    """
+    This is the inner function to actually start worker.
+    """
+    from django.conf import settings
+
+    if settings.CELERY_ALWAYS_EAGER:
+        raise click.ClickException(
+            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
+        )
+
+    # These options are no longer used, but keeping around
+    # for backwards compatibility
+    for o in "without_gossip", "without_mingle", "without_heartbeat":
+        options.pop(o, None)
+
+    from sentry.celery import app
+
+    with managed_bgtasks(role="worker"):
+        worker = app.Worker(
+            # NOTE: without_mingle breaks everything,
+            # we can't get rid of this. Intentionally kept
+            # here as a warning. Jobs will not process.
+            # without_mingle=True,
+            without_gossip=True,
+            without_heartbeat=True,
+            pool_cls="processes",
+            **options
+        )
+        worker.start()
+        try:
+            sys.exit(worker.exitcode)
+        except AttributeError:
+            # `worker.exitcode` was added in a newer version of Celery:
+            # https://github.com/celery/celery/commit/dc28e8a5
+            # so this is an attempt to be forward compatible
+            pass
 
 
 @run.command()
@@ -199,32 +214,14 @@ def smtp(bind, upgrade, noinput):
 @log_options()
 @configuration
 def worker(**options):
-    "Run background worker instance."
-    from django.conf import settings
+    """Run background worker instance and autoreload if necessary."""
+    if options["autoreload"]:
+        from django.utils import autoreload
 
-    if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException(
-            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
-        )
-
-    from sentry.celery import app
-
-    with managed_bgtasks(role="worker"):
-        worker = app.Worker(
-            # without_gossip=True,
-            # without_mingle=True,
-            # without_heartbeat=True,
-            pool_cls="processes",
-            **options
-        )
-        worker.start()
-        try:
-            sys.exit(worker.exitcode)
-        except AttributeError:
-            # `worker.exitcode` was added in a newer version of Celery:
-            # https://github.com/celery/celery/commit/dc28e8a5
-            # so this is an attempt to be forwards compatible
-            pass
+        # Note this becomes autoreload.run_with_reloader in django 2.2
+        autoreload.main(run_worker, kwargs=options)
+    else:
+        run_worker(**options)
 
 
 @run.command()
@@ -356,104 +353,101 @@ def query_subscription_consumer(**options):
     subscriber.run()
 
 
+def batching_kafka_options(group):
+    """
+    Expose batching_kafka_consumer options as CLI args.
+
+    TODO(markus): Probably want to have this as part of batching_kafka_consumer
+    as this is duplicated effort between Snuba and Sentry.
+    """
+
+    def inner(f):
+        f = click.option(
+            "--consumer-group",
+            "group_id",
+            default=group,
+            help="Kafka consumer group for the outcomes consumer. ",
+        )(f)
+
+        f = click.option(
+            "--max-batch-size",
+            "max_batch_size",
+            default=100,
+            type=int,
+            help="How many messages to process before committing offsets.",
+        )(f)
+
+        f = click.option(
+            "--max-batch-time-ms",
+            "max_batch_time",
+            default=1000,
+            type=int,
+            help="How long to batch for before committing offsets.",
+        )(f)
+
+        f = click.option(
+            "--auto-offset-reset",
+            "auto_offset_reset",
+            default="latest",
+            type=click.Choice(["earliest", "latest", "error"]),
+            help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+        )(f)
+
+        return f
+
+    return inner
+
+
 @run.command("ingest-consumer")
 @log_options()
 @click.option(
+    "consumer_types",
     "--consumer-type",
+    default=[],
+    multiple=True,
+    help="Specify which type of consumer to create, i.e. from which topic to consume messages. By default all ingest-related topics are consumed ",
+    type=click.Choice(ConsumerType.all()),
+)
+@click.option(
+    "--all-consumer-types",
+    default=False,
+    is_flag=True,
+    help="Listen to all consumer types at once.",
+)
+@batching_kafka_options("ingest-consumer")
+@click.option(
+    "--concurrency",
+    type=int,
     default=None,
-    help="Specify which type of consumer to create, i.e. from which topic to consume messages.",
-    type=click.Choice(["events", "transactions", "attachments"]),
-)
-@click.option(
-    "--group", default="ingest-consumer", help="Kafka consumer group for the ingest consumer. "
-)
-@click.option(
-    "--commit-batch-size",
-    default=100,
-    type=int,
-    help="How many messages to process before committing offsets.",
-)
-@click.option(
-    "--max-fetch-time-ms",
-    default=100,
-    type=int,
-    help="Timeout (in milliseconds) for a consume operation. Max time the kafka consumer will wait "
-    "before returning the available messages in the topic.",
-)
-@click.option(
-    "--initial-offset-reset",
-    default="latest",
-    type=click.Choice(["earliest", "latest", "error"]),
-    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+    help="(Deprecated) Ingest consumers no longer use multiple processing threads.",
 )
 @configuration
-def ingest_consumer(**options):
+def ingest_consumer(consumer_types, all_consumer_types, **options):
     """
     Runs an "ingest consumer" task.
 
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
-    from sentry.ingest.ingest_consumer import ConsumerType, run_ingest_consumer
+    from sentry.ingest.ingest_consumer import get_ingest_consumer
+    from sentry.utils import metrics
 
-    consumer_type = options["consumer_type"]
-    if consumer_type == "events":
-        consumer_type = ConsumerType.Events
-    elif consumer_type == "transactions":
-        consumer_type = ConsumerType.Transactions
-    elif consumer_type == "attachments":
-        consumer_type = ConsumerType.Attachments
+    if all_consumer_types:
+        if consumer_types:
+            raise click.ClickException(
+                "Cannot specify --all-consumer types and --consumer-type at the same time"
+            )
+        else:
+            consumer_types = set(ConsumerType.all())
 
-    max_fetch_time_seconds = options["max_fetch_time_ms"] / 1000.0
+    if not all_consumer_types and not consumer_types:
+        raise click.ClickException("Need to specify --all-consumer-types or --consumer-type")
 
-    run_ingest_consumer(
-        commit_batch_size=options["commit_batch_size"],
-        consumer_group=options["group"],
-        consumer_type=consumer_type,
-        max_fetch_time_seconds=max_fetch_time_seconds,
-        initial_offset_reset=options["initial_offset_reset"],
-    )
+    concurrency = options.pop("concurrency", None)
+    if concurrency is not None:
+        click.echo("Warning: `concurrency` argument is deprecated and will be removed.", err=True)
 
-
-@run.command("outcomes-consumer")
-@log_options()
-@click.option(
-    "--group", default="outcomes-consumer", help="Kafka consumer group for the outcomes consumer. "
-)
-@click.option(
-    "--commit-batch-size",
-    default=100,
-    type=int,
-    help="How many messages to process before committing offsets.",
-)
-@click.option(
-    "--max-fetch-time-ms",
-    default=100,
-    type=int,
-    help="Timeout (in milliseconds) for a consume operation. Max time the kafka consumer will wait "
-    "before returning the available messages in the topic.",
-)
-@click.option(
-    "--initial-offset-reset",
-    default="latest",
-    type=click.Choice(["earliest", "latest", "error"]),
-    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
-)
-@configuration
-def outcome_consumer(**options):
-    """
-    Runs an "outcomes consumer" task.
-
-    The "outcomes consumer" tasks read outcomes from a kafka topic and sends
-    signals for some of them.
-    """
-    from sentry.ingest.outcomes_consumer import run_outcomes_consumer
-
-    max_fetch_time_seconds = options["max_fetch_time_ms"] / 1000.0
-
-    run_outcomes_consumer(
-        commit_batch_size=options["commit_batch_size"],
-        consumer_group=options["group"],
-        max_fetch_time_seconds=max_fetch_time_seconds,
-        initial_offset_reset=options["initial_offset_reset"],
-    )
+    with metrics.global_tags(
+        ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
+    ):
+        get_ingest_consumer(consumer_types=consumer_types, **options).run()

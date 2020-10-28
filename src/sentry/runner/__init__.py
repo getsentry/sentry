@@ -6,6 +6,7 @@ import sys
 import sentry
 import datetime
 from sentry.utils.imports import import_string
+from sentry.utils.compat import map
 
 # We need to run this here because of a concurrency bug in Python's locale
 # with the lazy initialization.
@@ -59,6 +60,7 @@ list(
             "sentry.runner.commands.files.files",
             "sentry.runner.commands.help.help",
             "sentry.runner.commands.init.init",
+            "sentry.runner.commands.migrations.migrations",
             "sentry.runner.commands.plugins.plugins",
             "sentry.runner.commands.queues.queues",
             "sentry.runner.commands.repair.repair",

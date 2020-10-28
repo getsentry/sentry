@@ -50,7 +50,11 @@ class UnsubscribeIssueNotificationsTest(UnsubscribeNotificationsBaseTest, TestCa
     view_name = "sentry-account-email-unsubscribe-issue"
 
     def create_instance(self):
-        return self.create_group()
+        group = self.create_group()
+        GroupSubscription.objects.create(
+            project=self.project, group=group, user=self.user, is_active=True
+        )
+        return group
 
     def assert_unsubscribed(self, instance, user):
         assert GroupSubscription.objects.filter(user=user, group=instance, is_active=False).exists()

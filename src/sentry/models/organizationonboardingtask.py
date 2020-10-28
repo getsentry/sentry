@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models, IntegrityError, transaction
@@ -7,7 +8,6 @@ from django.utils import timezone
 
 from sentry.db.models import (
     BaseManager,
-    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
@@ -20,32 +20,38 @@ class OnboardingTask(object):
     FIRST_PROJECT = 1
     FIRST_EVENT = 2
     INVITE_MEMBER = 3
-    SECOND_PLATFORM = 4  # dependent on FIRST_EVENT.
-    USER_CONTEXT = 5  # dependent on FIRST_EVENT
-    RELEASE_TRACKING = 6  # dependent on FIRST_EVENT
-    SOURCEMAPS = (
-        7
-    )  # dependent on RELEASE_TRACKING and one of the platforms being javascript or node
-    USER_REPORTS = 8  # Only for web frameworks
+    SECOND_PLATFORM = 4
+    USER_CONTEXT = 5
+    RELEASE_TRACKING = 6
+    SOURCEMAPS = 7
+    USER_REPORTS = 8
     ISSUE_TRACKER = 9
-    NOTIFICATION_SERVICE = 10
-
-    REQUIRED_ONBOARDING_TASKS = frozenset([1, 2, 3, 4, 5, 6, 7, 9, 10])
+    ALERT_RULE = 10
+    FIRST_TRANSACTION = 11
 
 
 class OnboardingTaskStatus(object):
-    """
-    Pending is applicable for:
-    first event: user confirms that sdk has been installed
-    second platform: user confirms that sdk has been installed
-    user context: user has added user context to sdk
-    invite member: until the member has successfully joined org
-    issue tracker: tracker added, issue not yet created
-    """
-
     COMPLETE = 1
     PENDING = 2
     SKIPPED = 3
+
+
+# NOTE: data fields for some event types are as follows:
+#
+#   FIRST_EVENT:      { 'platform':  'flask', }
+#   INVITE_MEMBER:    { 'invited_member': user.id, 'teams': [team.id] }
+#   ISSUE_TRACKER:    { 'plugin': 'plugin_name' }
+#   ISSUE_ASSIGNMENT: { 'assigned_member': user.id }
+#   SECOND_PLATFORM:  { 'platform': 'javascript' }
+#
+# NOTE: Currently the `PENDING` status is applicable for the following
+# onboarding tasks:
+#
+#   FIRST_EVENT:     User confirms that sdk has been installed
+#   INVITE_MEMBER:   Until the member has successfully joined org
+#   SECOND_PLATFORM: User confirms that sdk has been installed
+#   USER_CONTEXT:    User has added user context to sdk
+#   ISSUE_TRACKER:   Tracker added, issue not yet created
 
 
 class OrganizationOnboardingTaskManager(BaseManager):
@@ -68,44 +74,76 @@ class OrganizationOnboardingTaskManager(BaseManager):
 class OrganizationOnboardingTask(Model):
     """
     Onboarding tasks walk new Sentry orgs through basic features of Sentry.
-    data field options (not all tasks have data fields):
-        FIRST_EVENT: { 'platform':  'flask', }
-        INVITE_MEMBER: { 'invited_member': user.id, 'teams': [team.id] }
-        ISSUE_TRACKER | NOTIFICATION_SERVICE: { 'plugin': 'plugin_name' }
-        ISSUE_ASSIGNMENT: { 'assigned_member': user.id }
-        SECOND_PLATFORM: { 'platform': 'javascript' }
     """
 
     __core__ = False
 
     TASK_CHOICES = (
-        # Send an organization's first event to Sentry
-        (OnboardingTask.FIRST_EVENT, "First event"),
-        (OnboardingTask.INVITE_MEMBER, "Invite member"),  # Add a second member to your Sentry org.
-        (OnboardingTask.ISSUE_TRACKER, "Issue tracker"),  # Hook up an external issue tracker.
-        (
-            OnboardingTask.NOTIFICATION_SERVICE,
-            "Notification services",
-        ),  # Setup a notification services
-        (OnboardingTask.SECOND_PLATFORM, "Second platform"),  # Send an event from a second platform
-        (OnboardingTask.USER_CONTEXT, "User context"),  # Add user context to errors
-        (OnboardingTask.SOURCEMAPS, "Upload sourcemaps"),  # Upload sourcemaps for compiled js code
-        (OnboardingTask.RELEASE_TRACKING, "Release tracking"),  # Add release data to Sentry events
-        (OnboardingTask.USER_REPORTS, "User reports"),  # Send user reports
+        (OnboardingTask.FIRST_PROJECT, "create_project"),
+        (OnboardingTask.FIRST_EVENT, "send_first_event"),
+        (OnboardingTask.INVITE_MEMBER, "invite_member"),
+        (OnboardingTask.SECOND_PLATFORM, "setup_second_platform"),
+        (OnboardingTask.USER_CONTEXT, "setup_user_context"),
+        (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
+        (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
+        (OnboardingTask.USER_REPORTS, "setup_user_reports"),
+        (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
+        (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
+        (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
     )
 
     STATUS_CHOICES = (
-        (OnboardingTaskStatus.COMPLETE, "Complete"),
-        (OnboardingTaskStatus.PENDING, "Pending"),
-        (OnboardingTaskStatus.SKIPPED, "Skipped"),
+        (OnboardingTaskStatus.COMPLETE, "complete"),
+        (OnboardingTaskStatus.PENDING, "pending"),
+        (OnboardingTaskStatus.SKIPPED, "skipped"),
+    )
+
+    # Used in the API to map IDs to string keys. This keeps things
+    # a bit more maintainable on the frontend.
+    TASK_KEY_MAP = dict(TASK_CHOICES)
+    TASK_LOOKUP_BY_KEY = {v: k for k, v in TASK_CHOICES}
+
+    STATUS_KEY_MAP = dict(STATUS_CHOICES)
+    STATUS_LOOKUP_BY_KEY = {v: k for k, v in STATUS_CHOICES}
+
+    # Tasks which must be completed for the onboarding to be considered
+    # complete.
+    REQUIRED_ONBOARDING_TASKS = frozenset(
+        [
+            OnboardingTask.FIRST_PROJECT,
+            OnboardingTask.FIRST_EVENT,
+            OnboardingTask.INVITE_MEMBER,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.USER_CONTEXT,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.SOURCEMAPS,
+            OnboardingTask.ISSUE_TRACKER,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+        ]
+    )
+
+    SKIPPABLE_TASKS = frozenset(
+        [
+            OnboardingTask.INVITE_MEMBER,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.USER_CONTEXT,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.SOURCEMAPS,
+            OnboardingTask.USER_REPORTS,
+            OnboardingTask.ISSUE_TRACKER,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+        ]
     )
 
     organization = FlexibleForeignKey("sentry.Organization")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)  # user that completed
-    task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
-    status = BoundedPositiveIntegerField(choices=STATUS_CHOICES)
+    task = BoundedPositiveIntegerField(choices=[(k, six.text_type(v)) for k, v in TASK_CHOICES])
+    status = BoundedPositiveIntegerField(choices=[(k, six.text_type(v)) for k, v in STATUS_CHOICES])
+    completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
-    project_id = BoundedBigIntegerField(blank=True, null=True)
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
     data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
 
     objects = OrganizationOnboardingTaskManager()

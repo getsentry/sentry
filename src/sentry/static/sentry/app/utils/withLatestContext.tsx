@@ -8,10 +8,10 @@ import LatestContextStore from 'app/stores/latestContextStore';
 import SentryTypes from 'app/sentryTypes';
 import getDisplayName from 'app/utils/getDisplayName';
 import withOrganizations from 'app/utils/withOrganizations';
-import {Project, Organization} from 'app/types';
+import {Project, Organization, OrganizationSummary} from 'app/types';
 
 type InjectedLatestContextProps = {
-  organizations?: Organization[];
+  organizations?: OrganizationSummary[];
   organization?: Organization;
   project?: Project;
   lastRoute?: string;
@@ -19,7 +19,7 @@ type InjectedLatestContextProps = {
 
 type WithPluginProps = {
   organization?: Organization;
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
 };
 
 type State = {
@@ -41,7 +41,7 @@ const withLatestContext = <P extends InjectedLatestContextProps>(
         organization: SentryTypes.Organization,
         organizations: PropTypes.arrayOf(SentryTypes.Organization).isRequired,
       },
-      mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
+      mixins: [Reflux.connect(LatestContextStore, 'latestContext') as any],
 
       render() {
         const {organizations} = this.props;
@@ -69,10 +69,10 @@ const withLatestContext = <P extends InjectedLatestContextProps>(
         // project from `latestContext`
         return (
           <WrappedComponent
-            organizations={organizations as Organization[]}
+            organizations={organizations as OrganizationSummary[]}
             project={project as Project}
             lastRoute={lastRoute as string}
-            {...this.props as P}
+            {...(this.props as P)}
             organization={(this.props.organization || latestOrganization) as Organization}
           />
         );

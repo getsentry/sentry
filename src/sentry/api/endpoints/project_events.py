@@ -3,24 +3,11 @@ from __future__ import absolute_import
 from functools import partial
 
 from sentry import eventstore
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario("ListProjectAvailableSamples")
-def list_project_available_samples_scenario(runner):
-    runner.request(
-        method="GET",
-        path="/projects/%s/%s/events/" % (runner.org.slug, runner.default_project.slug),
-    )
 
 
 class ProjectEventsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.EVENTS
-
-    @attach_scenarios([list_project_available_samples_scenario])
     def get(self, request, project):
         """
         List a Project's Events
@@ -30,7 +17,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
         Note: This endpoint is experimental and may be removed without notice.
 
-        :qparam bool full: if this is set to true then the event payload will include the full event body, including the stacktrace. Set to 1 to enable.
+        :qparam bool full: if this is set to true then the event payload will
+                           include the full event body, including the stacktrace.
+                           Set to 1 to enable.
 
         :pparam string organization_slug: the slug of the organization the
                                           groups belong to.
@@ -47,13 +36,10 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             )
 
         full = request.GET.get("full", False)
-        cols = None if full else eventstore.full_columns
 
         data_fn = partial(
             eventstore.get_events,
-            conditions=conditions,
-            filter_keys={"project_id": [project.id]},
-            additional_columns=cols,
+            filter=eventstore.Filter(conditions=conditions, project_ids=[project.id]),
             referrer="api.project-events",
         )
 

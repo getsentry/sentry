@@ -10,9 +10,9 @@ from sentry.security import capture_security_activity
 
 
 class UserPasswordSerializer(serializers.Serializer):
-    password = serializers.CharField(required=True)
-    passwordNew = serializers.CharField(required=True)
-    passwordVerify = serializers.CharField(required=True)
+    password = serializers.CharField(required=True, trim_whitespace=False)
+    passwordNew = serializers.CharField(required=True, trim_whitespace=False)
+    passwordVerify = serializers.CharField(required=True, trim_whitespace=False)
 
     def validate_password(self, value):
         user = self.context["user"]

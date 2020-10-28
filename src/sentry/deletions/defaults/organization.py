@@ -26,7 +26,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             PromptsActivity,
         )
         from sentry.incidents.models import AlertRule, Incident
-        from sentry.discover.models import DiscoverSavedQuery
+        from sentry.discover.models import DiscoverSavedQuery, KeyTransaction
 
         # Team must come first
         relations = [ModelRelation(Team, {"organization_id": instance.id})]
@@ -48,6 +48,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             ReleaseHeadCommit,
             Dashboard,
             DiscoverSavedQuery,
+            KeyTransaction,
             ExternalIssue,
             PromptsActivity,
             Incident,

@@ -8,7 +8,6 @@ from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import GroupingConfigNotFound
-from sentry.models import Event
 from sentry.utils import json
 
 
@@ -24,8 +23,6 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
             raise ResourceDoesNotExist
-
-        Event.objects.bind_nodes([event], "data")
 
         rv = {}
         config_name = request.GET.get("config") or None

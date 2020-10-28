@@ -4,16 +4,14 @@ import logging
 from collections import defaultdict, OrderedDict
 
 from django.db import transaction
-from django.conf import settings
 
-from sentry import eventstore, eventstream, tagstore
+from sentry import eventstore, eventstream
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
 from sentry.models import (
     Activity,
     Environment,
-    Event,
     EventUser,
     Group,
     GroupEnvironment,
@@ -22,8 +20,9 @@ from sentry.models import (
     Project,
     Release,
     UserReport,
+    EventAttachment,
 )
-from sentry.similarity import features
+from sentry import similarity
 from sentry.tasks.base import instrumented_task
 from six.moves import reduce
 
@@ -99,7 +98,7 @@ initial_fields = {
     },
     "last_seen": lambda event: event.datetime,
     "level": lambda event: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
-    "message": lambda event: event.message,
+    "message": lambda event: event.search_message,
     "times_seen": lambda event: 0,
 }
 
@@ -220,30 +219,19 @@ def migrate_events(
     for event in events:
         event.group = destination
 
-    if settings.SENTRY_TAGSTORE == "sentry.tagstore.legacy.LegacyTagStorage":
-        postgres_id_set = set(
-            Event.objects.filter(project_id=project.id, event_id__in=event_id_set).values_list(
-                "id", flat=True
-            )
-        )
+    event_id_set = set(event.event_id for event in events)
 
-        tagstore.update_group_for_events(
-            project_id=project.id, event_ids=postgres_id_set, destination_id=destination_id
-        )
-
-    event_event_id_set = set(event.event_id for event in events)
-
-    UserReport.objects.filter(project_id=project.id, event_id__in=event_event_id_set).update(
+    UserReport.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
         group=destination_id
+    )
+    EventAttachment.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
+        group_id=destination_id
     )
 
     return (destination.id, eventstream_state)
 
 
-def truncate_denormalizations(group):
-    tagstore.delete_all_group_tag_keys(group.project_id, group.id)
-    tagstore.delete_all_group_tag_values(group.project_id, group.id)
-
+def truncate_denormalizations(project, group):
     GroupRelease.objects.filter(group_id=group.id).delete()
 
     # XXX: This can cause a race condition with the ``FirstSeenEventCondition``
@@ -268,7 +256,7 @@ def truncate_denormalizations(group):
         [group.id],
     )
 
-    features.delete(group)
+    similarity.delete(project, group)
 
 
 def collect_group_environment_data(events):
@@ -313,43 +301,6 @@ def collect_tag_data(events):
                 values[value] = (1, event.datetime, event.datetime)
 
     return results
-
-
-def repair_tag_data(caches, project, events):
-    for (group_id, env_name), keys in collect_tag_data(events).items():
-        environment = caches["Environment"](project.organization_id, env_name)
-        for key, values in keys.items():
-            tagstore.get_or_create_group_tag_key(
-                project_id=project.id, group_id=group_id, environment_id=environment.id, key=key
-            )
-
-            # XXX: `{first,last}_seen` columns don't totally replicate the
-            # ingestion logic (but actually represent a more accurate value.)
-            # See GH-5289 for more details.
-            for value, (times_seen, first_seen, last_seen) in values.items():
-                _, created = tagstore.get_or_create_group_tag_value(
-                    project_id=project.id,
-                    group_id=group_id,
-                    environment_id=environment.id,
-                    key=key,
-                    value=value,
-                    defaults={
-                        "first_seen": first_seen,
-                        "last_seen": last_seen,
-                        "times_seen": times_seen,
-                    },
-                )
-
-                if not created:
-                    tagstore.incr_group_tag_value_times_seen(
-                        project_id=project.id,
-                        group_id=group_id,
-                        environment_id=environment.id,
-                        key=key,
-                        value=value,
-                        count=times_seen,
-                        extra={"first_seen": first_seen},
-                    )
 
 
 def get_environment_name(event):
@@ -463,12 +414,11 @@ def repair_tsdb_data(caches, project, events):
 
 def repair_denormalizations(caches, project, events):
     repair_group_environment_data(caches, project, events)
-    repair_tag_data(caches, project, events)
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
 
     for event in events:
-        features.record([event])
+        similarity.record(project, [event])
 
 
 def lock_hashes(project_id, source_id, fingerprints):
@@ -513,16 +463,16 @@ def unmerge(
 
     source = Group.objects.get(project_id=project_id, id=source_id)
 
+    caches = get_caches()
+
+    project = caches["Project"](project_id)
+
     # On the first iteration of this loop, we clear out all of the
     # denormalizations from the source group so that we can have a clean slate
     # for the new, repaired data.
     if last_event is None:
         fingerprints = lock_hashes(project_id, source_id, fingerprints)
-        truncate_denormalizations(source)
-
-    caches = get_caches()
-
-    project = caches["Project"](project_id)
+        truncate_denormalizations(project, source)
 
     # We process events sorted in descending order by -timestamp, -event_id. We need
     # to include event_id as well as timestamp in the ordering criteria since:
@@ -551,11 +501,9 @@ def unmerge(
         )
 
     events = eventstore.get_events(
-        filter_keys={"project_id": [project_id], "issue": [source.id]},
-        # We need the text-only "search message" from Snuba, not the raw message
-        # dict field from nodestore.
-        additional_columns=[eventstore.Columns.MESSAGE],
-        conditions=conditions,
+        filter=eventstore.Filter(
+            project_ids=[project_id], group_ids=[source.id], conditions=conditions
+        ),
         limit=batch_size,
         referrer="unmerge",
         orderby=["-timestamp", "-event_id"],
@@ -563,15 +511,12 @@ def unmerge(
 
     # If there are no more events to process, we're done with the migration.
     if not events:
-        tagstore.update_group_tag_key_values_seen(project_id, [source_id, destination_id])
         unlock_hashes(project_id, fingerprints)
         logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
         if eventstream_state:
             eventstream.end_unmerge(eventstream_state)
 
         return destination_id
-
-    Event.objects.bind_nodes(events, "data")
 
     source_events = []
     destination_events = []

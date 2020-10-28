@@ -1,45 +1,45 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {shallow} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {GroupMergedView} from 'app/views/organizationGroupDetails/groupMerged';
 import {Client} from 'app/api';
-import events from 'app-test/mocks/events';
 
 jest.mock('app/api');
 
-const mockData = {
-  merged: [
-    {
-      latestEvent: events[0],
-      state: 'unlocked',
-      id: '2c4887696f708c476a81ce4e834c4b02',
-    },
-    {
-      latestEvent: events[1],
-      state: 'unlocked',
-      id: 'e05da55328a860b21f62e371f0a7507d',
-    },
-  ],
-};
+describe('Issues -> Merged View', function () {
+  const events = TestStubs.DetailedEvents();
+  const mockData = {
+    merged: [
+      {
+        latestEvent: events[0],
+        state: 'unlocked',
+        id: '2c4887696f708c476a81ce4e834c4b02',
+      },
+      {
+        latestEvent: events[1],
+        state: 'unlocked',
+        id: 'e05da55328a860b21f62e371f0a7507d',
+      },
+    ],
+  };
 
-describe('Issues -> Merged View', function() {
   const context = {
     group: {
       id: 'id',
       tags: [],
     },
   };
-  beforeAll(function() {
+  beforeAll(function () {
     Client.addMockResponse({
       url: '/issues/groupId/hashes/?limit=50&query=',
       body: mockData.merged,
     });
   });
 
-  it('renders initially with loading component', function() {
-    const wrapper = shallow(
+  it('renders initially with loading component', function () {
+    const wrapper = mountWithTheme(
       <GroupMergedView
         project={TestStubs.Project({slug: 'projectId'})}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
@@ -51,8 +51,8 @@ describe('Issues -> Merged View', function() {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('renders with mocked data', async function() {
-    const wrapper = shallow(
+  it('renders with mocked data', async function () {
+    const wrapper = mountWithTheme(
       <GroupMergedView
         project={TestStubs.Project({slug: 'projectId'})}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
@@ -67,7 +67,6 @@ describe('Issues -> Merged View', function() {
             group: PropTypes.object,
           },
         ]),
-        disableLifecycleMethods: false,
       }
     );
 
@@ -75,6 +74,7 @@ describe('Issues -> Merged View', function() {
     await tick();
     wrapper.update();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-    expect(wrapper).toMatchSnapshot();
+
+    expect(wrapper).toSnapshot();
   });
 });

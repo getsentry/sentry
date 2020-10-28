@@ -8,10 +8,10 @@ import unittest
 from symbolic import SourceMapTokenMatch
 
 from copy import deepcopy
-from mock import patch
+from sentry.utils.compat.mock import patch
 from requests.exceptions import RequestException
 
-from sentry import http
+from sentry import http, options
 from sentry.lang.javascript.processor import (
     JavaScriptStacktraceProcessor,
     discover_sourcemap,
@@ -89,9 +89,9 @@ class FetchReleaseFileTest(TestCase):
             "utf-8",
         )
 
-        # test with cache hit, which should be compressed
+        # looking again should hit the cache - make sure it's come through the
+        # caching/uncaching process unscathed
         new_result = fetch_release_file("file.min.js", release)
-
         assert result == new_result
 
     def test_distribution(self):
@@ -99,55 +99,53 @@ class FetchReleaseFileTest(TestCase):
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
 
-        other_file = File.objects.create(
+        foo_file = File.objects.create(
             name="file.min.js",
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        file = File.objects.create(
+        foo_file.putfile(six.BytesIO(b"foo"))
+        foo_dist = release.add_dist("foo")
+        ReleaseFile.objects.create(
+            name="file.min.js",
+            release=release,
+            dist=foo_dist,
+            organization_id=project.organization_id,
+            file=foo_file,
+        )
+
+        bar_file = File.objects.create(
             name="file.min.js",
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-
-        binary_body = unicode_body.encode("utf-8")
-        other_file.putfile(six.BytesIO(b""))
-        file.putfile(six.BytesIO(binary_body))
-
-        dist = release.add_dist("foo")
-
+        bar_file.putfile(six.BytesIO(b"bar"))
+        bar_dist = release.add_dist("bar")
         ReleaseFile.objects.create(
             name="file.min.js",
             release=release,
+            dist=bar_dist,
             organization_id=project.organization_id,
-            file=other_file,
+            file=bar_file,
         )
 
-        ReleaseFile.objects.create(
-            name="file.min.js",
-            release=release,
-            dist=dist,
-            organization_id=project.organization_id,
-            file=file,
+        foo_result = fetch_release_file("file.min.js", release, foo_dist)
+
+        assert isinstance(foo_result.body, six.binary_type)
+        assert foo_result == http.UrlResult(
+            "file.min.js", {"content-type": "application/json; charset=utf-8"}, b"foo", 200, "utf-8"
         )
 
-        result = fetch_release_file("file.min.js", release, dist)
+        # test that cache pays attention to dist value as well as name
+        bar_result = fetch_release_file("file.min.js", release, bar_dist)
 
-        assert isinstance(result.body, six.binary_type)
-        assert result == http.UrlResult(
-            "file.min.js",
-            {"content-type": "application/json; charset=utf-8"},
-            binary_body,
-            200,
-            "utf-8",
+        # result is cached, but that's not what we should find
+        assert bar_result != foo_result
+        assert bar_result == http.UrlResult(
+            "file.min.js", {"content-type": "application/json; charset=utf-8"}, b"bar", 200, "utf-8"
         )
 
-        # test with cache hit, which should be compressed
-        new_result = fetch_release_file("file.min.js", release, dist)
-
-        assert result == new_result
-
-    def test_fallbacks(self):
+    def test_tilde(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -179,6 +177,43 @@ class FetchReleaseFileTest(TestCase):
             "utf-8",
         )
 
+    def test_caching(self):
+        # Set the threshold to zero to force caching on the file system
+        options.set("releasefile.cache-limit", 0)
+
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        file = File.objects.create(
+            name="file.min.js",
+            type="release.file",
+            headers={"Content-Type": "application/json; charset=utf-8"},
+        )
+
+        binary_body = unicode_body.encode("utf-8")
+        file.putfile(six.BytesIO(binary_body))
+
+        ReleaseFile.objects.create(
+            name="file.min.js", release=release, organization_id=project.organization_id, file=file
+        )
+
+        result = fetch_release_file("file.min.js", release)
+
+        assert isinstance(result.body, six.binary_type)
+        assert result == http.UrlResult(
+            "file.min.js",
+            {"content-type": "application/json; charset=utf-8"},
+            binary_body,
+            200,
+            "utf-8",
+        )
+
+        # test with cache hit, coming from the FS
+        new_result = fetch_release_file("file.min.js", release)
+
+        assert result == new_result
+
 
 class FetchFileTest(TestCase):
     @responses.activate
@@ -192,7 +227,7 @@ class FetchFileTest(TestCase):
         assert len(responses.calls) == 1
 
         assert result.url == "http://example.com"
-        assert result.body == "foo bar"
+        assert result.body == b"foo bar"
         assert result.headers == {"content-type": "application/json"}
 
         # ensure we use the cached result
@@ -228,7 +263,7 @@ class FetchFileTest(TestCase):
             result = fetch_file(url, project=self.project)
 
             assert result.url == url
-            assert result.body == "foo bar"
+            assert result.body == b"foo bar"
             assert result.headers == {"content-type": "application/json"}
 
             assert len(responses.calls) == i + 1
@@ -258,7 +293,7 @@ class FetchFileTest(TestCase):
     @patch("sentry.lang.javascript.processor.fetch_release_file")
     def test_non_url_with_release(self, mock_fetch_release_file):
         mock_fetch_release_file.return_value = http.UrlResult(
-            "/example.js", {"content-type": "application/json"}, "foo", 200, None
+            "/example.js", {"content-type": "application/json"}, b"foo", 200, None
         )
 
         release = Release.objects.create(version="1", organization_id=self.project.organization_id)
@@ -266,7 +301,7 @@ class FetchFileTest(TestCase):
 
         result = fetch_file("/example.js", release=release)
         assert result.url == "/example.js"
-        assert result.body == "foo"
+        assert result.body == b"foo"
         assert isinstance(result.body, six.binary_type)
         assert result.headers == {"content-type": "application/json"}
         assert result.encoding is None
@@ -285,7 +320,7 @@ class FetchFileTest(TestCase):
         assert len(responses.calls) == 1
 
         assert result.url == "http://example.com"
-        assert result.body == '"f\xc3\xb4o bar"'
+        assert result.body == b'"f\xc3\xb4o bar"'
         assert result.headers == {"content-type": "application/json; charset=utf-8"}
         assert result.encoding == "utf-8"
 
@@ -361,23 +396,27 @@ class CacheControlTest(unittest.TestCase):
 class DiscoverSourcemapTest(unittest.TestCase):
     # discover_sourcemap(result)
     def test_simple(self):
-        result = http.UrlResult("http://example.com", {}, "", 200, None)
+        result = http.UrlResult("http://example.com", {}, b"", 200, None)
         assert discover_sourcemap(result) is None
 
         result = http.UrlResult(
-            "http://example.com", {"x-sourcemap": "http://example.com/source.map.js"}, "", 200, None
+            "http://example.com",
+            {"x-sourcemap": "http://example.com/source.map.js"},
+            b"",
+            200,
+            None,
         )
         assert discover_sourcemap(result) == "http://example.com/source.map.js"
 
         result = http.UrlResult(
-            "http://example.com", {"sourcemap": "http://example.com/source.map.js"}, "", 200, None
+            "http://example.com", {"sourcemap": "http://example.com/source.map.js"}, b"", 200, None
         )
         assert discover_sourcemap(result) == "http://example.com/source.map.js"
 
         result = http.UrlResult(
             "http://example.com",
             {},
-            "//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)",
+            b"//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)",
             200,
             None,
         )
@@ -386,7 +425,7 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com",
             {},
-            "//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)",
+            b"//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)",
             200,
             None,
         )
@@ -395,7 +434,7 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com",
             {},
-            "console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js",
+            b"console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js",
             200,
             None,
         )
@@ -404,7 +443,7 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com",
             {},
-            "console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js",
+            b"console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js",
             200,
             None,
         )
@@ -413,7 +452,7 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com",
             {},
-            "console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js",
+            b"console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js",
             200,
             None,
         )
@@ -423,22 +462,26 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com",
             {},
-            "console.log(true);//# sourceMappingURL=http://example.com/source.map.js",
+            b"console.log(true);//# sourceMappingURL=http://example.com/source.map.js",
             200,
             None,
         )
         assert discover_sourcemap(result) == "http://example.com/source.map.js"
 
         result = http.UrlResult(
-            "http://example.com", {}, "//# sourceMappingURL=app.map.js/*ascii:lol*/", 200, None
+            "http://example.com", {}, b"//# sourceMappingURL=app.map.js/*ascii:lol*/", 200, None
         )
         assert discover_sourcemap(result) == "http://example.com/app.map.js"
 
-        result = http.UrlResult("http://example.com", {}, "//# sourceMappingURL=/*lol*/", 200, None)
+        result = http.UrlResult(
+            "http://example.com", {}, b"//# sourceMappingURL=/*lol*/", 200, None
+        )
         with self.assertRaises(AssertionError):
             discover_sourcemap(result)
 
 
+# NB: despite the very close name, this class (singular Module) is in fact
+# different from the GenerateModulesTest (plural Modules) class below
 class GenerateModuleTest(unittest.TestCase):
     def test_simple(self):
         assert generate_module(None) == "<unknown module>"
@@ -780,3 +823,109 @@ class ErrorMappingTest(unittest.TestCase):
         assert not rewrite_exception(actual)
 
         assert actual == expected
+
+
+class CacheSourceTest(TestCase):
+    def test_file_no_source_records_error(self):
+        """
+        If we can't find a given file, either on the release or by scraping, an
+        error should be recorded.
+        """
+
+        project = self.create_project()
+
+        processor = JavaScriptStacktraceProcessor(data={}, stacktrace_infos=None, project=project)
+
+        # no release on the event, so won't find file in database
+        assert processor.release is None
+
+        # not a real url, so won't find file on the internet
+        abs_path = "app:///i/dont/exist.js"
+
+        # before caching, no errors
+        assert len(processor.cache.get_errors(abs_path)) == 0
+
+        processor.cache_source(abs_path)
+
+        # now we have an error
+        assert len(processor.cache.get_errors(abs_path)) == 1
+        assert processor.cache.get_errors(abs_path)[0] == {"url": abs_path, "type": "js_no_source"}
+
+    def test_node_modules_file_no_source_no_error(self):
+        """
+        If someone hasn't uploaded node_modules (which most people don't), it
+        shouldn't complain about a source file being missing.
+        """
+
+        project = self.create_project()
+        processor = JavaScriptStacktraceProcessor(data={}, stacktrace_infos=None, project=project)
+
+        # no release on the event, so won't find file in database
+        assert processor.release is None
+
+        # not a real url, so won't find file on the internet
+        abs_path = "app:///../node_modules/i/dont/exist.js"
+
+        processor.cache_source(abs_path)
+
+        # no errors, even though the file can't have been found
+        assert len(processor.cache.get_errors(abs_path)) == 0
+
+    def test_node_modules_file_with_source_is_used(self):
+        """
+        If someone has uploaded node_modules, files in there should be treated like
+        any other files (in other words, they should land in the cache with no errors).
+        """
+
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        abs_path = "app:///../node_modules/some-package/index.js"
+        self.create_release_file(release=release, name=abs_path)
+
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version}, stacktrace_infos=None, project=project
+        )
+        # in real life the preprocess step will pull release out of the data
+        # dictionary passed to the JavaScriptStacktraceProcessor constructor,
+        # but since this is just a unit test, we have to set it manually
+        processor.release = release
+
+        processor.cache_source(abs_path)
+
+        # file is cached, no errors are generated
+        assert processor.cache.get(abs_path)
+        assert len(processor.cache.get_errors(abs_path)) == 0
+
+    @patch("sentry.lang.javascript.processor.discover_sourcemap")
+    def test_node_modules_file_with_source_but_no_map_records_error(self, mock_discover_sourcemap):
+        """
+        If someone has uploaded node_modules, but is missing maps, it should complain
+        so that they either a) upload the maps, or b) don't upload the source files.
+        """
+
+        map_url = "app:///../node_modules/some-package/index.js.map"
+        mock_discover_sourcemap.return_value = map_url
+
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        abs_path = "app:///../node_modules/some-package/index.js"
+        self.create_release_file(release=release, name=abs_path)
+
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version}, stacktrace_infos=None, project=project
+        )
+        # in real life the preprocess step will pull release out of the data
+        # dictionary passed to the JavaScriptStacktraceProcessor constructor,
+        # but since this is just a unit test, we have to set it manually
+        processor.release = release
+
+        # before caching, no errors
+        assert len(processor.cache.get_errors(abs_path)) == 0
+
+        processor.cache_source(abs_path)
+
+        # now we have an error
+        assert len(processor.cache.get_errors(abs_path)) == 1
+        assert processor.cache.get_errors(abs_path)[0] == {"url": map_url, "type": "js_no_source"}

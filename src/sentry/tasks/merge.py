@@ -7,8 +7,8 @@ from django.db.models import F
 
 from sentry import eventstream
 from sentry.app import tsdb
-from sentry.similarity import features
-from sentry.tasks.base import instrumented_task
+from sentry import similarity
+from sentry.tasks.base import instrumented_task, track_group_async_operation
 
 logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
@@ -23,6 +23,7 @@ EXTRA_MERGE_MODELS = []
     default_retry_delay=60 * 5,
     max_retries=None,
 )
+@track_group_async_operation
 def merge_groups(
     from_object_ids=None,
     to_object_id=None,
@@ -41,7 +42,7 @@ def merge_groups(
         GroupRuleStatus,
         GroupSubscription,
         Environment,
-        Event,
+        EventAttachment,
         UserReport,
         GroupRedirect,
         GroupMeta,
@@ -50,7 +51,7 @@ def merge_groups(
 
     if not (from_object_ids and to_object_id):
         logger.error("group.malformed.missing_params", extra={"transaction_id": transaction_id})
-        return
+        return False
 
     # Operate on one "from" group per task iteration. The task is recursed
     # until each group has been merged.
@@ -63,7 +64,7 @@ def merge_groups(
             "group.malformed.invalid_id",
             extra={"transaction_id": transaction_id, "old_object_ids": from_object_ids},
         )
-        return
+        return False
 
     if not recursed:
         logger.info(
@@ -97,7 +98,7 @@ def merge_groups(
             GroupHash,
             GroupRuleStatus,
             GroupSubscription,
-            Event,
+            EventAttachment,
             UserReport,
             GroupRedirect,
             GroupMeta,
@@ -113,7 +114,7 @@ def merge_groups(
             # work for this group.
             from_object_ids.remove(from_object_id)
 
-            features.merge(new_group, [group], allow_unsafe=True)
+            similarity.merge(group.project, new_group, [group], allow_unsafe=True)
 
             environment_ids = list(
                 Environment.objects.filter(projects=group.project).values_list("id", flat=True)
@@ -157,7 +158,6 @@ def merge_groups(
             with transaction.atomic():
                 GroupRedirect.create_for_group(group, new_group)
                 group.delete()
-
             delete_logger.info(
                 "object.delete.executed",
                 extra={
@@ -191,10 +191,8 @@ def merge_groups(
             recursed=True,
             eventstream_state=eventstream_state,
         )
-        return
-
-    # All `from_object_ids` have been merged!
-    if eventstream_state:
+    elif eventstream_state:
+        # All `from_object_ids` have been merged!
         eventstream.end_merge(eventstream_state)
 
 
@@ -223,13 +221,16 @@ def _get_event_environment(event, project, cache):
 def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
     has_more = False
     for model in models:
-        all_fields = model._meta.get_all_field_names()
+        all_fields = [f.name for f in model._meta.get_fields()]
 
-        # not all models have a 'project' or 'project_id' field, but we make a best effort
-        # to filter on one if it is available
-        # HACK(mattrobenolt): Our Event table can't handle the extra project_id bit on the query
+        # Not all models have a 'project' or 'project_id' field, but we make a best effort
+        # to filter on one if it is available.
+        # Also note that all_fields doesn't contain f.attname
+        # (django ForeignKeys have only attribute "attname" where "_id" is implicitly appended)
+        # but we still want to check for "project_id" because some models define a project_id bigint.
         has_project = "project_id" in all_fields or "project" in all_fields
-        if has_project and model.__name__ != "Event":
+
+        if has_project:
             project_qs = model.objects.filter(project_id=group.project_id)
         else:
             project_qs = model.objects.all()
@@ -241,10 +242,6 @@ def merge_objects(models, group, new_group, limit=1000, logger=None, transaction
             queryset = project_qs.filter(group_id=group.id)
 
         for obj in queryset[:limit]:
-            # HACK(mattrobenolt): The Event table can't actually be filtered
-            # on the database for unknown reasons, so filtering out in Python
-            if has_project and model.__name__ == "Event" and obj.project_id != group.project_id:
-                continue
             try:
                 with transaction.atomic(using=router.db_for_write(model)):
                     if has_group:

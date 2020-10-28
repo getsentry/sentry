@@ -5,7 +5,7 @@ from functools import partial
 import pytest
 import unittest
 
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 from sentry.testutils import TestCase
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
@@ -133,6 +133,7 @@ class GetPathTest(unittest.TestCase):
         assert get_path(arr, 2) is None
         assert get_path(arr, "1") is None
         assert get_path([], 1) is None
+        assert get_path({"items": [2]}, "items", 0) == 2
 
     def test_filter_list(self):
         data = {"a": [False, 1, None]}

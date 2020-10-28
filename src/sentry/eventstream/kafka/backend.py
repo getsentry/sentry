@@ -28,7 +28,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if error is not None:
             logger.warning("Could not publish message (error: %s): %r", error, message)
 
-    def _send(self, project_id, _type, extra_data=(), asynchronous=True):
+    def _send(
+        self,
+        project_id,
+        _type,
+        extra_data=(),
+        asynchronous=True,
+        headers=None,  # Optional[Mapping[str, str]]
+    ):
+        if headers is None:
+            headers = {}
+
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
         # to be delivered) and the corresponding callback being fired is
@@ -50,6 +60,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 key=key.encode("utf-8"),
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
+                headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
             )
         except Exception as error:
             logger.error("Could not publish message: %s", error, exc_info=True)
@@ -88,7 +99,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         def commit(partitions):
             results = consumer.commit(offsets=partitions, asynchronous=False)
 
-            errors = filter(lambda i: i.error is not None, results)
+            errors = [i for i in results if i.error is not None]
             if errors:
                 raise Exception(
                     "Failed to commit %s/%s partitions: %r" % (len(errors), len(partitions), errors)

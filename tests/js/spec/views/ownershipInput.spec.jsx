@@ -1,15 +1,16 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 jest.mock('jquery');
-describe('Project Ownership Input', function() {
+describe('Project Ownership Input', function () {
   let org;
   let project;
   let put;
 
-  beforeEach(function() {
+  beforeEach(function () {
     org = TestStubs.Organization();
     project = TestStubs.Project();
 
@@ -25,8 +26,8 @@ describe('Project Ownership Input', function() {
     });
   });
 
-  it('renders', function() {
-    const wrapper = mount(
+  it('renders', function () {
+    const wrapper = mountWithTheme(
       <OwnerInput
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -50,6 +51,6 @@ describe('Project Ownership Input', function() {
 
     expect(put).toHaveBeenCalled();
 
-    expect(wrapper.find(OwnerInput)).toMatchSnapshot();
+    expect(wrapper.find(OwnerInput)).toSnapshot();
   });
 });

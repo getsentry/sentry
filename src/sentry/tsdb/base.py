@@ -11,6 +11,7 @@ from enum import Enum
 
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.services import Service
+from sentry.utils.compat import map
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -52,7 +53,7 @@ class TSDBModel(Enum):
     # frequent_values_by_issue_tag = 405
 
     # number of events seen for a project, by organization
-    frequent_projects_by_organization = 403
+    # frequent_projects_by_organization = 403  # DEPRECATED
     # number of issues seen for a project, by project
     frequent_issues_by_project = 404
     # number of events seen for a release, by issue
@@ -91,6 +92,11 @@ class TSDBModel(Enum):
     project_total_received_discarded = 610
 
     servicehook_fired = 700
+
+    # the number of views that a Sentry App receives
+    sentry_app_viewed = 800
+    # the number of interactions a Sentry App UI Component receives
+    sentry_app_component_interacted = 801
 
 
 class BaseTSDB(Service):
@@ -310,9 +316,26 @@ class BaseTSDB(Service):
         Increment project ID=1 and group ID=5:
 
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
+
+        Increment individual timestamps:
+
+        >>> incr_multi([(TimeSeriesModel.project, 1, {"timestamp": ...}),
+        ...             (TimeSeriesModel.group, 5, {"timestamp": ...})])
         """
-        for model, key in items:
-            self.incr(model, key, timestamp, count, environment_id=environment_id)
+        for item in items:
+            if len(item) == 2:
+                model, key = item
+                options = {}
+            else:
+                model, key, options = item
+
+            self.incr(
+                model,
+                key,
+                timestamp=options.get("timestamp", timestamp),
+                count=options.get("count", count),
+                environment_id=environment_id,
+            )
 
     def merge(self, model, destination, sources, timestamp=None, environment_ids=None):
         """
@@ -374,13 +397,13 @@ class BaseTSDB(Service):
 
     def record(self, model, key, values, timestamp=None, environment_id=None):
         """
-        Record occurences of items in a single distinct counter.
+        Record occurrence of items in a single distinct counter.
         """
         raise NotImplementedError
 
     def record_multi(self, items, timestamp=None, environment_id=None):
         """
-        Record occurences of items in multiple distinct counters.
+        Record occurrence of items in multiple distinct counters.
         """
         for model, key, values in items:
             self.record(model, key, values, timestamp, environment_id=environment_id)

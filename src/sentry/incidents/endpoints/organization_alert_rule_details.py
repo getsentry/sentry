@@ -25,7 +25,6 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
             context={"organization": organization, "access": request.access},
             instance=alert_rule,
             data=request.data,
-            partial=True,
         )
 
         if serializer.is_valid():

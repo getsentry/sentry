@@ -1,13 +1,13 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -144,19 +144,17 @@ class ProjectEnvironments extends React.Component {
     return (
       <React.Fragment>
         {this.renderAllEnvironmentsSystemRow()}
-        {envs.map(env => {
-          return (
-            <EnvironmentRow
-              key={env.id}
-              name={env.name}
-              environment={env}
-              isHidden={isHidden}
-              onHide={this.toggleEnv}
-              actionText={buttonText}
-              shouldShowAction
-            />
-          );
-        })}
+        {envs.map(env => (
+          <EnvironmentRow
+            key={env.id}
+            name={env.name}
+            environment={env}
+            isHidden={isHidden}
+            onHide={this.toggleEnv}
+            actionText={buttonText}
+            shouldShowAction
+          />
+        ))}
       </React.Fragment>
     );
   }
@@ -184,14 +182,15 @@ class ProjectEnvironments extends React.Component {
     const baseUrl = recreateRoute('', {routes, params, stepBack: -1});
     return (
       <div>
+        <SentryDocumentTitle title={t('Environments')} objSlug={params.projectId} />
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={
-            <NavTabs underlined={true}>
-              <ListLink to={baseUrl} index={true} isActive={() => !isHidden}>
+            <NavTabs underlined>
+              <ListLink to={baseUrl} index isActive={() => !isHidden}>
                 {t('Environments')}
               </ListLink>
-              <ListLink to={`${baseUrl}hidden/`} index={true} isActive={() => isHidden}>
+              <ListLink to={`${baseUrl}hidden/`} index isActive={() => isHidden}>
                 {t('Hidden')}
               </ListLink>
             </NavTabs>
@@ -222,10 +221,8 @@ class EnvironmentRow extends React.Component {
     const {environment, shouldShowAction, isSystemRow, isHidden, actionText} = this.props;
 
     return (
-      <PanelItem align="center" justify="space-between">
-        <Flex align="center">
-          {isSystemRow ? t('All Environments') : environment.name}
-        </Flex>
+      <EnvironmentItem>
+        <Name>{isSystemRow ? t('All Environments') : environment.name}</Name>
         <Access access={['project:write']}>
           {({hasAccess}) => (
             <div>
@@ -241,10 +238,21 @@ class EnvironmentRow extends React.Component {
             </div>
           )}
         </Access>
-      </PanelItem>
+      </EnvironmentItem>
     );
   }
 }
+
+const EnvironmentItem = styled(PanelItem)`
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const Name = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
 const EnvironmentButton = styled(Button)`
   margin-left: ${space(0.5)};
 `;

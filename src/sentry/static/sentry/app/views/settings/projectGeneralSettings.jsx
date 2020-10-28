@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import marked from 'marked';
 
+import Alert from 'app/components/alert';
 import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {
   changeProjectSlug,
@@ -26,9 +26,10 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
-import BetaTag from 'app/components/betaTag';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
+import marked from 'app/utils/marked';
 import recreateRoute from 'app/utils/recreateRoute';
+import routeTitleGen from 'app/utils/routeTitle';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
@@ -46,19 +47,17 @@ class ProjectGeneralSettings extends AsyncView {
 
   getTitle() {
     const {projectId} = this.props.params;
-    return t('%s Settings', projectId);
+    return routeTitleGen(t('Project Settings'), projectId, false);
   }
 
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
-    const endpoints = [['data', `/projects/${orgId}/${projectId}/`]];
-    const {organization} = this.context;
-    const features = new Set(organization.features);
-    if (features.has('set-grouping-config') || features.has('tweak-grouping-config')) {
-      endpoints.push(['groupingConfigs', '/grouping-configs/']);
-      endpoints.push(['groupingEnhancementBases', '/grouping-enhancements/']);
-    }
-    return endpoints;
+
+    return [
+      ['data', `/projects/${orgId}/${projectId}/`],
+      ['groupingConfigs', '/grouping-configs/'],
+      ['groupingEnhancementBases', '/grouping-enhancements/'],
+    ];
   }
 
   handleTransferFieldChange = (id, value) => {
@@ -94,6 +93,45 @@ class ProjectGeneralSettings extends AsyncView {
     }, handleXhrErrorResponse('Unable to transfer project'));
   };
 
+  getGroupingChanges() {
+    let updateNotes = '';
+    const byId = {};
+    let riskLevel = 0;
+    let latestGroupingConfig = null;
+    let latestEnhancementsBase = null;
+
+    this.state.groupingConfigs.forEach(cfg => {
+      byId[cfg.id] = cfg;
+      if (cfg.latest && this.state.data.groupingConfig !== cfg.id) {
+        updateNotes = cfg.changelog;
+        latestGroupingConfig = cfg;
+        riskLevel = cfg.risk;
+      }
+    });
+
+    if (latestGroupingConfig) {
+      let next = latestGroupingConfig.base;
+      while (next !== this.state.data.groupingConfig) {
+        const cfg = byId[next];
+        if (!cfg) {
+          break;
+        }
+        riskLevel = Math.max(riskLevel, cfg.risk);
+        updateNotes = cfg.changelog + '\n' + updateNotes;
+        next = cfg.base;
+      }
+    }
+
+    this.state.groupingEnhancementBases.forEach(cfg => {
+      if (cfg.latest && this.state.data.groupingEnhancementsBase !== cfg.id) {
+        updateNotes += '\n\n' + cfg.changelog;
+        latestEnhancementsBase = cfg;
+      }
+    });
+
+    return {updateNotes, riskLevel, latestGroupingConfig, latestEnhancementsBase};
+  }
+
   renderUpgradeGrouping() {
     const {orgId, projectId} = this.props.params;
 
@@ -101,24 +139,44 @@ class ProjectGeneralSettings extends AsyncView {
       return null;
     }
 
-    let updateNotes = '';
+    const {
+      updateNotes,
+      riskLevel,
+      latestGroupingConfig,
+      latestEnhancementsBase,
+    } = this.getGroupingChanges();
+    const noUpdates = !latestGroupingConfig && !latestEnhancementsBase;
     const newData = {};
+    if (latestGroupingConfig) {
+      newData.groupingConfig = latestGroupingConfig.id;
+    }
+    if (latestEnhancementsBase) {
+      newData.groupingEnhancementsBase = latestEnhancementsBase.id;
+    }
 
-    this.state.groupingConfigs.forEach(({id, latest, changelog}) => {
-      if (latest && this.state.data.groupingConfig !== id) {
-        updateNotes += changelog + '\n\n';
-        newData.groupingConfig = id;
-      }
-    });
-
-    this.state.groupingEnhancementBases.forEach(({id, latest, changelog}) => {
-      if (latest && this.state.data.groupingEnhancementsBase !== id) {
-        updateNotes += changelog + '\n\n';
-        newData.groupingEnhancementsBase = id;
-      }
-    });
-
-    const noUpdates = Object.keys(newData).length === 0;
+    let riskNote;
+    let alertType;
+    switch (riskLevel) {
+      case 0:
+        riskNote = t('This upgrade has the chance to create some new issues.');
+        alertType = 'info';
+        break;
+      case 1:
+        riskNote = t('This upgrade will create some new issues.');
+        alertType = 'warning';
+        break;
+      case 2:
+        riskNote = (
+          <strong>
+            {t(
+              'The new grouping strategy is incompatible with the current and will create entirely new issues.'
+            )}
+          </strong>
+        );
+        alertType = 'error';
+        break;
+      default:
+    }
 
     return (
       <Field
@@ -145,26 +203,25 @@ class ProjectGeneralSettings extends AsyncView {
                 this.fetchData();
               }, handleXhrErrorResponse('Unable to upgrade config'));
           }}
-          priority="danger"
+          priority={riskLevel >= 2 ? 'danger' : 'primary'}
           title={t('Upgrade grouping strategy?')}
           confirmText={t('Upgrade')}
           message={
             <div>
               <TextBlock>
-                <strong>
-                  {t(
-                    'This will upgrade grouping and cause new events to group differently.'
-                  )}
-                </strong>
+                <strong>{t('Upgrade Grouping Strategy')}</strong>
               </TextBlock>
               <TextBlock>
                 {t(
-                  'From this moment onwards new events are likely to generate new groups.'
+                  'You can upgrade the grouping strategy to the latest but this is an irreversible operation.'
                 )}
-                <br />
-                <br />
+              </TextBlock>
+              <TextBlock>
                 <strong>{t('New Behavior')}</strong>
                 <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
+              </TextBlock>
+              <TextBlock>
+                <Alert type={alertType}>{riskNote}</Alert>
               </TextBlock>
             </div>
           }
@@ -175,7 +232,7 @@ class ProjectGeneralSettings extends AsyncView {
               title={noUpdates ? t('You are already on the latest version') : null}
               className="ref-upgrade-grouping-strategy"
               type="button"
-              priority="primary"
+              priority={riskLevel >= 2 ? 'danger' : 'primary'}
             >
               {t('Update Grouping Strategy')}
             </Button>
@@ -185,9 +242,7 @@ class ProjectGeneralSettings extends AsyncView {
     );
   }
 
-  isProjectAdmin = () => {
-    return new Set(this.context.organization.access).has('project:admin');
-  };
+  isProjectAdmin = () => new Set(this.context.organization.access).has('project:admin');
 
   renderRemoveProject() {
     const project = this.state.data;
@@ -382,49 +437,18 @@ class ProjectGeneralSettings extends AsyncView {
             fields={[fields.resolveAge]}
           />
 
-          {(jsonFormProps.features.has('set-grouping-config') ||
-            jsonFormProps.features.has('tweak-grouping-config')) && (
-            <JsonForm
-              {...jsonFormProps}
-              title={
-                <React.Fragment>
-                  {t('Grouping Settings')} <BetaTag />
-                </React.Fragment>
-              }
-              fields={[
-                fields.groupingConfig,
-                fields.groupingEnhancementsBase,
-                fields.groupingEnhancements,
-                fields.fingerprintingRules,
-              ]}
-              renderHeader={() => (
-                <React.Fragment>
-                  <PanelAlert type="warning">
-                    <TextBlock noMargin>
-                      {t(
-                        'This is an experimental feature. Changing the value here will only apply to future events and is likely to cause events to create different groups than before.'
-                      )}
-                    </TextBlock>
-                  </PanelAlert>
-                  {jsonFormProps.features.has('tweak-grouping-config') &&
-                    this.renderUpgradeGrouping()}
-                </React.Fragment>
-              )}
-            />
-          )}
-
           <JsonForm
             {...jsonFormProps}
-            title={t('Data Privacy')}
+            title={<React.Fragment>{t('Grouping Settings')}</React.Fragment>}
             fields={[
-              fields.dataScrubber,
-              fields.dataScrubberDefaults,
-              fields.scrubIPAddresses,
-              fields.sensitiveFields,
-              fields.safeFields,
-              fields.storeCrashReports,
-              fields.relayPiiConfig,
+              fields.groupingConfig,
+              fields.groupingEnhancementsBase,
+              fields.groupingEnhancements,
+              fields.fingerprintingRules,
             ]}
+            renderHeader={() => (
+              <React.Fragment>{this.renderUpgradeGrouping()}</React.Fragment>
+            )}
           />
 
           <JsonForm

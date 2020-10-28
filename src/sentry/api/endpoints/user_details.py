@@ -6,8 +6,8 @@ import pytz
 import logging
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth import logout
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -22,7 +22,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
 from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
 
-delete_logger = logging.getLogger("sentry.deletions.ui")
+delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 def _get_timezone_choices():
@@ -99,7 +99,6 @@ class SuperuserUserSerializer(BaseUserSerializer):
         # no idea wtf is up with django rest framework, but we need is_active
         # and isActive
         fields = ("name", "username", "isActive", "isStaff", "isSuperuser")
-        # write_only_fields = ('password',)
 
 
 class DeleteUserSerializer(serializers.Serializer):
@@ -220,7 +219,11 @@ class UserDetailsEndpoint(UserEndpoint):
                 organization__in=remaining_org_ids, user=user
             ).delete()
 
-        logging_data = {"actor_id": request.user.id, "ip_address": request.META["REMOTE_ADDR"]}
+        logging_data = {
+            "actor_id": request.user.id,
+            "ip_address": request.META["REMOTE_ADDR"],
+            "user_id": user.id,
+        }
 
         hard_delete = serializer.validated_data.get("hardDelete", False)
 

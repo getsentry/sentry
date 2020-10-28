@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-import json
 import pytest
 import responses
 
@@ -10,9 +9,10 @@ from exam import fixture
 
 from sentry.exceptions import PluginError
 from sentry.models import Rule
-from sentry.plugins import Notification
+from sentry.plugins.base import Notification
 from sentry.plugins.sentry_webhooks.plugin import validate_urls, WebHooksPlugin, WebHooksOptionsForm
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 class WebHooksPluginTest(TestCase):
@@ -23,8 +23,9 @@ class WebHooksPluginTest(TestCase):
     @responses.activate
     def test_simple_notification(self):
         responses.add(responses.POST, "http://example.com")
-        group = self.create_group(message="Hello world")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.store_event(
+            data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
+        )
         rule = Rule.objects.create(project=self.project, label="my rule")
         notification = Notification(event=event, rule=rule)
         self.project.update_option("webhooks:urls", "http://example.com")

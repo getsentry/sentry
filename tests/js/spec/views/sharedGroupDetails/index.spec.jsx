@@ -1,9 +1,11 @@
 import React from 'react';
-import {mount} from 'enzyme';
-import SharedGroupDetails from 'app/views/sharedGroupDetails';
 
-describe('SharedGroupDetails', function() {
-  beforeEach(function() {
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import SharedGroupDetails from 'app/views/sharedGroupDetails/sharedGroupDetails';
+
+describe('SharedGroupDetails', function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/shared/issues/a/',
       body: TestStubs.Group({
@@ -16,16 +18,19 @@ describe('SharedGroupDetails', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const props = {
       params: {shareId: 'a'},
     };
 
-    const wrapper = mount(<SharedGroupDetails {...props} />, TestStubs.routerContext());
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(
+      <SharedGroupDetails {...props} />,
+      TestStubs.routerContext()
+    );
+    expect(wrapper).toSnapshot();
   });
 });

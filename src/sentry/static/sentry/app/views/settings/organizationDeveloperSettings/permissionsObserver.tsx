@@ -8,11 +8,14 @@ import PermissionSelection from 'app/views/settings/organizationDeveloperSetting
 import Subscriptions from 'app/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 import {WebhookEvent, Permissions, Scope} from 'app/types';
 
-type Props = {
-  scopes: Scope[];
-  events: WebhookEvent[];
+type DefaultProps = {
   webhookDisabled: boolean;
   appPublished: boolean;
+};
+
+type Props = DefaultProps & {
+  scopes: Scope[];
+  events: WebhookEvent[];
 };
 
 type State = {
@@ -21,11 +24,6 @@ type State = {
 };
 
 export default class PermissionsObserver extends React.Component<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-    form: PropTypes.object,
-  };
-
   static propTypes = {
     scopes: PropTypes.arrayOf(PropTypes.string).isRequired,
     events: PropTypes.arrayOf(PropTypes.string).isRequired,
@@ -33,12 +31,17 @@ export default class PermissionsObserver extends React.Component<Props, State> {
     appPublished: PropTypes.bool.isRequired,
   };
 
-  static defaultProps = {
+  static contextTypes = {
+    router: PropTypes.object.isRequired,
+    form: PropTypes.object,
+  };
+
+  static defaultProps: DefaultProps = {
     webhookDisabled: false,
     appPublished: false,
   };
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     this.state = {
       permissions: this.scopeListToPermissionState(),
@@ -60,11 +63,11 @@ export default class PermissionsObserver extends React.Component<Props, State> {
     return toResourcePermissions(this.props.scopes);
   }
 
-  onPermissionChange = permissions => {
+  onPermissionChange = (permissions: Permissions) => {
     this.setState({permissions});
   };
 
-  onEventChange = events => {
+  onEventChange = (events: WebhookEvent[]) => {
     this.setState({events});
   };
 

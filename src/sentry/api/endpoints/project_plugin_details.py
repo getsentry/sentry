@@ -1,16 +1,14 @@
 from __future__ import absolute_import
 
-import logging
 import six
 
 from django import forms
 from django.core.urlresolvers import reverse
 from rest_framework import serializers
 from rest_framework.response import Response
-from requests.exceptions import HTTPError
 
 from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -42,7 +40,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
         except PluginIdentityRequired as e:
             context = serialize(plugin, request.user, PluginSerializer(project))
-            context["config_error"] = e.message
+            context["config_error"] = six.text_type(e)
             context["auth_url"] = reverse("socialauth_associate", args=[plugin.slug])
 
         return Response(context)
@@ -54,18 +52,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         plugin = self._get_plugin(plugin_id)
 
         if request.data.get("test") and plugin.is_testable():
-            try:
-                test_results = plugin.test_configuration(project)
-            except Exception as exc:
-                if isinstance(exc, HTTPError):
-                    test_results = "%s\n%s" % (exc, exc.response.text[:256])
-                elif hasattr(exc, "read") and callable(exc.read):
-                    test_results = "%s\n%s" % (exc, exc.read()[:256])
-                else:
-                    logging.exception("Plugin(%s) raised an error during test", plugin_id)
-                    test_results = "There was an internal error with the Plugin"
-            if not test_results:
-                test_results = "No errors returned"
+            test_results = plugin.test_configuration_and_get_test_results(project)
             return Response({"detail": test_results}, status=200)
 
         if request.data.get("reset"):
@@ -146,7 +133,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                 InvalidIdentity,
                 PluginError,
             ) as e:
-                errors[key] = e.message
+                errors[key] = six.text_type(e)
 
             if not errors.get(key):
                 cleaned[key] = value
@@ -157,7 +144,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     project=project, config=cleaned, actor=request.user
                 )
             except (InvalidIdentity, PluginError) as e:
-                errors["__all__"] = e.message
+                errors["__all__"] = six.text_type(e)
 
         if errors:
             return Response({"errors": errors}, status=400)

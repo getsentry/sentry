@@ -5,10 +5,12 @@ import re
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.models import Project, ProjectStatus
+from sentry.discover.models import KeyTransaction, MAX_KEY_TRANSACTIONS
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
 
@@ -72,8 +74,8 @@ class DiscoverQuerySerializer(serializers.Serializer):
                 },
                 optional=True,
             )
-        except InvalidParams as exc:
-            raise serializers.ValidationError(exc.message)
+        except InvalidParams as e:
+            raise serializers.ValidationError(six.text_type(e))
 
         if start is None or end is None:
             raise serializers.ValidationError("Either start and end dates or range is required")
@@ -88,7 +90,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return [self.get_condition(condition) for condition in value]
 
     def validate_aggregations(self, value):
-        valid_functions = set(["count()", "uniq", "avg"])
+        valid_functions = set(["count()", "uniq", "avg", "sum"])
         requested_functions = set(agg[0] for agg in value)
 
         if not requested_functions.issubset(valid_functions):
@@ -157,24 +159,25 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
 
     # Attributes that are only accepted if version = 2
     environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    fieldnames = ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
+    widths = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    yAxis = serializers.CharField(required=False, allow_null=True)
+    display = serializers.CharField(required=False, allow_null=True)
 
     disallowed_fields = {
-        1: set(["environment", "fieldnames", "query"]),
+        1: set(["environment", "query", "yAxis", "display"]),
         2: set(["groupby", "rollup", "aggregations", "conditions", "limit"]),
     }
 
     def validate_projects(self, projects):
-        organization = self.context["organization"]
+        projects = set(projects)
 
-        org_projects = set(
-            Project.objects.filter(
-                organization=organization, id__in=projects, status=ProjectStatus.VISIBLE
-            ).values_list("id", flat=True)
-        )
+        # Don't need to check all projects or my projects
+        if projects == ALL_ACCESS_PROJECTS or len(projects) == 0:
+            return projects
 
-        if set(projects) != org_projects:
+        # Check that there aren't projects in the query the user doesn't have access to
+        if len(projects - set(self.context["params"]["project_id"])) > 0:
             raise PermissionDenied
 
         return projects
@@ -182,10 +185,8 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     def validate(self, data):
         query = {}
         query_keys = [
-            "fieldnames",
             "environment",
             "query",
-            "version",
             "fields",
             "conditions",
             "aggregations",
@@ -194,24 +195,37 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "end",
             "orderby",
             "limit",
+            "widths",
+            "yAxis",
+            "display",
         ]
 
         for key in query_keys:
             if data.get(key) is not None:
                 query[key] = data[key]
 
-        version = query.get("version", 1)
+        version = data.get("version", 1)
         self.validate_version_fields(version, query)
         if version == 2:
             if len(query["fields"]) < 1:
                 raise serializers.ValidationError("You must include at least one field.")
 
-            if query.get("fieldnames") and len(query["fieldnames"]) != len(query["fields"]):
-                raise serializers.ValidationError(
-                    "You must provide an equal number of field names and fields"
-                )
+        if data["projects"] == ALL_ACCESS_PROJECTS:
+            data["projects"] = []
+            query["all_projects"] = True
 
-        return {"name": data["name"], "project_ids": data["projects"], "query": query}
+        if "query" in query:
+            try:
+                get_filter(query["query"], self.context["params"])
+            except InvalidSearchQuery as err:
+                raise serializers.ValidationError("Cannot save invalid query: {}".format(err))
+
+        return {
+            "name": data["name"],
+            "project_ids": data["projects"],
+            "query": query,
+            "version": version,
+        }
 
     def validate_version_fields(self, version, query):
         try:
@@ -222,5 +236,19 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if bad_fields:
             raise serializers.ValidationError(
                 "You cannot use the %s attribute(s) with the selected version"
-                % ", ".join(bad_fields)
+                % ", ".join(sorted(bad_fields))
             )
+
+
+class KeyTransactionSerializer(serializers.Serializer):
+    transaction = serializers.CharField(required=True, max_length=200)
+
+    def validate(self, data):
+        data = super(KeyTransactionSerializer, self).validate(data)
+        base_filter = self.context.copy()
+        # Limit the number of key transactions
+        if KeyTransaction.objects.filter(**base_filter).count() >= MAX_KEY_TRANSACTIONS:
+            raise serializers.ValidationError(
+                "At most {} Key Transactions can be added".format(MAX_KEY_TRANSACTIONS)
+            )
+        return data

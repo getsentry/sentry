@@ -1,11 +1,12 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import SavedQueryList from 'app/views/discover/sidebar/savedQueryList';
 
-describe('savedQueryList', function() {
+describe('savedQueryList', function () {
   let organization, mockResponse;
-  beforeEach(function() {
+  beforeEach(function () {
     organization = TestStubs.Organization();
     mockResponse = [];
     MockApiClient.addMockResponse({
@@ -15,18 +16,18 @@ describe('savedQueryList', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty state', async function() {
+  it('renders empty state', async function () {
     const wrapper = mount(<SavedQueryList organization={organization} />);
     await tick();
 
     expect(wrapper.text()).toBe('No saved queries');
   });
 
-  it('renders list', async function() {
+  it('renders list', async function () {
     const savedQueries = [
       TestStubs.DiscoverSavedQuery({id: '1', name: 'one'}),
       TestStubs.DiscoverSavedQuery({id: '2', name: '2two'}),
@@ -34,9 +35,10 @@ describe('savedQueryList', function() {
     mockResponse.push(...savedQueries);
     const wrapper = mount(<SavedQueryList organization={organization} />);
     await tick();
-    savedQueries.forEach(query => {
-      expect(wrapper.text()).toContain(query.name);
-      expect(wrapper.text()).toContain('Updated Sep 24 00:00:00 (UTC)');
-    });
+
+    const text = wrapper.text();
+    expect(text).toContain('Updated Sep 24 00:00:00 (UTC)');
+    expect(text).toContain(savedQueries[0].name);
+    expect(text).toContain(savedQueries[1].name);
   });
 });

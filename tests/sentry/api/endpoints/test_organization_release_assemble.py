@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 from hashlib import sha1
 
 from django.core.urlresolvers import reverse
@@ -28,7 +28,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-        checksum = sha1("1").hexdigest()
+        checksum = sha1(b"1").hexdigest()
         response = self.client.post(
             self.url,
             data={"checksum": "invalid"},

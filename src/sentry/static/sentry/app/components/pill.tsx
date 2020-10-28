@@ -1,109 +1,124 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
-type PillProps = {
-  name: string;
-  value: string | boolean | undefined | null;
+type PillType = 'positive' | 'negative' | 'error';
+
+type Props = {
+  type?: PillType;
+  name?: React.ReactNode;
+  value?: string | boolean | null;
+  children?: React.ReactNode;
 };
 
-class Pill extends React.PureComponent<PillProps> {
-  getRenderTypeAndValue = () => {
-    const {value} = this.props;
+const Pill = React.memo(({name, value, children, type}: Props) => {
+  const getTypeAndValue = (): Partial<{valueType: PillType; renderValue: string}> => {
     if (value === undefined) {
       return {};
     }
 
-    let type: PillValueProps['type'];
-    let renderValue: string | undefined;
-
     switch (value) {
       case 'true':
       case true:
-        type = 'positive';
-        renderValue = 'yes';
-        break;
+        return {
+          valueType: 'positive',
+          renderValue: 'true',
+        };
       case 'false':
       case false:
-        type = 'negative';
-        renderValue = 'no';
-        break;
+        return {
+          valueType: 'negative',
+          renderValue: 'false',
+        };
       case null:
       case undefined:
-        type = 'negative';
-        renderValue = 'n/a';
-        break;
+        return {
+          valueType: 'error',
+          renderValue: 'n/a',
+        };
       default:
-        renderValue = value.toString();
+        return {
+          valueType: undefined,
+          renderValue: String(value),
+        };
     }
-
-    return {type, renderValue};
   };
 
-  render() {
-    const {name, children} = this.props;
-    const {type, renderValue} = this.getRenderTypeAndValue();
+  const {valueType, renderValue} = getTypeAndValue();
 
-    return (
-      <StyledPill>
-        <PillName>{name}</PillName>
-        <PillValue type={type}>{children || renderValue}</PillValue>
-      </StyledPill>
-    );
-  }
-}
+  return (
+    <StyledPill type={type ?? valueType}>
+      <PillName>{name}</PillName>
+      <PillValue>{children ?? renderValue}</PillValue>
+    </StyledPill>
+  );
+});
 
-const StyledPill = styled('li')`
-  white-space: nowrap;
-  margin: 0 10px 10px 0;
-  display: flex;
-  border: 1px solid ${p => p.theme.gray1};
-  border-radius: ${p => p.theme.button.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLightest};
-  line-height: 1.2;
-  max-width: 100%;
-  &:last-child {
-    margin-right: 0;
+const getPillStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
+  switch (type) {
+    case 'error':
+      return `
+        background: ${theme.red100};
+        background: ${theme.red100};
+        border: 1px solid ${theme.red400};
+      `;
+    default:
+      return `
+        border: 1px solid ${theme.borderDark};
+      `;
   }
-`;
+};
+
+const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
+  switch (type) {
+    case 'positive':
+      return `
+        background: ${theme.green100};
+        border: 1px solid ${theme.green400};
+        border-left-color: ${theme.green400};
+        font-family: ${theme.text.familyMono};
+        margin: -1px;
+      `;
+    case 'error':
+      return `
+        border-left-color: ${theme.red400};
+        background: ${theme.red100};
+        border: 1px solid ${theme.red400};
+        margin: -1px;
+      `;
+    case 'negative':
+      return `
+        border-left-color: ${theme.red400};
+        background: ${theme.red100};
+        border: 1px solid ${theme.red400};
+        font-family: ${theme.text.familyMono};
+        margin: -1px;
+      `;
+    default:
+      return `
+        background: ${theme.gray100};
+        font-family: ${theme.text.familyMono};
+      `;
+  }
+};
 
 const PillName = styled('span')`
   padding: ${space(0.5)} ${space(1)};
   min-width: 0;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 `;
 
-type PillValueProps = {
-  type: 'positive' | 'negative' | undefined;
-};
-const PillValue = styled(PillName)<PillValueProps>`
-  ${p => {
-    switch (p.type) {
-      case 'positive':
-        return `
-          background: ${p.theme.greenLightest};
-          border: 1px solid ${p.theme.green};
-          margin: -1px;
-        `;
-      case 'negative':
-        return `
-          background: ${p.theme.redLightest};
-          border: 1px solid ${p.theme.red};
-          margin: -1px;
-        `;
-      default:
-        return `
-          background: ${p.theme.whiteDark};
-        `;
-    }
-  }}
-
-  border-left: 1px solid ${p => p.theme.gray1};
+const PillValue = styled(PillName)`
+  border-left: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p =>
     `0 ${p.theme.button.borderRadius} ${p.theme.button.borderRadius} 0`};
-  font-family: ${p => p.theme.text.familyMono};
   max-width: 100%;
+  display: flex;
+  align-items: center;
 
   > a {
     max-width: 100%;
@@ -118,11 +133,29 @@ const PillValue = styled(PillName)<PillValueProps>`
   .external-icon {
     display: inline;
     margin: 0 0 0 ${space(1)};
-    color: ${p => p.theme.gray2};
-    line-height: 1.2;
+    color: ${p => p.theme.gray500};
     &:hover {
-      color: ${p => p.theme.gray4};
+      color: ${p => p.theme.gray700};
     }
+  }
+`;
+
+const StyledPill = styled('li')<{type?: PillType}>`
+  white-space: nowrap;
+  margin: 0 ${space(1)} ${space(1)} 0;
+  display: flex;
+  border-radius: ${p => p.theme.button.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowLightest};
+  line-height: 1.2;
+  max-width: 100%;
+  :last-child {
+    margin-right: 0;
+  }
+
+  ${getPillStyle};
+
+  ${PillValue} {
+    ${getPillValueStyle};
   }
 `;
 

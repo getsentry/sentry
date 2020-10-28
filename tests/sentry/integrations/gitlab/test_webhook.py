@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import pytest
+
 from sentry.models import Commit, CommitAuthor, PullRequest, GroupLink
 from sentry.utils import json
 from .testutils import (
@@ -273,6 +275,9 @@ class WebhookTest(GitLabTestCase):
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
 
+    # TODO(kmclb): update the first test, add others back in once repo updating
+    # is fixed
+    @pytest.mark.xfail(reason="renaming breaks tri-level repos")
     def test_update_repo_name(self):
         repo_out_of_date_name = self.create_repo(
             name="Uncool Group / Sentry",  # name out of date
@@ -296,6 +301,7 @@ class WebhookTest(GitLabTestCase):
         repo_out_of_date_name.refresh_from_db()
         assert repo_out_of_date_name.name == "Cool Group / Sentry"
 
+    @pytest.mark.xfail(reason="renaming breaks tri-level repos")
     def test_update_repo_path(self):
         repo_out_of_date_path = self.create_repo(
             name="Cool Group / Sentry", url="http://example.com/cool-group/sentry"
@@ -320,6 +326,7 @@ class WebhookTest(GitLabTestCase):
         repo_out_of_date_path.refresh_from_db()
         assert repo_out_of_date_path.config["path"] == "cool-group/sentry"
 
+    @pytest.mark.xfail(reason="renaming breaks tri-level repos")
     def test_update_repo_url(self):
         repo_out_of_date_url = self.create_repo(
             name="Cool Group / Sentry",

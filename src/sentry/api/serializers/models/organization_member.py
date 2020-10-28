@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 from collections import defaultdict
 
+from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 
@@ -25,7 +26,7 @@ class OrganizationMemberSerializer(Serializer):
             "name": obj.user.get_display_name() if obj.user else obj.get_email(),
             "user": attrs["user"],
             "role": obj.role,
-            "roleName": obj.get_role_display(),
+            "roleName": roles.get(obj.role).name,
             "pending": obj.is_pending,
             "expired": obj.token_expired,
             "flags": {
@@ -33,6 +34,8 @@ class OrganizationMemberSerializer(Serializer):
                 "sso:invalid": bool(getattr(obj.flags, "sso:invalid")),
             },
             "dateCreated": obj.date_added,
+            "inviteStatus": obj.get_invite_status_name(),
+            "inviterName": obj.inviter.get_display_name() if obj.inviter else None,
         }
         return d
 

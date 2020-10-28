@@ -1,19 +1,20 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import IssueListTagFilter from 'app/views/issueList/tagFilter';
 
-describe('IssueListTagFilter', function() {
+describe('IssueListTagFilter', function () {
   let tagValueLoader;
   let project;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     project = TestStubs.ProjectDetails();
 
-    tagValueLoader = (key, search) => {
-      return new Promise(function(resolve, reject) {
-        const data = [
+    tagValueLoader = () =>
+      new Promise(resolve =>
+        resolve([
           {
             count: 0,
             firstSeen: '2018-05-30T11:33:46.535Z',
@@ -22,23 +23,22 @@ describe('IssueListTagFilter', function() {
             name: 'foo',
             value: 'foo',
           },
-        ];
-        return resolve(data);
-      });
-    };
+        ])
+      );
   });
 
-  it('calls API and renders options when opened', async function() {
+  it('calls API and renders options when opened', async function () {
     const selectMock = jest.fn();
     const tag = {key: 'browser', name: 'Browser'};
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <IssueListTagFilter
         tag={tag}
         projectId={project.slug}
         value=""
         onSelect={selectMock}
         tagValueLoader={tagValueLoader}
-      />
+      />,
+      TestStubs.routerContext()
     );
 
     wrapper.find('input').simulate('focus');
@@ -53,16 +53,17 @@ describe('IssueListTagFilter', function() {
     expect(selectMock).toHaveBeenCalledWith(tag, 'foo');
   });
 
-  it('calls API and renders options when opened without project', async function() {
+  it('calls API and renders options when opened without project', async function () {
     const selectMock = jest.fn();
     const tag = {key: 'browser', name: 'Browser'};
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <IssueListTagFilter
         tag={tag}
         value=""
         onSelect={selectMock}
         tagValueLoader={tagValueLoader}
-      />
+      />,
+      TestStubs.routerContext()
     );
 
     wrapper.find('input').simulate('focus');

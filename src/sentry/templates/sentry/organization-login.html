@@ -11,7 +11,7 @@
   SentryApp.passwordStrength.load(function(passwordStrength) {
     $(function() {
       passwordStrength.attachTo({
-        input: document.querySelector('#register #id_password'),
+        input: document.querySelector('#id_registration_password'),
         element: document.querySelector('.password-strength'),
       });
     })
@@ -24,7 +24,7 @@
 {% block auth_container %}
 <div>
   <div class="align-center p-t-2">
-    <img src="{% asset_url "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
+    <img src="{% asset_url "sentry" "images/logos/default-organization-logo.png" %}" class="org-avatar">
     <h3>{{ organization.name }}</h3>
   </div>
 
@@ -43,7 +43,7 @@
         </p>
 
         <p><button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
-          <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
+          <span class="provider-logo {{ provider_key }}"></span> Login with {{ provider_name }}
         </button></p>
       </div>
     </form>
@@ -56,6 +56,14 @@
         {% if CAN_REGISTER %}
           <li{% if op == "register" %} class="active"{% endif %}>
             <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+          </li>
+        {% endif %}
+        {% if join_request_link %}
+          <li class="join-request">
+            <a href="{{ join_request_link }}">
+              {% include "sentry/partial/megaphone.html" %}
+              {% trans "Request to Join" %}
+            </a>
           </li>
         {% endif %}
       </ul>
@@ -82,8 +90,16 @@
               </div>
             </form>
           </div>
-          {% if github_login_link or vsts_login_link %}
+          {% if google_login_link or github_login_link or vsts_login_link %}
           <div class="auth-provider-column">
+            {% if google_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-google" href="{{ google_login_link }}" style="display: block">
+                  <span class="provider-logo google"></span> Sign in with Google
+                </a>
+              </p>
+            {% endif %}
+
             {% if github_login_link %}
               <p>
                 <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="display: block">

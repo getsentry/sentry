@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch, MagicMock
+from sentry.utils.compat.mock import patch, MagicMock
 
 from sentry.mediators.sentry_apps import InternalCreator
 from sentry.models import AuditLogEntryEvent, SentryApp, SentryAppInstallation
@@ -13,34 +13,47 @@ class TestInternalCreator(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
-        self.creator = InternalCreator(
+
+    def run_creator(self, **kwargs):
+        return InternalCreator.run(
             name="nulldb",
             user=self.user,
-            author="Sentry",
             organization=self.org,
             scopes=("project:read",),
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
+            **kwargs
         )
 
+    def test_slug(self):
+        sentry_app = self.run_creator()
+        # test slug is the name + a UUID
+        assert sentry_app.slug[:7] == "nulldb-"
+        assert len(sentry_app.slug) == 13
+
     def test_creates_internal_sentry_app(self):
-        sentry_app = self.creator.call()
+        sentry_app = self.run_creator()
+        assert sentry_app.author == self.org.name
         assert SentryApp.objects.filter(slug=sentry_app.slug).exists()
 
     def test_installs_to_org(self):
-        sentry_app = self.creator.call()
+        sentry_app = self.run_creator()
 
         assert SentryAppInstallation.objects.filter(
             organization=self.org, sentry_app=sentry_app
         ).exists()
 
+    def test_author(self):
+        sentry_app = self.run_creator(author="custom")
+        assert sentry_app.author == "custom"
+
     @patch("sentry.tasks.sentry_apps.installation_webhook.delay")
     def test_does_not_notify_service(self, delay):
-        self.creator.call()
+        self.run_creator()
         assert not len(delay.mock_calls)
 
     def test_creates_access_token(self):
-        sentry_app = self.creator.call()
+        sentry_app = self.run_creator()
 
         install = SentryAppInstallation.objects.get(organization=self.org, sentry_app=sentry_app)
 

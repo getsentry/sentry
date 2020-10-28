@@ -24,7 +24,7 @@ class TagValueSerializerTest(TestCase):
         assert result["key"] == "user"
         assert result["value"] == "username:ted"
         assert result["name"] == "ted"
-        assert result["query"] == "user.username:ted"
+        assert result["query"] == 'user.username:"ted"'
 
     def test_release(self):
         user = self.create_user()
@@ -56,4 +56,4 @@ class UseTagValueSerializerTest(TestCase):
 
         result = serialize(tagvalue, user, serializer=UserTagValueSerializer(project_id=1))
         assert result["value"] == "username:ted"
-        assert result["query"] == "user.username:ted"
+        assert result["query"] == 'user.username:"ted"'

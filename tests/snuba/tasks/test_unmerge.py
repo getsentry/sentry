@@ -9,11 +9,12 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 import pytz
 
-from mock import patch
+from sentry.utils.compat.mock import patch
+from django.utils import timezone
 
-from sentry import eventstream
+from sentry import eventstream, tagstore
 from sentry.app import tsdb
-from sentry.models import Environment, Event, Group, GroupHash, GroupRelease, Release, UserReport
+from sentry.models import Environment, Group, GroupHash, GroupRelease, Release, UserReport
 from sentry.similarity import features, _make_index_backend
 from sentry.tasks.unmerge import (
     get_caches,
@@ -27,69 +28,79 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils import redis
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.tasks.merge import merge_groups
-from sentry.tagstore.snuba.backend import SnubaTagStorage
 
 from six.moves import xrange
+from sentry.utils.compat import map
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 
-def test_get_fingerprint():
-    assert (
-        get_fingerprint(Event(data={"logentry": {"message": "Hello world"}}))
-        == hashlib.md5("Hello world").hexdigest()
-    )
-
-    assert (
-        get_fingerprint(
-            Event(data={"fingerprint": ["Not hello world"], "logentry": {"message": "Hello world"}})
-        )
-        == hashlib.md5("Not hello world").hexdigest()
-    )
-
-
 @patch("sentry.similarity.features.index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
+    def test_get_fingerprint(self):
+        assert (
+            get_fingerprint(
+                self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
+            )
+            == hashlib.md5(u"Hello world".encode("utf-8")).hexdigest()
+        )
+
+        assert (
+            get_fingerprint(
+                self.store_event(
+                    data={"message": "Hello world", "fingerprint": ["Not hello world"]},
+                    project_id=self.project.id,
+                )
+            )
+            == hashlib.md5(u"Not hello world".encode("utf-8")).hexdigest()
+        )
+
     def test_get_group_creation_attributes(self):
-        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=pytz.utc)
-        events = [
-            Event(
-                platform="javascript",
-                message="Hello from JavaScript",
-                datetime=now,
-                data={
-                    "type": "default",
-                    "metadata": {},
-                    "tags": [["level", "info"], ["logger", "javascript"]],
-                },
-            ),
-            Event(
-                platform="python",
-                message="Hello from Python",
-                datetime=now - timedelta(hours=1),
-                data={
-                    "type": "default",
-                    "metadata": {},
-                    "tags": [["level", "error"], ["logger", "python"]],
-                },
-            ),
-            Event(
-                platform="java",
-                message="Hello from Java",
-                datetime=now - timedelta(hours=2),
-                data={
-                    "type": "default",
-                    "metadata": {},
-                    "tags": [["level", "debug"], ["logger", "java"]],
-                },
-            ),
-        ]
+        now = datetime.utcnow().replace(microsecond=0, tzinfo=timezone.utc)
+        e1 = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "platform": "javascript",
+                "message": "Hello from JavaScript",
+                "type": "default",
+                "level": "info",
+                "tags": {"logger": "javascript"},
+                "timestamp": iso_format(now),
+            },
+            project_id=self.project.id,
+        )
+        e2 = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "platform": "python",
+                "message": "Hello from Python",
+                "type": "default",
+                "level": "error",
+                "tags": {"logger": "python"},
+                "timestamp": iso_format(now),
+            },
+            project_id=self.project.id,
+        )
+        e3 = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "platform": "java",
+                "message": "Hello from Java",
+                "type": "default",
+                "level": "debug",
+                "tags": {"logger": "java"},
+                "timestamp": iso_format(now),
+            },
+            project_id=self.project.id,
+        )
+        events = [e1, e2, e3]
 
         assert get_group_creation_attributes(get_caches(), events) == {
-            "active_at": now - timedelta(hours=2),
-            "first_seen": now - timedelta(hours=2),
+            "active_at": now,
+            "first_seen": now,
             "last_seen": now,
             "platform": "java",
             "message": "Hello from JavaScript",
@@ -99,11 +110,16 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "times_seen": 3,
             "first_release": None,
             "culprit": "",
-            "data": {"type": "default", "last_received": to_timestamp(now), "metadata": {}},
+            "data": {
+                "type": "default",
+                "last_received": e1.data["received"],
+                "metadata": {"title": "Hello from JavaScript"},
+            },
         }
 
     def test_get_group_backfill_attributes(self):
-        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=pytz.utc)
+        now = datetime.utcnow().replace(microsecond=0, tzinfo=timezone.utc)
+
         assert get_group_backfill_attributes(
             get_caches(),
             Group(
@@ -121,25 +137,27 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 data={"type": "default", "last_received": to_timestamp(now), "metadata": {}},
             ),
             [
-                Event(
-                    platform="python",
-                    message="Hello from Python",
-                    datetime=now - timedelta(hours=1),
+                self.store_event(
                     data={
+                        "platform": "python",
+                        "message": "Hello from Python",
+                        "timestamp": iso_format(now - timedelta(hours=1)),
                         "type": "default",
-                        "metadata": {},
-                        "tags": [["level", "error"], ["logger", "python"]],
+                        "level": "debug",
+                        "tags": {"logger": "java"},
                     },
+                    project_id=self.project.id,
                 ),
-                Event(
-                    platform="java",
-                    message="Hello from Java",
-                    datetime=now - timedelta(hours=2),
+                self.store_event(
                     data={
+                        "platform": "java",
+                        "message": "Hello from Java",
+                        "timestamp": iso_format(now - timedelta(hours=2)),
                         "type": "default",
-                        "metadata": {},
-                        "tags": [["level", "debug"], ["logger", "java"]],
+                        "level": "debug",
+                        "tags": {"logger": "java"},
                     },
+                    project_id=self.project.id,
                 ),
             ],
         ) == {
@@ -152,9 +170,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "first_release": None,
         }
 
+    @with_feature("projects:similarity-indexing")
     def test_unmerge(self):
-        tagstore = SnubaTagStorage()  # Snuba is not the default tag storage for tests yet
-        now = before_now(seconds=20).replace(microsecond=0, tzinfo=pytz.utc)
+        now = before_now(minutes=5).replace(microsecond=0, tzinfo=pytz.utc)
 
         def time_from_now(offset=0):
             return now + timedelta(seconds=offset)
@@ -267,10 +285,10 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         with self.tasks():
             eventstream_state = eventstream.start_unmerge(
-                project.id, [events.keys()[0]], source.id, destination.id
+                project.id, [list(events.keys())[0]], source.id, destination.id
             )
             unmerge.delay(
-                project.id, source.id, destination.id, [events.keys()[0]], None, batch_size=5
+                project.id, source.id, destination.id, [list(events.keys())[0]], None, batch_size=5
             )
             eventstream.end_unmerge(eventstream_state)
 
@@ -296,7 +314,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert source.id != destination.id
         assert source.project == destination.project
 
-        destination_event_ids = map(lambda event: event.event_id, events.values()[1])
+        destination_event_ids = map(lambda event: event.event_id, list(events.values())[1])
 
         assert set(
             UserReport.objects.filter(group_id=source.id).values_list("event_id", flat=True)
@@ -304,7 +322,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert set(
             GroupHash.objects.filter(group_id=source.id).values_list("hash", flat=True)
-        ) == set([events.keys()[0], events.keys()[1]])
+        ) == set(itertools.islice(events.keys(), 2))
 
         assert set(
             GroupRelease.objects.filter(group_id=source.id).values_list(
@@ -322,7 +340,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         ) == set([(u"red", 4), (u"green", 3), (u"blue", 3)])
 
         destination_event_ids = map(
-            lambda event: event.event_id, events.values()[0] + events.values()[2]
+            lambda event: event.event_id, list(events.values())[0] + list(events.values())[2]
         )
 
         assert set(
@@ -331,7 +349,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert set(
             GroupHash.objects.filter(group_id=destination.id).values_list("hash", flat=True)
-        ) == set([events.keys()[2]])
+        ) == set(itertools.islice(events.keys(), 2, 3))
 
         assert set(
             GroupRelease.objects.filter(group_id=destination.id).values_list(
@@ -395,26 +413,28 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 assert actual.get(key, 0) == default
 
         assert_series_contains(
-            get_expected_series_values(rollup_duration, events.values()[1]),
+            get_expected_series_values(rollup_duration, list(events.values())[1]),
             time_series[source.id],
             0,
         )
 
         assert_series_contains(
-            get_expected_series_values(rollup_duration, events.values()[0] + events.values()[2]),
+            get_expected_series_values(
+                rollup_duration, list(events.values())[0] + list(events.values())[2]
+            ),
             time_series[destination.id],
             0,
         )
 
         assert_series_contains(
-            get_expected_series_values(rollup_duration, events.values()[1]),
+            get_expected_series_values(rollup_duration, list(events.values())[1]),
             environment_time_series[source.id],
             0,
         )
 
         assert_series_contains(
             get_expected_series_values(
-                rollup_duration, events.values()[0][:-1] + events.values()[2]
+                rollup_duration, list(events.values())[0][:-1] + list(events.values())[2]
             ),
             environment_time_series[destination.id],
             0,
@@ -447,7 +467,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 {
                     timestamp: len(values)
                     for timestamp, values in get_expected_series_values(
-                        rollup_duration, events.values()[1], collect_by_user_tag
+                        rollup_duration, list(events.values())[1], collect_by_user_tag
                     ).items()
                 },
                 series[source.id],
@@ -458,7 +478,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     timestamp: len(values)
                     for timestamp, values in get_expected_series_values(
                         rollup_duration,
-                        events.values()[0] + events.values()[2],
+                        list(events.values())[0] + list(events.values())[2],
                         collect_by_user_tag,
                     ).items()
                 },
@@ -468,7 +488,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         def strip_zeroes(data):
             for group_id, series in data.items():
                 for _, values in series:
-                    for key, val in values.items():
+                    for key, val in list(values.items()):
                         if val == 0:
                             values.pop(key)
 
@@ -505,7 +525,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert_series_contains(
             get_expected_series_values(
-                rollup_duration, events.values()[1], functools.partial(collect_by_release, source)
+                rollup_duration,
+                list(events.values())[1],
+                functools.partial(collect_by_release, source),
             ),
             time_series[source.id],
             {},
@@ -514,7 +536,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert_series_contains(
             get_expected_series_values(
                 rollup_duration,
-                events.values()[0] + events.values()[2],
+                list(events.values())[0] + list(events.values())[2],
                 functools.partial(collect_by_release, destination),
             ),
             time_series[destination.id],
@@ -544,14 +566,18 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             return aggregate
 
         assert_series_contains(
-            get_expected_series_values(rollup_duration, events.values()[1], collect_by_environment),
+            get_expected_series_values(
+                rollup_duration, list(events.values())[1], collect_by_environment
+            ),
             time_series[source.id],
             {},
         )
 
         assert_series_contains(
             get_expected_series_values(
-                rollup_duration, events.values()[0] + events.values()[2], collect_by_environment
+                rollup_duration,
+                list(events.values())[0] + list(events.values())[2],
+                collect_by_environment,
             ),
             time_series[destination.id],
             {},

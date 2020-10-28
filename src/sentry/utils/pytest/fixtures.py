@@ -7,19 +7,23 @@ including ``db`` fixture in the function resolution scope.
 """
 from __future__ import absolute_import, print_function, unicode_literals
 
+import io
 import os
 import re
 import sys
 import yaml
+import difflib
 import sentry
 
 import pytest
+import requests
 import six
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 
-# These chars cannot be used in Windows paths so repalce them:
+# These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions
 UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 
@@ -145,17 +149,18 @@ def factories():
     return Factories
 
 
-@pytest.mark.django_db
-@pytest.fixture
-def project(team, factories):
-    return factories.create_project(name="bar", slug="bar", teams=[team])
-
-
 @pytest.fixture
 def task_runner():
     from sentry.testutils.helpers.task_runner import TaskRunner
 
     return TaskRunner
+
+
+@pytest.fixture
+def burst_task_runner():
+    from sentry.testutils.helpers.task_runner import BurstTaskRunner
+
+    return BurstTaskRunner
 
 
 @pytest.fixture(scope="function")
@@ -217,8 +222,9 @@ def default_group(factories, default_project):
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_event(factories, default_group):
-    return factories.create_event(
-        group=default_group, event_id="a" * 32, message="\u3053\u3093\u306b\u3061\u306f"
+    return factories.store_event(
+        data={"event_id": "a" * 32, "message": "\u3053\u3093\u306b\u3061\u306f"},
+        project_id=default_project.id,
     )
 
 
@@ -269,6 +275,9 @@ def insta_snapshot(request, log):
                 name = name.replace(c, "/")
             name = name.strip("/")
 
+            if subname is not None:
+                name += "_{}".format(subname)
+
             reference_file = os.path.join(
                 os.path.dirname(six.text_type(request.node.fspath)),
                 "snapshots",
@@ -286,8 +295,8 @@ def insta_snapshot(request, log):
             )
 
         try:
-            with open(reference_file) as f:
-                match = _yaml_snap_re.match(f.read().decode("utf-8"))
+            with io.open(reference_file, "rt", encoding="utf-8") as f:
+                match = _yaml_snap_re.match(f.read())
                 if match is None:
                     raise IOError()
                 _header, refval = match.groups()
@@ -321,8 +330,45 @@ def insta_snapshot(request, log):
                         output,
                     )
                 )
-        else:
-            log("Run with SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots.")
-            assert refval == output
+        elif refval != output:
+            __tracebackhide__ = True
+            _print_insta_diff(reference_file, refval, output)
 
     yield inner
+
+
+def _print_insta_diff(reference_file, a, b):
+    __tracebackhide__ = True
+    pytest.fail(
+        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+        "Snapshot {} changed!\n\n"
+        "Re-run pytest with SENTRY_SNAPSHOTS_WRITEBACK=new and then use 'make review-python-snapshots' to review.\n"
+        "Or: Use SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots directly.\n\n"
+        "{}\n"
+        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".format(
+            reference_file, "\n".join(difflib.unified_diff(a.splitlines(), b.splitlines()))
+        )
+    )
+
+
+@pytest.fixture
+def call_snuba(settings):
+    def inner(endpoint):
+        return requests.post(settings.SENTRY_SNUBA + endpoint)
+
+    return inner
+
+
+@pytest.fixture
+def reset_snuba(call_snuba):
+    init_endpoints = (
+        "/tests/events/drop",
+        "/tests/groupedmessage/drop",
+        "/tests/transactions/drop",
+        "/tests/sessions/drop",
+    )
+
+    assert all(
+        response.status_code == 200
+        for response in ThreadPoolExecutor(4).map(call_snuba, init_endpoints)
+    )

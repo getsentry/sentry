@@ -3,12 +3,7 @@ from __future__ import absolute_import, print_function
 from django.db.models import sql
 from django.db.models.query import QuerySet
 from sentry.db.models import BaseManager
-
-try:
-    # Django 1.7+
-    from django.db.models.sql.constants import CURSOR
-except ImportError:
-    CURSOR = None
+from django.db.models.sql.constants import CURSOR
 
 
 class NoTransactionUpdateQuerySet(QuerySet):

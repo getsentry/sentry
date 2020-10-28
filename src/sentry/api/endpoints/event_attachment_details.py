@@ -3,16 +3,13 @@ from __future__ import absolute_import
 import posixpath
 import six
 
-try:
-    from django.http import CompatibleStreamingHttpResponse as StreamingHttpResponse
-except ImportError:
-    from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse
 
 from sentry import eventstore, features, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.serializers.models.organization import ATTACHMENTS_ROLE_DEFAULT
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
+from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models import EventAttachment, OrganizationMember
 
 
@@ -112,3 +109,33 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
                 "dateCreated": attachment.file.timestamp,
             }
         )
+
+    def delete(self, request, project, event_id, attachment_id):
+        """
+        Delete an Event Attachment by ID
+        ````````````````````````````````
+
+        Delete an attachment on the given event.
+
+        :pparam string event_id: the identifier of the event.
+        :pparam string attachment_id: the identifier of the attachment.
+        :auth: required
+        """
+        if not features.has(
+            "organizations:event-attachments", project.organization, actor=request.user
+        ):
+            return self.respond(status=404)
+
+        try:
+            attachment = (
+                EventAttachment.objects.filter(
+                    project_id=project.id, event_id=event_id, id=attachment_id
+                )
+                .select_related("file")
+                .get()
+            )
+        except EventAttachment.DoesNotExist:
+            return self.respond({"detail": "Attachment not found"}, status=404)
+
+        attachment.delete()
+        return self.respond(status=204)

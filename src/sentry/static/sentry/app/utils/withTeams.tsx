@@ -22,7 +22,7 @@ const withTeams = <P extends InjectedTeamsProps>(
 ) =>
   createReactClass<Omit<P, keyof InjectedTeamsProps>, State>({
     displayName: `withTeams(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(TeamStore, 'onTeamUpdate')],
+    mixins: [Reflux.listenTo(TeamStore, 'onTeamUpdate') as any],
 
     getInitialState() {
       return {
@@ -36,7 +36,10 @@ const withTeams = <P extends InjectedTeamsProps>(
       });
     },
     render() {
-      return <WrappedComponent {...this.props as P} teams={this.state.teams as Team[]} />;
+      return (
+        <WrappedComponent {...(this.props as P)} teams={this.state.teams as Team[]} />
+      );
     },
   });
+
 export default withTeams;

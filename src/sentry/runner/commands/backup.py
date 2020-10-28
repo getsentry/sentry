@@ -16,19 +16,18 @@ def import_(src):
         obj.save()
 
 
-def sort_dependencies(app_list):
+def sort_dependencies():
     """
     Similar to Django's except that we discard the important of natural keys
     when sorting dependencies (i.e. it works without them).
     """
-    from django.db.models import get_model, get_models
+    from django.apps import apps
 
     # Process the list of models, and get the list of dependencies
     model_dependencies = []
     models = set()
-    for app, model_list in app_list:
-        if model_list is None:
-            model_list = get_models(app)
+    for app_config in apps.get_app_configs():
+        model_list = app_config.get_models()
 
         for model in model_list:
             models.add(model)
@@ -36,7 +35,7 @@ def sort_dependencies(app_list):
             if hasattr(model, "natural_key"):
                 deps = getattr(model.natural_key, "dependencies", [])
                 if deps:
-                    deps = [get_model(*d.split(".")) for d in deps]
+                    deps = [apps.get_model(*d.split(".")) for d in deps]
             else:
                 deps = []
 
@@ -114,14 +113,11 @@ def export(dest, silent, indent, exclude):
     else:
         exclude = exclude.lower().split(",")
 
-    from django.db.models import get_apps
     from django.core import serializers
 
     def yield_objects():
-        app_list = [(a, None) for a in get_apps()]
-
         # Collate the objects to be serialized.
-        for model in sort_dependencies(app_list):
+        for model in sort_dependencies():
             if (
                 not getattr(model, "__core__", True)
                 or model.__name__.lower() in exclude
@@ -138,5 +134,5 @@ def export(dest, silent, indent, exclude):
     if not silent:
         click.echo(">> Beginning export", err=True)
     serializers.serialize(
-        "json", yield_objects(), indent=indent, stream=dest, use_natural_keys=True
+        "json", yield_objects(), indent=indent, stream=dest, use_natural_foreign_keys=True
     )

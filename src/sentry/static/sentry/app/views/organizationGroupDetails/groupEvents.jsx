@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import React from 'react';
-import {pick} from 'lodash';
+import pick from 'lodash/pick';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -34,11 +34,11 @@ class GroupEvents extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (this.props.location.search !== nextProps.location.search) {
       const queryParams = nextProps.location.query;
 

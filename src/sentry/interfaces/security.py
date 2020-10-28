@@ -1,18 +1,12 @@
 from __future__ import absolute_import
 
-import jsonschema
-import six
-
 __all__ = ("Csp", "Hpkp", "ExpectCT", "ExpectStaple")
 
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
-from sentry.interfaces.schemas import validate_and_default_interface, INPUT_SCHEMAS
+from sentry.interfaces.base import Interface
 from sentry.utils import json
 from sentry.utils.cache import memoize
-from sentry.utils.http import is_valid_origin
-from sentry.utils.safe import trim
 from sentry.web.helpers import render_to_string
 
 # Default block list sourced from personal experience as well as
@@ -22,7 +16,9 @@ DEFAULT_DISALLOWED_SOURCES = (
     "ms-browser-extension",
     "chrome://*",
     "chrome-extension://*",
-    "chromeinvokeimmediate://*" "chromenull://*",
+    "chromeinvokeimmediate://*",
+    "chromenull://*",
+    "data:text/html,chromewebdata",
     "safari-extension://*",
     "mxaddon-pkg://*",
     "jar://*",
@@ -80,52 +76,6 @@ class SecurityReport(Interface):
 
     title = None
 
-    @classmethod
-    def from_raw(cls, raw):
-        """
-        Constructs the interface from a raw security report request body
-
-        This is usually slightly different than to_python as it needs to
-        do some extra validation, data extraction / default setting.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def to_python(cls, data):
-        # TODO(markus): semaphore does not validate security interfaces yet
-        is_valid, errors = validate_and_default_interface(data, cls.path)
-        if not is_valid:
-            raise InterfaceValidationError("Invalid interface data")
-
-        return cls(**data)
-
-    def get_culprit(self):
-        raise NotImplementedError
-
-    def get_message(self):
-        raise NotImplementedError
-
-    def get_tags(self):
-        raise NotImplementedError
-
-    def get_title(self):
-        return self.title
-
-    def should_filter(self, project=None):
-        raise NotImplementedError
-
-    def get_origin(self):
-        """
-        The document URL that generated this report
-        """
-        raise NotImplementedError
-
-    def get_referrer(self):
-        """
-        The referrer of the page that generated this report.
-        """
-        raise NotImplementedError
-
 
 class Hpkp(SecurityReport):
     """
@@ -148,40 +98,6 @@ class Hpkp(SecurityReport):
     display_score = 1300
 
     title = "HPKP Report"
-
-    @classmethod
-    def from_raw(cls, raw):
-        # Validate the raw data against the input schema (raises on failure)
-        schema = INPUT_SCHEMAS[cls.path]
-        jsonschema.validate(raw, schema)
-
-        # Trim values and convert keys to use underscores
-        kwargs = {k.replace("-", "_"): trim(v, 1024) for k, v in six.iteritems(raw)}
-
-        return cls.to_python(kwargs)
-
-    def get_culprit(self):
-        return None
-
-    def get_message(self):
-        return u"Public key pinning validation failed for '{self.hostname}'".format(self=self)
-
-    def get_tags(self):
-        return [
-            ("port", six.text_type(self.port)),
-            ("include-subdomains", json.dumps(self.include_subdomains)),
-            ("hostname", self.hostname),
-        ]
-
-    def get_origin(self):
-        # not quite origin, but the domain that failed pinning
-        return self.hostname
-
-    def get_referrer(self):
-        return None
-
-    def should_filter(self, project=None):
-        return False
 
 
 class ExpectStaple(SecurityReport):
@@ -207,44 +123,6 @@ class ExpectStaple(SecurityReport):
 
     title = "Expect-Staple Report"
 
-    @classmethod
-    def from_raw(cls, raw):
-        # Validate the raw data against the input schema (raises on failure)
-        schema = INPUT_SCHEMAS[cls.path]
-        jsonschema.validate(raw, schema)
-
-        # For Expect-Staple, the values we want are nested under the
-        # 'expect-staple-report' key.
-        raw = raw["expect-staple-report"]
-        # Trim values and convert keys to use underscores
-        kwargs = {k.replace("-", "_"): trim(v, 1024) for k, v in six.iteritems(raw)}
-
-        return cls.to_python(kwargs)
-
-    def get_culprit(self):
-        return self.hostname
-
-    def get_message(self):
-        return u"Expect-Staple failed for '{self.hostname}'".format(self=self)
-
-    def get_tags(self):
-        return (
-            ("port", six.text_type(self.port)),
-            ("hostname", self.hostname),
-            ("response_status", self.response_status),
-            ("cert_status", self.cert_status),
-        )
-
-    def get_origin(self):
-        # not quite origin, but the domain that failed pinning
-        return self.hostname
-
-    def get_referrer(self):
-        return None
-
-    def should_filter(self, project=None):
-        return False
-
 
 class ExpectCT(SecurityReport):
     """
@@ -266,38 +144,6 @@ class ExpectCT(SecurityReport):
     display_score = 1300
 
     title = "Expect-CT Report"
-
-    @classmethod
-    def from_raw(cls, raw):
-        # Validate the raw data against the input schema (raises on failure)
-        schema = INPUT_SCHEMAS[cls.path]
-        jsonschema.validate(raw, schema)
-
-        # For Expect-CT, the values we want are nested under the 'expect-ct-report' key.
-        raw = raw["expect-ct-report"]
-        # Trim values and convert keys to use underscores
-        kwargs = {k.replace("-", "_"): trim(v, 1024) for k, v in six.iteritems(raw)}
-
-        return cls.to_python(kwargs)
-
-    def get_culprit(self):
-        return self.hostname
-
-    def get_message(self):
-        return u"Expect-CT failed for '{self.hostname}'".format(self=self)
-
-    def get_tags(self):
-        return (("port", six.text_type(self.port)), ("hostname", self.hostname))
-
-    def get_origin(self):
-        # not quite origin, but the domain that failed pinning
-        return self.hostname
-
-    def get_referrer(self):
-        return None
-
-    def should_filter(self, project=None):
-        return False
 
 
 class Csp(SecurityReport):
@@ -321,91 +167,12 @@ class Csp(SecurityReport):
     title = "CSP Report"
 
     @classmethod
-    def from_raw(cls, raw):
-        # Firefox doesn't send effective-directive, so parse it from
-        # violated-directive but prefer effective-directive when present
-        #
-        # refs: https://bugzil.la/1192684#c8
-        try:
-            report = raw["csp-report"]
-            report["effective-directive"] = report.get(
-                "effective-directive", report["violated-directive"].split(None, 1)[0]
-            )
-        except (KeyError, IndexError):
-            pass
-
-        # Validate the raw data against the input schema (raises on failure)
-        schema = INPUT_SCHEMAS[cls.path]
-        jsonschema.validate(raw, schema)
-
-        # For CSP, the values we want are nested under the 'csp-report' key.
-        raw = raw["csp-report"]
-        # Trim values and convert keys to use underscores
-        kwargs = {k.replace("-", "_"): trim(v, 1024) for k, v in six.iteritems(raw)}
-
-        return cls.to_python(kwargs)
-
-    def get_message(self):
-        templates = {
-            "child-src": (u"Blocked 'child' from '{uri}'", "Blocked inline 'child'"),
-            "connect-src": (u"Blocked 'connect' from '{uri}'", "Blocked inline 'connect'"),
-            "font-src": (u"Blocked 'font' from '{uri}'", "Blocked inline 'font'"),
-            "form-action": (u"Blocked 'form' action to '{uri}'",),  # no inline option
-            "img-src": (u"Blocked 'image' from '{uri}'", "Blocked inline 'image'"),
-            "manifest-src": (u"Blocked 'manifest' from '{uri}'", "Blocked inline 'manifest'"),
-            "media-src": (u"Blocked 'media' from '{uri}'", "Blocked inline 'media'"),
-            "object-src": (u"Blocked 'object' from '{uri}'", "Blocked inline 'object'"),
-            "script-src": (
-                u"Blocked 'script' from '{uri}'",
-                "Blocked unsafe (eval() or inline) 'script'",
-            ),
-            "script-src-elem": (
-                u"Blocked 'script' from '{uri}'",
-                "Blocked unsafe 'script' element",
-            ),
-            "script-src-attr": (
-                u"Blocked inline script attribute from '{uri}'",
-                "Blocked inline script attribute",
-            ),
-            "style-src": (u"Blocked 'style' from '{uri}'", "Blocked inline 'style'"),
-            "style-src-elem": (
-                u"Blocked 'style' from '{uri}'",
-                "Blocked 'style' or 'link' element",
-            ),
-            "style-src-attr": (u"Blocked style attribute from '{uri}'", "Blocked style attribute"),
-            "unsafe-inline": (None, u"Blocked unsafe inline 'script'"),
-            "unsafe-eval": (None, u"Blocked unsafe eval() 'script'"),
-        }
-        default_template = ("Blocked {directive!r} from {uri!r}", "Blocked inline {directive!r}")
-
-        directive = self.local_script_violation_type or self.effective_directive
-        uri = self.normalized_blocked_uri
-        index = 1 if uri == self.LOCAL else 0
-
-        try:
-            tmpl = templates[directive][index]
-        except (KeyError, IndexError):
-            tmpl = default_template[index]
-
-        return tmpl.format(directive=directive, uri=uri)
-
-    def get_culprit(self):
-        if not self.violated_directive:
-            return ""
-        bits = [d for d in self.violated_directive.split(" ") if d]
-        return " ".join([bits[0]] + [self._normalize_value(b) for b in bits[1:]])
-
-    def get_tags(self):
-        return [
-            ("effective-directive", self.effective_directive),
-            ("blocked-uri", self._sanitized_blocked_uri()),
-        ]
-
-    def get_origin(self):
-        return self.document_uri
-
-    def get_referrer(self):
-        return self.referrer
+    def to_python(cls, data):
+        data.setdefault("document_uri", None)
+        data.setdefault("violated_directive", None)
+        data.setdefault("blocked_uri", None)
+        data.setdefault("effective_directive", None)
+        return cls(**data)
 
     def to_string(self, is_public=False, **kwargs):
         return json.dumps({"csp-report": self.get_api_context()}, indent=2)
@@ -415,77 +182,9 @@ class Csp(SecurityReport):
             "sentry/partial/interfaces/csp_email.html", {"data": self.get_api_context()}
         )
 
-    def should_filter(self, project=None):
-        disallowed = ()
-        paths = ["blocked_uri", "source_file"]
-        uris = [getattr(self, path) for path in paths if hasattr(self, path)]
-
-        if project is None or bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
-            disallowed += DEFAULT_DISALLOWED_SOURCES
-        if project is not None:
-            disallowed += tuple(project.get_option("sentry:csp_ignored_sources", []))
-
-        if disallowed and any(is_valid_origin(uri, allowed=disallowed) for uri in uris):
-            return True
-
-        return False
-
-    def _sanitized_blocked_uri(self):
-        # HACK: This is 100% to work around Stripe urls
-        # that will casually put extremely sensitive information
-        # in querystrings. The real solution is to apply
-        # data scrubbing to all tags generically
-        # TODO this could be done in filter_csp
-        # instead but that might only be run conditionally on the org/project settings
-        # relevant code is @L191:
-        #
-        #   if netloc == 'api.stripe.com':
-        #       query = ''
-        #       fragment = ''
-
-        uri = self.blocked_uri
-        if uri.startswith("https://api.stripe.com/"):
-            return urlunsplit(urlsplit(uri)[:3] + (None, None))
-        return uri
-
     @memoize
     def normalized_blocked_uri(self):
         return self._normalize_uri(self.blocked_uri)
-
-    @memoize
-    def _normalized_document_uri(self):
-        return self._normalize_uri(self.document_uri)
-
-    def _normalize_value(self, value):
-        keywords = ("'none'", "'self'", "'unsafe-inline'", "'unsafe-eval'")
-        all_schemes = ("data:", "mediastream:", "blob:", "filesystem:", "http:", "https:", "file:")
-
-        # > If no scheme is specified, the same scheme as the one used to
-        # > access the protected document is assumed.
-        # Source: https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives
-        if value in keywords:
-            return value
-
-        # normalize a value down to 'self' if it matches the origin of document-uri
-        # FireFox transforms a 'self' value into the spelled out origin, so we
-        # want to reverse this and bring it back
-        if value.startswith(all_schemes):
-            if self._normalized_document_uri == self._normalize_uri(value):
-                return self.LOCAL
-            # Their rule had an explicit scheme, so let's respect that
-            return value
-
-        # value doesn't have a scheme, but let's see if their
-        # hostnames match at least, if so, they're the same
-        if value == self._normalized_document_uri:
-            return self.LOCAL
-
-        # Now we need to stitch on a scheme to the value
-        scheme = self.document_uri.split(":", 1)[0]
-        # But let's not stitch on the boring values
-        if scheme in ("http", "https"):
-            return value
-        return self._unsplit(scheme, value)
 
     @memoize
     def local_script_violation_type(self):

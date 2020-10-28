@@ -1,18 +1,19 @@
 from __future__ import absolute_import
 
 import itertools
-import mock
+from sentry.utils.compat import mock
 import pytest
 
 from datetime import datetime, timedelta
 from django.utils import timezone
-from sentry import tagstore, tsdb
-from sentry.testutils import TestCase
-from sentry.models import GroupSnooze
+from sentry import tsdb
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.models import Group, GroupSnooze
 from six.moves import xrange
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class GroupSnoozeTest(TestCase):
+class GroupSnoozeTest(TestCase, SnubaTestCase):
     sequence = itertools.count()  # generates unique values, class scope doesn't matter
 
     def test_until_not_reached(self):
@@ -48,16 +49,20 @@ class GroupSnoozeTest(TestCase):
         assert snooze.is_valid(test_rates=True)
 
     def test_user_delta_reached(self):
-        snooze = GroupSnooze.objects.create(
-            group=self.group, user_count=100, state={"users_seen": 0}
-        )
-        tagstore.create_group_tag_key(
-            project_id=self.group.project_id,
-            group_id=self.group.id,
-            environment_id=None,
-            key="sentry:user",
-            values_seen=100,
-        )
+        project = self.create_project()
+
+        for i in xrange(0, 100):
+            self.store_event(
+                data={
+                    "user": {"id": i},
+                    "timestamp": iso_format(before_now(seconds=1)),
+                    "fingerprint": ["group1"],
+                },
+                project_id=project.id,
+            )
+
+        group = list(Group.objects.all())[-1]
+        snooze = GroupSnooze.objects.create(group=group, user_count=100, state={"users_seen": 0})
         assert not snooze.is_valid(test_rates=True)
 
     @mock.patch("django.utils.timezone.now")

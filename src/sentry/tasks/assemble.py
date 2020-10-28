@@ -13,7 +13,7 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.files import get_max_file_size
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import configure_scope, bind_organization_context
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,12 @@ def _get_cache_key(task, scope, checksum):
     return (
         "assemble-status:%s"
         % hashlib.sha1(
-            b"%s|%s|%s" % (str(scope).encode("ascii"), checksum.encode("ascii"), task)
+            b"%s|%s|%s"
+            % (
+                six.text_type(scope).encode("ascii"),
+                checksum.encode("ascii"),
+                six.text_type(task).encode("utf-8"),
+            )
         ).hexdigest()
     )
 
@@ -167,10 +172,10 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     from sentry.utils.zip import safe_extract_zip
     from sentry.models import File, Organization, Release, ReleaseFile
 
-    with configure_scope() as scope:
-        scope.set_tag("organization", org_id)
+    organization = Organization.objects.get_from_cache(pk=org_id)
 
-    organization = Organization.objects.filter(id=org_id).get()
+    bind_organization_context(organization)
+
     set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ASSEMBLING)
 
     # Assemble the chunks into a temporary file
@@ -268,7 +273,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
     except AssembleArtifactsError as e:
         set_assemble_status(
-            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=e.message
+            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=six.text_type(e)
         )
     except BaseException:
         logger.error("failed to assemble release bundle", exc_info=True)

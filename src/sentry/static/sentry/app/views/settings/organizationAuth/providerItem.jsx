@@ -1,17 +1,18 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import SentryTypes from 'app/sentryTypes';
-import Tag from 'app/views/settings/components/tag';
+import {IconLock} from 'app/icons';
+import Tag from 'app/components/tagDeprecated';
 import {descopeFeatureName} from 'app/utils';
 
 export default class ProviderItem extends React.PureComponent {
@@ -32,7 +33,7 @@ export default class ProviderItem extends React.PureComponent {
   renderDisabledLock = p => <LockedFeature provider={p.provider} features={p.features} />;
 
   renderInstallButton = ({provider, hasFeature}) => (
-    <Access access={['org:admin']}>
+    <Access access={['org:write']}>
       {({hasAccess}) => (
         <Button
           type="submit"
@@ -54,7 +55,9 @@ export default class ProviderItem extends React.PureComponent {
     // TODO(epurkhiser): We should probably use a more explicit hook name,
     // instead of just the feature names (sso-basic, sso-saml2, etc).
     const featureKey = provider.requiredFeature;
-    const featureProps = featureKey ? {hookName: descopeFeatureName(featureKey)} : {};
+    const featureProps = featureKey
+      ? {hookName: `feature-disabled:${descopeFeatureName(featureKey)}`}
+      : {};
 
     return (
       <Feature
@@ -65,32 +68,45 @@ export default class ProviderItem extends React.PureComponent {
         }
       >
         {({hasFeature, features, renderDisabled, renderInstallButton}) => (
-          <PanelItem align="center">
-            <Flex flex={1}>
-              <ProviderLogo className={`provider-logo ${provider.name.toLowerCase()}`} />
-              <Box px={2} flex={1}>
+          <PanelItem alignItems="center">
+            <ProviderInfo>
+              <ProviderLogo
+                className={`provider-logo ${provider.name
+                  .replace(/\s/g, '-')
+                  .toLowerCase()}`}
+              />
+              <div>
                 <ProviderName>{provider.name}</ProviderName>
                 <ProviderDescription>
                   {t('Enable your organization to sign in with %s.', provider.name)}
                 </ProviderDescription>
-              </Box>
-            </Flex>
+              </div>
+            </ProviderInfo>
 
-            <Box flex={1}>{!hasFeature && renderDisabled({provider, features})}</Box>
+            <FeatureBadge>
+              {!hasFeature && renderDisabled({provider, features})}
+            </FeatureBadge>
 
-            <Box>
+            <div>
               {active ? (
                 <ActiveIndicator />
               ) : (
                 (renderInstallButton || this.renderInstallButton)({provider, hasFeature})
               )}
-            </Box>
+            </div>
           </PanelItem>
         )}
       </Feature>
     );
   }
 }
+
+const ProviderInfo = styled('div')`
+  flex: 1;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(2)};
+`;
 
 const ProviderLogo = styled('div')`
   height: 36px;
@@ -109,8 +125,12 @@ const ProviderDescription = styled('div')`
   font-size: 0.8em;
 `;
 
-const ActiveIndicator = styled(p => <div className={p.className}>Active</div>)`
-  background: ${p => p.theme.green};
+const FeatureBadge = styled('div')`
+  flex: 1;
+`;
+
+const ActiveIndicator = styled(p => <div className={p.className}>{t('Active')}</div>)`
+  background: ${p => p.theme.green400};
   color: #fff;
   padding: 8px 12px;
   border-radius: 2px;
@@ -133,7 +153,7 @@ const LockedFeature = ({provider, features, className}) => (
       />
     }
   >
-    <Tag icon="icon-lock">disabled</Tag>
+    <Tag icon={<IconLock size="xs" />}>disabled</Tag>
   </DisabledHovercard>
 );
 

@@ -4,15 +4,15 @@ import createReactClass from 'create-react-class';
 
 import getDisplayName from 'app/utils/getDisplayName';
 import OrganizationsStore from 'app/stores/organizationsStore';
-import {Organization} from 'app/types';
+import {OrganizationSummary} from 'app/types';
 
 type InjectedOrganizationsProps = {
   organizationsLoading?: boolean;
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
 };
 
 type State = {
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
 };
 
 const withOrganizations = <P extends InjectedOrganizationsProps>(
@@ -23,14 +23,17 @@ const withOrganizations = <P extends InjectedOrganizationsProps>(
     State
   >({
     displayName: `withOrganizations(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.connect(OrganizationsStore, 'organizations')],
+    mixins: [Reflux.connect(OrganizationsStore, 'organizations') as any],
 
     render() {
+      const {organizationsLoading, organizations, ...props} = this.props as P;
       return (
         <WrappedComponent
-          organizationsLoading={!OrganizationsStore.loaded as boolean}
-          organizations={this.state.organizations as Organization[]}
-          {...this.props as P}
+          {...({
+            organizationsLoading: organizationsLoading ?? !OrganizationsStore.loaded,
+            organizations: organizations ?? this.state.organizations,
+            ...props,
+          } as P)}
         />
       );
     },

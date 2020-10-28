@@ -1,9 +1,9 @@
 import React from 'react';
-import {isEqual} from 'lodash';
+import isEqual from 'lodash/isEqual';
 
 import Button from 'app/components/button';
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconDelete} from 'app/icons';
 
 import QueryFields from './queryFields';
 import {parseSavedQuery} from '../utils';
@@ -102,8 +102,8 @@ export default class EditSavedQuery extends React.Component<
               </div>
             </QueryActionsGroup>
             <div>
-              <SavedQueryAction data-test-id="delete" onClick={onDeleteQuery}>
-                <InlineSvg src="icon-trash" />
+              <SavedQueryAction to="" data-test-id="delete" onClick={onDeleteQuery}>
+                <IconDelete />
               </SavedQueryAction>
             </div>
           </QueryActions>
