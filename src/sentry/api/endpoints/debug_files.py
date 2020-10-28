@@ -63,6 +63,12 @@ def has_download_permission(request, project):
     organization = project.organization
     required_role = organization.get_option("sentry:debug_files_role") or DEBUG_FILES_ROLE_DEFAULT
 
+    if request.user.is_sentry_app:
+        if roles.get(required_role).priority > roles.get("member").priority:
+            return request.access.has_scope("project:write")
+        else:
+            return request.access.has_scope("project:read")
+
     try:
         current_role = (
             OrganizationMember.objects.filter(organization=organization, user=request.user)
@@ -72,9 +78,7 @@ def has_download_permission(request, project):
     except OrganizationMember.DoesNotExist:
         return False
 
-    required_role = roles.get(required_role)
-    current_role = roles.get(current_role)
-    return current_role.priority >= required_role.priority
+    return roles.get(current_role).priority >= roles.get(required_role).priority
 
 
 class DebugFilesEndpoint(ProjectEndpoint):
