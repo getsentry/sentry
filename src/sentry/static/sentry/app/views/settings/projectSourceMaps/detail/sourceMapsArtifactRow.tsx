@@ -11,6 +11,7 @@ import FileSize from 'app/components/fileSize';
 import {Artifact} from 'app/types';
 import Confirm from 'app/components/confirm';
 import Access from 'app/components/acl/access';
+import Role from 'app/components/acl/role';
 import Tooltip from 'app/components/tooltip';
 import Tag from 'app/components/tagDeprecated';
 
@@ -18,9 +19,15 @@ type Props = {
   artifact: Artifact;
   onDelete: (id: string) => void;
   downloadUrl: string;
+  downloadRole: string;
 };
 
-const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
+const SourceMapsArtifactRow = ({
+  artifact,
+  onDelete,
+  downloadUrl,
+  downloadRole,
+}: Props) => {
   const {name, size, dateCreated, dist, id} = artifact;
 
   const handleDeleteClick = () => {
@@ -44,22 +51,22 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
       </SizeColumn>
       <ActionsColumn>
         <ButtonBar gap={0.5}>
-          <Access access={['project:write']}>
-            {({hasAccess}) => (
+          <Role role={downloadRole}>
+            {({hasRole}) => (
               <Tooltip
                 title={t('You do not have permission to download artifacts.')}
-                disabled={hasAccess}
+                disabled={hasRole}
               >
                 <Button
                   size="small"
                   icon={<IconDownload size="sm" />}
-                  disabled={!hasAccess}
+                  disabled={!hasRole}
                   href={downloadUrl}
                   title={t('Download Artifact')}
                 />
               </Tooltip>
             )}
-          </Access>
+          </Role>
 
           <Access access={['project:releases']}>
             {({hasAccess}) => (

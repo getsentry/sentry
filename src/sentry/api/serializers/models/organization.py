@@ -19,6 +19,7 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
     SAFE_FIELDS_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    DEBUG_FILES_ROLE_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -266,6 +267,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "attachmentsRole": six.text_type(
                     obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
+                ),
+                "debugFilesRole": six.text_type(
+                    obj.get_option("sentry:debug_files_role", DEBUG_FILES_ROLE_DEFAULT)
                 ),
                 "eventsMemberAdmin": bool(
                     obj.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT)

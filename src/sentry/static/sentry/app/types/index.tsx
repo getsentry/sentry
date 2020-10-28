@@ -140,6 +140,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
+  debugFilesRole: string;
   eventsMemberAdmin: boolean;
   sensitiveFields: string[];
   openMembership: boolean;

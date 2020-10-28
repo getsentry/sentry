@@ -76,9 +76,19 @@ const formGroups: JsonFormObject[] = [
           initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
         label: t('Attachments Access'),
         help: t(
-          'Permissions required to download event attachments, such as native crash reports or log files.'
+          'Role required to download event attachments, such as native crash reports or log files.'
         ),
         visible: ({features}) => features.has('event-attachments'),
+      },
+      {
+        name: 'debugFilesRole',
+        type: 'array',
+        choices: ({initialData = {}}) =>
+          initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+        label: t('Debug Files Access'),
+        help: t(
+          'Role required to download debug information files, proguard mappings and source maps.'
+        ),
       },
     ],
   },

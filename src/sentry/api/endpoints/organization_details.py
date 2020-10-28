@@ -83,6 +83,12 @@ ORG_OPTIONS = (
         org_serializers.ATTACHMENTS_ROLE_DEFAULT,
     ),
     (
+        "debugFilesRole",
+        "sentry:debug_files_role",
+        six.text_type,
+        org_serializers.DEBUG_FILES_ROLE_DEFAULT,
+    ),
+    (
         "eventsMemberAdmin",
         "sentry:events_member_admin",
         bool,
@@ -131,6 +137,7 @@ class OrganizationSerializer(serializers.Serializer):
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(min_value=-1, max_value=20, required=False)
     attachmentsRole = serializers.CharField(required=True)
+    debugFilesRole = serializers.CharField(required=True)
     eventsMemberAdmin = serializers.BooleanField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
@@ -185,6 +192,13 @@ class OrganizationSerializer(serializers.Serializer):
         return value
 
     def validate_attachmentsRole(self, value):
+        try:
+            roles.get(value)
+        except KeyError:
+            raise serializers.ValidationError("Invalid role")
+        return value
+
+    def validate_debugFilesRole(self, value):
         try:
             roles.get(value)
         except KeyError:

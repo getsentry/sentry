@@ -70,6 +70,12 @@ class ReleaseFileDetailsTest(APITestCase):
             },
         )
 
+        # Download as a user with sufficient role
+        self.organization.update_option("sentry:debug_files_role", "admin")
+        user = self.create_user("baz@localhost")
+        self.create_member(user=user, organization=project.organization, role="owner")
+        self.login_as(user=user)
+
         response = self.client.get(url + "?download=1")
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="appli catios n.js"'
@@ -77,6 +83,20 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.get("Content-Type") == "application/octet-stream"
         assert b"File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
 
+        # Download as a superuser
+        self.login_as(user=self.user)
+        response = self.client.get(url + "?download=1")
+        assert response.get("Content-Type") == "application/octet-stream"
+
+        # # Download as a user without sufficient role
+        self.organization.update_option("sentry:debug_files_role", "owner")
+        user_no_role = self.create_user("bar@localhost")
+        self.create_member(user=user_no_role, organization=project.organization, role="member")
+        self.login_as(user=user_no_role)
+        response = self.client.get(url + "?download=1")
+        assert response.status_code == 403, response.content
+
+        # Download as a user with no permissions
         user_no_permission = self.create_user("baz@localhost", username="baz")
         self.login_as(user=user_no_permission)
         response = self.client.get(url + "?download=1")
