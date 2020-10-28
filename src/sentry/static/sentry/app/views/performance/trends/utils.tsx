@@ -2,6 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 import moment from 'moment';
+import {ASAP} from 'downsample/methods/ASAP';
 
 import theme from 'app/utils/theme';
 import {getInterval} from 'app/components/charts/utils';
@@ -425,9 +426,13 @@ function getLimitTransactionItems(
     limitQuery += confidenceLevel.max ? ` t_score():>=-${confidenceLevel.max}` : '';
   }
   limitQuery +=
-    ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';
+    ' percentage(count_range_2,count_range_1):>0.25 percentage(count_range_2,count_range_1):<4';
   return limitQuery;
 }
+
+export const smoothTrend = (data: [number, number][], resolution = 100) => {
+  return ASAP(data, resolution);
+};
 
 export const StyledIconArrow = styled(IconArrow)`
   margin: 0 ${space(1)};
