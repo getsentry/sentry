@@ -38,6 +38,6 @@ class GroupReprocessingEndpoint(GroupEndpoint):
             project_id=group.project_id,
             group_id=group.id,
             max_events=max_events,
-            acting_user_id=request.user.id,
+            acting_user_id=getattr(request.user, "id", None),
         )
         return self.respond(status=200)
