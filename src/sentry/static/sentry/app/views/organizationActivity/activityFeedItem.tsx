@@ -360,7 +360,7 @@ export default styled(ActivityItem)`
   position: relative;
   margin: 0;
   padding: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   line-height: 1.4;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
