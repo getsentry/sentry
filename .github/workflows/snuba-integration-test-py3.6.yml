@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: snuba test py3.6
     runs-on: ubuntu-16.04
     timeout-minutes: 30
     strategy:

@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: backend test py3.6
     runs-on: ubuntu-16.04
     timeout-minutes: 30
     strategy:
@@ -15,7 +16,6 @@ jobs:
         instance: [0, 1, 2]
 
     env:
-      # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
@@ -73,4 +73,6 @@ jobs:
       - name: Run backend test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: steps.changes.outputs.backend == 'true'
         run: |
+          # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
+          unset USE_SNUBA
           make travis-test-postgres

@@ -14,6 +14,7 @@ const defaultData = {
   nullValue: null,
   'measurements.fcp': 1234,
   percentile_measurements_fcp_0_5: 1234,
+  'error.handled': [null],
 };
 
 function makeWrapper(eventView, handleCellAction, columnIndex = 0, data = defaultData) {
@@ -42,6 +43,7 @@ describe('Discover -> CellAction', function () {
         'nullValue',
         'measurements.fcp',
         'percentile(measurements.fcp, 0.5)',
+        'error.handled',
       ],
       widths: ['437', '647', '416', '905'],
       sort: ['title'],
@@ -168,6 +170,33 @@ describe('Discover -> CellAction', function () {
         'show_less_than',
         '2020-06-09T01:46:25+00:00'
       );
+    });
+
+    it('error.handled with null adds condition', function () {
+      wrapper = makeWrapper(view, handleCellAction, 7, defaultData);
+
+      // Show button and menu.
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+
+      wrapper.find('button[data-test-id="add-to-filter"]').simulate('click');
+
+      expect(handleCellAction).toHaveBeenCalledWith('add', 1);
+    });
+
+    it('error.handled with 0 adds condition', function () {
+      wrapper = makeWrapper(view, handleCellAction, 7, {
+        ...defaultData,
+        'error.handled': [0],
+      });
+
+      // Show button and menu.
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+
+      wrapper.find('button[data-test-id="add-to-filter"]').simulate('click');
+
+      expect(handleCellAction).toHaveBeenCalledWith('add', 0);
     });
 
     it('show appropriate actions for string cells', function () {

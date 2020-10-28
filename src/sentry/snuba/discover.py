@@ -329,6 +329,7 @@ def query(
     auto_aggregations=False,
     use_aggregate_conditions=False,
     conditions=None,
+    functions_acl=None,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -413,6 +414,7 @@ def query(
             snuba_filter,
             auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
+            functions_acl=functions_acl,
         )
 
         snuba_filter.update_with(resolved_fields)
@@ -734,7 +736,7 @@ def top_events_timeseries(
             if field in ["project", "project.id"]:
                 continue
             if field == "issue":
-                field = FIELD_ALIASES["issue"]["column_alias"]
+                field = FIELD_ALIASES["issue"].alias
             # Note that because orderby shouldn't be an array field its not included in the values
             values = list(
                 {
@@ -1023,7 +1025,6 @@ def measurements_histogram_query(
         If left unspecified, it is queried using `user_query` and `params`.
     :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
-
     multiplier = int(10 ** precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
@@ -1060,6 +1061,7 @@ def measurements_histogram_query(
         referrer=referrer,
         auto_fields=True,
         use_aggregate_conditions=True,
+        functions_acl=["array_join", "measurements_histogram"],
     )
 
     return normalize_measurements_histogram(

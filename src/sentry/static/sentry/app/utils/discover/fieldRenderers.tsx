@@ -164,6 +164,7 @@ type SpecialFields = {
   user: SpecialField;
   'user.display': SpecialField;
   'issue.id': SpecialField;
+  'error.handled': SpecialField;
   issue: SpecialField;
   release: SpecialField;
 };
@@ -296,6 +297,14 @@ const SPECIAL_FIELDS: SpecialFields = {
       ) : (
         <Container>{emptyValue}</Container>
       ),
+  },
+  'error.handled': {
+    sortField: 'error.handled',
+    renderFunc: data => {
+      const values = data['error.handled'];
+      const value = Array.isArray(values) ? values.slice(-1)[0] : values;
+      return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
+    },
   },
 };
 
