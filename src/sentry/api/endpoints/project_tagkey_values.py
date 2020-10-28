@@ -1,18 +1,15 @@
 from __future__ import absolute_import
 
 from sentry import tagstore
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import DateTimePaginator
+from sentry.api.utils import get_date_range_from_params
 from sentry.api.serializers import serialize
 from sentry.models import Environment
-from sentry.tagstore.types import TagValue
 
 
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
-    doc_section = DocSection.PROJECTS
-
     def get(self, request, project, key):
         """
         List a Tag's Values
@@ -40,29 +37,20 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        queryset = tagstore.get_tag_value_qs(
+        start, end = get_date_range_from_params(request.GET)
+
+        paginator = tagstore.get_tag_value_paginator(
             project.id,
             environment_id,
             tagkey.key,
-            query=request.GET.get('query'),
+            start=start,
+            end=end,
+            query=request.GET.get("query"),
+            order_by="-last_seen",
         )
 
         return self.paginate(
             request=request,
-            queryset=queryset,
-            order_by='-last_seen',
-            paginator_cls=DateTimePaginator,
-            on_results=lambda results: serialize(
-                map(  # XXX: This is a pretty big abstraction leak
-                    lambda instance: TagValue(
-                        key=instance.key,
-                        value=instance.value,
-                        times_seen=instance.times_seen,
-                        first_seen=instance.first_seen,
-                        last_seen=instance.last_seen,
-                    ),
-                    results,
-                ),
-                request.user
-            ),
+            paginator=paginator,
+            on_results=lambda results: serialize(results, request.user),
         )

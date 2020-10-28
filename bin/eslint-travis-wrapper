@@ -9,7 +9,7 @@ const argv = process.argv.slice(2);
 const cli = new CLIEngine({
   fix: false,
   extensions: argv[1].split(','),
-  useEslintrc: true,
+  configFile: '.eslintrc.relax.js',
 });
 
 // Lint all files
@@ -27,7 +27,12 @@ console.log(consoleFormatter(report.results));
 if (otherFormatterType) {
   const otherFormatter = cli.getFormatter(otherFormatterType);
 
-  fs.writeFile('eslint.checkstyle.xml', otherFormatter(report.results), 'utf8', () => {
-    process.exit(0);
-  });
+  fs.writeFile(
+    '.artifacts/eslint.checkstyle.xml',
+    otherFormatter(report.results),
+    'utf8',
+    () => {
+      process.exit(report.errorCount);
+    }
+  );
 }

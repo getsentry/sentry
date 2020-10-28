@@ -7,7 +7,8 @@
     display: none;
   }
 
-  a {
+  a,
+  g {
     position: relative;
     float: left;
     height: 20px;
@@ -15,9 +16,34 @@
     cursor: default;
 
     &:hover {
-      > span {
+      > span,
+      > .barchart-rect {
         background: @purple;
+        fill: @purple;
         border-color: transparent;
+
+        &.accepted {
+          background: @gray-light;
+          fill: @gray-light;
+        }
+
+        &.success {
+          background: @green;
+          fill: @green;
+        }
+
+        &.rate-limited,
+        &.dropped,
+        &.error {
+          background: @red-dark;
+          fill: @red-dark;
+        }
+
+        &.black-listed,
+        &.filtered {
+          background: @orange-dark;
+          fill: @orange-dark;
+        }
       }
     }
 
@@ -27,50 +53,40 @@
       bottom: 0;
       left: 1px;
       right: 1px;
-      min-width: 1px;
       height: 0;
       overflow: hidden;
       text-indent: -9999px;
       text-align: left;
       min-height: 1px;
+    }
 
+    > span,
+    > .barchart-rect {
       background: @gray-lighter;
-    }
-  }
+      fill: @gray-lighter;
 
-  .chart-marker {
-    display: block;
-    position: relative;
-    float: left;
-    width: 0;
-    bottom: -5px;
-    left: -5px;
-
-    &:hover {
-      > span {
-        background-color: gray;
-        border-color: #fff;
+      &.accepted {
+        background: @gray-lightest;
+        fill: @gray-lightest;
       }
-    }
 
-    &.first-seen {
-      left: -13px;
-      > span {
-        background: @pink;
+      &.success {
+        background: @green-light;
+        fill: @green-light;
       }
-    }
 
-    &.last-seen > span {
-      background: @green;
-    }
+      &.rate-limited,
+      &.dropped,
+      &.error {
+        background: @red;
+        fill: @red;
+      }
 
-    > span {
-      z-index: 2;
-      position: absolute;
-      border: 2px solid #fff;
-      .square(10px);
-      background: gray;
-      border-radius: 8px;
+      &.black-listed,
+      &.filtered {
+        background: @orange-light;
+        fill: @orange-light;
+      }
     }
   }
 }

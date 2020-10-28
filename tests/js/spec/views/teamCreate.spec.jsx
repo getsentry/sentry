@@ -1,30 +1,32 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import {TeamCreate} from 'app/views/teamCreate';
 
-describe('TeamCreate', function() {
-  describe('render()', function() {
-    it('renders correctly', function() {
-      let wrapper = shallow(
+describe('TeamCreate', function () {
+  describe('render()', function () {
+    it('renders correctly', function () {
+      const {organization, routerContext} = initializeOrg();
+      const wrapper = mountWithTheme(
         <TeamCreate
+          organization={organization}
           params={{
             orgId: 'org',
           }}
         />,
-        {
-          context: {router: TestStubs.router(), organization: TestStubs.Organization()},
-        }
+        routerContext
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 
-  describe('handleSubmitSuccess()', function() {
+  describe('handleSubmitSuccess()', function () {
     let wrapper;
-    let redirectMock = jest.fn();
+    const redirectMock = jest.fn();
 
-    beforeEach(function() {
+    beforeEach(function () {
       redirectMock.mockReset();
       wrapper = shallow(
         <TeamCreate
@@ -46,26 +48,16 @@ describe('TeamCreate', function() {
       );
     });
 
-    it('redirects to legacy team settings', function() {
-      wrapper.instance().handleSubmitSuccess({
-        slug: 'new-team',
-      });
-      expect(redirectMock).toBeCalledWith(
-        '/organizations/org/projects/new/?team=new-team'
-      );
-    });
-
-    it('redirects to new team settings', function() {
+    it('redirects to team settings', function () {
       wrapper.setContext({
         organization: {
           id: '1337',
-          features: ['new-teams'],
         },
       });
       wrapper.instance().handleSubmitSuccess({
         slug: 'new-team',
       });
-      expect(redirectMock).toBeCalledWith('/settings/org/teams/new-team/');
+      expect(redirectMock).toHaveBeenCalledWith('/settings/org/teams/new-team/');
     });
   });
 });

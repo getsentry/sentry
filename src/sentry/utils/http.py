@@ -1,10 +1,3 @@
-"""
-sentry.utils.http
-~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import six
@@ -16,21 +9,23 @@ from functools import partial
 
 from sentry import options
 from sentry.utils import json
+from sentry.utils.compat import map
+from sentry.utils.compat import filter
 
-ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
+ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 
 
 def absolute_uri(url=None):
     if not url:
-        return options.get('system.url-prefix')
-    return urljoin(options.get('system.url-prefix').rstrip('/') + '/', url.lstrip('/'))
+        return options.get("system.url-prefix")
+    return urljoin(options.get("system.url-prefix").rstrip("/") + "/", url.lstrip("/"))
 
 
 def origin_from_url(url):
     if not url:
         return url
     url = urlparse(url)
-    return '%s://%s' % (url.scheme, url.netloc)
+    return "%s://%s" % (url.scheme, url.netloc)
 
 
 def safe_urlencode(params, doseq=0):
@@ -71,48 +66,48 @@ def is_same_domain(url1, url2):
 
 
 def get_origins(project=None):
-    if settings.SENTRY_ALLOW_ORIGIN == '*':
-        return frozenset(['*'])
+    if settings.SENTRY_ALLOW_ORIGIN == "*":
+        return frozenset(["*"])
 
     if settings.SENTRY_ALLOW_ORIGIN:
-        result = settings.SENTRY_ALLOW_ORIGIN.split(' ')
+        result = settings.SENTRY_ALLOW_ORIGIN.split(" ")
     else:
         result = []
 
     if project:
-        optval = project.get_option('sentry:origins', ['*'])
+        optval = project.get_option("sentry:origins", ["*"])
         if optval:
             result.extend(optval)
 
     # lowercase and strip the trailing slash from all origin values
     # filter out empty values
-    return frozenset(filter(bool, map(lambda x: (x or '').lower().rstrip('/'), result)))
+    return frozenset(filter(bool, map(lambda x: (x or "").lower().rstrip("/"), result)))
 
 
 def parse_uri_match(value):
-    if '://' in value:
-        scheme, value = value.split('://', 1)
+    if "://" in value:
+        scheme, value = value.split("://", 1)
     else:
-        scheme = '*'
+        scheme = "*"
 
-    if '/' in value:
-        domain, path = value.split('/', 1)
+    if "/" in value:
+        domain, path = value.split("/", 1)
     else:
-        domain, path = value, '*'
+        domain, path = value, "*"
 
-    if ':' in domain:
-        domain, port = value.split(':', 1)
+    if ":" in domain:
+        domain, port = value.split(":", 1)
     else:
         port = None
 
     # we need to coerce our unicode inputs into proper
     # idna/punycode encoded representation for normalization.
-    if type(domain) == six.binary_type:
-        domain = domain.decode('utf8')
-    domain = domain.encode('idna')
+    if isinstance(domain, six.binary_type):
+        domain = domain.decode("utf8")
+    domain = domain.encode("idna").decode("utf-8")
 
     if port:
-        domain = '%s:%s' % (domain, port)
+        domain = "%s:%s" % (domain, port)
 
     return ParsedUriMatch(scheme, domain, path)
 
@@ -136,7 +131,7 @@ def is_valid_origin(origin, project=None, allowed=None):
     if not allowed:
         return False
 
-    if '*' in allowed:
+    if "*" in allowed:
         return True
 
     if not origin:
@@ -151,34 +146,40 @@ def is_valid_origin(origin, project=None, allowed=None):
 
     # XXX: In some cases origin might be localhost (or something similar) which causes a string value
     # of 'null' to be sent as the origin
-    if origin == 'null':
+    if origin == "null":
         return False
 
-    if type(origin) == six.binary_type:
-        origin = origin.decode('utf-8')
+    if isinstance(origin, six.binary_type):
+        try:
+            origin = origin.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                origin = origin.decode("windows-1252")
+            except UnicodeDecodeError:
+                return False
 
     parsed = urlparse(origin)
 
     if parsed.hostname is None:
-        parsed_hostname = ''
+        parsed_hostname = ""
     else:
         try:
-            parsed_hostname = parsed.hostname.encode('idna')
+            parsed_hostname = parsed.hostname.encode("idna").decode("utf-8")
         except UnicodeError:
             # We sometimes shove in some garbage input here, so just opting to ignore and carry on
             parsed_hostname = parsed.hostname
 
     if parsed.port:
         domain_matches = (
-            '*',
+            "*",
             parsed_hostname,
             # Explicit hostname + port name
-            '%s:%d' % (parsed_hostname, parsed.port),
+            "%s:%d" % (parsed_hostname, parsed.port),
             # Wildcard hostname with explicit port
-            '*:%d' % parsed.port,
+            "*:%d" % parsed.port,
         )
     else:
-        domain_matches = ('*', parsed_hostname)
+        domain_matches = ("*", parsed_hostname)
 
     for value in allowed:
         try:
@@ -188,11 +189,11 @@ def is_valid_origin(origin, project=None, allowed=None):
             continue
 
         # scheme supports exact and any match
-        if bits.scheme not in ('*', parsed.scheme):
+        if bits.scheme not in ("*", parsed.scheme):
             continue
 
         # domain supports exact, any, and prefix match
-        if bits.domain[:2] == '*.':
+        if bits.domain[:2] == "*.":
             if parsed_hostname.endswith(bits.domain[1:]) or parsed_hostname == bits.domain[2:]:
                 return True
             continue
@@ -201,9 +202,9 @@ def is_valid_origin(origin, project=None, allowed=None):
 
         # path supports exact, any, and suffix match (with or without *)
         path = bits.path
-        if path == '*':
+        if path == "*":
             return True
-        if path.endswith('*'):
+        if path.endswith("*"):
             path = path[:-1]
         if parsed.path.startswith(path):
             return True
@@ -215,14 +216,14 @@ def origin_from_request(request):
     Returns either the Origin or Referer value from the request headers,
     ignoring "null" Origins.
     """
-    rv = request.META.get('HTTP_ORIGIN', 'null')
+    rv = request.META.get("HTTP_ORIGIN", "null")
     # In some situation, an Origin header may be the literal value
     # "null". This means that the Origin header was stripped for
     # privacy reasons, but we should ignore this value entirely.
     # Behavior is specified in RFC6454. In either case, we should
     # treat a "null" Origin as a nonexistent one and fallback to Referer.
-    if rv in ('', 'null'):
-        rv = origin_from_url(request.META.get('HTTP_REFERER'))
+    if rv in ("", "null"):
+        rv = origin_from_url(request.META.get("HTTP_REFERER"))
     return rv
 
 
@@ -234,15 +235,11 @@ def heuristic_decode(data, possible_content_type=None):
     """
     inferred_content_type = possible_content_type
 
-    form_encoded_parser = partial(
-        parse_qs,
-        strict_parsing=True,
-        keep_blank_values=True,
-    )
+    form_encoded_parser = partial(parse_qs, strict_parsing=True, keep_blank_values=True)
 
     decoders = [
-        ('application/x-www-form-urlencoded', form_encoded_parser),
-        ('application/json', json.loads),
+        ("application/json", json.loads),
+        ("application/x-www-form-urlencoded", form_encoded_parser),
     ]
 
     # Prioritize the decoder which supports the possible content type first.
@@ -260,4 +257,6 @@ def heuristic_decode(data, possible_content_type=None):
 
 def percent_encode(val):
     # see https://en.wikipedia.org/wiki/Percent-encoding
-    return quote(val.encode('utf8', errors='replace')).replace('%7E', '~').replace('/', '%2F')
+    if isinstance(val, six.text_type):
+        val = val.encode("utf8", errors="replace")
+    return quote(val).replace("%7E", "~").replace("/", "%2F")

@@ -1,143 +1,213 @@
 from __future__ import absolute_import
 
-import json
 import re
 import six
+from collections import defaultdict
 
-from sentry import http, options
+from django.db.models import Q
+
 from sentry.api.base import Endpoint
-from sentry.models import Group, Integration, Project
+from sentry.incidents.models import Incident
+from sentry.models import Group, Project
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.web.decorators import transaction_start
+from sentry.utils import json
 
-from .utils import build_attachment, logger
+from .client import SlackClient
+from .requests import SlackEventRequest, SlackRequestError
+from .utils import build_group_attachment, build_incident_attachment, logger
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe
-_link_regexp = re.compile(r'^https?\://[^/]+/[^/]+/[^/]+/issues/(\d+)')
+_link_regexp = re.compile(r"^https?\://[^/]+/[^/]+/[^/]+/(issues|incidents)/(\d+)")
+_org_slug_regexp = re.compile(r"^https?\://[^/]+/organizations/([^/]+)/")
+
+
+def unfurl_issues(integration, issue_map):
+    results = {
+        g.id: g
+        for g in Group.objects.filter(
+            id__in=set(issue_map.keys()),
+            project__in=Project.objects.filter(organization__in=integration.organizations.all()),
+        )
+    }
+    if not results:
+        return {}
+
+    return {
+        v: build_group_attachment(results[k]) for k, v in six.iteritems(issue_map) if k in results
+    }
+
+
+def unfurl_incidents(integration, incident_map):
+    filter_query = Q()
+    # Since we don't have real ids here, we have to also extract the org slug
+    # from the url so that we can make sure the identifiers correspond to the
+    # correct organization.
+    for identifier, url in six.iteritems(incident_map):
+        org_slug = _org_slug_regexp.match(url).group(1)
+        filter_query |= Q(identifier=identifier, organization__slug=org_slug)
+
+    results = {
+        i.identifier: i
+        for i in Incident.objects.filter(
+            filter_query,
+            # Filter by integration organization here as well to make sure that
+            # we have permission to access these incidents.
+            organization__in=integration.organizations.all(),
+        )
+    }
+    if not results:
+        return {}
+
+    return {
+        v: build_incident_attachment(results[k])
+        for k, v in six.iteritems(incident_map)
+        if k in results
+    }
 
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
 # need refactored
 class SlackEventEndpoint(Endpoint):
+    event_handlers = {"issues": unfurl_issues, "incidents": unfurl_incidents}
+
     authentication_classes = ()
     permission_classes = ()
 
-    def _parse_issue_id_from_url(self, link):
+    def _parse_url(self, link):
+        """
+        Extracts event type and id from a url.
+        :param link: Url to parse to information from
+        :return: If successful, a tuple containing the event_type and id. If we
+        were unsuccessful at matching, a tuple containing two None values
+        """
         match = _link_regexp.match(link)
         if not match:
-            return
+            return None, None
         try:
-            return int(match.group(1))
+            return match.group(1), int(match.group(2))
         except (TypeError, ValueError):
-            return
+            return None, None
+
+    def _get_access_token(self, integration):
+        # the classic bot tokens must use the user auth token for URL unfurling
+        # we stored the user_access_token there
+        # but for workspace apps and new slack bot tokens, we can just use access_token
+        return integration.metadata.get("user_access_token") or integration.metadata["access_token"]
 
     def on_url_verification(self, request, data):
-        return self.respond({
-            'challenge': data['challenge'],
-        })
+        return self.respond({"challenge": data["challenge"]})
+
+    def on_message(self, request, integration, token, data):
+        channel = data["channel"]
+        # if it's a message posted by our bot, we don't want to respond since
+        # that will cause an infinite loop of messages
+        if data.get("bot_id"):
+            return self.respond()
+
+        access_token = self._get_access_token(integration)
+
+        headers = {"Authorization": "Bearer %s" % access_token}
+        payload = {
+            "channel": channel,
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Want to learn more about configuring alerts in Sentry? Check out our documentation.",
+                    },
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "Sentry Docs"},
+                            "url": "https://docs.sentry.io/product/alerts-notifications/alerts/",
+                            "value": "sentry_docs_link_clicked",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        client = SlackClient()
+        try:
+            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+        except ApiError as e:
+            logger.error("slack.event.on-message-error", extra={"error": six.text_type(e)})
+
+        return self.respond()
 
     def on_link_shared(self, request, integration, token, data):
-        issue_map = {}
-        for item in data['links']:
-            issue_id = self._parse_issue_id_from_url(item['url'])
-            if not issue_id:
+        parsed_events = defaultdict(dict)
+        for item in data["links"]:
+            event_type, instance_id = self._parse_url(item["url"])
+            if not instance_id:
                 continue
-            issue_map[issue_id] = item['url']
+            parsed_events[event_type][instance_id] = item["url"]
 
-        if not issue_map:
+        if not parsed_events:
             return
 
-        results = {
-            g.id: g for g in Group.objects.filter(
-                id__in=set(issue_map.keys()),
-                project__in=Project.objects.filter(
-                    organization__in=integration.organizations.all(),
-                )
-            )
-        }
+        results = {}
+        for event_type, instance_map in parsed_events.items():
+            results.update(self.event_handlers[event_type](integration, instance_map))
+
         if not results:
             return
 
+        access_token = self._get_access_token(integration)
+
         payload = {
-            'token': integration.metadata['access_token'],
-            'channel': data['channel'],
-            'ts': data['message_ts'],
-            'unfurls': json.dumps({
-                v: build_attachment(results[k])
-                for k, v in six.iteritems(issue_map)
-                if k in results
-            }),
-            # 'user_auth_required': False,
-            # 'user_auth_message': 'You can enable automatic unfurling of Sentry URLs by having a Sentry admin configure the Slack integration.',
-            # we dont have a generic URL that this will work for your
-            # 'user_auth_url': '...',
+            "token": access_token,
+            "channel": data["channel"],
+            "ts": data["message_ts"],
+            "unfurls": json.dumps(results),
         }
 
-        session = http.build_session()
-        req = session.post('https://slack.com/api/chat.unfurl', data=payload)
-        req.raise_for_status()
-        resp = req.json()
-        if not resp.get('ok'):
-            logger.error('slack.event.unfurl-error', extra={'response': resp})
+        client = SlackClient()
+        try:
+            client.post("/chat.unfurl", data=payload)
+        except ApiError as e:
+            logger.error("slack.event.unfurl-error", extra={"error": six.text_type(e)})
 
         return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
+    @transaction_start("SlackEventEndpoint")
     def post(self, request):
-        logging_data = {}
-
         try:
-            data = request.DATA
-        except (ValueError, TypeError):
-            logger.error('slack.event.invalid-json', extra=logging_data)
-            return self.respond(status=400)
+            slack_request = SlackEventRequest(request)
+            slack_request.validate()
+        except SlackRequestError as e:
+            return self.respond(status=e.status)
 
-        event_id = data.get('event_id')
-        team_id = data.get('team_id')
-        api_app_id = data.get('api_app_id')
-        # TODO(dcramer): should we verify this here?
-        # authed_users = data.get('authed_users')
+        if slack_request.is_challenge():
+            return self.on_url_verification(request, slack_request.data)
 
-        logging_data.update({
-            'slack_team_id': team_id,
-            'slack_api_app_id': api_app_id,
-            'slack_event_id': event_id,
-        })
-
-        token = data.get('token')
-        if token != options.get('slack.verification-token'):
-            logger.error('slack.event.invalid-token', extra=logging_data)
-            return self.respond(status=400)
-        payload_type = data.get('type')
-        logger.info('slack.event.{}'.format(payload_type), extra=logging_data)
-        if payload_type == 'url_verification':
-            return self.on_url_verification(request, data)
-
-        try:
-            integration = Integration.objects.get(
-                provider='slack',
-                external_id=team_id,
+        if slack_request.type == "link_shared":
+            resp = self.on_link_shared(
+                request,
+                slack_request.integration,
+                slack_request.data.get("token"),
+                slack_request.data.get("event"),
             )
-        except Integration.DoesNotExist:
-            logger.error('slack.event.unknown-team-id', extra=logging_data)
-            return self.respond(status=400)
 
-        logging_data['integration_id'] = integration.id
+            if resp:
+                return resp
 
-        event_data = data.get('event')
-        if not event_data:
-            logger.error('slack.event.invalid-event-data', extra=logging_data)
-            return self.respond(status=400)
+        if slack_request.type == "message":
+            resp = self.on_message(
+                request,
+                slack_request.integration,
+                slack_request.data.get("token"),
+                slack_request.data.get("event"),
+            )
 
-        event_type = event_data.get('type')
-        if not event_data:
-            logger.error('slack.event.invalid-event-type', extra=logging_data)
-            return self.respond(status=400)
+            if resp:
+                return resp
 
-        logging_data['slack_event_type'] = event_type
-        if event_type == 'link_shared':
-            resp = self.on_link_shared(request, integration, token, event_data)
-        else:
-            resp = None
-        if resp:
-            return resp
         return self.respond()

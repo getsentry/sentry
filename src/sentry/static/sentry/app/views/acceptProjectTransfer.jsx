@@ -4,13 +4,13 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import NarrowLayout from 'app/components/narrowLayout';
-import Select2Field from 'app/views/settings/components/forms/select2Field';
+import SelectField from 'app/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {t, tct} from 'app/locale';
 
 class AcceptProjectTransfer extends AsyncView {
   getEndpoints() {
-    let query = this.props.location.query;
+    const query = this.props.location.query;
     return [['transferDetails', '/accept-transfer/', {query}]];
   }
 
@@ -18,114 +18,83 @@ class AcceptProjectTransfer extends AsyncView {
     return t('Accept Project Transfer');
   }
 
-  hasTeamsFeature() {
-    let {transferDetails} = this.state;
-    return transferDetails.organizations.every(org => {
-      let features = new Set(org.features);
-      return features.has('new-teams');
-    });
-  }
-
   handleSubmit = formData => {
-    let hasTeamsFeature = this.hasTeamsFeature();
-    let kwargs = hasTeamsFeature
-      ? {organization: formData.organization}
-      : {team: formData.team};
     this.api.request('/accept-transfer/', {
       method: 'POST',
       data: {
         data: this.props.location.query.data,
-        ...kwargs,
+        organization: formData.organization,
       },
       success: () => {
-        let orgSlug;
-        if (hasTeamsFeature) {
-          orgSlug = formData.organization;
-        } else {
-          this.state.transferDetails.organizations.forEach(o => {
-            if (!orgSlug) {
-              o.teams.forEach(team => {
-                if (team.id === formData.team) {
-                  orgSlug = o.slug;
-                }
-              });
-            }
-          });
-        }
+        const orgSlug = formData.organization;
+
         this.props.router.push(`/${orgSlug}`);
         addSuccessMessage(t('Project successfully transferred'));
       },
       error: error => {
-        addErrorMessage(t('Unable to transfer project.'));
+        const errorMsg =
+          error && error.responseJSON && typeof error.responseJSON.detail === 'string'
+            ? error.responseJSON.detail
+            : '';
+
+        addErrorMessage(
+          t('Unable to transfer project') + errorMsg ? `: ${errorMsg}` : ''
+        );
       },
     });
   };
 
+  renderError(error) {
+    let disableLog = false;
+    // Check if there is an error message with `transferDetails` endpoint
+    // If so, show as toast and ignore, otherwise log to sentry
+    if (error && error.responseJSON && typeof error.responseJSON.detail === 'string') {
+      addErrorMessage(error.responseJSON.detail);
+      disableLog = true;
+    }
+
+    super.renderError(error, disableLog);
+  }
+
   renderBody() {
-    let {transferDetails} = this.state;
-    let choices = [];
-    let hasTeamsFeature = this.hasTeamsFeature();
+    const {transferDetails} = this.state;
+    const choices = [];
 
     transferDetails.organizations.forEach(org => {
-      if (hasTeamsFeature) {
-        choices.push([org.slug, org.slug]);
-      } else {
-        org.teams.forEach(team => {
-          choices.push([team.id, `#${team.slug} - ${org.slug}`]);
-        });
-      }
+      choices.push([org.slug, org.slug]);
     });
     return (
       <NarrowLayout>
         <SettingsPageHeader title={t('Approve Transfer Project Request')} />
         <p>
-          {hasTeamsFeature
-            ? tct(
-                'Projects must be transferred to a specific [organization]. ' +
-                  'You can grant specific teams access to the project later under the [projectSettings].',
-                {
-                  organization: <strong>{t('Organization')}</strong>,
-                  projectSettings: <strong>{t('Project Settings')}</strong>,
-                }
-              )
-            : tct(
-                'Projects must be transferred to a specific [team] in order to be moved over to another [organization]. ' +
-                  'You can always change the team later under the [projectSettings].',
-                {
-                  team: <strong>{t('Team')}</strong>,
-                  organization: <strong>{t('Organization')}</strong>,
-                  projectSettings: <strong>{t('Project Settings')}</strong>,
-                }
-              )}
+          {tct(
+            'Projects must be transferred to a specific [organization]. ' +
+              'You can grant specific teams access to the project later under the [projectSettings]. ' +
+              '(Note that granting access to at least one team is necessary for the project to ' +
+              'appear in all parts of the UI.)',
+            {
+              organization: <strong>{t('Organization')}</strong>,
+              projectSettings: <strong>{t('Project Settings')}</strong>,
+            }
+          )}
         </p>
         <p>
-          {hasTeamsFeature
-            ? tct(
-                'Please select which [organization] you want for the project [project].',
-                {
-                  organization: <strong>{t('Organization')}</strong>,
-                  project: transferDetails.project.slug,
-                }
-              )
-            : tct('Please select which [team] you want for the project [project].', {
-                team: <strong>{t('Team')}</strong>,
-                project: transferDetails.project.slug,
-              })}
+          {tct('Please select which [organization] you want for the project [project].', {
+            organization: <strong>{t('Organization')}</strong>,
+            project: transferDetails.project.slug,
+          })}
         </p>
         <Form
           onSubmit={this.handleSubmit}
           submitLabel={t('Transfer Project')}
           submitPriority="danger"
-          initialData={
-            hasTeamsFeature
-              ? {organization: choices[0] && choices[0][0]}
-              : {team: choices[0] && choices[0][0]}
-          }
+          initialData={{organization: choices[0] && choices[0][0]}}
         >
-          <Select2Field
+          <SelectField
+            deprecatedSelectControl
             choices={choices}
-            label={hasTeamsFeature ? t('Organization') : t('Team')}
-            name={hasTeamsFeature ? 'organization' : 'team'}
+            label={t('Organization')}
+            name="organization"
             style={{borderBottom: 'none'}}
           />
         </Form>

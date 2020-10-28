@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['ProviderManager']
+__all__ = ["ProviderManager"]
 
 import six
 
@@ -8,7 +8,7 @@ from .exceptions import ProviderNotRegistered
 
 
 # Ideally this and PluginManager abstracted from the same base, but
-# InstanceManager has become convulated and wasteful
+# InstanceManager has become convoluted and wasteful
 class ProviderManager(object):
     def __init__(self):
         self.__values = {}

@@ -1,31 +1,15 @@
 from __future__ import absolute_import
 
 from sentry import tagstore
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import DateTimePaginator, Paginator
+from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
-from sentry.models import Group, Environment
-from sentry.tagstore.types import GroupTagValue
-from sentry.utils.apidocs import scenario
-
-
-@scenario('ListTagValues')
-def list_tag_values_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(
-        method='GET',
-        path='/issues/%s/tags/%s/values/' % (group.id, 'browser'),
-    )
 
 
 class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
-    doc_section = DocSection.EVENTS
-
-    # XXX: this scenario does not work for some inexplicable reasons
-    # @attach_scenarios([list_tag_values_scenario])
     def get(self, request, group, key):
         """
         List a Tag's Values
@@ -39,55 +23,32 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         lookup_key = tagstore.prefix_reserved_key(key)
 
-        try:
-            environment_id = self._get_environment_id_from_request(
-                request, group.project.organization_id)
-        except Environment.DoesNotExist:
-            # if the environment doesn't exist then the tag can't possibly exist
-            raise ResourceDoesNotExist
+        environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
         try:
-            tagstore.get_tag_key(group.project_id, environment_id, lookup_key)
+            tagstore.get_tag_key(group.project_id, None, lookup_key)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        queryset = tagstore.get_group_tag_value_qs(
-            group.project_id, group.id, environment_id, lookup_key)
-
-        sort = request.GET.get('sort')
-        if sort == 'date':
-            order_by = '-last_seen'
-            paginator_cls = DateTimePaginator
-        elif sort == 'age':
-            order_by = '-first_seen'
-            paginator_cls = DateTimePaginator
+        sort = request.GET.get("sort")
+        if sort == "date":
+            order_by = "-last_seen"
+        elif sort == "age":
+            order_by = "-first_seen"
         else:
-            order_by = '-id'
-            paginator_cls = Paginator
+            order_by = "-id"
 
-        if key == 'user':
+        if key == "user":
             serializer_cls = UserTagValueSerializer(group.project_id)
         else:
             serializer_cls = None
 
+        paginator = tagstore.get_group_tag_value_paginator(
+            group.project_id, group.id, environment_ids, lookup_key, order_by=order_by
+        )
+
         return self.paginate(
             request=request,
-            queryset=queryset,
-            order_by=order_by,
-            paginator_cls=paginator_cls,
-            on_results=lambda results: serialize(
-                map(  # XXX: This is a pretty big abstraction leak
-                    lambda instance: GroupTagValue(
-                        group_id=instance.group_id,
-                        key=instance.key,
-                        value=instance.value,
-                        times_seen=instance.times_seen,
-                        last_seen=instance.last_seen,
-                        first_seen=instance.first_seen,
-                    ),
-                    results,
-                ),
-                request.user,
-                serializer_cls,
-            ),
+            paginator=paginator,
+            on_results=lambda results: serialize(results, request.user, serializer_cls),
         )

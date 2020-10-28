@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {isWebpackChunkLoadingError} from 'app/utils';
 import {t} from 'app/locale';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -37,7 +39,12 @@ class LazyLoad extends React.Component {
     this.fetchComponent();
   }
 
-  componentWillReceiveProps(nextProps, nextState) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    // No need to refetch when component does not change
+    if (nextProps.component && nextProps.component === this.props.component) {
+      return;
+    }
+
     // This is to handle the following case:
     // <Route path="a/">
     //   <Route path="b/" component={LazyLoad} componentPromise={...} />
@@ -46,7 +53,9 @@ class LazyLoad extends React.Component {
     //
     // `LazyLoad` will get not fully remount when we switch between `b` and `c`,
     // instead will just re-render.  Refetch if route paths are different
-    if (nextProps.route && nextProps.route === this.props.route) return;
+    if (nextProps.route && nextProps.route === this.props.route) {
+      return;
+    }
 
     // If `this.fetchComponent` is not in callback,
     // then there's no guarantee that new Component will be rendered
@@ -58,33 +67,43 @@ class LazyLoad extends React.Component {
     );
   }
 
-  componentDidCatch(error, info) {
-    this.handleFetchError(error);
+  componentDidCatch(error) {
+    Sentry.captureException(error);
+    this.handleError(error);
   }
 
   getComponentGetter = () => this.props.component || this.props.route.componentPromise;
 
   handleFetchError = error => {
+    Sentry.withScope(scope => {
+      if (isWebpackChunkLoadingError(error)) {
+        scope.setFingerprint(['webpack', 'error loading chunk']);
+      }
+      Sentry.captureException(error);
+    });
+    this.handleError(error);
+  };
+
+  handleError = error => {
     // eslint-disable-next-line no-console
     console.error(error);
-    Raven.captureException(error, {fingerprint: ['webpack', 'error loading chunk']});
     this.setState({
       error,
     });
   };
 
-  fetchComponent = () => {
-    let getComponent = this.getComponentGetter();
+  async fetchComponent() {
+    const getComponent = this.getComponentGetter();
 
-    retryableImport(getComponent)
-      .then(Component => {
-        // Always load default export if available
-        this.setState({
-          Component: Component.default || Component,
-        });
-      }, this.handleFetchError)
-      .catch(this.handleFetchError);
-  };
+    try {
+      const Component = await retryableImport(getComponent);
+      this.setState({
+        Component: Component.default || Component,
+      });
+    } catch (err) {
+      this.handleFetchError(err);
+    }
+  }
 
   fetchRetry = () => {
     this.setState(
@@ -96,23 +115,40 @@ class LazyLoad extends React.Component {
   };
 
   render() {
-    let {Component, error} = this.state;
-    // eslint-disable-next-line no-unused-vars
-    let {hideBusy, hideError, component, ...otherProps} = this.props;
+    const {Component, error} = this.state;
+    const {hideBusy, hideError, component: _component, ...otherProps} = this.props;
 
     if (error && !hideError) {
       return (
-        <LoadingError
-          onRetry={this.fetchRetry}
-          message={t('There was an error loading a component.')}
-        />
+        <LoadingErrorContainer>
+          <LoadingError
+            onRetry={this.fetchRetry}
+            message={t('There was an error loading a component.')}
+          />
+        </LoadingErrorContainer>
       );
     }
 
-    if (!Component && !hideBusy) return <LoadingIndicator />;
+    if (!Component && !hideBusy) {
+      return (
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
+      );
+    }
 
     return <Component {...otherProps} />;
   }
 }
+
+const LoadingContainer = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
+
+const LoadingErrorContainer = styled('div')`
+  flex: 1;
+`;
 
 export default LazyLoad;

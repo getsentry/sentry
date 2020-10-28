@@ -1,9 +1,8 @@
-/*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
 import InternalStatChart from 'app/components/internalStatChart';
-import {Select2Field} from 'app/components/forms';
+import {SelectField} from 'app/components/forms';
 
 export default class AdminQueue extends AsyncView {
   getDefaultState() {
@@ -37,29 +36,27 @@ export default class AdminQueue extends AsyncView {
     });
   }
 
-  changeTask(value) {
+  changeTask = value => {
     this.setState({activeTask: value});
-  }
+  };
 
   renderBody() {
-    let {activeTask, taskList} = this.state;
+    const {activeTask, taskList} = this.state;
 
     return (
       <div>
         <div className="btn-group pull-right">
-          {['1h', '1d', '1w'].map(r => {
-            return (
-              <a
-                className={`btn btn-sm ${r == this.state.timeWindow
-                  ? 'btn-primary'
-                  : 'btn-default'}`}
-                onClick={() => this.changeWindow(r)}
-                key={r}
-              >
-                {r}
-              </a>
-            );
-          })}
+          {['1h', '1d', '1w'].map(r => (
+            <a
+              className={`btn btn-sm ${
+                r === this.state.timeWindow ? 'btn-primary' : 'btn-default'
+              }`}
+              onClick={() => this.changeWindow(r)}
+              key={r}
+            >
+              {r}
+            </a>
+          ))}
         </div>
 
         <h3 className="no-border">Queue Overview</h3>
@@ -81,11 +78,12 @@ export default class AdminQueue extends AsyncView {
         <div>
           <div>
             <label>Show details for task:</label>
-            <Select2Field
+            <SelectField
+              deprecatedSelectControl
               name="task"
               onChange={this.changeTask}
               value={activeTask}
-              allowClear={true}
+              allowClear
               choices={[''].concat(...taskList).map(t => [t, t])}
             />
           </div>

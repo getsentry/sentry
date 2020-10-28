@@ -1,38 +1,37 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron, IconMail} from 'app/icons';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import {PanelFooter} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import accountNotificationFields from 'app/data/forms/accountNotificationSettings';
 
 const FINE_TUNE_FOOTERS = {
-  Alerts: {
-    text: 'Fine tune alerts by project',
+  [t('Alerts')]: {
+    text: t('Fine tune alerts by project'),
     path: 'alerts/',
   },
-  'Workflow Notifications': {
-    text: 'Fine tune workflow notifications by project',
+  [t('Workflow Notifications')]: {
+    text: t('Fine tune workflow notifications by project'),
     path: 'workflow/',
   },
-  'Email Routing': {
-    text: 'Fine tune email routing by project',
+  [t('Email Routing')]: {
+    text: t('Fine tune email routing by project'),
     path: 'email/',
   },
-  'Weekly Reports': {
-    text: 'Fine tune weekly reports by organization',
+  [t('Weekly Reports')]: {
+    text: t('Fine tune weekly reports by organization'),
     path: 'reports/',
   },
-  'Deploy Notifications': {
-    text: 'Fine tune deploy notifications by organization',
+  [t('Deploy Notifications')]: {
+    text: t('Fine tune deploy notifications by organization'),
     path: 'deploy/',
   },
 };
@@ -56,20 +55,18 @@ export default class AccountNotifications extends AsyncView {
           apiMethod="PUT"
           apiEndpoint="/users/me/notifications/"
         >
-          <Box>
-            <JsonForm
-              forms={accountNotificationFields}
-              renderFooter={({title}) => {
-                if (FINE_TUNE_FOOTERS[title]) {
-                  return <FineTuningFooter {...FINE_TUNE_FOOTERS[title]} />;
-                }
-                return null;
-              }}
-            />
-            <AlertLink to="/settings/account/emails" icon="icon-mail">
-              {t('Looking to add or remove an email address? Use the emails panel.')}
-            </AlertLink>
-          </Box>
+          <JsonForm
+            forms={accountNotificationFields}
+            renderFooter={({title}) => {
+              if (FINE_TUNE_FOOTERS[title]) {
+                return <FineTuningFooter {...FINE_TUNE_FOOTERS[title]} />;
+              }
+              return null;
+            }}
+          />
+          <AlertLink to="/settings/account/emails" icon={<IconMail />}>
+            {t('Looking to add or remove an email address? Use the emails panel.')}
+          </AlertLink>
         </Form>
       </div>
     );
@@ -90,14 +87,14 @@ class FineTuningFooter extends React.Component {
   };
 
   render() {
-    let {path, text} = this.props;
-    let baseUrl = '/settings/account/notifications/';
+    const {path, text} = this.props;
+    const baseUrl = '/settings/account/notifications/';
 
     return (
       <PanelFooter css={{borderTop: 'none'}}>
         <FineTuneLink to={`${baseUrl}${path}`}>
           <span>{text}</span>
-          <InlineSvg src="icon-chevron-right" size="15px" />
+          <IconChevron direction="right" size="15px" />
         </FineTuneLink>
       </PanelFooter>
     );

@@ -7,11 +7,9 @@ from sentry.testutils import TestCase
 
 class DeleteTeamTest(TestCase):
     def test_simple(self):
-        team = self.create_team(
-            name='test',
-        )
-        project1 = self.create_project(teams=[team], name='test1')
-        project2 = self.create_project(teams=[team], name='test2')
+        team = self.create_team(name="test")
+        project1 = self.create_project(teams=[team], name="test1")
+        project2 = self.create_project(teams=[team], name="test2")
         assert project1.teams.first() == team
         assert project2.teams.first() == team
 

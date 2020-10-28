@@ -2,43 +2,32 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import integrations
+from sentry import integrations, features
 from sentry.api.bases.organization import OrganizationEndpoint
-
-from sentry import features
-from django.conf import settings
+from sentry.api.serializers import serialize, IntegrationProviderSerializer
+from sentry.utils.compat import filter
 
 
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
-        providers = []
-        has_catchall = features.has('organizations:internal-catchall',
-                                    organization,
-                                    actor=request.user)
+        def is_provider_enabled(provider):
+            if not provider.requires_feature_flag:
+                return True
+            feature_flag_name = "organizations:integrations-%s" % provider.key
+            return features.has(feature_flag_name, organization, actor=request.user)
 
-        for provider in integrations.all():
-            metadata = provider.metadata
-            metadata = metadata and metadata._asdict() or None
+        providers = filter(is_provider_enabled, list(integrations.all()))
 
-            if not has_catchall and provider.key in settings.SENTRY_INTERNAL_INTEGRATIONS:
-                continue
-            providers.append(
-                {
-                    'key': provider.key,
-                    'name': provider.name,
-                    'metadata': metadata,
-                    'config': provider.get_config(),
-                    'canAdd': provider.can_add,
-                    'setupDialog': dict(
-                        url='/organizations/{}/integrations/{}/setup/'.format(
-                            organization.slug,
-                            provider.key,
-                        ),
-                        **provider.setup_dialog_config
-                    )
-                }
-            )
+        providers.sort(key=lambda i: i.key)
 
-        return Response({
-            'providers': providers,
-        })
+        serialized = serialize(
+            providers, organization=organization, serializer=IntegrationProviderSerializer()
+        )
+
+        if "provider_key" in request.GET:
+            serialized = [d for d in serialized if d["key"] == request.GET["provider_key"]]
+
+        if not serialized:
+            return Response({"detail": "Providers do not exist"}, status=404)
+
+        return Response({"providers": serialized})

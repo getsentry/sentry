@@ -1,79 +1,56 @@
 from __future__ import absolute_import
 
-from sentry import tagstore
-from sentry.models import EventUser
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class GroupTagKeyValuesTest(APITestCase):
+class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_simple(self):
-        key, value = 'foo', 'bar'
+        key, value = "foo", "bar"
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        tagstore.create_tag_key(project_id=project.id, environment_id=None, key=key)
-        tagstore.create_tag_value(
+
+        event = self.store_event(
+            data={"tags": {key: value}, "timestamp": iso_format(before_now(seconds=1))},
             project_id=project.id,
-            environment_id=None,
-            key=key,
-            value=value,
         )
-        tagstore.create_group_tag_value(
-            project_id=project.id,
-            group_id=group.id,
-            environment_id=None,
-            key=key,
-            value=value,
-        )
+        group = event.group
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/tags/{}/values/'.format(group.id, key)
+        url = u"/api/0/issues/{}/tags/{}/values/".format(group.id, key)
 
         response = self.client.get(url)
 
         assert response.status_code == 200
         assert len(response.data) == 1
 
-        assert response.data[0]['value'] == 'bar'
+        assert response.data[0]["value"] == "bar"
 
     def test_user_tag(self):
         project = self.create_project()
-        group = self.create_group(project=project)
-        euser = EventUser.objects.create(
+        event = self.store_event(
+            data={
+                "user": {
+                    "id": 1,
+                    "email": "foo@example.com",
+                    "username": "foo",
+                    "ip_address": "127.0.0.1",
+                },
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
             project_id=project.id,
-            ident='1',
-            email='foo@example.com',
-            username='foo',
-            ip_address='127.0.0.1',
         )
-        tagstore.create_tag_key(
-            project_id=project.id,
-            environment_id=None,
-            key='sentry:user',
-        )
-        tagstore.create_tag_value(
-            project_id=project.id,
-            environment_id=None,
-            key='sentry:user',
-            value=euser.tag_value,
-        )
-        tagstore.create_group_tag_value(
-            project_id=project.id,
-            group_id=group.id,
-            environment_id=None,
-            key='sentry:user',
-            value=euser.tag_value,
-        )
+        group = event.group
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/tags/user/values/'.format(group.id)
+        url = u"/api/0/issues/{}/tags/user/values/".format(group.id)
 
         response = self.client.get(url)
 
         assert response.status_code == 200
         assert len(response.data) == 1
 
-        assert response.data[0]['email'] == 'foo@example.com'
-        assert response.data[0]['value'] == euser.tag_value
+        assert response.data[0]["email"] == "foo@example.com"
+        assert response.data[0]["value"] == "id:1"

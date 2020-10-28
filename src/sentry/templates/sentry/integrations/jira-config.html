@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="{{ ac_js_src }}"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+  <script src="//aui-cdn.atlassian.com/aui-adg/6.0.9/js/aui.min.js"></script>
+  <link rel="stylesheet" href="//aui-cdn.atlassian.com/aui-adg/6.0.9/css/aui.min.css" media="all">
+  <style>
+  body {
+    background: transparent;
+  }
+  .container {
+    padding: 30px;
+  }
+  </style>
+</head>
+<body>
+  <div class="container">
+      <h2>Finish Installation</h2>
+      {% if error_message %}
+        {{ error_message }}
+      {% elif refresh_required %}
+        <div class="aui-message aui-message-info">
+          <p>This page has expired, please refresh to configure your Sentry integration</p>
+        </div>
+      {% else %}
+        <a target="_blank" href="{{ finish_link}} " class="aui-button-primary aui-button">
+          Click to Finish Installation
+        </a>
+      {% endif %}
+  </div>
+</body>
+</html>

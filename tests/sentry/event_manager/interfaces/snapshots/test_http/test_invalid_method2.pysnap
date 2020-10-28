@@ -1,0 +1,11 @@
+---
+created: '2019-03-14T17:12:35.827385Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_http.py
+---
+errors:
+- name: request.method
+  type: invalid_data
+  value: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+to_json:
+  url: http://example.com/

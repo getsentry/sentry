@@ -1,9 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
+import {css} from '@emotion/core';
 
 import IssueDiff from 'app/components/issueDiff';
-import 'app/../less/components/modals/diffModal.less';
 
 class DiffModal extends React.Component {
   static propTypes = {
@@ -11,15 +10,37 @@ class DiffModal extends React.Component {
   };
 
   render() {
-    let {className, Body} = this.props;
-    let cx = classNames('diff-modal', className);
+    const {className, Body} = this.props;
 
     return (
       <Body>
-        <IssueDiff className={cx} {...this.props} />
+        <IssueDiff className={className} {...this.props} />
       </Body>
     );
   }
 }
+
+const modalCss = css`
+  .modal-dialog {
+    display: flex;
+    margin: 0;
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    bottom: 10px;
+    width: auto;
+  }
+  .modal-content {
+    display: flex;
+    flex: 1;
+  }
+  .modal-body {
+    display: flex;
+    overflow: hidden;
+    flex: 1;
+  }
+`;
+
+export {modalCss};
 
 export default DiffModal;

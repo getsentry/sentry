@@ -1,27 +1,29 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {inputStyles} from 'app/styles/input';
 import {selectText} from 'app/utils/selectText';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCopy} from 'app/icons';
 
-const StyledInput = styled(props => {
-  return <input {...props} />;
-})`
+const Wrapper = styled('div')`
+  display: flex;
+`;
+
+const StyledInput = styled('input')`
   ${inputStyles};
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   border-right-width: 0;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+  direction: ${p => (p.rtl ? 'rtl' : 'ltr')};
 
   &:hover,
   &:focus {
-    background-color: ${p => p.theme.offWhite};
+    background-color: ${p => p.theme.gray100};
     border-right-width: 0;
   }
 `;
@@ -48,6 +50,10 @@ class TextCopyInput extends React.Component {
      */
     style: PropTypes.object,
     onCopy: PropTypes.func,
+    /**
+     * Always show the ending of a long overflowing text in input
+     */
+    rtl: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -56,13 +62,16 @@ class TextCopyInput extends React.Component {
 
   constructor(props) {
     super(props);
+    this.textRef = React.createRef();
   }
 
   // Select text when copy button is clicked
   handleCopyClick = e => {
-    if (!this.textRef) return;
+    if (!this.textRef.current) {
+      return;
+    }
 
-    let {onCopy} = this.props;
+    const {onCopy} = this.props;
 
     this.handleSelectText();
 
@@ -72,38 +81,55 @@ class TextCopyInput extends React.Component {
   };
 
   handleSelectText = () => {
-    if (!this.textRef) return;
+    const {rtl} = this.props;
+
+    if (!this.textRef.current) {
+      return;
+    }
 
     // We use findDOMNode here because `this.textRef` is not a dom node,
     // it's a ref to AutoSelectText
-    // eslint-disable-next-line react/no-find-dom-node
-    selectText(ReactDOM.findDOMNode(this.textRef));
-  };
+    const node = ReactDOM.findDOMNode(this.textRef.current); // eslint-disable-line react/no-find-dom-node
 
-  handleAutoMount = ref => {
-    this.textRef = ref;
+    if (rtl) {
+      // we don't want to select the first character - \u202A, nor the last - \u202C
+      node.setSelectionRange(1, node.value.length - 1);
+    } else {
+      selectText(node);
+    }
   };
 
   render() {
-    let {style, children} = this.props;
+    const {style, children, rtl} = this.props;
+
+    /**
+     * We are using direction: rtl; to always show the ending of a long overflowing text in input.
+     *
+     * This however means that the trailing characters with BiDi class O.N. ('Other Neutrals') goes to the other side.
+     * Hello! becomes !Hello and vice versa. This is a problem for us when we want to show path in this component, because
+     * /user/local/bin becomes user/local/bin/. Wrapping in unicode characters for left-to-righ embedding solves this,
+     * however we need to be aware of them when selecting the text - we are solving that by offseting the selectionRange.
+     */
+    const inputValue = rtl ? '\u202A' + children + '\u202C' : children;
 
     return (
-      <Flex>
+      <Wrapper>
         <OverflowContainer>
           <StyledInput
             readOnly
-            ref={this.handleAutoMount}
+            ref={this.textRef}
             style={style}
-            value={children}
+            value={inputValue}
             onClick={this.handleSelectText}
+            rtl={rtl}
           />
         </OverflowContainer>
         <Clipboard hideUnsupported onClick={this.handleCopyClick} value={children}>
           <StyledCopyButton type="button" size="xsmall" onClick={this.handleCopyClick}>
-            <InlineSvg src="icon-clipboard" size="1.25em" />
+            <IconCopy />
           </StyledCopyButton>
         </Clipboard>
-      </Flex>
+      </Wrapper>
     );
   }
 }

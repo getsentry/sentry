@@ -1,31 +1,69 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ShareIssue from 'app/components/shareIssue';
 
-describe('ShareIssue', function() {
-  it('renders when not shared', function() {
-    let wrapper = shallow(
-      <ShareIssue isSharing={false} onToggle={() => {}} onShare={() => {}} />
+describe('ShareIssue', () => {
+  it('renders when not shared', () => {
+    const wrapper = mountWithTheme(
+      <ShareIssue
+        isShared={false}
+        loading={false}
+        onToggle={() => {}}
+        onReshare={() => {}}
+      />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders when shared ', function() {
-    let wrapper = shallow(
+  it('renders when shared', () => {
+    const wrapper = mountWithTheme(
       <ShareIssue
-        isSharing={true}
+        isShared
+        loading={false}
         onToggle={() => {}}
-        onShare={() => {}}
+        onReshare={() => {}}
         shareUrl="http://sentry.io/share/test/"
       />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders when busy', function() {
-    let wrapper = shallow(
-      <ShareIssue onToggle={() => {}} onShare={() => {}} busy={true} />
+  it('renders when busy', () => {
+    const wrapper = mountWithTheme(
+      <ShareIssue loading isShared={false} onToggle={() => {}} onReshare={() => {}} />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
+  });
+
+  it('call onToggle on open', () => {
+    const toggleFn = jest.fn();
+    const wrapper = mountWithTheme(
+      <ShareIssue
+        isShared={false}
+        loading={false}
+        onToggle={toggleFn}
+        onReshare={() => {}}
+      />
+    );
+    wrapper.find('.dropdown-actor').simulate('click');
+    expect(toggleFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('call onToggle on switch', () => {
+    const toggleFn = jest.fn();
+    const wrapper = mountWithTheme(
+      <ShareIssue
+        isShared={false}
+        loading={false}
+        onToggle={toggleFn}
+        onReshare={() => {}}
+      />
+    );
+    wrapper.find('.dropdown-actor').simulate('click');
+    expect(toggleFn).toHaveBeenCalledTimes(1);
+    wrapper.find('Switch').simulate('click');
+    expect(toggleFn).toHaveBeenCalledTimes(2);
   });
 });

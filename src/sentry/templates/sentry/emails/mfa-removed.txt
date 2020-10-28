@@ -6,4 +6,5 @@ An authenticator has been removed from your Sentry account.
 
 {% block security_metadata %}
 Authenticator: {{ authenticator.interface.name }}
+{% if device_name %}Device: {{ device_name }}{% endif %}
 {% endblock %}

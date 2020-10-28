@@ -5,8 +5,10 @@ import itertools
 import logging
 
 from sentry.utils.dates import to_timestamp
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
-logger = logging.getLogger('sentry.similarity')
+logger = logging.getLogger("sentry.similarity")
 
 
 def get_application_chunks(exception):
@@ -19,11 +21,8 @@ def get_application_chunks(exception):
         lambda in_app__frames: list(in_app__frames[1]),
         itertools.ifilter(
             lambda in_app__frames: in_app__frames[0],
-            itertools.groupby(
-                exception.stacktrace.frames,
-                key=lambda frame: frame.in_app,
-            )
-        )
+            itertools.groupby(exception.stacktrace.frames, key=lambda frame: frame.in_app),
+        ),
     )
 
 
@@ -37,7 +36,7 @@ class ExceptionFeature(object):
 
     def extract(self, event):
         try:
-            interface = event.interfaces['sentry.interfaces.Exception']
+            interface = event.interfaces["exception"]
         except KeyError:
             raise InterfaceDoesNotExist()
         return self.function(interface.values[0])
@@ -49,7 +48,7 @@ class MessageFeature(object):
 
     def extract(self, event):
         try:
-            interface = event.interfaces['sentry.interfaces.Message']
+            interface = event.interfaces["logentry"]
         except KeyError:
             raise InterfaceDoesNotExist()
         return self.function(interface)
@@ -57,8 +56,13 @@ class MessageFeature(object):
 
 class FeatureSet(object):
     def __init__(
-        self, index, encoder, aliases, features, expected_extraction_errors,
-        expected_encoding_errors
+        self,
+        index,
+        encoder,
+        aliases,
+        features,
+        expected_extraction_errors,
+        expected_encoding_errors,
     ):
         self.index = index
         self.encoder = encoder
@@ -69,10 +73,10 @@ class FeatureSet(object):
         assert set(self.aliases) == set(self.features)
 
     def __get_scope(self, project):
-        return '{}'.format(project.id)
+        return u"{}".format(project.id)
 
     def __get_key(self, group):
-        return '{}'.format(group.id)
+        return u"{}".format(group.id)
 
     def extract(self, event):
         results = {}
@@ -81,11 +85,12 @@ class FeatureSet(object):
                 results[label] = strategy.extract(event)
             except Exception as error:
                 log = (
-                    logger.debug if isinstance(error, self.expected_extraction_errors) else
-                    functools.partial(logger.warning, exc_info=True)
+                    logger.debug
+                    if isinstance(error, self.expected_extraction_errors)
+                    else functools.partial(logger.warning, exc_info=True)
                 )
                 log(
-                    'Could not extract features from %r for %r due to error: %r',
+                    "Could not extract features from %r for %r due to error: %r",
                     event,
                     label,
                     error,
@@ -102,44 +107,42 @@ class FeatureSet(object):
 
         items = []
         for event in events:
+            if not event.group_id:
+                continue
             for label, features in self.extract(event).items():
                 if scope is None:
                     scope = self.__get_scope(event.project)
                 else:
-                    assert self.__get_scope(
-                        event.project
-                    ) == scope, 'all events must be associated with the same project'
+                    assert (
+                        self.__get_scope(event.project) == scope
+                    ), "all events must be associated with the same project"
 
                 if key is None:
                     key = self.__get_key(event.group)
                 else:
-                    assert self.__get_key(
-                        event.group
-                    ) == key, 'all events must be associated with the same group'
+                    assert (
+                        self.__get_key(event.group) == key
+                    ), "all events must be associated with the same group"
 
                 try:
                     features = map(self.encoder.dumps, features)
                 except Exception as error:
                     log = (
-                        logger.debug if isinstance(error, self.expected_encoding_errors) else
-                        functools.partial(logger.warning, exc_info=True)
+                        logger.debug
+                        if isinstance(error, self.expected_encoding_errors)
+                        else functools.partial(logger.warning, exc_info=True)
                     )
                     log(
-                        'Could not encode features from %r for %r due to error: %r',
+                        "Could not encode features from %r for %r due to error: %r",
                         event,
                         label,
                         error,
                     )
                 else:
                     if features:
-                        items.append((self.aliases[label], features, ))
+                        items.append((self.aliases[label], features))
 
-        return self.index.record(
-            scope,
-            key,
-            items,
-            timestamp=int(to_timestamp(event.datetime)),
-        )
+        return self.index.record(scope, key, items, timestamp=int(to_timestamp(event.datetime)))
 
     def classify(self, events, limit=None, thresholds=None):
         if not events:
@@ -157,19 +160,20 @@ class FeatureSet(object):
                 if scope is None:
                     scope = self.__get_scope(event.project)
                 else:
-                    assert self.__get_scope(
-                        event.project
-                    ) == scope, 'all events must be associated with the same project'
+                    assert (
+                        self.__get_scope(event.project) == scope
+                    ), "all events must be associated with the same project"
 
                 try:
                     features = map(self.encoder.dumps, features)
                 except Exception as error:
                     log = (
-                        logger.debug if isinstance(error, self.expected_encoding_errors) else
-                        functools.partial(logger.warning, exc_info=True)
+                        logger.debug
+                        if isinstance(error, self.expected_encoding_errors)
+                        else functools.partial(logger.warning, exc_info=True)
                     )
                     log(
-                        'Could not encode features from %r for %r due to error: %r',
+                        "Could not encode features from %r for %r due to error: %r",
                         event,
                         label,
                         error,
@@ -180,15 +184,9 @@ class FeatureSet(object):
                         labels.append(label)
 
         return map(
-            lambda key__scores: (
-                int(key__scores[0]),
-                dict(zip(labels, key__scores[1])),
-            ),
+            lambda key__scores: (int(key__scores[0]), dict(zip(labels, key__scores[1]))),
             self.index.classify(
-                scope,
-                items,
-                limit=limit,
-                timestamp=int(to_timestamp(event.datetime)),
+                scope, items, limit=limit, timestamp=int(to_timestamp(event.datetime))
             ),
         )
 
@@ -198,18 +196,12 @@ class FeatureSet(object):
 
         features = list(self.features.keys())
 
-        items = [(self.aliases[label], thresholds.get(label, 0), ) for label in features]
+        items = [(self.aliases[label], thresholds.get(label, 0)) for label in features]
 
         return map(
-            lambda key__scores: (
-                int(key__scores[0]),
-                dict(zip(features, key__scores[1])),
-            ),
+            lambda key__scores: (int(key__scores[0]), dict(zip(features, key__scores[1]))),
             self.index.compare(
-                self.__get_scope(group.project),
-                self.__get_key(group),
-                items,
-                limit=limit,
+                self.__get_scope(group.project), self.__get_key(group), items, limit=limit
             ),
         )
 
@@ -223,15 +215,12 @@ class FeatureSet(object):
         # unsafe actions.
         scopes = {}
         for source in sources:
-            scopes.setdefault(
-                self.__get_scope(source.project),
-                set(),
-            ).add(source)
+            scopes.setdefault(self.__get_scope(source.project), set()).add(source)
 
         unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination.project)])
         if unsafe_scopes and not allow_unsafe:
             raise ValueError(
-                'all groups must belong to same project if unsafe merges are not allowed'
+                "all groups must belong to same project if unsafe merges are not allowed"
             )
 
         destination_scope = self.__get_scope(destination.project)
@@ -240,28 +229,17 @@ class FeatureSet(object):
         for source_scope, sources in scopes.items():
             items = []
             for source in sources:
-                items.extend(
-                    add_index_aliases_to_key(
-                        self.__get_key(source),
-                    ),
-                )
+                items.extend(add_index_aliases_to_key(self.__get_key(source)))
 
             if source_scope != destination_scope:
                 imports = [
                     (alias, destination_key, data)
-                    for (alias, _), data in zip(
-                        items,
-                        self.index.export(source_scope, items),
-                    )
+                    for (alias, _), data in zip(items, self.index.export(source_scope, items))
                 ]
                 self.index.delete(source_scope, items)
                 self.index.import_(destination_scope, imports)
             else:
-                self.index.merge(
-                    destination_scope,
-                    destination_key,
-                    items,
-                )
+                self.index.merge(destination_scope, destination_key, items)
 
     def delete(self, group):
         key = self.__get_key(group)
@@ -271,7 +249,4 @@ class FeatureSet(object):
         )
 
     def flush(self, project):
-        return self.index.flush(
-            self.__get_scope(project),
-            self.aliases.values(),
-        )
+        return self.index.flush(self.__get_scope(project), list(self.aliases.values()))

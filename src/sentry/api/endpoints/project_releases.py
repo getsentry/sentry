@@ -2,39 +2,22 @@ from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
 
-from rest_framework import serializers
 from rest_framework.response import Response
+
+from sentry import analytics
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
-from sentry.models import Activity, Environment, Release, ReleaseEnvironment
+from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
+from sentry.models import Activity, Environment, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.constants import VERSION_LENGTH
-
-BAD_RELEASE_CHARS = '\n\f\t/'
-
-
-class ReleaseSerializer(serializers.Serializer):
-    version = serializers.CharField(max_length=VERSION_LENGTH, required=True)
-    ref = serializers.CharField(max_length=VERSION_LENGTH, required=False)
-    url = serializers.URLField(required=False)
-    owner = UserField(required=False)
-    dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
-
-    def validate_version(self, attrs, source):
-        value = attrs[source]
-        if not Release.is_valid_version(value):
-            raise serializers.ValidationError('Invalid value for release')
-        return attrs
+from sentry.signals import release_created
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
-    permission_classes = (ProjectReleasePermission, )
+    permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project):
         """
@@ -50,43 +33,35 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
         """
-        query = request.GET.get('query')
+        query = request.GET.get("query")
         try:
-            environment = self._get_environment_from_request(
-                request,
-                project.organization_id,
-            )
+            environment = self._get_environment_from_request(request, project.organization_id)
         except Environment.DoesNotExist:
             queryset = Release.objects.none()
             environment = None
         else:
             queryset = Release.objects.filter(
                 projects=project, organization_id=project.organization_id
-            ).select_related('owner')
+            ).select_related("owner")
             if environment is not None:
-                # TODO(LB): May want to change this to ReleaseProjectEnv don't see a
-                # reason to change now.
-                queryset = queryset.filter(id__in=ReleaseEnvironment.objects.filter(
-                    organization_id=project.organization_id,
-                    environment_id=environment.id,
-                ).values_list('release_id', flat=True))
+                queryset = queryset.filter(
+                    releaseprojectenvironment__project=project,
+                    releaseprojectenvironment__environment=environment,
+                )
 
         if query:
-            queryset = queryset.filter(
-                version__istartswith=query,
-            )
+            queryset = queryset.filter(version__icontains=query)
 
-        queryset = queryset.extra(select={
-            'sort': 'COALESCE(date_released, date_added)',
-        })
+        queryset = queryset.extra(select={"sort": "COALESCE(date_released, date_added)"})
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-sort',
+            order_by="-sort",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
-                x, request.user, project=project, environment=environment),
+                x, request.user, project=project, environment=environment
+            ),
         )
 
     def post(self, request, project):
@@ -121,45 +96,52 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                       the current time is assumed.
         :auth: required
         """
-        serializer = ReleaseSerializer(data=request.DATA)
+        serializer = ReleaseWithVersionSerializer(data=request.data)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             # release creation is idempotent to simplify user
             # experiences
             try:
                 with transaction.atomic():
-                    release, created = Release.objects.create(
-                        organization_id=project.organization_id,
-                        version=result['version'],
-                        ref=result.get('ref'),
-                        url=result.get('url'),
-                        owner=result.get('owner'),
-                        date_released=result.get('dateReleased'),
-                    ), True
+                    release, created = (
+                        Release.objects.create(
+                            organization_id=project.organization_id,
+                            version=result["version"],
+                            ref=result.get("ref"),
+                            url=result.get("url"),
+                            owner=result.get("owner"),
+                            date_released=result.get("dateReleased"),
+                        ),
+                        True,
+                    )
                 was_released = False
             except IntegrityError:
-                release, created = Release.objects.get(
-                    organization_id=project.organization_id,
-                    version=result['version'],
-                ), False
+                release, created = (
+                    Release.objects.get(
+                        organization_id=project.organization_id, version=result["version"]
+                    ),
+                    False,
+                )
                 was_released = bool(release.date_released)
+            else:
+                release_created.send_robust(release=release, sender=self.__class__)
 
             created = release.add_project(project)
 
-            commit_list = result.get('commits')
+            commit_list = result.get("commits")
             if commit_list:
                 hook = ReleaseHook(project)
                 # TODO(dcramer): handle errors with release payloads
                 hook.set_commits(release.version, commit_list)
 
-            if (not was_released and release.date_released):
+            if not was_released and release.date_released:
                 Activity.objects.create(
                     type=Activity.RELEASE,
                     project=project,
-                    ident=Activity.get_version_ident(result['version']),
-                    data={'version': result['version']},
+                    ident=Activity.get_version_ident(result["version"]),
+                    data={"version": result["version"]},
                     datetime=release.date_released,
                 )
 
@@ -172,5 +154,13 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             else:
                 status = 201
 
+            analytics.record(
+                "release.created",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=project.organization_id,
+                project_ids=[project.id],
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                created_status=status,
+            )
             return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)

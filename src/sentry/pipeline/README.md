@@ -24,8 +24,7 @@ Some key points to understanding pipelines:
    One to call the pipelines `initialize` method, and the next which is
    called to move through the pipeline
 
- * Pipelines are bound to a specific organization and user when they are being
-   executed.
+ * Pipelines are bound to a specific session when they are being executed.
 
 ## Pipeline Providers
 
@@ -73,7 +72,7 @@ The model is configured by the `provider_model_cls` pipeline class attribute.
 Pipeline views are objects that implement the `PipelineView` interface and are
 used as part of the list of views that a pipeline executes. The pipeline views
 receive the executing request object when they are the step being executed,
-along with the `piepeline` instance itself.
+along with the `pipeline` instance itself.
 
 It's the job of the pipeline view to transition the pipeline to the next step
 in the pipeline and bind any data that may need to be used later in the
@@ -113,7 +112,7 @@ Executing a pipeline
 Executing a pipeline is done through either one or two views.
 
 With one view it will both initialize the pipeline, and traverse through the
-pipeline. The downside of this approach is that the organization, provider key,
+pipeline. The downside of this approach is that the provider key,
 and potentially other information must be known at request time of each step,
 which may not always be possible (think strict oAuth redirect URL that cannot
 be parameterized)

@@ -1,17 +1,18 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountSecurityEnroll from 'app/views/settings/account/accountSecurity/accountSecurityEnroll';
 
 const ENDPOINT = '/users/me/authenticators/';
 
-describe('AccountSecurityEnroll', function() {
+describe('AccountSecurityEnroll', function () {
   let wrapper;
 
-  describe('Totp', function() {
+  describe('Totp', function () {
     Client.clearMockResponses();
-    let authenticator = TestStubs.Authenticators().Totp({
+    const authenticator = TestStubs.Authenticators().Totp({
       isEnrolled: false,
       qrcode: [[1, 0]],
       secret: 'secret',
@@ -23,12 +24,12 @@ describe('AccountSecurityEnroll', function() {
       ],
     });
 
-    beforeAll(function() {
+    beforeAll(function () {
       Client.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <AccountSecurityEnroll />,
         TestStubs.routerContext([
           {
@@ -43,16 +44,16 @@ describe('AccountSecurityEnroll', function() {
       );
     });
 
-    it('does not have enrolled circle indicator', function() {
+    it('does not have enrolled circle indicator', function () {
       expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(false);
     });
 
-    it('has qrcode component', function() {
+    it('has qrcode component', function () {
       expect(wrapper.find('Qrcode')).toHaveLength(1);
     });
 
-    it('can enroll', function() {
-      let enrollMock = Client.addMockResponse({
+    it('can enroll', function () {
+      const enrollMock = Client.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         method: 'POST',
       });
@@ -70,52 +71,31 @@ describe('AccountSecurityEnroll', function() {
         })
       );
     });
-  });
 
-  // eslint-disable-next-line jest/no-disabled-tests
-  describe.skip('Recovery', function() {
-    beforeEach(function() {
-      Client.clearMockResponses();
+    it('can redirect with already enrolled error', function () {
       Client.addMockResponse({
-        url: `${ENDPOINT}16/`,
-        body: TestStubs.Authenticators().Recovery(),
+        url: `${ENDPOINT}${authenticator.authId}/enroll/`,
+        body: {details: 'Already enrolled'},
+        statusCode: 400,
       });
-      wrapper = mount(
+
+      const pushMock = jest.fn();
+      wrapper = mountWithTheme(
         <AccountSecurityEnroll />,
         TestStubs.routerContext([
           {
             router: {
-              ...TestStubs.router(),
+              ...TestStubs.router({
+                push: pushMock,
+              }),
               params: {
-                authId: 16,
+                authId: authenticator.authId,
               },
             },
           },
         ])
       );
-    });
-
-    it('has enrolled circle indicator', function() {
-      expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
-    });
-
-    it('has created and last used dates', function() {
-      expect(wrapper.find('AuthenticatorDate')).toHaveLength(2);
-    });
-
-    it('does not have remove button', function() {
-      expect(wrapper.find('RemoveConfirm')).toHaveLength(0);
-    });
-
-    it('regenerates codes', function() {
-      let deleteMock = Client.addMockResponse({
-        url: `${ENDPOINT}16/`,
-        method: 'PUT',
-      });
-
-      wrapper.find('RecoveryCodes').prop('onRegenerateBackupCodes')();
-
-      expect(deleteMock).toHaveBeenCalled();
+      expect(pushMock).toHaveBeenCalledWith('/settings/account/security/');
     });
   });
 });

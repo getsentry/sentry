@@ -1,28 +1,28 @@
-/**
- * Renders necessary forms in order to enroll user in 2fa
- */
 import {withRouter} from 'react-router';
 import React from 'react';
 
+import {PanelItem} from 'app/components/panels';
 import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
+import {openRecoveryOptions} from 'app/actionCreators/modal';
+import {fetchOrganizationByMember} from 'app/actionCreators/organizations';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
+import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {PanelItem} from 'app/components/panels';
 import Qrcode from 'app/components/qrcode';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import U2fsign from 'app/components/u2fsign';
-
-const ENDPOINT = '/users/me/authenticators/';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import U2fsign from 'app/components/u2f/u2fsign';
+import getPendingInvite from 'app/utils/getPendingInvite';
 
 /**
  * Retrieve additional form fields (or modify ones) based on 2fa method
@@ -35,20 +35,27 @@ const ENDPOINT = '/users/me/authenticators/';
  * @param {function} onU2fTap Callback when u2f device is activated
  */
 const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTap}) => {
-  let {form, qrcode, challenge, id} = authenticator || {};
+  const {form, qrcode, challenge, id} = authenticator || {};
 
-  if (!form) return null;
+  if (!form) {
+    return null;
+  }
 
   if (qrcode) {
     return [
       () => (
-        <PanelItem key="qrcode" justify="center" p={2}>
+        <PanelItem key="qrcode" justifyContent="center" p={2}>
           <Qrcode code={authenticator.qrcode} />
         </PanelItem>
       ),
+      () => (
+        <Field key="secret" label={t('Authenticator secret')}>
+          <TextCopyInput>{authenticator.secret}</TextCopyInput>
+        </Field>
+      ),
       ...form,
       () => (
-        <PanelItem key="confirm" justify="flex-end" p={2}>
+        <PanelItem key="confirm" justifyContent="flex-end" p={2}>
           <Button priority="primary" type="submit">
             {t('Confirm')}
           </Button>
@@ -72,7 +79,7 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
         visible: () => hasSentCode,
       },
       () => (
-        <PanelItem key="sms-footer" justify="flex-end" p={2} pr={'36px'}>
+        <PanelItem key="sms-footer" justifyContent="flex-end" p={2} pr="36px">
           {hasSentCode && (
             <Button css={{marginRight: 6}} onClick={onSmsReset}>
               {t('Start Over')}
@@ -88,7 +95,7 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
 
   // Need to render device name field + U2f component
   if (id === 'u2f') {
-    let deviceNameField = form.find(({name}) => name === 'deviceName');
+    const deviceNameField = form.find(({name}) => name === 'deviceName');
     return [
       deviceNameField,
       () => (
@@ -107,18 +114,51 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
   return null;
 };
 
+/**
+ * Renders necessary forms in order to enroll user in 2fa
+ */
 class AccountSecurityEnroll extends AsyncView {
-  constructor(...args) {
-    super(...args);
-    this._form = {};
-  }
+  _form = {};
 
   getTitle() {
     return t('Security');
   }
 
+  get authenticatorEndpoint() {
+    return `/users/me/authenticators/${this.props.params.authId}/`;
+  }
+
+  get enrollEndpoint() {
+    return `${this.authenticatorEndpoint}enroll/`;
+  }
+
   getEndpoints() {
-    return [['authenticator', `${ENDPOINT}${this.props.params.authId}/enroll/`]];
+    const errorHandler = err => {
+      const alreadyEnrolled =
+        err &&
+        err.status === 400 &&
+        err.responseJSON &&
+        err.responseJSON.details === 'Already enrolled';
+
+      if (alreadyEnrolled) {
+        this.props.router.push('/settings/account/security/');
+        addErrorMessage(t('Already enrolled'));
+      }
+
+      // Allow the endpoint to fail if the user is already enrolled
+      return alreadyEnrolled;
+    };
+
+    return [['authenticator', this.enrollEndpoint, {}, {allowError: errorHandler}]];
+  }
+
+  componentDidMount() {
+    this.pendingInvitation = getPendingInvite();
+  }
+
+  get authenticatorName() {
+    const {authenticator} = this.state;
+    return (authenticator && authenticator.name) || 'Authenticator';
   }
 
   handleFieldChange = (name, value) => {
@@ -127,23 +167,18 @@ class AccountSecurityEnroll extends AsyncView {
   };
 
   // This resets state so that user can re-enter their phone number again
-  handleSmsReset = () => {
-    this.setState(
-      {
-        hasSentCode: false,
-      },
-      this.remountComponent
-    );
-  };
+  handleSmsReset = () => this.setState({hasSentCode: false}, this.remountComponent);
 
-  // Handles
-  handleSmsSubmit = dataModel => {
-    let {authenticator, hasSentCode} = this.state;
+  // Handles SMS authenticators
+  handleSmsSubmit = async () => {
+    const {authenticator, hasSentCode} = this.state;
 
     // Don't submit if empty
-    if (!this._form.phone) return;
+    if (!this._form.phone) {
+      return;
+    }
 
-    let data = {
+    const data = {
       phone: this._form.phone,
       // Make sure `otp` is undefined if we are submitting OTP verification
       // Otherwise API will think that we are on verification step (e.g. after submitting phone)
@@ -152,133 +187,131 @@ class AccountSecurityEnroll extends AsyncView {
     };
 
     // Only show loading when submitting OTP
-    this.setState({
-      loading: hasSentCode,
-    });
+    this.setState({loading: hasSentCode});
 
     if (!hasSentCode) {
       addMessage(t('Sending code to %s...', data.phone));
     }
 
-    this.api
-      .requestPromise(`${ENDPOINT}${this.props.params.authId}/enroll/`, {
-        data,
-      })
-      .then(
-        () => {
-          if (!hasSentCode) {
-            // Just successfully finished sending OTP to user
-            this.setState({
-              hasSentCode: true,
-              loading: false,
-              // authenticator: data,
-            });
-            addMessage(t('Sent code to %s', data.phone));
-          } else {
-            // OTP was accepted and SMS was added as a 2fa method
-            this.props.router.push('/settings/account/security/');
-            addSuccessMessage(t('Added authenticator %s', authenticator.name));
-          }
-        },
-        error => {
-          this._form = {};
-          let isSmsInterface = authenticator.id === 'sms';
+    try {
+      await this.api.requestPromise(this.enrollEndpoint, {data});
+    } catch (error) {
+      this._form = {};
+      const isSmsInterface = authenticator.id === 'sms';
 
-          this.setState({
-            hasSentCode: !isSmsInterface,
-          });
+      this.setState({
+        hasSentCode: !isSmsInterface,
+      });
 
-          // Re-mount because we want to fetch a fresh secret
-          this.remountComponent();
+      // Re-mount because we want to fetch a fresh secret
+      this.remountComponent();
 
-          let errorMessage = this.state.hasSentCode
-            ? t('Incorrect OTP')
-            : t('Error sending SMS');
-          addErrorMessage(errorMessage);
-        }
+      addErrorMessage(
+        this.state.hasSentCode ? t('Incorrect OTP') : t('Error sending SMS')
       );
+
+      return;
+    }
+
+    if (!hasSentCode) {
+      // Just successfully finished sending OTP to user
+      this.setState({hasSentCode: true, loading: false});
+      addMessage(t('Sent code to %s', data.phone));
+    } else {
+      // OTP was accepted and SMS was added as a 2fa method
+      this.handleEnrollSuccess();
+    }
   };
 
   // Handle u2f device tap
-  handleU2fTap = data => {
-    return this.api
-      .requestPromise(`${ENDPOINT}${this.props.params.authId}/enroll/`, {
-        data: {
-          ...data,
-          ...this._form,
-        },
-      })
-      .then(this.handleEnrollSuccess, this.handleEnrollError);
+  handleU2fTap = async tapData => {
+    const data = {...tapData, ...this._form};
+
+    this.setState({loading: true});
+
+    try {
+      await this.api.requestPromise(this.enrollEndpoint, {data});
+    } catch (err) {
+      this.handleEnrollError();
+      return;
+    }
+
+    this.handleEnrollSuccess();
   };
 
   // Currently only TOTP uses this
-  handleSubmit = dataModel => {
-    let {authenticator} = this.state;
-
-    let data = {
+  handleTotpSubmit = async dataModel => {
+    const data = {
       ...this._form,
       ...(dataModel || {}),
-      secret: authenticator.secret,
+      secret: this.state.authenticator.secret,
     };
 
-    this.setState({
-      loading: true,
-    });
-    this.api
-      .requestPromise(`${ENDPOINT}${this.props.params.authId}/enroll/`, {
-        method: 'POST',
-        data,
-      })
-      .then(this.handleEnrollSuccess, this.handleEnrollError);
+    this.setState({loading: true});
+
+    try {
+      await this.api.requestPromise(this.enrollEndpoint, {method: 'POST', data});
+    } catch (err) {
+      this.handleEnrollError();
+      return;
+    }
+
+    this.handleEnrollSuccess();
   };
 
   // Handler when we successfully add a 2fa device
-  handleEnrollSuccess = () => {
-    let authenticatorName =
-      (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';
-    this.props.router.push('/settings/account/security');
-    addSuccessMessage(t('%s has been added', authenticatorName));
-  };
+  async handleEnrollSuccess() {
+    // If we're pending approval of an invite, the user will have just joined
+    // the organization when completing 2fa enrollment. We should reload the
+    // organization context in that case to assign them to the org.
+    if (this.pendingInvitation) {
+      await fetchOrganizationByMember(this.pendingInvitation.memberId, {
+        addOrg: true,
+        fetchOrgDetails: true,
+      });
+    }
+
+    this.props.router.push('/settings/account/security/');
+    openRecoveryOptions({authenticatorName: this.authenticatorName});
+  }
 
   // Handler when we failed to add a 2fa device
-  handleEnrollError = () => {
-    let authenticatorName =
-      (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';
+  handleEnrollError() {
     this.setState({loading: false});
-    addErrorMessage(t('Error adding %s authenticator', authenticatorName));
-  };
+    addErrorMessage(t('Error adding %s authenticator', this.authenticatorName));
+  }
 
   // Removes an authenticator
-  handleRemove = () => {
-    let {authenticator} = this.state;
+  handleRemove = async () => {
+    const {authenticator} = this.state;
 
-    if (!authenticator || !authenticator.authId) return;
+    if (!authenticator || !authenticator.authId) {
+      return;
+    }
 
-    // `authenticator.authId` is NOT the same as `props.params.authId`
-    // This is for backwards compatbility with API endpoint
-    this.api
-      .requestPromise(`${ENDPOINT}${authenticator.authId}/`, {
-        method: 'DELETE',
-      })
-      .then(
-        () => {
-          this.props.router.push('/settings/account/security/');
-          addSuccessMessage(t('Authenticator has been removed'));
-        },
-        () => {
-          // Error deleting authenticator
-          addErrorMessage(t('Error removing authenticator'));
-        }
-      );
+    // `authenticator.authId` is NOT the same as `props.params.authId` This is
+    // for backwards compatability with API endpoint
+    try {
+      await this.api.requestPromise(this.authenticatorEndpoint, {method: 'DELETE'});
+    } catch (err) {
+      addErrorMessage(t('Error removing authenticator'));
+      return;
+    }
+
+    this.props.router.push('/settings/account/security/');
+    addSuccessMessage(t('Authenticator has been removed'));
   };
 
   renderBody() {
-    let {authenticator} = this.state;
-    let endpoint = `${ENDPOINT}${this.props.params.authId}/`;
+    const {authenticator, hasSentCode} = this.state;
 
-    let fields = getFields({
+    if (!authenticator) {
+      return null;
+    }
+
+    const fields = getFields({
       authenticator,
-      hasSentCode: this.state.hasSentCode,
+      hasSentCode,
       onSmsReset: this.handleSmsReset,
       onSmsSubmit: this.handleSmsSubmit,
       onU2fTap: this.handleU2fTap,
@@ -296,7 +329,7 @@ class AccountSecurityEnroll extends AsyncView {
       : {};
 
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader
           title={
             <React.Fragment>
@@ -316,20 +349,19 @@ class AccountSecurityEnroll extends AsyncView {
 
         <TextBlock>{authenticator.description}</TextBlock>
 
-        {authenticator.form &&
-          !!authenticator.form.length && (
-            <Form
-              apiMethod="POST"
-              onFieldChange={this.handleFieldChange}
-              apiEndpoint={endpoint}
-              onSubmit={this.handleSubmit}
-              initialData={{...defaultValues, ...authenticator}}
-              hideFooter
-            >
-              <JsonForm {...this.props} forms={[{title: 'Configuration', fields}]} />
-            </Form>
-          )}
-      </div>
+        {authenticator.form && !!authenticator.form.length && (
+          <Form
+            apiMethod="POST"
+            onFieldChange={this.handleFieldChange}
+            apiEndpoint={this.authenticatorEndpoint}
+            onSubmit={this.handleTotpSubmit}
+            initialData={{...defaultValues, ...authenticator}}
+            hideFooter
+          >
+            <JsonForm forms={[{title: 'Configuration', fields}]} />
+          </Form>
+        )}
+      </React.Fragment>
     );
   }
 }

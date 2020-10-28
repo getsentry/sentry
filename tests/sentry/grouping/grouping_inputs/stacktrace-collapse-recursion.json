@@ -1,0 +1,62 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "main",
+        "abs_path": "Application.java",
+        "module": "io.sentry.example.Application",
+        "filename": "Application.java",
+        "lineno": 13,
+        "in_app": false
+      },
+      {
+        "function": "normalFunc",
+        "abs_path": "Application.java",
+        "module": "io.sentry.example.Application",
+        "filename": "Application.java",
+        "lineno": 20,
+        "in_app": false
+      },
+      {
+        "function": "recurFunc",
+        "abs_path": "Application.java",
+        "module": "io.sentry.example.Application",
+        "filename": "Application.java",
+        "lineno": 27,
+        "in_app": false
+      },
+      {
+        "function": "recurFunc",
+        "abs_path": "Application.java",
+        "module": "io.sentry.example.Application",
+        "filename": "Application.java",
+        "lineno": 27,
+        "in_app": false
+      },
+      {
+        "function": "recurFunc",
+        "abs_path": "Application.java",
+        "module": "io.sentry.example.Application",
+        "filename": "Application.java",
+        "lineno": 27,
+        "in_app": false
+      },
+      {
+        "function": "recurFunc",
+        "abs_path": "Application.java",
+        "module": "io.sentry.example.Application",
+        "filename": "Application.java",
+        "lineno": 25,
+        "in_app": false
+      },
+      {
+        "function": "throwError",
+        "abs_path": "Application.java",
+        "module": "io.sentry.example.Application",
+        "filename": "Application.java",
+        "lineno": 32,
+        "in_app": false
+      }
+    ]
+  }
+}

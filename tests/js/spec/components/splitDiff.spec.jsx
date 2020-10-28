@@ -1,31 +1,27 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import SplitDiff from 'app/components/splitDiff';
 
-describe('SplitDiff', function() {
-  let sandbox;
+describe('SplitDiff', function () {
+  beforeEach(function () {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
+  afterEach(function () {});
+
+  it('renders', function () {
+    const wrapper = mountWithTheme(<SplitDiff base="restaurant" target="aura" />);
+    expect(wrapper).toSnapshot();
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
-
-  it('renders', function() {
-    let wrapper = shallow(<SplitDiff base="restaurant" target="aura" />);
-    expect(wrapper).toMatchSnapshot();
-  });
-
-  it('renders with newlines', function() {
-    let base = `this is my restaurant
+  it('renders with newlines', function () {
+    const base = `this is my restaurant
     and restaurant
     common`;
-    let target = `aura
+    const target = `aura
     and your aura
     common`;
-    let wrapper = shallow(<SplitDiff base={base} target={target} />);
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(<SplitDiff base={base} target={target} />);
+    expect(wrapper).toSnapshot();
   });
 });

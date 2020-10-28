@@ -1,19 +1,21 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import IdBadge from 'app/components/idBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
-import SentryTypes from 'app/proptypes';
-import TextLink from 'app/components/textLink';
+import SentryTypes from 'app/sentryTypes';
+import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import recreateRoute from 'app/utils/recreateRoute';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
+import space from 'app/styles/space';
 import withLatestContext from 'app/utils/withLatestContext';
 import withProjects from 'app/utils/withProjects';
-import space from 'app/styles/space';
+
+import {CrumbLink} from '.';
 
 class ProjectCrumb extends React.Component {
   static propTypes = {
@@ -24,21 +26,42 @@ class ProjectCrumb extends React.Component {
     route: PropTypes.object,
   };
 
+  handleSelect = item => {
+    const {routes, route, params} = this.props;
+
+    // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
+    // Since these models are project specific, we need to traverse up a route when switching projects
+    //
+    // we manipulate `routes` so that it doesn't include the current project's route
+    // which, unlike the org version, does not start with a route param
+    browserHistory.push(
+      recreateRoute(
+        findFirstRouteWithoutRouteParam(routes.slice(routes.indexOf(route) + 1), route),
+        {
+          routes,
+          params: {...params, projectId: item.value},
+        }
+      )
+    );
+  };
+
   render() {
-    let {
+    const {
       organization: latestOrganization,
       project: latestProject,
       projects,
-      params,
-      routes,
       route,
       ...props
     } = this.props;
 
-    if (!latestOrganization) return null;
-    if (!projects) return null;
+    if (!latestOrganization) {
+      return null;
+    }
+    if (!projects) {
+      return null;
+    }
 
-    let hasMenu = projects && projects.length > 1;
+    const hasMenu = projects && projects.length > 1;
 
     return (
       <BreadcrumbDropdown
@@ -49,35 +72,27 @@ class ProjectCrumb extends React.Component {
             {!latestProject ? (
               <LoadingIndicator mini />
             ) : (
-              <TextLink
-                to={replaceRouterParams('/settings/:orgId/:projectId/', {
+              <CrumbLink
+                to={replaceRouterParams('/settings/:orgId/projects/:projectId/', {
                   orgId: latestOrganization.slug,
                   projectId: latestProject.slug,
                 })}
               >
-                <IdBadge project={latestProject} />
-              </TextLink>
+                <IdBadge project={latestProject} avatarSize={18} />
+              </CrumbLink>
             )}
           </ProjectName>
         }
-        onSelect={item => {
-          let lastRoute = routes[routes.length - 1];
-          // We have to make an exception for "Project Alerts Rule Edit" route
-          // Since these models are project specific, we need to traverse up a route when switching projects
-          let stepBack = lastRoute.path === ':ruleId/' ? -1 : undefined;
-          browserHistory.push(
-            recreateRoute('', {
-              routes,
-              params: {...params, projectId: item.value},
-              stepBack,
-            })
-          );
-        }}
+        onSelect={this.handleSelect}
         items={projects.map(project => ({
           value: project.slug,
           label: (
             <MenuItem>
-              <IdBadge project={project} />
+              <IdBadge
+                project={project}
+                avatarProps={{consistentWidth: true}}
+                avatarSize={18}
+              />
             </MenuItem>
           ),
         }))}
@@ -93,7 +108,7 @@ export default withProjects(withLatestContext(ProjectCrumb));
 // Set height of crumb because of spinner
 const SPINNER_SIZE = '24px';
 
-const ProjectName = styled.div`
+const ProjectName = styled('div')`
   display: flex;
 
   .loading {

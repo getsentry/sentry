@@ -34,7 +34,7 @@
             </tr>
           {% endif %}
           {% if user_data %}
-            {% for key, value in user_data.iteritems %}
+            {% for key, value in user_data.items %}
               <tr>
                 <th>{{ key|titlize }}</th>
                 <td class="code">{{ value }}</td>
@@ -47,7 +47,7 @@
     {% if user_email %}
       <td style="padding-top:5px; width:64px; vertical-align:top; text-align: right;">
         <span class="avatar-container" style="width: inherit;">
-          {% email_avatar user.get_display_name user.get_label size 64 %}
+          {% email_avatar user.get_display_name user.get_label 64 %}
         </span>
       </td>
     {% endif %}

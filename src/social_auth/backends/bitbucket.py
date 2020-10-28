@@ -12,44 +12,46 @@ extend it.
 """
 from __future__ import absolute_import
 
-import simplejson
-
-from social_auth.backends import ConsumerBasedOAuth, OAuthBackend
+from social_auth.backends import BaseOAuth1, OAuthBackend
 from social_auth.utils import dsa_urlopen
 
+from sentry.utils import json
+
 # Bitbucket configuration
-BITBUCKET_SERVER = 'bitbucket.org/api/1.0'
-BITBUCKET_REQUEST_TOKEN_URL = 'https://%s/oauth/request_token' % BITBUCKET_SERVER
-BITBUCKET_ACCESS_TOKEN_URL = 'https://%s/oauth/access_token' % BITBUCKET_SERVER
-BITBUCKET_AUTHORIZATION_URL = 'https://%s/oauth/authenticate' % BITBUCKET_SERVER
-BITBUCKET_EMAIL_DATA_URL = 'https://%s/emails/' % BITBUCKET_SERVER
-BITBUCKET_USER_DATA_URL = 'https://%s/users/' % BITBUCKET_SERVER
+BITBUCKET_SERVER = "bitbucket.org/api/1.0"
+BITBUCKET_REQUEST_TOKEN_URL = "https://%s/oauth/request_token" % BITBUCKET_SERVER
+BITBUCKET_ACCESS_TOKEN_URL = "https://%s/oauth/access_token" % BITBUCKET_SERVER
+BITBUCKET_AUTHORIZATION_URL = "https://%s/oauth/authenticate" % BITBUCKET_SERVER
+BITBUCKET_EMAIL_DATA_URL = "https://%s/emails/" % BITBUCKET_SERVER
+BITBUCKET_USER_DATA_URL = "https://%s/users/" % BITBUCKET_SERVER
 
 
 class BitbucketBackend(OAuthBackend):
     """Bitbucket OAuth authentication backend"""
-    name = 'bitbucket'
+
+    name = "bitbucket"
     EXTRA_DATA = [
-        ('username', 'username'),
-        ('expires', 'expires'),
-        ('email', 'email'),
-        ('first_name', 'first_name'),
-        ('last_name', 'last_name')
+        ("username", "username"),
+        ("expires", "expires"),
+        ("email", "email"),
+        ("first_name", "first_name"),
+        ("last_name", "last_name"),
     ]
 
     def get_user_details(self, response):
         """Return user details from Bitbucket account"""
-        return {'username': response.get('username'),
-                'email': response.get('email'),
-                'fullname': ' '.join((response.get('first_name'),
-                                      response.get('last_name'))),
-                'first_name': response.get('first_name'),
-                'last_name': response.get('last_name')}
+        return {
+            "username": response.get("username"),
+            "email": response.get("email"),
+            "fullname": " ".join((response.get("first_name"), response.get("last_name"))),
+            "first_name": response.get("first_name"),
+            "last_name": response.get("last_name"),
+        }
 
     def get_user_id(self, details, response):
         """Return the user id, Bitbucket only provides username as a unique
         identifier"""
-        return response['username']
+        return response["username"]
 
     @classmethod
     def tokens(cls, instance):
@@ -60,23 +62,21 @@ class BitbucketBackend(OAuthBackend):
         instance must be a UserSocialAuth instance.
         """
         token = super(BitbucketBackend, cls).tokens(instance)
-        if token and 'access_token' in token:
-            token = dict(
-                tok.split('=')
-                for tok in token['access_token'].split('&')
-            )
+        if token and "access_token" in token:
+            token = dict(tok.split("=") for tok in token["access_token"].split("&"))
         return token
 
 
-class BitbucketAuth(ConsumerBasedOAuth):
+class BitbucketAuth(BaseOAuth1):
     """Bitbucket OAuth authentication mechanism"""
+
     AUTHORIZATION_URL = BITBUCKET_AUTHORIZATION_URL
     REQUEST_TOKEN_URL = BITBUCKET_REQUEST_TOKEN_URL
     ACCESS_TOKEN_URL = BITBUCKET_ACCESS_TOKEN_URL
     AUTH_BACKEND = BitbucketBackend
-    SETTINGS_KEY_NAME = 'BITBUCKET_CONSUMER_KEY'
-    SETTINGS_SECRET_NAME = 'BITBUCKET_CONSUMER_SECRET'
-    DEFAULT_SCOPE = ['webhook', 'repository', 'issue']
+    SETTINGS_KEY_NAME = "BITBUCKET_CONSUMER_KEY"
+    SETTINGS_SECRET_NAME = "BITBUCKET_CONSUMER_SECRET"
+    DEFAULT_SCOPE = ["webhook", "repository", "issue"]
 
     def user_data(self, access_token):
         """Return user data provided"""
@@ -88,17 +88,17 @@ class BitbucketAuth(ConsumerBasedOAuth):
         response = self.fetch_response(request)
         try:
             # Then retrieve the user's primary email address or the top email
-            email_addresses = simplejson.loads(response)
+            email_addresses = json.loads(response)
             for email_address in reversed(email_addresses):
-                if email_address['active']:
-                    email = email_address['email']
-                    if email_address['primary']:
+                if email_address["active"]:
+                    email = email_address["email"]
+                    if email_address["primary"]:
                         break
             # Then return the user data using a normal GET with the
             # BITBUCKET_USER_DATA_URL and the user's email
             response = dsa_urlopen(BITBUCKET_USER_DATA_URL + email)
-            user_details = simplejson.load(response)['user']
-            user_details['email'] = email
+            user_details = json.load(response)["user"]
+            user_details["email"] = email
             return user_details
         except ValueError:
             return None
@@ -106,6 +106,4 @@ class BitbucketAuth(ConsumerBasedOAuth):
 
 
 # Backend definition
-BACKENDS = {
-    'bitbucket': BitbucketAuth,
-}
+BACKENDS = {"bitbucket": BitbucketAuth}

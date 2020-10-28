@@ -18,13 +18,15 @@
       <span class="icon-arrow-left"></span>
       <span class="avatar">
         {% letter_avatar_svg identity_display_name identity_identifier %}
-        <img src="{% gravatar_url identity.email size 36 default 'blank' %}">
+      </span>
+      <span class="avatar">
+        <img src="{% gravatar_url identity.email 36 'blank' %}">
       </span>
     </div>
 
     <div class="align-center">
 
-      {% if existing_user.email == identity.email %}
+      {% if force_link or existing_user.email == identity.email %}
         <p>We're going to associate your new identity with your existing account which means all of your existing settings will stay intact.</p>
 
         <p>

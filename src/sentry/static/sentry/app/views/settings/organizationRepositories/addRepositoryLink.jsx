@@ -32,10 +32,18 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   getDefaultState() {
+    const formData = {};
+    // makes sure default choice field is saved
+    // if a user doesn't choose a different option
+    this.props.provider.config.forEach(field => {
+      if (field.initial) {
+        formData[field.name] = field.initial;
+      }
+    });
     return {
       isModalOpen: false,
       error: {},
-      formData: {},
+      formData,
     };
   }
 
@@ -56,7 +64,7 @@ class AddRepositoryLink extends PluginComponentBase {
 
   onSubmit() {
     // TODO(dcramer): set form saving state
-    let formData = {
+    const formData = {
       ...this.state.formData,
       provider: this.props.provider.id,
     };
@@ -97,9 +105,33 @@ class AddRepositoryLink extends PluginComponentBase {
     }));
   }
 
+  renderNote(provider) {
+    if (['integrations:github', 'integrations:bitbucket'].includes(provider.id)) {
+      return (
+        <div
+          className="alert alert-info alert-block"
+          style={{display: 'flex', alignItems: 'center'}}
+        >
+          <p>
+            {'You must install at least one ' +
+              provider.name +
+              '  Integration to connect a repository.'}
+          </p>
+        </div>
+      );
+    }
+    return false;
+  }
+
   renderForm() {
-    let errors = this.state.error.errors || {};
-    let provider = this.props.provider;
+    const errors = this.state.error.errors || {};
+    const provider = this.props.provider;
+    let hasIntegration = true;
+    provider.config.forEach(field => {
+      if (!field.initial) {
+        hasIntegration = false;
+      }
+    });
     return (
       <form onSubmit={this.formSubmit}>
         {errors.__all__ && (
@@ -107,24 +139,23 @@ class AddRepositoryLink extends PluginComponentBase {
             <p>{errors.__all__}</p>
           </div>
         )}
-        {provider.config.map(field => {
-          return (
-            <div key={field.name}>
-              {this.renderField({
-                config: field,
-                formData: this.state.formData,
-                formErrors: errors,
-                onChange: this.changeField.bind(this, field.name),
-              })}
-            </div>
-          );
-        })}
+        {!hasIntegration && this.renderNote(provider)}
+        {provider.config.map(field => (
+          <div key={field.name}>
+            {this.renderField({
+              config: field,
+              formData: this.state.formData,
+              formErrors: errors,
+              onChange: this.changeField.bind(this, field.name),
+            })}
+          </div>
+        ))}
       </form>
     );
   }
 
   renderBody() {
-    let error = this.state.error;
+    const error = this.state.error;
     if (error.error_type === 'auth') {
       let authUrl = error.auth_url;
       if (authUrl.indexOf('?') === -1) {
@@ -164,7 +195,7 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   renderModal() {
-    let {error, state} = this.state;
+    const {error, state} = this.state;
     return (
       <Modal show={this.state.isModalOpen} animation={false}>
         <div className="modal-header">
@@ -196,7 +227,7 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   render() {
-    let provider = this.props.provider;
+    const provider = this.props.provider;
     return (
       <React.Fragment>
         <a onClick={this.onOpen}>{provider.name}</a>

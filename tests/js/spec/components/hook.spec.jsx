@@ -1,32 +1,31 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import Hook from 'app/components/hook';
 import HookStore from 'app/stores/hookStore';
 
-describe('Hook', function() {
+describe('Hook', function () {
   const Wrapper = function Wrapper(props) {
     return <div {...props} />;
   };
   const routerContext = TestStubs.routerContext();
 
-  beforeEach(function() {
-    HookStore.add('footer', ({organization} = {}) => {
-      return (
-        <Wrapper key="initial" organization={organization}>
-          {organization.slug}
-        </Wrapper>
-      );
-    });
+  beforeEach(function () {
+    HookStore.add('footer', ({organization} = {}) => (
+      <Wrapper key="initial" organization={organization}>
+        {organization.slug}
+      </Wrapper>
+    ));
   });
 
-  afterEach(function() {
+  afterEach(function () {
     // Clear HookStore
     HookStore.init();
   });
 
-  it('renders component from a hook', function() {
-    let wrapper = mount(
+  it('renders component from a hook', function () {
+    const wrapper = mount(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
       </div>,
@@ -38,8 +37,8 @@ describe('Hook', function() {
     expect(wrapper.find('Wrapper').prop('organization').slug).toBe('org-slug');
   });
 
-  it('renders an invalid hook', function() {
-    let wrapper = mount(
+  it('renders an invalid hook', function () {
+    const wrapper = mount(
       <div>
         <Hook name="invalid-hook" organization={TestStubs.Organization()} />
       </div>,
@@ -50,8 +49,8 @@ describe('Hook', function() {
     expect(wrapper.find('div')).toHaveLength(1);
   });
 
-  it('can re-render when hooks get after initial render', function() {
-    let wrapper = mount(
+  it('can re-render when hooks get after initial render', function () {
+    const wrapper = mount(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
       </div>,
@@ -60,28 +59,21 @@ describe('Hook', function() {
 
     expect(wrapper.find('Wrapper')).toHaveLength(1);
 
-    HookStore.add('footer', ({organization} = {}) => {
-      return (
-        <Wrapper key="new" organization={null}>
-          New Hook
-        </Wrapper>
-      );
-    });
+    HookStore.add('footer', () => (
+      <Wrapper key="new" organization={null}>
+        New Hook
+      </Wrapper>
+    ));
 
     wrapper.update();
 
     expect(HookStore.hooks.footer).toHaveLength(2);
     expect(wrapper.find('Wrapper')).toHaveLength(2);
-    expect(
-      wrapper
-        .find('Wrapper')
-        .at(1)
-        .prop('organization')
-    ).toEqual(null);
+    expect(wrapper.find('Wrapper').at(1).prop('organization')).toEqual(null);
   });
 
-  it('can use children as a render prop', function() {
-    let wrapper = mount(
+  it('can use children as a render prop', function () {
+    const wrapper = mount(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()}>
           {({hooks}) => hooks.map((hook, i) => <Wrapper key={i}>{hook}</Wrapper>)}
@@ -90,13 +82,11 @@ describe('Hook', function() {
       routerContext
     );
 
-    HookStore.add('footer', ({organization} = {}) => {
-      return (
-        <Wrapper key="new" organization={null}>
-          New Hook
-        </Wrapper>
-      );
-    });
+    HookStore.add('footer', () => (
+      <Wrapper key="new" organization={null}>
+        New Hook
+      </Wrapper>
+    ));
 
     wrapper.update();
 

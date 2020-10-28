@@ -1,108 +1,153 @@
-import {Flex} from 'grid-emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import Avatar from 'app/components/avatar';
-import InlineSvg from 'app/components/inlineSvg';
-import SentryTypes from 'app/proptypes';
 import IdBadge from 'app/components/idBadge';
+import {IconInput, IconLink, IconSettings} from 'app/icons';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import SettingsSearch from 'app/views/settings/components/settingsSearch';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
+import space from 'app/styles/space';
 
 class SearchResult extends React.Component {
   static propTypes = {
+    highlighted: PropTypes.bool,
     item: PropTypes.shape({
       /**
-     * The source of the search result (i.e. a model type)
-     */
+       * The source of the search result (i.e. a model type)
+       */
       sourceType: PropTypes.oneOf([
         'organization',
         'project',
+        'command',
         'team',
         'member',
         'field',
         'route',
+        'issue',
+        'event',
+        'plugin',
+        'integration',
+        'docIntegration',
+        'help',
       ]),
       /**
-     * The type of result this is, for example:
-     * - can be a setting route,
-     * - an application route (e.g. org dashboard)
-     * - form field
-     */
-      resultType: PropTypes.oneOf(['settings', 'route', 'field']),
-      title: PropTypes.string,
-      description: PropTypes.string,
-      model: PropTypes.oneOfType([
-        SentryTypes.Organization,
-        SentryTypes.Project,
-        SentryTypes.Team,
-        SentryTypes.Member,
+       * The type of result this is, for example:
+       * - can be a setting route,
+       * - an application route (e.g. org dashboard)
+       * - form field
+       */
+      resultType: PropTypes.oneOf([
+        'settings',
+        'command',
+        'route',
+        'field',
+        'issue',
+        'event',
+        'integration',
+        'help-docs',
+        'help-develop',
+        'help-help-center',
+        'help-blog',
       ]),
+
+      resultIcon: PropTypes.node,
+      title: PropTypes.node,
+      description: PropTypes.node,
+      extra: PropTypes.node,
+      model: PropTypes.object,
     }),
     matches: PropTypes.array,
   };
 
   renderContent() {
-    let {item, matches, params} = this.props;
-    let {sourceType, title, description, model} = item;
+    const {highlighted, item, matches, params} = this.props;
+    const {sourceType, model, extra} = item;
+    let {title, description} = item;
 
-    let matchedTitle = matches && matches.find(({key}) => key === 'title');
-    let matchedDescription = matches && matches.find(({key}) => key === 'description');
-    let highlightedTitle = matchedTitle ? highlightFuseMatches(matchedTitle) : title;
-    let highlightedDescription = matchedDescription
-      ? highlightFuseMatches(matchedDescription)
-      : description;
+    if (matches) {
+      const HighlightedMarker = p => <HighlightMarker highlighted={highlighted} {...p} />;
 
-    if (sourceType === 'member') {
-      return (
-        <IdBadge
-          displayName={highlightedTitle}
-          displayEmail={highlightedDescription}
-          userLink={false}
-          orgId={params.orgId}
-          member={model}
-          avatarSize={32}
-        />
+      const matchedTitle = matches && matches.find(({key}) => key === 'title');
+      const matchedDescription =
+        matches && matches.find(({key}) => key === 'description');
+
+      title = matchedTitle
+        ? highlightFuseMatches(matchedTitle, HighlightedMarker)
+        : title;
+      description = matchedDescription
+        ? highlightFuseMatches(matchedDescription, HighlightedMarker)
+        : description;
+    }
+
+    if (['organization', 'member', 'project', 'team'].includes(sourceType)) {
+      const DescriptionNode = (
+        <BadgeDetail highlighted={highlighted}>{description}</BadgeDetail>
       );
+
+      const badgeProps = {
+        displayName: title,
+        displayEmail: DescriptionNode,
+        description: DescriptionNode,
+        useLink: false,
+        orgId: params.orgId,
+        avatarSize: 32,
+        [sourceType]: model,
+      };
+
+      return <IdBadge {...badgeProps} />;
     }
 
     return (
       <React.Fragment>
         <div>
-          {sourceType === 'team' && <TeamAvatar team={model} size={32} />}
-          <SearchTitle>{highlightedTitle}</SearchTitle>
+          <SearchTitle>{title}</SearchTitle>
         </div>
-
-        <SearchDetail>{highlightedDescription}</SearchDetail>
+        {description && <SearchDetail>{description}</SearchDetail>}
+        {extra && <ExtraDetail>{extra}</ExtraDetail>}
       </React.Fragment>
     );
   }
 
   renderResultType() {
-    let {item} = this.props;
-    let {resultType} = item;
+    const {item} = this.props;
+    const {resultIcon, resultType, model} = item;
 
-    let isSettings = resultType === 'settings';
-    let isField = resultType === 'field';
+    const isSettings = resultType === 'settings';
+    const isField = resultType === 'field';
+    const isRoute = resultType === 'route';
+    const isIntegration = resultType === 'integration';
+
+    if (resultIcon) {
+      return resultIcon;
+    }
 
     if (isSettings) {
-      return <ResultTypeIcon src="icon-settings" />;
+      return <IconSettings />;
     }
 
     if (isField) {
-      return <ResultTypeIcon src="icon-input" />;
+      return <IconInput />;
     }
 
-    return <ResultTypeIcon src="icon-location" />;
+    if (isRoute) {
+      return <IconLink />;
+    }
+
+    if (isIntegration) {
+      return <StyledPluginIcon pluginId={model.slug} />;
+    }
+
+    return null;
   }
 
   render() {
     return (
-      <Flex justify="space-between" align="center">
+      <Wrapper>
         <Content>{this.renderContent()}</Content>
-        {this.renderResultType()}
-      </Flex>
+        <IconWrapper>{this.renderResultType()}</IconWrapper>
+      </Wrapper>
     );
   }
 }
@@ -110,27 +155,50 @@ class SearchResult extends React.Component {
 export default withRouter(SearchResult);
 
 // This is for tests
-const SearchTitle = styled.span`
-  /* stylelint-disable-next-line no-empty-block */
-`;
+const SearchTitle = styled('span')``;
 
-const SearchDetail = styled.div`
+const SearchDetail = styled('div')`
   font-size: 0.8em;
   line-height: 1.3;
   margin-top: 4px;
   opacity: 0.8;
 `;
 
-const Content = styled(props => <Flex direction="column" {...props} />)`
-  /* stylelint-disable-next-line no-empty-block */
+const ExtraDetail = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
+  margin-top: ${space(0.5)};
 `;
 
-const ResultTypeIcon = styled(InlineSvg)`
-  color: ${p => p.theme.gray1};
-  font-size: 1.2em;
+const BadgeDetail = styled('div')`
+  line-height: 1.3;
+  color: ${p => (p.highlighted ? p.theme.purple500 : null)};
+`;
+
+const Wrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const Content = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const IconWrapper = styled('div')`
+  ${/* sc-selector*/ SettingsSearch} & {
+    color: inherit;
+  }
+`;
+
+const StyledPluginIcon = styled(PluginIcon)`
   flex-shrink: 0;
 `;
 
-const TeamAvatar = styled(Avatar)`
-  margin-right: 0.5em;
+const HighlightMarker = styled('mark')`
+  padding: 0;
+  background: transparent;
+  font-weight: bold;
+  color: ${p => p.theme.pink400};
 `;

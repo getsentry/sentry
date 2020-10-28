@@ -1,26 +1,44 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
-import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
 
-describe('ProjectPluginRow', function() {
+import {mount} from 'sentry-test/enzyme';
+
+import ProjectPluginRow from 'app/views/settings/projectPlugins/projectPluginRow';
+
+describe('ProjectPluginRow', function () {
   let wrapper;
-  let plugin = TestStubs.Plugin();
-  let org = TestStubs.Organization();
-  let project = TestStubs.Project();
-  let params = {orgId: org.slug, projectId: project.slug};
+  const plugin = TestStubs.Plugin();
+  const org = TestStubs.Organization({access: ['project:write']});
+  const project = TestStubs.Project();
+  const params = {orgId: org.slug, projectId: project.slug};
+  const routerContext = TestStubs.routerContext([{organization: org, project}]);
 
-  it('renders', function() {
-    wrapper = shallow(<ProjectPluginRow {...params} {...plugin} />);
+  it('renders', function () {
+    wrapper = mount(<ProjectPluginRow {...params} {...plugin} />, routerContext);
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('calls `onChange` when clicked', function() {
-    let onChange = jest.fn();
-    wrapper = mount(<ProjectPluginRow {...params} {...plugin} onChange={onChange} />);
+  it('calls `onChange` when clicked', function () {
+    const onChange = jest.fn();
+    wrapper = mount(
+      <ProjectPluginRow {...params} {...plugin} onChange={onChange} />,
+      routerContext
+    );
 
     expect(onChange).not.toHaveBeenCalled();
     wrapper.find('Switch').simulate('click');
     expect(onChange).toHaveBeenCalledWith('amazon-sqs', true);
+  });
+
+  it('can not enable/disable or configure plugin without `project:write`', function () {
+    const onChange = jest.fn();
+    wrapper = mount(
+      <ProjectPluginRow {...params} {...plugin} onChange={onChange} />,
+      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
+    );
+
+    expect(onChange).not.toHaveBeenCalled();
+    wrapper.find('Switch').simulate('click');
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

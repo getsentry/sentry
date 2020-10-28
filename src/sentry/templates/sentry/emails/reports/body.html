@@ -33,7 +33,7 @@
       height: 16px;
       vertical-align: bottom;
       display: inline-block;
-      margin: 0 5px 0 15px;
+      margin: 0 15px 0 15px;
       border-radius: 3px;
       color: #fff;
     }
@@ -382,7 +382,7 @@
                     </tr>
                   {% else %}
                     <tr><td></td></tr>
-                    <tr><td class="all baseline" height="1px">&nbsp;</td>
+                    <tr><td class="all baseline" height="1px">&nbsp;</td></tr>
                   {% endif %}
                 </table>
               </td>
@@ -507,7 +507,7 @@
           <td>
               {% if key.color %}<span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
           </td>
-          <td class="numeric">{{ key.data.events|small_count:1 }}</div>
+          <td class="numeric">{{ key.data.events|small_count:1 }}</td>
           <td>
               {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
           </td>
@@ -523,7 +523,7 @@
               <td>
                   {% if key.color %}<span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
               </td>
-              <td class="numeric">{{ key.data.events|small_count:1 }}</div>
+              <td class="numeric">{{ key.data.events|small_count:1 }}</td>
               <td>
                   {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
               </td>

@@ -2,8 +2,6 @@ import React from 'react';
 
 import SelectControl from 'app/components/forms/selectControl';
 
-export default class MultiSelectControl extends React.Component {
-  render() {
-    return <SelectControl {...this.props} multi={true} />;
-  }
-}
+export default React.forwardRef(function MultiSelectControl(props, ref) {
+  return <SelectControl forwardedRef={ref} {...props} multiple />;
+});

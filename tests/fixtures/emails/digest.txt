@@ -1,25 +1,29 @@
 Notifications for example
-June 8, 2016, 7:25 a.m. UTC to July 4, 2016, 2:11 p.m. UTC
+June 22, 2016, 4:16 p.m. UTC to July 4, 2016, 2:18 p.m. UTC
+
+Rule #3
+
+* DecidingKoiError: faithful hookworm top sharp filly merely sought trivially (8193 events, 9186 users)
+  http://testserver/organizations/example/issues/2/?referrer=digest_email
+
+* SnailError: molly engaged wahoo feline hedgehog salmon novel boxer polecat (920 events, 5856 users)
+  http://testserver/organizations/example/issues/3/?referrer=digest_email
+
+Rule #2
+
+* DecidingKoiError: faithful hookworm top sharp filly merely sought trivially (8193 events, 9186 users)
+  http://testserver/organizations/example/issues/2/?referrer=digest_email
+
+* SnailError: molly engaged wahoo feline hedgehog salmon novel boxer polecat (920 events, 5856 users)
+  http://testserver/organizations/example/issues/3/?referrer=digest_email
 
 Rule #1
 
-* CursusError: nibh curabitur (9729 events, 5901 users)
-  http://testserver/example/example/issues/9/
+* DecidingKoiError: faithful hookworm top sharp filly merely sought trivially (8193 events, 9186 users)
+  http://testserver/organizations/example/issues/2/?referrer=digest_email
 
-* CuraeError: pulvinar fames suspendisse erat integer ad magna (7555 events, 4549 users)
-  http://testserver/example/example/issues/15/
-
-* erat pellentesque enim imperdiet tortor (3180 events, 276 users)
-  http://testserver/example/example/issues/16/
-
-* NecVivamusError: consequat ipsum proin gravida inceptos scelerisque inceptos iaculis libero vulputate (2824 events, 1188 users)
-  http://testserver/example/example/issues/14/
-
-* LectusDapibusTacitiError: semper porta curae luctus fermentum molestie praesent ac auctor (2358 events, 7906 users)
-  http://testserver/example/example/issues/2/
-
-* VelTorquentError: porttitor praesent ridiculus (562 events, 8950 users)
-  http://testserver/example/example/issues/13/
+* SnailError: molly engaged wahoo feline hedgehog salmon novel boxer polecat (920 events, 5856 users)
+  http://testserver/organizations/example/issues/3/?referrer=digest_email
 
 
 

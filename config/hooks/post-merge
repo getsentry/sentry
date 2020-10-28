@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+red="$(tput setaf 1)"
+bold="$(tput bold)"
+reset="$(tput sgr0)"
+
+files_changed_upstream="$(mktemp)"
+trap "rm -f ${files_changed_upstream}" EXIT
+
+git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD > "$files_changed_upstream"
+
+grep -E --quiet 'requirements.*\.txt' "$files_changed_upstream" && py="install-py-dev "
+grep -E --quiet 'yarn.lock' "$files_changed_upstream"           && js="install-js-dev "
+grep -E --quiet 'migrations' "$files_changed_upstream"          && migrations="apply-migrations "
+
+[[ "$py" || "$js" || "$migrations" ]] && needs_update=1
+update_command="make ${py}${js}${migrations}"
+
+[[ "$needs_update" ]] && cat <<EOF
+
+[${red}${bold}!!!${reset}] ${red} It looks like some dependencies have changed that will require your intervention. Run the following to update:${reset}
+
+    ${red}${bold}${update_command}${reset}
+
+EOF
+
+if [[ "$SENTRY_POST_MERGE_AUTO_UPDATE" && "$needs_update" ]]; then
+  $update_command
+fi

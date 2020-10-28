@@ -1,68 +1,69 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
-import classNames from 'classnames';
 
-import CustomPropTypes from 'app/proptypes';
-import Avatar from 'app/components/avatar';
+import AttachmentUrl from 'app/utils/attachmentUrl';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import DateTime from 'app/components/dateTime';
-import deviceNameMapper from 'app/utils/deviceNameMapper';
-
-import 'app/../less/components/eventsTableRow.less';
+import DeviceName from 'app/components/deviceName';
+import FileSize from 'app/components/fileSize';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import SentryTypes from 'app/sentryTypes';
+import withOrganization from 'app/utils/withOrganization';
 
 class EventsTableRow extends React.Component {
   static propTypes = {
     hasUser: PropTypes.bool,
-    truncate: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    event: CustomPropTypes.Event.isRequired,
-    tagList: PropTypes.arrayOf(CustomPropTypes.Tag),
+    projectId: PropTypes.string,
+    event: SentryTypes.Event.isRequired,
+    tagList: PropTypes.arrayOf(SentryTypes.Tag),
   };
 
-  static defaultProps = {truncate: false};
-
-  getEventTitle = event => {
-    switch (event.type) {
-      case 'error':
-        if (event.metadata.type && event.metadata.value)
-          return `${event.metadata.type}: ${event.metadata.value}`;
-        return event.metadata.type || event.metadata.value || event.metadata.title;
-      case 'csp':
-        return event.metadata.message;
-      case 'default':
-        return event.metadata.title;
-      default:
-        return event.message.split('\n')[0];
+  renderCrashFileLink() {
+    const {event, projectId} = this.props;
+    if (!event.crashFile) {
+      return null;
     }
-  };
+
+    const crashFileType =
+      event.crashFile.type === 'event.minidump' ? 'Minidump' : 'Crash file';
+
+    return (
+      <AttachmentUrl
+        projectId={projectId}
+        eventId={event.id}
+        attachment={event.crashFile}
+      >
+        {url =>
+          url && (
+            <small>
+              {crashFileType}: <a href={`${url}?download=1`}>{event.crashFile.name}</a> (
+              <FileSize bytes={event.crashFile.size} />)
+            </small>
+          )
+        }
+      </AttachmentUrl>
+    );
+  }
 
   render() {
-    let {
-      className,
-      event,
-      orgId,
-      projectId,
-      groupId,
-      tagList,
-      truncate,
-      hasUser,
-    } = this.props;
-    let cx = classNames('events-table-row', className);
-    let tagMap = {};
+    const {className, event, orgId, groupId, tagList, hasUser} = this.props;
+    const tagMap = {};
     event.tags.forEach(tag => {
       tagMap[tag.key] = tag.value;
     });
+    const link = `/organizations/${orgId}/issues/${groupId}/events/${event.id}/`;
 
     return (
-      <tr key={event.id} className={cx}>
+      <tr key={event.id} className={className}>
         <td>
-          <h5 className={truncate ? 'truncate' : ''}>
-            <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
+          <h5>
+            <GlobalSelectionLink to={link}>
               <DateTime date={event.dateCreated} />
-            </Link>
-            <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
+            </GlobalSelectionLink>
+            <small>{event.title.substr(0, 100)}</small>
+            {this.renderCrashFileLink()}
           </h5>
         </td>
 
@@ -70,7 +71,12 @@ class EventsTableRow extends React.Component {
           <td className="event-user table-user-info">
             {event.user ? (
               <div>
-                <Avatar user={event.user} size={24} className="avatar" gravatar={false} />
+                <UserAvatar
+                  user={event.user}
+                  size={24}
+                  className="avatar"
+                  gravatar={false}
+                />
                 {event.user.email}
               </div>
             ) : (
@@ -79,20 +85,21 @@ class EventsTableRow extends React.Component {
           </td>
         )}
 
-        {tagList.map(tag => {
-          return (
-            <td key={tag.key}>
-              <div className={truncate ? 'truncate' : ''}>
-                {tag.key === 'device'
-                  ? deviceNameMapper(tagMap[tag.key])
-                  : tagMap[tag.key]}
-              </div>
-            </td>
-          );
-        })}
+        {tagList.map(tag => (
+          <td key={tag.key}>
+            <div>
+              {tag.key === 'device' ? (
+                <DeviceName value={tagMap[tag.key]} />
+              ) : (
+                tagMap[tag.key]
+              )}
+            </div>
+          </td>
+        ))}
       </tr>
     );
   }
 }
 
-export default EventsTableRow;
+export {EventsTableRow};
+export default withOrganization(EventsTableRow);

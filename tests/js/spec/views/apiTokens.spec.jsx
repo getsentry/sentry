@@ -1,55 +1,67 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
-import ApiTokens from 'app/views/settings/account/apiTokens';
+import {ApiTokens} from 'app/views/settings/account/apiTokens';
 
-describe('ApiTokens', function() {
-  let routerContext = TestStubs.routerContext();
+const organization = TestStubs.Organization();
 
-  beforeEach(function() {
+describe('ApiTokens', function () {
+  const routerContext = TestStubs.routerContext();
+
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
-  it('renders empty result', function() {
+  it('renders empty result', function () {
     Client.addMockResponse({
       url: '/api-tokens/',
     });
 
-    let wrapper = shallow(<ApiTokens />, routerContext);
+    const wrapper = mountWithTheme(
+      <ApiTokens organization={organization} />,
+      routerContext
+    );
 
     // Should be loading
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders with result', function() {
+  it('renders with result', function () {
     Client.addMockResponse({
       url: '/api-tokens/',
       body: [TestStubs.ApiToken()],
     });
 
-    let wrapper = shallow(<ApiTokens />, routerContext);
+    const wrapper = mountWithTheme(
+      <ApiTokens organization={organization} />,
+      routerContext
+    );
 
     // Should be loading
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('can delete token', function() {
+  it('can delete token', function () {
     Client.addMockResponse({
       url: '/api-tokens/',
       body: [TestStubs.ApiToken()],
     });
 
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: '/api-tokens/',
       method: 'DELETE',
     });
 
     expect(mock).not.toHaveBeenCalled();
 
-    let wrapper = mount(<ApiTokens />, routerContext);
+    const wrapper = mountWithTheme(
+      <ApiTokens organization={organization} />,
+      routerContext
+    );
 
-    wrapper.find('.ref-delete-api-token').simulate('click');
+    wrapper.find('button[aria-label="Remove"]').simulate('click');
 
     // Should be loading
     expect(mock).toHaveBeenCalledTimes(1);

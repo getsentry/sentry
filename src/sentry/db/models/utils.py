@@ -1,16 +1,9 @@
-"""
-sentry.db.utils
-~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
 import operator
 
 from django.db.models import F
+from django.db.models.expressions import CombinedExpression, Value
 from django.utils.crypto import get_random_string
 from django.template.defaultfilters import slugify
 from uuid import uuid4
@@ -18,51 +11,35 @@ from uuid import uuid4
 from sentry.db.exceptions import CannotResolveExpression
 
 
-class _UnknownType(object):
-    pass
-
-try:
-    from django.db.models.expressions import ExpressionNode
-    Value = _UnknownType
-except ImportError:
-    from django.db.models.expressions import Combinable as ExpressionNode, Value
-
-
-EXPRESSION_NODE_CALLBACKS = {
-    ExpressionNode.ADD: operator.add,
-    ExpressionNode.SUB: operator.sub,
-    ExpressionNode.MUL: operator.mul,
-    ExpressionNode.DIV: getattr(operator, 'floordiv', None) or operator.div,
-    ExpressionNode.MOD: operator.mod,
+COMBINED_EXPRESSION_CALLBACKS = {
+    CombinedExpression.ADD: operator.add,
+    CombinedExpression.SUB: operator.sub,
+    CombinedExpression.MUL: operator.mul,
+    CombinedExpression.DIV: operator.floordiv,
+    CombinedExpression.MOD: operator.mod,
+    CombinedExpression.BITAND: operator.and_,
+    CombinedExpression.BITOR: operator.or_,
 }
-try:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.AND] = operator.and_
-except AttributeError:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.BITAND] = operator.and_
-try:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.OR] = operator.or_
-except AttributeError:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.BITOR] = operator.or_
 
 
-def resolve_expression_node(instance, node):
+def resolve_combined_expression(instance, node):
     def _resolve(instance, node):
         if isinstance(node, Value):
             return node.value
         if isinstance(node, F):
             return getattr(instance, node.name)
-        if isinstance(node, ExpressionNode):
-            return resolve_expression_node(instance, node)
+        if isinstance(node, CombinedExpression):
+            return resolve_combined_expression(instance, node)
         return node
 
     if isinstance(node, Value):
         return node.value
-    if not hasattr(node, 'connector'):
+    if not hasattr(node, "connector"):
         raise CannotResolveExpression
-    op = EXPRESSION_NODE_CALLBACKS.get(node.connector, None)
+    op = COMBINED_EXPRESSION_CALLBACKS.get(node.connector, None)
     if not op:
         raise CannotResolveExpression
-    if hasattr(node, 'children'):
+    if hasattr(node, "children"):
         children = node.children
     else:
         children = [node.lhs, node.rhs]
@@ -72,7 +49,12 @@ def resolve_expression_node(instance, node):
     return runner
 
 
-def slugify_instance(inst, label, reserved=(), max_length=30, field_name='slug', *args, **kwargs):
+# TODO(mark) Remove these compatibility aliases once getsentry doesn't use them.
+ExpressionNode = CombinedExpression
+resolve_expression_node = resolve_combined_expression
+
+
+def slugify_instance(inst, label, reserved=(), max_length=30, field_name="slug", *args, **kwargs):
     base_value = slugify(label)[:max_length]
 
     if base_value is not None:
@@ -92,9 +74,7 @@ def slugify_instance(inst, label, reserved=(), max_length=30, field_name='slug',
     setattr(inst, field_name, base_value)
 
     # We don't need to further mutate if we're unique at this point
-    if not base_qs.filter(**{
-        '{}__iexact'.format(field_name): base_value,
-    }).exists():
+    if not base_qs.filter(**{"{}__iexact".format(field_name): base_value}).exists():
         return
 
     # We want to sanely generate the shortest unique slug possible, so
@@ -109,13 +89,30 @@ def slugify_instance(inst, label, reserved=(), max_length=30, field_name='slug',
     )
     for attempts, size in sizes:
         for i in range(attempts):
-            end = get_random_string(size, allowed_chars='abcdefghijklmnopqrstuvwxyz0123456790')
-            value = base_value[:max_length - size - 1] + '-' + end
+            end = get_random_string(size, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456790")
+            value = base_value[: max_length - size - 1] + "-" + end
             setattr(inst, field_name, value)
-            if not base_qs.filter(**{
-                '{}__iexact'.format(field_name): value,
-            }).exists():
+            if not base_qs.filter(**{"{}__iexact".format(field_name): value}).exists():
                 return
 
     # If at this point, we've exhausted all possibilities, we'll just end up hitting
     # an IntegrityError from database, which is ok, and unlikely to happen
+
+
+class Creator(object):
+    """
+    A descriptor that invokes `to_python` when attributes are set.
+    This provides backwards compatibility for fields that used to use
+    SubfieldBase which will be removed in Django1.10
+    """
+
+    def __init__(self, field):
+        self.field = field
+
+    def __get__(self, obj, type=None):
+        if obj is None:
+            return self
+        return obj.__dict__[self.field.name]
+
+    def __set__(self, obj, value):
+        obj.__dict__[self.field.name] = self.field.to_python(value)

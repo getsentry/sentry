@@ -8,7 +8,7 @@ def reload_on_change(path):
     Set up uwsgi file monitoring hooks for reloading on change
     """
     # no-op if we're not configured to do any autoreloading
-    if 'UWSGI_PY_AUTORELOAD' not in os.environ:
+    if "UWSGI_PY_AUTORELOAD" not in os.environ:
         return
     try:
         import uwsgi

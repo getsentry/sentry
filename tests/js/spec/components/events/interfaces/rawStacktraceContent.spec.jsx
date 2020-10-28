@@ -3,9 +3,9 @@ import render, {
   getJavaPreamble,
 } from 'app/components/events/interfaces/rawStacktraceContent';
 
-describe('RawStacktraceContent', function() {
-  describe('getJavaFrame()', function() {
-    it('should render java frames', function() {
+describe('RawStacktraceContent', function () {
+  describe('getJavaFrame()', function () {
+    it('should render java frames', function () {
       expect(
         getJavaFrame({
           module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
@@ -38,7 +38,7 @@ describe('RawStacktraceContent', function() {
     });
   });
 
-  describe('getJavaPreamble()', function() {
+  describe('getJavaPreamble()', function () {
     expect(
       getJavaPreamble({
         type: 'Baz',
@@ -55,8 +55,8 @@ describe('RawStacktraceContent', function() {
     ).toEqual('foo.bar.Baz: message');
   });
 
-  describe('render()', function() {
-    let exception = {
+  describe('render()', function () {
+    const exception = {
         module: 'example.application',
         type: 'Error',
         value: 'an error occurred',

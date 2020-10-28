@@ -6,25 +6,34 @@ import shutil
 import sys
 
 from distutils import log
-from subprocess import check_output
+from subprocess import check_output, STDOUT, CalledProcessError
 from distutils.core import Command
+
+import sentry  # We just need its path via __file__
+
+
+SENTRY_ROOT_PATH = os.path.abspath(os.path.join(sentry.__file__, "..", "..", ".."))
 
 
 class BaseBuildCommand(Command):
     user_options = [
-        ('work-path=', 'w', "The working directory for source files. Defaults to ."),
-        ('build-lib=', 'b', "directory for script runtime modules"),
+        ("work-path=", "w", "The working directory for source files. Defaults to ."),
+        ("build-lib=", "b", "directory for script runtime modules"),
         (
-            'inplace', 'i', "ignore build-lib and put compiled javascript files into the source " +
-            "directory alongside your pure Python modules"
+            "inplace",
+            "i",
+            "ignore build-lib and put compiled javascript files into the source "
+            + "directory alongside your pure Python modules",
         ),
         (
-            'force', 'f', "Force rebuilding of static content. Defaults to rebuilding on version "
-            "change detection."
+            "force",
+            "f",
+            "Force rebuilding of static content. Defaults to rebuilding on version "
+            "change detection.",
         ),
     ]
 
-    boolean_options = ['force']
+    boolean_options = ["force"]
 
     def initialize_options(self):
         self.build_lib = None
@@ -33,7 +42,7 @@ class BaseBuildCommand(Command):
         self.inplace = None
 
     def get_root_path(self):
-        return os.path.abspath(os.path.dirname(sys.modules['__main__'].__file__))
+        return os.path.abspath(os.path.dirname(sys.modules["__main__"].__file__))
 
     def get_dist_paths(self):
         return []
@@ -75,8 +84,8 @@ class BaseBuildCommand(Command):
         #
         # To find the default value of the inplace flag we inspect the
         # sdist and build_ext commands.
-        sdist = self.distribution.get_command_obj('sdist')
-        build_ext = self.get_finalized_command('build_ext')
+        sdist = self.distribution.get_command_obj("sdist")
+        build_ext = self.get_finalized_command("build_ext")
 
         # If we are not decided on in-place we are inplace if either
         # build_ext is inplace or we are invoked through the install
@@ -95,12 +104,12 @@ class BaseBuildCommand(Command):
 
         # In place means build_lib is src.  We also log this.
         if self.inplace:
-            log.debug('in-place js building enabled')
-            self.build_lib = 'src'
+            log.debug("in-place js building enabled")
+            self.build_lib = "src"
         # Otherwise we fetch build_lib from the build command.
         else:
-            self.set_undefined_options('build', ('build_lib', 'build_lib'))
-            log.debug('regular js build: build path is %s' % self.build_lib)
+            self.set_undefined_options("build", ("build_lib", "build_lib"))
+            log.debug("regular js build: build path is %s" % self.build_lib)
 
         if self.work_path is None:
             self.work_path = self.get_root_path()
@@ -111,45 +120,34 @@ class BaseBuildCommand(Command):
                 return True
         return False
 
-    def _setup_git(self):
-        work_path = self.work_path
-
-        if os.path.exists(os.path.join(work_path, '.git')):
-            log.info('initializing git submodules')
-            self._run_command(['git', 'submodule', 'init'])
-            self._run_command(['git', 'submodule', 'update'])
-
-    def _setup_npm(self):
-        node_version = []
-        for app in 'node', 'npm', 'yarn':
-            try:
-                node_version.append(self._run_command([app, '--version']).rstrip())
-            except OSError:
-                if app == 'yarn':
-                    # yarn is optional
-                    node_version.append(None)
-                else:
-                    log.fatal(
-                        'Cannot find `{0}` executable. Please install {0}`'
-                        ' and try again.'.format(app)
-                    )
-                    sys.exit(1)
+    def _setup_js_deps(self):
+        node_version = None
+        try:
+            node_version = self._run_command(["node", "--version"]).rstrip()
+        except OSError:
+            log.fatal(u"Cannot find node executable. Please install node" " and try again.")
+            sys.exit(1)
 
         if node_version[2] is not None:
-            log.info('using node ({0}) and yarn ({2})'.format(*node_version))
-            self._run_command(
-                ['yarn', 'install', '--production', '--pure-lockfile']
-            )
-        else:
-            log.info('using node ({0}) and npm ({1})'.format(*node_version))
-            self._run_command(['npm', 'install', '--production', '--quiet'])
+            log.info(u"using node ({0})".format(node_version))
+            self._run_command(["yarn", "install", "--production", "--frozen-lockfile", "--quiet"])
 
     def _run_command(self, cmd, env=None):
-        log.debug('running [%s]' % (' '.join(cmd), ))
+        cmd_str = " ".join(cmd)
+        log.debug("running [%s]", cmd_str)
         try:
-            return check_output(cmd, cwd=self.work_path, env=env)
+            return check_output(cmd, cwd=self.work_path, env=env, stderr=STDOUT)
+        except CalledProcessError as err:
+            log.error(
+                "[%s] failed with exit code [%s] on [%s]:\n%s",
+                cmd_str,
+                err.returncode,
+                self.work_path,
+                err.output,
+            )
+            raise
         except Exception:
-            log.error('command failed [%s] via [%s]' % (' '.join(cmd), self.work_path, ))
+            log.error("command failed [%s] via [%s]", cmd_str, self.work_path)
             raise
 
     def update_manifests(self):
@@ -157,7 +155,7 @@ class BaseBuildCommand(Command):
         # which files we just generated.  Otherwise they will be missing
         # in the manifest.  This adds the files for what webpack generates
         # plus our own assets.json file.
-        sdist = self.distribution.get_command_obj('sdist')
+        sdist = self.distribution.get_command_obj("sdist")
         if not sdist.finalized:
             return
 
@@ -166,7 +164,7 @@ class BaseBuildCommand(Command):
         # Use the underlying file list so that we skip the file-exists
         # check which we do not want here.
         files = sdist.filelist.files
-        base = os.path.abspath('.')
+        base = os.path.abspath(".")
 
         # We need to split off the local parts of the files relative to
         # the current folder.  This will chop off the right path for the
@@ -175,14 +173,13 @@ class BaseBuildCommand(Command):
             for dirname, _, filenames in os.walk(os.path.abspath(path)):
                 for filename in filenames:
                     filename = os.path.join(dirname, filename)
-                    files.append(filename[len(base):].lstrip(os.path.sep))
+                    files.append(filename[len(base) :].lstrip(os.path.sep))
 
         for file in self.get_manifest_additions():
             files.append(file)
 
     def run(self):
         if self.force or self._needs_built():
-            self._setup_git()
-            self._setup_npm()
+            self._setup_js_deps()
             self._build()
             self.update_manifests()

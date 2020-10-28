@@ -7,11 +7,12 @@ from django.utils import timezone
 
 class UserActiveMiddleware(object):
     disallowed_paths = (
-        'sentry.web.frontend.generic.static_media',
-        'sentry.web.frontend.organization_avatar',
-        'sentry.web.frontend.project_avatar',
-        'sentry.web.frontend.team_avatar',
-        'sentry.web.frontend.user_avatar',
+        "sentry.web.frontend.generic.static_media",
+        "sentry.web.frontend.organization_avatar",
+        "sentry.web.frontend.project_avatar",
+        "sentry.web.frontend.team_avatar",
+        "sentry.web.frontend.user_avatar",
+        "sentry.web.frontend.js_sdk_loader",
     )
 
     def process_view(self, request, view_func, view_args, view_kwargs):
@@ -20,7 +21,7 @@ class UserActiveMiddleware(object):
             view = view.__class__
 
         try:
-            path = '%s.%s' % (view.__module__, view.__name__)
+            path = "%s.%s" % (view.__module__, view.__name__)
         except AttributeError:
             return
 

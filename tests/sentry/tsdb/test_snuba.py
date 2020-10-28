@@ -1,225 +1,239 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
-from datetime import timedelta
-from dateutil.parser import parse as parse_datetime
-import json
-import pytest
-import responses
+import pytz
+import six
+from datetime import datetime, timedelta
 
-from django.conf import settings
-
-from sentry.models import GroupHash, Release
-from sentry.testutils import TestCase
+from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_timestamp
+from sentry.utils.outcomes import Outcome
 
 
-def has_shape(data, shape, allow_empty=False):
-    """
-    Determine if a data object has the provided shape
-
-    At any level, the object in `data` and in `shape` must have the same type.
-    A dict is the same shape if all its keys and values have the same shape as the
-    key/value in `shape`. The number of keys/values is not relevant.
-    A list is the same shape if all its items have the same shape as the value
-    in `shape`
-    A tuple is the same shape if it has the same length as `shape` and all the
-    values have the same shape as the corresponding value in `shape`
-    Any other object simply has to have the same type.
-    If `allow_empty` is set, lists and dicts in `data` will pass even if they are empty.
-    """
-    if type(data) != type(shape):
-        return False
-    if isinstance(data, dict):
-        return (allow_empty or len(data) > 0) and\
-            all(has_shape(k, shape.keys()[0]) for k in data.keys()) and\
-            all(has_shape(v, shape.values()[0]) for v in data.values())
-    elif isinstance(data, list):
-        return (allow_empty or len(data) > 0) and\
-            all(has_shape(v, shape[0]) for v in data)
-    elif isinstance(data, tuple):
-        return len(data) == len(shape) and all(
-            has_shape(data[i], shape[i]) for i in range(len(data)))
-    else:
-        return True
+def floor_to_hour_epoch(value):
+    value = value.replace(minute=0, second=0, microsecond=0)
+    return int(to_timestamp(value))
 
 
-class SnubaTSDBRequestsTest(TestCase):
-    """
-    Tests that the Snuba TSDB backend makes correctly formatted requests
-    to the Snuba service, and formats the results correctly.
+def floor_to_10s_epoch(value):
+    seconds = value.second
+    floored_second = 10 * (seconds // 10)
 
-    Mocks the Snuba service request/response.
-    """
+    value = value.replace(second=floored_second, microsecond=0)
+    return int(to_timestamp(value))
 
+
+class SnubaTSDBTest(OutcomesSnubaTest):
     def setUp(self):
+        super(SnubaTSDBTest, self).setUp()
         self.db = SnubaTSDB()
 
-    @responses.activate
-    def test_result_shape(self):
-        """
-        Tests that the results from the different TSDB methods have the
-        expected format.
-        """
-        now = parse_datetime('2018-03-09T01:00:00Z')
-        project_id = 194503
-        dts = [now + timedelta(hours=i) for i in range(4)]
+        # Set up the times
+        self.now = datetime.now(pytz.utc)
+        self.start_time = self.now - timedelta(days=7)
+        self.one_day_later = self.start_time + timedelta(days=1)
+        self.day_before_start_time = self.start_time - timedelta(days=1)
 
-        with responses.RequestsMock() as rsps:
-            def snuba_response(request):
-                body = json.loads(request.body)
-                aggs = body.get('aggregations', [])
-                meta = [{'name': col} for col in body['groupby'] + [a[2] for a in aggs]]
-                datum = {col['name']: 1 for col in meta}
-                datum['project_id'] = project_id
-                if 'time' in datum:
-                    datum['time'] = '2018-03-09T01:00:00Z'
-                for agg in aggs:
-                    if agg[0].startswith('topK'):
-                        datum[agg[2]] = [99]
-                return (200, {}, json.dumps({'data': [datum], 'meta': meta}))
+    def test_organization_outcomes(self):
+        other_organization = self.create_organization()
 
-            rsps.add_callback(
-                responses.POST,
-                settings.SENTRY_SNUBA + '/query',
-                callback=snuba_response)
+        for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
+            self.store_outcomes(
+                self.organization.id, self.project.id, outcome.value, self.start_time, 1, 3
+            )
+            self.store_outcomes(
+                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, 4
+            )
 
-            results = self.db.get_most_frequent(TSDBModel.frequent_issues_by_project,
-                                                [project_id], dts[0], dts[0])
-            assert has_shape(results, {1: [(1, 1.0)]})
+            # Also create some outcomes we shouldn't be querying
+            self.store_outcomes(
+                other_organization.id, self.project.id, outcome.value, self.one_day_later, 1, 5
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                self.day_before_start_time,
+                1,
+                6,
+            )
 
-            results = self.db.get_most_frequent_series(TSDBModel.frequent_issues_by_project,
-                                                       [project_id], dts[0], dts[0])
-            assert has_shape(results, {1: [(1, {1: 1.0})]})
+        for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
+            (TSDBModel.organization_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
+            (TSDBModel.organization_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
+            (TSDBModel.organization_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
+            (TSDBModel.organization_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
+            (TSDBModel.organization_total_rejected, 10, floor_to_10s_epoch, 3, 4),
+            (TSDBModel.organization_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
+        ]:
+            # Query SnubaTSDB
+            response = self.db.get_range(
+                tsdb_model, [self.organization.id], self.start_time, self.now, granularity, None
+            )
 
-            items = {
-                project_id: (0, 1, 2)  # {project_id: (issue_id, issue_id, ...)}
-            }
-            results = self.db.get_frequency_series(TSDBModel.frequent_issues_by_project,
-                                                   items, dts[0], dts[-1])
-            assert has_shape(results, {1: [(1, {1: 1})]})
+            # Assert that the response has values set for the times we expect, and nothing more
+            assert self.organization.id in response
+            response_dict = {k: v for (k, v) in response[self.organization.id]}
 
-            results = self.db.get_frequency_totals(TSDBModel.frequent_issues_by_project,
-                                                   items, dts[0], dts[-1])
-            assert has_shape(results, {1: {1: 1}})
+            assert response_dict[floor_func(self.start_time)] == start_time_count
+            assert response_dict[floor_func(self.one_day_later)] == day_later_count
 
-            results = self.db.get_range(TSDBModel.project, [project_id], dts[0], dts[-1])
-            assert has_shape(results, {1: [(1, 1)]})
+            for time, count in response[self.organization.id]:
+                if time not in [floor_func(self.start_time), floor_func(self.one_day_later)]:
+                    assert count == 0
 
-            results = self.db.get_distinct_counts_series(TSDBModel.users_affected_by_project,
-                                                         [project_id], dts[0], dts[-1])
-            assert has_shape(results, {1: [(1, 1)]})
+    def test_project_outcomes(self):
+        other_project = self.create_project(organization=self.organization)
 
-            results = self.db.get_distinct_counts_totals(TSDBModel.users_affected_by_project,
-                                                         [project_id], dts[0], dts[-1])
-            assert has_shape(results, {1: 1})
+        for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
+            self.store_outcomes(
+                self.organization.id, self.project.id, outcome.value, self.start_time, 1, 3
+            )
+            self.store_outcomes(
+                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, 4
+            )
 
-            results = self.db.get_distinct_counts_union(TSDBModel.users_affected_by_project,
-                                                        [project_id], dts[0], dts[-1])
-            assert has_shape(results, 1)
+            # Also create some outcomes we shouldn't be querying
+            self.store_outcomes(
+                self.organization.id, other_project.id, outcome.value, self.one_day_later, 1, 5
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                self.day_before_start_time,
+                1,
+                6,
+            )
 
-    @responses.activate
-    def test_groups_request(self):
-        now = parse_datetime('2018-03-09T01:00:00Z')
-        dts = [now + timedelta(hours=i) for i in range(4)]
-        project = self.create_project()
-        group = self.create_group(project=project)
-        GroupHash.objects.create(project=project, group=group, hash='0' * 32)
-        group2 = self.create_group(project=project)
-        GroupHash.objects.create(project=project, group=group2, hash='1' * 32)
+        for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
+            (TSDBModel.project_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
+            (TSDBModel.project_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
+            (TSDBModel.project_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
+            (TSDBModel.project_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
+            (TSDBModel.project_total_rejected, 10, floor_to_10s_epoch, 3, 4),
+            (TSDBModel.project_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
+        ]:
+            response = self.db.get_range(
+                tsdb_model, [self.project.id], self.start_time, self.now, granularity, None
+            )
 
-        with responses.RequestsMock() as rsps:
-            def snuba_response(request):
-                body = json.loads(request.body)
-                assert body['aggregations'] == [['count()', None, 'aggregate']]
-                assert body['project'] == [project.id]
-                assert body['groupby'] == ['issue', 'time']
+            # Assert that the response has values set for the times we expect, and nothing more
+            assert self.project.id in response
+            response_dict = {k: v for (k, v) in response[self.project.id]}
 
-                # Assert issue->hash map is generated, but only for referenced issues
-                assert [group.id, ['0' * 32]] in body['issues']
-                assert [group2.id, ['1' * 32]] not in body['issues']
+            assert response_dict[floor_func(self.start_time)] == start_time_count
+            assert response_dict[floor_func(self.one_day_later)] == day_later_count
 
-                return (200, {}, json.dumps({
-                    'data': [{'time': '2018-03-09T01:00:00Z', 'issue': 1, 'aggregate': 100}],
-                    'meta': [{'name': 'time'}, {'name': 'issue'}, {'name': 'aggregate'}]
-                }))
+            for time, count in response[self.project.id]:
+                if time not in [floor_func(self.start_time), floor_func(self.one_day_later)]:
+                    assert count == 0
 
-            rsps.add_callback(
-                responses.POST,
-                settings.SENTRY_SNUBA + '/query',
-                callback=snuba_response)
-            results = self.db.get_range(TSDBModel.group, [group.id], dts[0], dts[-1])
-            assert results is not None
+    def test_key_outcomes(self):
+        project_key = self.create_project_key(project=self.project)
+        other_project = self.create_project(organization=self.organization)
+        other_project_key = self.create_project_key(project=other_project)
 
-    @responses.activate
-    def test_releases_request(self):
-        now = parse_datetime('2018-03-09T01:00:00Z')
-        project = self.create_project()
-        release = Release.objects.create(
-            organization_id=self.organization.id,
-            version='version X',
-            date_added=now,
-        )
-        release.add_project(project)
-        dts = [now + timedelta(hours=i) for i in range(4)]
+        for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                self.start_time,
+                project_key.id,
+                3,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                self.one_day_later,
+                project_key.id,
+                4,
+            )
 
-        with responses.RequestsMock() as rsps:
-            def snuba_response(request):
-                body = json.loads(request.body)
-                assert body['aggregations'] == [['count()', None, 'aggregate']]
-                assert body['project'] == [project.id]
-                assert body['groupby'] == ['release', 'time']
-                assert ['release', 'IN', ['version X']] in body['conditions']
-                return (200, {}, json.dumps({
-                    'data': [{'release': 'version X', 'time': '2018-03-09T01:00:00Z', 'aggregate': 100}],
-                    'meta': [{'name': 'release'}, {'name': 'time'}, {'name': 'aggregate'}]
-                }))
+            # Also create some outcomes we shouldn't be querying
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                self.one_day_later,
+                other_project_key.id,
+                5,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                self.day_before_start_time,
+                project_key.id,
+                6,
+            )
 
-            rsps.add_callback(
-                responses.POST,
-                settings.SENTRY_SNUBA + '/query',
-                callback=snuba_response)
-            results = self.db.get_range(
-                TSDBModel.release, [release.id], dts[0], dts[-1], rollup=3600)
-            assert results == {
-                release.id: [
-                    (int(to_timestamp(d)), 100 if d == now else 0)
-                    for d in dts]
-            }
+        for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
+            (TSDBModel.key_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
+            (TSDBModel.key_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
+            (TSDBModel.key_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
+            (TSDBModel.key_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
+            (TSDBModel.key_total_rejected, 10, floor_to_10s_epoch, 3, 4),
+            (TSDBModel.key_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
+        ]:
+            response = self.db.get_range(
+                # with [project_key.id, six.text_type(project_key.id)], we are imitating the hack in
+                # project_key_stats.py cause that is what `get_range` will be called with.
+                tsdb_model,
+                [project_key.id, six.text_type(project_key.id)],
+                self.start_time,
+                self.now,
+                granularity,
+                None,
+            )
 
-    @responses.activate
-    def test_environment_request(self):
-        now = parse_datetime('2018-03-09T01:00:00Z')
-        project = self.create_project()
-        env = self.create_environment(project=project, name="prod")
-        dts = [now + timedelta(hours=i) for i in range(4)]
+            # Assert that the response has values set for the times we expect, and nothing more
+            assert project_key.id in response
+            response_dict = {k: v for (k, v) in response[project_key.id]}
 
-        with responses.RequestsMock() as rsps:
-            def snuba_response(request):
-                body = json.loads(request.body)
-                assert body['aggregations'] == [['count()', None, 'aggregate']]
-                assert body['project'] == [project.id]
-                assert body['groupby'] == ['project_id', 'time']
-                assert ['environment', 'IN', ['prod']] in body['conditions']
-                return (200, {}, json.dumps({
-                    'data': [{'project_id': project.id, 'time': '2018-03-09T01:00:00Z', 'aggregate': 100}],
-                    'meta': [{'name': 'project_id'}, {'name': 'time'}, {'name': 'aggregate'}]
-                }))
+            assert response_dict[floor_func(self.start_time)] == start_time_count
+            assert response_dict[floor_func(self.one_day_later)] == day_later_count
 
-            rsps.add_callback(
-                responses.POST,
-                settings.SENTRY_SNUBA + '/query',
-                callback=snuba_response)
-            results = self.db.get_range(TSDBModel.project, [project.id],
-                                        dts[0], dts[-1], environment_id=env.id, rollup=3600)
-            assert results == {
-                project.id: [
-                    (int(to_timestamp(d)), 100 if d == now else 0)
-                    for d in dts]
-            }
+            for time, count in response[project_key.id]:
+                if time not in [floor_func(self.start_time), floor_func(self.one_day_later)]:
+                    assert count == 0
 
-    def test_invalid_model(self):
-        with pytest.raises(Exception) as ex:
-            self.db.get_range(TSDBModel.project_total_received_discarded, [], None, None)
-        assert "Unsupported TSDBModel" in ex.value.message
+    def test_all_tsdb_models_have_an_entry_in_model_query_settings(self):
+        # Ensure that the models we expect to be using Snuba are using Snuba
+        exceptions = [
+            TSDBModel.project_total_forwarded  # this is not outcomes and will be moved separately
+        ]
+
+        # does not include the internal TSDB model
+        models = [
+            model for model in list(TSDBModel) if 0 < model.value < 700 and model not in exceptions
+        ]
+        for model in models:
+            assert model in SnubaTSDB.model_query_settings
+
+    def test_outcomes_have_a_10s_setting(self):
+        exceptions = [
+            TSDBModel.project_total_forwarded  # this is not outcomes and will be moved separately
+        ]
+
+        def is_an_outcome(model):
+            if model in exceptions:
+                return False
+
+            # 100 - 200: project outcomes
+            # 200 - 300: organization outcomes
+            # 500 - 600: key outcomes
+            # 600 - 700: filtered project based outcomes
+            return (
+                (100 <= model.value < 200)
+                or (200 <= model.value < 300)
+                or (500 <= model.value < 600)
+                or (600 <= model.value < 700)
+            )
+
+        models = [x for x in list(TSDBModel) if is_an_outcome(x)]
+        for model in models:
+            assert model in SnubaTSDB.lower_rollup_query_settings

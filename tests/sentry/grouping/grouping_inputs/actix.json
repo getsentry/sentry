@@ -1,0 +1,660 @@
+{
+  "culprit": "log::__private_api_log",
+  "event_id": "81a7a3dc399345e8a7fbefce9958d76b",
+  "environment": "debug",
+  "platform": "native",
+  "logger": "actix_web::pipeline",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "__pthread_start",
+              "instruction_addr": "0x7fff5ea032a6",
+              "in_app": true
+            },
+            {
+              "function": "__pthread_body",
+              "instruction_addr": "0x7fff5ea0033c",
+              "in_app": true
+            },
+            {
+              "function": "std::sys::unix::thread::Thread::new::thread_start",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/sys_common/thread.rs",
+              "package": "std",
+              "filename": "thread.rs",
+              "lineno": 24,
+              "in_app": false,
+              "instruction_addr": "0x10e37362b"
+            },
+            {
+              "function": "<F as alloc::boxed::FnBox<A>>::call_box",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/liballoc/boxed.rs",
+              "filename": "boxed.rs",
+              "lineno": 673,
+              "in_app": true,
+              "instruction_addr": "0x10de00d23"
+            },
+            {
+              "function": "std::thread::Builder::spawn_unchecked::{{closure}}",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/mod.rs",
+              "package": "std",
+              "filename": "mod.rs",
+              "lineno": 476,
+              "in_app": false,
+              "instruction_addr": "0x10de00a2b"
+            },
+            {
+              "function": "std::panic::catch_unwind",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/panic.rs",
+              "package": "std",
+              "filename": "panic.rs",
+              "lineno": 398,
+              "in_app": false,
+              "instruction_addr": "0x10de41d92"
+            },
+            {
+              "function": "std::panicking::try",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/panicking.rs",
+              "package": "std",
+              "filename": "panicking.rs",
+              "lineno": 289,
+              "in_app": false,
+              "instruction_addr": "0x10de42144"
+            },
+            {
+              "function": "___rust_maybe_catch_panic",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libpanic_unwind/lib.rs",
+              "filename": "lib.rs",
+              "lineno": 102,
+              "in_app": true,
+              "instruction_addr": "0x10e37f41e"
+            },
+            {
+              "function": "std::panicking::try::do_call",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/panicking.rs",
+              "package": "std",
+              "filename": "panicking.rs",
+              "lineno": 310,
+              "in_app": false,
+              "instruction_addr": "0x10de42262"
+            },
+            {
+              "function": "<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/panic.rs",
+              "filename": "panic.rs",
+              "lineno": 319,
+              "in_app": false,
+              "instruction_addr": "0x10de40ab2"
+            },
+            {
+              "function": "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/mod.rs",
+              "package": "std",
+              "filename": "mod.rs",
+              "lineno": 477,
+              "in_app": false,
+              "instruction_addr": "0x10de00c12"
+            },
+            {
+              "function": "std::sys_common::backtrace::__rust_begin_short_backtrace",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/sys_common/backtrace.rs",
+              "package": "std",
+              "filename": "backtrace.rs",
+              "lineno": 136,
+              "in_app": false,
+              "instruction_addr": "0x10de260a2"
+            },
+            {
+              "function": "actix::arbiter::Arbiter::new_with_builder::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-0.7.9/src/arbiter.rs",
+              "package": "actix",
+              "filename": "arbiter.rs",
+              "lineno": 116,
+              "in_app": true,
+              "instruction_addr": "0x10de38309"
+            },
+            {
+              "function": "tokio::runtime::current_thread::runtime::Runtime::block_on",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-0.1.15/src/runtime/current_thread/runtime.rs",
+              "package": "tokio",
+              "filename": "runtime.rs",
+              "lineno": 189,
+              "in_app": true,
+              "instruction_addr": "0x10de2b1d4"
+            },
+            {
+              "function": "tokio::runtime::current_thread::runtime::Runtime::enter",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-0.1.15/src/runtime/current_thread/runtime.rs",
+              "package": "tokio",
+              "filename": "runtime.rs",
+              "lineno": 221,
+              "in_app": true,
+              "instruction_addr": "0x10de2a453"
+            },
+            {
+              "function": "tokio_reactor::with_default",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-reactor-0.1.8/src/lib.rs",
+              "package": "tokio_reactor",
+              "filename": "lib.rs",
+              "lineno": 212,
+              "in_app": true,
+              "instruction_addr": "0x10ddfb7ee"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 255,
+              "in_app": false,
+              "instruction_addr": "0x10ddd4c98"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::try_with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 309,
+              "in_app": false,
+              "instruction_addr": "0x10ddd61ce"
+            },
+            {
+              "function": "tokio_reactor::with_default::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-reactor-0.1.8/src/lib.rs",
+              "package": "tokio_reactor",
+              "filename": "lib.rs",
+              "lineno": 229,
+              "in_app": true,
+              "instruction_addr": "0x10ddfbf58"
+            },
+            {
+              "function": "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-0.1.15/src/runtime/current_thread/runtime.rs",
+              "package": "tokio",
+              "filename": "runtime.rs",
+              "lineno": 222,
+              "in_app": true,
+              "instruction_addr": "0x10de2a86c"
+            },
+            {
+              "function": "tokio_timer::clock::clock::with_default",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-timer-0.2.10/src/clock/clock.rs",
+              "package": "tokio_timer",
+              "filename": "clock.rs",
+              "lineno": 124,
+              "in_app": true,
+              "instruction_addr": "0x10de40cb9"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 255,
+              "in_app": false,
+              "instruction_addr": "0x10ddd4948"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::try_with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 309,
+              "in_app": false,
+              "instruction_addr": "0x10ddda569"
+            },
+            {
+              "function": "tokio_timer::clock::clock::with_default::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-timer-0.2.10/src/clock/clock.rs",
+              "package": "tokio_timer",
+              "filename": "clock.rs",
+              "lineno": 141,
+              "in_app": true,
+              "instruction_addr": "0x10de41285"
+            },
+            {
+              "function": "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-0.1.15/src/runtime/current_thread/runtime.rs",
+              "package": "tokio",
+              "filename": "runtime.rs",
+              "lineno": 223,
+              "in_app": true,
+              "instruction_addr": "0x10de2aa38"
+            },
+            {
+              "function": "tokio_timer::timer::handle::with_default",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-timer-0.2.10/src/timer/handle.rs",
+              "package": "tokio_timer",
+              "filename": "handle.rs",
+              "lineno": 81,
+              "in_app": true,
+              "instruction_addr": "0x10de1cb37"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 255,
+              "in_app": false,
+              "instruction_addr": "0x10ddd4447"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::try_with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 309,
+              "in_app": false,
+              "instruction_addr": "0x10ddd506c"
+            },
+            {
+              "function": "tokio_timer::timer::handle::with_default::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-timer-0.2.10/src/timer/handle.rs",
+              "package": "tokio_timer",
+              "filename": "handle.rs",
+              "lineno": 94,
+              "in_app": true,
+              "instruction_addr": "0x10de1ce04"
+            },
+            {
+              "function": "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-0.1.15/src/runtime/current_thread/runtime.rs",
+              "package": "tokio",
+              "filename": "runtime.rs",
+              "lineno": 230,
+              "in_app": true,
+              "instruction_addr": "0x10de2addb"
+            },
+            {
+              "function": "tokio_executor::global::with_default",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-executor-0.1.6/src/global.rs",
+              "package": "tokio_executor",
+              "filename": "global.rs",
+              "lineno": 162,
+              "in_app": true,
+              "instruction_addr": "0x10de2565a"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 255,
+              "in_app": false,
+              "instruction_addr": "0x10ddd3fc7"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::try_with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 309,
+              "in_app": false,
+              "instruction_addr": "0x10ddd73b8"
+            },
+            {
+              "function": "tokio_executor::global::with_default::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-executor-0.1.6/src/global.rs",
+              "package": "tokio_executor",
+              "filename": "global.rs",
+              "lineno": 192,
+              "in_app": true,
+              "instruction_addr": "0x10de257c9"
+            },
+            {
+              "function": "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-0.1.15/src/runtime/current_thread/runtime.rs",
+              "package": "tokio",
+              "filename": "runtime.rs",
+              "lineno": 232,
+              "in_app": true,
+              "instruction_addr": "0x10de2ae8e"
+            },
+            {
+              "function": "tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-0.1.15/src/runtime/current_thread/runtime.rs",
+              "package": "tokio",
+              "filename": "runtime.rs",
+              "lineno": 191,
+              "in_app": true,
+              "instruction_addr": "0x10de2b31c"
+            },
+            {
+              "function": "<tokio_current_thread::Entered<'a, P>>::block_on",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-current-thread-0.1.4/src/lib.rs",
+              "filename": "lib.rs",
+              "lineno": 488,
+              "in_app": true,
+              "instruction_addr": "0x10ddef1ac"
+            },
+            {
+              "function": "<tokio_current_thread::Entered<'a, P>>::tick",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-current-thread-0.1.4/src/lib.rs",
+              "filename": "lib.rs",
+              "lineno": 605,
+              "in_app": true,
+              "instruction_addr": "0x10df21565"
+            },
+            {
+              "function": "<tokio_current_thread::scheduler::Scheduler<U>>::tick",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-current-thread-0.1.4/src/scheduler.rs",
+              "filename": "scheduler.rs",
+              "lineno": 333,
+              "in_app": true,
+              "instruction_addr": "0x10df2368f"
+            },
+            {
+              "function": "<tokio_current_thread::Borrow<'a, U>>::enter",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-current-thread-0.1.4/src/lib.rs",
+              "filename": "lib.rs",
+              "lineno": 776,
+              "in_app": true,
+              "instruction_addr": "0x10df2120a"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 255,
+              "in_app": false,
+              "instruction_addr": "0x10df1e8c4"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::try_with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 309,
+              "in_app": false,
+              "instruction_addr": "0x10df1ecd4"
+            },
+            {
+              "function": "<tokio_current_thread::Borrow<'a, U>>::enter::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-current-thread-0.1.4/src/lib.rs",
+              "filename": "lib.rs",
+              "lineno": 778,
+              "in_app": true,
+              "instruction_addr": "0x10df2135a"
+            },
+            {
+              "function": "tokio_current_thread::CurrentRunner::set_spawn",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-current-thread-0.1.4/src/lib.rs",
+              "package": "tokio_current_thread",
+              "filename": "lib.rs",
+              "lineno": 816,
+              "in_app": true,
+              "instruction_addr": "0x10df1fcdf"
+            },
+            {
+              "function": "<tokio_current_thread::Borrow<'a, U>>::enter::{{closure}}::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-current-thread-0.1.4/src/lib.rs",
+              "filename": "lib.rs",
+              "lineno": 779,
+              "in_app": true,
+              "instruction_addr": "0x10df213b4"
+            },
+            {
+              "function": "<tokio_current_thread::scheduler::Scheduler<U>>::tick::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-current-thread-0.1.4/src/scheduler.rs",
+              "filename": "scheduler.rs",
+              "lineno": 333,
+              "in_app": true,
+              "instruction_addr": "0x10df23784"
+            },
+            {
+              "function": "<tokio_current_thread::scheduler::Scheduled<'a, U>>::tick",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-current-thread-0.1.4/src/scheduler.rs",
+              "filename": "scheduler.rs",
+              "lineno": 354,
+              "in_app": true,
+              "instruction_addr": "0x10df23b63"
+            },
+            {
+              "function": "<futures::task_impl::Spawn<T>>::poll_future_notify",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/task_impl/mod.rs",
+              "filename": "mod.rs",
+              "lineno": 326,
+              "in_app": true,
+              "instruction_addr": "0x10df1ddb4"
+            },
+            {
+              "function": "<futures::task_impl::Spawn<T>>::poll_fn_notify",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/task_impl/mod.rs",
+              "filename": "mod.rs",
+              "lineno": 288,
+              "in_app": true,
+              "instruction_addr": "0x10df1dd27"
+            },
+            {
+              "function": "<futures::task_impl::Spawn<T>>::enter",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/task_impl/mod.rs",
+              "filename": "mod.rs",
+              "lineno": 396,
+              "in_app": true,
+              "instruction_addr": "0x10df1dee7"
+            },
+            {
+              "function": "futures::task_impl::std::set",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/task_impl/std/mod.rs",
+              "package": "futures",
+              "filename": "mod.rs",
+              "lineno": 78,
+              "in_app": true,
+              "instruction_addr": "0x10df1b856"
+            },
+            {
+              "function": "<futures::task_impl::Spawn<T>>::enter::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/task_impl/mod.rs",
+              "filename": "mod.rs",
+              "lineno": 396,
+              "in_app": true,
+              "instruction_addr": "0x10df1df3f"
+            },
+            {
+              "function": "<futures::task_impl::Spawn<T>>::poll_future_notify::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/task_impl/mod.rs",
+              "filename": "mod.rs",
+              "lineno": 326,
+              "in_app": true,
+              "instruction_addr": "0x10df1dde4"
+            },
+            {
+              "function": "<alloc::boxed::Box<F> as futures::future::Future>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/future/mod.rs",
+              "filename": "mod.rs",
+              "lineno": 113,
+              "in_app": false,
+              "instruction_addr": "0x10df1d0e4"
+            },
+            {
+              "function": "<futures::future::then::Then<A, B, F> as futures::future::Future>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/future/then.rs",
+              "filename": "then.rs",
+              "lineno": 32,
+              "in_app": true,
+              "instruction_addr": "0x10d9dc164"
+            },
+            {
+              "function": "<futures::future::chain::Chain<A, B, C>>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/future/chain.rs",
+              "filename": "chain.rs",
+              "lineno": 26,
+              "in_app": true,
+              "instruction_addr": "0x10d973b21"
+            },
+            {
+              "function": "<futures::future::either::Either<A, B> as futures::future::Future>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/future/either.rs",
+              "filename": "either.rs",
+              "lineno": 35,
+              "in_app": true,
+              "instruction_addr": "0x10d994eb4"
+            },
+            {
+              "function": "<futures::future::either::Either<A, B> as futures::future::Future>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.25/src/future/either.rs",
+              "filename": "either.rs",
+              "lineno": 35,
+              "in_app": true,
+              "instruction_addr": "0x10d994db9"
+            },
+            {
+              "function": "<actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T> as futures::future::Future>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-web-0.7.18/src/server/acceptor.rs",
+              "filename": "acceptor.rs",
+              "lineno": 378,
+              "in_app": true,
+              "instruction_addr": "0x10d98f2bc"
+            },
+            {
+              "function": "<actix_net::service::and_then::AndThenFuture<A, B> as futures::future::Future>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-net-0.2.6/src/service/and_then.rs",
+              "filename": "and_then.rs",
+              "lineno": 94,
+              "in_app": true,
+              "instruction_addr": "0x10da1d0b5"
+            },
+            {
+              "function": "<actix_net::service::map_err::MapErrFuture<A, F, E> as futures::future::Future>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-net-0.2.6/src/service/map_err.rs",
+              "filename": "map_err.rs",
+              "lineno": 92,
+              "in_app": true,
+              "instruction_addr": "0x10da0f7c3"
+            },
+            {
+              "function": "<actix_web::server::channel::HttpChannel<T, H> as futures::future::Future>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-web-0.7.18/src/server/channel.rs",
+              "filename": "channel.rs",
+              "lineno": 155,
+              "in_app": true,
+              "instruction_addr": "0x10da00a6d"
+            },
+            {
+              "function": "<actix_web::server::channel::HttpChannel<T, H> as futures::future::Future>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-web-0.7.18/src/server/channel.rs",
+              "filename": "channel.rs",
+              "lineno": 105,
+              "in_app": true,
+              "instruction_addr": "0x10d9ffd41"
+            },
+            {
+              "function": "<actix_web::server::h1::Http1Dispatcher<T, H>>::poll",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-web-0.7.18/src/server/h1.rs",
+              "filename": "h1.rs",
+              "lineno": 223,
+              "in_app": true,
+              "instruction_addr": "0x10da0bd6f"
+            },
+            {
+              "function": "<actix_web::server::h1::Http1Dispatcher<T, H>>::poll_handler",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-web-0.7.18/src/server/h1.rs",
+              "filename": "h1.rs",
+              "lineno": 376,
+              "in_app": true,
+              "instruction_addr": "0x10da08d4e"
+            },
+            {
+              "function": "<actix_web::server::h1::Http1Dispatcher<T, H>>::poll_io",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-web-0.7.18/src/server/h1.rs",
+              "filename": "h1.rs",
+              "lineno": 348,
+              "in_app": true,
+              "instruction_addr": "0x10da0e46f"
+            },
+            {
+              "function": "<actix_web::server::h1::Http1Dispatcher<T, H>>::parse",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-web-0.7.18/src/server/h1.rs",
+              "filename": "h1.rs",
+              "lineno": 506,
+              "in_app": true,
+              "instruction_addr": "0x10da0cb47"
+            },
+            {
+              "function": "<actix_web::pipeline::Pipeline<S, H> as actix_web::server::handler::HttpHandlerTask>::poll_io",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-web-0.7.18/src/pipeline.rs",
+              "filename": "pipeline.rs",
+              "lineno": 126,
+              "in_app": true,
+              "instruction_addr": "0x10d99d065"
+            },
+            {
+              "function": "<actix_web::pipeline::ProcessResponse<S, H>>::poll_io",
+              "abs_path": "/Users/mitsuhiko/Development/sentry-rust/<::log::macros::log macros>",
+              "filename": "<::log::macros::log macros>",
+              "lineno": 5,
+              "in_app": true,
+              "instruction_addr": "0x10d9a1461"
+            },
+            {
+              "function": "log::__private_api_log",
+              "abs_path": "/Users/mitsuhiko/.cargo/registry/src/github.com-1ecc6299db9ec823/log-0.4.6/src/lib.rs",
+              "package": "log",
+              "filename": "lib.rs",
+              "lineno": 1232,
+              "in_app": true,
+              "instruction_addr": "0x10e35a544"
+            },
+            {
+              "function": "<sentry::integrations::log::Logger as log::Log>::log",
+              "abs_path": "/Users/mitsuhiko/Development/sentry-rust/src/integrations/log.rs",
+              "filename": "log.rs",
+              "lineno": 184,
+              "in_app": false,
+              "instruction_addr": "0x10daf01ab"
+            },
+            {
+              "function": "sentry::hub::Hub::with_active",
+              "abs_path": "/Users/mitsuhiko/Development/sentry-rust/src/hub.rs",
+              "package": "sentry",
+              "filename": "hub.rs",
+              "lineno": 208,
+              "in_app": false,
+              "instruction_addr": "0x10da79a43"
+            },
+            {
+              "function": "sentry::hub::Hub::with",
+              "abs_path": "/Users/mitsuhiko/Development/sentry-rust/src/hub.rs",
+              "package": "sentry",
+              "filename": "hub.rs",
+              "lineno": 190,
+              "in_app": false,
+              "instruction_addr": "0x10da78707"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 255,
+              "in_app": false,
+              "instruction_addr": "0x10dae8346"
+            },
+            {
+              "function": "<std::thread::local::LocalKey<T>>::try_with",
+              "abs_path": "/rustc/9fda7c2237db910e41d6a712e9a2139b352e558b/src/libstd/thread/local.rs",
+              "filename": "local.rs",
+              "lineno": 309,
+              "in_app": false,
+              "instruction_addr": "0x10daea762"
+            },
+            {
+              "function": "sentry::hub::Hub::with::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/Development/sentry-rust/src/hub.rs",
+              "package": "sentry",
+              "filename": "hub.rs",
+              "lineno": 192,
+              "in_app": false,
+              "instruction_addr": "0x10da79451"
+            },
+            {
+              "function": "sentry::hub::Hub::with_active::{{closure}}",
+              "abs_path": "/Users/mitsuhiko/Development/sentry-rust/src/hub.rs",
+              "package": "sentry",
+              "filename": "hub.rs",
+              "lineno": 210,
+              "in_app": false,
+              "instruction_addr": "0x10da79b0b"
+            }
+          ]
+        },
+        "type": "actix_web::pipeline",
+        "value": "Error occurred during request handling, status: 500 Internal Server Error Something went really wrong here"
+      }
+    ]
+  },
+  "release": null
+}

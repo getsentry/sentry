@@ -1,22 +1,27 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import AutoSelectText from 'app/components/autoSelectText';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import DynamicWrapper from 'app/components/dynamicWrapper';
-import getDynamicText from 'app/utils/getDynamicText';
 import Field from 'app/views/settings/components/forms/field';
+import {IconFlag} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PluginList from 'app/components/pluginList';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import getDynamicText from 'app/utils/getDynamicText';
 import withPlugins from 'app/utils/withPlugins';
+import routeTitleGen from 'app/utils/routeTitle';
+
+const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
+const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
 
 class ProjectReleaseTracking extends AsyncView {
   static propTypes = {
@@ -26,17 +31,26 @@ class ProjectReleaseTracking extends AsyncView {
   };
 
   getTitle() {
-    return 'Release Tracking';
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Releases'), projectId, false);
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
-    return [['data', `/projects/${orgId}/${projectId}/releases/token/`]];
+    // Allow 403s
+    return [
+      [
+        'data',
+        `/projects/${orgId}/${projectId}/releases/token/`,
+        {},
+        {allowError: err => err && err.status === 403},
+      ],
+    ];
   }
 
   handleRegenerateToken = () => {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
       method: 'POST',
       data: {project: projectId},
@@ -58,7 +72,7 @@ class ProjectReleaseTracking extends AsyncView {
   };
 
   getReleaseWebhookIntructions() {
-    let {webhookUrl} = this.state.data;
+    const {webhookUrl} = this.state.data || {webhookUrl: WEBHOOK_PLACEHOLDER};
     return (
       'curl ' +
       webhookUrl +
@@ -72,38 +86,37 @@ class ProjectReleaseTracking extends AsyncView {
     );
   }
 
-  getReleaseClientConfigurationIntructions() {
-    return (
-      '// See SDK documentation for language specific usage.' +
-      '\n' +
-      "Raven.config('your dsn', {" +
-      '\n' +
-      '  ' +
-      "release: '0e4fdef81448dcfa0e16ecc4433ff3997aa53572'" +
-      '\n' +
-      '});'
-    );
-  }
-
   renderBody() {
-    let {organization, project, plugins} = this.props;
+    const {organization, project, plugins} = this.props;
+    const hasWrite = organization.access.includes('project:write');
 
     if (plugins.loading) {
       return <LoadingIndicator />;
     }
 
-    let pluginList = plugins.plugins.filter(
+    const pluginList = plugins.plugins.filter(
       p => p.type === 'release-tracking' && p.hasConfiguration
     );
 
-    let {token, webhookUrl} = this.state.data;
+    let {token, webhookUrl} = this.state.data || {
+      token: TOKEN_PLACEHOLDER,
+      webhookUrl: WEBHOOK_PLACEHOLDER,
+    };
 
-    token = getDynamicText({value: token, fixed: '__TOKEN__'});
-    webhookUrl = getDynamicText({value: webhookUrl, fixed: '__WEBHOOK_URL__'});
+    token = token && getDynamicText({value: token, fixed: '__TOKEN__'});
+    webhookUrl =
+      webhookUrl && getDynamicText({value: webhookUrl, fixed: '__WEBHOOK_URL__'});
 
     return (
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
+        {!hasWrite && (
+          <Alert icon={<IconFlag size="md" />} type="warning">
+            {t(
+              'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
+            )}
+          </Alert>
+        )}
         <p>
           {t(
             'Configure release tracking for this project to automatically record new releases of your application.'
@@ -112,15 +125,20 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
-          <PanelBody disablePadding={false} flex>
+          <PanelBody flexible withPadding>
             <p>
-              {tct('Start by binding the [release] attribute in your application', {
-                release: <code>release</code>,
-              })}
+              {tct(
+                'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
+                {
+                  link: (
+                    <a href="https://docs.sentry.io/workflow/releases/#configure-sdk">
+                      our docs
+                    </a>
+                  ),
+                  release: <code>release</code>,
+                }
+              )}
             </p>
-            <AutoSelectText>
-              <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
-            </AutoSelectText>
             <p>
               {t(
                 "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
@@ -136,7 +154,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('Deploy Token')}</PanelHeader>
-          <PanelBody flex>
+          <PanelBody flexible>
             <Field
               label={t('Token')}
               help={t('A unique secret which is used to generate deploy hook URLs')}
@@ -151,13 +169,14 @@ class ProjectReleaseTracking extends AsyncView {
             >
               <div>
                 <Confirm
+                  disabled={!hasWrite}
                   priority="danger"
                   onConfirm={this.handleRegenerateToken}
                   message={t(
                     'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
                   )}
                 >
-                  <Button type="button" priority="danger">
+                  <Button type="button" priority="danger" disabled={!hasWrite}>
                     {t('Regenerate Token')}
                   </Button>
                 </Confirm>
@@ -168,7 +187,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('Webhook')}</PanelHeader>
-          <PanelBody disablePadding={false} flex>
+          <PanelBody flexible withPadding>
             <p>
               {t(
                 'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
@@ -185,21 +204,21 @@ class ProjectReleaseTracking extends AsyncView {
               )}
             </p>
 
-            <DynamicWrapper
-              value={
+            {getDynamicText({
+              value: (
                 <AutoSelectText>
                   <pre>{this.getReleaseWebhookIntructions()}</pre>
                 </AutoSelectText>
-              }
-              fixed={
+              ),
+              fixed: (
                 <pre>
                   {`curl __WEBHOOK_URL__ \\
   -X POST \\
   -H 'Content-Type: application/json' \\
   -d \'{"version": "abcdefg"}\'`}
                 </pre>
-              }
-            />
+              ),
+            })}
           </PanelBody>
         </Panel>
 
@@ -211,7 +230,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('API')}</PanelHeader>
-          <PanelBody disablePadding={false} flex>
+          <PanelBody flexible withPadding>
             <p>
               {t(
                 'You can notify Sentry when you release new versions of your application via our HTTP API.'
@@ -219,8 +238,8 @@ class ProjectReleaseTracking extends AsyncView {
             </p>
 
             <p>
-              {tct('See the [link:Releases API documentation] for more information.', {
-                link: <a href="https://docs.sentry.io/hosted/api/releases/" />,
+              {tct('See the [link:releases documentation] for more information.', {
+                link: <a href="https://docs.sentry.io/workflow/releases/" />,
               })}
             </p>
           </PanelBody>

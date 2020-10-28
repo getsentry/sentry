@@ -4,12 +4,18 @@
 
 {{ report.name }} left a new comment:
 
+{% if enhanced_privacy %}
+Details about this feedback are not shown in this notification since enhanced privacy
+controls are enabled. For more details about this feedback, view on Sentry.
+
+{% else %}
 {{ report.comments }}
 
+{% endif %}
 
 ## Details
 
-{{ group.message_short }}
+{{ group.title }}
 
 {{ link }}
 

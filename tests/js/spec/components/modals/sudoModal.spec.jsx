@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import App from 'app/views/app';
@@ -7,8 +8,8 @@ import ConfigStore from 'app/stores/configStore';
 
 jest.mock('jquery');
 
-describe('Sudo Modal', function() {
-  beforeEach(function() {
+describe('Sudo Modal', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/internal/health/',
@@ -17,7 +18,7 @@ describe('Sudo Modal', function() {
       },
     });
     Client.addMockResponse({
-      url: '/assistant/',
+      url: '/assistant/?v2',
       body: [],
     });
     Client.addMockResponse({
@@ -41,17 +42,19 @@ describe('Sudo Modal', function() {
     });
   });
 
-  it('can delete an org with sudo flow', async function() {
+  it('can delete an org with sudo flow', async function () {
     ConfigStore.set('user', {
       ...ConfigStore.get('user'),
       hasPasswordAuth: true,
     });
-    let wrapper = mount(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = mountWithTheme(
+      <App>{<div>placeholder content</div>}</App>,
+      TestStubs.routerContext()
+    );
 
-    let api = new Client();
-    let successCb = jest.fn();
-    let errorCb = jest.fn();
-    let orgDeleteMock;
+    const api = new Client();
+    const successCb = jest.fn();
+    const errorCb = jest.fn();
 
     // No Modal
     expect(wrapper.find('ModalDialog')).toHaveLength(0);
@@ -71,17 +74,17 @@ describe('Sudo Modal', function() {
     expect(wrapper.find('ModalDialog input')).toHaveLength(1);
 
     // Original callbacks should not have been called
-    expect(successCb).not.toBeCalled();
-    expect(errorCb).not.toBeCalled();
+    expect(successCb).not.toHaveBeenCalled();
+    expect(errorCb).not.toHaveBeenCalled();
 
     // Clear mocks and allow DELETE
     Client.clearMockResponses();
-    orgDeleteMock = Client.addMockResponse({
+    const orgDeleteMock = Client.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'DELETE',
       statusCode: 200,
     });
-    let sudoMock = Client.addMockResponse({
+    const sudoMock = Client.addMockResponse({
       url: '/auth/',
       method: 'PUT',
       statusCode: 200,
@@ -126,16 +129,19 @@ describe('Sudo Modal', function() {
     expect(wrapper.find('ModalDialog')).toHaveLength(0);
   });
 
-  it('shows button to redirect if user does not have password auth', async function() {
+  it('shows button to redirect if user does not have password auth', async function () {
     ConfigStore.set('user', {
       ...ConfigStore.get('user'),
       hasPasswordAuth: false,
     });
-    let wrapper = mount(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = mountWithTheme(
+      <App>{<div>placeholder content</div>}</App>,
+      TestStubs.routerContext()
+    );
 
-    let api = new Client();
-    let successCb = jest.fn();
-    let errorCb = jest.fn();
+    const api = new Client();
+    const successCb = jest.fn();
+    const errorCb = jest.fn();
 
     // No Modal
     expect(wrapper.find('ModalDialog')).toHaveLength(0);
@@ -153,6 +159,6 @@ describe('Sudo Modal', function() {
 
     // Should have Modal + input
     expect(wrapper.find('ModalDialog input')).toHaveLength(0);
-    expect(wrapper.find('Button').prop('href')).toMatch('/auth/login/?next=blank');
+    expect(wrapper.find('Button').prop('href')).toMatch('/auth/login/?next=%2F');
   });
 });

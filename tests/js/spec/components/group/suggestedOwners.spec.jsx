@@ -1,74 +1,151 @@
 import React from 'react';
-import {mount} from 'enzyme';
-import SuggestedOwners from 'app/components/group/suggestedOwners';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import MemberListStore from 'app/stores/memberListStore';
+import CommitterStore from 'app/stores/committerStore';
 import {Client} from 'app/api';
-import SentryTypes from 'app/proptypes';
 
-describe('SuggestedOwners', function() {
-  let sandbox;
-  const event = TestStubs.Event();
-  const USER = {
-    id: '1',
-    name: 'Jane Doe',
-    email: 'janedoe@example.com',
-  };
-  const org = TestStubs.Organization();
+describe('SuggestedOwners', function () {
+  const user = TestStubs.User();
+  const organization = TestStubs.Organization();
   const project = TestStubs.Project();
-  beforeEach(function() {
-    let endpoint = `/projects/${org.slug}/${project.slug}/events/${event.id}`;
+  const event = TestStubs.Event();
+  const group = TestStubs.Group({firstRelease: {}});
 
-    sandbox = sinon.sandbox.create();
-    MemberListStore.loadInitialData([USER]);
+  const routerContext = TestStubs.routerContext([
+    {
+      organization,
+    },
+  ]);
+
+  const endpoint = `/projects/${organization.slug}/${project.slug}/events/${event.id}`;
+
+  beforeEach(function () {
+    MemberListStore.loadInitialData([user, TestStubs.CommitAuthor()]);
+  });
+
+  afterEach(function () {
+    Client.clearMockResponses();
+    CommitterStore.reset();
+  });
+
+  it('Renders suggested owners', async function () {
     Client.addMockResponse({
       url: `${endpoint}/committers/`,
-      body: {committers: []},
+      body: {
+        committers: [
+          {
+            author: TestStubs.CommitAuthor(),
+            commits: [TestStubs.Commit()],
+          },
+        ],
+      },
     });
+
     Client.addMockResponse({
       url: `${endpoint}/owners/`,
       body: {
-        owners: [
-          {
-            type: 'user',
-            id: '1',
-            name: 'Jane Doe',
-          },
-        ],
-        rule: ['path', 'sentry/tagstore/*'],
+        owners: [{type: 'user', ...user}],
+        rules: [[['path', 'sentry/tagstore/*'], [['user', user.email]]]],
       },
     });
+
+    const wrapper = mountWithTheme(
+      <SuggestedOwners project={project} group={group} event={event} />,
+      routerContext
+    );
+
+    await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
+    wrapper.update();
+
+    expect(wrapper.find('ActorAvatar')).toHaveLength(2);
+
+    // One includes committers, the other includes ownership rules
+    expect(
+      wrapper
+        .find('SuggestedOwnerHovercard')
+        .map(node => node.props())
+        .some(p => p.commits === undefined && p.rules !== undefined)
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('SuggestedOwnerHovercard')
+        .map(node => node.props())
+        .some(p => p.commits !== undefined && p.rules === undefined)
+    ).toBe(true);
   });
 
-  afterEach(function() {
-    sandbox.restore();
-    Client.clearMockResponses();
+  it('does not call committers endpoint if `group.firstRelease` does not exist', async function () {
+    const committers = Client.addMockResponse({
+      url: `${endpoint}/committers/`,
+      body: {
+        committers: [
+          {
+            author: TestStubs.CommitAuthor(),
+            commits: [TestStubs.Commit()],
+          },
+        ],
+      },
+    });
+
+    Client.addMockResponse({
+      url: `${endpoint}/owners/`,
+      body: {
+        owners: [{type: 'user', ...user}],
+        rules: [[['path', 'sentry/tagstore/*'], [['user', user.email]]]],
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <SuggestedOwners project={project} group={TestStubs.Group()} event={event} />,
+      routerContext
+    );
+
+    await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
+    wrapper.update();
+
+    expect(committers).not.toHaveBeenCalled();
+    expect(wrapper.find('ActorAvatar')).toHaveLength(1);
   });
 
-  describe('render()', function() {
-    it('should show owners when enable', function() {
-      let wrapper = mount(
-        <SuggestedOwners event={event} />,
-        TestStubs.routerContext([
-          {project: TestStubs.Project(), group: TestStubs.Group()},
-          {group: SentryTypes.Group, project: SentryTypes.Project},
-        ])
-      );
+  it('Merges owner matching rules and having suspect commits', async function () {
+    const author = TestStubs.CommitAuthor();
 
-      wrapper.setContext({
-        organization: {id: '1', features: new Set(['code-owners'])},
-      });
+    Client.addMockResponse({
+      url: `${endpoint}/committers/`,
+      body: {
+        committers: [{author, commits: [TestStubs.Commit()]}],
+      },
+    });
 
-      expect(wrapper).toMatchSnapshot();
+    Client.addMockResponse({
+      url: `${endpoint}/owners/`,
+      body: {
+        owners: [{type: 'user', ...author}],
+        rules: [[['path', 'sentry/tagstore/*'], [['user', author.email]]]],
+      },
     });
-    it('should not show owners committers without featureflag', function() {
-      let wrapper = mount(
-        <SuggestedOwners event={event} />,
-        TestStubs.routerContext([
-          {project: TestStubs.Project(), group: TestStubs.Group()},
-          {group: SentryTypes.Group, project: SentryTypes.Project},
-        ])
-      );
-      expect(wrapper).toMatchSnapshot();
-    });
+
+    const wrapper = mountWithTheme(
+      <SuggestedOwners project={project} group={group} event={event} />,
+      routerContext
+    );
+
+    await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
+    wrapper.update();
+
+    expect(wrapper.find('ActorAvatar')).toHaveLength(1);
+
+    const hovercardProps = wrapper.find('SuggestedOwnerHovercard').props();
+    expect(hovercardProps.commits).not.toBeUndefined();
+    expect(hovercardProps.rules).not.toBeUndefined();
   });
 });

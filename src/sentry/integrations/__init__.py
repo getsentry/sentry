@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from .analytics import *  # NOQA
 from .base import *  # NOQA
 from .manager import IntegrationManager  # NOQA
 

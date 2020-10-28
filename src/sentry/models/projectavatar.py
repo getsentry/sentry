@@ -13,16 +13,16 @@ class ProjectAvatar(AvatarBase):
     and contains their preferences for avatar type.
     """
 
-    AVATAR_TYPES = ((0, 'letter_avatar'), (1, 'upload'), )
+    AVATAR_TYPES = ((0, u"letter_avatar"), (1, u"upload"))
 
-    FILE_TYPE = 'avatar.file'
+    FILE_TYPE = "avatar.file"
 
-    project = FlexibleForeignKey('sentry.Project', unique=True, related_name='avatar')
+    project = FlexibleForeignKey("sentry.Project", unique=True, related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_projectavatar'
+        app_label = "sentry"
+        db_table = "sentry_projectavatar"
 
     def get_cache_key(self, size):
-        return 'project_avatar:%s:%s' % (self.project_id, size)
+        return "project_avatar:%s:%s" % (self.project_id, size)

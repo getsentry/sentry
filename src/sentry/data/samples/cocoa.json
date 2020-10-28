@@ -5,17 +5,20 @@
       {
         "value": "Attempted to dereference null pointer.\nOriginated at or in a subcall of ViewController.causeCrash(Any) -> ()",
         "mechanism": {
-          "posix_signal": {
-            "code": 0,
-            "name": "SIGBUS",
-            "signal": 10,
-            "code_name": "BUS_NOOP"
-          },
-          "mach_exception": {
-            "code": 0,
-            "subcode": 8,
-            "exception_name": "EXC_BAD_ACCESS",
-            "exception": 1
+          "type": "mach",
+          "meta": {
+            "signal": {
+              "code": 0,
+              "name": "SIGBUS",
+              "number": 10,
+              "code_name": "BUS_NOOP"
+            },
+            "mach_exception": {
+              "code": 0,
+              "subcode": 8,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS"
+            }
           }
         },
         "thread_id": 0,

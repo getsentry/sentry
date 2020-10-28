@@ -1,14 +1,10 @@
-import {flatten} from 'lodash';
+import flatten from 'lodash/flatten';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {loadSearchMap} from 'app/actionCreators/formSearch';
-import ApiSource from 'app/components/search/sources/apiSource';
-import FormSource from 'app/components/search/sources/formSource';
-import RouteSource from 'app/components/search/sources/routeSource';
-
 class SearchSources extends React.Component {
   static propTypes = {
+    sources: PropTypes.array.isRequired,
     query: PropTypes.string,
     /**
      * Render function the passes:
@@ -20,24 +16,19 @@ class SearchSources extends React.Component {
     children: PropTypes.func,
   };
 
-  componentDidMount() {
-    // Loads form fields
-    loadSearchMap();
-  }
-
   // `allSources` will be an array of all result objects from each source
-  renderResults(...allSources) {
-    let {children} = this.props;
+  renderResults(allSources) {
+    const {children} = this.props;
 
     // loading means if any result has `isLoading` OR any result is null
-    let isLoading = !!allSources.find(arg => arg.isLoading || arg.results === null);
+    const isLoading = !!allSources.find(arg => arg.isLoading || arg.results === null);
 
-    let foundResults = isLoading
+    const foundResults = isLoading
       ? []
       : flatten(allSources.map(({results}) => results || [])).sort(
           (a, b) => a.score - b.score
         );
-    let hasAnyResults = !!foundResults.length;
+    const hasAnyResults = !!foundResults.length;
 
     return children({
       isLoading,
@@ -46,20 +37,27 @@ class SearchSources extends React.Component {
     });
   }
 
-  render() {
+  renderSources(sources, results, idx) {
+    if (idx >= sources.length) {
+      return this.renderResults(results);
+    }
+    const Source = sources[idx];
     return (
-      <ApiSource {...this.props}>
-        {apiArgs => (
-          <FormSource {...this.props}>
-            {formFieldArgs => (
-              <RouteSource {...this.props}>
-                {routeArgs => this.renderResults(apiArgs, formFieldArgs, routeArgs)}
-              </RouteSource>
-            )}
-          </FormSource>
-        )}
-      </ApiSource>
+      <Source {...this.props}>
+        {args => {
+          // Mutate the array instead of pushing because we don't know how often
+          // this child function will be called and pushing will cause duplicate
+          // results to be pushed for all calls down the chain.
+          results[idx] = args;
+          return this.renderSources(sources, results, idx + 1);
+        }}
+      </Source>
     );
+  }
+
+  render() {
+    const {sources} = this.props;
+    return this.renderSources(sources, new Array(sources.length), 0);
   }
 }
 

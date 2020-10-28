@@ -1,13 +1,17 @@
 from __future__ import absolute_import
 
-from datetime import datetime
+import copy
+
 from django.core.urlresolvers import reverse
 
-from sentry.models import Event
 from sentry.testutils import APITestCase
-
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils.samples import load_data
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
+
+
 class EventCommittersTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -15,32 +19,34 @@ class EventCommittersTest(APITestCase):
         project = self.create_project()
 
         release = self.create_release(project, self.user)
-
-        group = self.create_group(project=project, first_release=release)
-
-        event = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2016, 8, 13, 3, 8, 25),
-            tags={'sentry:release': release.version}
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "timestamp": min_ago,
+                "release": release.version,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            },
+            project_id=project.id,
         )
 
         url = reverse(
-            'sentry-api-0-event-file-committers',
+            "sentry-api-0-event-file-committers",
             kwargs={
-                'event_id': event.id,
-                'project_slug': event.project.slug,
-                'organization_slug': event.project.organization.slug,
-            }
+                "event_id": event.event_id,
+                "project_slug": event.project.slug,
+                "organization_slug": event.project.organization.slug,
+            },
         )
 
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert len(response.data['committers']) == 1
-        assert response.data['committers'][0]['author']['username'] == 'admin@localhost'
-        assert len(response.data['committers'][0]['commits']) == 1
-        assert response.data['committers'][0]['commits'][0]['message'
-                                                            ] == 'placeholder commit message'
+        assert len(response.data["committers"]) == 1
+        assert response.data["committers"][0]["author"]["username"] == "admin@localhost"
+        assert len(response.data["committers"][0]["commits"]) == 1
+        assert (
+            response.data["committers"][0]["commits"][0]["message"] == "placeholder commit message"
+        )
 
         # assert len(response.data['annotatedFrames']) == 1
         # assert len(response.data['annotatedFrames'][0]['commits']) == 1
@@ -48,85 +54,92 @@ class EventCommittersTest(APITestCase):
         #                                                                    ] == 'admin@localhost'
         # TODO(maxbittker) test more edge cases here
 
+    def test_no_group(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        min_ago = iso_format(before_now(minutes=1))
+        event_data = load_data("transaction")
+        event_data["start_timestamp"] = min_ago
+        event_data["timestamp"] = min_ago
+
+        event = self.store_event(data=event_data, project_id=project.id)
+
+        url = reverse(
+            "sentry-api-0-event-file-committers",
+            kwargs={
+                "event_id": event.event_id,
+                "project_slug": event.project.slug,
+                "organization_slug": event.project.organization.slug,
+            },
+        )
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 404, response.content
+        assert response.data["detail"] == "Issue not found"
+
     def test_no_release(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
+        project = self.create_project()
 
-        event = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2016, 8, 13, 3, 8, 25),
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=project.id
         )
 
         url = reverse(
-            'sentry-api-0-event-file-committers',
+            "sentry-api-0-event-file-committers",
             kwargs={
-                'event_id': event.id,
-                'project_slug': event.project.slug,
-                'organization_slug': event.project.organization.slug,
-            }
+                "event_id": event.event_id,
+                "project_slug": event.project.slug,
+                "organization_slug": event.project.organization.slug,
+            },
         )
 
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
-        assert response.data['detail'] == "Release not found"
+        assert response.data["detail"] == "Release not found"
 
     def test_null_stacktrace(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
 
-        release = self.create_release(
-            project,
-            self.user,
-        )
+        release = self.create_release(project, self.user)
 
-        group = self.create_group(
-            project=project,
-            first_release=release,
-        )
-
-        event = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2016, 8, 13, 3, 8, 25),
-            tags={'sentry:release': release.version}
-        )
-
-        event = Event.objects.create(
-            project_id=project.id,
-            group_id=group.id,
-            event_id='abcd',
-            message='hello 123456',
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
             data={
-                'environment': 'production',
-                'type': 'default',
-                'sentry.interfaces.Exception': {
-                    'values': [
+                "fingerprint": ["group1"],
+                "environment": "production",
+                "type": "default",
+                "exception": {
+                    "values": [
                         {
-                            'type': 'ValueError',
-                            'value': 'My exception value',
-                            'module': '__builtins__',
-                            'stacktrace': None,
+                            "type": "ValueError",
+                            "value": "My exception value",
+                            "module": "__builtins__",
+                            "stacktrace": None,
                         }
                     ]
                 },
-                'tags': [
-                    ['environment', 'production'],
-                    ['sentry:release', release.version],
-                ],
+                "tags": [["environment", "production"], ["sentry:release", release.version]],
+                "release": release.version,
+                "timestamp": min_ago,
             },
+            project_id=project.id,
         )
 
         url = reverse(
-            'sentry-api-0-event-file-committers',
+            "sentry-api-0-event-file-committers",
             kwargs={
-                'event_id': event.id,
-                'project_slug': event.project.slug,
-                'organization_slug': event.project.organization.slug,
-            }
+                "event_id": event.event_id,
+                "project_slug": event.project.slug,
+                "organization_slug": event.project.organization.slug,
+            },
         )
 
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content

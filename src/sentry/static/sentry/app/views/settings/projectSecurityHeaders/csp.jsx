@@ -1,35 +1,32 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
+import Access from 'app/components/acl/access';
 import AsyncView from 'app/views/asyncView';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PreviewFeature from 'app/components/previewFeature';
 import ReportUri, {
   getSecurityDsn,
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
-import PreviewFeature from 'app/components/previewFeature';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import formGroups from 'app/data/forms/cspReports';
+import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectCspReports extends AsyncView {
-  static propTypes = {
-    setProjectNavSection: PropTypes.func,
-  };
-
-  componentWillMount() {
-    super.componentWillMount();
-    this.props.setProjectNavSection('settings');
-  }
-
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],
       ['project', `/projects/${orgId}/${projectId}/`],
     ];
+  }
+
+  getTitle() {
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Content Security Policy (CSP)'), projectId, false);
   }
 
   getInstructions() {
@@ -60,7 +57,7 @@ export default class ProjectCspReports extends AsyncView {
   }
 
   renderBody() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     return (
       <div>
@@ -76,13 +73,15 @@ export default class ProjectCspReports extends AsyncView {
           initialData={this.state.project.options}
           apiEndpoint={`/projects/${orgId}/${projectId}/`}
         >
-          <JsonForm forms={formGroups} />
+          <Access access={['project:write']}>
+            {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
+          </Access>
         </Form>
 
         <Panel>
           <PanelHeader>{t('About')}</PanelHeader>
 
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <p>
               {tct(
                 `[link:Content Security Policy]

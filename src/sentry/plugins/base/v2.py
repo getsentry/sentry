@@ -1,13 +1,6 @@
-"""
-sentry.plugins.base.v2
-~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
-__all__ = ('Plugin2', )
+__all__ = ("Plugin2",)
 
 import logging
 import six
@@ -15,13 +8,11 @@ import six
 from django.http import HttpResponseRedirect
 from threading import local
 
+from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
 from sentry.plugins.base.response import Response
-from sentry.plugins.base.configuration import (
-    default_plugin_config,
-    default_plugin_options,
-)
+from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.utils.hashlib import md5_text
 
 
@@ -33,9 +24,9 @@ class PluginMount(type):
         if new_cls.title is None:
             new_cls.title = new_cls.__name__
         if not new_cls.slug:
-            new_cls.slug = new_cls.title.replace(' ', '-').lower()
-        if not hasattr(new_cls, 'logger'):
-            new_cls.logger = logging.getLogger('sentry.plugins.%s' % (new_cls.slug, ))
+            new_cls.slug = new_cls.title.replace(" ", "-").lower()
+        if not hasattr(new_cls, "logger"):
+            new_cls.logger = logging.getLogger("sentry.plugins.%s" % (new_cls.slug,))
         return new_cls
 
 
@@ -47,7 +38,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     control when or how the plugin gets instantiated, nor is it guaranteed that
     it will happen, or happen more than once.
 
-    >>> from sentry.plugins import Plugin2
+    >>> from sentry.plugins.base.v2 import Plugin2
     >>>
     >>> class MyPlugin(Plugin2):
     >>>     def get_title(self):
@@ -56,6 +47,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     As a general rule all inherited methods should allow ``**kwargs`` to ensure
     ease of future compatibility.
     """
+
     # Generic plugin information
     title = None
     slug = None
@@ -64,13 +56,14 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     author = None
     author_url = None
     resource_links = ()
+    feature_descriptions = []
 
     # Configuration specifics
     conf_key = None
     conf_title = None
 
     project_conf_form = None
-    project_conf_template = 'sentry/plugins/project_configuration.html'
+    project_conf_template = "sentry/plugins/project_configuration.html"
 
     # Global enabled state
     enabled = True
@@ -79,11 +72,14 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     # Should this plugin be enabled by default for projects?
     project_default_enabled = False
 
+    # used by queries to determine if the plugin is configured
+    required_field = None
+
     def _get_option_key(self, key):
-        return '%s:%s' % (self.get_conf_key(), key)
+        return "%s:%s" % (self.get_conf_key(), key)
 
     def get_plugin_type(self):
-        return 'default'
+        return "default"
 
     def is_enabled(self, project=None):
         """
@@ -100,7 +96,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
             return True
 
         if project:
-            project_enabled = self.get_option('enabled', project)
+            project_enabled = self.get_option("enabled", project)
             if project_enabled is not None:
                 return project_enabled
             else:
@@ -108,8 +104,17 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
 
         return True
 
+    def is_hidden(self):
+        """
+        Should this plugin be hidden in the UI
+
+        We use this to hide plugins as they are replaced with integrations.
+        """
+        return self.slug in HIDDEN_PLUGINS
+
     def reset_options(self, project=None, user=None):
         from sentry.plugins.helpers import reset_options
+
         return reset_options(self.get_conf_key(), project, user)
 
     def get_option(self, key, project=None, user=None):
@@ -122,6 +127,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> value = plugin.get_option('my_option')
         """
         from sentry.plugins.helpers import get_option
+
         return get_option(self._get_option_key(key), project, user)
 
     def set_option(self, key, value, project=None, user=None):
@@ -133,6 +139,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.set_option('my_option', 'http://example.com')
         """
         from sentry.plugins.helpers import set_option
+
         return set_option(self._get_option_key(key), value, project, user)
 
     def unset_option(self, key, project=None, user=None):
@@ -144,22 +151,23 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.unset_option('my_option')
         """
         from sentry.plugins.helpers import unset_option
+
         return unset_option(self._get_option_key(key), project, user)
 
     def enable(self, project=None, user=None):
         """Enable the plugin."""
-        self.set_option('enabled', True, project, user)
+        self.set_option("enabled", True, project, user)
 
     def disable(self, project=None, user=None):
         """Disable the plugin."""
-        self.set_option('enabled', False, project, user)
+        self.set_option("enabled", False, project, user)
 
     def get_conf_key(self):
         """
         Returns a string representing the configuration keyspace prefix for this plugin.
         """
         if not self.conf_key:
-            self.conf_key = self.get_conf_title().lower().replace(' ', '_')
+            self.conf_key = self.get_conf_title().lower().replace(" ", "_")
         return self.conf_key
 
     def get_conf_form(self, project=None):
@@ -199,8 +207,9 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.get_conf_version(project)
         """
         options = self.get_conf_options(project)
-        return md5_text('&'.join(sorted('%s=%s' % o
-                                        for o in six.iteritems(options)))).hexdigest()[:3]
+        return md5_text("&".join(sorted("%s=%s" % o for o in six.iteritems(options)))).hexdigest()[
+            :3
+        ]
 
     def get_conf_title(self):
         """
@@ -229,7 +238,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         if not self.enabled:
             return False
 
-        if not features.has('projects:plugins', project, self, actor=None):
+        if not features.has("projects:plugins", project, self, actor=None):
             return False
 
         if not self.can_disable:
@@ -256,7 +265,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         if context is None:
             context = {}
-        context['plugin'] = self
+        context["plugin"] = self
         return Response(template, context)
 
     # The following methods are specific to web requests
@@ -287,8 +296,8 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> def get_resource_links(self):
         >>>     return [
         >>>         ('Documentation', 'https://docs.sentry.io'),
-        >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
-        >>>         ('Source', 'https://github.com/getsentry/sentry'),
+        >>>         ('Report Issue', 'https://github.com/getsentry/sentry/issues'),
+        >>>         ('View Source', 'https://github.com/getsentry/sentry'),
         >>>     ]
         """
         return self.resource_links
@@ -391,6 +400,26 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
                     return [CocoaProcessor(data, stacktrace_infos)]
         """
 
+    def get_event_enhancers(self, data, **kwargs):
+        """
+        Return a list of enhancers to apply to the given event.
+
+        An enhancer is a function that takes the normalized data blob as an
+        input and returns modified data as output. If no changes to the data are
+        made it is safe to return ``None``.
+
+        As opposed to event (pre)processors, enhancers run **before** stacktrace
+        processing and can be used to perform more extensive event normalization
+        or add additional data before stackframes are symbolicated.
+
+        Enhancers should not be returned if there is nothing to do with the
+        event data.
+
+        >>> def get_event_enhancers(self, data, **kwargs):
+        >>>     return [lambda x: x]
+        """
+        return []
+
     def get_feature_hooks(self, **kwargs):
         """
         Return a list of callables to check for feature status.
@@ -412,7 +441,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         Return an implementation of ``ReleaseHook``.
 
-        >>> from sentry.plugins import ReleaseHook
+        >>> from sentry.plugins.interfaces.releasehook import ReleaseHook
         >>>
         >>> class MyReleaseHook(ReleaseHook):
         >>>     def handle(self, request):
@@ -453,4 +482,5 @@ class Plugin2(IPlugin2):
     control when or how the plugin gets instantiated, nor is it guaranteed that
     it will happen, or happen more than once.
     """
+
     __version__ = 2

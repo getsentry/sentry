@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import DetailedUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.models import Authenticator
 from sentry.utils import auth, json
@@ -24,30 +24,16 @@ class AuthIndexEndpoint(Endpoint):
     and simple HTTP authentication.
     """
 
-    authentication_classes = [
-        QuietBasicAuthentication,
-        SessionAuthentication,
-    ]
+    authentication_classes = [QuietBasicAuthentication, SessionAuthentication]
 
     permission_classes = ()
-
-    # XXX: it's not quite clear if this should be documented or not at
-    # this time.
-    # doc_section = DocSection.ACCOUNTS
 
     def get(self, request):
         if not request.user.is_authenticated():
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         user = extract_lazy_object(request._request.user)
-        data = serialize(user, user)
-        # XXX(dcramer): we dont use is_active_superuser here as we simply
-        # want to tell the UI that we're an authenticated superuser, and
-        # for requests that require an *active* session, they should prompt
-        # on-demand. This ensures things like links to the Sentry admin can
-        # still easily be rendered.
-        data['isSuperuser'] = user.is_superuser
-        return Response(data)
+        return Response(serialize(user, user, DetailedUserSerializer()))
 
     def post(self, request):
         """
@@ -73,10 +59,10 @@ class AuthIndexEndpoint(Endpoint):
         if Authenticator.objects.user_has_2fa(request.user):
             return Response(
                 {
-                    '2fa_required': True,
-                    'message': 'Cannot sign-in with password authentication when 2fa is enabled.'
+                    "2fa_required": True,
+                    "message": "Cannot sign-in with password authentication when 2fa is enabled.",
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         try:
@@ -85,9 +71,9 @@ class AuthIndexEndpoint(Endpoint):
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
-                    'message': 'Cannot sign-in with password authentication because password has expired.',
+                    "message": "Cannot sign-in with password authentication because password has expired."
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         request.user = request._request.user
@@ -106,21 +92,21 @@ class AuthIndexEndpoint(Endpoint):
         if not request.user.is_authenticated():
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        validator = AuthVerifyValidator(data=request.DATA)
+        validator = AuthVerifyValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         authenticated = False
 
         # See if we have a u2f challenge/response
-        if 'challenge' in validator.object and 'response' in validator.object:
+        if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
-                interface = Authenticator.objects.get_interface(request.user, 'u2f')
-                if not interface.is_enrolled:
+                interface = Authenticator.objects.get_interface(request.user, "u2f")
+                if not interface.is_enrolled():
                     raise LookupError()
 
-                challenge = json.loads(validator.object['challenge'])
-                response = json.loads(validator.object['response'])
+                challenge = json.loads(validator.validated_data["challenge"])
+                response = json.loads(validator.validated_data["response"])
                 authenticated = interface.validate_response(request, challenge, response)
             except ValueError:
                 pass
@@ -129,11 +115,11 @@ class AuthIndexEndpoint(Endpoint):
 
         # attempt password authentication
         else:
-            authenticated = request.user.check_password(validator.object['password'])
+            authenticated = request.user.check_password(validator.validated_data["password"])
 
         # UI treats 401s by redirecting, this 401 should be ignored
         if not authenticated:
-            return Response({'detail': {'code': 'ignore'}}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             # Must use the real request object that Django knows about
@@ -141,10 +127,10 @@ class AuthIndexEndpoint(Endpoint):
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
-                    'code': 'password-expired',
-                    'message': 'Cannot sign-in with basic auth because password has expired.',
+                    "code": "password-expired",
+                    "message": "Cannot sign-in with basic auth because password has expired.",
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         request.user = request._request.user
@@ -156,7 +142,7 @@ class AuthIndexEndpoint(Endpoint):
         Logout the Authenticated User
         `````````````````````````````
 
-        Deauthenticate the currently active session.
+        Deauthenticate all active sessions for this user.
         """
         logout(request._request)
         request.user = AnonymousUser()

@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['IntegrationManager']
+__all__ = ["IntegrationManager"]
 
 import six
 
@@ -8,7 +8,7 @@ from sentry.exceptions import NotRegistered
 
 
 # Ideally this and PluginManager abstracted from the same base, but
-# InstanceManager has become convulated and wasteful
+# InstanceManager has become convoluted and wasteful
 class IntegrationManager(object):
     def __init__(self):
         self.__values = {}
@@ -18,9 +18,9 @@ class IntegrationManager(object):
 
     def all(self):
         for key in six.iterkeys(self.__values):
-            provider = self.get(key)
-            if provider.is_configured():
-                yield provider
+            integration = self.get(key)
+            if integration.visible:
+                yield integration
 
     def get(self, key, **kwargs):
         try:

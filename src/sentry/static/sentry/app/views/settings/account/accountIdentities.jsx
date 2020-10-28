@@ -1,10 +1,10 @@
-import {Box} from 'grid-emotion';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {disconnectIdentity} from 'app/actionCreators/account';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -26,12 +26,12 @@ class AccountIdentities extends AsyncView {
     };
   }
 
-  handleDisconnect = (identity, e) => {
-    let {identities} = this.state;
+  handleDisconnect = identity => {
+    const {identities} = this.state;
 
     this.setState(
       state => {
-        let newIdentities = state.identities.filter(({id}) => id !== identity.id);
+        const newIdentities = state.identities.filter(({id}) => id !== identity.id);
 
         return {
           identities: newIdentities,
@@ -47,15 +47,13 @@ class AccountIdentities extends AsyncView {
   };
 
   renderBody() {
-    let isEmpty = this.state.identities.length === 0;
+    const isEmpty = this.state.identities.length === 0;
 
     return (
       <div>
         <SettingsPageHeader title="Identities" />
         <Panel>
-          <PanelHeader disablePadding>
-            <Box px={2}>{t('Identities')}</Box>
-          </PanelHeader>
+          <PanelHeader>{t('Identities')}</PanelHeader>
           <PanelBody>
             {isEmpty && (
               <EmptyMessage>
@@ -65,20 +63,16 @@ class AccountIdentities extends AsyncView {
 
             {!isEmpty &&
               this.state.identities.map(identity => (
-                <PanelItem p={0} key={identity.id} align="center">
-                  <Box flex="1" p={2}>
-                    {identity.providerLabel}
-                  </Box>
+                <IdentityPanelItem key={identity.id}>
+                  <div>{identity.providerLabel}</div>
 
-                  <Box p={2}>
-                    <Button
-                      size="small"
-                      onClick={this.handleDisconnect.bind(this, identity)}
-                    >
-                      {t('Disconnect')}
-                    </Button>
-                  </Box>
-                </PanelItem>
+                  <Button
+                    size="small"
+                    onClick={this.handleDisconnect.bind(this, identity)}
+                  >
+                    {t('Disconnect')}
+                  </Button>
+                </IdentityPanelItem>
               ))}
           </PanelBody>
         </Panel>
@@ -86,5 +80,10 @@ class AccountIdentities extends AsyncView {
     );
   }
 }
+
+const IdentityPanelItem = styled(PanelItem)`
+  align-items: center;
+  justify-content: space-between;
+`;
 
 export default AccountIdentities;

@@ -1,0 +1,150 @@
+---
+created: '2020-02-26T19:54:31.351405Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+          frame (non app frame)
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Foo.testMethod"
+          frame (non app frame)
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "aha"
+          frame (non app frame)
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "eval"
+          frame (non app frame)
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "test"
+          frame (non app frame)
+            filename (anonymous filename discarded)
+              "<anonymous>"
+            function*
+              "Array.map"
+          frame (non app frame)
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+          frame (non app frame)
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Object.callback"
+          frame (non app frame)
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame (non app frame)
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Object.aha"
+        type*
+          "Error"
+--------------------------------------------------------------------------
+system:
+  hash: "ae807192d4f922c3f0513ce4df585ce6"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+          frame*
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Foo.testMethod"
+          frame*
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "aha"
+          frame*
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "eval"
+          frame*
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "test"
+          frame*
+            filename (anonymous filename discarded)
+              "<anonymous>"
+            function*
+              "Array.map"
+          frame*
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+          frame*
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Object.callback"
+          frame*
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            module*
+              "test"
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Object.aha"
+        type*
+          "Error"

@@ -1,0 +1,61 @@
+---
+created: '2020-07-23T19:33:18.859595Z'
+creator: sentry
+source: tests/symbolicator/test_payload_full.py
+---
+contexts:
+  device:
+    arch: x86
+    type: device
+  os:
+    build: ''
+    name: Windows
+    type: os
+    version: 10.0.14393
+debug_meta:
+  images:
+  - arch: x86
+    code_file: C:\projects\breakpad-tools\windows\Release\crash.exe
+    debug_id: 3249d99d-0c40-4931-8610-f4e4fb0b6936-1
+    debug_status: found
+    features:
+      has_debug_info: true
+      has_sources: false
+      has_symbols: true
+      has_unwind_info: true
+    image_addr: '0x2a0000'
+    image_size: 36864
+    type: symbolic
+errors: []
+exception:
+  values:
+  - raw_stacktrace:
+      frames:
+      - data:
+          orig_in_app: -1
+          symbolicator_status: null
+        function: <unknown>
+        in_app: false
+        instruction_addr: '0x2a2a3d'
+        lineno: null
+        package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        symbol: null
+        trust: null
+    stacktrace:
+      frames:
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: main
+        in_app: false
+        instruction_addr: '0x2a2a3d'
+        lineno: 35
+        package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        symbol: main
+        trust: null
+    thread_id: 1636
+    type: EXCEPTION_ACCESS_VIOLATION_WRITE
+    value: 'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
+stacktrace: null
+threads:
+  values: []

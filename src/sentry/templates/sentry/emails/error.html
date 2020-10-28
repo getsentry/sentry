@@ -2,7 +2,8 @@
 
 {% load sentry_avatars %}
 {% load sentry_helpers %}
-{% load i18n %}
+{% load sentry_features %}
+{% load i18n static %}
 
 {% block preheader %}
   New alert from {{ project_label }}.
@@ -15,7 +16,7 @@
 
 {% block main %}
     <h2 style="margin-bottom: 15px">
-        New alert from <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}">{{ project_label }}</a>
+        New alert from <a href="{{group.project.get_absolute_url}}">{{ project_label }}</a>
         {% if environment %} in {{ environment }}{% endif %}
     </h2>
 
@@ -95,7 +96,7 @@
         <table class="table commit-table">
         {% for commit in commits %}
           <tr>
-            <td style="padding:0;width:32px;">{% email_avatar commits.author.name commits.author.email size 32 %}</td>
+            <td style="padding:0;width:32px;">{% email_avatar commits.author.name commits.author.email 32 %}</td>
             <td>
               <h5 class="truncate">{{ commit.subject }}</h5>
               <div><small>{{ commit.shortId }}&nbsp;&mdash;&nbsp;
@@ -125,11 +126,11 @@
         <ul class="tag-list">
         {% for tag_key, tag_value in tags %}
           <li>
-              <strong>{{ tag_key }}</strong>
+              <strong>{{ tag_key|as_tag_alias }}</strong>
               <em>=</em>
               <span>
-              {% with query=tag_key|add:":\""|add:tag_value|add:"\""|urlencode %}
-                <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}?query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
+              {% with query=tag_key|as_tag_alias|add:":\""|add:tag_value|add:"\""|urlencode %}
+                <a href="{% absolute_uri '/organizations/{}/issues/' group.project.organization.slug %}?project={{ group.project.id }}&query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
               {% endwith %}
               </span>
           </li>
@@ -144,6 +145,21 @@
             {% for rule_label, rule_link in rules %}
                 <a href="{% absolute_uri rule_link %}">{{ rule_label }}</a>{% if not forloop.last %}, {% endif %}
             {% endfor %}
+        </p>
+    {% endif %}
+
+    {% if not has_integrations %}
+        <div class="logo-container">
+            <img src="{% static 'sentry/images/logos/logo-slack.svg' %}" class="logo" alt="Slack"/>
+            <img src="{% static 'sentry/images/logos/logo-pagerduty.svg' %}" class="logo" alt="PagerDuty"/>
+            <img src="{% static 'sentry/images/logos/logo-msteams.svg' %}" class="logo" alt="MS Teams"/>
+            <img src="{% static 'sentry/images/logos/logo-opsgenie.svg' %}" class="logo" alt="OpsGenie"/>
+            <img src="{% static 'sentry/images/logos/logo-twilio.svg' %}" class="logo" alt="Twilio"/>
+            <img src="{% static 'sentry/images/logos/logo-victorops.svg' %}" class="logo" alt="VictorOps"/>
+            <img src="{% static 'sentry/images/logos/logo-amixr.svg' %}" class="logo" alt="Amixr"/>
+        </div>
+        <p class="align-center">
+            <a href="{% absolute_uri 'settings/{}/integrations/?referrer=alert_email' group.project.organization.slug %}">{{ "Get this alert wherever you work" }}</a>
         </p>
     {% endif %}
 

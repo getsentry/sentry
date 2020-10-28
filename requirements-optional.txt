@@ -1,4 +1,0 @@
-google-cloud-pubsub>=0.28.3,<0.29
-# See https://github.com/GoogleCloudPlatform/google-cloud-python/issues/4001
-grpcio==1.4.0
-python3-saml>=1.4.0,<1.5

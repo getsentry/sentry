@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 from sentry.testutils import TestCase
-from sentry.models import Authenticator, TotpInterface, RecoveryCodeInterface
+from sentry.models import Authenticator
+
+from sentry.auth.authenticators import TotpInterface, RecoveryCodeInterface
 
 
 class AuthenticatorTest(TestCase):
     def test_user_has_2fa(self):
-        user = self.create_user('foo@example.com')
+        user = self.create_user("foo@example.com")
         assert Authenticator.objects.user_has_2fa(user) is False
         assert Authenticator.objects.filter(user=user).count() == 0
 
@@ -21,8 +23,8 @@ class AuthenticatorTest(TestCase):
         assert Authenticator.objects.filter(user=user).count() == 2
 
     def test_bulk_users_have_2fa(self):
-        user1 = self.create_user('foo1@example.com')
-        user2 = self.create_user('foo2@example.com')
+        user1 = self.create_user("foo1@example.com")
+        user2 = self.create_user("foo2@example.com")
 
         TotpInterface().enroll(user1)
 

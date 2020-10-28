@@ -1,7 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`Frame renderOriginalSourceInfo() should render the source map information as a HTML string 1`] = `
-"
-    <div>
-      <strong>Source Map</strong><br/>https://beta.getsentry.com/_static/sentry/dist/vendor.js.map<br/></div>"
-`;

@@ -1,59 +1,66 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ResolutionBox from 'app/components/resolutionBox';
 
-describe('ResolutionBox', function() {
-  describe('render()', function() {
-    it('handles inNextRelease', function() {
-      let wrapper = shallow(
-        <ResolutionBox
-          statusDetails={{inNextRelease: true}}
-          params={{orgId: 'org', projectId: 'project'}}
-        />
+describe('ResolutionBox', function () {
+  describe('render()', function () {
+    it('handles inNextRelease', function () {
+      const wrapper = mountWithTheme(
+        <ResolutionBox statusDetails={{inNextRelease: true}} projectId="1" />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
-    it('handles inNextRelease with actor', function() {
-      let wrapper = shallow(
+    it('handles inNextRelease with actor', function () {
+      const wrapper = mountWithTheme(
         <ResolutionBox
           statusDetails={{
             inNextRelease: true,
             actor: {id: '111', name: 'David Cramer', email: 'david@sentry.io'},
           }}
-          params={{orgId: 'org', projectId: 'project'}}
+          projectId="1"
         />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
-    it('handles inRelease', function() {
-      let wrapper = shallow(
+    it('handles inRelease', function () {
+      const wrapper = mountWithTheme(
         <ResolutionBox
           statusDetails={{
             inRelease: '1.0',
           }}
-          params={{orgId: 'org', projectId: 'project'}}
+          projectId="1"
         />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
-    it('handles inRelease with actor', function() {
-      let wrapper = shallow(
+    it('handles inRelease with actor', function () {
+      const wrapper = mountWithTheme(
         <ResolutionBox
           statusDetails={{
             inRelease: '1.0',
             actor: {id: '111', name: 'David Cramer', email: 'david@sentry.io'},
           }}
-          params={{orgId: 'org', projectId: 'project'}}
+          projectId="1"
         />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
-    it('handles default', function() {
-      let wrapper = shallow(
-        <ResolutionBox statusDetails={{}} params={{orgId: 'org', projectId: 'project'}} />
+    it('handles default', function () {
+      const wrapper = mountWithTheme(<ResolutionBox statusDetails={{}} projectId="1" />);
+      expect(wrapper).toSnapshot();
+    });
+    it('handles inCommit', function () {
+      const wrapper = mountWithTheme(
+        <ResolutionBox
+          statusDetails={{
+            inCommit: TestStubs.Commit(),
+          }}
+          projectId="1"
+        />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

@@ -1,10 +1,16 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import SimilarSpectrum from 'app/components/similarSpectrum';
 
-storiesOf('SimilarSpectrum', module).add(
-  'default',
-  withInfo('Description')(() => <SimilarSpectrum />)
-);
+export default {
+  title: 'DataVisualization/SimilarSpectrum',
+};
+
+export const _SimilarSpectrum = withInfo(
+  'Similar Spectrum used in Similar Issues'
+)(() => <SimilarSpectrum />);
+
+_SimilarSpectrum.story = {
+  name: 'SimilarSpectrum',
+};

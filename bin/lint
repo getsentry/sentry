@@ -1,20 +1,13 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
-import click
 import os
 import sys
 
 # This is to avoid needing to have the `sentry` package explicitly installed.
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "src"))
 
 
-@click.command()
-@click.argument('files', nargs=-1)
-@click.option('--js', default=None, is_flag=True)
-@click.option('--python', default=None, is_flag=True)
-@click.option('--format', default=False, is_flag=True)
-@click.option('--parseable', default=False, is_flag=True)
 def run(files, js, python, format, parseable):
     from sentry.lint import engine
 
@@ -29,10 +22,16 @@ def run(files, js, python, format, parseable):
     if not files:
         files = None
 
-    results = engine.run(files, js=js, py=python, format=format, parseable=parseable)
-    if results:
-        raise click.Abort
+    return engine.run(files, js=js, py=python, format=format, parseable=parseable)
 
 
-if __name__ == '__main__':
-    run()
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("files", nargs="*")
+    parser.add_argument("--js", default=None, action="store_true")
+    parser.add_argument("--python", default=None, action="store_true")
+    parser.add_argument("--format", action="store_true")
+    parser.add_argument("--parseable", action="store_true")
+    sys.exit(run(**vars(parser.parse_args())))

@@ -1,32 +1,32 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import LazyLoad from 'app/components/lazyLoad';
 
-jest.mock('raven-js');
-
-describe('LazyLoad', function() {
-  it('renders with a loading indicator when promise is not resolved yet', function() {
-    let promise = new Promise((resolve, reject) => {});
-    let getComponent = () => promise;
-    let wrapper = shallow(<LazyLoad component={getComponent} />);
+describe('LazyLoad', function () {
+  it('renders with a loading indicator when promise is not resolved yet', function () {
+    const promise = new Promise(() => {});
+    const getComponent = () => promise;
+    const wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
 
     // Should be loading
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('renders when given a promise of a "button" component', async function() {
+  it('renders when given a promise of a "button" component', async function () {
     let res;
-    let promise = new Promise((resolve, reject) => {
+    const promise = new Promise(resolve => {
       res = resolve;
     });
-    let getComponent = () => promise;
-    let wrapper = mount(<LazyLoad component={getComponent} />);
+    const getComponent = () => promise;
+    const wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
 
     // Should be loading
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
 
     // resolve with button
-    let ResolvedComponent = 'button';
+    const ResolvedComponent = 'button';
     res(ResolvedComponent);
 
     await promise;
@@ -38,17 +38,17 @@ describe('LazyLoad', function() {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
   });
 
-  it('renders with error message when promise is rejected', async function() {
+  it('renders with error message when promise is rejected', async function () {
     // eslint-disable-next-line no-console
     console.error = jest.fn();
-    let getComponent = jest.fn(
+    const getComponent = jest.fn(
       () =>
-        new Promise((resolve, reject) => reject(new Error('Could not load component')))
+        new Promise((_resolve, reject) => reject(new Error('Could not load component')))
     );
     let wrapper;
 
     try {
-      wrapper = mount(<LazyLoad component={getComponent} />);
+      wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
     } catch (err) {
       // ignore
     }
@@ -62,5 +62,23 @@ describe('LazyLoad', function() {
     expect(console.error).toHaveBeenCalled();
     // eslint-disable-next-line no-console
     console.error.mockRestore();
+  });
+
+  it('refetches when component changes', async function () {
+    const getComponent = jest.fn(() => new Promise());
+    const wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
+
+    // Should be loading
+    expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+    expect(getComponent).toHaveBeenCalled();
+
+    // Update component prop
+    const getComponent2 = jest.fn(() => new Promise());
+    wrapper.setProps({component: getComponent2});
+    expect(getComponent2).toHaveBeenCalledTimes(1);
+
+    // Does not refetch on other prop changes
+    wrapper.setProps({testProp: true});
+    expect(getComponent2).toHaveBeenCalledTimes(1);
   });
 });

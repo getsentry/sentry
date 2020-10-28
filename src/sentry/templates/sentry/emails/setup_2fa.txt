@@ -1,10 +1,9 @@
 Setup Two-Factor Authentication
 
-Hello {{ user.name }},
-
-The {{ organization.name }} organization now requires that all members enable
+The {{ organization.name|title }} organization now requires all members to enable
 two-factor authentication. Effective immediately, you will be unable to access
-projects under the {{ organization.name }} organization unless you enable at
-least one form of two-factor authentication.
+this organization or receive its notifications until you enable at least
+one form of 2FA.
 
-Enable two-factor authentication: {{ url }}
+Enable 2FA to reinstate your access and settings:
+{{ url }}

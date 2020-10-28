@@ -5,9 +5,9 @@ foo@example.com assigned an issue to foo@example.com
 
 ## Issue Details
 
-ornare elit pulvinar nisl integer cum ad massa
+goose smiling gobbler sterling feline
 
-http://testserver/organization/project/issues/1/
+http://testserver/organizations/organization/issues/1/?referrer=AssignedActivityEmail
 
 
 Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

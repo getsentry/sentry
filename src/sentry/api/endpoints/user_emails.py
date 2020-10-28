@@ -9,9 +9,10 @@ from rest_framework import serializers
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.api.validators import AllowedEmailField
 from sentry.models import User, UserEmail, UserOption
 
-logger = logging.getLogger('sentry.accounts')
+logger = logging.getLogger("sentry.accounts")
 
 
 class InvalidEmailError(Exception):
@@ -23,7 +24,7 @@ class DuplicateEmailError(Exception):
 
 
 class EmailValidator(serializers.Serializer):
-    email = serializers.EmailField(required=True)
+    email = AllowedEmailField(required=True)
 
 
 def add_email(email, user):
@@ -76,29 +77,26 @@ class UserEmailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        validator = EmailValidator(data=request.DATA)
+        validator = EmailValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
-        email = result['email'].lower().strip()
+        result = validator.validated_data
+        email = result["email"].lower().strip()
 
         try:
-            new_useremail = add_email(
-                email,
-                user,
-            )
+            new_useremail = add_email(email, user)
         except DuplicateEmailError:
             new_useremail = user.emails.get(email__iexact=email)
             return self.respond(serialize(new_useremail, user=request.user), status=200)
         else:
             logger.info(
-                'user.email.add',
+                "user.email.add",
                 extra={
-                    'user_id': user.id,
-                    'ip_address': request.META['REMOTE_ADDR'],
-                    'email': new_useremail.email,
-                }
+                    "user_id": user.id,
+                    "ip_address": request.META["REMOTE_ADDR"],
+                    "email": new_useremail.email,
+                },
             )
             return self.respond(serialize(new_useremail, user=request.user), status=201)
 
@@ -114,58 +112,53 @@ class UserEmailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        validator = EmailValidator(data=request.DATA)
+        validator = EmailValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
         old_email = user.email.lower()
-        new_email = result['email'].lower()
+        new_email = result["email"].lower()
 
-        new_useremail = user.emails.filter(
-            email__iexact=new_email
-        ).first()
+        new_useremail = user.emails.filter(email__iexact=new_email).first()
 
         # If email doesn't exist for user, attempt to add new email
         if not new_useremail:
             try:
                 new_useremail = add_email(new_email, user)
             except DuplicateEmailError:
-                new_useremail = user.emails.get(
-                    email__iexact=new_email
-                )
+                new_useremail = user.emails.get(email__iexact=new_email)
             else:
                 logger.info(
-                    'user.email.add',
+                    "user.email.add",
                     extra={
-                        'user_id': user.id,
-                        'ip_address': request.META['REMOTE_ADDR'],
-                        'email': new_useremail.email,
-                    }
+                        "user_id": user.id,
+                        "ip_address": request.META["REMOTE_ADDR"],
+                        "email": new_useremail.email,
+                    },
                 )
                 new_email = new_useremail.email
 
         # Check if email is in use
         # TODO(dcramer): this needs rate limiting to avoid abuse
         # TODO(dcramer): this needs a lock/constraint
-        if User.objects.filter(
-            Q(email__iexact=new_email) | Q(username__iexact=new_email)
-        ).exclude(id=user.id).exists():
-            return self.respond({
-                'email': 'That email address is already associated with another account.'
-            }, status=400)
+        if (
+            User.objects.filter(Q(email__iexact=new_email) | Q(username__iexact=new_email))
+            .exclude(id=user.id)
+            .exists()
+        ):
+            return self.respond(
+                {"email": "That email address is already associated with another account."},
+                status=400,
+            )
 
         if not new_useremail.is_verified:
-            return self.respond({
-                'email': 'You must verify your email address before marking it as primary.'
-            }, status=400)
+            return self.respond(
+                {"email": "You must verify your email address before marking it as primary."},
+                status=400,
+            )
 
-        # update notification settings for those set to primary email with new primary email
-        alert_email = UserOption.objects.get_value(user=user, key='alert_email')
-        if alert_email == old_email:
-            UserOption.objects.set_value(user=user, key='alert_email', value=new_email)
-
-        options = UserOption.objects.filter(user=user, key='mail:email')
+        options = UserOption.objects.filter(user=user, key="mail:email")
         for option in options:
             if option.value != old_email:
                 continue
@@ -173,22 +166,30 @@ class UserEmailsEndpoint(UserEndpoint):
 
         has_new_username = old_email == user.username
 
-        update_kwargs = {
-            'email': new_email,
-        }
+        update_kwargs = {"email": new_email}
 
         if has_new_username and not User.objects.filter(username__iexact=new_email).exists():
-            update_kwargs['username'] = new_email
+            update_kwargs["username"] = new_email
+
+        # NOTE(mattrobenolt): When changing your primary email address,
+        # we explicitly want to invalidate existing lost password hashes,
+        # so that in the event of a compromised inbox, an outstanding
+        # password hash can't be used to gain access. We also feel this
+        # is a large enough of a security concern to force logging
+        # out other current sessions.
+        user.clear_lost_passwords()
+        user.refresh_session_nonce(request._request)
+        update_kwargs["session_nonce"] = user.session_nonce
 
         user.update(**update_kwargs)
 
         logger.info(
-            'user.email.edit',
+            "user.email.edit",
             extra={
-                'user_id': user.id,
-                'ip_address': request.META['REMOTE_ADDR'],
-                'email': new_email,
-            }
+                "user_id": user.id,
+                "ip_address": request.META["REMOTE_ADDR"],
+                "email": new_email,
+            },
         )
 
         return self.respond(serialize(new_useremail, user=request.user))
@@ -204,28 +205,23 @@ class UserEmailsEndpoint(UserEndpoint):
         :param string email: email to remove
         :auth required:
         """
-        validator = EmailValidator(data=request.DATA)
+        validator = EmailValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        email = validator.object['email']
+        email = validator.validated_data["email"]
         primary_email = UserEmail.get_primary_email(user)
         del_email = UserEmail.objects.filter(user=user, email__iexact=email).first()
 
         # Don't allow deleting primary email?
         if primary_email == del_email:
-            return self.respond({'detail': 'Cannot remove primary email'},
-                                status=400)
+            return self.respond({"detail": "Cannot remove primary email"}, status=400)
 
         del_email.delete()
 
         logger.info(
-            'user.email.remove',
-            extra={
-                'user_id': user.id,
-                'ip_address': request.META['REMOTE_ADDR'],
-                'email': email,
-            }
+            "user.email.remove",
+            extra={"user_id": user.id, "ip_address": request.META["REMOTE_ADDR"], "email": email},
         )
 
         return self.respond(status=204)

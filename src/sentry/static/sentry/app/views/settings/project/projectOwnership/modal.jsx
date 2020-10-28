@@ -1,12 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {uniq} from 'lodash';
-import idx from 'idx';
+import uniq from 'lodash/uniq';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 class ProjectOwnershipModal extends AsyncComponent {
@@ -18,7 +16,7 @@ class ProjectOwnershipModal extends AsyncComponent {
   };
 
   getEndpoints() {
-    let {organization, project, issueId} = this.props;
+    const {organization, project, issueId} = this.props;
     return [
       ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
       [
@@ -26,10 +24,9 @@ class ProjectOwnershipModal extends AsyncComponent {
         `/issues/${issueId}/tags/url/`,
         {},
         {
-          allowError: error => {
+          allowError: error =>
             // Allow for 404s
-            return error.status === 404;
-          },
+            error.status === 404,
         },
       ],
       ['eventData', `/issues/${issueId}/events/latest/`],
@@ -37,8 +34,8 @@ class ProjectOwnershipModal extends AsyncComponent {
   }
 
   renderBody() {
-    let {ownership, urlTagData, eventData} = this.state;
-    let urls = urlTagData
+    const {ownership, urlTagData, eventData} = this.state;
+    const urls = urlTagData
       ? urlTagData.topValues
           .sort((a, b) => a.count - b.count)
           .map(i => i.value)
@@ -47,20 +44,18 @@ class ProjectOwnershipModal extends AsyncComponent {
 
     // pull frame data out of exception or the stacktrace
     let frames =
-      idx(
-        eventData.entries.find(({type}) => type == 'exception'),
-        _ => _.data.values[0].stacktrace.frames
-      ) ||
-      idx(eventData.entries.find(({type}) => type == 'stacktrace'), _ => _.data.frames) ||
+      eventData.entries.find(({type}) => type === 'exception')?.data?.values?.[0]
+        ?.stacktrace?.frames ||
+      eventData.entries.find(({type}) => type === 'stacktrace')?.data?.frames ||
       [];
 
     //filter frames by inApp unless there would be 0
-    let inAppFrames = frames.filter(frame => frame.inApp);
+    const inAppFrames = frames.filter(frame => frame.inApp);
     if (inAppFrames.length > 0) {
       frames = inAppFrames;
     }
 
-    let paths = uniq(
+    const paths = uniq(
       frames.map(frame => frame.filename || frame.absPath).filter(i => i)
     ).slice(0, 30);
 

@@ -10,49 +10,44 @@ from rest_framework.response import Response
 
 from sentry import analytics, features, options, roles
 from sentry.app import ratelimiter
-from sentry.api.base import DocSection, Endpoint
+from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationMember, OrganizationMemberTeam,
-    OrganizationStatus, ProjectPlatform
+    AuditLogEntryEvent,
+    Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    OrganizationStatus,
+    ProjectPlatform,
 )
 from sentry.search.utils import tokenize_query
 from sentry.signals import terms_accepted
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario('ListYourOrganizations')
-def list_your_organizations_scenario(runner):
-    runner.request(method='GET', path='/organizations/')
 
 
 class OrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
-    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
+    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False)
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
 
     def __init__(self, *args, **kwargs):
         super(OrganizationSerializer, self).__init__(*args, **kwargs)
         if not (settings.TERMS_URL and settings.PRIVACY_URL):
-            del self.fields['agreeTerms']
+            del self.fields["agreeTerms"]
 
-    def validate_agreeTerms(self, attrs, source):
-        value = attrs[source]
+    def validate_agreeTerms(self, value):
         if not value:
-            raise serializers.ValidationError('This attribute is required.')
-        return attrs
+            raise serializers.ValidationError("This attribute is required.")
+        return value
 
 
 class OrganizationIndexEndpoint(Endpoint):
-    doc_section = DocSection.ORGANIZATIONS
-    permission_classes = (OrganizationPermission, )
+    permission_classes = (OrganizationPermission,)
 
-    @attach_scenarios([list_your_organizations_scenario])
     def get(self, request):
         """
         List your Organizations
@@ -63,18 +58,17 @@ class OrganizationIndexEndpoint(Endpoint):
         user bound context.  For API key based requests this will
         only return the organization that belongs to the key.
 
-        :qparam bool member: restrict results to organizations which you have
-                             membership
-        :qparam bool owner: restrict results to organizations which are owner
+        :qparam bool owner: restrict results to organizations in which you are
+                            an organization owner
 
         :auth: required
         """
-        owner_only = request.GET.get('owner') in ('1', 'true')
+        owner_only = request.GET.get("owner") in ("1", "true")
 
         queryset = Organization.objects.distinct()
 
         if request.auth and not request.user.is_authenticated():
-            if hasattr(request.auth, 'project'):
+            if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
             elif request.auth.organization is not None:
                 queryset = queryset.filter(id=request.auth.organization.id)
@@ -89,75 +83,73 @@ class OrganizationIndexEndpoint(Endpoint):
             org_results = []
             for org in sorted(queryset, key=lambda x: x.name):
                 # O(N) query
-                org_results.append({
-                    'organization': serialize(org),
-                    'singleOwner': org.has_single_owner(),
-                })
+                org_results.append(
+                    {"organization": serialize(org), "singleOwner": org.has_single_owner()}
+                )
 
             return Response(org_results)
 
-        elif not (is_active_superuser(request) and request.GET.get('show') == 'all'):
+        elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
             queryset = queryset.filter(
-                id__in=OrganizationMember.objects.filter(
-                    user=request.user,
-                ).values('organization'),
+                id__in=OrganizationMember.objects.filter(user=request.user).values("organization")
             )
 
-        query = request.GET.get('query')
+        query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
             for key, value in six.iteritems(tokens):
-                if key == 'query':
-                    value = ' '.join(value)
+                if key == "query":
+                    value = " ".join(value)
                     queryset = queryset.filter(
-                        Q(name__icontains=value) | Q(slug__icontains=value) |
-                        Q(members__email__iexact=value)
+                        Q(name__icontains=value)
+                        | Q(slug__icontains=value)
+                        | Q(members__email__iexact=value)
                     )
-                elif key == 'slug':
-                    queryset = queryset.filter(in_iexact('slug', value))
-                elif key == 'email':
-                    queryset = queryset.filter(in_iexact('members__email', value))
-                elif key == 'platform':
+                elif key == "slug":
+                    queryset = queryset.filter(in_iexact("slug", value))
+                elif key == "email":
+                    queryset = queryset.filter(in_iexact("members__email", value))
+                elif key == "platform":
                     queryset = queryset.filter(
-                        project__in=ProjectPlatform.objects.filter(
-                            platform__in=value,
-                        ).values('project_id')
+                        project__in=ProjectPlatform.objects.filter(platform__in=value).values(
+                            "project_id"
+                        )
                     )
-                elif key == 'id':
+                elif key == "id":
                     queryset = queryset.filter(id__in=value)
-                elif key == 'status':
+                elif key == "status":
                     try:
-                        queryset = queryset.filter(status__in=[
-                            OrganizationStatus[v.upper()] for v in value
-                        ])
+                        queryset = queryset.filter(
+                            status__in=[OrganizationStatus[v.upper()] for v in value]
+                        )
                     except KeyError:
                         queryset = queryset.none()
+                elif key == "member_id":
+                    queryset = queryset.filter(
+                        id__in=OrganizationMember.objects.filter(id__in=value).values(
+                            "organization"
+                        )
+                    )
                 else:
                     queryset = queryset.none()
 
-        sort_by = request.GET.get('sortBy')
-        if sort_by == 'members':
-            queryset = queryset.annotate(
-                member_count=Count('member_set'),
-            )
-            order_by = '-member_count'
+        sort_by = request.GET.get("sortBy")
+        if sort_by == "members":
+            queryset = queryset.annotate(member_count=Count("member_set"))
+            order_by = "-member_count"
             paginator_cls = OffsetPaginator
-        elif sort_by == 'projects':
-            queryset = queryset.annotate(
-                project_count=Count('project'),
-            )
-            order_by = '-project_count'
+        elif sort_by == "projects":
+            queryset = queryset.annotate(project_count=Count("project"))
+            order_by = "-project_count"
             paginator_cls = OffsetPaginator
-        elif sort_by == 'events':
-            queryset = queryset.annotate(
-                event_count=Sum('stats__events_24h'),
-            ).filter(
-                stats__events_24h__isnull=False,
+        elif sort_by == "events":
+            queryset = queryset.annotate(event_count=Sum("stats__events_24h")).filter(
+                stats__events_24h__isnull=False
             )
-            order_by = '-event_count'
+            order_by = "-event_count"
             paginator_cls = OffsetPaginator
         else:
-            order_by = '-date_added'
+            order_by = "-date_added"
             paginator_cls = DateTimePaginator
 
         return self.paginate(
@@ -186,50 +178,37 @@ class OrganizationIndexEndpoint(Endpoint):
         :auth: required, user-context-needed
         """
         if not request.user.is_authenticated():
-            return Response({'detail': 'This endpoint requires user info'}, status=401)
+            return Response({"detail": "This endpoint requires user info"}, status=401)
 
-        if not features.has('organizations:create', actor=request.user):
+        if not features.has("organizations:create", actor=request.user):
             return Response(
-                {
-                    'detail': 'Organizations are not allowed to be created by this user.'
-                }, status=401
+                {"detail": "Organizations are not allowed to be created by this user."}, status=401
             )
 
-        limit = options.get('api.rate-limit.org-create')
+        limit = options.get("api.rate-limit.org-create")
         if limit and ratelimiter.is_limited(
-            u'org-create:{}'.format(request.user.id),
-            limit=limit,
-            window=3600,
+            u"org-create:{}".format(request.user.id), limit=limit, window=3600
         ):
             return Response(
-                {
-                    'detail': 'You are attempting to create too many organizations too quickly.'
-                },
-                status=429
+                {"detail": "You are attempting to create too many organizations too quickly."},
+                status=429,
             )
 
-        serializer = OrganizationSerializer(data=request.DATA)
+        serializer = OrganizationSerializer(data=request.data)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             try:
                 with transaction.atomic():
-                    org = Organization.objects.create(
-                        name=result['name'],
-                        slug=result.get('slug'),
-                    )
+                    org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
 
                     om = OrganizationMember.objects.create(
-                        organization=org,
-                        user=request.user,
-                        role=roles.get_top_dog().id,
+                        organization=org, user=request.user, role=roles.get_top_dog().id
                     )
 
-                    if result.get('defaultTeam'):
-                        team = org.team_set.create(
-                            name=org.name,
-                        )
+                    if result.get("defaultTeam"):
+                        team = org.team_set.create(name=org.name)
 
                         OrganizationMemberTeam.objects.create(
                             team=team, organizationmember=om, is_active=True
@@ -244,25 +223,22 @@ class OrganizationIndexEndpoint(Endpoint):
                     )
 
                     analytics.record(
-                        'organization.created',
+                        "organization.created",
                         org,
-                        actor_id=request.user.id if request.user.is_authenticated() else None
+                        actor_id=request.user.id if request.user.is_authenticated() else None,
                     )
 
             except IntegrityError:
                 return Response(
-                    {
-                        'detail': 'An organization with this slug already exists.'
-                    },
-                    status=409,
+                    {"detail": "An organization with this slug already exists."}, status=409
                 )
 
             # failure on sending this signal is acceptable
-            if result.get('agreeTerms'):
+            if result.get("agreeTerms"):
                 terms_accepted.send_robust(
                     user=request.user,
                     organization=org,
-                    ip_address=request.META['REMOTE_ADDR'],
+                    ip_address=request.META["REMOTE_ADDR"],
                     sender=type(self),
                 )
 

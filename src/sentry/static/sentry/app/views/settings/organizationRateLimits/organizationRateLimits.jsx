@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -11,7 +10,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const getRateLimitValues = () => {
-  let steps = [];
+  const steps = [];
   let i = 0;
   while (i <= 1000000) {
     steps.push(i);
@@ -39,10 +38,10 @@ export default class OrganizationRateLimit extends React.Component {
   };
 
   render() {
-    let {organization} = this.props;
-    let {quota} = organization;
-    let {maxRate, maxRateInterval, projectLimit, accountLimit} = quota;
-    let initialData = {
+    const {organization} = this.props;
+    const {quota} = organization;
+    const {maxRate, maxRateInterval, projectLimit, accountLimit} = quota;
+    const initialData = {
       projectRateLimit: projectLimit || 100,
       accountRateLimit: accountLimit,
     };
@@ -52,11 +51,7 @@ export default class OrganizationRateLimit extends React.Component {
         <SettingsPageHeader title={t('Rate Limits')} />
 
         <Panel>
-          <PanelHeader disablePadding>
-            <Box px={2} flex="1">
-              {t('Adjust Limits')}
-            </Box>
-          </PanelHeader>
+          <PanelHeader>{t('Adjust Limits')}</PanelHeader>
           <PanelBody>
             <PanelAlert type="info">
               {t(`Rate limits allow you to control how much data is stored for this
@@ -83,13 +78,13 @@ export default class OrganizationRateLimit extends React.Component {
                     'The maximum number of events to accept across this entire organization.'
                   )}
                   placeholder="e.g. 500"
-                  formatLabel={value => {
-                    return !value
+                  formatLabel={value =>
+                    !value
                       ? t('No Limit')
                       : tct('[number] per hour', {
                           number: value.toLocaleString(),
-                        });
-                  }}
+                        })
+                  }
                 />
               ) : (
                 <Field
@@ -113,20 +108,20 @@ export default class OrganizationRateLimit extends React.Component {
                 name="projectRateLimit"
                 label={t('Per-Project Limit')}
                 help={t(
-                  'The maximum percentage of your account limit an individual project can consume.'
+                  'The maximum percentage of the account limit (set above) that an individual project can consume.'
                 )}
                 step={5}
                 min={50}
                 max={100}
-                formatLabel={value => {
-                  return value !== 100 ? (
+                formatLabel={value =>
+                  value !== 100 ? (
                     `${value}%`
                   ) : (
                     <span
                       dangerouslySetInnerHTML={{__html: `${t('No Limit')} &mdash; 100%`}}
                     />
-                  );
-                }}
+                  )
+                }
               />
             </Form>
           </PanelBody>

@@ -1,0 +1,101 @@
+{
+  "culprit": "sentry.tasks.post_process.post_process_group",
+  "event_id": "5ec2c82c95d14a638d79a68099c14a32",
+  "environment": "prod",
+  "platform": "python",
+  "logger": "sentry.safe.function",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "safe_execute",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py",
+              "pre_context": [
+                "    # side if we execute a query)",
+                "    _with_transaction = kwargs.pop('_with_transaction', True)",
+                "    try:",
+                "        if _with_transaction:",
+                "            with transaction.atomic():"
+              ],
+              "module": "sentry.utils.safe",
+              "filename": "sentry/utils/safe.py",
+              "post_context": [
+                "        else:",
+                "            result = func(*args, **kwargs)",
+                "    except Exception as e:",
+                "        if hasattr(func, 'im_class'):",
+                "            cls = func.im_class"
+              ],
+              "in_app": true,
+              "context_line": "                result = func(*args, **kwargs)",
+              "lineno": 29
+            },
+            {
+              "function": "send_notification",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/integrations/slack/notify_action.py",
+              "pre_context": [
+                "                'attachments': json.dumps([attachment]),",
+                "            }",
+                "",
+                "            session = http.build_session()",
+                "            resp = session.post('https://slack.com/api/chat.postMessage', data=payload)"
+              ],
+              "module": "sentry.integrations.slack.notify_action",
+              "filename": "sentry/integrations/slack/notify_action.py",
+              "post_context": [
+                "            resp = resp.json()",
+                "            if not resp.get('ok'):",
+                "                self.logger.info('rule.fail.slack_post', extra={'error': resp.get('error')})",
+                "",
+                "        key = u'slack:{}:{}'.format(integration_id, channel)"
+              ],
+              "in_app": true,
+              "context_line": "            resp.raise_for_status()",
+              "lineno": 119
+            },
+            {
+              "function": "raise_for_status",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/requests/models.py",
+              "pre_context": [
+                "",
+                "        elif 500 <= self.status_code < 600:",
+                "            http_error_msg = u'%s Server Error: %s for url: %s' % (self.status_code, reason, self.url)",
+                "",
+                "        if http_error_msg:"
+              ],
+              "module": "requests.models",
+              "filename": "requests/models.py",
+              "post_context": [
+                "",
+                "    def close(self):",
+                "        \"\"\"Releases the connection back to the pool. Once this method has been",
+                "        called the underlying ``raw`` object must not be accessed again.",
+                ""
+              ],
+              "in_app": false,
+              "context_line": "            raise HTTPError(http_error_msg, response=self)",
+              "lineno": 940
+            }
+          ]
+        },
+        "type": "HTTPError",
+        "value": "429 Client Error: Too Many Requests for url: https://slack.com/api/chat.postMessage",
+        "module": "requests.exceptions",
+        "mechanism": {
+          "type": "logging",
+          "handled": true
+        }
+      }
+    ]
+  },
+  "logentry": {
+    "message": "%s.process_error",
+    "params": [
+      "send_notification"
+    ],
+    "formatted": "send_notification.process_error"
+  },
+  "release": "d0d3f1ea630178c8f2836c2d2382dd534e9b47ac"
+}

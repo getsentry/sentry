@@ -1,395 +1,312 @@
 from __future__ import absolute_import
 
+from abc import ABCMeta, abstractmethod
+import functools
 import six
+from datetime import timedelta
 
-import logging
-import math
-import pytz
-from collections import defaultdict
-from datetime import timedelta, datetime
-
+from django.db.models import Q
 from django.utils import timezone
 
-from sentry.api.paginator import SequencePaginator
-from sentry.event_manager import ALLOWED_FUTURE_DELTA
-from sentry.models import Release, Group, GroupEnvironment, GroupHash
-from sentry.search.django import backend as ds
-from sentry.utils import snuba
-from sentry.utils.dates import to_timestamp
+from sentry import quotas
+from sentry.api.event_search import InvalidSearchQuery
+from sentry.models import Release, GroupEnvironment, Group, GroupStatus, GroupSubscription
+from sentry.search.base import SearchBackend
+from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 
 
-logger = logging.getLogger('sentry.search.snuba')
-datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
+def assigned_to_filter(actor, projects):
+    from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+
+    if isinstance(actor, Team):
+        return Q(assignee_set__team=actor)
+
+    teams = Team.objects.filter(
+        id__in=OrganizationMemberTeam.objects.filter(
+            organizationmember__in=OrganizationMember.objects.filter(
+                user=actor, organization_id=projects[0].organization_id
+            ),
+            is_active=True,
+        ).values("team")
+    )
+
+    return Q(
+        Q(assignee_set__user=actor, assignee_set__project__in=projects)
+        | Q(assignee_set__team__in=teams)
+    )
 
 
-# TODO: Would be nice if this was handled in the Snuba abstraction, but that
-# would require knowledge of which fields are datetimes
-def snuba_str_to_datetime(d):
-    if not isinstance(d, datetime):
-        d = datetime.strptime(d, datetime_format)
+def unassigned_filter(unassigned, projects):
+    from sentry.models.groupassignee import GroupAssignee
 
-    if not d.tzinfo:
-        d = d.replace(tzinfo=pytz.utc)
-
-    return d
-
-
-def calculate_priority_cursor(data):
-    times_seen = sum(data['times_seen'])
-    last_seen = max(int(to_timestamp(snuba_str_to_datetime(d)) * 1000) for d in data['last_seen'])
-    return ((math.log(times_seen) * 600) + last_seen)
+    query = Q(
+        id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
+            "group_id", flat=True
+        )
+    )
+    if unassigned:
+        query = ~query
+    return query
 
 
-def _datetime_cursor_calculator(field, fn):
-    def calculate(data):
-        datetime = fn(snuba_str_to_datetime(d) for d in data[field])
-        return int(to_timestamp(datetime) * 1000)
-
-    return calculate
-
-
-sort_strategies = {
-    # sort_by -> Tuple[
-    #   String: column or alias to sort by (of type T, used below),
-    #   List[String]: extra aggregate columns required for this sorting strategy,
-    #   Function[T] -> int: function for converting a group's data to a cursor value),
-    # ]
-    'priority': (
-        'priority', ['last_seen', 'times_seen'], calculate_priority_cursor,
-    ),
-    'date': (
-        'last_seen', [], _datetime_cursor_calculator('last_seen', max),
-    ),
-    'new': (
-        'first_seen', [], _datetime_cursor_calculator('first_seen', min),
-    ),
-    'freq': (
-        'times_seen', [], lambda data: sum(data['times_seen']),
-    ),
-}
-
-
-aggregation_defs = {
-    'times_seen': ['count()', ''],
-    'first_seen': ['min', 'timestamp'],
-    'last_seen': ['max', 'timestamp'],
-    # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-    'priority': ['toUInt32(log(times_seen) * 600) + toUInt32(last_seen)', ''],
-}
-
-
-class SnubaConditionBuilder(object):
-    """\
-    Constructions a Snuba conditions list from a ``parameters`` mapping.
-
-    ``Condition`` objects are registered by their parameter name and used to
-    construct the Snuba condition list if they are present in the ``parameters``
-    mapping.
-    """
-
-    def __init__(self, conditions):
-        self.conditions = conditions
-
-    def build(self, parameters):
-        result = []
-        for name, condition in self.conditions.items():
-            if name in parameters:
-                result.append(condition.apply(name, parameters))
-        return result
+def first_release_all_environments_filter(version, projects):
+    try:
+        release_id = Release.objects.get(
+            organization=projects[0].organization_id, version=version
+        ).id
+    except Release.DoesNotExist:
+        release_id = -1
+    return Q(
+        # If no specific environments are supplied, we look at the
+        # first_release of any environment that the group has been
+        # seen in.
+        id__in=GroupEnvironment.objects.filter(first_release_id=release_id).values_list("group_id")
+    )
 
 
 class Condition(object):
     """\
-    Adds a single condition to a Snuba conditions list. Used with
-    ``SnubaConditionBuilder``.
+    Adds a single filter to a ``QuerySet`` object. Used with
+    ``QuerySetBuilder``.
     """
 
-    def apply(self, name, parameters):
+    def apply(self, queryset, name, parameters):
         raise NotImplementedError
 
 
-class CallbackCondition(Condition):
+class QCallbackCondition(Condition):
     def __init__(self, callback):
         self.callback = callback
 
-    def apply(self, name, parameters):
-        return self.callback(parameters[name])
+    def apply(self, queryset, search_filter):
+        value = search_filter.value.raw_value
+        q = self.callback(value)
+        if search_filter.operator not in ("=", "!="):
+            raise InvalidSearchQuery(
+                u"Operator {} not valid for search {}".format(search_filter.operator, search_filter)
+            )
+        queryset_method = queryset.filter if search_filter.operator == "=" else queryset.exclude
+        queryset = queryset_method(q)
+        return queryset
 
 
 class ScalarCondition(Condition):
-    """\
-    Adds a scalar filter (less than or greater than are supported) to a Snuba
-    condition list. Whether or not the filter is inclusive is defined by the
-    '{parameter_name}_inclusive' parameter.
+    """
+    Adds a scalar filter to a ``QuerySet`` object. Only accepts `SearchFilter`
+    instances
     """
 
-    def __init__(self, field, operator, default_inclusivity=True):
-        assert operator in ['<', '>']
+    OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt"}
+
+    def __init__(self, field, extra=None):
         self.field = field
-        self.operator = operator
-        self.default_inclusivity = default_inclusivity
+        self.extra = extra
 
-    def apply(self, name, parameters):
-        inclusive = parameters.get(
-            '{}_inclusive'.format(name),
-            self.default_inclusivity,
+    def _get_operator(self, search_filter):
+        django_operator = self.OPERATOR_TO_DJANGO.get(search_filter.operator, "")
+        if django_operator:
+            django_operator = "__{}".format(django_operator)
+        return django_operator
+
+    def apply(self, queryset, search_filter):
+        django_operator = self._get_operator(search_filter)
+        qs_method = queryset.exclude if search_filter.operator == "!=" else queryset.filter
+
+        q_dict = {"{}{}".format(self.field, django_operator): search_filter.value.raw_value}
+        if self.extra:
+            q_dict.update(self.extra)
+
+        return qs_method(**q_dict)
+
+
+class QuerySetBuilder(object):
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    def build(self, queryset, search_filters):
+        for search_filter in search_filters:
+            name = search_filter.key.name
+            if name in self.conditions:
+                condition = self.conditions[name]
+                queryset = condition.apply(queryset, search_filter)
+        return queryset
+
+
+@six.add_metaclass(ABCMeta)
+class SnubaSearchBackendBase(SearchBackend):
+    def query(
+        self,
+        projects,
+        environments=None,
+        sort_by="date",
+        limit=100,
+        cursor=None,
+        count_hits=False,
+        paginator_options=None,
+        search_filters=None,
+        date_from=None,
+        date_to=None,
+    ):
+        search_filters = search_filters if search_filters is not None else []
+
+        # ensure projects are from same org
+        if len({p.organization_id for p in projects}) != 1:
+            raise RuntimeError("Cross organization search not supported")
+
+        if paginator_options is None:
+            paginator_options = {}
+
+        # filter out groups which are beyond the retention period
+        retention = quotas.get_event_retention(organization=projects[0].organization)
+        if retention:
+            retention_window_start = timezone.now() - timedelta(days=retention)
+        else:
+            retention_window_start = None
+
+        group_queryset = self._build_group_queryset(
+            projects=projects,
+            environments=environments,
+            search_filters=search_filters,
+            retention_window_start=retention_window_start,
+            date_from=date_from,
+            date_to=date_to,
         )
 
-        arg = parameters[name]
-        if isinstance(arg, datetime):
-            arg = int(to_timestamp(arg))
-
-        return (
-            self.field,
-            self.operator + ('=' if inclusive else ''),
-            arg
+        query_executor = self._get_query_executor(
+            group_queryset=group_queryset,
+            projects=projects,
+            environments=environments,
+            search_filters=search_filters,
+            date_from=date_from,
+            date_to=date_to,
         )
 
+        # ensure sort strategy is supported by executor
+        if not query_executor.has_sort_strategy(sort_by):
+            raise InvalidSearchQuery(u"Sort key '{}' not supported.".format(sort_by))
 
-class SnubaSearchBackend(ds.DjangoSearchBackend):
-    def _query(self, project, retention_window_start, group_queryset, tags, environment,
-               sort_by, limit, cursor, count_hits, paginator_options, **parameters):
-
-        # TODO: Product decision: we currently search Group.message to handle
-        # the `query` parameter, because that's what we've always done. We could
-        # do that search against every event in Snuba instead, but results may
-        # differ.
-
-        now = timezone.now()
-        end = parameters.get('date_to') or (now + ALLOWED_FUTURE_DELTA)
-        # TODO: Presumably we want to search back to the project's full retention,
-        #       which may be higher than 90 days in the future, but apparently
-        #       `retention_window_start` can be None?
-        start = max(
-            filter(None, [
-                retention_window_start,
-                parameters.get('date_from'),
-                now - timedelta(days=90)
-            ])
+        return query_executor.query(
+            projects=projects,
+            retention_window_start=retention_window_start,
+            group_queryset=group_queryset,
+            environments=environments,
+            sort_by=sort_by,
+            limit=limit,
+            cursor=cursor,
+            count_hits=count_hits,
+            paginator_options=paginator_options,
+            search_filters=search_filters,
+            date_from=date_from,
+            date_to=date_to,
         )
-        assert start < end
 
-        # TODO: It's possible `first_release` could be handled by Snuba.
-        if environment is not None:
-            group_queryset = ds.QuerySetBuilder({
-                'first_release': ds.CallbackCondition(
-                    lambda queryset, version: queryset.extra(
-                        where=[
-                            '{} = {}'.format(
-                                ds.get_sql_column(GroupEnvironment, 'first_release_id'),
-                                ds.get_sql_column(Release, 'id'),
-                            ),
-                            '{} = %s'.format(
-                                ds.get_sql_column(Release, 'organization'),
-                            ),
-                            '{} = %s'.format(
-                                ds.get_sql_column(Release, 'version'),
-                            ),
-                        ],
-                        params=[project.organization_id, version],
-                        tables=[Release._meta.db_table],
+    def _build_group_queryset(
+        self, projects, environments, search_filters, retention_window_start, *args, **kwargs
+    ):
+        """This method should return a QuerySet of the Group model.
+        How you implement it is up to you, but we generally take in the various search parameters
+        and filter Group's down using the field's we want to query on in Postgres."""
+
+        group_queryset = self._initialize_group_queryset(
+            projects, environments, retention_window_start, search_filters
+        )
+        qs_builder_conditions = self._get_queryset_conditions(
+            projects, environments, search_filters
+        )
+        group_queryset = QuerySetBuilder(qs_builder_conditions).build(
+            group_queryset, search_filters
+        )
+        return group_queryset
+
+    def _initialize_group_queryset(
+        self, projects, environments, retention_window_start, search_filters
+    ):
+        group_queryset = Group.objects.filter(project__in=projects).exclude(
+            status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+                GroupStatus.PENDING_MERGE,
+            ]
+        )
+
+        if retention_window_start:
+            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
+
+        if environments is not None:
+            environment_ids = [environment.id for environment in environments]
+            group_queryset = group_queryset.filter(
+                groupenvironment__environment_id__in=environment_ids
+            )
+        return group_queryset
+
+    @abstractmethod
+    def _get_queryset_conditions(self, projects, environments, search_filters):
+        """This method should return a dict of query set fields and a "Condition" to apply on that field."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def _get_query_executor(
+        self, group_queryset, projects, environments, search_filters, date_from, date_to
+    ):
+        """This method should return an implementation of the AbstractQueryExecutor
+        We will end up calling .query() on the class returned by this method"""
+        raise NotImplementedError
+
+
+class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
+    def _get_query_executor(self, *args, **kwargs):
+        return PostgresSnubaQueryExecutor()
+
+    def _get_queryset_conditions(self, projects, environments, search_filters):
+        queryset_conditions = {
+            "status": QCallbackCondition(lambda status: Q(status=status)),
+            "bookmarked_by": QCallbackCondition(
+                lambda user: Q(bookmark_set__project__in=projects, bookmark_set__user=user)
+            ),
+            "assigned_to": QCallbackCondition(
+                functools.partial(assigned_to_filter, projects=projects)
+            ),
+            "unassigned": QCallbackCondition(
+                functools.partial(unassigned_filter, projects=projects)
+            ),
+            "subscribed_by": QCallbackCondition(
+                lambda user: Q(
+                    id__in=GroupSubscription.objects.filter(
+                        project__in=projects, user=user, is_active=True
+                    ).values_list("group")
+                )
+            ),
+            "active_at": ScalarCondition("active_at"),
+        }
+
+        if environments is not None:
+            environment_ids = [environment.id for environment in environments]
+            queryset_conditions.update(
+                {
+                    "first_release": QCallbackCondition(
+                        lambda version: Q(
+                            # if environment(s) are selected, we just filter on the group
+                            # environment's first_release attribute.
+                            groupenvironment__first_release__organization_id=projects[
+                                0
+                            ].organization_id,
+                            groupenvironment__first_release__version=version,
+                            groupenvironment__environment_id__in=environment_ids,
+                        )
                     ),
-                ),
-            }).build(
-                group_queryset.extra(
-                    where=[
-                        '{} = {}'.format(
-                            ds.get_sql_column(Group, 'id'),
-                            ds.get_sql_column(GroupEnvironment, 'group_id'),
-                        ),
-                        '{} = %s'.format(
-                            ds.get_sql_column(GroupEnvironment, 'environment_id'),
-                        ),
-                    ],
-                    params=[environment.id],
-                    tables=[GroupEnvironment._meta.db_table],
-                ),
-                parameters,
-            )
-        else:
-            group_queryset = ds.QuerySetBuilder({
-                'first_release': ds.CallbackCondition(
-                    lambda queryset, version: queryset.filter(
-                        first_release__organization_id=project.organization_id,
-                        first_release__version=version,
+                    "first_seen": ScalarCondition(
+                        "groupenvironment__first_seen",
+                        {"groupenvironment__environment_id__in": environment_ids},
                     ),
-                ),
-            }).build(
-                group_queryset,
-                parameters,
+                }
             )
-
-        # TODO: If the query didn't include anything to significantly filter
-        # down the number of groups at this point ('first_release', 'query',
-        # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-        # 'subscribed_by', 'active_at_from', or 'active_at_to') then this
-        # queryset might return a *huge* number of groups. In this case, we
-        # probably *don't* want to pass candidates down to Snuba, and rather we
-        # want Snuba to do all the filtering/sorting it can and *then* apply
-        # this queryset to the results from Snuba.
-        #
-        # However, if this did filter down the number of groups significantly,
-        # then passing in candidates is, of course, valuable.
-        #
-        # Should we decide which way to handle it based on the number of
-        # group_ids, the number of hashes? Or should we just always start the
-        # query with Snuba? Something else?
-        candidate_group_ids = list(group_queryset.values_list('id', flat=True))
-
-        sort, extra_aggregations, calculate_cursor_for_group = sort_strategies[sort_by]
-
-        group_data = do_search(
-            project_id=project.id,
-            environment_id=environment and environment.id,
-            tags=tags,
-            start=start,
-            end=end,
-            sort=sort,
-            extra_aggregations=extra_aggregations,
-            candidates=candidate_group_ids,
-            **parameters
-        )
-
-        group_to_score = {}
-        for group_id, data in group_data.items():
-            group_to_score[group_id] = calculate_cursor_for_group(data)
-
-        paginator_results = SequencePaginator(
-            [(score, id) for (id, score) in group_to_score.items()],
-            reverse=True,
-            **paginator_options
-        ).get_result(limit, cursor, count_hits=count_hits)
-
-        groups = Group.objects.in_bulk(paginator_results.results)
-        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-
-        return paginator_results
-
-
-def do_search(project_id, environment_id, tags, start, end,
-              sort, extra_aggregations, candidates=None, limit=1000, **parameters):
-
-    from sentry.search.base import ANY
-
-    filters = {
-        'project_id': [project_id],
-    }
-
-    if environment_id is not None:
-        filters['environment'] = [environment_id]
-
-    if candidates is not None:
-        # TODO remove this when Snuba accepts more than 500 issues
-        candidates = candidates[:500]
-        hashes = list(
-            GroupHash.objects.filter(
-                group_id__in=candidates
-            ).values_list(
-                'hash', flat=True
-            ).distinct()
-        )
-
-        if not hashes:
-            return {}
-
-        filters['primary_hash'] = hashes
-
-        # TODO: See TODO above about sending too many candidates to Snuba.
-        # https://github.com/getsentry/sentry/blob/63c50ec68ed4fb2314e20323198dd384487feba7/src/sentry/search/snuba/backend.py#L218
-        limit = len(hashes)
-
-    having = SnubaConditionBuilder({
-        'age_from': ScalarCondition('first_seen', '>'),
-        'age_to': ScalarCondition('first_seen', '<'),
-        'last_seen_from': ScalarCondition('last_seen', '>'),
-        'last_seen_to': ScalarCondition('last_seen', '<'),
-        'times_seen': CallbackCondition(
-            lambda times_seen: ('times_seen', '=', times_seen),
-        ),
-        'times_seen_lower': ScalarCondition('times_seen', '>'),
-        'times_seen_upper': ScalarCondition('times_seen', '<'),
-    }).build(parameters)
-
-    conditions = []
-    for tag, val in six.iteritems(tags):
-        col = 'tags[{}]'.format(tag)
-        if val == ANY:
-            conditions.append((col, '!=', ''))
         else:
-            conditions.append((col, '=', val))
-
-    required_aggregations = set([sort] + extra_aggregations)
-    for h in having:
-        alias = h[0]
-        required_aggregations.add(alias)
-
-    aggregations = []
-    for alias in required_aggregations:
-        aggregations.append(aggregation_defs[alias] + [alias])
-
-    # {hash -> {<agg_alias> -> <agg_value>,
-    #           <agg_alias> -> <agg_value>,
-    #           ...},
-    #  ...}
-    # _OR_ if there's only one <agg_alias> in use
-    # {hash -> <agg_value>,
-    #  ...}
-    snuba_results = snuba.query(
-        start=start,
-        end=end,
-        groupby=['primary_hash'],
-        conditions=conditions,
-        having=having,
-        filter_keys=filters,
-        aggregations=aggregations,
-        orderby='-' + sort,
-        limit=limit,
-        referrer='search',
-    )
-
-    # {hash -> group_id, ...}
-    hash_to_group = dict(
-        GroupHash.objects.filter(
-            project_id=project_id,
-            hash__in=snuba_results.keys()
-        ).values_list(
-            'hash', 'group_id'
-        )
-    )
-
-    # {group_id -> {field1: [...all values from field1 for all hashes...],
-    #               field2: [...all values from field2 for all hashes...]
-    #               ...}
-    #  ...}
-    group_data = {}
-    for hash, obj in snuba_results.items():
-        if hash in hash_to_group:
-            group_id = hash_to_group[hash]
-
-            if group_id not in group_data:
-                group_data[group_id] = defaultdict(list)
-
-            dest = group_data[group_id]
-
-            # NOTE: The Snuba utility code is trying to be helpful by collapsing
-            # results with only one aggregate down to the single value. It's a
-            # bit of a hack that we then immediately undo that work here, but
-            # many other callers get value out of that functionality. If we see
-            # this pattern again we should either add an option to opt-out of
-            # the 'help' here or remove it from the Snuba code altogether.
-            if len(required_aggregations) == 1:
-                alias = list(required_aggregations)[0]
-                dest[alias].append(obj)
-            else:
-                for k, v in obj.items():
-                    dest[k].append(v)
-        else:
-            logger.warning(
-                'search.hash_not_found',
-                extra={
-                    'project_id': project_id,
-                    'hash': hash,
-                },
+            queryset_conditions.update(
+                {
+                    "first_release": QCallbackCondition(
+                        functools.partial(first_release_all_environments_filter, projects=projects)
+                    ),
+                    "first_seen": ScalarCondition("first_seen"),
+                }
             )
-
-    return group_data
+        return queryset_conditions

@@ -6,30 +6,35 @@
 {% block wrapperclass %}narrow auth{% endblock %}
 {% block modal_header_signout %}{% endblock %}
 
-{% block title %}{% trans "Visual Studio Team Services Setup" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Azure DevOps Setup" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-<h3>Visual Studio Team Services Configuration</h3>
-
-<form action="" method="post" class="form-stacked">
-  {% csrf_token %}
-  <input type="hidden" name="provider" value="vsts" />
-
+<h3>Azure DevOps Configuration</h3>
+{% if no_accounts %}
   <p>
-    Configure Visual Studio Team Services to use with Sentry.io.
+    {% trans "No accounts found. Please check that you are an Azure DevOps account owner." %}
   </p>
+{% else %}
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <input type="hidden" name="provider" value="vsts" />
 
-  {{ form|as_crispy_errors }}
+    <p>
+      {% trans "Configure Azure DevOps to use with Sentry." %}
+    </p>
 
-  {% for field in form %}
-      {{ field|as_crispy_field }}
-  {% endfor %}
+    {{ form|as_crispy_errors }}
 
-  <fieldset class="form-actions">
-    <button
-      type="submit"
-      class="btn btn-primary"
-      name="save_mappings" value="url">{% trans "Submit" %}</button>
-  </fieldset>
-</form>
+    {% for field in form %}
+        {{ field|as_crispy_field }}
+    {% endfor %}
+
+    <fieldset class="form-actions">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        name="save_mappings" value="url">{% trans "Submit" %}</button>
+    </fieldset>
+  </form>
+{% endif %}
 {% endblock %}

@@ -1,20 +1,20 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {openCommandPalette} from 'app/actionCreators/modal';
 import App from 'app/views/app';
 import FormSearchStore from 'app/stores/formSearchStore';
-
 import {navigateTo} from 'app/actionCreators/navigation';
 
 jest.mock('jquery');
 jest.mock('app/actionCreators/formSearch');
 jest.mock('app/actionCreators/navigation');
 
-describe('Command Palette Modal', function() {
+describe('Command Palette Modal', function () {
   let orgsMock;
 
-  beforeEach(function() {
+  beforeEach(function () {
     FormSearchStore.onLoadSearchMap([]);
 
     MockApiClient.clearMockResponses();
@@ -38,7 +38,22 @@ describe('Command Palette Modal', function() {
       query: 'foo',
       body: TestStubs.Members(),
     });
-
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/?plugins=_all',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/configs/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/sentry-apps/?status=published',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {
@@ -46,14 +61,21 @@ describe('Command Palette Modal', function() {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/',
+      url: '/assistant/?v2',
       body: [],
     });
   });
 
-  it('can open command palette modal and search', async function() {
-    let wrapper = mount(
-      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
+  it('can open command palette modal and search', async function () {
+    const wrapper = mountWithTheme(
+      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
+      TestStubs.routerContext([
+        {
+          router: TestStubs.router({
+            params: {orgId: 'org-slug'},
+          }),
+        },
+      ])
     );
 
     // No Modal
@@ -80,31 +102,22 @@ describe('Command Palette Modal', function() {
     );
 
     expect(
-      wrapper
-        .find('ModalDialog SearchResult SearchTitle')
-        .first()
-        .text()
-    ).toBe('billy-org Settings');
+      wrapper.find('SearchResult [data-test-id="badge-display-name"]').first().text()
+    ).toBe('billy-org Dashboard');
 
     expect(
-      wrapper
-        .find('ModalDialog CommandPaletteSearchResultWrapper')
-        .first()
-        .prop('highlighted')
+      wrapper.find('ModalDialog SearchResultWrapper').first().prop('highlighted')
     ).toBe(true);
 
     expect(
-      wrapper
-        .find('ModalDialog CommandPaletteSearchResultWrapper')
-        .at(1)
-        .prop('highlighted')
+      wrapper.find('ModalDialog SearchResultWrapper').at(1).prop('highlighted')
     ).toBe(false);
 
     wrapper
-      .find('ModalDialog SearchResult')
+      .find('SearchResult [data-test-id="badge-display-name"]')
       .first()
       .simulate('click');
 
-    expect(navigateTo).toHaveBeenCalledWith('/settings/billy-org/', undefined);
+    expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything());
   });
 });

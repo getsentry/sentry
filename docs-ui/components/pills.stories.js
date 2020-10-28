@@ -1,17 +1,18 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 
-// eslint-disable-next-line
-storiesOf('Pills', module).add(
-  'all',
-  withInfo('When you have key/value data but are tight on space.')(() => (
+export default {
+  title: 'Core/Badges+Tags/Pills',
+};
+
+export const All = withInfo('When you have key/value data but are tight on space.')(
+  () => (
     <Pills>
       <Pill name="key" value="value" />
-      <Pill name="good" value={true}>
+      <Pill name="good" value>
         thing
       </Pill>
       <Pill name="bad" value={false}>
@@ -19,5 +20,9 @@ storiesOf('Pills', module).add(
       </Pill>
       <Pill name="generic">thing</Pill>
     </Pills>
-  ))
+  )
 );
+
+All.story = {
+  name: 'all',
+};

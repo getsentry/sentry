@@ -10,23 +10,22 @@ from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 class EmailMissingLinksTest(TestCase):
     def setUp(self):
         super(EmailMissingLinksTest, self).setUp()
-        self.user = self.create_user(email='bar@example.com')
-        self.organization = self.create_organization(owner=self.user, name='Test')
+        self.user = self.create_user(email="bar@example.com")
+        self.organization = self.create_organization(name="Test")
         self.provider = AuthProvider.objects.create(
-            organization=self.organization,
-            provider='dummy',
+            organization=self.organization, provider="dummy"
         )
-        OrganizationMember.objects.create_or_update(
+        om = OrganizationMember.objects.create(
             user=self.user,
             organization=self.organization,
-            values={'flags': getattr(OrganizationMember.flags, 'sso:linked')},
+            flags=OrganizationMember.flags["sso:linked"],
         )
-        self.user2 = self.create_user(email='baz@example.com')
-        OrganizationMember.objects.create(
-            user=self.user2,
-            organization=self.organization,
-            flags=0,
+        assert om.flags["sso:linked"]
+        self.user2 = self.create_user(email="baz@example.com")
+        om2 = OrganizationMember.objects.create(
+            user=self.user2, organization=self.organization, flags=0
         )
+        assert not om2.flags["sso:linked"]
 
     def test_email_missing_links(self):
         with self.tasks():

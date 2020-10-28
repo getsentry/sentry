@@ -3,210 +3,41 @@
  * ============================================================================
  */
 
-.hovercard-container {
-  position: relative;
-}
-
 .hovercard {
-  @hovercard-padding: 15px;
-  @hovercard-width: 295px;
-  border-radius: 4px;
-  background-clip: padding-box;
-  background: #fff;
-  color: @gray-darker;
-  text-align: left;
-  position: absolute;
-  display: block;
-  padding: 0;
-  line-height: 1;
-  z-index: 1000;
-  box-shadow: 0 0 35px 0 rgba(67, 62, 75, 0.2);
-  border: 1px solid @trim;
-  white-space: initial;
+  @hovercard-padding: 16px;
 
-  // The hovercard may appear in different contexts, don't inherit fonts
-  font-family: @font-family-base;
-
-  // Default align hovercard top-middle
-  bottom: 28px;
-  left: 50%;
-  margin-left: -@hovercard-width / 2;
-  width: @hovercard-width;
-  visibility: hidden;
-
-  @keyframes hovercardSlideUp {
-    from {
-      transform: translateY(12px);
-    }
-    to {
-      transform: translateY(0);
-    }
+  .commit-heading {
+    margin: 10px 0;
   }
 
-  @keyframes hovercardSlideDown {
-    from {
-      transform: translateY(-12px);
-    }
-    to {
-      transform: translateY(0);
-    }
-  }
+  .commit {
+    margin-top: 5px;
+    margin-bottom: 0;
+    position: relative;
+    padding: 1px 0 0 25px;
+    font-size: 13px;
 
-  @keyframes hovercardFadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
+    .commit-avatar {
+      position: absolute;
+      width: 19px;
+      height: 19px;
+      top: 2px;
+      left: 0;
 
-  animation: hovercardFadeIn 100ms ease-in-out, hovercardSlideDown 100ms ease-in-out;
-
-  // Wait for the element to become visible
-  animation-play-state: paused;
-
-  &.visible {
-    visibility: visible;
-    animation-play-state: running;
-  }
-
-  &.hovercard-bottom {
-    bottom: initial;
-    top: 28px;
-
-    animation: hovercardFadeIn 100ms ease-in-out, hovercardSlideUp 100ms ease-in-out;
-
-    .hovercard-hoverlap {
-      top: -16px;
-    }
-
-    &:before,
-    &:after {
-      bottom: initial;
-      top: -20px;
-      // Avoid having
-      transform: rotate(180deg);
-    }
-
-    &:before {
-      top: -21px;
-    }
-
-    &.with-header:after {
-      border-top-color: @white-dark;
-    }
-  }
-
-  &.hovercard-left {
-    left: 0;
-    margin-left: 0;
-
-    &:before,
-    &:after {
-      left: 21px;
-      margin-left: 0;
-    }
-  }
-
-  &.hovercard-right {
-    left: initial;
-    right: 0;
-    margin-left: 0;
-
-    &:before,
-    &:after {
-      left: initial;
-      right: 21px;
-      margin-left: 0;
-    }
-  }
-
-  &:before,
-  &:after {
-    .square(0);
-    content: '';
-    display: block;
-    position: absolute;
-    z-index: -1;
-    bottom: -20px;
-    left: 50%;
-    margin-left: -10px;
-    border: 10px solid transparent;
-    border-top-color: #fff;
-  }
-
-  &:before {
-    bottom: -21px;
-    border-top-color: @trim;
-  }
-
-  .hovercard-hoverlap {
-    position: absolute;
-    bottom: -16px;
-    height: 16px;
-    left: 0;
-    right: 0;
-  }
-
-  .hovercard-header {
-    font-size: 14px;
-    background: @white-dark;
-    border-bottom: 1px solid @trim;
-    border-radius: 4px 4px 0 0;
-    font-weight: 600;
-    word-wrap: break-word;
-
-    // Thhe font needs a little extra padding. It has funny vert alignment.
-    padding: @hovercard-padding * 0.6 @hovercard-padding * 0.75;
-    padding-top: @hovercard-padding * 0.6 + 2px;
-
-    .pull-right {
-      a {
-        color: @50;
-
-        &:hover {
-          color: @70;
-        }
+      .avatar {
+        width: 19px;
+        height: 19px;
       }
     }
-  }
 
-  .hovercard-body {
-    padding: @hovercard-padding;
-    min-height: 74px;
-
-    .commit-heading {
-      margin: 10px 0;
+    .commit-message {
+      line-height: 1.4;
+      margin: 2px 0 5px;
     }
 
-    .commit {
-      margin-top: 5px;
-      margin-bottom: 0;
-      position: relative;
-      padding: 1px 0 0 25px;
-      font-size: 13px;
-
-      .commit-avatar {
-        position: absolute;
-        .square(19px);
-        top: 2px;
-        left: 0;
-
-        .avatar {
-          .square(19px);
-        }
-      }
-
-      .commit-message {
-        line-height: 1.4;
-        margin: 2px 0 5px;
-      }
-
-      .commit-meta {
-        font-size: 12px;
-        color: @70;
-      }
+    .commit-meta {
+      font-size: 12px;
+      color: @70;
     }
   }
 
@@ -238,7 +69,7 @@
 
   h6 {
     color: @50 !important;
-    font-size: 11px;
+    font-size: 11px !important;
     margin-bottom: 4px !important;
     text-transform: uppercase;
   }
@@ -254,18 +85,6 @@
     padding: 3px 0 0;
   }
 
-  .avatar-grid {
-    margin-top: 7px;
-
-    .avatar-grid-item .avatar {
-      .square(20px);
-    }
-
-    .tip {
-      border-bottom: 0 !important;
-    }
-  }
-
   .deploy-heading {
     margin: 10px 0;
   }
@@ -279,69 +98,4 @@
       color: @70;
     }
   }
-
-  /** ISSUE LINK HAX **/
-  time {
-    padding-left: 0 !important;
-    color: inherit !important;
-  }
-  h3 {
-    color: @gray-darkest;
-    font-size: 14px;
-    margin: 0 0 5px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    line-height: 1.1;
-
-    em {
-      font-style: normal;
-      font-weight: 400;
-      color: @70;
-      font-size: 90%;
-    }
-  }
-  .event-message,
-  .event-meta {
-    line-height: 1.2;
-    font-size: 12px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-  .error-level,
-  .event-type {
-    padding: 0;
-    border-radius: 2px;
-    margin-right: 5px;
-    display: inline-block;
-    position: relative;
-    top: 3px;
-    .square(9px);
-    text-indent: -9999em;
-    display: inline-block;
-    border-radius: 9px;
-  }
-  .event-meta {
-    font-size: 80%;
-    margin-top: 6px;
-  }
-  .event-annotation {
-    display: inline-block;
-    margin: 0 0 5px 9px;
-    font-size: 13px;
-    line-height: 1;
-    border-left: 1px solid lighten(@trim, 6);
-    padding-left: 9px;
-    height: 13px;
-
-    a {
-      color: lighten(@gray, 12);
-
-      &:hover {
-        color: @gray;
-      }
-    }
-  }
-  /** /ISSUE GROUP HAX **/
 }

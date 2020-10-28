@@ -1,12 +1,13 @@
-import {mount} from 'enzyme';
 import React from 'react';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationRateLimits from 'app/views/settings/organizationRateLimits/organizationRateLimits';
 
 const ENDPOINT = '/organizations/org-slug/';
 
-describe('Organization Rate Limits', function() {
+describe('Organization Rate Limits', function () {
   const organization = {
     ...TestStubs.Organization(),
     quota: {
@@ -19,28 +20,18 @@ describe('Organization Rate Limits', function() {
     <OrganizationRateLimits organization={organization} {...props} />
   );
 
-  beforeEach(function() {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
-  it('renders with initialData', function() {
-    let wrapper = mount(creator(), TestStubs.routerContext());
+  it('renders with initialData', function () {
+    const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
-    expect(
-      wrapper
-        .find('RangeSlider')
-        .first()
-        .prop('value')
-    ).toBe(70000);
-    expect(
-      wrapper
-        .find('RangeSlider')
-        .at(1)
-        .prop('value')
-    ).toBe(75);
+    expect(wrapper.find('RangeSlider').first().prop('value')).toBe(70000);
+    expect(wrapper.find('RangeSlider').at(1).prop('value')).toBe(75);
   });
 
-  it('renders with maxRate and maxRateInterval set', function() {
+  it('renders with maxRate and maxRateInterval set', function () {
     const org = {
       ...organization,
       quota: {
@@ -48,21 +39,24 @@ describe('Organization Rate Limits', function() {
         maxRateInterval: 60,
       },
     };
-    let wrapper = mount(creator({organization: org}), TestStubs.routerContext());
+    const wrapper = mountWithTheme(
+      creator({organization: org}),
+      TestStubs.routerContext()
+    );
 
     expect(wrapper.find('RangeSlider')).toHaveLength(1);
 
-    expect(wrapper.find('Form TextBlock')).toMatchSnapshot();
+    expect(wrapper.find('Form TextBlock')).toSnapshot();
   });
 
-  it('can change Account Rate Limit', function() {
-    let mock = Client.addMockResponse({
+  it('can change Account Rate Limit', function () {
+    const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
       statusCode: 200,
     });
 
-    let wrapper = mount(creator(), TestStubs.routerContext());
+    const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -85,14 +79,14 @@ describe('Organization Rate Limits', function() {
     );
   });
 
-  it('can change Project Rate Limit', function() {
-    let mock = Client.addMockResponse({
+  it('can change Project Rate Limit', function () {
+    const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
       statusCode: 200,
     });
 
-    let wrapper = mount(creator(), TestStubs.routerContext());
+    const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 

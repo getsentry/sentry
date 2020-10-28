@@ -1,0 +1,30 @@
+---
+created: '2020-02-26T19:54:41.436719Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          filename (ignored because frame points to a URL)
+            "foo.py"
+          function*
+            "test"
+          context-line*
+            "hello world"
+--------------------------------------------------------------------------
+system:
+  hash: "64a0e0a34d99dce03a8c5a4c237a4b5a"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename (ignored because frame points to a URL)
+            "foo.py"
+          function*
+            "test"
+          context-line*
+            "hello world"

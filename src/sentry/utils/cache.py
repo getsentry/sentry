@@ -1,10 +1,3 @@
-"""
-sentry.utils.cache
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import functools
@@ -25,6 +18,9 @@ class memoize(object):
     """
 
     def __init__(self, func):
+        if isinstance(func, classmethod) or isinstance(func, staticmethod):
+            func = func.__func__
+
         self.__name__ = func.__name__
         self.__module__ = func.__module__
         self.__doc__ = func.__doc__
@@ -62,7 +58,7 @@ class cached_for_request(memoize):
         if not request:
             return self.func(*args, **kwargs)
 
-        if not hasattr(request, '__func_cache'):
+        if not hasattr(request, "__func_cache"):
             data = request.__func_cache = {}
         else:
             data = request.__func_cache
@@ -76,3 +72,7 @@ class cached_for_request(memoize):
 
     def __get__(self, obj, type=None):
         return functools.partial(self.__call__, obj)
+
+
+def cache_key_for_event(data):
+    return u"e:{1}:{0}".format(data["project"], data["event_id"])

@@ -6,7 +6,7 @@ from sentry.utils.imports import import_string
 
 class PatchContext(object):
     def __init__(self, target, callback):
-        target, attr = target.rsplit('.', 1)
+        target, attr = target.rsplit(".", 1)
         target = import_string(target)
         self.target = target
         self.attr = attr
@@ -31,9 +31,9 @@ class PatchContext(object):
                 return self.callback(self.func, *args, **kwargs)
 
             wrapped.__name__ = func.__name__
-            if hasattr(func, '__doc__'):
+            if hasattr(func, "__doc__"):
                 wrapped.__doc__ = func.__doc__
-            if hasattr(func, '__module__'):
+            if hasattr(func, "__module__"):
                 wrapped.__module__ = func.__module__
 
             setattr(self.target, self.attr, wrapped)

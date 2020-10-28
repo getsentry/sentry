@@ -1,14 +1,36 @@
 import React from 'react';
-import {shallow} from 'enzyme';
 
-import {GroupSidebar} from 'app/components/group/sidebar';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
-describe('GroupSidebar', function() {
+import GroupSidebar from 'app/components/group/sidebar';
+
+describe('GroupSidebar', function () {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
-  let environment = {name: 'production', displayName: 'Production', id: '1'};
+  const {organization, project, routerContext} = initializeOrg();
+  const environment = {name: 'production', displayName: 'Production', id: '1'};
   let wrapper;
+  let tagsMock;
 
-  beforeEach(function() {
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/committers/',
+      body: {committers: []},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/owners/',
+      body: {
+        owners: [],
+        rules: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/groups/1/integrations/',
+      body: [],
+    });
+
     MockApiClient.addMockResponse({
       url: '/issues/1/participants/',
       body: [],
@@ -19,74 +41,98 @@ describe('GroupSidebar', function() {
       body: group,
     });
 
-    wrapper = shallow(
-      <GroupSidebar group={group} event={TestStubs.Event()} environment={environment} />,
-      TestStubs.routerContext()
+    MockApiClient.addMockResponse({
+      url: '/groups/1/external-issues/',
+      body: [],
+    });
+
+    tagsMock = MockApiClient.addMockResponse({
+      url: '/issues/1/tags/',
+      body: TestStubs.Tags(),
+    });
+
+    wrapper = mountWithTheme(
+      <GroupSidebar
+        group={group}
+        project={project}
+        organization={organization}
+        event={TestStubs.Event()}
+        environments={[environment]}
+      />,
+      routerContext
     );
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('renders with tags', function() {
-    it('renders', function() {
-      expect(wrapper).toMatchSnapshot();
-    });
-
-    it('renders tags', function() {
-      expect(wrapper.find('[data-test-id="group-tag"]')).toHaveLength(4);
+  describe('sidebar', function () {
+    it('should make a request to the /tags/ endpoint to get top values', function () {
+      expect(tagsMock).toHaveBeenCalled();
     });
   });
 
-  describe('renders without tags', function() {
-    beforeEach(function() {
+  describe('renders with tags', function () {
+    it('renders', function () {
+      expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
+      expect(wrapper.find('Memo(GroupReleaseStats)')).toHaveLength(1);
+      expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
+      expect(
+        wrapper.find('GroupTagDistributionMeter[data-test-id="group-tag"]')
+      ).toHaveLength(5);
+    });
+  });
+
+  describe('renders without tags', function () {
+    beforeEach(function () {
       group = TestStubs.Group();
 
       MockApiClient.addMockResponse({
         url: '/issues/1/',
         body: group,
       });
-      wrapper = shallow(
+      MockApiClient.addMockResponse({
+        url: '/issues/1/tags/',
+        body: [],
+      });
+
+      wrapper = mountWithTheme(
         <GroupSidebar
+          api={new MockApiClient()}
           group={group}
+          organization={organization}
+          project={project}
           event={TestStubs.Event()}
-          environment={environment}
+          environments={[environment]}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
     });
 
-    it('renders no tags', function() {
+    it('renders no tags', function () {
       expect(wrapper.find('[data-test-id="group-tag"]')).toHaveLength(0);
     });
 
-    it('renders empty text', function() {
+    it('renders empty text', function () {
       expect(wrapper.find('[data-test-id="no-tags"]').text()).toBe(
-        'No tags found in the Production environment'
+        'No tags found in the selected environments'
       );
     });
   });
 
-  describe('subscribing', function() {
-    let issuesApi;
-    beforeEach(function() {
-      issuesApi = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/issues/',
-        method: 'PUT',
-        body: TestStubs.Group({isSubscribed: false}),
-      });
-    });
-
-    it('can subscribe', function() {
-      const btn = wrapper.find('.btn-subscribe');
-
-      btn.simulate('click');
-
-      expect(issuesApi).toHaveBeenCalledWith(
-        expect.anything(),
+  describe('environment toggle', function () {
+    it('re-requests tags with correct environment', function () {
+      const stagingEnv = {name: 'staging', displayName: 'Staging', id: '2'};
+      expect(tagsMock).toHaveBeenCalledTimes(1);
+      wrapper.setProps({environments: [stagingEnv]});
+      expect(tagsMock).toHaveBeenCalledTimes(2);
+      expect(tagsMock).toHaveBeenCalledWith(
+        '/issues/1/tags/',
         expect.objectContaining({
-          data: {isSubscribed: true},
+          query: expect.objectContaining({
+            environment: ['staging'],
+          }),
         })
       );
     });

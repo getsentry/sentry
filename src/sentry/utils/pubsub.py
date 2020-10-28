@@ -2,14 +2,12 @@ from __future__ import absolute_import
 
 import redis
 import logging
-import random
 
-from django.conf import settings
 from threading import Thread
 from six.moves.queue import Queue, Full
 
 
-class QueuedPublisher(object):
+class QueuedPublisherService(object):
     """
     A publisher that queues items locally and publishes them to a
     remote pubsub service on a background thread.
@@ -34,9 +32,9 @@ class QueuedPublisher(object):
                 (channel, key, value) = q.get()
                 try:
                     self.publisher.publish(channel, key=key, value=value)
-                except Exception:
-                    logger = logging.getLogger('sentry.errors')
-                    logger.debug('could not submit event to pubsub')
+                except Exception as e:
+                    logger = logging.getLogger("sentry.errors")
+                    logger.debug("could not submit event to pubsub: %s" % e)
                 finally:
                     q.task_done()
 
@@ -51,12 +49,10 @@ class QueuedPublisher(object):
         if not self._start():
             return
 
-        sample_channel = getattr(settings, 'PUBSUB_SAMPLING', 1.0)
-        if random.random() <= sample_channel:
-            try:
-                self.q.put((channel, key, value), block=False)
-            except Full:
-                return
+        try:
+            self.q.put((channel, key, value), block=False)
+        except Full:
+            return
 
 
 class RedisPublisher(object):
@@ -66,3 +62,18 @@ class RedisPublisher(object):
     def publish(self, channel, value, key=None):
         if self.rds is not None:
             self.rds.publish(channel, value)
+
+
+class KafkaPublisher(object):
+    def __init__(self, connection, asynchronous=True):
+        from confluent_kafka import Producer
+
+        self.producer = Producer(connection or {})
+        self.asynchronous = asynchronous
+
+    def publish(self, channel, value, key=None):
+        self.producer.produce(topic=channel, value=value, key=key)
+        if self.asynchronous:
+            self.producer.poll(0)
+        else:
+            self.producer.flush()

@@ -4,6 +4,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
+import {loadSearchMap} from 'app/actionCreators/formSearch';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import FormSearchStore from 'app/stores/formSearchStore';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
@@ -42,7 +43,7 @@ class FormSource extends React.Component {
     this.createSearch(props.searchMap);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (this.props.searchMap !== nextProps.searchMap) {
       this.createSearch(nextProps.searchMap);
     }
@@ -52,15 +53,15 @@ class FormSource extends React.Component {
     this.setState({
       fuzzy: await createFuzzySearch(searchMap || [], {
         ...this.props.searchOptions,
-        keys: ['field.label', 'field.help'],
+        keys: ['title', 'description'],
       }),
     });
   }
 
   render() {
-    let {searchMap, query, params, children} = this.props;
+    const {searchMap, query, params, children} = this.props;
 
-    let results =
+    const results =
       searchMap && this.state.fuzzy
         ? this.state.fuzzy.search(query).map(({item, ...rest}) => ({
             item: {
@@ -87,6 +88,12 @@ const FormSourceContainer = withRouter(
   createReactClass({
     displayName: 'FormSourceContainer',
     mixins: [Reflux.connect(FormSearchStore, 'searchMap')],
+
+    componentDidMount() {
+      // Loads form fields
+      loadSearchMap();
+    },
+
     render() {
       return <FormSource searchMap={this.state.searchMap} {...this.props} />;
     },

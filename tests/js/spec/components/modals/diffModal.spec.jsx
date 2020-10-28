@@ -1,20 +1,22 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import DiffModal from 'app/components/modals/diffModal';
 
-describe('DiffModal', function() {
-  let sandbox;
+describe('DiffModal', function () {
+  it('renders', function () {
+    const project = TestStubs.ProjectDetails();
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
-
-  it('renders', function() {
-    let wrapper = shallow(<DiffModal Body={({children}) => <div>{children}</div>} />);
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(
+      <DiffModal
+        orgId="123"
+        baseIssueId="123"
+        targetIssueId="234"
+        project={project}
+        Body={({children}) => <div>{children}</div>}
+      />
+    );
+    expect(wrapper).toSnapshot();
   });
 });

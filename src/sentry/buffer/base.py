@@ -1,10 +1,3 @@
-"""
-sentry.buffer.base
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import logging
@@ -20,7 +13,7 @@ from sentry.utils.services import Service
 class BufferMount(type):
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
-        new_cls.logger = logging.getLogger('sentry.buffer.%s' % (new_cls.__name__.lower(), ))
+        new_cls.logger = logging.getLogger("sentry.buffer.%s" % (new_cls.__name__.lower(),))
         return new_cls
 
 
@@ -38,30 +31,52 @@ class Buffer(Service):
     This is useful in situations where a single event might be happening so fast that the queue cant
     keep up with the updates.
     """
-    __all__ = ('incr', 'process', 'process_pending', 'validate')
 
-    def incr(self, model, columns, filters, extra=None):
+    __all__ = ("incr", "process", "process_pending", "validate")
+
+    def incr(self, model, columns, filters, extra=None, signal_only=None):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
+        signal_only - added to indicate that `process` should only call the complete
+        signal handler with the updated model and skip creates/updates in the database. this
+        is useful in cases where we need to do additional processing before writing to the
+        database and opt to do it in a `buffer_incr_complete` receiver.
         """
         process_incr.apply_async(
             kwargs={
-                'model': model,
-                'columns': columns,
-                'filters': filters,
-                'extra': extra,
+                "model": model,
+                "columns": columns,
+                "filters": filters,
+                "extra": extra,
+                "signal_only": signal_only,
             }
         )
 
     def process_pending(self, partition=None):
         return []
 
-    def process(self, model, columns, filters, extra=None):
-        update_kwargs = dict((c, F(c) + v) for c, v in six.iteritems(columns))
-        if extra:
-            update_kwargs.update(extra)
+    def process(self, model, columns, filters, extra=None, signal_only=None):
+        from sentry.models import Group
+        from sentry.event_manager import ScoreClause
 
-        _, created = model.objects.create_or_update(values=update_kwargs, **filters)
+        created = False
+
+        if not signal_only:
+            update_kwargs = dict((c, F(c) + v) for c, v in six.iteritems(columns))
+
+            if extra:
+                update_kwargs.update(extra)
+
+            # HACK(dcramer): this is gross, but we dont have a good hook to compute this property today
+            # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
+            if model is Group and "last_seen" in update_kwargs and "times_seen" in update_kwargs:
+                update_kwargs["score"] = ScoreClause(
+                    group=None,
+                    times_seen=update_kwargs["times_seen"],
+                    last_seen=update_kwargs["last_seen"],
+                )
+
+            _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(
             model=model,

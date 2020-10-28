@@ -1,35 +1,45 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {MultiSelectField} from 'app/components/forms';
 
-describe('MultiSelectField', function() {
-  describe('render()', function() {
-    it('renders without form context', function() {
-      let wrapper = shallow(
+describe('MultiSelectField', function () {
+  describe('render()', function () {
+    it('renders without form context', function () {
+      const wrapper = mountWithTheme(
         <MultiSelectField
-          options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
+          options={[
+            {label: 'a', value: 'a'},
+            {label: 'b', value: 'b'},
+          ]}
           name="fieldName"
         />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
-    it('has the right value from props', function() {
-      let wrapper = shallow(
+    it('has the right value from props', function () {
+      const wrapper = mountWithTheme(
         <MultiSelectField
-          options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
+          options={[
+            {label: 'a', value: 'a'},
+            {label: 'b', value: 'b'},
+          ]}
           name="fieldName"
           value={['a']}
         />
       );
-      expect(wrapper.find('MultiSelectControl').prop('value')).toEqual(['a']);
+      expect(wrapper.find('StyledSelectControl').prop('value')).toEqual(['a']);
     });
 
-    it('renders with form context', function() {
-      let wrapper = shallow(
+    it('renders with form context', function () {
+      const wrapper = mountWithTheme(
         <MultiSelectField
-          options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
+          options={[
+            {label: 'a', value: 'a'},
+            {label: 'b', value: 'b'},
+          ]}
           name="fieldName"
         />,
         {
@@ -44,7 +54,7 @@ describe('MultiSelectField', function() {
         }
       );
 
-      expect(wrapper.find('MultiSelectControl').prop('value')).toEqual(['a', 'b']);
+      expect(wrapper.find('StyledSelectControl').prop('value')).toEqual(['a', 'b']);
     });
   });
 });

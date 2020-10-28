@@ -19,8 +19,8 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
         cutoff date, and then sort those by score, returning the highest scoring
         groups first.
         """
-        minutes = int(request.REQUEST.get('minutes', 15))
-        limit = min(100, int(request.REQUEST.get('limit', 10)))
+        minutes = int(request.GET.get("minutes", 15))
+        limit = min(100, int(request.GET.get("limit", 10)))
 
         project_list = Project.objects.get_for_user(user=request.user, team=team)
 
@@ -29,14 +29,15 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
         cutoff = timedelta(minutes=minutes)
         cutoff_dt = timezone.now() - cutoff
 
+        sort_value = "score"
         group_list = list(
             Group.objects.filter(
                 project__in=project_dict.keys(),
                 status=GroupStatus.UNRESOLVED,
                 active_at__gte=cutoff_dt,
-            ).extra(
-                select={'sort_value': 'score'},
-            ).order_by('-score', '-first_seen')[:limit]
+            )
+            .extra(select={"sort_value": sort_value})
+            .order_by("-{}".format(sort_value), "-first_seen")[:limit]
         )
 
         for group in group_list:
@@ -48,6 +49,6 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
                 request.user,
                 GroupSerializer(
                     environment_func=self._get_environment_func(request, team.organization_id)
-                )
+                ),
             )
         )

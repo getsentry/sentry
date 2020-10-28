@@ -1,68 +1,38 @@
-html {
-  height: 100%;
-}
-
 body {
-  margin: 0;
-  font-family: @font-family-base;
-  font-size: 16px;
-  line-height: 24px;
-  color: @gray-darker;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  padding-left: @sidebar-width;
-  min-height: 100vh;
-
-  // Fake sidebar rendering until actual sidebar is loaded
-
-  background-image: linear-gradient(@header-bg-color, @header-bg-color);
-  background-size: @sidebar-width;
-  background-repeat: repeat-y;
-
-  &.new-settings {
-    overflow-y: scroll;
-    background-image: none;
-    background-color: #fcfcfc;
-    padding: 0;
-
-    .messages-container {
-      margin: 0;
-    }
-    .sentry-error-embed-wrapper {
-      z-index: 1000;
-    }
-  }
-
-  &.org-dashboard {
-    background-color: #fcfcfc;
-  }
-
   &.body-sidebar {
-    padding-left: @sidebar-expanded-width;
-    font-family: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+    @media (min-width: 993px) {
+      padding-left: @sidebar-expanded-width;
+    }
 
     &.collapsed {
       padding-left: @sidebar-collapsed-width;
     }
+  }
 
-    /* This accounts for the old home icon, can be removed when old-#sidebar is */
-    .project-dropdown {
-      .dropdown-menu {
-        left: 0;
-      }
-    }
+  /* Discover has a 100% height based layout with no footer */
+  &.body-discover {
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
 
-    /* This is for organization level views e.g. "Assigned to me" */
-    .organization-home {
-      .container {
-        margin-top: 24px;
-      }
+    footer {
+      display: none;
     }
+  }
+
+  &.scroll-lock {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
   }
 }
 
 #blk_router {
   min-height: 100vh;
+}
+
+#login_as {
+  z-index: 1000000;
 }
 
 /**
@@ -71,9 +41,7 @@ body {
 */
 
 body.narrow {
-  zoom: 1;
   padding: 0;
-
   background: #fff;
 
   &.body-sidebar {
@@ -130,6 +98,7 @@ body.narrow {
 
     .with-padding {
       padding: 20px 30px 0;
+
       .form-actions {
         margin: 20px 0 0;
         padding: 20px 0;
@@ -153,8 +122,135 @@ body.narrow {
 
 body.auth {
   .app > .container {
+    padding-top: 5vh;
+    max-width: 740px;
+  }
+
+  .box {
+    border: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    display: flex;
+    width: 100%;
+  }
+
+  .auth-sidebar {
+    padding-top: 20px;
+    width: 60px;
+    background: #564f64;
+    background-image: linear-gradient(
+      -180deg,
+      rgba(52, 44, 62, 0) 0%,
+      rgba(52, 44, 62, 0.5) 100%
+    );
+    box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.1);
+    border-radius: 4px 0 0 4px;
+    margin-top: -1px;
+    margin-bottom: -1px;
+    text-align: center;
+
+    a {
+      color: #fff;
+      font-size: 22px;
+      line-height: 1.5;
+    }
+  }
+
+  .org-login {
+    flex: 1;
+  }
+
+  .auth-container {
+    padding-left: 40px;
+    padding-right: 40px;
+
+    &.border-bottom {
+      border-bottom: 1px solid @trim;
+    }
+
+    ul,
+    ol,
+    p,
+    blockquote {
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .tab-content .auth-container {
     padding-top: 30px;
-    max-width: 540px;
+    padding-bottom: 40px;
+    display: flex;
+  }
+
+  .auth-form-column {
+    flex: 1;
+  }
+
+  .auth-provider-column {
+    width: 46%;
+    padding-left: 30px;
+    margin-left: 30px;
+    border-left: 1px solid @trim;
+
+    p {
+      margin-bottom: 15px;
+
+      &:first-child {
+        margin-top: 28px;
+      }
+    }
+
+    .btn-default {
+      display: block;
+      text-align: left;
+      padding: 8px 8px;
+
+      .provider-logo {
+        top: 0;
+      }
+    }
+  }
+
+  .auth-footer {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+
+    > .btn {
+      margin-right: 6px;
+    }
+
+    .secondary {
+      flex: 1;
+      text-align: right;
+      color: @gray-light;
+
+      &:hover {
+        color: @gray-dark;
+      }
+    }
+  }
+
+  .auth-toggle {
+    display: flex;
+  }
+
+  .join-request {
+    margin-left: auto;
+    margin-right: 0;
+
+    > a {
+      display: flex;
+      align-items: center;
+
+      > svg {
+        height: 17px;
+        width: 20px;
+        margin-right: 5px;
+      }
+    }
   }
 }
 
@@ -166,7 +262,7 @@ body.auth {
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  flex-grow: 1;
 }
 
 .container {
@@ -177,8 +273,14 @@ body.auth {
   flex: 1;
 }
 
+.content-with-margin {
+  margin-top: 20px;
+}
+
 // Container around content in app.jsx
 .main-container {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   outline: none;
 }
@@ -188,141 +290,6 @@ body.auth {
   flex: 1;
   display: flex;
   align-items: center;
-}
-
-/**
-* Project level subheader
-* ============================================================================
-*/
-
-.sub-header {
-  color: @gray-dark;
-  border-bottom: 1px solid darken(@trim, 5);
-  position: relative;
-  margin: 0 0 20px;
-  line-height: 1;
-  font-size: 16px;
-  min-height: 62px;
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.03);
-
-  .btn {
-    padding: 6px 12px;
-  }
-
-  .container {
-    .clearfix;
-  }
-
-  .org-name {
-    float: left;
-    font-weight: bold;
-    color: @gray-darker;
-
-    a {
-      color: @gray-darker;
-
-      &:hover {
-        color: @gray-darkest;
-      }
-    }
-  }
-
-  .project-header {
-    display: flex;
-    margin-top: 18px;
-
-    &-main {
-      flex-grow: 1;
-    }
-    &-toggle {
-      text-align: right;
-      label {
-        color: @gray-lighter;
-        font-size: 14px;
-        font-weight: normal;
-        display: block;
-        margin-top: 8px;
-        margin-bottom: 8px;
-      }
-    }
-  }
-
-  .project-select-wrapper {
-    display: flex;
-    align-items: center;
-  }
-
-  .project-select-bookmark {
-    border-left: 1px solid @gray-lightest;
-    padding-left: 15px;
-    margin-left: 10px;
-    color: @40;
-    &.active {
-      color: @yellow-orange;
-    }
-  }
-
-  .environment-selector-toggle {
-    color: @gray-darkest;
-    font-weight: 600;
-
-    + .dropdown-menu {
-      z-index: @zindex-sticky-bar + 2;
-      width: 172px;
-    }
-  }
-
-  .logo-logged-in {
-    position: relative;
-    padding-left: 38px;
-    .icon-sentry-logo {
-      position: absolute;
-      left: 0;
-    }
-  }
-
-  h1 {
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  .nav-tabs {
-    position: relative;
-    z-index: 2;
-    margin-bottom: 0;
-
-    li {
-      position: relative;
-      z-index: 2;
-
-      a {
-        padding-bottom: 10px;
-      }
-    }
-  }
-
-  .project-select-wrapper + .nav-tabs,
-  #blk_projectselect + .nav-tabs {
-    margin-top: 12px;
-  }
-
-  .align-right {
-    .nav-tabs {
-      margin-top: 4px; // balance active border-bottom
-
-      > li {
-        margin: 0 0 0 20px;
-        float: none;
-        display: inline-block;
-
-        > a {
-          padding: 18px 0px;
-        }
-      }
-    }
-  }
 }
 
 /**
@@ -344,8 +311,14 @@ footer {
   text-align: center;
   color: @gray;
   border-top: 1px solid @trim;
-  margin-top: 20px;
   padding: 28px 0;
+  margin-top: 20px;
+
+  .container {
+    // Ensure dropdowns inside application views
+    // don't stack under footer content.
+    position: static;
+  }
 
   .pull-right {
     a {
@@ -355,6 +328,7 @@ footer {
 
   a {
     color: @gray;
+
     &:hover {
       color: @gray-dark;
     }
@@ -397,7 +371,7 @@ footer {
 */
 
 .pattern-bg {
-  background: #f2f1f3 url(../images/sentry-pattern.png);
+  background: #f2f1f3 url(../images/pattern/sentry-pattern.png);
   background-size: 340px;
   position: fixed;
   top: 0;
@@ -417,16 +391,19 @@ footer {
   body {
     color: @gray-darkest;
   }
+
   header {
     display: none;
   }
-  .org-sidebar,
+
   .toolbar {
     display: none;
   }
+
   .content {
     padding: 0 !important;
   }
+
   #CModal,
   footer {
     display: none;
@@ -444,22 +421,8 @@ footer {
   }
 }
 
-/**
-* Responsive small screens
-* ============================================================================
-*/
-
-@media (max-width: 767px) {
+@media (max-width: 992px) {
   body {
-    zoom: 0.85;
-    padding-top: 0;
-
-    // Hide fake sidebar on mobile
-    background: none;
-
-    // Account for there being no footer on mobile
-    padding-bottom: 20px;
-
     &.body-sidebar {
       padding-left: 0;
       padding-top: @sidebar-mobile-height;
@@ -470,21 +433,35 @@ footer {
     }
   }
 
-  .app {
-    overflow-x: hidden;
-  }
-
   .messages-container {
     margin-top: 0;
     margin-bottom: 0;
   }
+}
+
+/**
+* Responsive small screens
+* ============================================================================
+*/
+
+@media (max-width: 767px) {
+  body {
+    padding-top: 0;
+
+    // Hide fake sidebar on mobile
+    background: none;
+
+    // Account for there being no footer on mobile
+    padding-bottom: 20px;
+  }
+
+  .app {
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
 
   .container {
     padding: 0 14px;
-  }
-
-  .sub-header .align-right {
-    display: none;
   }
 
   .narrow .app > .container,
@@ -531,9 +508,64 @@ footer {
     }
 
     .app > .container {
-      padding: 62px 10px 0 10px !important;
       .box-content.with-padding {
         padding: 20px 20px 10px;
+      }
+    }
+
+    .box {
+      flex-direction: column;
+    }
+
+    .auth-sidebar {
+      width: 100%;
+      text-align: left;
+      padding: 20px;
+      border-radius: 4px 4px 0 0;
+
+      a {
+        line-height: 1;
+        position: relative;
+        top: 3px;
+      }
+    }
+
+    .auth-container {
+      flex-wrap: wrap;
+      padding-left: 20px;
+      padding-right: 20px;
+
+      > div {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        border: 0;
+
+        &.auth-provider-column {
+          border-top: 1px solid @trim;
+          padding-top: 20px;
+          margin-top: 20px;
+
+          p {
+            margin-top: 0;
+          }
+        }
+      }
+    }
+
+    .join-request {
+      margin-left: auto;
+
+      > a > svg {
+        height: 16px;
+        width: 19px;
+        margin-right: 4px;
+      }
+    }
+
+    .tab-pane {
+      .auth-container {
+        padding: 20px;
       }
     }
   }

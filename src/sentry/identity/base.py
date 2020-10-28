@@ -1,22 +1,8 @@
 from __future__ import absolute_import, print_function
 
 import logging
-from collections import namedtuple
 
 from sentry.pipeline import PipelineProvider
-
-
-class MigratingIdentityId(namedtuple('MigratingIdentityId', ['id', 'legacy_id'])):
-    """
-    MigratingIdentityId may be used in the ``id`` field of an identity
-    dictionary to facilitate migrating user identites from one identifying id
-    to another.
-    """
-    __slots__ = ()
-
-    def __unicode__(self):
-        # Default to id when coercing for query lookup
-        return self.id
 
 
 class Provider(PipelineProvider):
@@ -32,14 +18,7 @@ class Provider(PipelineProvider):
 
     def __init__(self, **config):
         self.config = config
-        self.logger = logging.getLogger('sentry.identity.%s'.format(self.key))
-
-    def get_pipeline(self):
-        """
-        Return a list of AuthView instances representing the authentication
-        pipeline for this provider.
-        """
-        raise NotImplementedError
+        self.logger = logging.getLogger(u"sentry.identity.%s".format(self.key))
 
     def build_identity(self, state):
         """
@@ -51,7 +30,7 @@ class Provider(PipelineProvider):
         >>>     "id":     "foo@example.com",
         >>>     "email":  "foo@example.com",
         >>>     "name":   "Foo Bar",
-        >>>     "scopes": ['emaill', ...],
+        >>>     "scopes": ['email', ...],
         >>>     "data":   { ... },
         >>> }
 
@@ -77,7 +56,7 @@ class Provider(PipelineProvider):
         """
         return new_data
 
-    def refresh_identity(self, auth_identity):
+    def refresh_identity(self, auth_identity, *args, **kwargs):
         """
         Updates the AuthIdentity with any changes from upstream. The primary
         example of a change would be signalling this identity is no longer

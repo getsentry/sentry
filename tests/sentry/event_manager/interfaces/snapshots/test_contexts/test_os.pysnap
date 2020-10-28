@@ -1,0 +1,19 @@
+---
+created: '2019-03-14T17:12:34.895867Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_contexts.py
+---
+errors: null
+tags:
+- - os
+  - Windows 95
+- - os.name
+  - Windows
+- - os.rooted
+  - 'yes'
+to_json:
+  os:
+    name: Windows
+    rooted: true
+    type: os
+    version: '95'

@@ -1,0 +1,131 @@
+---
+created: '2019-05-22T14:45:11.531485Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_exception.py
+---
+values:
+- stacktrace:
+    frames:
+    - context_line: b
+      filename: exc 0 frame 0
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - context_line: b
+      filename: exc 0 frame 1
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - context_line: b
+      filename: exc 0 frame 2
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - context_line: b
+      filename: exc 0 frame 3
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - context_line: b
+      filename: exc 0 frame 4
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+  value: exc 0
+- stacktrace:
+    frames:
+    - context_line: b
+      filename: exc 1 frame 0
+    - context_line: b
+      filename: exc 1 frame 1
+    - context_line: b
+      filename: exc 1 frame 2
+    - context_line: b
+      filename: exc 1 frame 3
+    - context_line: b
+      filename: exc 1 frame 4
+  value: exc 1
+- stacktrace:
+    frames:
+    - context_line: b
+      filename: exc 2 frame 0
+    - context_line: b
+      filename: exc 2 frame 1
+    - context_line: b
+      filename: exc 2 frame 2
+    - context_line: b
+      filename: exc 2 frame 3
+    - context_line: b
+      filename: exc 2 frame 4
+  value: exc 2
+- stacktrace:
+    frames:
+    - context_line: b
+      filename: exc 3 frame 0
+    - context_line: b
+      filename: exc 3 frame 1
+    - context_line: b
+      filename: exc 3 frame 2
+    - context_line: b
+      filename: exc 3 frame 3
+    - context_line: b
+      filename: exc 3 frame 4
+  value: exc 3
+- stacktrace:
+    frames:
+    - context_line: b
+      filename: exc 4 frame 0
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - context_line: b
+      filename: exc 4 frame 1
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - context_line: b
+      filename: exc 4 frame 2
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - context_line: b
+      filename: exc 4 frame 3
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - context_line: b
+      filename: exc 4 frame 4
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+  value: exc 4

@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
@@ -7,16 +7,17 @@ const Crumb = styled('div')`
   align-items: center;
   position: relative;
   font-size: 18px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   padding-right: ${space(1)};
-  padding-bottom: ${space(0.5)};
   cursor: pointer;
+  white-space: nowrap;
+
   > span {
     transition: 0.1s all ease;
   }
 
   &:hover {
-    color: ${p => p.theme.gray5};
+    color: ${p => p.theme.gray800};
   }
 `;
 

@@ -3,7 +3,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
 
 import AuditLogList from './auditLogList';
 
@@ -15,6 +17,7 @@ const EVENT_TYPES = [
   'member.edit',
   'member.join-team',
   'member.leave-team',
+  'member.pending',
   'team.create',
   'team.edit',
   'team.remove',
@@ -23,9 +26,12 @@ const EVENT_TYPES = [
   'project.remove',
   'project.set-public',
   'project.set-private',
+  'project.request-transfer',
+  'project.accept-transfer',
   'org.create',
   'org.edit',
   'org.remove',
+  'org.restore',
   'tagkey.remove',
   'projectkey.create',
   'projectkey.edit',
@@ -39,6 +45,21 @@ const EVENT_TYPES = [
   'api-key.create',
   'api-key.edit',
   'api-key.remove',
+  'rule.create',
+  'rule.edit',
+  'rule.remove',
+  'servicehook.create',
+  'servicehook.edit',
+  'servicehook.remove',
+  'servicehook.enable',
+  'servicehook.disable',
+  'integration.add',
+  'integration.edit',
+  'integration.remove',
+  'ondemand.edit',
+  'trial.started',
+  'plan.changed',
+  'plan.cancelled',
 ].sort();
 
 class OrganizationAuditLog extends AsyncView {
@@ -63,8 +84,7 @@ class OrganizationAuditLog extends AsyncView {
   }
 
   getTitle() {
-    let org = this.context.organization;
-    return `${org.name} Audit Log`;
+    return routeTitleGen(t('Audit Log'), this.context.organization.slug, false);
   }
 
   handleEventSelect = value => {
@@ -80,7 +100,7 @@ class OrganizationAuditLog extends AsyncView {
   };
 
   renderBody() {
-    let currentEventType = this.props.location.query.event;
+    const currentEventType = this.props.location.query.event;
 
     return (
       <AuditLogList

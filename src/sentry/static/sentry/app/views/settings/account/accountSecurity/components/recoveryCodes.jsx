@@ -1,26 +1,21 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
 
+import {
+  Panel,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+  PanelAlert,
+} from 'app/components/panels';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
+import Clipboard from 'app/components/clipboard';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import InlineSvg from 'app/components/inlineSvg';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-
-const Code = styled(props => <PanelItem p={2} {...props} />)`
-  font-family: ${p => p.theme.text.familyMono};
-`;
-
-const PanelWarning = styled(props => <Flex p={2} {...props} />)`
-  ${p => css`
-    background-color: ${p.theme.alert.warning.backgroundLight};
-    border-bottom: 1px solid ${p.theme.borderLight};
-    color: ${p.theme.alert.warning.textDark};
-  `};
-`;
+import {IconCopy, IconDownload, IconPrint} from 'app/icons';
+import space from 'app/styles/space';
 
 class RecoveryCodes extends React.Component {
   static propTypes = {
@@ -29,16 +24,44 @@ class RecoveryCodes extends React.Component {
     onRegenerateBackupCodes: PropTypes.func.isRequired,
   };
 
-  render() {
-    let {isEnrolled, codes} = this.props;
+  printCodes = () => {
+    const iframe = window.frames.printable;
+    iframe.document.write(this.props.codes.join('<br>'));
+    iframe.print();
+    iframe.document.close();
+  };
 
-    if (!isEnrolled || !codes) return null;
+  render() {
+    const {className, isEnrolled, codes} = this.props;
+
+    if (!isEnrolled || !codes) {
+      return null;
+    }
+
+    const formattedCodes = codes.join(' \n');
 
     return (
-      <Panel css={{marginTop: 30}}>
-        <PanelHeader>
-          <Flex align="center">
-            <Box flex="1">{t('Unused Codes')}</Box>
+      <Panel className={className}>
+        <PanelHeader hasButtons>
+          {t('Unused Codes')}
+
+          <Actions>
+            <Clipboard hideUnsupported value={formattedCodes}>
+              <Button size="small" label={t('copy')}>
+                <IconCopy />
+              </Button>
+            </Clipboard>
+            <Button size="small" onClick={this.printCodes} label={t('print')}>
+              <IconPrint />
+            </Button>
+            <Button
+              size="small"
+              download="sentry-recovery-codes.txt"
+              href={`data:text/plain;charset=utf-8,${formattedCodes}`}
+              label={t('download')}
+            >
+              <IconDownload />
+            </Button>
             <Confirm
               onConfirm={this.props.onRegenerateBackupCodes}
               message={t(
@@ -49,24 +72,36 @@ class RecoveryCodes extends React.Component {
                 {t('Regenerate Codes')}
               </Button>
             </Confirm>
-          </Flex>
+          </Actions>
         </PanelHeader>
         <PanelBody>
-          <PanelWarning>
-            <InlineSvg css={{fontSize: '2em'}} src="icon-warning-sm" />
-            <Flex align="center" ml={2} flex="1">
-              {t(`Make sure to keep a copy of these codes to recover your account if you lose
-              your authenticator.`)}
-            </Flex>
-          </PanelWarning>
-          {!!codes.length && codes.map(code => <Code key={code}>{code}</Code>)}
+          <PanelAlert type="warning">
+            {t(
+              'Make sure to save a copy of your recovery codes and store them in a safe place.'
+            )}
+          </PanelAlert>
+          <div>{!!codes.length && codes.map(code => <Code key={code}>{code}</Code>)}</div>
           {!codes.length && (
             <EmptyMessage>{t('You have no more recovery codes to use')}</EmptyMessage>
           )}
         </PanelBody>
+        <iframe name="printable" css={{display: 'none'}} />
       </Panel>
     );
   }
 }
 
-export default RecoveryCodes;
+export default styled(RecoveryCodes)`
+  margin-top: ${space(4)};
+`;
+
+const Actions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+`;
+
+const Code = styled(PanelItem)`
+  font-family: ${p => p.theme.text.familyMono};
+  padding: ${space(2)};
+`;

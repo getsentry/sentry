@@ -1,20 +1,29 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+} from 'app/components/panels';
 import {addMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconFlag} from 'app/icons';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
 
-const Important = styled.div`
+const Important = styled('div')`
   font-weight: bold;
   font-size: 1.2em;
 `;
@@ -53,20 +62,21 @@ class AccountClose extends AsyncView {
   }
 
   // Returns an array of single owners
-  getSingleOwners = () => {
-    return this.state.organizations
+  getSingleOwners = () =>
+    this.state.organizations
       .filter(({singleOwner}) => singleOwner)
       .map(({organization}) => organization.slug);
-  };
 
   handleChange = ({slug}, isSingle, event) => {
-    let checked = event.target.checked;
+    const checked = event.target.checked;
 
     // Can't unselect an org where you are the single owner
-    if (isSingle) return;
+    if (isSingle) {
+      return;
+    }
 
     this.setState(state => {
-      let set = state.orgsToRemove || new Set(this.getSingleOwners());
+      const set = state.orgsToRemove || new Set(this.getSingleOwners());
       if (checked) {
         set.add(slug);
       } else {
@@ -80,8 +90,9 @@ class AccountClose extends AsyncView {
   };
 
   handleRemoveAccount = () => {
-    let {orgsToRemove} = this.state;
-    let orgs = orgsToRemove === null ? this.getSingleOwners() : Array.from(orgsToRemove);
+    const {orgsToRemove} = this.state;
+    const orgs =
+      orgsToRemove === null ? this.getSingleOwners() : Array.from(orgsToRemove);
 
     addMessage('Closing account...');
 
@@ -106,7 +117,7 @@ class AccountClose extends AsyncView {
   };
 
   renderBody() {
-    let {organizations, orgsToRemove} = this.state;
+    const {organizations, orgsToRemove} = this.state;
 
     return (
       <div>
@@ -116,22 +127,28 @@ class AccountClose extends AsyncView {
           {t('This will permanently remove all associated data for your user')}.
         </TextBlock>
 
-        <TextBlock>
+        <Alert type="error" icon={<IconFlag size="md" />}>
           <Important>
             {t('Closing your account is permanent and cannot be undone')}!
           </Important>
-        </TextBlock>
+        </Alert>
 
-        {!!organizations.length && (
-          <TextBlock>
-            {t('If you continue, the following organizations will be removed')}:
-          </TextBlock>
-        )}
+        <Panel>
+          <PanelHeader>{t('Remove the following organizations')}</PanelHeader>
+          <PanelBody>
+            <PanelAlert type="info">
+              {t(
+                'Ownership will remain with other organization owners if an organization is not deleted.'
+              )}
+              <br />
+              {tct(
+                "Boxes which can't be unchecked mean that you are the only organization owner and the organization [strong:will be deleted].",
+                {strong: <strong />}
+              )}
+            </PanelAlert>
 
-        <ul>
-          {organizations.map(({organization, singleOwner}) => {
-            return (
-              <li key={organization.slug}>
+            {organizations.map(({organization, singleOwner}) => (
+              <PanelItem key={organization.slug}>
                 <label>
                   <input
                     style={{marginRight: 6}}
@@ -146,18 +163,12 @@ class AccountClose extends AsyncView {
                     }
                     disabled={singleOwner}
                   />
-                  {organization.name} ({organization.slug})
+                  {organization.slug}
                 </label>
-              </li>
-            );
-          })}
-        </ul>
-
-        <TextBlock>
-          Ownership will remain with other members if an organization is not deleted.<br />
-          Disabled boxes mean that there is no other owner within the organization so no
-          one else can take ownership.
-        </TextBlock>
+              </PanelItem>
+            ))}
+          </PanelBody>
+        </Panel>
 
         <Confirm
           priority="danger"

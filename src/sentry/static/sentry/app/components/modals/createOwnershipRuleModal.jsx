@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {css} from '@emotion/core';
 
 import {t} from 'app/locale';
 import ProjectOwnershipModal from 'app/views/settings/project/projectOwnership/modal';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
+import theme from 'app/utils/theme';
 
 class CreateOwnershipRuleModal extends React.Component {
   static propTypes = {
@@ -15,7 +17,7 @@ class CreateOwnershipRuleModal extends React.Component {
     project: SentryTypes.Project,
   };
 
-  handleSubmit = data => {
+  handleSubmit = () => {
     this.handleSuccess();
   };
 
@@ -27,7 +29,7 @@ class CreateOwnershipRuleModal extends React.Component {
   };
 
   render() {
-    let {Body, Header, closeModal, ...props} = this.props;
+    const {Body, Header, closeModal, ...props} = this.props;
 
     return (
       <React.Fragment>
@@ -41,5 +43,17 @@ class CreateOwnershipRuleModal extends React.Component {
     );
   }
 }
+
+export const modalCss = css`
+  @media (min-width: ${theme.breakpoints[0]}) {
+    .modal-dialog {
+      width: 80%;
+      margin-left: -40%;
+    }
+  }
+  .modal-content {
+    overflow: initial;
+  }
+`;
 
 export default CreateOwnershipRuleModal;

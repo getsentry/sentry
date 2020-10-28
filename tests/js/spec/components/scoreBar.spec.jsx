@@ -1,45 +1,43 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ScoreBar from 'app/components/scoreBar';
 
-describe('ScoreBar', function() {
-  let sandbox;
+describe('ScoreBar', function () {
+  beforeEach(function () {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
+  afterEach(function () {});
+
+  it('renders', function () {
+    const wrapper = mountWithTheme(<ScoreBar size={60} thickness={2} score={3} />);
+    expect(wrapper).toSnapshot();
   });
 
-  afterEach(function() {
-    sandbox.restore();
+  it('renders vertically', function () {
+    const wrapper = mountWithTheme(
+      <ScoreBar size={60} thickness={2} vertical score={2} />
+    );
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders', function() {
-    let wrapper = shallow(<ScoreBar size={60} thickness={2} score={3} />);
-    expect(wrapper).toMatchSnapshot();
+  it('renders with score = 0', function () {
+    const wrapper = mountWithTheme(<ScoreBar size={60} thickness={2} score={0} />);
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders vertically', function() {
-    let wrapper = shallow(<ScoreBar size={60} thickness={2} vertical score={2} />);
-    expect(wrapper).toMatchSnapshot();
+  it('renders with score > max score', function () {
+    const wrapper = mountWithTheme(<ScoreBar size={60} thickness={2} score={10} />);
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders with score = 0', function() {
-    let wrapper = shallow(<ScoreBar size={60} thickness={2} score={0} />);
-    expect(wrapper).toMatchSnapshot();
+  it('renders with < 0 score', function () {
+    const wrapper = mountWithTheme(<ScoreBar size={60} thickness={2} score={-2} />);
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders with score > max score', function() {
-    let wrapper = shallow(<ScoreBar size={60} thickness={2} score={10} />);
-    expect(wrapper).toMatchSnapshot();
-  });
-
-  it('renders with < 0 score', function() {
-    let wrapper = shallow(<ScoreBar size={60} thickness={2} score={-2} />);
-    expect(wrapper).toMatchSnapshot();
-  });
-
-  it('has custom palette', function() {
-    let wrapper = shallow(
+  it('has custom palette', function () {
+    const wrapper = mountWithTheme(
       <ScoreBar
         vertical
         size={60}
@@ -48,6 +46,6 @@ describe('ScoreBar', function() {
         palette={['white', 'red', 'red', 'pink', 'pink', 'purple', 'purple', 'black']}
       />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

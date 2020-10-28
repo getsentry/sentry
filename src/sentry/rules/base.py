@@ -1,10 +1,4 @@
 """
-sentry.rules.base
-~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-
 Rules apply either before an event gets stored, or immediately after.
 
 Basic actions:
@@ -32,9 +26,7 @@ by the rule's logic. Each rule condition may be associated with a form.
 
 - [ACTION:I want to get notified when] [RULE:an event is first seen]
 - [ACTION:I want to group events when] [RULE:an event matches [FORM]]
-
 """
-
 from __future__ import absolute_import
 
 import logging
@@ -45,13 +37,13 @@ from collections import namedtuple
 # Encapsulates a reference to the callback, including arguments. The `key`
 # attribute may be specifically used to key the callbacks when they are
 # collated during rule processing.
-CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs', 'key'])
+CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 
 class RuleDescriptor(type):
     def __new__(cls, *args, **kwargs):
         new_cls = super(RuleDescriptor, cls).__new__(cls, *args, **kwargs)
-        new_cls.id = '%s.%s' % (new_cls.__module__, new_cls.__name__)
+        new_cls.id = "%s.%s" % (new_cls.__module__, new_cls.__name__)
         return new_cls
 
 
@@ -60,7 +52,7 @@ class RuleBase(object):
     label = None
     form_cls = None
 
-    logger = logging.getLogger('sentry.rules')
+    logger = logging.getLogger("sentry.rules")
 
     def __init__(self, project, data=None, rule=None):
         self.project = project
@@ -93,15 +85,12 @@ class RuleBase(object):
         return form.is_valid()
 
     def future(self, callback, key=None, **kwargs):
-        return CallbackFuture(
-            callback=callback,
-            key=key,
-            kwargs=kwargs,
-        )
+        return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
 
 
 class EventState(object):
-    def __init__(self, is_new, is_regression, is_new_group_environment):
+    def __init__(self, is_new, is_regression, is_new_group_environment, has_reappeared):
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment
+        self.has_reappeared = has_reappeared
