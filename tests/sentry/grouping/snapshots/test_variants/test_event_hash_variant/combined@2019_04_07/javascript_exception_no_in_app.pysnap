@@ -1,0 +1,194 @@
+---
+created: '2020-02-26T19:54:24.618377Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "dispatchInteractiveEvent"
+            lineno (function takes precedence)
+              4913
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "interactiveUpdates"
+            lineno (function takes precedence)
+              2208
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "interactiveUpdates$1"
+            lineno (function takes precedence)
+              17557
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "performSyncWork"
+            lineno (function takes precedence)
+              17266
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "performWork"
+            lineno (function takes precedence)
+              17294
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "performWorkOnRoot"
+            lineno (function takes precedence)
+              17386
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "renderRoot"
+            lineno (function takes precedence)
+              16547
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "replayUnitOfWork"
+            lineno (function takes precedence)
+              15744
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "invokeGuardedCallback"
+            lineno (function takes precedence)
+              248
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "Object.invokeGuardedCallbackDev"
+            lineno (function takes precedence)
+              195
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/@sentry/browser/dist/index.js"
+            function*
+              "HTMLUnknownElement.sentryWrapped"
+            lineno (function takes precedence)
+              3197
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "HTMLUnknownElement.callCallback"
+            lineno (function takes precedence)
+              145
+        type*
+          "ReferenceError"
+        value (stacktrace and type take precedence)
+          "varant is not defined"
+--------------------------------------------------------------------------
+system:
+  hash: "60443ca22b22a43806f4358109278791"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "dispatchInteractiveEvent"
+            lineno (function takes precedence)
+              4913
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "interactiveUpdates"
+            lineno (function takes precedence)
+              2208
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "interactiveUpdates$1"
+            lineno (function takes precedence)
+              17557
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "performSyncWork"
+            lineno (function takes precedence)
+              17266
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "performWork"
+            lineno (function takes precedence)
+              17294
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "performWorkOnRoot"
+            lineno (function takes precedence)
+              17386
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "renderRoot"
+            lineno (function takes precedence)
+              16547
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "replayUnitOfWork"
+            lineno (function takes precedence)
+              15744
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "invokeGuardedCallback"
+            lineno (function takes precedence)
+              248
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "Object.invokeGuardedCallbackDev"
+            lineno (function takes precedence)
+              195
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/@sentry/browser/dist/index.js"
+            function*
+              "HTMLUnknownElement.sentryWrapped"
+            lineno (function takes precedence)
+              3197
+          frame*
+            filename*
+              "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+            function*
+              "HTMLUnknownElement.callCallback"
+            lineno (function takes precedence)
+              145
+        type*
+          "ReferenceError"
+        value (stacktrace and type take precedence)
+          "varant is not defined"

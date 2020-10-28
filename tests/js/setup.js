@@ -1,40 +1,38 @@
 /* global __dirname */
-import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
 import Adapter from 'enzyme-adapter-react-16';
-import Enzyme from 'enzyme';
+import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
+import fromEntries from 'object.fromentries';
 
 import ConfigStore from 'app/stores/configStore';
-import theme from 'app/utils/theme';
 
-import {loadFixtures} from './helpers/loadFixtures';
+import {loadFixtures} from './sentry-test/loadFixtures';
 
-export * from './helpers/select';
+export * from './sentry-test/select';
+
+// We need this polyfill for testing only because
+// typescript handles it for main application
+fromEntries.shim();
 
 /**
  * Enzyme configuration
  */
 Enzyme.configure({adapter: new Adapter()});
-Enzyme.configure({disableLifecycleMethods: true});
 
 /**
- * Mock (current) date to alway be below
+ * Mock (current) date to always be National Pasta Day
+ * 2017-10-17T02:41:20.000Z
  */
-const constantDate = new Date(1508208080000); //National Pasta Day
+const constantDate = new Date(1508208080000);
 MockDate.set(constantDate);
-
-/**
- * emotion setup for theme provider in context
- */
-const broadcast = createBroadcast(theme);
 
 /**
  * Load all files in `tests/js/fixtures/*` as a module.
  * These will then be added to the `TestStubs` global below
  */
-const fixturesPath = `${__dirname}/fixtures`;
+const fixturesPath = `${__dirname}/sentry-test/fixtures`;
 const fixtures = loadFixtures(fixturesPath);
 
 /**
@@ -54,9 +52,9 @@ jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');
-jest.mock('scroll-to-element', () => {});
+jest.mock('scroll-to-element', () => jest.fn());
 jest.mock('react-router', () => {
-  const ReactRouter = require.requireActual('react-router');
+  const ReactRouter = jest.requireActual('react-router');
   return {
     IndexRedirect: ReactRouter.IndexRedirect,
     IndexRoute: ReactRouter.IndexRoute,
@@ -65,6 +63,7 @@ jest.mock('react-router', () => {
     Route: ReactRouter.Route,
     withRouter: ReactRouter.withRouter,
     browserHistory: {
+      goBack: jest.fn(),
       push: jest.fn(),
       replace: jest.fn(),
       listen: jest.fn(() => {}),
@@ -77,12 +76,10 @@ jest.mock('react-lazyload', () => {
 });
 
 jest.mock('react-virtualized', () => {
-  const ActualReactVirtualized = require.requireActual('react-virtualized');
+  const ActualReactVirtualized = jest.requireActual('react-virtualized');
   return {
     ...ActualReactVirtualized,
-    AutoSizer: ({children}) => {
-      return children({width: 100, height: 100});
-    },
+    AutoSizer: ({children}) => children({width: 100, height: 100}),
   };
 });
 
@@ -100,19 +97,28 @@ jest.mock('echarts-for-react/lib/core', () => {
   };
 });
 
-jest.mock('@sentry/browser', () => {
-  const SentryBrowser = require.requireActual('@sentry/browser');
+jest.mock('@sentry/react', () => {
+  const SentryReact = jest.requireActual('@sentry/react');
   return {
     init: jest.fn(),
     configureScope: jest.fn(),
+    setTag: jest.fn(),
+    setTags: jest.fn(),
+    setExtra: jest.fn(),
+    setExtras: jest.fn(),
     captureBreadcrumb: jest.fn(),
     addBreadcrumb: jest.fn(),
     captureMessage: jest.fn(),
     captureException: jest.fn(),
     showReportDialog: jest.fn(),
+    startSpan: jest.fn(),
+    finishSpan: jest.fn(),
     lastEventId: jest.fn(),
-    getCurrentHub: jest.spyOn(SentryBrowser, 'getCurrentHub'),
-    withScope: jest.spyOn(SentryBrowser, 'withScope'),
+    getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
+    withScope: jest.spyOn(SentryReact, 'withScope'),
+    Severity: SentryReact.Severity,
+    withProfiler: SentryReact.withProfiler,
+    startTransaction: () => ({finish: jest.fn(), setTag: jest.fn()}),
   };
 });
 
@@ -131,21 +137,21 @@ jest.mock('popper.js', () => {
   };
 });
 
-// We generally use actual jQuery, and jest mocks takes precedence over node_modules
+// We generally use actual jQuery, and jest mocks takes precedence over node_modules.
 jest.unmock('jquery');
 
 /**
  * Test Globals
  */
 
-// This is so we can use async/await in tests instead of wrapping with `setTimeout`
+// This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));
 
 window.$ = window.jQuery = jQuery;
 window.scrollTo = jest.fn();
 
-// this is very commonly used, so expose it globally
-window.MockApiClient = require.requireMock('app/api').Client;
+// This is very commonly used, so expose it globally.
+window.MockApiClient = jest.requireMock('app/api').Client;
 
 window.TestStubs = {
   // react-router's 'router' context
@@ -187,10 +193,6 @@ window.TestStubs = {
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
-      [channel]: {
-        subscribe: broadcast.subscribe,
-        unsubscribe: broadcast.unsubscribe,
-      },
       location: TestStubs.location(),
       router: TestStubs.router(),
       organization: fixtures.Organization(),
@@ -198,7 +200,6 @@ window.TestStubs = {
       ...context,
     },
     childContextTypes: {
-      [channel]: PropTypes.object,
       router: PropTypes.object,
       location: PropTypes.object,
       organization: PropTypes.object,
@@ -207,8 +208,6 @@ window.TestStubs = {
     },
   }),
 
-  AllAuthenticators: () => {
-    return Object.values(fixtures.Authenticators()).map(x => x());
-  },
+  AllAuthenticators: () => Object.values(fixtures.Authenticators()).map(x => x()),
   ...fixtures,
 };

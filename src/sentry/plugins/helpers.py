@@ -1,26 +1,19 @@
-"""
-sentry.plugins.helpers
-~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 from sentry import options
 from sentry.models import ProjectOption, UserOption
 
-__all__ = ('set_option', 'get_option', 'unset_option')
+__all__ = ("set_option", "get_option", "unset_option")
 
 
 def reset_options(prefix, project=None, user=None):
     if user:
         UserOption.objects.filter(
-            key__startswith='%s:' % (prefix, ), project=project, user=user
+            key__startswith="%s:" % (prefix,), project=project, user=user
         ).delete()
         UserOption.objects.clear_cache()
     elif project:
-        ProjectOption.objects.filter(key__startswith='%s:' % (prefix, ), project=project).delete()
+        ProjectOption.objects.filter(key__startswith="%s:" % (prefix,), project=project).delete()
         ProjectOption.objects.clear_local_cache()
     else:
         raise NotImplementedError

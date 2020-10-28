@@ -16,13 +16,13 @@ class OrganizationActivityTest(APITestCase):
             project=group.project,
             type=Activity.NOTE,
             user=self.user,
-            data={'text': 'hello world'},
+            data={"text": "hello world"},
         )
 
         self.login_as(user=self.user)
 
-        url = u'/api/0/organizations/{}/activity/'.format(org.slug)
-        response = self.client.get(url, format='json')
+        url = u"/api/0/organizations/{}/activity/".format(org.slug)
+        response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(activity.id)
+        assert response.data[0]["id"] == six.text_type(activity.id)

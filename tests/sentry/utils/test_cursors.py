@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import math
 
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 
 from sentry.utils.cursors import build_cursor, Cursor
 
@@ -16,19 +16,16 @@ def build_mock(**attrs):
 
 
 def test_build_cursor():
-    event1 = build_mock(id=1.1, message='one')
-    event2 = build_mock(id=1.1, message='two')
-    event3 = build_mock(id=2.1, message='three')
+    event1 = build_mock(id=1.1, message="one")
+    event2 = build_mock(id=1.1, message="two")
+    event3 = build_mock(id=2.1, message="three")
 
     results = [event1, event2, event3]
 
     def item_key(key, for_prev=False):
-        return math.floor(key.id)
+        return int(math.floor(key.id))
 
-    cursor_kwargs = {
-        'key': item_key,
-        'limit': 1,
-    }
+    cursor_kwargs = {"key": item_key, "limit": 1}
 
     cursor = build_cursor(results, **cursor_kwargs)
     assert isinstance(cursor.next, Cursor)

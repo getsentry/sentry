@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from django.core import mail
 
@@ -14,24 +14,16 @@ class DeleteRepositoryTest(TestCase):
     def test_simple(self):
         org = self.create_organization()
         repo = Repository.objects.create(
-            organization_id=org.id,
-            provider='dummy',
-            name='example/example',
+            organization_id=org.id, provider="dummy", name="example/example"
         )
         repo2 = Repository.objects.create(
-            organization_id=org.id,
-            provider='dummy',
-            name='example/example2',
+            organization_id=org.id, provider="dummy", name="example/example2"
         )
         commit = Commit.objects.create(
-            repository_id=repo.id,
-            organization_id=org.id,
-            key='1234abcd',
+            repository_id=repo.id, organization_id=org.id, key="1234abcd"
         )
         commit2 = Commit.objects.create(
-            repository_id=repo2.id,
-            organization_id=org.id,
-            key='1234abcd',
+            repository_id=repo2.id, organization_id=org.id, key="1234abcd"
         )
 
         deletion = ScheduledDeletion.schedule(repo, days=0)
@@ -44,15 +36,13 @@ class DeleteRepositoryTest(TestCase):
         assert not Commit.objects.filter(id=commit.id).exists()
         assert Commit.objects.filter(id=commit2.id).exists()
 
-    @patch('sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository')
+    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
     def test_delete_fail_email(self, mock_delete_repo):
-        mock_delete_repo.side_effect = PluginError('foo')
+        mock_delete_repo.side_effect = PluginError("foo")
 
         org = self.create_organization()
         repo = Repository.objects.create(
-            organization_id=org.id,
-            provider='dummy',
-            name='example/example',
+            organization_id=org.id, provider="dummy", name="example/example"
         )
 
         deletion = ScheduledDeletion.schedule(repo, actor=self.user, days=0)
@@ -62,20 +52,18 @@ class DeleteRepositoryTest(TestCase):
             run_deletion(deletion.id)
 
         msg = mail.outbox[-1]
-        assert msg.subject == 'Unable to Delete Repository Webhooks'
+        assert msg.subject == "Unable to Delete Repository Webhooks"
         assert msg.to == [self.user.email]
-        assert 'foo' in msg.body
+        assert "foo" in msg.body
         assert not Repository.objects.filter(id=repo.id).exists()
 
-    @patch('sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository')
+    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
     def test_delete_fail_email_random(self, mock_delete_repo):
-        mock_delete_repo.side_effect = Exception('secrets')
+        mock_delete_repo.side_effect = Exception("secrets")
 
         org = self.create_organization()
         repo = Repository.objects.create(
-            organization_id=org.id,
-            provider='dummy',
-            name='example/example',
+            organization_id=org.id, provider="dummy", name="example/example"
         )
 
         deletion = ScheduledDeletion.schedule(repo, actor=self.user, days=0)
@@ -85,7 +73,7 @@ class DeleteRepositoryTest(TestCase):
             run_deletion(deletion.id)
 
         msg = mail.outbox[-1]
-        assert msg.subject == 'Unable to Delete Repository Webhooks'
+        assert msg.subject == "Unable to Delete Repository Webhooks"
         assert msg.to == [self.user.email]
-        assert 'secrets' not in msg.body
+        assert "secrets" not in msg.body
         assert not Repository.objects.filter(id=repo.id).exists()

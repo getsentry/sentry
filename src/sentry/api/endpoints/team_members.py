@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationMember
+from sentry.models import InviteStatus, OrganizationMember
 
 
 class TeamMembersEndpoint(TeamEndpoint):
@@ -13,8 +13,9 @@ class TeamMembersEndpoint(TeamEndpoint):
         queryset = OrganizationMember.objects.filter(
             Q(user__is_active=True) | Q(user__isnull=True),
             organization=team.organization,
+            invite_status=InviteStatus.APPROVED.value,
             teams=team,
-        ).select_related('user')
+        ).select_related("user")
 
         member_list = sorted(
             queryset, key=lambda x: x.user.get_display_name() if x.user_id else x.email

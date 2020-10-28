@@ -1,5 +1,4 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {text, select} from '@storybook/addon-knobs';
 
@@ -12,26 +11,40 @@ const positionOptions = {
   right: 'right',
 };
 
-storiesOf('UI|Hovercard', module).add(
-  'Hovercard',
-  withInfo(
-    'Good luck if your container element is near the top and/or left side of the screen'
-  )(() => (
-    <div
-      style={{
-        height: 300,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}
+const showOptions = {
+  true: true,
+  false: false,
+  null: null,
+};
+
+const tipColorOptions = {
+  red: 'red',
+  null: null,
+};
+
+export default {
+  title: 'Core/Tooltips/Hovercard',
+};
+
+export const _Hovercard = withInfo(
+  'Good luck if your container element is near the top and/or left side of the screen'
+)(() => (
+  <div
+    style={{
+      height: 300,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}
+  >
+    <Hovercard
+      header={text('Header', 'Hovercard Header')}
+      body={text('Body', 'Hovercard body (can also be a React node)')}
+      position={select('position', positionOptions, 'top', 'Hovercard positioning')}
+      show={select('show', showOptions, null, 'Force show/unshow')}
+      tipColor={select('tipColor', tipColorOptions, null, 'Tip color')}
     >
-      <Hovercard
-        header={text('Header', 'Hovercard Header')}
-        body={text('Body', 'Hovercard body (can also be a React node)')}
-        position={select('position', positionOptions, 'top', 'Hovercard positioning')}
-      >
-        Hover over me
-      </Hovercard>
-    </div>
-  ))
-);
+      Hover over me
+    </Hovercard>
+  </div>
+));

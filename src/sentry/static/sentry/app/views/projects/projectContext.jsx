@@ -5,7 +5,6 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {loadEnvironments} from 'app/actionCreators/environments';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
@@ -13,11 +12,11 @@ import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
-import MissingProjectMembership from 'app/components/missingProjectMembership';
-import OrganizationState from 'app/mixins/organizationState';
+import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import withProjects from 'app/utils/withProjects';
+import withOrganization from 'app/utils/withOrganization';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
@@ -42,11 +41,10 @@ const ProjectContext = createReactClass({
      * If true, this will not change `state.loading` during `fetchData` phase
      */
     skipReload: PropTypes.bool,
-
+    organization: SentryTypes.Organization,
     projects: PropTypes.arrayOf(SentryTypes.Project),
     projectId: PropTypes.string,
     orgId: PropTypes.string,
-    location: PropTypes.object,
   },
 
   childContextTypes: {
@@ -56,7 +54,6 @@ const ProjectContext = createReactClass({
   mixins: [
     Reflux.connect(MemberListStore, 'memberList'),
     Reflux.listenTo(ProjectsStore, 'onProjectChange'),
-    OrganizationState,
   ],
 
   getInitialState() {
@@ -66,7 +63,6 @@ const ProjectContext = createReactClass({
       errorType: null,
       memberList: [],
       project: null,
-      projectNavSection: null,
     };
   },
 
@@ -160,7 +156,7 @@ const ProjectContext = createReactClass({
   },
 
   async fetchData() {
-    const {orgId, projectId, location, skipReload} = this.props;
+    const {orgId, projectId, skipReload} = this.props;
     // we fetch core access/information from the global organization data
     const activeProject = this.identifyProject();
     const hasAccess = activeProject && activeProject.hasAccess;
@@ -178,12 +174,8 @@ const ProjectContext = createReactClass({
         `/projects/${orgId}/${projectId}/`
       );
 
-      const environmentRequest = this.props.api.requestPromise(
-        `/projects/${orgId}/${projectId}/environments/`
-      );
-
       try {
-        const [project, envs] = await Promise.all([projectRequest, environmentRequest]);
+        const project = await projectRequest;
         this.setState({
           loading: false,
           project,
@@ -193,13 +185,6 @@ const ProjectContext = createReactClass({
 
         // assuming here that this means the project is considered the active project
         setActiveProject(project);
-
-        // If an environment is specified in the query string, load it instead of default
-        const queryEnv = location.query.environment;
-        // The default environment cannot be "" (No Environment)
-        const {defaultEnvironment} = project;
-        const envName = typeof queryEnv === 'undefined' ? defaultEnvironment : queryEnv;
-        loadEnvironments(envs, envName);
       } catch (error) {
         this.setState({
           loading: false,
@@ -238,12 +223,6 @@ const ProjectContext = createReactClass({
     }
   },
 
-  setProjectNavSection(section) {
-    this.setState({
-      projectNavSection: section,
-    });
-  },
-
   renderBody() {
     if (this.state.loading) {
       return (
@@ -267,7 +246,7 @@ const ProjectContext = createReactClass({
           // out into a reusable missing access error component
           return (
             <MissingProjectMembership
-              organization={this.getOrganization()}
+              organization={this.props.organization}
               projectId={this.state.project.slug}
             />
           );
@@ -290,4 +269,4 @@ const ProjectContext = createReactClass({
 
 export {ProjectContext};
 
-export default withApi(withProjects(withRouter(ProjectContext)));
+export default withApi(withOrganization(withProjects(withRouter(ProjectContext))));

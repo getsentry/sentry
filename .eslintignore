@@ -1,7 +1,6 @@
 **/dist/**/*
 **/vendor/**/*
-**/tests/sentry/lang/javascript/fixtures/**/*
-**/tests/sentry/lang/javascript/example-project/**/*
+**/tests/**/lang/javascript/fixtures/**/*
+**/tests/**/lang/javascript/example-project/**/*
 /examples/
 /scripts/
-/src/debug_toolbar/static/debug_toolbar/js/toolbar.js

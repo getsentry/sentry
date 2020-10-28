@@ -13,7 +13,7 @@ from sentry.utils.hashlib import md5_text
 
 
 class SystemHealthEndpoint(Endpoint):
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request):
         if not is_active_superuser(request):
@@ -22,16 +22,17 @@ class SystemHealthEndpoint(Endpoint):
         results = status_checks.check_all()
         return Response(
             {
-                'problems': [
+                "problems": [
                     {
-                        'id': md5_text(problem.message).hexdigest(),
-                        'message': problem.message,
-                        'severity': problem.severity,
-                        'url': problem.url,
-                    } for problem in
-                    sort_by_severity(itertools.chain.from_iterable(results.values()))
+                        "id": md5_text(problem.message).hexdigest(),
+                        "message": problem.message,
+                        "severity": problem.severity,
+                        "url": problem.url,
+                    }
+                    for problem in sort_by_severity(itertools.chain.from_iterable(results.values()))
                 ],
-                'healthy':
-                {type(check).__name__: not problems for check, problems in results.items()},
+                "healthy": {
+                    type(check).__name__: not problems for check, problems in results.items()
+                },
             }
         )

@@ -1,11 +1,3 @@
-"""
-sentry.tasks.email
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import, print_function
 
 import logging
@@ -25,52 +17,51 @@ def _get_user_from_email(group, email):
         # Make sure that the user actually has access to this project
         context = access.from_user(user=user, organization=group.organization)
         if not any(context.has_team(t) for t in group.project.teams.all()):
-            logger.warning('User %r does not have access to group %r', user, group)
+            logger.warning("User %r does not have access to group %r", user, group)
             continue
 
         return user
 
 
 @instrumented_task(
-    name='sentry.tasks.email.process_inbound_email',
-    queue='email',
+    name="sentry.tasks.email.process_inbound_email",
+    queue="email",
     default_retry_delay=60 * 5,
-    max_retries=None
+    max_retries=None,
 )
 def process_inbound_email(mailfrom, group_id, payload):
     """
     """
-    from sentry.models import Event, Group
+    from sentry.models import Group
     from sentry.web.forms import NewNoteForm
 
     try:
-        group = Group.objects.select_related('project').get(pk=group_id)
+        group = Group.objects.select_related("project").get(pk=group_id)
     except Group.DoesNotExist:
-        logger.warning('Group does not exist: %d', group_id)
+        logger.warning("Group does not exist: %d", group_id)
         return
 
     user = _get_user_from_email(group, mailfrom)
     if user is None:
-        logger.warning('Inbound email from unknown address: %s', mailfrom)
+        logger.warning("Inbound email from unknown address: %s", mailfrom)
         return
 
     event = group.get_latest_event()
 
     if event:
-        Event.objects.bind_nodes([event], 'data')
         event.group = group
         event.project = group.project
 
-    form = NewNoteForm({'text': payload})
+    form = NewNoteForm({"text": payload})
     if form.is_valid():
         form.save(group, user, event=event)
 
 
 @instrumented_task(
-    name='sentry.tasks.email.send_email',
-    queue='email',
+    name="sentry.tasks.email.send_email",
+    queue="email",
     default_retry_delay=60 * 5,
-    max_retries=None
+    max_retries=None,
 )
 def send_email(message):
     # HACK(django18) Django 1.8 assumes that message objects have a reply_to attribute
@@ -79,7 +70,7 @@ def send_email(message):
     #
     # See
     # https://github.com/django/django/blob/c686dd8e6bb3817bcf04b8f13c025b4d3c3dc6dc/django/core/mail/message.py#L273-L274
-    if not hasattr(message, 'reply_to'):
+    if not hasattr(message, "reply_to"):
         message.reply_to = []
 
     send_messages([message])

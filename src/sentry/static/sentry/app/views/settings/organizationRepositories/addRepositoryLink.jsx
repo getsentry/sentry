@@ -128,7 +128,7 @@ class AddRepositoryLink extends PluginComponentBase {
     const provider = this.props.provider;
     let hasIntegration = true;
     provider.config.forEach(field => {
-      if (field.initial == '') {
+      if (!field.initial) {
         hasIntegration = false;
       }
     });
@@ -140,18 +140,16 @@ class AddRepositoryLink extends PluginComponentBase {
           </div>
         )}
         {!hasIntegration && this.renderNote(provider)}
-        {provider.config.map(field => {
-          return (
-            <div key={field.name}>
-              {this.renderField({
-                config: field,
-                formData: this.state.formData,
-                formErrors: errors,
-                onChange: this.changeField.bind(this, field.name),
-              })}
-            </div>
-          );
-        })}
+        {provider.config.map(field => (
+          <div key={field.name}>
+            {this.renderField({
+              config: field,
+              formData: this.state.formData,
+              formErrors: errors,
+              onChange: this.changeField.bind(this, field.name),
+            })}
+          </div>
+        ))}
       </form>
     );
   }

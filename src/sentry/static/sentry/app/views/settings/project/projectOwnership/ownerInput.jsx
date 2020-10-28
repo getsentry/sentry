@@ -1,7 +1,6 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import TextareaAutosize from 'react-autosize-textarea';
 
 import {Client} from 'app/api';
@@ -33,8 +32,8 @@ class OwnerInput extends React.Component {
     };
   }
 
-  componentWillReceiveProps({initialText}) {
-    if (initialText != this.state.initialText) {
+  UNSAFE_componentWillReceiveProps({initialText}) {
+    if (initialText !== this.state.initialText) {
       this.setState({initialText});
     }
   }
@@ -148,14 +147,17 @@ class OwnerInput extends React.Component {
         <div
           style={{position: 'relative'}}
           onKeyDown={e => {
-            if (e.metaKey && e.key == 'Enter') {
+            if (e.metaKey && e.key === 'Enter') {
               this.handleUpdateOwnership();
             }
           }}
         >
           <StyledTextArea
             placeholder={
-              '#example usage\npath:src/example/pipeline/* person@sentry.io #infra\nurl:http://example.com/settings/* #product'
+              '#example usage\n' +
+              'path:src/example/pipeline/* person@sentry.io #infra\n' +
+              'url:http://example.com/settings/* #product\n' +
+              'tags.sku_class:enterprise #enterprise'
             }
             onChange={this.handleChange}
             disabled={disabled}
@@ -165,7 +167,7 @@ class OwnerInput extends React.Component {
             autoCorrect="off"
             autoCapitalize="off"
           />
-          <Flex align="center" justify="space-between">
+          <ActionBar>
             <div>{this.parseError(error)}</div>
             <SaveButton>
               <Button
@@ -177,7 +179,7 @@ class OwnerInput extends React.Component {
                 {t('Save Changes')}
               </Button>
             </SaveButton>
-          </Flex>
+          </ActionBar>
         </div>
       </React.Fragment>
     );
@@ -186,6 +188,12 @@ class OwnerInput extends React.Component {
 
 const TEXTAREA_PADDING = 4;
 const TEXTAREA_LINE_HEIGHT = 24;
+
+const ActionBar = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
 
 const SyntaxOverlay = styled('div')`
   ${inputStyles};

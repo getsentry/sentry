@@ -4,7 +4,6 @@ from hashlib import sha256
 import hmac
 import logging
 import six
-from simplejson import JSONDecodeError
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -15,10 +14,10 @@ from django.utils.decorators import method_decorator
 from sentry.api import client
 from sentry.exceptions import HookValidationError
 from sentry.models import ApiKey, Project, ProjectOption
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.utils import json
 
-logger = logging.getLogger('sentry.webhooks')
+logger = logging.getLogger("sentry.webhooks")
 
 
 class ReleaseWebhookView(View):
@@ -26,10 +25,10 @@ class ReleaseWebhookView(View):
         return constant_time_compare(
             signature,
             hmac.new(
-                key=token.encode('utf-8'),
-                msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
-                digestmod=sha256
-            ).hexdigest()
+                key=token.encode("utf-8"),
+                msg=("{}-{}".format(plugin_id, project_id)).encode("utf-8"),
+                digestmod=sha256,
+            ).hexdigest(),
         )
 
     @method_decorator(csrf_exempt)
@@ -37,88 +36,73 @@ class ReleaseWebhookView(View):
         return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)
 
     def _handle_builtin(self, request, project):
-        endpoint = u'/projects/{}/{}/releases/'.format(
-            project.organization.slug,
-            project.slug,
-        )
+        endpoint = u"/projects/{}/{}/releases/".format(project.organization.slug, project.slug)
 
         try:
             data = json.loads(request.body)
-        except JSONDecodeError as exc:
+        except json.JSONDecodeError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({
-                    'error': six.text_type(exc)
-                }),
-                content_type='application/json',
+                content=json.dumps({"error": six.text_type(exc)}),
+                content_type="application/json",
             )
 
         try:
             # Ideally the API client would support some kind of god-mode here
             # as we've already confirmed credentials and simply want to execute
             # the view code. Instead we hack around it with an ApiKey instance
-            god = ApiKey(
-                organization=project.organization,
-                scope_list=['project:write'],
-            )
+            god = ApiKey(organization=project.organization, scope_list=["project:write"])
 
-            resp = client.post(
-                endpoint,
-                data=data,
-                auth=god,
-            )
+            resp = client.post(endpoint, data=data, auth=god)
         except client.ApiError as exc:
             return HttpResponse(
                 status=exc.status_code,
                 content=json.dumps(exc.body),
-                content_type='application/json',
+                content_type="application/json",
             )
         return HttpResponse(
-            status=resp.status_code,
-            content=json.dumps(resp.data),
-            content_type='application/json',
+            status=resp.status_code, content=json.dumps(resp.data), content_type="application/json"
         )
 
     def post(self, request, plugin_id, project_id, signature):
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
-            logger.warn('release-webhook.invalid-project', extra={
-                'project_id': project_id,
-                'plugin_id': plugin_id,
-            })
+            logger.warn(
+                "release-webhook.invalid-project",
+                extra={"project_id": project_id, "plugin_id": plugin_id},
+            )
             return HttpResponse(status=404)
 
-        logger.info('release-webhook.incoming', extra={
-            'project_id': project_id,
-            'plugin_id': plugin_id,
-        })
+        logger.info(
+            "release-webhook.incoming", extra={"project_id": project_id, "plugin_id": plugin_id}
+        )
 
-        token = ProjectOption.objects.get_value(project, 'sentry:release-token')
+        token = ProjectOption.objects.get_value(project, "sentry:release-token")
 
         if token is None:
-            logger.warn('release-webhook.missing-token', extra={
-                'project_id': project_id,
-                'plugin_id': plugin_id,
-            })
+            logger.warn(
+                "release-webhook.missing-token",
+                extra={"project_id": project_id, "plugin_id": plugin_id},
+            )
             return HttpResponse(status=403)
 
         if not self.verify(plugin_id, project_id, token, signature):
-            logger.warn('release-webhook.invalid-signature', extra={
-                'project_id': project_id,
-                'plugin_id': plugin_id,
-            })
+            logger.warn(
+                "release-webhook.invalid-signature",
+                extra={"project_id": project_id, "plugin_id": plugin_id},
+            )
             return HttpResponse(status=403)
 
-        if plugin_id == 'builtin':
+        if plugin_id == "builtin":
             return self._handle_builtin(request, project)
 
         plugin = plugins.get(plugin_id)
         if not plugin.is_enabled(project):
-            logger.warn('release-webhook.plugin-disabled', extra={
-                'project_id': project_id,
-                'plugin_id': plugin_id,
-            })
+            logger.warn(
+                "release-webhook.plugin-disabled",
+                extra={"project_id": project_id, "plugin_id": plugin_id},
+            )
             return HttpResponse(status=403)
 
         cls = plugin.get_release_hook()
@@ -128,10 +112,8 @@ class ReleaseWebhookView(View):
         except HookValidationError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({
-                    'error': six.text_type(exc)
-                }),
-                content_type='application/json',
+                content=json.dumps({"error": six.text_type(exc)}),
+                content_type="application/json",
             )
 
         return HttpResponse(status=204)

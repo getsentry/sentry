@@ -6,8 +6,8 @@ from collections import OrderedDict
 
 
 class Role(object):
-    def __init__(self, priority, id, name, desc='', scopes=(), is_global=False):
-        assert len(id) <= 32, 'Role id must be no more than 32 characters'
+    def __init__(self, priority, id, name, desc="", scopes=(), is_global=False):
+        assert len(id) <= 32, "Role id must be no more than 32 characters"
 
         self.priority = priority
         self.id = id
@@ -17,13 +17,13 @@ class Role(object):
         self.is_global = bool(is_global)
 
     def __str__(self):
-        return self.name.encode('utf-8')
+        return self.name.encode("utf-8")
 
     def __unicode__(self):
         return six.text_type(self.name)
 
     def __repr__(self):
-        return u'<Role: {}>'.format(self.id)
+        return u"<Role: {}>".format(self.id)
 
     def has_scope(self, scope):
         return scope in self.scopes
@@ -57,7 +57,7 @@ class RoleManager(object):
         return self._roles[id]
 
     def get_all(self):
-        return self._roles.values()
+        return list(self._roles.values())
 
     def get_choices(self):
         return self._choices

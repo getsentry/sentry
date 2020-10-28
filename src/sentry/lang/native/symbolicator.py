@@ -6,129 +6,186 @@ import logging
 import six
 import time
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
+from six.moves.urllib.parse import urljoin
 
-from sentry import options
+import sentry_sdk
+
+from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
-from sentry.lang.native.symbolizer import SymbolicationFailed
-from sentry.lang.native.utils import image_name, handle_symbolication_failed
-from sentry.models.eventerror import EventError
 from sentry.utils import json, metrics
-from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
+from sentry.models import Organization
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
-SYMBOLICATOR_TIMEOUT = 5
 
 logger = logging.getLogger(__name__)
 
 
-BUILTIN_SOURCES = {
-    'microsoft': {
-        'type': 'http',
-        'id': 'sentry:microsoft',
-        'layout': {'type': 'symstore'},
-        'filters': {
-            'filetypes': ['pdb', 'pe'],
-            'path_patterns': ['?:/windows/**']
-        },
-        'url': 'https://msdl.microsoft.com/download/symbols/',
-        'is_public': True,
-    },
-}
+VALID_LAYOUTS = ("native", "symstore", "symstore_index2", "ssqp", "unified", "debuginfod")
 
-VALID_LAYOUTS = (
-    'native',
-    'symstore',
-)
+VALID_FILE_TYPES = ("pe", "pdb", "mach_debug", "mach_code", "elf_debug", "elf_code", "breakpad")
 
-VALID_FILE_TYPES = (
-    'pe',
-    'pdb',
-    'mach_debug',
-    'mach_code',
-    'elf_debug',
-    'elf_code',
-    'breakpad',
-)
-
-VALID_CASINGS = (
-    'lowercase',
-    'uppercase',
-    'default'
-)
+VALID_CASINGS = ("lowercase", "uppercase", "default")
 
 LAYOUT_SCHEMA = {
-    'type': 'object',
-    'properties': {
-        'type': {
-            'type': 'string',
-            'enum': list(VALID_LAYOUTS),
-        },
-        'casing': {
-            'type': 'string',
-            'enum': list(VALID_CASINGS),
-        },
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": list(VALID_LAYOUTS)},
+        "casing": {"type": "string", "enum": list(VALID_CASINGS)},
     },
-    'required': ['type'],
-    'additionalProperties': False,
+    "required": ["type"],
+    "additionalProperties": False,
 }
 
 COMMON_SOURCE_PROPERTIES = {
-    'id': {
-        'type': 'string',
-        'minLength': 1,
-    },
-    'layout': LAYOUT_SCHEMA,
-    'filetypes': {
-        'type': 'array',
-        'items': {
-            'type': 'string',
-            'enum': list(VALID_FILE_TYPES),
-        }
-    },
+    "id": {"type": "string", "minLength": 1},
+    "name": {"type": "string"},
+    "layout": LAYOUT_SCHEMA,
+    "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
 }
 
-
-S3_SOURCE_SCHEMA = {
-    'type': 'object',
-    'properties': dict(
-        type={
-            'type': 'string',
-            'enum': ['s3'],
-        },
-        bucket={'type': 'string'},
-        region={'type': 'string'},
-        access_key={'type': 'string'},
-        secret_key={'type': 'string'},
-        prefix={'type': 'string'},
+HTTP_SOURCE_SCHEMA = {
+    "type": "object",
+    "properties": dict(
+        type={"type": "string", "enum": ["http"]},
+        url={"type": "string"},
         **COMMON_SOURCE_PROPERTIES
     ),
-    'required': ['type', 'id', 'bucket', 'region', 'access_key', 'secret_key', 'layout'],
-    'additionalProperties': False,
+    "required": ["type", "id", "url", "layout"],
+    "additionalProperties": False,
+}
+
+S3_SOURCE_SCHEMA = {
+    "type": "object",
+    "properties": dict(
+        type={"type": "string", "enum": ["s3"]},
+        bucket={"type": "string"},
+        region={"type": "string"},
+        access_key={"type": "string"},
+        secret_key={"type": "string"},
+        prefix={"type": "string"},
+        **COMMON_SOURCE_PROPERTIES
+    ),
+    "required": ["type", "id", "bucket", "region", "access_key", "secret_key", "layout"],
+    "additionalProperties": False,
+}
+
+GCS_SOURCE_SCHEMA = {
+    "type": "object",
+    "properties": dict(
+        type={"type": "string", "enum": ["gcs"]},
+        bucket={"type": "string"},
+        client_email={"type": "string"},
+        private_key={"type": "string"},
+        prefix={"type": "string"},
+        **COMMON_SOURCE_PROPERTIES
+    ),
+    "required": ["type", "id", "bucket", "client_email", "private_key", "layout"],
+    "additionalProperties": False,
 }
 
 SOURCES_SCHEMA = {
-    'type': 'array',
-    'items': {
-        'oneOf': [
-            # TODO: Implement HTTP sources
-            S3_SOURCE_SCHEMA,
-        ],
-    }
+    "type": "array",
+    "items": {"oneOf": [HTTP_SOURCE_SCHEMA, S3_SOURCE_SCHEMA, GCS_SOURCE_SCHEMA]},
 }
 
 
-IMAGE_STATUS_FIELDS = frozenset((
-    'status',  # TODO(markus): Legacy key. Remove after next deploy
-    'unwind_status',
-    'debug_status'
-))
+def _task_id_cache_key_for_event(project_id, event_id):
+    return u"symbolicator:{1}:{0}".format(project_id, event_id)
+
+
+class Symbolicator(object):
+    def __init__(self, project, event_id):
+        symbolicator_options = options.get("symbolicator.options")
+        base_url = symbolicator_options["url"].rstrip("/")
+        assert base_url
+
+        self.sess = SymbolicatorSession(
+            url=base_url,
+            project_id=six.text_type(project.id),
+            event_id=six.text_type(event_id),
+            timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
+            sources=get_sources_for_project(project),
+        )
+
+        self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
+
+    def _process(self, create_task):
+        task_id = default_cache.get(self.task_id_cache_key)
+        json_response = None
+
+        with self.sess:
+            try:
+                if task_id:
+                    # Processing has already started and we need to poll
+                    # symbolicator for an update. This in turn may put us back into
+                    # the queue.
+                    json_response = self.sess.query_task(task_id)
+
+                if json_response is None:
+                    # This is a new task, so we compute all request parameters
+                    # (potentially expensive if we need to pull minidumps), and then
+                    # upload all information to symbolicator. It will likely not
+                    # have a response ready immediately, so we start polling after
+                    # some timeout.
+                    json_response = create_task()
+            except ServiceUnavailable:
+                # 503 can indicate that symbolicator is restarting. Wait for a
+                # reboot, then try again. This overrides the default behavior of
+                # retrying after just a second.
+                #
+                # If there is no response attached, it's a connection error.
+                raise RetrySymbolication(retry_after=10)
+
+            metrics.incr(
+                "events.symbolicator.response",
+                tags={"response": json_response.get("status") or "null"},
+            )
+
+            # Symbolication is still in progress. Bail out and try again
+            # after some timeout. Symbolicator keeps the response for the
+            # first one to poll it.
+            if json_response["status"] == "pending":
+                default_cache.set(
+                    self.task_id_cache_key, json_response["request_id"], REQUEST_CACHE_TIMEOUT
+                )
+                raise RetrySymbolication(retry_after=json_response["retry_after"])
+            else:
+                # Once we arrive here, we are done processing. Clean up the
+                # task id from the cache.
+                default_cache.delete(self.task_id_cache_key)
+                metrics.timing(
+                    "events.symbolicator.response.completed.size", len(json.dumps(json_response))
+                )
+                return json_response
+
+    def process_minidump(self, minidump):
+        return self._process(lambda: self.sess.upload_minidump(minidump))
+
+    def process_applecrashreport(self, report):
+        return self._process(lambda: self.sess.upload_applecrashreport(report))
+
+    def process_payload(self, stacktraces, modules, signal=None):
+        return self._process(
+            lambda: self.sess.symbolicate_stacktraces(
+                stacktraces=stacktraces, modules=modules, signal=signal
+            )
+        )
+
+
+class TaskIdNotFound(Exception):
+    pass
+
+
+class ServiceUnavailable(Exception):
+    pass
 
 
 class InvalidSourcesError(Exception):
@@ -139,28 +196,28 @@ def get_internal_source(project):
     """
     Returns the source configuration for a Sentry project.
     """
-    internal_url_prefix = options.get('system.internal-url-prefix')
+    internal_url_prefix = options.get("system.internal-url-prefix")
     if not internal_url_prefix:
-        internal_url_prefix = options.get('system.url-prefix')
-        if sys.platform == 'darwin':
-            internal_url_prefix = internal_url_prefix \
-                .replace("localhost", "host.docker.internal") \
-                .replace("127.0.0.1", "host.docker.internal")
+        internal_url_prefix = options.get("system.url-prefix")
+        if sys.platform == "darwin":
+            internal_url_prefix = internal_url_prefix.replace(
+                "localhost", "host.docker.internal"
+            ).replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
-    sentry_source_url = '%s%s' % (
-        internal_url_prefix.rstrip('/'),
-        reverse('sentry-api-0-dsym-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug
-        })
+    sentry_source_url = "%s%s" % (
+        internal_url_prefix.rstrip("/"),
+        reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        ),
     )
 
     return {
-        'type': 'sentry',
-        'id': 'sentry:project',
-        'url': sentry_source_url,
-        'token': get_system_token(),
+        "type": "sentry",
+        "id": "sentry:project",
+        "url": sentry_source_url,
+        "token": get_system_token(),
     }
 
 
@@ -175,7 +232,7 @@ def parse_sources(config):
     try:
         sources = json.loads(config)
     except BaseException as e:
-        raise InvalidSourcesError(e.message)
+        raise InvalidSourcesError(six.text_type(e))
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
@@ -184,11 +241,11 @@ def parse_sources(config):
 
     ids = set()
     for source in sources:
-        if source['id'].startswith('sentry'):
+        if source["id"].startswith("sentry"):
             raise InvalidSourcesError('Source ids must not start with "sentry:"')
-        if source['id'] in ids:
-            raise InvalidSourcesError('Duplicate source id: %s' % (source['id'], ))
-        ids.add(source['id'])
+        if source["id"] in ids:
+            raise InvalidSourcesError("Duplicate source id: %s" % (source["id"],))
+        ids.add(source["id"])
 
     return sources
 
@@ -200,12 +257,29 @@ def get_sources_for_project(project):
 
     sources = []
 
+    if not getattr(project, "_organization_cache", False):
+        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+            project._organization_cache = Organization.objects.get_from_cache(
+                id=project.organization_id
+            )
+
     # The symbolicator evaluates sources in the order they are declared. Always
     # try to download symbols from Sentry first.
     project_source = get_internal_source(project)
     sources.append(project_source)
 
-    sources_config = project.get_option('sentry:symbol_sources')
+    # Check that the organization still has access to symbol sources. This
+    # controls both builtin and external sources.
+    organization = project.organization
+    if not features.has("organizations:symbol-sources", organization):
+        return sources
+
+    # Custom sources have their own feature flag. Check them independently.
+    if features.has("organizations:custom-symbol-sources", organization):
+        sources_config = project.get_option("sentry:symbol_sources")
+    else:
+        sources_config = None
+
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)
@@ -214,210 +288,169 @@ def get_sources_for_project(project):
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop
             # processing at this point.
-            logger.error('Invalid symbolicator source config', exc_info=True)
+            logger.error("Invalid symbolicator source config", exc_info=True)
+
+    def resolve_alias(source):
+        for key in source.get("sources") or ():
+            other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
+            if other_source:
+                if other_source.get("type") == "alias":
+                    for item in resolve_alias(other_source):
+                        yield item
+                else:
+                    yield other_source
 
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
-    builtin_sources = project.get_option('sentry:builtin_symbol_sources') or []
-    for key, source in six.iteritems(BUILTIN_SOURCES):
-        if key in builtin_sources:
+    builtin_sources = project.get_option("sentry:builtin_symbol_sources")
+    for key, source in six.iteritems(settings.SENTRY_BUILTIN_SOURCES):
+        if key not in builtin_sources:
+            continue
+
+        # special internal alias type expands to more than one item.  This
+        # is used to make `apple` expand to `ios`/`macos` and other
+        # sources if configured as such.
+        if source.get("type") == "alias":
+            sources.extend(resolve_alias(source))
+        else:
             sources.append(source)
 
     return sources
 
 
-def _get_default_headers(project_id):
-    # Required for load balancing
-    return {'x-sentry-project-id': project_id}
+class SymbolicatorSession(object):
+    def __init__(self, url=None, sources=None, project_id=None, event_id=None, timeout=None):
+        self.url = url
+        self.project_id = project_id
+        self.event_id = event_id
+        self.sources = sources or []
+        self.timeout = timeout
+        self.session = None
 
+    def __enter__(self):
+        self.open()
+        return self
 
-def create_minidump_task(sess, base_url, project_id, sources, minidump):
-    files = {
-        'upload_file_minidump': minidump,
-    }
+    def __exit__(self, *args):
+        self.close()
 
-    data = {
-        'sources': json.dumps(sources)
-    }
+    def open(self):
+        if self.session is None:
+            self.session = Session()
 
-    url = '{base_url}/minidump?timeout={timeout}&scope={scope}'.format(
-        base_url=base_url,
-        timeout=SYMBOLICATOR_TIMEOUT,
-        scope=project_id
-    )
+    def close(self):
+        if self.session is not None:
+            self.session.close()
+            self.session = None
 
-    return sess.post(url, data=data, files=files, headers=_get_default_headers(project_id))
+    def _ensure_open(self):
+        if not self.session:
+            raise RuntimeError("Session not opened")
 
+    def _request(self, method, path, **kwargs):
+        self._ensure_open()
 
-def create_payload_task(sess, base_url, project_id, sources, signal,
-                        stacktraces, modules):
-    request = {
-        'signal': signal,
-        'sources': sources,
-        'request': {
-            'timeout': SYMBOLICATOR_TIMEOUT,
-        },
-        'stacktraces': stacktraces,
-        'modules': modules,
-    }
-    url = '{base_url}/symbolicate?timeout={timeout}&scope={scope}'.format(
-        base_url=base_url,
-        timeout=SYMBOLICATOR_TIMEOUT,
-        scope=project_id,
-    )
-    return sess.post(url, json=request, headers=_get_default_headers(project_id))
+        url = urljoin(self.url, path)
 
+        # required for load balancing
+        kwargs.setdefault("headers", {})["x-sentry-project-id"] = self.project_id
+        kwargs.setdefault("headers", {})["x-sentry-event-id"] = self.event_id
 
-def run_symbolicator(project, request_id_cache_key, create_task=create_payload_task, **kwargs):
-    symbolicator_options = options.get('symbolicator.options')
-    base_url = symbolicator_options['url'].rstrip('/')
-    assert base_url
+        attempts = 0
+        wait = 0.5
 
-    project_id = six.text_type(project.id)
-    request_id = default_cache.get(request_id_cache_key)
-    sess = Session()
-
-    # Will be set lazily when a symbolicator request is fired
-    sources = None
-
-    attempts = 0
-    wait = 0.5
-
-    with sess:
         while True:
             try:
-                if request_id:
-                    rv = _poll_symbolication_task(
-                        sess=sess, base_url=base_url,
-                        request_id=request_id, project_id=project_id,
-                    )
-                else:
-                    if sources is None:
-                        sources = get_sources_for_project(project)
-
-                    rv = create_task(
-                        sess=sess, base_url=base_url,
-                        project_id=project_id,
-                        sources=sources,
-                        **kwargs
+                with metrics.timer(
+                    "events.symbolicator.session.request", tags={"attempt": attempts}
+                ):
+                    response = self.session.request(
+                        method, url, timeout=settings.SYMBOLICATOR_POLL_TIMEOUT + 1, **kwargs
                     )
 
-                metrics.incr('events.symbolicator.status_code', tags={
-                    'status_code': rv.status_code,
-                    'project_id': project_id,
-                })
+                metrics.incr(
+                    "events.symbolicator.status_code",
+                    tags={"status_code": response.status_code, "project_id": self.project_id},
+                )
 
-                if rv.status_code == 404 and request_id:
-                    default_cache.delete(request_id_cache_key)
-                    request_id = None
-                    continue
-                elif rv.status_code == 503:
-                    raise RetrySymbolication(retry_after=10)
+                if (
+                    method.lower() == "get"
+                    and path.startswith("requests/")
+                    and response.status_code == 404
+                ):
+                    # The symbolicator does not know this task. This is
+                    # expected to happen when we're currently deploying
+                    # symbolicator (which will clear all of its state). Re-send
+                    # the symbolication task.
+                    return None
 
-                rv.raise_for_status()
-                json = rv.json()
-                metrics.incr('events.symbolicator.response', tags={
-                    'response': json['status'],
-                    'project_id': project_id,
-                })
+                if response.status_code in (502, 503):
+                    raise ServiceUnavailable()
 
-                if json['status'] == 'pending':
-                    default_cache.set(
-                        request_id_cache_key,
-                        json['request_id'],
-                        REQUEST_CACHE_TIMEOUT)
-                    raise RetrySymbolication(retry_after=json['retry_after'])
+                if response.ok:
+                    json = response.json()
                 else:
-                    default_cache.delete(request_id_cache_key)
-                    return json
+                    json = {"status": "failed", "message": "internal server error"}
 
-            except (IOError, RequestException):
+                return json
+            except (IOError, RequestException) as e:
+                metrics.incr(
+                    "events.symbolicator.request_error",
+                    tags={
+                        "exc": ".".join([e.__class__.__module__, e.__class__.__name__]),
+                        "attempt": attempts,
+                    },
+                )
+
                 attempts += 1
+                # Any server error needs to be treated as a failure. We can
+                # retry a couple of times, but ultimately need to bail out.
+                #
+                # This can happen for any network failure.
                 if attempts > MAX_ATTEMPTS:
-                    logger.error('Failed to contact symbolicator', exc_info=True)
-
-                    default_cache.delete(request_id_cache_key)
-                    return
+                    logger.error("Failed to contact symbolicator", exc_info=True)
+                    raise
 
                 time.sleep(wait)
                 wait *= 2.0
 
+    def _create_task(self, path, **kwargs):
+        params = {"timeout": self.timeout, "scope": self.project_id}
+        with metrics.timer("events.symbolicator.create_task", tags={"path": path}):
+            return self._request(method="post", path=path, params=params, **kwargs)
 
-def handle_symbolicator_response_status(event_data, response_json):
-    if not response_json:
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
-    elif response_json['status'] == 'completed':
-        return True
-    elif response_json['status'] == 'failed':
-        error = SymbolicationFailed(message=response_json.get('message') or None,
-                                    type=EventError.NATIVE_SYMBOLICATOR_FAILED)
-    else:
-        logger.error('Unexpected symbolicator status: %s', response_json['status'])
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
+    def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
+        json = {"sources": self.sources, "stacktraces": stacktraces, "modules": modules}
 
-    handle_symbolication_failed(error, data=event_data)
+        if signal:
+            json["signal"] = signal
 
+        return self._create_task("symbolicate", json=json)
 
-def _poll_symbolication_task(sess, base_url, request_id, project_id):
-    url = '{base_url}/requests/{request_id}?timeout={timeout}'.format(
-        base_url=base_url,
-        request_id=request_id,
-        timeout=SYMBOLICATOR_TIMEOUT,
-    )
-    return sess.get(url, headers=_get_default_headers(project_id))
+    def upload_minidump(self, minidump):
+        return self._create_task(
+            path="minidump",
+            data={"sources": json.dumps(self.sources)},
+            files={"upload_file_minidump": minidump},
+        )
 
+    def upload_applecrashreport(self, report):
+        return self._create_task(
+            path="applecrashreport",
+            data={"sources": json.dumps(self.sources)},
+            files={"apple_crash_report": report},
+        )
 
-def merge_symbolicator_image(raw_image, complete_image, sdk_info, handle_symbolication_failed):
-    statuses = set()
+    def query_task(self, task_id):
+        task_url = "requests/%s" % (task_id,)
 
-    # Set image data from symbolicator as symbolicator might know more
-    # than the SDK, especially for minidumps
-    for k, v in six.iteritems(complete_image):
-        if k in IMAGE_STATUS_FIELDS:
-            statuses.add(v)
-        elif not (v is None or (k, v) == ('arch', 'unknown')):
-            raw_image[k] = v
+        params = {
+            "timeout": 0,  # Only wait when creating, but not when querying tasks
+            "scope": self.project_id,
+        }
 
-    for status in set(statuses):
-        handle_symbolicator_status(status, raw_image, sdk_info, handle_symbolication_failed)
+        with metrics.timer("events.symbolicator.query_task"):
+            return self._request("get", task_url, params=params)
 
-
-def handle_symbolicator_status(status, image, sdk_info, handle_symbolication_failed):
-    if status in ('found', 'unused'):
-        return
-    elif status in (
-        'missing_debug_file',  # TODO(markus): Legacy key. Remove after next deploy
-        'missing'
-    ):
-        package = image.get('code_file')
-        # TODO(mitsuhiko): This check seems wrong?  This call seems to
-        # mirror the one in the ios symbol server support.  If we change
-        # one we need to change the other.
-        if not package or is_known_third_party(package, sdk_info=sdk_info):
-            return
-
-        if is_optional_package(package, sdk_info=sdk_info):
-            error = SymbolicationFailed(
-                type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
-        else:
-            error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
-    elif status in (
-        'malformed_debug_file',  # TODO(markus): Legacy key. Remove after next deploy
-        'malformed'
-    ):
-        error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
-    elif status == 'too_large':
-        error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
-    elif status == 'fetching_failed':
-        error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
-    elif status == 'other':
-        error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
-    else:
-        logger.error("Unknown status: %s", status)
-        return
-
-    error.image_arch = image.get('arch')
-    error.image_path = image.get('code_file')
-    error.image_name = image_name(image.get('code_file'))
-    error.image_uuid = image.get('debug_id')
-    handle_symbolication_failed(error)
+    def healthcheck(self):
+        return self._request("get", "healthcheck")

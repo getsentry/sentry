@@ -1,0 +1,184 @@
+---
+created: '2020-02-26T19:54:24.756230Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            lineno*
+              49
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "testMethod"
+            lineno (function takes precedence)
+              43
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "aha"
+            lineno (function takes precedence)
+              38
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "eval"
+            lineno (function takes precedence)
+              1
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "test"
+            lineno (function takes precedence)
+              32
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "test/<"
+            lineno (function takes precedence)
+              33
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "callback"
+            lineno (function takes precedence)
+              24
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "callAnotherThing"
+            lineno (function takes precedence)
+              19
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "aha"
+            lineno (function takes precedence)
+              18
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "71036056ea01a28f0931ab8e951206e2"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            lineno*
+              49
+          frame*
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "testMethod"
+            lineno (function takes precedence)
+              43
+          frame*
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "aha"
+            lineno (function takes precedence)
+              38
+          frame*
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "eval"
+            lineno (function takes precedence)
+              1
+          frame*
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "test"
+            lineno (function takes precedence)
+              32
+          frame*
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "test/<"
+            lineno (function takes precedence)
+              33
+          frame*
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "callback"
+            lineno (function takes precedence)
+              24
+          frame*
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "callAnotherThing"
+            lineno (function takes precedence)
+              19
+          frame*
+            module*
+              "test"
+            filename (module takes precedence)
+              "/test.html"
+            function*
+              "aha"
+            lineno (function takes precedence)
+              18
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bad"

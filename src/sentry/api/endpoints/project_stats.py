@@ -3,27 +3,14 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import DocSection, EnvironmentMixin, StatsMixin
+from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment
-from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario('RetrieveEventCountsProjcet')
-def retrieve_event_counts_project(runner):
-    runner.request(
-        method='GET',
-        path='/projects/%s/%s/stats/' % (runner.org.slug,
-                                         runner.default_project.slug)
-    )
+from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 
 
 class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
-    doc_section = DocSection.PROJECTS
-
-    @attach_scenarios([retrieve_event_counts_project])
     def get(self, request, project):
         """
         Retrieve Event Counts for a Project
@@ -50,30 +37,29 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
                                    for (one of ``10s``, ``1h``, and ``1d``)
         :auth: required
         """
-        stat = request.GET.get('stat', 'received')
+        stat = request.GET.get("stat", "received")
         query_kwargs = {}
-        if stat == 'received':
+        if stat == "received":
             stat_model = tsdb.models.project_total_received
-        elif stat == 'rejected':
+        elif stat == "rejected":
             stat_model = tsdb.models.project_total_rejected
-        elif stat == 'blacklisted':
+        elif stat == "blacklisted":
             stat_model = tsdb.models.project_total_blacklisted
-        elif stat == 'generated':
+        elif stat == "generated":
             stat_model = tsdb.models.project
             try:
-                query_kwargs['environment_id'] = self._get_environment_id_from_request(
-                    request,
-                    project.organization_id,
+                query_kwargs["environment_id"] = self._get_environment_id_from_request(
+                    request, project.organization_id
                 )
             except Environment.DoesNotExist:
                 raise ResourceDoesNotExist
-        elif stat == 'forwarded':
+        elif stat == "forwarded":
             stat_model = tsdb.models.project_total_forwarded
         else:
             try:
                 stat_model = FILTER_STAT_KEYS_TO_VALUES[stat]
             except KeyError:
-                raise ValueError('Invalid stat: %s' % stat)
+                raise ValueError("Invalid stat: %s" % stat)
 
         data = tsdb.get_range(
             model=stat_model, keys=[project.id], **self._parse_args(request, **query_kwargs)

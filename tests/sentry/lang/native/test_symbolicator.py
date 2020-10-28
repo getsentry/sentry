@@ -1,107 +1,105 @@
-"""
-This file is intended for unit tests that don't require fixtures or a live
-service. Most tests live in tests/symbolicator/
-"""
-
 from __future__ import absolute_import
 
 import pytest
 
-from sentry.models.eventerror import EventError
-
-from sentry.lang.native.symbolicator import merge_symbolicator_image
-
-
-def test_merge_symbolicator_image_empty():
-    errors = []
-    merge_symbolicator_image({}, {}, None, errors.append)
-    assert not errors
+from sentry.lang.native.symbolicator import get_sources_for_project
+from sentry.testutils.helpers import Feature
+from sentry.utils.compat import map
 
 
-def test_merge_symbolicator_image_basic():
-    raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo"}
-    sdk_info = {"sdk_name": "linux"}
-    complete_image = {
-        "debug_status": "found",
-        "unwind_status": "found",
-        "other2": "bar",
-        "arch": "unknown",
-    }
-    errors = []
-
-    merge_symbolicator_image(raw_image, complete_image, sdk_info, errors.append)
-
-    assert not errors
-    assert raw_image == {"instruction_addr": 0xFEEBEE, "other": "foo", "other2": "bar"}
+CUSTOM_SOURCE_CONFIG = """
+[{
+    "type": "http",
+    "id": "custom",
+    "layout": {"type": "symstore"},
+    "url": "https://msdl.microsoft.com/download/symbols/"
+}]
+"""
 
 
-def test_merge_symbolicator_image_basic_success():
-    raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo"}
-    sdk_info = {"sdk_name": "linux"}
-    complete_image = {
-        "debug_status": "found",
-        "unwind_status": "found",
-        "other2": "bar",
-        "arch": "foo",
-    }
-    errors = []
+@pytest.mark.django_db
+def test_sources_no_feature(default_project):
+    features = {"organizations:symbol-sources": False, "organizations:custom-symbol-sources": False}
 
-    merge_symbolicator_image(raw_image, complete_image, sdk_info, errors.append)
+    with Feature(features):
+        sources = get_sources_for_project(default_project)
 
-    assert not errors
-    assert raw_image == {
-        "instruction_addr": 0xFEEBEE,
-        "other": "foo",
-        "other2": "bar",
-        "arch": "foo",
-    }
+    assert len(sources) == 1
+    assert sources[0]["type"] == "sentry"
+    assert sources[0]["id"] == "sentry:project"
 
 
-def test_merge_symbolicator_image_remove_unknown_arch():
-    raw_image = {"instruction_addr": 0xFEEBEE}
-    sdk_info = {"sdk_name": "linux"}
-    complete_image = {
-        "debug_status": "found",
-        "unwind_status": "found",
-        "arch": "unknown",
-    }
-    errors = []
+@pytest.mark.django_db
+def test_sources_builtin(default_project):
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
 
-    merge_symbolicator_image(raw_image, complete_image, sdk_info, errors.append)
+    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft"])
 
-    assert not errors
-    assert raw_image == {"instruction_addr": 0xFEEBEE}
+    with Feature(features):
+        sources = get_sources_for_project(default_project)
+
+    # XXX: The order matters here! Project is always first, then builtin sources
+    source_ids = map(lambda s: s["id"], sources)
+    assert source_ids == ["sentry:project", "sentry:microsoft"]
 
 
-@pytest.mark.parametrize(
-    "code_file,error",
-    [
-        ("/var/containers/Bundle/Application/asdf/foo", EventError.NATIVE_MISSING_DSYM),
-        ("/var/containers/Bundle/Application/asdf/Frameworks/foo",
-         EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM),
-    ],
-)
-def test_merge_symbolicator_image_errors(code_file, error):
-    raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo", "code_file": code_file}
-    sdk_info = {"sdk_name": "macos"}
-    complete_image = {
-        "debug_status": "found",
-        "unwind_status": "missing",
-        "other2": "bar",
-        "arch": "unknown",
-    }
-    errors = []
+# Test that a builtin source that is not declared in SENTRY_BUILTIN_SOURCES does
+# not lead to an error. It should simply be ignored.
+@pytest.mark.django_db
+def test_sources_builtin_unknown(default_project):
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
 
-    merge_symbolicator_image(raw_image, complete_image, sdk_info, errors.append)
+    default_project.update_option("sentry:builtin_symbol_sources", ["invalid"])
 
-    e, = errors
+    with Feature(features):
+        sources = get_sources_for_project(default_project)
 
-    assert e.image_name == "foo"
-    assert e.type == error
+    source_ids = map(lambda s: s["id"], sources)
+    assert source_ids == ["sentry:project"]
 
-    assert raw_image == {
-        "instruction_addr": 0xFEEBEE,
-        "other": "foo",
-        "other2": "bar",
-        "code_file": code_file,
-    }
+
+# Test that previously saved builtin sources are not returned if the feature for
+# builtin sources is missing at query time.
+@pytest.mark.django_db
+def test_sources_builtin_disabled(default_project):
+    features = {"organizations:symbol-sources": False, "organizations:custom-symbol-sources": False}
+
+    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft"])
+
+    with Feature(features):
+        sources = get_sources_for_project(default_project)
+
+    source_ids = map(lambda s: s["id"], sources)
+    assert source_ids == ["sentry:project"]
+
+
+@pytest.mark.django_db
+def test_sources_custom(default_project):
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
+
+    # Remove builtin sources explicitly to avoid defaults
+    default_project.update_option("sentry:builtin_symbol_sources", [])
+    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
+
+    with Feature(features):
+        sources = get_sources_for_project(default_project)
+
+    # XXX: The order matters here! Project is always first, then custom sources
+    source_ids = map(lambda s: s["id"], sources)
+    assert source_ids == ["sentry:project", "custom"]
+
+
+# Test that previously saved custom sources are not returned if the feature for
+# custom sources is missing at query time.
+@pytest.mark.django_db
+def test_sources_custom_disabled(default_project):
+    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+
+    default_project.update_option("sentry:builtin_symbol_sources", [])
+    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
+
+    with Feature(features):
+        sources = get_sources_for_project(default_project)
+
+    source_ids = map(lambda s: s["id"], sources)
+    assert source_ids == ["sentry:project"]

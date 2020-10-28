@@ -3,7 +3,7 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'app/utils/dates';
@@ -30,9 +30,7 @@ class DateSummary extends React.Component {
   };
 
   getFormattedDate(date, format) {
-    return moment(date)
-      .local()
-      .format(format);
+    return moment(date).local().format(format);
   }
 
   formatDate(date) {

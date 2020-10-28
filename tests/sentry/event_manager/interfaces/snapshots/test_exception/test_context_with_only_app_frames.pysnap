@@ -1,5 +1,5 @@
 ---
-created: '2019-04-30T08:25:08.407188Z'
+created: '2019-06-05T20:07:56.986283Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_exception.py
 ---
@@ -70,6 +70,8 @@ to_json:
     stacktrace:
       frames:
       - abs_path: foo/baz.py
+        data:
+          orig_in_app: 1
         filename: foo/baz.py
         in_app: false
         lineno: 1
@@ -79,6 +81,8 @@ to_json:
     stacktrace:
       frames:
       - abs_path: foo/baz.py
+        data:
+          orig_in_app: 1
         filename: foo/baz.py
         in_app: false
         lineno: 1

@@ -1,0 +1,40 @@
+---
+created: '2020-10-13T10:10:26.756360Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes:
+      title: DatabaseUnavailable ({{ transaction }})
+    fingerprint:
+    - database-unavailable
+    - '{{ transaction }}'
+    matchers:
+    - - type
+      - DatabaseUnavailable
+    - - module
+      - io.sentry.example.*
+  version: 1
+fingerprint:
+- database-unavailable
+- '{{ transaction }}'
+title: DatabaseUnavailable (my-transaction)
+variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - database-unavailable
+    - my-transaction
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

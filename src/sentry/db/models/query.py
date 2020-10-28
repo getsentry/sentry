@@ -1,11 +1,3 @@
-"""
-sentry.db.models.query
-~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
 import itertools
@@ -19,7 +11,7 @@ from six.moves import reduce
 
 from .utils import resolve_combined_expression
 
-__all__ = ('update', 'create_or_update')
+__all__ = ("update", "create_or_update")
 
 
 def update(self, using=None, **kwargs):
@@ -31,7 +23,7 @@ def update(self, using=None, **kwargs):
     using = using or router.db_for_write(self.__class__, instance=self)
 
     for field in self._meta.fields:
-        if getattr(field, 'auto_now', False) and field.name not in kwargs:
+        if getattr(field, "auto_now", False) and field.name not in kwargs:
             kwargs[field.name] = field.pre_save(self, False)
 
     affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
@@ -46,7 +38,7 @@ def update(self, using=None, **kwargs):
         return affected
     elif affected < 0:
         raise ValueError(
-            "Somehow we have updated a negative amount of rows, you seem to have a problem with your db backend."
+            "Somehow we have updated a negative number of rows. You seem to have a problem with your db backend."
         )
     else:
         raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
@@ -58,18 +50,23 @@ update.alters_data = True
 def create_or_update(model, using=None, **kwargs):
     """
     Similar to get_or_create, either updates a row or creates it.
-    only values args are used for update
-    both default and values are used for create
 
-    The result will be (rows affected, False), if the row was not created,
+    In order to determine if the row exists, this searches on all of the kwargs
+    besides `values` and `default`.
+
+    If the row exists, it is updated with the data in `values`. If it
+    doesn't, it is created with the data in `values`, `defaults`, and the remaining
+    kwargs.
+
+    The result will be (rows affected, False) if the row was not created,
     or (instance, True) if the object is new.
 
     >>> create_or_update(MyModel, key='value', values={
-    >>>     'value': F('value') + 1,
+    >>>     'col_name': F('col_name') + 1,
     >>> }, defaults={'created_at': timezone.now()})
     """
-    values = kwargs.pop('values', {})
-    defaults = kwargs.pop('defaults', {})
+    values = kwargs.pop("values", {})
+    defaults = kwargs.pop("defaults", {})
 
     if not using:
         using = router.db_for_write(model)
@@ -102,20 +99,20 @@ def create_or_update(model, using=None, **kwargs):
 
 
 def in_iexact(column, values):
-    """Operator to test if any of the given values are (case-insentive) matches
-       to values in the given column."""
+    """Operator to test if any of the given values are (case-insensitive)
+       matching to values in the given column."""
     from operator import or_
 
-    query = u'{}__iexact'.format(column)
+    query = u"{}__iexact".format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])
 
 
 def in_icontains(column, values):
-    """Operator to test if any of the given values are (case-insentively)
+    """Operator to test if any of the given values are (case-insensitively)
        contained within values in the given column."""
     from operator import or_
 
-    query = u'{}__icontains'.format(column)
+    query = u"{}__icontains".format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])

@@ -1,10 +1,3 @@
-"""
-sentry.services.smtp
-~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import asyncore
@@ -26,48 +19,44 @@ logger = logging.getLogger(__name__)
 # EHLO is available in python 3, so this is backported somewhat
 def smtp_EHLO(self, arg):
     if not arg:
-        self.push('501 Syntax: EHLO hostname')
+        self.push("501 Syntax: EHLO hostname")
         return
     if self._SMTPChannel__greeting:
-        self.push('503 Duplicate HELO/EHLO')
+        self.push("503 Duplicate HELO/EHLO")
     else:
         self._SMTPChannel__greeting = arg
-        self.push('250 %s' % self._SMTPChannel__fqdn)
+        self.push("250 %s" % self._SMTPChannel__fqdn)
 
 
 SMTPChannel.smtp_EHLO = smtp_EHLO
 
-STATUS = {
-    200: '200 Ok',
-    550: '550 Not found',
-    552: '552 Message too long',
-}
+STATUS = {200: "200 Ok", 550: "550 Not found", 552: "552 Message too long"}
 
 
 class SentrySMTPServer(Service, SMTPServer):
-    name = 'smtp'
+    name = "smtp"
     max_message_length = 20000  # This might be too conservative
 
     def __init__(self, host=None, port=None, debug=False, workers=None):
         from django.conf import settings
 
-        self.host = host or getattr(settings, 'SENTRY_SMTP_HOST', '0.0.0.0')
-        self.port = port or getattr(settings, 'SENTRY_SMTP_PORT', 1025)
+        self.host = host or getattr(settings, "SENTRY_SMTP_HOST", "0.0.0.0")
+        self.port = port or getattr(settings, "SENTRY_SMTP_PORT", 1025)
 
     def process_message(self, peer, mailfrom, rcpttos, raw_message):
-        logger.info('Incoming message received from %s', mailfrom)
+        logger.info("Incoming message received from %s", mailfrom)
         if not len(rcpttos):
-            logger.info('Incoming email had no recipients. Ignoring.')
+            logger.info("Incoming email had no recipients. Ignoring.")
             return STATUS[550]
 
         if len(raw_message) > self.max_message_length:
-            logger.info('Inbound email message was too long: %d', len(raw_message))
+            logger.info("Inbound email message was too long: %d", len(raw_message))
             return STATUS[552]
 
         try:
             group_id = email_to_group_id(rcpttos[0])
         except Exception:
-            logger.info('%r is not a valid email address', rcpttos)
+            logger.info("%r is not a valid email address", rcpttos)
             return STATUS[550]
 
         message = email.message_from_string(raw_message)

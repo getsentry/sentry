@@ -1,11 +1,12 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {shallow, mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {ProjectInstallPlatform} from 'app/views/projectInstall/platform';
 
-describe('ProjectInstallPlatform', function() {
-  describe('render()', function() {
+describe('ProjectInstallPlatform', function () {
+  describe('render()', function () {
     const baseProps = {
       api: new MockApiClient(),
       organization: TestStubs.Organization(),
@@ -13,7 +14,7 @@ describe('ProjectInstallPlatform', function() {
       location: {query: {}},
     };
 
-    it('should redirect to if no matching platform', function() {
+    it('should redirect to if no matching platform', function () {
       const props = {
         ...baseProps,
         params: {
@@ -28,7 +29,7 @@ describe('ProjectInstallPlatform', function() {
         body: {},
       });
 
-      mount(
+      mountWithTheme(
         <ProjectInstallPlatform {...props} />,
         TestStubs.routerContext([{organization: {id: '1337'}}])
       );
@@ -36,15 +37,22 @@ describe('ProjectInstallPlatform', function() {
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
     });
 
-    it('should render NotFound if no matching integration/platform', async function() {
+    it('should render NotFound if no matching integration/platform', async function () {
       const props = {
         ...baseProps,
         params: {
+          orgId: baseProps.organization.slug,
+          projectId: baseProps.project.slug,
           platform: 'lua',
         },
       };
 
-      const wrapper = shallow(
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/docs/lua/',
+        statusCode: 404,
+      });
+
+      const wrapper = mountWithTheme(
         <ProjectInstallPlatform {...props} />,
         TestStubs.routerContext([{organization: {id: '1337'}}])
       );
@@ -55,23 +63,7 @@ describe('ProjectInstallPlatform', function() {
       expect(wrapper.find('NotFound')).toHaveLength(1);
     });
 
-    it('should rendering Loading if integration/platform exists', function() {
-      const props = {
-        ...baseProps,
-        params: {
-          platform: 'node-connect',
-        },
-      };
-
-      const wrapper = shallow(
-        <ProjectInstallPlatform {...props} />,
-        TestStubs.routerContext([{organization: {id: '1337'}}])
-      );
-
-      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
-    });
-
-    it('should render documentation', async function() {
+    it('should render documentation', async function () {
       const props = {
         ...baseProps,
         params: {
@@ -86,10 +78,13 @@ describe('ProjectInstallPlatform', function() {
         body: {html: '<h1>Documentation here</h1>'},
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <ProjectInstallPlatform {...props} />,
         TestStubs.routerContext([{organization: {id: '1337'}}])
       );
+
+      // Initially has loading indicator
+      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
 
       await tick();
       wrapper.update();

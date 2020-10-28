@@ -4,20 +4,15 @@ from uuid import uuid1
 
 import six
 
-from sentry.models import (
-    Commit,
-    GroupLink,
-    GroupResolution,
-    ReleaseCommit,
-    Repository,
-)
+from sentry.models import Commit, GroupLink, GroupResolution, ReleaseCommit, Repository
 
 from sentry.testutils import APITestCase
+from sentry.utils.compat import map
 
 
 class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
-    endpoint = 'sentry-api-0-project-release-resolved'
-    method = 'get'
+    endpoint = "sentry-api-0-project-release-resolved"
+    method = "get"
 
     def setUp(self):
         super(ProjectIssuesResolvedInReleaseEndpointTest, self).setUp()
@@ -31,31 +26,18 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def build_grouplink(self):
-        repo = Repository.objects.create(
-            organization_id=self.org.id,
-            name=self.project.name,
-        )
+        repo = Repository.objects.create(organization_id=self.org.id, name=self.project.name)
         commit = Commit.objects.create(
-            organization_id=self.org.id,
-            repository_id=repo.id,
-            key=uuid1().hex,
+            organization_id=self.org.id, repository_id=repo.id, key=uuid1().hex
         )
         commit2 = Commit.objects.create(
-            organization_id=self.org.id,
-            repository_id=repo.id,
-            key=uuid1().hex,
+            organization_id=self.org.id, repository_id=repo.id, key=uuid1().hex
         )
         ReleaseCommit.objects.create(
-            organization_id=self.org.id,
-            release=self.release,
-            commit=commit,
-            order=1,
+            organization_id=self.org.id, release=self.release, commit=commit, order=1
         )
         ReleaseCommit.objects.create(
-            organization_id=self.org.id,
-            release=self.release,
-            commit=commit2,
-            order=0,
+            organization_id=self.org.id, release=self.release, commit=commit2, order=0
         )
         GroupLink.objects.create(
             group_id=self.group.id,
@@ -73,14 +55,10 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
         )
 
     def run_test(self, expected_groups):
-        response = self.get_valid_response(
-            self.org.slug,
-            self.project.slug,
-            self.release.version,
-        )
+        response = self.get_valid_response(self.org.slug, self.project.slug, self.release.version)
         assert len(response.data) == len(expected_groups)
         expected = set(map(six.text_type, [g.id for g in expected_groups]))
-        assert set([item['id'] for item in response.data]) == expected
+        assert set([item["id"] for item in response.data]) == expected
 
     def test_shows_issues_from_groupresolution(self):
         """

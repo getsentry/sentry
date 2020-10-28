@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Commit, Event, SnubaEvent, Release
-from sentry.utils.committers import get_event_file_committers
+from sentry.models import Commit, Group, Release
+from sentry.utils.committers import get_serialized_event_file_committers
 
 
 class EventFileCommittersEndpoint(ProjectEndpoint):
@@ -22,28 +22,20 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                                  retrieve (as reported by the raven client).
         :auth: required
         """
-
-        use_snuba = options.get('snuba.events-queries.enabled')
-
-        event_cls = event_cls = SnubaEvent if use_snuba else Event
-
-        event = event_cls.objects.from_event_id(event_id, project.id)
+        event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
-            return Response({'detail': 'Event not found'}, status=404)
-
-        # populate event data
-        Event.objects.bind_nodes([event], 'data')
+            return Response({"detail": "Event not found"}, status=404)
 
         try:
-            committers = get_event_file_committers(
-                project,
-                event,
-                frame_limit=int(request.GET.get('frameLimit', 25)),
+            committers = get_serialized_event_file_committers(
+                project, event, frame_limit=int(request.GET.get("frameLimit", 25))
             )
+        except Group.DoesNotExist:
+            return Response({"detail": "Issue not found"}, status=404)
         except Release.DoesNotExist:
-            return Response({'detail': 'Release not found'}, status=404)
+            return Response({"detail": "Release not found"}, status=404)
         except Commit.DoesNotExist:
-            return Response({'detail': 'No Commits found for Release'}, status=404)
+            return Response({"detail": "No Commits found for Release"}, status=404)
 
         # XXX(dcramer): this data is unused, so lets not bother returning it for now
         # serialize the commit objects
@@ -55,7 +47,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         # ]
 
         data = {
-            'committers': committers,
+            "committers": committers,
             # 'annotatedFrames': serialized_annotated_frames
         }
         return Response(data)

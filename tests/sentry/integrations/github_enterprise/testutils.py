@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 # we keep this as a raw string as order matters for hmac signing
-PUSH_EVENT_EXAMPLE = b"""{
+PUSH_EVENT_EXAMPLE = r"""{
   "ref": "refs/heads/changes",
   "before": "9049f1265b7d61be4a8904a9a27120d2064dab3b",
   "after": "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
@@ -212,7 +212,7 @@ PUSH_EVENT_EXAMPLE = b"""{
   }
 }"""
 
-PUSH_EVENT_EXAMPLE_INSTALLATION = b"""{
+PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
   "ref": "refs/heads/changes",
   "installation" : {
     "id": 12345
