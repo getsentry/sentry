@@ -331,7 +331,7 @@ const RuleRow = styled('div')`
 const RuleRowContainer = styled('div')`
   background-color: ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px ${p => p.theme.border} solid;
+  border: 1px ${p => p.theme.innerBorder} solid;
 `;
 
 const Rule = styled('div')`
