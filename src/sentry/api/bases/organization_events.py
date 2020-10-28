@@ -51,6 +51,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             params = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
+            params["user_id"] = request.user.id
 
             if check_global_views:
                 has_global_views = features.has(

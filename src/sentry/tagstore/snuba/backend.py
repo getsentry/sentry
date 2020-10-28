@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import functools
 import six
 from collections import defaultdict, Iterable, OrderedDict
-from copy import deepcopy
 from dateutil.parser import parse as parse_datetime
 from pytz import UTC
 
@@ -767,7 +766,7 @@ class SnubaTagStorage(TagStorage):
                 # and resolve it to the corresponding snuba query
                 dataset = Dataset.Discover
                 resolver = snuba.resolve_column(dataset)
-                snuba_name = deepcopy(FIELD_ALIASES[USER_DISPLAY_ALIAS]["field"])
+                snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
                 snuba.resolve_complex_column(snuba_name, resolver)
             elif snuba_name in BLACKLISTED_COLUMNS:
                 snuba_name = "tags[%s]" % (key,)

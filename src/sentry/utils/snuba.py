@@ -804,7 +804,7 @@ def resolve_column(dataset):
     def _resolve_column(col):
         if col is None:
             return col
-        if isinstance(col, float):
+        if isinstance(col, six.integer_types) or isinstance(col, float):
             return col
         if isinstance(col, six.string_types) and (
             col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
