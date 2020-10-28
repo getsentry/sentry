@@ -1685,6 +1685,13 @@ class TriggerActionTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=six.text_type(self.user.id),
         )
+        # Duplicate action that should be deduped
+        create_alert_rule_trigger_action(
+            trigger=trigger,
+            type=AlertRuleTriggerAction.Type.EMAIL,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=six.text_type(self.user.id),
+        )
         return rule
 
     @fixture
@@ -1717,6 +1724,7 @@ class TriggerActionTest(TestCase):
                 status_method=IncidentStatusMethod.MANUAL,
             )
 
+        assert len(mail.outbox) == 1
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
