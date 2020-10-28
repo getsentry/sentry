@@ -10,12 +10,18 @@ from django.conf import settings
 from django.db import transaction
 
 from sentry import features
-from sentry.incidents.logic import create_incident, update_incident_status
-from sentry.incidents.endpoints.serializers import WARNING_TRIGGER_LABEL, CRITICAL_TRIGGER_LABEL
+from sentry.incidents.logic import (
+    create_incident,
+    CRITICAL_TRIGGER_LABEL,
+    deduplicate_trigger_actions,
+    update_incident_status,
+    WARNING_TRIGGER_LABEL,
+)
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
     AlertRuleTrigger,
+    AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
     IncidentStatusMethod,
@@ -191,42 +197,49 @@ class SubscriptionProcessor(object):
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
-        for trigger in self.triggers:
-            if alert_operator(
-                aggregation_value, trigger.alert_threshold
-            ) and not self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
-                metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
-                with transaction.atomic():
-                    self.trigger_alert_threshold(trigger, aggregation_value)
+        fired_incident_triggers = []
+        with transaction.atomic():
+            for trigger in self.triggers:
+                if alert_operator(
+                    aggregation_value, trigger.alert_threshold
+                ) and not self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
+                    metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                    incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
+                    if incident_trigger is not None:
+                        fired_incident_triggers.append(incident_trigger)
+                else:
+                    self.trigger_alert_counts[trigger.id] = 0
+
+            if (
+                resolve_operator(aggregation_value, self.calculate_resolve_threshold())
+                and self.active_incident
+            ):
+                self.rule_resolve_counts += 1
+                if self.rule_resolve_counts >= self.alert_rule.threshold_period:
+                    # TODO: Make sure we iterate over critical then warning in order.
+                    metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
+                    for trigger in self.triggers:
+                        if self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
+                            incident_trigger = self.trigger_resolve_threshold(
+                                trigger, aggregation_value
+                            )
+                            if incident_trigger is not None:
+                                fired_incident_triggers.append(incident_trigger)
+
+                    update_incident_status(
+                        self.active_incident,
+                        IncidentStatus.CLOSED,
+                        status_method=IncidentStatusMethod.RULE_TRIGGERED,
+                        date_closed=self.calculate_event_date_from_update_date(self.last_update),
+                    )
+                    self.active_incident = None
+                    self.incident_triggers.clear()
+                    self.rule_resolve_counts = 0
             else:
-                self.trigger_alert_counts[trigger.id] = 0
-
-        if (
-            resolve_operator(aggregation_value, self.calculate_resolve_threshold())
-            and self.active_incident
-        ):
-            self.rule_resolve_counts += 1
-            if self.rule_resolve_counts >= self.alert_rule.threshold_period:
-                # TODO: Make sure we iterate over critical then warning in order.
-                # Potentially also de-dupe actions that are identical. Maybe just
-                # collect all actions, de-dupe and resolve all at once
-                metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
-                for trigger in self.triggers:
-                    if self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
-                        with transaction.atomic():
-                            self.trigger_resolve_threshold(trigger, aggregation_value)
-
-                update_incident_status(
-                    self.active_incident,
-                    IncidentStatus.CLOSED,
-                    status_method=IncidentStatusMethod.RULE_TRIGGERED,
-                    date_closed=self.calculate_event_date_from_update_date(self.last_update),
-                )
-                self.active_incident = None
-                self.incident_triggers.clear()
                 self.rule_resolve_counts = 0
-        else:
-            self.rule_resolve_counts = 0
+
+            if fired_incident_triggers:
+                self.handle_trigger_actions(fired_incident_triggers, aggregation_value)
 
         # We update the rule stats here after we commit the transaction. This guarantees
         # that we'll never miss an update, since we'll never roll back if the process
@@ -292,7 +305,6 @@ class SubscriptionProcessor(object):
                     status=TriggerStatus.ACTIVE.value,
                 )
             self.handle_incident_severity_update()
-            self.handle_trigger_actions(incident_trigger, metric_value)
             self.incident_triggers[trigger.id] = incident_trigger
 
             # TODO: We should create an audit log, and maybe something that keeps
@@ -302,6 +314,7 @@ class SubscriptionProcessor(object):
             # We now set this threshold to 0. We don't need to count it anymore
             # once we've triggered an incident.
             self.trigger_alert_counts[trigger.id] = 0
+            return incident_trigger
 
     def trigger_resolve_threshold(self, trigger, metric_value):
         """
@@ -313,21 +326,29 @@ class SubscriptionProcessor(object):
         incident_trigger = self.incident_triggers[trigger.id]
         incident_trigger.status = TriggerStatus.RESOLVED.value
         incident_trigger.save()
-        self.handle_trigger_actions(incident_trigger, metric_value)
+        return incident_trigger
 
-    def handle_trigger_actions(self, incident_trigger, metric_value):
+    def handle_trigger_actions(self, incident_triggers, metric_value):
+        # These will all be for the same incident and status, so just grab the first one
+        incident_trigger = incident_triggers[0]
         method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
+        actions = deduplicate_trigger_actions(
+            list(
+                AlertRuleTriggerAction.objects.filter(
+                    alert_rule_trigger__in=[it.alert_rule_trigger for it in incident_triggers]
+                ).select_related("alert_rule_trigger")
+            )
+        )
 
-        for action in incident_trigger.alert_rule_trigger.alertruletriggeraction_set.all():
-            handle_trigger_action.apply_async(
-                kwargs={
-                    "action_id": action.id,
-                    "incident_id": incident_trigger.incident_id,
-                    "project_id": self.subscription.project_id,
-                    "metric_value": metric_value,
-                    "method": method,
-                },
-                countdown=5,
+        for action in actions:
+            transaction.on_commit(
+                handle_trigger_action.s(
+                    action_id=action.id,
+                    incident_id=incident_trigger.incident_id,
+                    project_id=self.subscription.project_id,
+                    metric_value=metric_value,
+                    method=method,
+                ).delay
             )
 
     def handle_incident_severity_update(self):

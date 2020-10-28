@@ -8,13 +8,18 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
   const {routerContext, organization} = initializeOrg();
-  const releases = [TestStubs.Release()];
+  const releases = [
+    {
+      version: 'sentry-android-shop@1.2.0',
+      date: '2020-03-23T00:00:00Z',
+    },
+  ];
   let releasesMock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     releasesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/`,
+      url: `/organizations/${organization.slug}/releases/stats/`,
       body: releases,
     });
   });

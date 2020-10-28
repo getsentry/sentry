@@ -37,6 +37,7 @@ type BaseField = {
   label?: React.ReactNode | (() => React.ReactNode);
   name: string;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
+  showHelpInTooltip?: boolean;
   required?: boolean;
   placeholder?: string | ((props: any) => React.ReactNode);
   multiline?: boolean;

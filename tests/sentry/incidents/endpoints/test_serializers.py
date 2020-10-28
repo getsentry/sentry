@@ -165,6 +165,15 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         assert alert_rule.snuba_query.aggregate == aggregate
 
+        aggregate = "sum(measurements.fp)"
+        base_params = self.valid_transaction_params.copy()
+        base_params["name"] = "measurement test"
+        base_params["aggregate"] = aggregate
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.snuba_query.aggregate == aggregate
+
     def test_alert_rule_resolved_invalid(self):
         self.run_fail_validation_test(
             {"resolve_threshold": 500},

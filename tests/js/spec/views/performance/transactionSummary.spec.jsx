@@ -49,7 +49,7 @@ describe('Performance > TransactionSummary', function () {
       body: {data: [[123, []]]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
     MockApiClient.addMockResponse({
