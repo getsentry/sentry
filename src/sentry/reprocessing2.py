@@ -24,12 +24,6 @@ _REDIS_SYNC_TTL = 3600
 
 GROUP_MODELS_TO_MIGRATE = GROUP_RELATED_MODELS + (models.Activity,)
 
-RESET_GROUP_ATTRS = {
-    "times_seen": 0,
-}
-
-TRANSFER_GROUP_ATTRS = ("status", "short_id")
-
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
     return hashlib.md5(
@@ -218,24 +212,23 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
 
     with transaction.atomic():
         group = models.Group.objects.get(id=group_id)
-        transferred_group_attrs = {}
-        for attr in TRANSFER_GROUP_ATTRS:
-            transferred_group_attrs[attr] = getattr(group, attr)
-
+        original_status = group.status
+        original_short_id = group.short_id
         group.status = models.GroupStatus.REPROCESSING
-        group.short_id = None  # satisfy unique constraint
+        # satisfy unique constraint of (project_id, short_id)
+        group.short_id = None
         group.save()
 
+        # Create a duplicate row that has the same attributes by nulling out
+        # the primary key and saving
         group.pk = group.id = None
-        for attr in TRANSFER_GROUP_ATTRS:
-            setattr(group, attr, transferred_group_attrs[attr])
-
-        for attr in RESET_GROUP_ATTRS:
-            setattr(group, attr, RESET_GROUP_ATTRS[attr])
-
-        group.save()
-        new_group = group
+        new_group = group  # rename variable just to avoid confusion
         del group
+        new_group.status = original_status
+        new_group.short_id = original_short_id
+        # this will be incremented by the events that are reprocessed
+        new_group.times_seen = 0
+        new_group.save()
 
         for model in GROUP_MODELS_TO_MIGRATE:
             model.objects.filter(group_id=group_id).update(group_id=new_group.id)
