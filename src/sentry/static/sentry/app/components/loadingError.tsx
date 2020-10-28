@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {css} from '@emotion/core';
+import isPropValid from '@emotion/is-prop-valid';
 
 import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
@@ -10,6 +12,10 @@ import space from 'app/styles/space';
 
 type DefaultProps = {
   message: React.ReactNode;
+  /**
+   * Adjust styles to better fit full-width in a panel
+   */
+  isPanel: boolean;
 };
 
 type Props = DefaultProps & {
@@ -23,10 +29,12 @@ class LoadingError extends React.Component<Props> {
   static propTypes = {
     onRetry: PropTypes.func,
     message: PropTypes.string,
+    isPanel: PropTypes.bool,
   };
 
   static defaultProps: DefaultProps = {
     message: t('There was an error loading data.'),
+    isPanel: false,
   };
 
   shouldComponentUpdate() {
@@ -34,9 +42,9 @@ class LoadingError extends React.Component<Props> {
   }
 
   render() {
-    const {message, onRetry} = this.props;
+    const {message, isPanel, onRetry} = this.props;
     return (
-      <StyledAlert type="error">
+      <StyledAlert isPanel={isPanel} type="error">
         <Content>
           <IconInfo size="lg" />
           <div data-test-id="loading-error-message">{message}</div>
@@ -53,9 +61,15 @@ class LoadingError extends React.Component<Props> {
 
 export default LoadingError;
 
-const StyledAlert = styled(Alert)`
-  border-radius: 0;
-  border-width: 1px 0;
+const StyledAlert = styled(Alert, {
+  shouldForwardProp: prop => isPropValid(prop) && prop !== 'isPanel',
+})<{isPanel: boolean}>`
+  ${p =>
+    p.isPanel &&
+    css`
+      border-radius: 0;
+      border-width: 1px 0;
+    `}
 `;
 
 const Content = styled('div')`
