@@ -1,6 +1,7 @@
 import Reflux from 'reflux';
 import pick from 'lodash/pick';
 
+import {Group, Project, Organization, Event} from 'app/types';
 import {Client} from 'app/api';
 import {
   addErrorMessage,
@@ -9,19 +10,146 @@ import {
 } from 'app/actionCreators/indicator';
 import GroupingActions from 'app/actions/groupingActions';
 
-const api = new Client();
-
 // Between 0-100
 const MIN_SCORE = 0.6;
 
 // @param score: {[key: string]: number}
-const checkBelowThreshold = scores => {
-  const scoreKeys = (scores && Object.keys(scores)) || [];
+const checkBelowThreshold = (scores = {}) => {
+  const scoreKeys = Object.keys(scores);
   return !scoreKeys.map(key => scores[key]).find(score => score >= MIN_SCORE);
 };
 
-const GroupingStore = Reflux.createStore({
+type State = {
+  // List of fingerprints that belong to issue
+  mergedItems: [];
+  // Map of {[fingerprint]: Array<fingerprint, event id>} that is selected to be unmerged
+  unmergeList: Map<any, any>;
+  // Map of state for each fingerprint (i.e. "collapsed")
+  unmergeState: Map<any, any>;
+  // Disabled state of "Unmerge" button in "Merged" tab (for Issues)
+  unmergeDisabled: boolean;
+  // If "Collapse All" was just used, this will be true
+  unmergeLastCollapsed: boolean;
+  // "Compare" button state
+  enableFingerprintCompare: boolean;
+  similarItems: [];
+  filteredSimilarItems: [];
+  similarLinks: string;
+  mergeState: Map<any, any>;
+  mergeList: Set<any>;
+  mergedLinks: string;
+  mergeDisabled: boolean;
+  loading: boolean;
+  error: boolean;
+};
+
+type ScoreMap = Record<string, number | null>;
+
+type Item = {
+  id: string;
+  latestEvent: Event;
+  state?: string;
+};
+
+type ResponseProcessors = {
+  merged: (item: Item) => Item;
+  similar: (
+    data: [Group, ScoreMap]
+  ) => {
+    issue: Group;
+    score: ScoreMap;
+    scoresByInterface: Record<string, Array<[string, number | null]>>;
+    aggregate: Record<string, number>;
+    isBelowThreshold: boolean;
+  };
+};
+
+type DataKey = keyof ResponseProcessors;
+
+type ResultsAsArrayDataMerged = Array<Parameters<ResponseProcessors['merged']>[0]>;
+
+type ResultsAsArrayDataSimilar = Array<Parameters<ResponseProcessors['similar']>[0]>;
+
+type ResultsAsArray = Array<{
+  dataKey: DataKey;
+  data: ResultsAsArrayDataMerged | ResultsAsArrayDataSimilar;
+  links: string | null;
+}>;
+
+type IdState = {
+  busy?: boolean;
+  checked?: boolean;
+  collapsed?: boolean;
+};
+
+type GroupingStoreInterface = Reflux.StoreDefinition & {
+  init: () => void;
+  getInitialState: () => State;
+  setStateForId: (
+    map: Map<string, IdState>,
+    idOrIds: Array<string> | string,
+    newState: IdState
+  ) => Array<IdState>;
+  isAllUnmergedSelected: () => boolean;
+  onFetch: (
+    toFetchArray?: Array<{
+      dataKey: DataKey;
+      endpoint: string;
+      queryParams?: Record<string, any>;
+    }>
+  ) => Promise<any>;
+  onToggleMerge: (id: string) => void;
+  onToggleUnmerge: (props: [string, string] | string) => void;
+  onUnmerge: (props: {
+    groupId: Group['id'];
+    loadingMessage?: string;
+    successMessage?: string;
+    errorMessage?: string;
+  }) => void;
+  onMerge: (props: {
+    params?: {
+      orgId: Organization['id'];
+      projectId: Project['id'];
+      groupId: Group['id'];
+    };
+    projectId?: Project['id'];
+    query?: string;
+  }) => undefined | Promise<any>;
+  onToggleCollapseFingerprints: () => void;
+  onToggleCollapseFingerprint: (fingerprint: string) => void;
+  triggerFetchState: () => Pick<
+    State,
+    | 'similarItems'
+    | 'filteredSimilarItems'
+    | 'mergedItems'
+    | 'mergedLinks'
+    | 'similarLinks'
+    | 'mergeState'
+    | 'unmergeState'
+    | 'loading'
+    | 'error'
+  >;
+  triggerUnmergeState: () => Pick<
+    State,
+    | 'unmergeDisabled'
+    | 'unmergeState'
+    | 'unmergeList'
+    | 'enableFingerprintCompare'
+    | 'unmergeLastCollapsed'
+  >;
+  triggerMergeState: () => Pick<State, 'mergeState' | 'mergeDisabled' | 'mergeList'>;
+};
+
+type Internals = {
+  api: Client;
+};
+
+type GroupingStore = Reflux.Store & GroupingStoreInterface;
+
+const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface = {
   listenables: [GroupingActions],
+  api: new Client(),
+
   init() {
     const state = this.getInitialState();
 
@@ -44,7 +172,6 @@ const GroupingStore = Reflux.createStore({
       unmergeLastCollapsed: false,
       // "Compare" button state
       enableFingerprintCompare: false,
-
       similarItems: [],
       filteredSimilarItems: [],
       similarLinks: '',
@@ -52,7 +179,6 @@ const GroupingStore = Reflux.createStore({
       mergeList: new Set(),
       mergedLinks: '',
       mergeDisabled: false,
-
       loading: true,
       error: false,
     };
@@ -63,7 +189,7 @@ const GroupingStore = Reflux.createStore({
 
     return ids.map(id => {
       const state = (map.has(id) && map.get(id)) || {};
-      const mergedState = Object.assign({}, state, newState);
+      const mergedState = {...state, ...newState};
       map.set(id, mergedState);
       return mergedState;
     });
@@ -71,7 +197,9 @@ const GroupingStore = Reflux.createStore({
 
   isAllUnmergedSelected() {
     const lockedItems =
-      Array.from(this.unmergeState.values()).filter(({busy}) => busy) || [];
+      (Array.from(this.unmergeState.values()) as Array<IdState>).filter(
+        ({busy}) => busy
+      ) || [];
     return (
       this.unmergeList.size ===
       this.mergedItems.filter(({latestEvent}) => !!latestEvent).length -
@@ -90,25 +218,25 @@ const GroupingStore = Reflux.createStore({
     const promises = requests.map(
       ({endpoint, queryParams, dataKey}) =>
         new Promise((resolve, reject) => {
-          api.request(endpoint, {
+          this.api.request(endpoint, {
             method: 'GET',
             data: queryParams,
             success: (data, _, jqXHR) => {
               resolve({
                 dataKey,
                 data,
-                links: jqXHR.getResponseHeader('Link'),
+                links: jqXHR ? jqXHR.getResponseHeader('Link') : null,
               });
             },
             error: err => {
-              const error = (err.responseJSON && err.responseJSON.detail) || true;
+              const error = err.responseJSON?.detail || true;
               reject(error);
             },
           });
         })
     );
 
-    const responseProcessors = {
+    const responseProcessors: ResponseProcessors = {
       merged: item => {
         // Check for locked items
         this.setStateForId(this.unmergeState, item.id, {
@@ -125,7 +253,7 @@ const GroupingStore = Reflux.createStore({
           .map(scoreKey => [scoreKey, scoreMap[scoreKey]])
           .reduce((acc, [scoreKey, score]) => {
             // tokenize scorekey, first token is the interface name
-            const [interfaceName] = scoreKey.split(':');
+            const [interfaceName] = String(scoreKey).split(':');
             if (!acc[interfaceName]) {
               acc[interfaceName] = [];
             }
@@ -162,8 +290,11 @@ const GroupingStore = Reflux.createStore({
 
     return Promise.all(promises).then(
       resultsArray => {
-        resultsArray.forEach(({dataKey, data, links}) => {
-          const items = data.map(responseProcessors[dataKey]);
+        (resultsArray as ResultsAsArray).forEach(({dataKey, data, links}) => {
+          const items =
+            dataKey === 'similar'
+              ? (data as ResultsAsArrayDataSimilar).map(responseProcessors[dataKey])
+              : (data as ResultsAsArrayDataMerged).map(responseProcessors[dataKey]);
           this[`${dataKey}Items`] = items;
           this[`${dataKey}Links`] = links;
         });
@@ -182,17 +313,17 @@ const GroupingStore = Reflux.createStore({
 
   // Toggle merge checkbox
   onToggleMerge(id) {
-    let checked;
+    let checked = false;
 
     // Don't do anything if item is busy
-    const state = this.mergeState.has(id) && this.mergeState.get(id);
-    if (state && state.busy === true) {
+    const state = this.mergeState.has(id) ? this.mergeState.get(id) : undefined;
+
+    if (state?.busy === true) {
       return;
     }
 
     if (this.mergeList.has(id)) {
       this.mergeList.delete(id);
-      checked = false;
     } else {
       this.mergeList.add(id);
       checked = true;
@@ -207,18 +338,17 @@ const GroupingStore = Reflux.createStore({
 
   // Toggle unmerge check box
   onToggleUnmerge([fingerprint, eventId]) {
-    let checked;
+    let checked = false;
 
     // Uncheck an item to unmerge
     const state = this.unmergeState.get(fingerprint);
 
-    if (state && state.busy === true) {
+    if (state?.busy === true) {
       return;
     }
 
     if (this.unmergeList.has(fingerprint)) {
       this.unmergeList.delete(fingerprint);
-      checked = false;
     } else {
       this.unmergeList.set(fingerprint, eventId);
       checked = true;
@@ -237,7 +367,7 @@ const GroupingStore = Reflux.createStore({
   },
 
   onUnmerge({groupId, loadingMessage, successMessage, errorMessage}) {
-    const ids = Array.from(this.unmergeList.keys());
+    const ids = Array.from(this.unmergeList.keys()) as Array<string>;
 
     return new Promise((resolve, reject) => {
       if (this.isAllUnmergedSelected()) {
@@ -256,7 +386,7 @@ const GroupingStore = Reflux.createStore({
       this.triggerUnmergeState();
       addLoadingMessage(loadingMessage);
 
-      api.request(`/issues/${groupId}/hashes/`, {
+      this.api.request(`/issues/${groupId}/hashes/`, {
         method: 'DELETE',
         query: {
           id: ids,
@@ -285,60 +415,61 @@ const GroupingStore = Reflux.createStore({
       });
     });
   },
-
   // For cross-project views, we need to pass projectId instead of
   // depending on router params (since we will only have orgId in that case)
   onMerge({params, query, projectId}) {
-    const ids = Array.from(this.mergeList.values());
+    if (!params) {
+      return undefined;
+    }
+
+    const ids = Array.from(this.mergeList.values()) as Array<string>;
 
     this.mergeDisabled = true;
+
     this.setStateForId(this.mergeState, ids, {
       busy: true,
     });
+
     this.triggerMergeState();
 
     const promise = new Promise(resolve => {
       // Disable merge button
+      const {orgId, groupId} = params;
 
-      if (params) {
-        const {orgId, groupId} = params;
-        api.merge(
-          {
-            orgId,
-            projectId: projectId || params.projectId,
-            itemIds: [...ids, groupId],
-            query,
+      this.api.merge(
+        {
+          orgId,
+          projectId: projectId || params.projectId,
+          itemIds: [...(ids as any), groupId] as Array<number>,
+          query,
+        },
+        {
+          success: data => {
+            if (data?.merge?.parent) {
+              this.trigger({
+                mergedParent: data.merge.parent,
+              });
+            }
+
+            // Hide rows after successful merge
+            this.setStateForId(this.mergeState, ids, {
+              checked: false,
+              busy: true,
+            });
+            this.mergeList.clear();
           },
-          {
-            success: data => {
-              if (data && data.merge && data.merge.parent) {
-                this.trigger({
-                  mergedParent: data.merge.parent,
-                });
-              }
-
-              // Hide rows after successful merge
-              this.setStateForId(this.mergeState, ids, {
-                checked: false,
-                busy: true,
-              });
-              this.mergeList.clear();
-            },
-            error: () => {
-              this.setStateForId(this.mergeState, ids, {
-                checked: true,
-                busy: false,
-              });
-            },
-            complete: () => {
-              this.mergeDisabled = false;
-              resolve(this.triggerMergeState());
-            },
-          }
-        );
-      } else {
-        resolve(null);
-      }
+          error: () => {
+            this.setStateForId(this.mergeState, ids, {
+              checked: true,
+              busy: false,
+            });
+          },
+          complete: () => {
+            this.mergeDisabled = false;
+            resolve(this.triggerMergeState());
+          },
+        }
+      );
     });
 
     return promise;
@@ -408,6 +539,6 @@ const GroupingStore = Reflux.createStore({
     this.trigger(state);
     return state;
   },
-});
+};
 
-export default GroupingStore;
+export default Reflux.createStore(storeConfig) as GroupingStore;
