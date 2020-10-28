@@ -30,7 +30,7 @@ type Props = {
   children: React.ReactNode | ChildrenRenderFn;
 };
 
-class Role extends React.PureComponent<Props> {
+class Role extends React.Component<Props> {
   hasRole() {
     const user = ConfigStore.get('user');
     const {organization, role} = this.props;
