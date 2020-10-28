@@ -15,7 +15,6 @@ import space from 'app/styles/space';
 import {Group, GroupIntegration, IntegrationExternalIssue} from 'app/types';
 
 type Props = AsyncComponent['props'] & {
-  integration: GroupIntegration;
   configurations: GroupIntegration[];
   group: Group;
 };
@@ -23,13 +22,13 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   showModal: boolean;
   action: 'create' | 'link' | null;
-  selectedIntegration: GroupIntegration;
-  issue: IntegrationExternalIssue | null;
+  selectedIntegration: GroupIntegration | null;
+  unlinked: GroupIntegration[];
+  linked: GroupIntegration[];
 };
 class ExternalIssueActions extends AsyncComponent<Props, State> {
   static propTypes = {
     group: PropTypes.object.isRequired,
-    integration: PropTypes.object.isRequired,
   };
 
   constructor(props: Props, context) {
@@ -38,9 +37,9 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     this.state = {
       showModal: false,
       action: 'create',
-      selectedIntegration: this.props.integration,
-      issue: this.getIssue(),
+      selectedIntegration: null,
       ...this.getDefaultState(),
+      ...this.linkedIssuesFilter(),
     };
   }
 
@@ -48,31 +47,49 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     return [];
   }
 
-  getIssue() {
-    return this.props.integration && this.props.integration.externalIssues
-      ? this.props.integration.externalIssues[0]
-      : null;
+  linkedIssuesFilter() {
+    return this.props.configurations.reduce(
+      (acc, curr) => {
+        if (curr.externalIssues.length) {
+          acc.linked.push(curr);
+        } else {
+          acc.unlinked.push(curr);
+        }
+        return acc;
+      },
+      {linked: [] as GroupIntegration[], unlinked: [] as GroupIntegration[]}
+    );
   }
 
-  deleteIssue(issueId: string) {
-    const {group, integration} = this.props;
-    const endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${issueId}`;
+  deleteIssue(integration: GroupIntegration) {
+    const {group} = this.props;
+    const {externalIssues} = integration;
+    let issue = externalIssues[0];
+    let {id} = issue;
+    const endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${id}`;
+
     this.api.request(endpoint, {
       method: 'DELETE',
       success: () => {
         addSuccessMessage(t('Successfully unlinked issue.'));
+        let unlinked = JSON.parse(JSON.stringify(integration)) as GroupIntegration;
+        unlinked.externalIssues = [];
         this.setState({
-          issue: null,
+          selectedIntegration: null,
+          linked: this.state.linked.filter(config => config.id !== unlinked.id),
+          unlinked: [...this.state.unlinked, unlinked],
         });
       },
       error: () => {
         addErrorMessage(t('Unable to unlink issue.'));
+        this.setState({
+          selectedIntegration: null,
+        });
       },
     });
   }
 
-  openModal = () => {
-    const {integration} = this.props;
+  openModal = (integration: GroupIntegration) => {
     this.setState({
       showModal: true,
       selectedIntegration: integration,
@@ -80,11 +97,11 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     });
   };
 
-  closeModal = data => {
+  closeModal = () => {
     this.setState({
       showModal: false,
       action: null,
-      issue: data && data.id ? data : null,
+      selectedIntegration: null,
     });
   };
 
@@ -92,39 +109,74 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     this.setState({action});
   };
 
+  linkIssueSuccess = (
+    integration: GroupIntegration,
+    externalIssue: IntegrationExternalIssue
+  ) => {
+    let linked = JSON.parse(JSON.stringify(integration)) as GroupIntegration;
+    linked.externalIssues = [externalIssue];
+    this.setState(
+      {
+        linked: [...this.state.linked, linked],
+        unlinked: this.state.unlinked.filter(config => config.id !== linked.id),
+      },
+      () => this.closeModal()
+    );
+  };
+
   renderBody() {
-    const {action, selectedIntegration, issue} = this.state;
-    console.log({issue});
+    const {action, selectedIntegration, linked, unlinked} = this.state;
     return (
       <React.Fragment>
-        <IssueSyncListElement
-          // onOpen={this.openModal}
-          externalIssueLink={issue ? issue.url : null}
-          externalIssueId={issue ? issue.id : null}
-          externalIssueKey={issue ? issue.key : null}
-          externalIssueDisplayName={issue ? issue.displayName : null}
-          onClose={this.deleteIssue.bind(this)}
-          integrationType={selectedIntegration.provider.key}
-          hoverCardHeader={t('Linked %s Integration', selectedIntegration.provider.name)}
-          hoverCardBody={
-            issue && issue.title ? (
-              <div>
-                <IssueTitle>{issue.title}</IssueTitle>
-                {issue.description && (
-                  <IssueDescription>{issue.description}</IssueDescription>
-                )}
-              </div>
-            ) : (
-              <React.Fragment>
-                {this.props.configurations.map(config => (
-                  <Wrapper onClick={this.openModal}>
-                    <IntegrationItem integration={config} />
-                  </Wrapper>
-                ))}
-              </React.Fragment>
-            )
-          }
-        />
+        {linked.length > 0 &&
+          linked.map(config => {
+            const {provider, externalIssues} = config;
+            let issue = externalIssues[0];
+            return (
+              <IssueSyncListElement
+                key={issue.id}
+                externalIssueLink={issue.url}
+                externalIssueId={issue.id}
+                externalIssueKey={issue.key}
+                externalIssueDisplayName={issue.displayName}
+                onClose={() => this.deleteIssue(config)}
+                integrationType={provider.key}
+                hoverCardHeader={t('Linked %s Integration', provider.name)}
+                hoverCardBody={
+                  <div>
+                    <IssueTitle>{issue.title}</IssueTitle>
+                    {issue.description && (
+                      <IssueDescription>{issue.description}</IssueDescription>
+                    )}
+                  </div>
+                }
+              />
+            );
+          })}
+
+        {unlinked.length > 0 && (
+          <IssueSyncListElement
+            externalIssueLink={null}
+            externalIssueId={null}
+            externalIssueKey={null}
+            externalIssueDisplayName={null}
+            integrationType={unlinked[0].provider.key}
+            hoverCardHeader={t('Linked %s Integration', unlinked[0].provider.name)}
+            hoverCardBody={
+              <Container>
+                {unlinked
+                  .sort((a, b) =>
+                    a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+                  )
+                  .map(config => (
+                    <Wrapper onClick={() => this.openModal(config)} key={config.id}>
+                      <IntegrationItem integration={config} />
+                    </Wrapper>
+                  ))}
+              </Container>
+            }
+          />
+        )}
         {selectedIntegration && (
           <Modal
             show={this.state.showModal}
@@ -153,7 +205,9 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
                   group={this.props.group}
                   integration={selectedIntegration}
                   action={action}
-                  onSubmitSuccess={this.closeModal}
+                  onSubmitSuccess={externalIssue =>
+                    this.linkIssueSuccess(selectedIntegration, externalIssue)
+                  }
                 />
               )}
             </Modal.Body>
@@ -178,6 +232,12 @@ const IssueDescription = styled('div')`
 const Wrapper = styled('div')`
   margin-bottom: ${space(2)};
   cursor: pointer;
+`;
+
+const Container = styled('div')`
+  & > div:last-child {
+    margin-bottom: ${space(1)};
+  }
 `;
 
 export default ExternalIssueActions;

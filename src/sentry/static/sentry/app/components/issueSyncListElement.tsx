@@ -51,6 +51,14 @@ class IssueSyncListElement extends React.Component<Props> {
     callIfFunction(this.props.onClose, this.props.externalIssueId);
   };
 
+  handleIconClick = () => {
+    if (this.isLinked()) {
+      this.handleDelete();
+    } else if (this.props.onOpen) {
+      this.props.onOpen();
+    }
+  };
+
   getIcon(): React.ReactNode {
     switch (this.props.integrationType) {
       case 'bitbucket':
@@ -133,9 +141,9 @@ class IssueSyncListElement extends React.Component<Props> {
             </Hovercard>
           )}
         </ClassNames>
-        {this.props.onOpen && this.props.onClose && (
-          <StyledIcon onClick={this.isLinked() ? this.handleDelete : this.props.onOpen}>
-            {this.isLinked() ? <IconClose /> : <IconAdd />}
+        {this.props.onClose && (
+          <StyledIcon onClick={this.handleIconClick}>
+            {this.isLinked() ? <IconClose /> : this.props.onOpen ? <IconAdd /> : null}
           </StyledIcon>
         )}
       </IssueSyncListElementContainer>

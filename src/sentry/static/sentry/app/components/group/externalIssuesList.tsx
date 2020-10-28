@@ -44,13 +44,6 @@ type State = AsyncComponent['state'] & {
 class ExternalIssueList extends AsyncComponent<Props, State> {
   unsubscribables: any[] = [];
 
-  static propTypes = {
-    group: SentryTypes.Group.isRequired,
-    project: SentryTypes.Project.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    event: SentryTypes.Event,
-  };
-
   getEndpoints(): [string, string][] {
     const {group} = this.props;
     return [['integrations', `/groups/${group.id}/integrations/`]];
@@ -134,14 +127,11 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       return acc;
     }, {});
 
-    console.log({activeIntegrations, activeIntegrationsByProvider});
-
     return activeIntegrations.length
       ? Object.entries(activeIntegrationsByProvider).map(([provider, configurations]) => (
           <ExternalIssueActions
             key={provider}
             configurations={configurations}
-            integration={configurations[0]}
             group={group}
           />
         ))
@@ -209,7 +199,6 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     const integrationIssues = this.renderIntegrationIssues(this.state.integrations);
     const pluginIssues = this.renderPluginIssues();
     const pluginActions = this.renderPluginActions();
-    console.log({integrationIssues});
     if (!sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions) {
       return (
         <React.Fragment>
