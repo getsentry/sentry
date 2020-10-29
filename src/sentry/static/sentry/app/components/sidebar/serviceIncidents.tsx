@@ -36,6 +36,7 @@ class ServiceIncidents extends React.Component<Props, State> {
     } catch (e) {
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
+        scope.setFingerprint(['ServiceIncidents-fetchData']);
         Sentry.captureException(e);
       });
     }
