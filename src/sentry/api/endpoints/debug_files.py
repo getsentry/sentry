@@ -24,7 +24,6 @@ from sentry.models import (
     create_files_from_dif_zip,
     Release,
     ReleaseFile,
-    OrganizationMember,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.tasks.assemble import (
@@ -63,22 +62,12 @@ def has_download_permission(request, project):
     organization = project.organization
     required_role = organization.get_option("sentry:debug_files_role") or DEBUG_FILES_ROLE_DEFAULT
 
-    if request.user.is_sentry_app:
-        if roles.get(required_role).priority > roles.get("member").priority:
-            return request.access.has_scope("project:write")
-        else:
-            return request.access.has_scope("project:read")
+    # get the current role for that user
+    current_role = request.user.get_role_for_organization(organization)
 
-    try:
-        current_role = (
-            OrganizationMember.objects.filter(organization=organization, user=request.user)
-            .values_list("role", flat=True)
-            .get()
-        )
-    except OrganizationMember.DoesNotExist:
-        return False
-
-    return roles.get(current_role).priority >= roles.get(required_role).priority
+    if current_role:
+        return roles.get(current_role).priority >= roles.get(required_role).priority
+    return None
 
 
 class DebugFilesEndpoint(ProjectEndpoint):

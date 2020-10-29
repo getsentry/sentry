@@ -322,6 +322,40 @@ class User(BaseModel, AbstractBaseUser):
             member_set__user=self,
         )
 
+    def get_role_for_organization(self, organization):
+        from sentry.models import OrganizationMember, SentryApp
+
+        # special logic for sentry apps
+        if self.is_sentry_app:
+            try:
+                sentry_app = SentryApp.objects.get(proxy_user=self)
+            except SentryApp.DoesNotExist:
+                return None
+            # if it's not installed, no role
+            if not sentry_app.is_installed_on(organization):
+                return None
+
+            # map to a role based on the scopes of the app
+            if sentry_app.has_scope("project:write"):
+                if sentry_app.has_scope("org:admin"):
+                    return "owner"
+                if sentry_app.has_scope("member:admin"):
+                    return "manager"
+                return "admin"
+            if sentry_app.has_scope("project:read"):
+                return "member"
+            return None
+
+        # for normal uses just check the OrganizationMember table
+        try:
+            return (
+                OrganizationMember.objects.filter(organization=organization, user=self)
+                .values_list("role", flat=True)
+                .get()
+            )
+        except OrganizationMember.DoesNotExist:
+            return None
+
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
 
