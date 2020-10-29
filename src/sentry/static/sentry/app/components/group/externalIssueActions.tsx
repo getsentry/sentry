@@ -26,6 +26,12 @@ type State = AsyncComponent['state'] & {
   unlinked: GroupIntegration[];
   linked: GroupIntegration[];
 };
+
+type LinkedIssues = {
+  linked: GroupIntegration[];
+  unlinked: GroupIntegration[];
+};
+
 class ExternalIssueActions extends AsyncComponent<Props, State> {
   static propTypes = {
     group: PropTypes.object.isRequired,
@@ -49,7 +55,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
 
   linkedIssuesFilter() {
     return this.props.configurations.reduce(
-      (acc, curr) => {
+      (acc: LinkedIssues, curr) => {
         if (curr.externalIssues.length) {
           acc.linked.push(curr);
         } else {
@@ -57,7 +63,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
         }
         return acc;
       },
-      {linked: [] as GroupIntegration[], unlinked: [] as GroupIntegration[]}
+      {linked: [], unlinked: []}
     );
   }
 
