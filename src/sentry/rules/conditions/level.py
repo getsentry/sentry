@@ -28,16 +28,16 @@ MATCH_CHOICES = OrderedDict(
 
 
 class LevelEventForm(forms.Form):
-    level = forms.ChoiceField(choices=LEVEL_CHOICES.items())
-    match = forms.ChoiceField(choices=MATCH_CHOICES.items())
+    level = forms.ChoiceField(choices=list(LEVEL_CHOICES.items()))
+    match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
 
 
 class LevelCondition(EventCondition):
     form_cls = LevelEventForm
-    label = "An event's level is {match} {level}"
+    label = "The event's level is {match} {level}"
     form_fields = {
-        "level": {"type": "choice", "choices": LEVEL_CHOICES.items()},
-        "match": {"type": "choice", "choices": MATCH_CHOICES.items()},
+        "level": {"type": "choice", "choices": list(LEVEL_CHOICES.items())},
+        "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
     }
 
     def passes(self, event, state, **kwargs):

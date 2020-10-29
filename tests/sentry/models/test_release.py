@@ -628,3 +628,7 @@ class SetRefsTest(SetRefsTestCase):
         self.assert_head_commit(head_commits[0], refs[1]["commit"])
 
         assert len(mock_fetch_commit.method_calls) == 0
+
+    def test_invalid_version(self):
+        release = Release.objects.create(organization=self.org)
+        assert not release.is_valid_version(None)

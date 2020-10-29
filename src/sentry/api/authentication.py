@@ -2,15 +2,27 @@ from __future__ import absolute_import
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
+from django.utils.encoding import force_text
+from django.conf import settings
 from rest_framework.authentication import BasicAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 
 from sentry_relay import UnpackError
 
-from sentry.auth.system import SystemToken
+from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.models import ApiApplication, ApiKey, ApiToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.utils.sdk import configure_scope
+
+
+def is_internal_relay(request, public_key):
+    """
+    Checks if the relay is allowed to register, otherwise raises an exception
+    """
+    if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
+        return True
+
+    return is_internal_ip(request)
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -34,7 +46,7 @@ class StandardAuthentication(QuietBasicAuthentication):
             msg = "Invalid token header. Token string should not contain spaces."
             raise AuthenticationFailed(msg)
 
-        return self.authenticate_credentials(request, auth[1])
+        return self.authenticate_credentials(request, force_text(auth[1]))
 
 
 class RelayAuthentication(BasicAuthentication):
@@ -53,6 +65,7 @@ class RelayAuthentication(BasicAuthentication):
 
         try:
             relay = Relay.objects.get(relay_id=relay_id)
+            relay.is_internal = is_internal_relay(request, relay.public_key)
         except Relay.DoesNotExist:
             raise AuthenticationFailed("Unknown relay")
 

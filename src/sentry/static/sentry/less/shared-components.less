@@ -428,7 +428,8 @@ table.table.key-value {
 }
 
 .org-avatar {
-  .square(30px);
+  width: 30px;
+  height: 30px;
   background: @red url(../images/logos/sentry-avatar.png);
   background-size: cover;
   border-radius: 3px;
@@ -592,8 +593,7 @@ table.table.key-value {
   }
 }
 
-// Loading Gif
-
+// Spinning logo icon loader
 .loading.triangle {
   position: absolute;
   top: 50%;
@@ -602,13 +602,94 @@ table.table.key-value {
   margin-top: -200px;
   margin-left: -250px;
 
+  // Nerf the styles of other loading indicators
   .loading-indicator {
-    border: 0;
+    height: 150px;
+    width: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+
     animation: none;
     -webkit-animation: none;
-    background-image: url(../images/sentry-loader.gif);
-    .square(150px);
-    background-size: contain;
+    border: 0;
+    overflow: hidden;
+    border-radius: 50%;
+  }
+
+  .logo-spin-0,
+  .logo-spin-1 {
+    transform-origin: 50% 50%;
+    stroke-dasharray: 300;
+  }
+
+  .logo-spin-0 {
+    animation: logo-draw 4s cubic-bezier(0.99, 0, 0.53, 1) infinite,
+      logo-spin 4s cubic-bezier(0.77, -0.63, 0.12, 1.45) infinite;
+
+    stroke: #000;
+    stroke-dashoffset: 300;
+  }
+  .logo-spin-1 {
+    animation: logo-visible 4s cubic-bezier(0.77, -0.63, 0.12, 1.16) infinite,
+      logo-spin 4s cubic-bezier(0.81, -0.61, 0.09, 1.41) infinite;
+
+    opacity: 0;
+    stroke: rgba(0, 0, 0, 0.5);
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes logo-visible {
+  40% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 0;
+    filter: blur(0px);
+  }
+  46% {
+    opacity: 1;
+    filter: blur(0.4px);
+  }
+  65% {
+    opacity: 1;
+    filter: blur(0.7px);
+  }
+  67% {
+    opacity: 0;
+    filter: blur(0px);
+  }
+}
+
+@keyframes logo-spin {
+  45% {
+    transform: scale(1) rotate(0deg);
+  }
+  46% {
+    transform: scale(0.95) rotate(0deg);
+  }
+  66% {
+    transform: scale(1) rotate(360deg);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+  }
+}
+
+@keyframes logo-draw {
+  0% {
+    stroke-dashoffset: 300;
+  }
+  33% {
+    stroke-dashoffset: 0;
+  }
+  64% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 300;
   }
 }
 
@@ -655,20 +736,6 @@ table.table.key-value {
       right: 0;
       bottom: 0;
     }
-  }
-}
-
-.search-clear-form {
-  position: absolute;
-  top: 50%;
-  height: 16px;
-  transform: translateY(-50%);
-  right: 10px;
-  font-size: 16px;
-  color: lighten(@gray, 30);
-
-  &:hover {
-    color: lighten(@gray, 10);
   }
 }
 
@@ -785,23 +852,6 @@ table.table.key-value {
 
 .innerColumn(@columnSpan: 1) {
   width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
-}
-
-/**
-* Faces
-* -----
-* A grid of faces for seen-by and participants list
-* ============================================================================
-*/
-
-ul.faces {
-  .list-unstyled;
-  .clearfix;
-
-  li {
-    float: left;
-    margin: 0 5px 5px 0;
-  }
 }
 
 /**
@@ -1171,6 +1221,11 @@ header + .alert {
   background-clip: padding-box;
   color: @gray-darker;
 
+  &.inverted {
+    top: auto;
+    bottom: 32px;
+  }
+
   &:after {
     width: 0;
     height: 0;
@@ -1185,6 +1240,13 @@ header + .alert {
     z-index: -1;
   }
 
+  &.inverted:after {
+    border-top: 8px solid #fff;
+    border-bottom: 8px solid transparent;
+    top: auto;
+    bottom: -16px;
+  }
+
   &:before {
     width: 0;
     height: 0;
@@ -1197,6 +1259,13 @@ header + .alert {
     top: -9px;
     left: 11px;
     z-index: -2;
+  }
+
+  &.inverted:before {
+    border-top: 9px solid rgba(52, 60, 69, 0.35);
+    border-bottom: 9px solid transparent;
+    top: auto;
+    bottom: -18px;
   }
 
   &.dropdown-menu-right {
@@ -1242,6 +1311,25 @@ header + .alert {
       // top caret
       left: auto;
       right: 11px;
+    }
+  }
+}
+
+.anchor-middle {
+  .dropdown-menu {
+    left: auto;
+    right: 50%;
+    transform: translateX(calc(50%));
+
+    &:after {
+      left: calc(50% - 5px);
+      right: auto;
+    }
+
+    &:before {
+      // top caret
+      left: calc(50% - 6px);
+      right: auto;
     }
   }
 }
@@ -1451,130 +1539,6 @@ ul.radio-inputs {
         margin-left: -25px;
         margin-top: 4px;
         vertical-align: middle;
-      }
-    }
-  }
-}
-
-/**
-* Modal
-* ============================================================================
-*/
-.modal-backdrop {
-  background-color: @gray-dark;
-  // Match zIndex.modal in theme.jsx
-  z-index: 10000;
-}
-
-.modal {
-  // Match zIndex.modal in theme.jsx
-  z-index: 10000;
-}
-
-.modal-container {
-  position: relative;
-}
-.modal-container .modal,
-.modal-container .modal-backdrop {
-  position: absolute;
-}
-
-.modal {
-  .close {
-    background: none;
-    border: 0;
-    padding: 0 6px;
-    margin: 0;
-    font-size: 24px;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    right: 24px;
-    z-index: 100;
-    color: lighten(@gray, 20);
-    .transition(color 0.1s linear);
-
-    &:hover {
-      color: @gray;
-    }
-
-    &.focus-visible {
-      outline: none;
-      border-radius: 50%;
-      background: lighten(@gray, 60);
-      color: @gray;
-    }
-  }
-  .modal-content {
-    padding: 30px;
-    box-shadow: 0 15px 40px 0 rgba(67, 62, 75, 0.3), 0 1px 15px 0 rgba(67, 61, 74, 0.15);
-    border-radius: 7px;
-    border: 0;
-  }
-
-  .modal-header {
-    border-bottom: 1px solid @trim;
-    border-radius: 7px 7px 0 0;
-    padding: 20px 30px;
-    margin: -30px -30px 20px;
-    position: relative;
-
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 0;
-      line-height: 1.1;
-    }
-  }
-
-  .modal-body {
-    padding: 0;
-    font-size: 15px;
-
-    p:last-child {
-      margin-bottom: 0;
-    }
-
-    .alert {
-      border-radius: @border-radius-base;
-    }
-
-    img {
-      max-width: 100%;
-      border-radius: 3px;
-      border: 1px solid @trim;
-      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
-    }
-
-    .form-actions {
-      margin-bottom: 0;
-    }
-  }
-
-  .modal-footer {
-    padding: 20px 30px;
-    border-top: 1px solid @trim;
-    margin: 20px -30px -30px;
-    display: flex;
-    justify-content: flex-end;
-    text-align: initial;
-  }
-
-  .nav-stacked {
-    margin-bottom: 0;
-
-    li {
-      a {
-        .transition(none);
-        &:hover {
-          color: #fff;
-          background: @purple;
-        }
       }
     }
   }

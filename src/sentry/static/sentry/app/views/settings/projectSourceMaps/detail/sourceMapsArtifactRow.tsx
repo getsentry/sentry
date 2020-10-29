@@ -11,17 +11,23 @@ import FileSize from 'app/components/fileSize';
 import {Artifact} from 'app/types';
 import Confirm from 'app/components/confirm';
 import Access from 'app/components/acl/access';
+import Role from 'app/components/acl/role';
 import Tooltip from 'app/components/tooltip';
-
-import Tag from '../../components/tag';
+import Tag from 'app/components/tagDeprecated';
 
 type Props = {
   artifact: Artifact;
   onDelete: (id: string) => void;
   downloadUrl: string;
+  downloadRole: string;
 };
 
-const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
+const SourceMapsArtifactRow = ({
+  artifact,
+  onDelete,
+  downloadUrl,
+  downloadRole,
+}: Props) => {
   const {name, size, dateCreated, dist, id} = artifact;
 
   const handleDeleteClick = () => {
@@ -45,34 +51,45 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
       </SizeColumn>
       <ActionsColumn>
         <ButtonBar gap={0.5}>
-          <Access access={['project:write']}>
-            {({hasAccess}) => (
+          <Role role={downloadRole}>
+            {({hasRole}) => (
               <Tooltip
-                title={t(
-                  'You do not have the required permission to download this artifact.'
-                )}
-                disabled={hasAccess}
+                title={t('You do not have permission to download artifacts.')}
+                disabled={hasRole}
               >
                 <Button
                   size="small"
                   icon={<IconDownload size="sm" />}
-                  disabled={!hasAccess}
+                  disabled={!hasRole}
                   href={downloadUrl}
                   title={t('Download Artifact')}
                 />
               </Tooltip>
             )}
+          </Role>
+
+          <Access access={['project:releases']}>
+            {({hasAccess}) => (
+              <Tooltip
+                disabled={hasAccess}
+                title={t('You do not have permission to delete artifacts.')}
+              >
+                <Confirm
+                  message={t('Are you sure you want to remove this artifact?')}
+                  onConfirm={handleDeleteClick}
+                  disabled={!hasAccess}
+                >
+                  <Button
+                    size="small"
+                    icon={<IconDelete size="sm" />}
+                    title={t('Remove Artifact')}
+                    label={t('Remove Artifact')}
+                    disabled={!hasAccess}
+                  />
+                </Confirm>
+              </Tooltip>
+            )}
           </Access>
-          <Confirm
-            message={t('Are you sure you want to remove this artifact?')}
-            onConfirm={handleDeleteClick}
-          >
-            <Button
-              size="small"
-              icon={<IconDelete size="sm" />}
-              title={t('Remove Artifact')}
-            />
-          </Confirm>
         </ButtonBar>
       </ActionsColumn>
     </React.Fragment>

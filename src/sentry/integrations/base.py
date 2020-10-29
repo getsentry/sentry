@@ -147,7 +147,9 @@ class IntegrationProvider(PipelineProvider):
     # whether or not the integration installation be initiated from Sentry
     can_add = True
 
-    # can the integration be disabled ?
+    # if the integration can be uninstalled in Sentry, set to False
+    # if True, the integration must be uninstalled from the other platform
+    # which is uninstalled/disabled via wehbook
     can_disable = False
 
     # if the integration has no application-style access token, associate
@@ -159,6 +161,10 @@ class IntegrationProvider(PipelineProvider):
 
     # if this is hidden without the feature flag
     requires_feature_flag = False
+
+    # whether this integration can be used for stacktrace linking
+    # will eventually be replaced with a feature flag
+    has_stacktrace_linking = False
 
     @classmethod
     def get_installation(cls, model, organization_id, **kwargs):
@@ -288,6 +294,9 @@ class IntegrationInstallation(object):
 
     def get_config_data(self):
         return self.org_integration.config
+
+    def get_dynamic_display_information(self):
+        return None
 
     def get_client(self):
         # Return the api client for a given provider

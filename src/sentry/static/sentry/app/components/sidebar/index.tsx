@@ -194,7 +194,6 @@ class Sidebar extends React.Component<Props, State> {
       'discover',
       'discover/results', // Team plans do not have query landing page
       'performance',
-      'releasesv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
@@ -407,25 +406,25 @@ class Sidebar extends React.Component<Props, State> {
                       id="performance"
                     />
                   </Feature>
-                  <Feature
-                    hookName="feature-disabled:incidents-sidebar-item"
-                    features={['incidents']}
-                    organization={organization}
-                  >
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/alerts/`,
-                          evt
-                        )
-                      }
-                      icon={<IconSiren size="md" />}
-                      label={t('Alerts')}
-                      to={`/organizations/${organization.slug}/alerts/`}
-                      id="alerts"
-                      isNew
-                    />
+                  <Feature features={['incidents']}>
+                    {({hasFeature}) => {
+                      const alertsPath = hasFeature
+                        ? `/organizations/${organization.slug}/alerts/`
+                        : `/organizations/${organization.slug}/alerts/rules/`;
+                      return (
+                        <SidebarItem
+                          {...sidebarItemProps}
+                          onClick={(_id, evt) =>
+                            this.navigateWithGlobalSelection(alertsPath, evt)
+                          }
+                          icon={<IconSiren size="md" />}
+                          label={t('Alerts')}
+                          to={alertsPath}
+                          id="alerts"
+                          isNew
+                        />
+                      );
+                    }}
                   </Feature>
                   <SidebarItem
                     {...sidebarItemProps}
@@ -439,7 +438,6 @@ class Sidebar extends React.Component<Props, State> {
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                     id="releases"
-                    isNew
                   />
                   <SidebarItem
                     {...sidebarItemProps}

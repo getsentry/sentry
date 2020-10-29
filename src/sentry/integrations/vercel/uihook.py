@@ -73,7 +73,7 @@ class VercelUIHook(Endpoint):
         connect_projects_link = absolute_uri(
             u"/settings/%s/integrations/vercel/%s/" % (organization.slug, integration.id)
         )
-        doc_link = "https://docs.sentry.io/workflow/integrations/global-integrations/#vercel"
+        doc_link = "https://docs.sentry.io/product/integrations/vercel/"
         source_code_link = absolute_uri(
             u"/settings/%s/integrations/?%s"
             % (organization.slug, urlencode({"category": "source code management"}))

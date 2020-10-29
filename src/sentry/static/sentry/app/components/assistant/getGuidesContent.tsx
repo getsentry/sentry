@@ -100,5 +100,19 @@ export default function getGuidesContent(): GuidesContent {
         },
       ],
     },
+    {
+      guide: 'dynamic_counts',
+      requiredTargets: ['dynamic_counts'],
+      steps: [
+        {
+          title: t('These counts have changed'),
+          target: 'dynamic_counts',
+          description: t(
+            `These numbers and the bar chart now respect the time selected and any search
+            filters you've applied. You can hover to see the totals.`
+          ),
+        },
+      ],
+    },
   ];
 }

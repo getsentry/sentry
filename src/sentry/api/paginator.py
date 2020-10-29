@@ -5,6 +5,7 @@ import functools
 import math
 
 from datetime import datetime
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import connections
 from django.db.models.sql.datastructures import EmptyResultSet
 from django.utils import timezone
@@ -183,7 +184,7 @@ class BasePaginator(object):
 class Paginator(BasePaginator):
     def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
-        return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+        return int(math.floor(value) if self._is_asc(for_prev) else math.ceil(value))
 
     def value_from_cursor(self, cursor):
         return cursor.value
@@ -195,7 +196,7 @@ class DateTimePaginator(BasePaginator):
     def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
         value = float(value.strftime("%s.%f")) * self.multiplier
-        return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+        return int(math.floor(value) if self._is_asc(for_prev) else math.ceil(value))
 
     def value_from_cursor(self, cursor):
         return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
@@ -472,67 +473,125 @@ class GenericOffsetPaginator(object):
         # date for queries, this should stop drift from new incoming events.
 
 
+class CombinedQuerysetIntermediary(object):
+    is_empty = False
+
+    def __init__(self, queryset, order_by):
+        self.queryset = queryset
+        self.order_by = order_by
+        try:
+            instance = queryset[:1].get()
+            self.instance_type = type(instance)
+            assert hasattr(
+                instance, self.order_by
+            ), "Model of type {} does not have field {}".format(self.instance_type, self.order_by)
+            self.order_by_type = type(getattr(instance, self.order_by))
+        except ObjectDoesNotExist:
+            self.is_empty = True
+
+
 class CombinedQuerysetPaginator(object):
+    """ This paginator can be used to paginate between multiple querysets.
+    It needs to be passed a list of CombinedQuerysetIntermediary. Each CombinedQuerysetIntermediary must be populated with a queryset and an order_by key
+        i.e. intermediaries = [
+                CombinedQuerysetIntermediary(AlertRule.objects.all(), "name")
+                CombinedQuerysetIntermediary(Rule.objects.all(), "label")
+            ]
+    and an optional parameter `desc` to determine whether the sort is ascending or descending. Default is False.
+
+    There is an issue with sorting between multiple models using a mixture of
+    date fields and non-date fields. This is because the cursor value is converted differently for dates vs non-dates.
+    It assumes if _any_ field is a date key, all of them are.
+
+    There is an assertion in the constructor to help prevent this from manifesting.
+    """
+
     multiplier = 1000000  # Use microseconds for date keys.
+    using_dates = False
+    model_key_map = {}
 
-    def __init__(self, order_by, querysets, on_results=None):
-        if order_by:
-            if order_by.startswith("-"):
-                self.key, self.desc = order_by[1:], True
-            else:
-                self.key, self.desc = order_by, False
-        else:
-            self.key = None
-            self.desc = False
-
-        self.querysets = querysets
+    def __init__(self, intermediaries, desc=False, on_results=None):
+        self.desc = desc
+        self.intermediaries = intermediaries
         self.on_results = on_results
-        # IMPROVEMENT: Ensure each model in the querysets has attribute of self.key
-        # ... or accept a function that can map to the proper key based on model instance
-        # use case could be sorting by name/label for AlertRule / Rule
-        # For now...just be diligent in your usage.
+        for intermediary in list(self.intermediaries):
+            if intermediary.is_empty:
+                self.intermediaries.remove(intermediary)
+            else:
+                self.model_key_map[intermediary.instance_type] = intermediary.order_by
+
+        # This is an assertion to make sure date field sorts are all or nothing.###
+        # (i.e. all fields must be a date type, or none of them)
+        using_other = False
+        for intermediary in self.intermediaries:
+            if intermediary.order_by_type is datetime:
+                self.using_dates = True
+            else:
+                using_other = True
+
+        if self.using_dates:
+            assert (
+                not using_other
+            ), "When sorting by a date, it must be the key used on all intermediaries"
+
+    def key_from_item(self, item):
+        return self.model_key_map.get(type(item))
 
     def get_item_key(self, item, for_prev=False):
-        if self.key == "date_added":  # Could generalize this more
-            return self.multiplier * float(getattr(item, self.key).strftime("%s.%f"))
+        if self.using_dates:
+            return int(
+                self.multiplier * float(getattr(item, self.key_from_item(item)).strftime("%s.%f"))
+            )
         else:
-            value = getattr(item, self.key)
-            return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+            value = getattr(item, self.key_from_item(item))
+            value_type = type(value)
+            if value_type is float:
+                return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+            return value
 
     def value_from_cursor(self, cursor):
-        if self.key == "date_added":  # Could generalize this more
+        if self.using_dates:
             return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
                 tzinfo=timezone.utc
             )
         else:
-            return cursor.value
+            value = cursor.value
+            value_type = type(value)
+            if value_type is float:
+                return math.floor(value) if self._is_asc(cursor.is_prev) else math.ceil(value)
+            return value
 
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
 
     def _build_combined_querysets(self, value, is_prev, limit, extra):
         asc = self._is_asc(is_prev)
-
-        if asc:
-            order_by = self.key
-            filter_condition = "%s__gte" % self.key
-        else:
-            order_by = "-%s" % self.key
-            filter_condition = "%s__lte" % self.key
-
-        filters = {}
-        if value is not None:
-            assert self.key
-            filters[filter_condition] = value
-
         combined_querysets = list()
-        for queryset in self.querysets:
-            queryset = queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
+        for intermediary in self.intermediaries:
+            key = intermediary.order_by
+            filters = {}
+
+            if asc:
+                order_by = key
+                filter_condition = "%s__gte" % key
+            else:
+                order_by = "-%s" % key
+                filter_condition = "%s__lte" % key
+
+            if value is not None:
+                filters[filter_condition] = value
+
+            queryset = intermediary.queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
             combined_querysets += list(queryset)
 
+        def _sort_combined_querysets(item):
+            key_value = self.get_item_key(item, is_prev)
+            return ((key_value, type(item).__name__),)
+
         combined_querysets.sort(
-            key=lambda item: (getattr(item, self.key), type(item).__name__), reverse=not asc
+            key=_sort_combined_querysets, reverse=not asc,
         )
+
         return combined_querysets
 
     def get_result(self, cursor=None, limit=100):

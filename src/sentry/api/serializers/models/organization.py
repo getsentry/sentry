@@ -19,6 +19,7 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
     SAFE_FIELDS_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    DEBUG_FILES_ROLE_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -40,6 +41,8 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
+
+_ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 
 class TrustedRelaySerializer(serializers.Serializer):
@@ -121,15 +124,31 @@ class OrganizationSerializer(Serializer):
         status = OrganizationStatus(obj.status)
 
         # Retrieve all registered organization features
-        org_features = features.all(feature_type=OrganizationFeature).keys()
+        org_features = [
+            feature
+            for feature in features.all(feature_type=OrganizationFeature).keys()
+            if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
+        ]
         feature_list = set()
 
+        batch_features = features.batch_has(org_features, actor=user, organization=obj)
+
+        # batch_has has found some features
+        if batch_features:
+            for feature_name, active in batch_features.get(
+                "organization:{}".format(obj.id), {}
+            ).items():
+                if active:
+                    # Remove organization prefix
+                    feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+
+                # This feature_name was found via `batch_has`, don't check again using `has`
+                org_features.remove(feature_name)
+
         for feature_name in org_features:
-            if not feature_name.startswith("organizations:"):
-                continue
             if features.has(feature_name, obj, actor=user):
                 # Remove the organization scope prefix
-                feature_list.add(feature_name[len("organizations:") :])
+                feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 
         # Do not include the onboarding feature if OrganizationOptions exist
         if (
@@ -248,6 +267,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "attachmentsRole": six.text_type(
                     obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
+                ),
+                "debugFilesRole": six.text_type(
+                    obj.get_option("sentry:debug_files_role", DEBUG_FILES_ROLE_DEFAULT)
                 ),
                 "eventsMemberAdmin": bool(
                     obj.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT)

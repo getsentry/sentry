@@ -2,7 +2,7 @@
 relay:
   upstream: 'http://host.docker.internal:8000/'
   host: 0.0.0.0
-  port: 3000
+  port: 7899
 logging:
   level: INFO
   enable_backtraces: false

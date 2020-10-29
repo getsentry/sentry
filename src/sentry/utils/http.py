@@ -104,7 +104,7 @@ def parse_uri_match(value):
     # idna/punycode encoded representation for normalization.
     if isinstance(domain, six.binary_type):
         domain = domain.decode("utf8")
-    domain = domain.encode("idna")
+    domain = domain.encode("idna").decode("utf-8")
 
     if port:
         domain = "%s:%s" % (domain, port)
@@ -164,7 +164,7 @@ def is_valid_origin(origin, project=None, allowed=None):
         parsed_hostname = ""
     else:
         try:
-            parsed_hostname = parsed.hostname.encode("idna")
+            parsed_hostname = parsed.hostname.encode("idna").decode("utf-8")
         except UnicodeError:
             # We sometimes shove in some garbage input here, so just opting to ignore and carry on
             parsed_hostname = parsed.hostname

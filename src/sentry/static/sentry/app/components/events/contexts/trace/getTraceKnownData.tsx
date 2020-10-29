@@ -6,6 +6,8 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import {TraceKnownData, TraceKnownDataType} from './types';
 import getUserKnownDataDetails from './getTraceKnownDataDetails';
 
+type TraceKnownDataKeys = Extract<keyof TraceKnownData, string>;
+
 function getTraceKnownData(
   data: TraceKnownData,
   traceKnownDataValues: Array<TraceKnownDataType>,
@@ -34,7 +36,7 @@ function getTraceKnownData(
     knownData.push({
       key,
       ...knownDataDetails,
-      meta: getMeta(data, key),
+      meta: getMeta(data, key as TraceKnownDataKeys),
       subjectDataTestId: `trace-context-${key.toLowerCase()}-value`,
     });
   }

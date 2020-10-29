@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SharedGroupDetails from 'app/views/sharedGroupDetails/sharedGroupDetails';
 
-describe('SharedGroupDetails', function() {
-  beforeEach(function() {
+describe('SharedGroupDetails', function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/shared/issues/a/',
       body: TestStubs.Group({
@@ -18,11 +18,11 @@ describe('SharedGroupDetails', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const props = {
       params: {shareId: 'a'},
     };
@@ -31,6 +31,6 @@ describe('SharedGroupDetails', function() {
       <SharedGroupDetails {...props} />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

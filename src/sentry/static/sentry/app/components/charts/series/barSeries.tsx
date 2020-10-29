@@ -1,4 +1,3 @@
-import 'echarts/lib/chart/bar';
 import {EChartOption} from 'echarts';
 
 export default function barSeries(

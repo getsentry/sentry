@@ -173,7 +173,6 @@ const GroupList = createReactClass<Props, State>({
 
   onGroupChange() {
     const groups = this._streamManager.getAllItems();
-
     if (!isEqual(groups, this.state.groups)) {
       this.setState({
         groups,
@@ -182,13 +181,7 @@ const GroupList = createReactClass<Props, State>({
   },
 
   render() {
-    const {
-      orgId,
-      canSelectGroups,
-      withChart,
-      renderEmptyMessage,
-      withPagination,
-    } = this.props;
+    const {canSelectGroups, withChart, renderEmptyMessage, withPagination} = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
 
     if (loading) {
@@ -225,7 +218,6 @@ const GroupList = createReactClass<Props, State>({
                 <StreamGroup
                   key={id}
                   id={id}
-                  orgId={orgId}
                   canSelect={canSelectGroups}
                   withChart={withChart}
                   memberList={members}

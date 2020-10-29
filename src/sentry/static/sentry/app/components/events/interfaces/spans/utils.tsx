@@ -120,6 +120,13 @@ export type SpanGeneratedBoundsType =
       isSpanVisibleInView: boolean;
     };
 
+export type SpanViewBoundsType = {
+  warning: undefined | string;
+  left: undefined | number;
+  width: undefined | number;
+  isSpanVisibleInView: boolean;
+};
+
 const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
   const {startTimestamp, endTimestamp} = spanBounds;
 
@@ -250,7 +257,10 @@ export const getHumanDuration = (duration: number): string => {
   // note: duration is assumed to be in seconds
 
   const durationMS = duration * 1000;
-  return `${Number(durationMS.toFixed(2)).toLocaleString()}ms`;
+  return `${durationMS.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}ms`;
 };
 
 const getLetterIndex = (letter: string): number => {
@@ -302,16 +312,20 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
   const previousValues = {
     userSelect: document.body.style.userSelect,
     // MozUserSelect is not typed in TS
-    // @ts-ignore
+    // @ts-expect-error
     MozUserSelect: document.body.style.MozUserSelect,
+    // msUserSelect is not typed in TS
+    // @ts-expect-error
     msUserSelect: document.body.style.msUserSelect,
     webkitUserSelect: document.body.style.webkitUserSelect,
   };
 
   document.body.style.userSelect = nextValues.userSelect || '';
   // MozUserSelect is not typed in TS
-  // @ts-ignore
+  // @ts-expect-error
   document.body.style.MozUserSelect = nextValues.MozUserSelect || '';
+  // msUserSelect is not typed in TS
+  // @ts-expect-error
   document.body.style.msUserSelect = nextValues.msUserSelect || '';
   document.body.style.webkitUserSelect = nextValues.webkitUserSelect || '';
 
@@ -328,6 +342,7 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     op: trace.op,
     description: trace.description,
     data: {},
+    status: trace.rootSpanStatus,
   };
 
   return rootSpan;
@@ -343,10 +358,7 @@ export function getTraceDateTimeRange(input: {
     .subtract(12, 'hours')
     .format('YYYY-MM-DDTHH:mm:ss.SSS');
 
-  const end = moment
-    .unix(input.end)
-    .add(12, 'hours')
-    .format('YYYY-MM-DDTHH:mm:ss.SSS');
+  const end = moment.unix(input.end).add(12, 'hours').format('YYYY-MM-DDTHH:mm:ss.SSS');
 
   return {
     start,
@@ -427,6 +439,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
   const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
   const description = traceContext && traceContext.description;
   const parentSpanID = traceContext && traceContext.parent_span_id;
+  const rootSpanStatus = traceContext && traceContext.status;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -436,6 +449,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
       traceEndTimestamp: event.endTimestamp,
       traceID,
       rootSpanID,
+      rootSpanStatus,
       parentSpanID,
       numOfSpans: 0,
       spans: [],
@@ -462,6 +476,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     traceEndTimestamp: event.endTimestamp,
     traceID,
     rootSpanID,
+    rootSpanStatus,
     parentSpanID,
     numOfSpans: spans.length,
     spans,
@@ -491,7 +506,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
 
     // get any span children whose parent_span_id is equal to span.parent_span_id,
     // otherwise start with an empty array
-    const spanChildren: Array<SpanType> = acc.childSpans?.[span.parent_span_id] ?? [];
+    const spanChildren: Array<SpanType> = acc.childSpans[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 
@@ -539,7 +554,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
 }
 
 function sortSpans(firstSpan: SpanType, secondSpan: SpanType) {
-  // orphan spans come after non-ophan spans.
+  // orphan spans come after non-orphan spans.
 
   if (isOrphanSpan(firstSpan) && !isOrphanSpan(secondSpan)) {
     // sort secondSpan before firstSpan
@@ -593,6 +608,7 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
     'sentry.javascript.browser',
     'sentry.javascript.react',
     'sentry.javascript.gatsby',
+    'sentry.javascript.ember',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -600,3 +616,85 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
 // PerformanceMark: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformanceMark
 // PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
 export const durationlessBrowserOps = ['mark', 'paint'];
+
+export function getMeasurements(event: SentryTransactionEvent): Map<number, string[]> {
+  if (!event.measurements) {
+    return new Map();
+  }
+
+  const measurements = Object.keys(event.measurements)
+    .filter(name => name.startsWith('mark.'))
+    .map(name => {
+      return {
+        name,
+        timestamp: event.measurements![name].value,
+      };
+    });
+
+  const mergedMeasurements = new Map<number, string[]>();
+
+  measurements.forEach(measurement => {
+    const name = measurement.name.slice('mark.'.length);
+
+    if (mergedMeasurements.has(measurement.timestamp)) {
+      const names = mergedMeasurements.get(measurement.timestamp) as string[];
+      names.push(name);
+      mergedMeasurements.set(measurement.timestamp, names);
+      return;
+    }
+
+    mergedMeasurements.set(measurement.timestamp, [name]);
+  });
+
+  return mergedMeasurements;
+}
+
+export function getMeasurementBounds(
+  timestamp: number,
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
+): SpanViewBoundsType {
+  const bounds = generateBounds({
+    startTimestamp: timestamp,
+    endTimestamp: timestamp,
+  });
+
+  switch (bounds.type) {
+    case 'TRACE_TIMESTAMPS_EQUAL':
+    case 'INVALID_VIEW_WINDOW': {
+      return {
+        warning: undefined,
+        left: undefined,
+        width: undefined,
+        isSpanVisibleInView: bounds.isSpanVisibleInView,
+      };
+    }
+    case 'TIMESTAMPS_EQUAL': {
+      return {
+        warning: undefined,
+        left: bounds.start,
+        width: 0.00001,
+        isSpanVisibleInView: bounds.isSpanVisibleInView,
+      };
+    }
+    case 'TIMESTAMPS_REVERSED': {
+      return {
+        warning: undefined,
+        left: bounds.start,
+        width: bounds.end - bounds.start,
+        isSpanVisibleInView: bounds.isSpanVisibleInView,
+      };
+    }
+    case 'TIMESTAMPS_STABLE': {
+      return {
+        warning: void 0,
+        left: bounds.start,
+        width: bounds.end - bounds.start,
+        isSpanVisibleInView: bounds.isSpanVisibleInView,
+      };
+    }
+    default: {
+      const _exhaustiveCheck: never = bounds;
+      return _exhaustiveCheck;
+    }
+  }
+}

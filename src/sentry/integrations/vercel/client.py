@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from sentry.integrations.client import ApiClient
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integrations.vercel.api")
@@ -34,9 +35,13 @@ class VercelClient(ApiClient):
             params = params or {}
             params["teamId"] = self.team_id
         headers = {"Authorization": u"Bearer {}".format(self.access_token)}
-        return self._request(
-            method, path, headers=headers, data=data, params=params, allow_text=allow_text
-        )
+        try:
+            return self._request(
+                method, path, headers=headers, data=data, params=params, allow_text=allow_text
+            )
+        except ApiError as e:
+            if not e.code == 402:
+                raise e
 
     def get_team(self):
         assert self.team_id
@@ -89,9 +94,15 @@ class VercelClient(ApiClient):
         return response
 
     def update_env_variable(self, vercel_project_id, key, value):
-        self.delete(
-            self.DELETE_ENV_VAR_URL % (vercel_project_id, key),
-            allow_text=True,
-            params={"target": "production"},
-        )
+        try:
+            self.delete(
+                self.DELETE_ENV_VAR_URL % (vercel_project_id, key),
+                allow_text=True,
+                params={"target": "production"},
+            )
+        except ApiError as e:
+            # we can ignore 404 errors here since we are just trying to delete
+            if e.code != 404:
+                raise
+
         return self.create_env_variable(vercel_project_id, key, value)

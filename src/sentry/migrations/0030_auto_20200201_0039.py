@@ -24,20 +24,19 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
-    dependencies = [
-        ('sentry', '0029_discover_query_upgrade'),
-    ]
+    dependencies = [("sentry", "0029_discover_query_upgrade")]
 
     operations = [
         migrations.AlterField(
-            model_name='incidentsuspectcommit',
-            name='commit',
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column=b'commit_id', db_index=True),
+            model_name="incidentsuspectcommit",
+            name="commit",
+            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                db_column="commit_id", db_index=True
+            ),
         ),
         migrations.AlterField(
-            model_name='incidentsuspectcommit',
-            name='incident',
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column=b'incident_id'),
+            model_name="incidentsuspectcommit",
+            name="incident",
+            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column="incident_id"),
         ),
     ]

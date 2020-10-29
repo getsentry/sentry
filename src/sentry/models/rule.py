@@ -36,7 +36,7 @@ class Rule(Model):
     data = GzippedDictField()
     status = BoundedPositiveIntegerField(
         default=RuleStatus.ACTIVE,
-        choices=((RuleStatus.ACTIVE, "Active"), (RuleStatus.INACTIVE, "Inactive")),
+        choices=((RuleStatus.ACTIVE, u"Active"), (RuleStatus.INACTIVE, u"Inactive")),
         db_index=True,
     )
 
@@ -58,6 +58,18 @@ class Rule(Model):
             rules_list = list(cls.objects.filter(project=project_id, status=RuleStatus.ACTIVE))
             cache.set(cache_key, rules_list, 60)
         return rules_list
+
+    @property
+    def created_by(self):
+        try:
+            created_activity = RuleActivity.objects.get(
+                rule=self, type=RuleActivityType.CREATED.value
+            )
+            return created_activity.user
+        except RuleActivity.DoesNotExist:
+            pass
+
+        return None
 
     def delete(self, *args, **kwargs):
         rv = super(Rule, self).delete(*args, **kwargs)

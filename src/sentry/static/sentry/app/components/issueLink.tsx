@@ -13,6 +13,7 @@ import TimeSince from 'app/components/timeSince';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
+import {getMessage} from 'app/utils/events';
 
 type Props = {
   orgId: string;
@@ -21,18 +22,6 @@ type Props = {
   card: boolean;
   children: React.ReactNode;
 };
-
-function getMessage(issue: Group) {
-  const metadata = issue.metadata;
-  switch (issue.type) {
-    case 'error':
-      return metadata.value;
-    case 'csp':
-      return metadata.message;
-    default:
-      return issue.culprit || '';
-  }
-}
 
 const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
   if (!card) {

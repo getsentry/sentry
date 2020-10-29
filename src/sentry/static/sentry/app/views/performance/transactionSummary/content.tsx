@@ -9,29 +9,32 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import space from 'app/styles/space';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias} from 'app/utils/discover/fields';
+import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import Tags from 'app/views/eventsV2/tags';
 import SearchBar from 'app/views/events/searchBar';
 import {decodeScalar} from 'app/utils/queryString';
-import CreateAlertButton from 'app/components/createAlertButton';
 import withProjects from 'app/utils/withProjects';
-import ButtonBar from 'app/components/buttonBar';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  VITAL_GROUPS,
+} from 'app/views/performance/transactionVitals/constants';
 
+import TransactionHeader, {Tab} from './header';
 import TransactionList from './transactionList';
 import UserStats from './userStats';
-import KeyTransactionButton from './keyTransactionButton';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
-import Breadcrumb from '../breadcrumb';
+import StatusBreakdown from './statusBreakdown';
 
 type Props = {
   location: Location;
   eventView: EventView;
   transactionName: string;
   organization: Organization;
-  totalValues: number | null;
+  totalValues: Record<string, number>;
   projects: Project[];
 };
 
@@ -71,82 +74,50 @@ class SummaryContent extends React.Component<Props, State> {
     };
   };
 
-  trackAlertClick(errors?: Record<string, boolean>) {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.create_alert_clicked',
-      eventName: 'Performance Views: Create alert clicked',
-      organization_id: organization.id,
-      status: errors ? 'error' : 'success',
-      errors,
-      url: window.location.href,
-    });
-  }
-
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertButton
-  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
-    this.trackAlertClick(errors);
+  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
     const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
       this.setState({incompatibleAlertNotice: null})
     );
     this.setState({incompatibleAlertNotice});
   };
 
-  handleCreateAlertSuccess = () => {
-    this.trackAlertClick();
-  };
-
-  renderCreateAlertButton() {
-    const {eventView, organization, projects} = this.props;
-
-    return (
-      <CreateAlertButton
-        eventView={eventView}
-        organization={organization}
-        projects={projects}
-        onIncompatibleQuery={this.handleIncompatibleQuery}
-        onSuccess={this.handleCreateAlertSuccess}
-        referrer="performance"
-      />
-    );
-  }
-
-  renderKeyTransactionButton() {
-    const {eventView, organization, transactionName} = this.props;
-
-    return (
-      <KeyTransactionButton
-        transactionName={transactionName}
-        eventView={eventView}
-        organization={organization}
-      />
-    );
-  }
-
   render() {
-    const {transactionName, location, eventView, organization, totalValues} = this.props;
+    const {
+      transactionName,
+      location,
+      eventView,
+      organization,
+      projects,
+      totalValues,
+    } = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query) || '';
+    const totalCount = totalValues.count;
+    const slowDuration = totalValues?.p95;
+
+    // NOTE: This is not a robust check for whether or not a transaction is a front end
+    // transaction, however it will suffice for now.
+    const hasWebVitals = VITAL_GROUPS.some(group =>
+      group.vitals.some(vital => {
+        const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
+        return Number.isFinite(totalValues[alias]);
+      })
+    );
 
     return (
       <React.Fragment>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumb
-              organization={organization}
-              location={location}
-              transactionName={transactionName}
-            />
-            <Layout.Title>{transactionName}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              {this.renderCreateAlertButton()}
-              {this.renderKeyTransactionButton()}
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
+        <TransactionHeader
+          eventView={eventView}
+          location={location}
+          organization={organization}
+          projects={projects}
+          transactionName={transactionName}
+          currentTab={Tab.TransactionSummary}
+          hasWebVitals={hasWebVitals}
+          handleIncompatibleQuery={this.handleIncompatibleQuery}
+        />
         <Layout.Body>
           {incompatibleAlertNotice && (
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
@@ -163,13 +134,14 @@ class SummaryContent extends React.Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
-              totalValues={totalValues}
+              totalValues={totalCount}
             />
             <TransactionList
               organization={organization}
               transactionName={transactionName}
               location={location}
               eventView={eventView}
+              slowDuration={slowDuration}
             />
             <RelatedIssues
               organization={organization}
@@ -184,12 +156,18 @@ class SummaryContent extends React.Component<Props, State> {
             <UserStats
               organization={organization}
               location={location}
-              eventView={eventView}
+              totals={totalValues}
+              transactionName={transactionName}
             />
             <SidebarCharts organization={organization} eventView={eventView} />
+            <StatusBreakdown
+              eventView={eventView}
+              organization={organization}
+              location={location}
+            />
             <Tags
               generateUrl={this.generateTagUrl}
-              totalValues={totalValues}
+              totalValues={totalCount}
               eventView={eventView}
               organization={organization}
               location={location}

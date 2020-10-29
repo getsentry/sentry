@@ -1,11 +1,12 @@
 ---
-created: '2020-07-24T14:06:58.530953Z'
+created: '2020-10-13T10:09:30.438865Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
-  - fingerprint:
+  - attributes: {}
+    fingerprint:
     - timeout-in-requests
     matchers:
     - - type
@@ -15,10 +16,13 @@ config:
   version: 1
 fingerprint:
 - timeout-in-requests
+title: 'ReadTimeout: SafeHTTPSConnectionPool(host=''api.opsgenie.com'', port=443):
+  Read timed out. (read timeout=30)'
 variants:
   app:
     component:
       contributes: false
+      contributes_to_similarity: true
       hint: custom fingerprint takes precedence
     type: component
   custom-fingerprint:
@@ -28,5 +32,6 @@ variants:
   system:
     component:
       contributes: false
+      contributes_to_similarity: true
       hint: custom fingerprint takes precedence
     type: component

@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 
-import PlatformIcon from 'app/components/platformIcon';
 import {PlatformKey} from 'app/data/platformCategories';
 
 type Props = {
@@ -35,11 +35,7 @@ const PlatformList = ({
     <StyledPlatformIcon key={platform + index} platform={platform} size={size} />
   );
 
-  const getIcons = (items: PlatformKey[]) =>
-    items
-      .slice()
-      .reverse()
-      .map(getIcon);
+  const getIcons = (items: PlatformKey[]) => items.slice().reverse().map(getIcon);
 
   const platformsPreview = platforms.slice(0, max);
   return (

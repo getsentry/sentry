@@ -1,11 +1,12 @@
 ---
-created: '2020-07-24T14:06:57.704592Z'
+created: '2020-10-13T10:09:31.736959Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
-  - fingerprint:
+  - attributes: {}
+    fingerprint:
     - symcache-error
     matchers:
     - - type
@@ -15,10 +16,12 @@ config:
   version: 1
 fingerprint:
 - symcache-error
+title: 'SymCacheError: failed to parse symcache'
 variants:
   app:
     component:
       contributes: false
+      contributes_to_similarity: true
       hint: custom fingerprint takes precedence
     type: component
   custom-fingerprint:
@@ -28,5 +31,6 @@ variants:
   system:
     component:
       contributes: false
+      contributes_to_similarity: true
       hint: custom fingerprint takes precedence
     type: component

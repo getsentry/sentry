@@ -5,6 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import Link from 'app/components/links/link';
 import * as Layout from 'app/components/layouts/thirds';
 import space from 'app/styles/space';
 
@@ -137,7 +138,7 @@ export const SingleColumnMode = withInfo('Single column mode so we can hide the 
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>
-      <Layout.Body fullWidth>
+      <Layout.Body>
         <Layout.Main fullWidth>
           <h1>Content Region</h1>
           <p>
@@ -154,6 +155,47 @@ SingleColumnMode.story = {
   name: 'single column mode',
 };
 
+export const _6633WithTabNavigation = withInfo('Two column layout with tab navigation')(
+  () => (
+    <Container>
+      <BorderlessHeader>
+        <Layout.HeaderContent>
+          <StyledLayoutTitle>Alerts</StyledLayoutTitle>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <Button size="small">clicker</Button>
+            <Button size="small">clicker</Button>
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </BorderlessHeader>
+      <TabLayoutHeader>
+        <Layout.HeaderNavTabs underlined>
+          <li className="active">
+            <Link to="#">Active</Link>
+          </li>
+          <li>
+            <Link to="#">Inactive</Link>
+          </li>
+        </Layout.HeaderNavTabs>
+      </TabLayoutHeader>
+      <Layout.Body>
+        <Layout.Main>
+          <h1>Content Region</h1>
+          <p>Some text here</p>
+        </Layout.Main>
+        <Layout.Side>
+          <h3>Sidebar content</h3>
+        </Layout.Side>
+      </Layout.Body>
+    </Container>
+  )
+);
+
+_6633WithTabNavigation.story = {
+  name: '66/33 with tab based nav',
+};
+
 const Container = styled('div')`
   background: ${p => p.theme.gray200};
   margin: ${space(2)};
@@ -162,4 +204,20 @@ const Container = styled('div')`
 
 const MarginedButtonBar = styled(ButtonBar)`
   margin-bottom: ${space(1)};
+`;
+
+const StyledLayoutTitle = styled(Layout.Title)`
+  margin-top: ${space(0.5)};
+`;
+
+const BorderlessHeader = styled(Layout.Header)`
+  border-bottom: 0;
+`;
+
+const TabLayoutHeader = styled(Layout.Header)`
+  padding-top: 0;
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    padding-top: 0;
+  }
 `;

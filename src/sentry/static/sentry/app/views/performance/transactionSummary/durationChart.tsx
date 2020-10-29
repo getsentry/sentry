@@ -127,12 +127,13 @@ class DurationChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
+        trigger: 'axis',
         valueFormatter: tooltipFormatter,
       },
       yAxis: {
         axisLabel: {
           color: theme.gray400,
-          // p50 coerces the axis to be time based
+          // p50() coerces the axis to be time based
           formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
         },
       },
@@ -209,6 +210,7 @@ class DurationChart extends React.Component<Props> {
                     period={statsPeriod}
                     utc={utc}
                     projects={project}
+                    environments={environment}
                   >
                     {({releaseSeries}) => (
                       <TransitionChart loading={loading} reloading={reloading}>

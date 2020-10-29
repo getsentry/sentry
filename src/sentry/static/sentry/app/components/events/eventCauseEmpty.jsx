@@ -25,9 +25,7 @@ const DUMMY_COMMIT = {
     fixed: '5ca1ed',
   }),
   author: {name: 'codesworth'},
-  dateCreated: moment()
-    .subtract(3, 'day')
-    .format(),
+  dateCreated: moment().subtract(3, 'day').format(),
   repository: {
     provider: {id: 'integrations:github', name: 'GitHub', status: 'active'},
   },

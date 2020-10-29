@@ -35,7 +35,7 @@ def load_registry(path):
 def get_highest_browser_sdk_version(versions):
     full_versions = [x for x in versions if _version_regexp.match(x)]
     return (
-        six.binary_type(max(map(parse_version, full_versions)))
+        six.text_type(max(map(parse_version, full_versions)))
         if full_versions
         else settings.JS_SDK_LOADER_SDK_VERSION
     )

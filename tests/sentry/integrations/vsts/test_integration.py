@@ -489,8 +489,9 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         comment = Mock()
         comment.data = {"text": comment_text}
 
-        installation.create_comment(1, self.user.id, comment)
+        work_item = installation.create_comment(1, self.user.id, comment)
 
+        assert work_item and work_item["id"]
         assert (
             mock_update_work_item.call_args[1]["comment"]
             == "Sentry Admin wrote:\n\n<blockquote>%s</blockquote>" % comment_text
