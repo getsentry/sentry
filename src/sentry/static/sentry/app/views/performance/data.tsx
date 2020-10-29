@@ -2,7 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 
 import {IconStar} from 'app/icons';
-import {COL_WIDTH_MINIMUM} from 'app/components/gridEditable';
+import {COL_WIDTH_MAX_CONTENT} from 'app/components/gridEditable';
 import {t} from 'app/locale';
 import {NewQuery, LightWeightOrganization, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -112,7 +112,7 @@ export function generatePerformanceEventView(
 
   const keyTransactionsFeature = organization.features.includes('key-transactions');
   const keyTransactionFields = keyTransactionsFeature ? ['key_transaction'] : [];
-  const widths = keyTransactionsFeature ? [COL_WIDTH_MINIMUM.toString()] : undefined;
+  const widths = keyTransactionsFeature ? [COL_WIDTH_MAX_CONTENT.toString()] : undefined;
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
