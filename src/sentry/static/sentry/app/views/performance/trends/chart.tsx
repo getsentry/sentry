@@ -21,7 +21,7 @@ import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {
   getCurrentTrendFunction,
   getIntervalRatio,
-  movingAverage,
+  smoothTrend,
   trendToColor,
 } from './utils';
 import {TrendChangeType, TrendsStats, NormalizedTrendsTransaction} from './types';
@@ -34,7 +34,6 @@ const QUERY_KEYS = [
   'end',
   'statsPeriod',
 ] as const;
-const AVERAGE_WINDOW = 10;
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
@@ -61,34 +60,41 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
   ];
 }
 
-function transformEventStatsSmoothed(data: Series[], seriesName?: string): Series[] {
+function transformEventStatsSmoothed(data: Series[], seriesName?: string) {
+  let minValue = Number.MAX_SAFE_INTEGER;
+  let maxValue = 0;
   const currentData = data[0].data;
   const resultData: SeriesDataUnit[] = [];
-  resultData.push(currentData[0]);
 
-  // Start at 1 so we don't get NaN from the movingAverage
-  for (let i = 1; i < currentData.length; i++) {
-    let value;
-    if (i < AVERAGE_WINDOW) {
-      // A rougher movingAverage for these points, but this way there isn't a gap
-      value = movingAverage(currentData, i, i);
-    } else {
-      value = movingAverage(currentData, i, AVERAGE_WINDOW);
-    }
+  const smoothed = smoothTrend(currentData.map(({name, value}) => [Number(name), value]));
+
+  for (let i = 0; i < smoothed.length; i++) {
+    const point = smoothed[i] as any;
+    const value = point.y;
     resultData.push({
-      name: currentData[i].name,
+      name: point.x,
       value,
     });
+    if (!isNaN(value)) {
+      const rounded = Math.round(value);
+      minValue = Math.min(rounded, minValue);
+      maxValue = Math.max(rounded, maxValue);
+    }
   }
-  return [
-    {
-      seriesName: 'smoothed ' + seriesName || 'Current',
-      data: resultData,
-    },
-  ];
+
+  return {
+    minValue,
+    maxValue,
+    smoothedResults: [
+      {
+        seriesName: seriesName || 'Current',
+        data: resultData,
+      },
+    ],
+  };
 }
 
-function getLegend() {
+function getLegend(trendFunction: string) {
   const legend = {
     right: 10,
     top: 0,
@@ -107,6 +113,10 @@ function getLegend() {
       },
       {
         name: 'Releases',
+        icon: 'line',
+      },
+      {
+        name: trendFunction,
         icon: 'line',
       },
     ],
@@ -248,7 +258,7 @@ class Chart extends React.Component<Props> {
 
     const trendFunction = getCurrentTrendFunction(location);
     const results = transformEventStats(data, trendFunction.chartLabel);
-    const smoothedResults = transformEventStatsSmoothed(
+    const {smoothedResults, minValue, maxValue} = transformEventStatsSmoothed(
       results,
       trendFunction.chartLabel
     );
@@ -259,18 +269,33 @@ class Chart extends React.Component<Props> {
     const utc = decodeScalar(router.location.query.utc);
 
     const intervalRatio = getIntervalRatio(router.location);
-    const legend = getLegend();
+    const legend = getLegend(trendFunction.chartLabel);
 
     const loading = isLoading;
     const reloading = isLoading;
 
+    const yMax = Math.max(
+      maxValue,
+      transaction?.aggregate_range_2 || 0,
+      transaction?.aggregate_range_1 || 0
+    );
+    const yMin = Math.min(
+      minValue,
+      transaction?.aggregate_range_1 || Number.MAX_SAFE_INTEGER,
+      transaction?.aggregate_range_2 || Number.MAX_SAFE_INTEGER
+    );
+    const yDiff = yMax - yMin;
+    const yMargin = yDiff * 0.1;
+
     const chartOptions = {
       tooltip: {
         valueFormatter: (value, seriesName) => {
-          return tooltipFormatter(value, seriesName.replace('smoothed ', ''));
+          return tooltipFormatter(value, seriesName);
         },
       },
       yAxis: {
+        min: Math.max(0, yMin - yMargin),
+        max: yMax + yMargin,
         axisLabel: {
           color: theme.gray400,
           // p50() coerces the axis to be time based
@@ -293,7 +318,7 @@ class Chart extends React.Component<Props> {
                   .map(values => {
                     return {
                       ...values,
-                      color: lineColor,
+                      color: lineColor.default,
                       lineStyle: {
                         opacity: 1,
                       },
@@ -302,21 +327,11 @@ class Chart extends React.Component<Props> {
                   .reverse()
               : [];
 
-            const series = results
-              ? results
-                  .map(values => {
-                    return {
-                      ...values,
-                      color: lineColor,
-                      lineStyle: {
-                        opacity: 0.25,
-                      },
-                    };
-                  })
-                  .reverse()
-              : [];
-
-            const intervalSeries = getIntervalLine(series, intervalRatio, transaction);
+            const intervalSeries = getIntervalLine(
+              smoothedResults,
+              intervalRatio,
+              transaction
+            );
 
             return (
               <ReleaseSeries
@@ -337,7 +352,6 @@ class Chart extends React.Component<Props> {
                           {...chartOptions}
                           series={[
                             ...smoothedSeries,
-                            ...series,
                             ...releaseSeries,
                             ...intervalSeries,
                           ]}

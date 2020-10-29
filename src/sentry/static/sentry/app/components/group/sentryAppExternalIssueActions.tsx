@@ -199,7 +199,6 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
   }
 }
 
-// @ts-ignore ; TS2589: Type instantiation is excessively deep and possibly infinite.
 const StyledSentryAppIcon = styled(SentryAppIcon)`
   color: ${p => p.theme.gray700};
   width: ${space(3)};

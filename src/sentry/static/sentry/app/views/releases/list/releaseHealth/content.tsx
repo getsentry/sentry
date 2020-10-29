@@ -240,6 +240,8 @@ const DailyUsersColumn = styled(Column)`
   grid-area: daily-users;
   display: flex;
   align-items: flex-end;
+  /* Chart tooltips need overflow */
+  overflow: visible;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     display: none;
   }

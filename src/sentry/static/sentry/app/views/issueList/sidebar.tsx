@@ -10,6 +10,7 @@ import {queryToObj, objToQuery, QueryObj} from 'app/utils/stream';
 import {t} from 'app/locale';
 import {Tag, TagCollection} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 
 import {TagValueLoader} from './types';
 import IssueListTagFilter from './tagFilter';
@@ -64,7 +65,7 @@ class IssueListSidebar extends React.Component<Props, State> {
     }
   }
 
-  onSelectTag(tag: Tag, value: string | null) {
+  onSelectTag = (tag: Tag, value: string | null) => {
     const newQuery = {...this.state.queryObj};
     if (value) {
       newQuery[tag.key] = value;
@@ -78,13 +79,13 @@ class IssueListSidebar extends React.Component<Props, State> {
       },
       this.onQueryChange
     );
-  }
+  };
 
   onTextChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({textFilter: evt.target.value});
   };
 
-  onTextFilterSubmit(evt?: React.FormEvent<HTMLFormElement>) {
+  onTextFilterSubmit = (evt?: React.FormEvent<HTMLFormElement>) => {
     evt && evt.preventDefault();
 
     const newQueryObj = {
@@ -98,32 +99,32 @@ class IssueListSidebar extends React.Component<Props, State> {
       },
       this.onQueryChange
     );
-  }
+  };
 
-  onQueryChange() {
+  onQueryChange = () => {
     const query = objToQuery(this.state.queryObj);
     this.props.onQueryChange && this.props.onQueryChange(query);
-  }
+  };
 
-  onClearSearch() {
+  onClearSearch = () => {
     this.setState(
       {
         textFilter: '',
       },
       this.onTextFilterSubmit
     );
-  }
+  };
 
   render() {
     const {loading, tagValueLoader, tags} = this.props;
     return (
-      <div className="stream-sidebar">
+      <StreamSidebar>
         {loading ? (
           <LoadingIndicator />
         ) : (
-          <div>
-            <div className="stream-tag-filter">
-              <h6 className="nav-header">{t('Text')}</h6>
+          <React.Fragment>
+            <StreamTagFilter>
+              <StyledHeader>{t('Text')}</StyledHeader>
               <form onSubmit={this.onTextFilterSubmit}>
                 <input
                   className="form-control"
@@ -135,8 +136,8 @@ class IssueListSidebar extends React.Component<Props, State> {
                   <StyledIconClose size="xs" onClick={this.onClearSearch} />
                 )}
               </form>
-              <hr />
-            </div>
+              <StyledHr />
+            </StreamTagFilter>
 
             {map(tags, tag => (
               <IssueListTagFilter
@@ -147,12 +148,20 @@ class IssueListSidebar extends React.Component<Props, State> {
                 tagValueLoader={tagValueLoader}
               />
             ))}
-          </div>
+          </React.Fragment>
         )}
-      </div>
+      </StreamSidebar>
     );
   }
 }
+
+export default IssueListSidebar;
+
+const StreamSidebar = styled('div')`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+`;
 
 const StyledIconClose = styled(IconClose)`
   cursor: pointer;
@@ -166,4 +175,15 @@ const StyledIconClose = styled(IconClose)`
   }
 `;
 
-export default IssueListSidebar;
+const StyledHeader = styled('h6')`
+  color: ${p => p.theme.gray600};
+  margin-bottom: ${space(1)};
+`;
+
+const StreamTagFilter = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+const StyledHr = styled('hr')`
+  margin: ${space(2)} 0 0;
+`;

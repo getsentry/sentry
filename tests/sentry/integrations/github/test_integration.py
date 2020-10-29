@@ -38,8 +38,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def _stub_github(self):
         responses.reset()
 
-        sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
-        sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
+        sentry.integrations.github.integration.get_jwt = MagicMock(return_value=b"jwt_token_1")
+        sentry.integrations.github.client.get_jwt = MagicMock(return_value=b"jwt_token_1")
 
         responses.add(
             responses.POST,
@@ -89,7 +89,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         auth_header = responses.calls[0].request.headers["Authorization"]
-        assert auth_header == "Bearer jwt_token_1"
+        assert auth_header == b"Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
         return resp
@@ -179,7 +179,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
 
         auth_header = responses.calls[0].request.headers["Authorization"]
-        assert auth_header == "Bearer jwt_token_1"
+        assert auth_header == b"Bearer jwt_token_1"
 
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.status == ObjectStatus.VISIBLE
@@ -235,6 +235,57 @@ class GitHubIntegrationTest(IntegrationTestCase):
             {"identifier": "test/example", "name": "example"},
             {"identifier": "test/exhaust", "name": "exhaust"},
         ]
+
+    @responses.activate
+    def test_get_stacktrace_link_file_exists(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
+        )
+
+        path = "README.md"
+        version = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+        )
+        installation = integration.get_installation(self.organization)
+        result = installation.get_stacktrace_link(repo, path, version)
+
+        assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
+
+    @responses.activate
+    def test_get_stacktrace_link_file_doesnt_exists(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
+        )
+        path = "README.md"
+        version = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+            status=404,
+        )
+        installation = integration.get_installation(self.organization)
+        result = installation.get_stacktrace_link(repo, path, version)
+
+        assert not result
 
     @responses.activate
     def test_get_message_from_error(self):

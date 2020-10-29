@@ -90,7 +90,14 @@ type Props = {
   formatMessageValue?: boolean | Function; //used in prettyFormString
   defaultValue?: any; //TODO(TS): Do we need this?
   resetOnError?: boolean;
+  /**
+   * Tranform input when a value is set to the model.
+   */
   transformInput?: (value: any) => any;
+  /**
+   * Transform data when saving on blur.
+   */
+  getData?: (value: any) => any;
 } & Omit<FieldControl['props'], typeof propsToObserver[number]> &
   Omit<Field['props'], 'inline'>;
 

@@ -18,7 +18,7 @@ class AuthenticatorIndexEndpoint(Endpoint):
         # authenticator interfaces that are enabled
         try:
             interface = Authenticator.objects.get_interface(request.user, "u2f")
-            if not interface.is_enrolled:
+            if not interface.is_enrolled():
                 raise LookupError()
         except LookupError:
             return Response([])

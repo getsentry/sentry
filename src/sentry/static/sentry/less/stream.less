@@ -1,62 +1,8 @@
 /**
-* Stream Actions
-* ============================================================================
-*/
-
-.stream-select-all-notice {
-  background: @sidebar-bg-color;
-  border: 1px solid #e7d796;
-  margin: 0 -1px -1px;
-  position: relative;
-  z-index: 2;
-
-  > div {
-    background-color: #fffdf7;
-    text-align: center;
-    padding: 3px 10px;
-
-    a {
-      margin-left: 0.5em;
-    }
-  }
-}
-
-/**
 * Stream / Group List
 * ============================================================================
 */
 
-.stream-content .processing-issues {
-  padding-left: 0;
-  font-size: 14px;
-  font-weight: 400;
-  padding: 10px 20px 8px;
-
-  // TODO(ckj) make this a component-level option
-  &.alert-error {
-    .icon-alert {
-      opacity: 1;
-      color: #f2261e;
-      margin-top: 1px;
-
-      &:before {
-        content: '\E906';
-      }
-    }
-  }
-
-  &.alert-info {
-    .icon {
-      display: inline-block;
-    }
-  }
-
-  .pull-right {
-    margin-top: -5px;
-  }
-}
-
-.group-list,
 .similar-list,
 .event-list {
   background: #fff;
@@ -67,15 +13,7 @@
   // position: relative;
 }
 
-.group-list {
-  .group {
-    .flex;
-    .flex.flex-vertically-centered;
-  }
-}
-
 // .similar-list is used in a tab in an Issue
-.group-list,
 .events,
 .similar-list,
 .event-list {
@@ -96,17 +34,6 @@
 
       &:hover {
         background-color: @white-dark;
-      }
-    }
-
-    &.isUnprocessed {
-      background: lighten(@purple-light, 30%);
-
-      strong.unprocessed-hint {
-        background: @purple-light;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 2px;
       }
     }
 
@@ -266,17 +193,6 @@
       white-space: nowrap;
       overflow: hidden;
     }
-
-    .in-release {
-      color: #767d81;
-      display: inline-block;
-      padding: 2px 4px;
-      border-radius: 3px;
-      font-weight: 600;
-      font-size: 80%;
-      margin-left: 8px;
-      border: 1px solid #e1e8ec;
-    }
   }
 
   .event-graph,
@@ -296,30 +212,6 @@
     span {
       .stream-count;
       .transition(all linear 0.3s);
-
-      &.ng-update {
-        background: rgba(255, 252, 82, 0.75);
-        opacity: 1;
-        border-radius: 4px;
-        color: #111;
-      }
-    }
-  }
-
-  &.group-list-small {
-    margin: -1px;
-    line-height: 16px;
-
-    .event-details {
-      padding-left: 20px;
-
-      &:after {
-        left: -1px;
-      }
-    }
-
-    .group:last-child {
-      border: 0;
     }
   }
 
@@ -331,139 +223,6 @@
 // stop from accidentally clicking event title
 .similar-list .event-details h3 a {
   display: inline-block;
-}
-
-.group-list-empty {
-  padding: 40px;
-  text-align: center;
-}
-
-.app-icon {
-  width: 28px;
-  height: 28px;
-  background: url(../images/logos/empty-app-icon-180x180.png) center no-repeat;
-  margin-right: 8px;
-  display: inline-block;
-  background-size: contain;
-  vertical-align: middle;
-  border-radius: 6px;
-  box-shadow: 0px 0px 2px #e3e3e3;
-}
-
-/**
- * Awaiting Events - Stream First Run Experience
- * ============================================================================
- */
-
-.awaiting-events {
-  padding: 10px 20px 30px;
-
-  .wrap {
-    position: relative;
-    max-width: 740px;
-    margin: 0 auto;
-    padding: 60px 0 10px 260px;
-    font-size: 18px;
-    min-height: 260px;
-  }
-
-  .robot {
-    position: absolute;
-    left: 0;
-    top: 30px;
-    width: 220px;
-    height: 260px;
-    background: url(../images/spot/sentry-robot.png);
-    background-size: cover;
-
-    .eye {
-      display: block;
-      width: 12px;
-      height: 12px;
-      border-radius: 12px;
-      position: absolute;
-      top: 70px;
-      left: 82px;
-      transform: translateZ(0);
-
-      -webkit-animation: blink-eye 0.6s infinite;
-      -moz-animation: blink-eye 0.6s infinite;
-      -o-animation: blink-eye 0.6s infinite;
-      animation: blink-eye 0.6s infinite;
-    }
-  }
-
-  .strikethrough {
-    text-decoration: line-through;
-  }
-}
-
-@-webkit-keyframes blink-eye {
-  0% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-
-  50% {
-    background: #4a4d67;
-    box-shadow: none;
-  }
-
-  100% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-}
-
-@-moz-keyframes blink-eye {
-  0% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-
-  50% {
-    background: #4a4d67;
-    box-shadow: none;
-  }
-
-  100% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-}
-
-@-o-keyframes blink-eye {
-  0% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-
-  50% {
-    background: #4a4d67;
-    box-shadow: none;
-  }
-
-  100% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-}
-
-@keyframes blink-eye {
-  0% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
-
-  50% {
-    background: #4a4d67;
-    box-shadow: none;
-  }
-
-  100% {
-    background: @red;
-    box-shadow: 0 0 10px @red;
-  }
 }
 
 /**
@@ -646,212 +405,4 @@
 
 .stream-count {
   font-size: 20px;
-}
-
-/**
-* Stream Columns
-* ============================================================================
-*/
-
-.stream-row {
-  .clearfix();
-
-  .search {
-    width: 100%;
-    z-index: @zindex-sticky-bar + 1;
-  }
-
-  .toggle-stream-sidebar {
-    width: 50px;
-    margin-left: 5px;
-    height: 40px;
-    text-align: center;
-    padding: 8px;
-
-    &:focus,
-    &:active {
-      box-shadow: 0;
-    }
-
-    .icon-filter {
-      font-size: 19px;
-    }
-  }
-
-  .stream-content,
-  .stream-sidebar {
-    float: left;
-    .transition(all 0.2s ease-in-out);
-  }
-
-  .stream-content {
-    width: 100%;
-  }
-
-  .stream-sidebar {
-    width: 0;
-    height: 0;
-    overflow: hidden;
-    visibility: hidden;
-    opacity: 0;
-    padding-left: 20px;
-    position: absolute;
-
-    .stream-tag-filter {
-      margin-bottom: 1em;
-
-      form {
-        position: relative;
-      }
-    }
-
-    h6 {
-      color: lighten(@gray, 10);
-      margin-bottom: 10px;
-    }
-  }
-
-  &.show-sidebar {
-    .toggle-stream-sidebar {
-      .btn-primary;
-      box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.12);
-    }
-
-    .stream-content {
-      width: 75%;
-    }
-
-    .stream-actions-graph-label {
-      display: none;
-    }
-
-    .stream-sidebar {
-      width: 25%;
-      visibility: visible;
-      opacity: 1;
-      height: auto;
-      overflow: visible;
-      position: static;
-    }
-  }
-}
-
-/**
-* Empty Stream/Empty Alert box
-* ============================================================================
-*/
-
-.alert-box {
-  border: 1px solid @trim;
-  border-radius: 0 0 2px 2px;
-  text-align: center;
-  font-size: 22px;
-  padding: 48px 0;
-
-  p {
-    line-height: 1.2;
-    margin: 0 auto 20px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  .icon {
-    display: block;
-    font-size: 54px;
-    color: lighten(@gray, 20);
-    opacity: 0.45;
-    margin-bottom: 20px;
-  }
-}
-
-/**
-* Stream assignee selector
-* ============================================================================
-*/
-.stream-content .assignee-selector .dropdown-toggle {
-  color: rgb(74, 62, 86); // gray4
-}
-
-/**
-* Responsive small screen
-* ============================================================================
-*/
-
-@media (max-width: 992px) {
-  .search {
-    margin-bottom: -1px;
-  }
-
-  .stream-actions {
-    .stream-actions-count,
-    .stream-actions-users {
-      font-size: 13px;
-    }
-  }
-}
-
-@media (max-width: 767px) {
-  .search {
-    width: 100% !important;
-  }
-
-  .search-clear-form {
-    top: 10px !important;
-  }
-
-  .toggle-stream-sidebar {
-    display: none;
-  }
-
-  .stream-content {
-    width: 100% !important;
-  }
-
-  .stream-sidebar {
-    display: none;
-  }
-
-  .stream-actions {
-    padding-right: 0;
-  }
-
-  .stream-actions .stream-actions-left,
-  .group .event-details {
-    padding-left: 36px;
-
-    .checkbox {
-      left: 33px;
-    }
-  }
-
-  .group-list .group {
-    padding-right: 0;
-  }
-
-  .awaiting-events {
-    padding: 25px 20px 0px;
-
-    .wrap {
-      padding: 0;
-      text-align: center;
-    }
-
-    .robot {
-      position: relative;
-      top: 0;
-      left: 0;
-      margin: 0 auto;
-      width: 110px;
-      height: 130px;
-
-      .eye {
-        width: 6px;
-        height: 6px;
-        top: 34px;
-        left: 40px;
-      }
-    }
-  }
 }

@@ -1751,10 +1751,10 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
-              path="/organizations/:orgId/performance/summary/rum/"
+              path="/organizations/:orgId/performance/summary/vitals/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "PerformanceRealUserMonitoring" */ 'app/views/performance/realUserMonitoring'
+                  /* webpackChunkName: "PerformanceTransactionVitals" */ 'app/views/performance/transactionVitals'
                 )
               }
               component={errorHandler(LazyLoad)}

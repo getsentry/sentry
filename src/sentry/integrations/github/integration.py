@@ -98,6 +98,20 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
+    def get_stacktrace_link(self, repo, filepath, version):
+        try:
+            self.get_client().check_file(repo.name, filepath, version)
+        except ApiError as e:
+            if e.code != 404:
+                raise
+            return None
+
+        # Must format the url ourselves since `check_file` is a head request
+        # "https://github.com/octokit/octokit.rb/blob/master/README.md"
+        web_url = u"https://github.com/{}/blob/{}/{}".format(repo.name, version, filepath)
+
+        return web_url
+
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
@@ -147,6 +161,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
 
     setup_dialog_config = {"width": 1030, "height": 1000}
+    has_stacktrace_linking = True
 
     def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
@@ -172,7 +187,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         resp = session.get(
             "https://api.github.com/app/installations/%s" % installation_id,
             headers={
-                "Authorization": "Bearer %s" % get_jwt(),
+                "Authorization": b"Bearer %s" % get_jwt(),
                 "Accept": "application/vnd.github.machine-man-preview+json",
             },
         )
