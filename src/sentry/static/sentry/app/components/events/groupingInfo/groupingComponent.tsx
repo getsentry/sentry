@@ -55,7 +55,7 @@ export const GroupingComponentListItem = styled('li')<{isCollapsable?: boolean}>
   ${p =>
     p.isCollapsable &&
     `
-    border-left: 1px solid ${p.theme.border};
+    border-left: 1px solid ${p.theme.innerBorder};
     margin: 0 0 -${space(0.25)} ${space(1)};
     padding-left: ${space(0.5)};
   `}

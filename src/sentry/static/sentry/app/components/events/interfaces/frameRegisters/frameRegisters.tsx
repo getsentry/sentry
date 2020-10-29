@@ -38,7 +38,7 @@ const FrameRegisters = ({data}: Props) => {
 };
 
 const RegistersWrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   padding-top: 10px;
 `;
 
