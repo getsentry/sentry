@@ -7,6 +7,8 @@ import moment from 'moment-timezone';
 import ConfigStore from 'app/stores/configStore';
 import {t} from 'app/locale';
 
+import Tooltip from './tooltip';
+
 const ONE_MINUTE_IN_MS = 60000;
 
 type RelaxedDateType = string | number | Date;
@@ -86,14 +88,11 @@ class TimeSince extends React.PureComponent<Props, State> {
     const format = options?.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
 
     return (
-      <time
-        dateTime={dateObj.toISOString()}
-        title={moment.tz(dateObj, options?.timezone ?? '').format(format)}
-        className={className}
-        {...props}
-      >
-        {this.state.relative}
-      </time>
+      <Tooltip title={moment.tz(dateObj, options?.timezone ?? '').format(format)}>
+        <time dateTime={dateObj.toISOString()} className={className} {...props}>
+          {this.state.relative}
+        </time>
+      </Tooltip>
     );
   }
 }
