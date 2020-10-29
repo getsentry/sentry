@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import {WithRouterProps} from 'react-router';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addTeamToProject, removeTeamFromProject} from 'app/actionCreators/projects';
@@ -9,13 +10,23 @@ import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Link from 'app/components/links/link';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {Organization, Project, Team} from 'app/types';
 import TeamSelect from 'app/views/settings/components/teamSelect';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import routeTitleGen from 'app/utils/routeTitle';
 
-class ProjectTeams extends AsyncView {
-  getEndpoints() {
+type Props = {
+  organization: Organization;
+  project: Project;
+} & WithRouterProps<{orgId: string; projectId: string}, {}>;
+
+type State = {
+  projectTeams: null | Team[];
+} & AsyncView['state'];
+
+class ProjectTeams extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [['projectTeams', `/projects/${orgId}/${projectId}/teams/`]];
   }
@@ -33,7 +44,7 @@ class ProjectTeams extends AsyncView {
     );
   };
 
-  handleRemove = teamSlug => {
+  handleRemove = (teamSlug: Team['slug']) => {
     if (this.state.loading) {
       return;
     }
@@ -48,19 +59,21 @@ class ProjectTeams extends AsyncView {
       });
   };
 
-  handleRemovedTeam = teamSlug => {
-    this.setState(() => ({
-      projectTeams: this.state.projectTeams.filter(team => team.slug !== teamSlug),
+  handleRemovedTeam = (teamSlug: Team['slug']) => {
+    this.setState(prevState => ({
+      projectTeams: [
+        ...(prevState.projectTeams || []).filter(team => team.slug !== teamSlug),
+      ],
     }));
   };
 
-  handleAddedTeam = team => {
-    this.setState(() => ({
-      projectTeams: this.state.projectTeams.concat([team]),
+  handleAddedTeam = (team: Team) => {
+    this.setState(prevState => ({
+      projectTeams: [...prevState.projectTeams, team],
     }));
   };
 
-  handleAdd = team => {
+  handleAdd = (team: Team) => {
     if (this.state.loading) {
       return;
     }
@@ -79,7 +92,7 @@ class ProjectTeams extends AsyncView {
     );
   };
 
-  handleCreateTeam = e => {
+  handleCreateTeam = (e: React.MouseEvent) => {
     const {project, organization} = this.props;
 
     if (!this.canCreateTeam()) {
@@ -112,7 +125,8 @@ class ProjectTeams extends AsyncView {
         'you sure you want to remove this team from the project %s?',
       params.projectId
     );
-    const projectTeams = this.state.projectTeams.map(p => p.slug);
+    const {projectTeams} = this.state;
+    const selectedTeams = projectTeams ? projectTeams.map(({slug}) => slug) : [];
 
     const menuHeader = (
       <StyledTeamsLabel>
@@ -138,7 +152,7 @@ class ProjectTeams extends AsyncView {
         <SettingsPageHeader title={t('%s Teams', params.projectId)} />
         <TeamSelect
           organization={organization}
-          selectedTeams={projectTeams}
+          selectedTeams={selectedTeams}
           onAddTeam={this.handleAdd}
           onRemoveTeam={this.handleRemove}
           menuHeader={menuHeader}
