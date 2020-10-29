@@ -114,7 +114,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         include_inbox = features.has(
             "organizations:inbox", organization, actor=request.user
-        ) and "group_inbox" in request.GET.getlist("expand", [])
+        ) and "inbox" in request.GET.getlist("expand", [])
 
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
