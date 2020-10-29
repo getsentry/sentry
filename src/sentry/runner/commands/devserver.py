@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import click
 import six
+import types
 from six.moves.urllib.parse import urlparse
 import threading
 
@@ -37,6 +38,9 @@ def _get_daemon(name):
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
 @click.option(
+    "--pretty/--no-pretty", default=False, help="Styleize various outputs from the devserver"
+)
+@click.option(
     "--styleguide/--no-styleguide",
     default=False,
     help="Start local styleguide web server on port 9001",
@@ -59,7 +63,16 @@ def _get_daemon(name):
 @log_options()
 @configuration
 def devserver(
-    reload, watchers, workers, experimental_spa, styleguide, prefix, environment, debug_server, bind
+    reload,
+    watchers,
+    workers,
+    experimental_spa,
+    styleguide,
+    prefix,
+    pretty,
+    environment,
+    debug_server,
+    bind,
 ):
     "Starts a lightweight web server for development."
 
@@ -221,9 +234,9 @@ def devserver(
     # A better log-format for local dev when running through honcho,
     # but if there aren't any other daemons, we don't want to override.
     if daemons:
-        uwsgi_overrides["log-format"] = '"%(method) %(status) %(uri) %(proto)" %(size)'
+        uwsgi_overrides["log-format"] = "%(method) %(status) %(uri) %(proto) %(size)"
     else:
-        uwsgi_overrides["log-format"] = '[%(ltime)] "%(method) %(status) %(uri) %(proto)" %(size)'
+        uwsgi_overrides["log-format"] = "[%(ltime)] %(method) %(status) %(uri) %(proto) %(size)"
 
     server = SentryHTTPServer(
         host=host, port=port, workers=1, extra_options=uwsgi_overrides, debug=debug_server
@@ -254,7 +267,14 @@ def devserver(
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
-    manager = Manager(Printer(prefix=prefix))
+    honcho_printer = Printer(prefix=prefix)
+
+    if pretty:
+        from sentry.runner.formatting import monkeypatch_honcho_write
+
+        honcho_printer.write = types.MethodType(monkeypatch_honcho_write, honcho_printer)
+
+    manager = Manager(honcho_printer)
     for name, cmd in daemons:
         manager.add_process(name, list2cmdline(cmd), quiet=False, cwd=cwd)
 
