@@ -3,12 +3,9 @@ from __future__ import absolute_import
 import logging
 from functools import partial, update_wrapper
 
-import six
-
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
-from django.core.context_processors import csrf
+from django.template.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect, Http404, HttpResponse
@@ -24,10 +21,12 @@ from sentry.web.decorators import login_required, signed_auth_required, set_refe
 from sentry.web.forms.accounts import RecoverPasswordForm, ChangePasswordRecoverForm
 from sentry.web.helpers import render_to_response
 from sentry.utils import auth
-from social_auth.backends import get_backend
-from social_auth.models import UserSocialAuth
 
 logger = logging.getLogger("sentry.accounts")
+
+
+def get_template(name, mode):
+    return u"sentry/account/{}/{}.html".format(mode, name)
 
 
 @login_required
@@ -41,7 +40,7 @@ def expired(request, user):
     password_hash.send_email(request)
 
     context = {"email": password_hash.user.email}
-    return render_to_response("sentry/account/recover/expired.html", context, request)
+    return render_to_response(get_template("recover", "expired"), context, request)
 
 
 def recover(request):
@@ -81,22 +80,16 @@ def recover(request):
 
             logger.info("recover.sent", extra=extra)
 
-        tpl = "sentry/account/recover/sent.html"
         context = {"email": email}
 
-        return render_to_response(tpl, context, request)
+        return render_to_response(get_template("recover", "sent"), context, request)
 
     if form._errors:
         logger.warning("recover.error", extra=extra)
 
-    tpl = "sentry/account/recover/index.html"
     context = {"form": form}
 
-    return render_to_response(tpl, context, request)
-
-
-def get_template(name, mode):
-    return u"sentry/account/{}/{}.html".format(mode, name)
+    return render_to_response(get_template("recover", "index"), context, request)
 
 
 @set_referrer_policy("strict-origin-when-cross-origin")
@@ -109,8 +102,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
         user = password_hash.user
 
     except LostPasswordHash.DoesNotExist:
-        tpl = get_template("failure", mode)
-        return render_to_response(tpl, {}, request)
+        return render_to_response(get_template(mode, "failure"), {}, request)
 
     if request.method == "POST":
         form = ChangePasswordRecoverForm(request.POST)
@@ -142,10 +134,9 @@ def recover_confirm(request, user_id, hash, mode="recover"):
     else:
         form = ChangePasswordRecoverForm()
 
-    tpl = get_template("confirm", mode)
-    context = {"form": form}
-
-    return render_to_response(tpl, context, request)
+    return render_to_response(
+        get_template(mode, "confirm"), {"form": form}, request
+    )
 
 
 # Set password variation of password recovery
@@ -256,54 +247,3 @@ def email_unsubscribe_project(request, project_id):
     context = csrf(request)
     context["project"] = project
     return render_to_response("sentry/account/email_unsubscribe_project.html", context, request)
-
-
-@csrf_protect
-@never_cache
-@login_required
-def disconnect_identity(request, identity_id):
-    if request.method != "POST":
-        raise NotImplementedError
-
-    try:
-        auth = UserSocialAuth.objects.get(id=identity_id)
-    except UserSocialAuth.DoesNotExist:
-        return HttpResponseRedirect(reverse("sentry-account-settings-identities"))
-
-    backend = get_backend(auth.provider, request, "/")
-    if backend is None:
-        raise Exception(u"Backend was not found for request: {}".format(auth.provider))
-
-    # stop this from bubbling up errors to social-auth's middleware
-    # XXX(dcramer): IM SO MAD ABOUT THIS
-    try:
-        backend.disconnect(request.user, identity_id)
-    except Exception as exc:
-        import sys
-
-        exc_tb = sys.exc_info()[2]
-        six.reraise(Exception, exc, exc_tb)
-        del exc_tb
-
-    # XXX(dcramer): we experienced an issue where the identity still existed,
-    # and given that this is a cheap query, lets error hard in that case
-    assert not UserSocialAuth.objects.filter(user=request.user, id=identity_id).exists()
-
-    backend_name = backend.AUTH_BACKEND.name
-
-    messages.add_message(
-        request,
-        messages.SUCCESS,
-        u"Your {} identity has been disconnected.".format(
-            settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name)
-        ),
-    )
-    logger.info(
-        "user.identity.disconnect",
-        extra={
-            "user_id": request.user.id,
-            "ip_address": request.META["REMOTE_ADDR"],
-            "usersocialauth_id": identity_id,
-        },
-    )
-    return HttpResponseRedirect(reverse("sentry-account-settings-identities"))

@@ -3,13 +3,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {fetchTeamDetails, joinTeam} from 'app/actionCreators/teams';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import IdBadge from 'app/components/idBadge';
 import ListLink from 'app/components/links/listLink';
 import LoadingError from 'app/components/loadingError';
@@ -136,11 +137,11 @@ const TeamDetails = createReactClass({
     } else if (!team || !team.hasAccess) {
       return (
         <Alert type="warning">
-          <h4>{t('You do not have access to this team')}</h4>
-
-          {team && (
+          {team ? (
             <RequestAccessWrapper>
-              {tct('You may try to request access to [team]', {team: `#${team.slug}`})}
+              {tct('You do not have access to the [teamSlug] team.', {
+                teamSlug: <strong>{`#${team.slug}`}</strong>,
+              })}
               <Button
                 disabled={this.state.requesting || team.isPending}
                 size="small"
@@ -149,6 +150,8 @@ const TeamDetails = createReactClass({
                 {team.isPending ? t('Request Pending') : t('Request Access')}
               </Button>
             </RequestAccessWrapper>
+          ) : (
+            <div>{t('You do not have access to this team.')}</div>
           )}
         </Alert>
       );
@@ -157,14 +160,14 @@ const TeamDetails = createReactClass({
     }
 
     const routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
-
     return (
       <div>
+        <SentryDocumentTitle title={t('Team Details')} objSlug={params.orgId} />
         <h3>
           <IdBadge hideAvatar team={team} avatarSize={36} />
         </h3>
 
-        <NavTabs underlined={true}>
+        <NavTabs underlined>
           <ListLink to={`${routePrefix}members/`}>{t('Members')}</ListLink>
           <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
           <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>

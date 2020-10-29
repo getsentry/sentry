@@ -4,7 +4,7 @@ import responses
 import six
 import copy
 
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import ExternalIssue
 from sentry.utils.http import absolute_uri
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -75,7 +75,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().error(),
+                "default": self.group.get_latest_event().title,
                 "type": "string",
                 "required": True,
             },
@@ -255,7 +255,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().error(),
+                "default": self.group.get_latest_event().title,
                 "type": "string",
                 "required": True,
             },
@@ -319,7 +319,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().error(),
+                "default": self.group.get_latest_event().title,
                 "type": "string",
                 "required": True,
             },
@@ -364,7 +364,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().error(),
+                "default": self.group.get_latest_event().title,
                 "type": "string",
                 "required": True,
             },

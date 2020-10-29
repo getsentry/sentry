@@ -1,7 +1,8 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 from hashlib import sha1
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -13,7 +14,6 @@ from sentry.api.endpoints.chunk import (
     MAX_CONCURRENCY,
     HASH_ALGORITHM,
     MAX_REQUEST_SIZE,
-    CHUNK_UPLOAD_BLOB_SIZE,
 )
 
 
@@ -34,7 +34,7 @@ class ChunkUploadTest(APITestCase):
             endpoint = options.get("system.url-prefix")
 
         assert response.status_code == 200, response.content
-        assert response.data["chunkSize"] == CHUNK_UPLOAD_BLOB_SIZE
+        assert response.data["chunkSize"] == settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE
         assert response.data["chunksPerRequest"] == MAX_CHUNKS_PER_REQUEST
         assert response.data["maxRequestSize"] == MAX_REQUEST_SIZE
         assert response.data["maxFileSize"] == options.get("system.maximum-file-size")
@@ -63,21 +63,20 @@ class ChunkUploadTest(APITestCase):
         assert response.status_code == 403, response.content
 
     def test_upload(self):
-        string1 = "1 this is my testString"
-        string2 = "2 this is my testString"
-
-        checksum1 = sha1(string1).hexdigest()
-        checksum2 = sha1(string2).hexdigest()
+        data1 = b"1 this is my testString"
+        data2 = b"2 this is my testString"
+        checksum1 = sha1(data1).hexdigest()
+        checksum2 = sha1(data2).hexdigest()
+        blob1 = SimpleUploadedFile(checksum1, data1, content_type="multipart/form-data")
+        blob2 = SimpleUploadedFile(checksum2, data2, content_type="multipart/form-data")
 
         response = self.client.post(
             self.url,
-            data={
-                "file": [
-                    SimpleUploadedFile(checksum1, string1),
-                    SimpleUploadedFile(checksum2, string2),
-                ]
-            },
+            data={"file": [blob1, blob2]},
             HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            # this tells drf to select the MultiPartParser. We use that instead of
+            # FileUploadParser because we have our own specific file chunking mechanism
+            # in the chunk endpoint that has requirements like blob/chunk's filename = checksum.
             format="multipart",
         )
 
@@ -88,12 +87,21 @@ class ChunkUploadTest(APITestCase):
         assert file_blobs[0].checksum == checksum1
         assert file_blobs[1].checksum == checksum2
 
+    def test_empty_upload(self):
+        response = self.client.post(
+            self.url, HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token), format="multipart"
+        )
+        assert response.status_code == 200
+
+        file_blobs = FileBlob.objects.all()
+        assert len(file_blobs) == 0
+
     def test_too_many_chunks(self):
         files = []
 
         # Exactly the limit
         for x in range(0, MAX_CHUNKS_PER_REQUEST + 1):
-            content = "x"
+            content = b"x"
             files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
 
         response = self.client.post(
@@ -110,7 +118,7 @@ class ChunkUploadTest(APITestCase):
 
         # Exactly the limit
         for x in range(0, MAX_CHUNKS_PER_REQUEST):
-            content = "x" * (MAX_REQUEST_SIZE / MAX_CHUNKS_PER_REQUEST)
+            content = b"x" * (MAX_REQUEST_SIZE // MAX_CHUNKS_PER_REQUEST)
             files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
 
         response = self.client.post(
@@ -123,7 +131,7 @@ class ChunkUploadTest(APITestCase):
         assert response.status_code == 200, response.content
 
         # We overflow the request here
-        files.append(SimpleUploadedFile(sha1("content").hexdigest(), "content"))
+        files.append(SimpleUploadedFile(sha1(b"content").hexdigest(), b"content"))
         response = self.client.post(
             self.url,
             data={"file": files},
@@ -134,7 +142,7 @@ class ChunkUploadTest(APITestCase):
 
     def test_too_large_chunk(self):
         files = []
-        content = "x" * (CHUNK_UPLOAD_BLOB_SIZE + 1)
+        content = b"x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
         files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
 
         response = self.client.post(
@@ -148,8 +156,8 @@ class ChunkUploadTest(APITestCase):
 
     def test_checksum_missmatch(self):
         files = []
-        content = "x" * (CHUNK_UPLOAD_BLOB_SIZE + 1)
-        files.append(SimpleUploadedFile("wrong checksum", content))
+        content = b"x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
+        files.append(SimpleUploadedFile(b"wrong checksum", content))
 
         response = self.client.post(
             self.url,

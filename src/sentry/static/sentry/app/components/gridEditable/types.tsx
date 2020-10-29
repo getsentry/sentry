@@ -5,15 +5,15 @@
  *   - columnKey should have the same set of values as K
  */
 
-type ObjectKey = React.ReactText;
+export type ObjectKey = React.ReactText;
 
 export type GridColumn<K = ObjectKey> = {
   key: K;
+  width?: number;
 };
 
 export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
   name: string;
-  isPrimary?: boolean;
 };
 
 export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;

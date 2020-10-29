@@ -3,8 +3,9 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.integrations.client import ApiClient
-from sentry.integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import transaction_start
 from six.moves.urllib.parse import quote
 
 
@@ -17,6 +18,7 @@ class GitLabApiClientPath(object):
     commits = u"/projects/{project}/repository/commits"
     compare = u"/projects/{project}/repository/compare"
     diff = u"/projects/{project}/repository/commits/{sha}/diff"
+    file = u"/projects/{project}/repository/files/{path}"
     group = u"/groups/{group}"
     group_projects = u"/groups/{group}/projects"
     hooks = u"/hooks"
@@ -129,7 +131,11 @@ class GitLabApiClient(ApiClient):
         # Really useful, because we often don't need most of the project information
         return self.get(
             GitLabApiClientPath.group_projects.format(group=group),
-            params={"search": query, "simple": simple},
+            params={
+                "search": query,
+                "simple": simple,
+                "include_subgroups": self.metadata.get("include_subgroups", False),
+            },
         )
 
     def get_project(self, project_id):
@@ -208,7 +214,8 @@ class GitLabApiClient(ApiClient):
         and use its date to find the block of commits. We only fetch one page
         of commits to match other implementations (github, bitbucket)
 
-        See https://docs.gitlab.com/ee/api/commits.html#get-the-diff-of-a-commit
+        See https://docs.gitlab.com/ee/api/commits.html#get-a-single-commit and
+        https://docs.gitlab.com/ee/api/commits.html#list-repository-commits
         """
         path = GitLabApiClientPath.commit.format(project=project_id, sha=end_sha)
         commit = self.get(path)
@@ -234,3 +241,14 @@ class GitLabApiClient(ApiClient):
         """
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
+
+    @transaction_start("GitLabApiClient.check_file")
+    def check_file(self, project_id, path, ref):
+        """Fetch a file for stacktrace linking
+
+        See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
+        Path requires file path and ref
+        """
+        self.base_url = self.metadata["base_url"]
+        request_path = GitLabApiClientPath.file.format(project=project_id, path=path)
+        return self.head_cached(request_path, params={"ref": ref})

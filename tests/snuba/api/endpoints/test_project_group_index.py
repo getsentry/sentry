@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
-import json
 from datetime import timedelta
 from uuid import uuid4
 
 import six
+from six.moves.urllib.parse import quote
+
+from django.conf import settings
 from django.utils import timezone
 from exam import fixture
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 
 from sentry.models import (
     Activity,
@@ -33,7 +35,7 @@ from sentry.models import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from six.moves.urllib.parse import quote
+from sentry.utils import json
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
@@ -275,9 +277,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release = Release.objects.create(organization=project.organization, version="12345")
         release.add_project(project)
         release.add_project(project2)
-        group = self.create_group(checksum="a" * 32, project=project, first_release=release)
-        self.create_group(checksum="b" * 32, project=project2, first_release=release)
-        url = "%s?query=%s" % (self.path, quote('first-release:"%s"' % release.version))
+        group = self.store_event(
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
+        ).group
+        self.store_event(
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project2.id,
+        )
+        url = "%s?query=%s" % (self.path, 'first-release:"%s"' % release.version)
         response = self.client.get(url, format="json")
         issues = json.loads(response.content)
         assert response.status_code == 200
@@ -286,19 +294,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_lookup_by_release(self):
         self.login_as(self.user)
-        project = self.project
-        release = Release.objects.create(organization=project.organization, version="12345")
-        release.add_project(project)
-        self.create_event(
-            group=self.group, datetime=self.min_ago, tags={"sentry:release": release.version}
+        version = "12345"
+        event = self.store_event(
+            data={"tags": {"sentry:release": version}}, project_id=self.project.id
         )
-
-        url = "%s?query=%s" % (self.path, quote('release:"%s"' % release.version))
+        group = event.group
+        url = "%s?query=%s" % (self.path, quote('release:"%s"' % version))
         response = self.client.get(url, format="json")
         issues = json.loads(response.content)
         assert response.status_code == 200
         assert len(issues) == 1
-        assert int(issues[0]["id"]) == self.group.id
+        assert int(issues[0]["id"]) == group.id
 
     def test_pending_delete_pending_merge_excluded(self):
         self.create_group(checksum="a" * 32, status=GroupStatus.PENDING_DELETION)
@@ -423,7 +429,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
-        group = self.create_group(status=GroupStatus.UNRESOLVED, organization=org)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         OrganizationIntegration.objects.filter(
             integration_id=integration.id, organization_id=group.organization.id
@@ -979,8 +985,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.binary_type(i)},
-                    "timestamp": iso_format(self.min_ago - timedelta(seconds=i)),
+                    "user": {"id": six.text_type(i)},
+                    "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
             )
@@ -1112,7 +1118,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         response = self.client.put(url, data={"isPublic": "false"}, format="json")
         assert response.status_code == 200
-        assert response.data == {"isPublic": False}
+        assert response.data == {"isPublic": False, "shareId": None}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert not bool(new_group1.get_share_id())
@@ -1280,6 +1286,23 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
 
+    @patch(
+        "sentry.models.OrganizationMember.get_scopes",
+        return_value=frozenset(s for s in settings.SENTRY_SCOPES if s != "event:admin"),
+    )
+    def test_discard_requires_events_admin(self, mock_get_scopes):
+        group1 = self.create_group(checksum="a" * 32, is_public=True)
+        user = self.user
+
+        self.login_as(user=user)
+
+        url = u"{url}?id={group1.id}".format(url=self.path, group1=group1)
+        with self.tasks(), self.feature("projects:discard-groups"):
+            response = self.client.put(url, data={"discard": True})
+
+        assert response.status_code == 400
+        assert Group.objects.filter(id=group1.id).exists()
+
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     @fixture
@@ -1291,7 +1314,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     @patch("sentry.api.helpers.group_index.eventstream")
     @patch("sentry.eventstream")
     def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
-        eventstream_state = object()
+        eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -1361,7 +1384,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             groups.append(
                 self.create_group(
                     project=self.project,
-                    checksum=six.binary_type(i) * 16,
+                    checksum=six.text_type(i).encode("utf-8") * 16,
                     status=GroupStatus.RESOLVED,
                 )
             )

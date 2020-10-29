@@ -7,7 +7,7 @@ from collections import Sequence
 
 class Cursor(object):
     def __init__(self, value, offset=0, is_prev=False, has_results=None):
-        self.value = int(value)
+        self.value = value
         self.offset = int(offset)
         self.is_prev = bool(is_prev)
         self.has_results = has_results
@@ -29,8 +29,11 @@ class Cursor(object):
             int(self.is_prev),
         )
 
-    def __nonzero__(self):
-        return self.has_results
+    def __bool__(self):
+        return bool(self.has_results)
+
+    # python2 compatibility
+    __nonzero__ = __bool__
 
     @classmethod
     def from_string(cls, value):
@@ -38,7 +41,7 @@ class Cursor(object):
         if len(bits) != 3:
             raise ValueError
         try:
-            bits = float(bits[0]), int(bits[1]), int(bits[2])
+            bits = int(bits[0]), int(bits[1]), int(bits[2])
         except (TypeError, ValueError):
             raise ValueError
         return cls(*bits)
@@ -73,7 +76,7 @@ def _build_next_values(cursor, results, key, limit, is_desc):
     num_results = len(results)
 
     if not value and num_results:
-        value = int(key(results[0]))
+        value = key(results[0])
 
     # Next cursor for a prev-cursor simply starts from that prev cursors value
     # without an offset.
@@ -88,7 +91,7 @@ def _build_next_values(cursor, results, key, limit, is_desc):
     has_next = num_results > limit
 
     # Determine what our next cursor is by ensuring we have a unique offset
-    next_value = int(key(results[-1]))
+    next_value = key(results[-1])
 
     # value has not changed, page forward by adjusting the offset
     if next_value == value:
@@ -111,7 +114,7 @@ def _build_next_values(cursor, results, key, limit, is_desc):
         six.next(result_iter)
 
     for result in result_iter:
-        result_value = int(key(result))
+        result_value = key(result)
 
         is_larger = result_value >= next_value
         is_smaller = result_value <= next_value
@@ -146,7 +149,7 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     # If we're paging back we need to calculate the key from the first result
     # with for_prev=True to ensure rounding of the key is correct.See
     # sentry.api.paginator.BasePaginator.get_item_key
-    prev_value = int(key(results[first_prev_index], for_prev=True)) if results else 0
+    prev_value = key(results[first_prev_index], for_prev=True) if results else 0
 
     # Prev only has an offset if the cursor we were dealing with was a
     # previous cursor. Otherwise we'd be taking the offset while moving forward.
@@ -178,7 +181,7 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     six.next(result_iter)
 
     for result in result_iter:
-        result_value = int(key(result, for_prev=True))
+        result_value = key(result, for_prev=True)
 
         is_larger = result_value >= prev_value
         is_smaller = result_value <= prev_value
@@ -210,7 +213,7 @@ def build_cursor(
     )
 
     if cursor.is_prev and has_prev:
-        # A prev cursor with more reults should have the first item chopped off
+        # A prev cursor with more results should have the first item chopped off
         # as this is the item that indicates we have more items before, and
         # should not be included on this page.
         results = results[1:]

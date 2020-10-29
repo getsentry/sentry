@@ -1,13 +1,14 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Result from 'app/views/discover/result';
 import createQueryBuilder from 'app/views/discover/queryBuilder';
 
-describe('Result', function() {
-  describe('New query', function() {
+describe('Result', function () {
+  describe('New query', function () {
     let wrapper, data, organization;
-    beforeEach(function() {
+    beforeEach(function () {
       organization = TestStubs.Organization();
 
       data = {
@@ -24,7 +25,7 @@ describe('Result', function() {
           data: null,
         },
       };
-      wrapper = shallow(
+      wrapper = mountWithTheme(
         <Result
           data={data}
           organization={organization}
@@ -36,17 +37,16 @@ describe('Result', function() {
         />,
         {
           context: {organization},
-          disableLifecycleMethods: false,
         }
       );
     });
 
-    afterEach(function() {
+    afterEach(function () {
       MockApiClient.clearMockResponses();
     });
 
-    describe('Render Summary', function() {
-      it('shows correct range for pagination in summary', async function() {
+    describe('Render Summary', function () {
+      it('shows correct range for pagination in summary', async function () {
         data = {
           data: {
             baseQuery: {
@@ -73,15 +73,12 @@ describe('Result', function() {
         };
         wrapper.setProps(data);
 
-        expect(
-          wrapper
-            .find('ResultSummary')
-            .render()
-            .text()
-        ).toEqual('query time: 15 ms, rows 1 - 10');
+        expect(wrapper.find('ResultSummary').render().text()).toEqual(
+          'query time: 15ms, rows 1 - 10'
+        );
       });
 
-      it('shows correct number of results shown when going to next page (next page function mocked on click)', async function() {
+      it('shows correct number of results shown when going to next page (next page function mocked on click)', async function () {
         data = {
           data: {
             baseQuery: {
@@ -108,15 +105,12 @@ describe('Result', function() {
         };
         wrapper.setProps(data);
 
-        expect(
-          wrapper
-            .find('ResultSummary')
-            .render()
-            .text()
-        ).toBe('query time: 15 ms, rows 11 - 20');
+        expect(wrapper.find('ResultSummary').render().text()).toBe(
+          'query time: 15ms, rows 11 - 20'
+        );
       });
 
-      it('shows 0 Results with no data', async function() {
+      it('shows 0 Results with no data', async function () {
         wrapper.setProps({
           data: {
             baseQuery: {
@@ -138,18 +132,15 @@ describe('Result', function() {
           },
         });
 
-        expect(
-          wrapper
-            .find('ResultSummary')
-            .render()
-            .text()
-        ).toBe('query time: 15 ms, 0 rows');
+        expect(wrapper.find('ResultSummary').render().text()).toBe(
+          'query time: 15ms, 0 rows'
+        );
       });
     });
 
-    describe('Toggles Visualizations', function() {
-      beforeEach(function() {
-        wrapper = mount(
+    describe('Toggles Visualizations', function () {
+      beforeEach(function () {
+        wrapper = mountWithTheme(
           <Result
             data={data}
             organization={organization}
@@ -160,35 +151,27 @@ describe('Result', function() {
         );
       });
 
-      it('displays options', function() {
+      it('displays options', function () {
         const buttons = wrapper.find('ResultViewButtons').find('a');
         expect(buttons).toHaveLength(3);
       });
 
-      it('toggles buttons', function() {
+      it('toggles buttons', function () {
         expect(wrapper.find('ResultTable')).toHaveLength(1);
         expect(wrapper.find('LineChart')).toHaveLength(0);
 
-        wrapper
-          .find('ResultViewButtons')
-          .find('a')
-          .at(1)
-          .simulate('click');
+        wrapper.find('ResultViewButtons').find('a').at(1).simulate('click');
         wrapper.update();
 
         expect(wrapper.find('ResultTable')).toHaveLength(0);
         expect(wrapper.find('LineChart')).toHaveLength(1);
       });
 
-      it('toggles dropdown', function() {
+      it('toggles dropdown', function () {
         expect(wrapper.find('ResultTable')).toHaveLength(1);
         expect(wrapper.find('LineChart')).toHaveLength(0);
 
-        wrapper
-          .find('ul.dropdown-menu')
-          .find('a')
-          .at(1)
-          .simulate('click');
+        wrapper.find('ul.dropdown-menu').find('span').at(1).simulate('click');
 
         expect(wrapper.find('ResultTable')).toHaveLength(0);
         expect(wrapper.find('LineChart')).toHaveLength(1);
@@ -196,9 +179,9 @@ describe('Result', function() {
     });
   });
 
-  describe('Saved query', function() {
+  describe('Saved query', function () {
     let wrapper, queryBuilder;
-    beforeEach(function() {
+    beforeEach(function () {
       const organization = TestStubs.Organization();
       queryBuilder = createQueryBuilder({}, organization);
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
@@ -213,7 +196,7 @@ describe('Result', function() {
           data: null,
         },
       };
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Result
           data={data}
           organization={organization}
@@ -225,7 +208,7 @@ describe('Result', function() {
       );
     });
 
-    it('renders query name', function() {
+    it('renders query name', function () {
       expect(wrapper.find('PageHeading').text()).toBe('Saved query #1');
     });
   });

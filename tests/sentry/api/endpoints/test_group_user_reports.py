@@ -1,20 +1,22 @@
 from __future__ import absolute_import
 from exam import fixture
 
-from sentry.models import Environment, GroupStatus, UserReport
+from sentry.models import Environment, UserReport
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class GroupUserReport(APITestCase, SnubaTestCase):
     def setUp(self):
+        super(GroupUserReport, self).setUp()
         self.project = self.create_project()
         self.env1 = self.create_environment(self.project, "production")
         self.env2 = self.create_environment(self.project, "staging")
 
-        self.group = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        self.env1_events = self.create_events_for_environment(self.env1, 5)
+        self.env2_events = self.create_events_for_environment(self.env2, 5)
 
-        self.env1_events = self.create_events_for_environment(self.group, self.env1, 5)
-        self.env2_events = self.create_events_for_environment(self.group, self.env2, 5)
+        self.group = self.env1_events[0].group
 
         self.env1_userreports = self.create_user_report_for_events(
             self.project, self.group, self.env1_events, self.env1
@@ -34,9 +36,16 @@ class GroupUserReport(APITestCase, SnubaTestCase):
         env.add_project(project)
         return env
 
-    def create_events_for_environment(self, group, environment, num_events):
+    def create_events_for_environment(self, environment, num_events):
         return [
-            self.create_event(group=group, tags={"environment": environment.name})
+            self.store_event(
+                data={
+                    "fingerprint": ["group-1"],
+                    "tags": {"environment": environment.name},
+                    "timestamp": iso_format(before_now(seconds=1)),
+                },
+                project_id=self.project.id,
+            )
             for __i in range(num_events)
         ]
 
@@ -62,7 +71,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
             r.event_id for r in userreports
         )
 
-    def test_specified_enviroment(self):
+    def test_specified_environment(self):
         self.login_as(user=self.user)
 
         response = self.client.get(self.path + "?environment=" + self.env1.name)
@@ -85,7 +94,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         empty_env = self.create_environment(self.project, u"")
-        empty_env_events = self.create_events_for_environment(self.group, empty_env, 5)
+        empty_env_events = self.create_events_for_environment(empty_env, 5)
         userreports = self.create_user_report_for_events(
             self.project, self.group, empty_env_events, empty_env
         )

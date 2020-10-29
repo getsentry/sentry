@@ -59,7 +59,7 @@ class Template(Interface):
         return "\n".join(result)
 
     def get_traceback(self, event, context):
-        result = [event.real_message, "", 'File "%s", line %s' % (self.filename, self.lineno), ""]
+        result = [event.message, "", 'File "%s", line %s' % (self.filename, self.lineno), ""]
         result.extend([n[1].strip("\n") if n[1] else "" for n in context])
 
         return "\n".join(result)

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import six
 import time
 import logging
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 
 from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
@@ -40,7 +40,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         produce_args, produce_kwargs = list(self.kafka_eventstream.producer.produce.call_args)
         assert not produce_args
         assert produce_kwargs["topic"] == "events"
-        assert produce_kwargs["key"] == six.text_type(self.project.id)
+        assert produce_kwargs["key"] == six.text_type(self.project.id).encode("utf-8")
 
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
         assert version == 2
@@ -52,19 +52,8 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         snuba_eventstream._send(self.project.id, "insert", (payload1, payload2))
 
     @patch("sentry.eventstream.insert")
-    @patch("sentry.tagstore.delay_index_event_tags")
-    def test(self, mock_delay_index_event_tags, mock_eventstream_insert):
+    def test(self, mock_eventstream_insert):
         now = datetime.utcnow()
-
-        def _get_event_count():
-            return snuba.query(
-                start=now - timedelta(days=1),
-                end=now + timedelta(days=1),
-                groupby=["project_id"],
-                filter_keys={"project_id": [self.project.id]},
-            ).get(self.project.id, 0)
-
-        assert _get_event_count() == 0
 
         event = self.__build_event(now)
 
@@ -79,16 +68,22 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "is_regression": False,
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
+            "received_timestamp": event.data["received"],
         }
 
-        assert mock_delay_index_event_tags.call_count == 1
-
         self.__produce_event(*insert_args, **insert_kwargs)
-        assert _get_event_count() == 1
+        assert (
+            snuba.query(
+                start=now - timedelta(days=1),
+                end=now + timedelta(days=1),
+                groupby=["project_id"],
+                filter_keys={"project_id": [self.project.id]},
+            ).get(self.project.id, 0)
+            == 1
+        )
 
     @patch("sentry.eventstream.insert")
-    @patch("sentry.tagstore.delay_index_event_tags")
-    def test_issueless(self, mock_delay_index_event_tags, mock_eventstream_insert):
+    def test_issueless(self, mock_eventstream_insert):
         now = datetime.utcnow()
         event = self.__build_event(now)
 
@@ -102,6 +97,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "is_regression": False,
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
+            "received_timestamp": event.data["received"],
         }
 
         self.__produce_event(*insert_args, **insert_kwargs)

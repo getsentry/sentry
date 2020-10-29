@@ -1,8 +1,9 @@
 import {browserHistory} from 'react-router';
-import {mount} from 'enzyme';
-import {logout} from 'app/actionCreators/account';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {logout} from 'app/actionCreators/account';
 import AcceptOrganizationInvite from 'app/views/acceptOrganizationInvite';
 
 jest.mock('app/actionCreators/account');
@@ -14,17 +15,18 @@ const addMock = body =>
     body,
   });
 
-describe('AcceptOrganizationInvite', function() {
-  it('can accept invitation', async function() {
+describe('AcceptOrganizationInvite', function () {
+  it('can accept invitation', async function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
       needsSso: false,
+      requireSso: false,
       existingMember: false,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
       TestStubs.routerContext()
     );
@@ -47,16 +49,17 @@ describe('AcceptOrganizationInvite', function() {
     expect(browserHistory.replace).toHaveBeenCalledWith('/test-org/');
   });
 
-  it('requires authentication to join', function() {
+  it('requires authentication to join', function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
       needsSso: false,
+      requireSso: false,
       existingMember: false,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
       TestStubs.routerContext()
     );
@@ -64,19 +67,25 @@ describe('AcceptOrganizationInvite', function() {
     const joinButton = wrapper.find('Button[label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
+    expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(false);
+
+    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(false);
     expect(wrapper.find('Button[label="create-account"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
   });
 
-  it('suggests sso authentication to login', function() {
+  it('suggests sso authentication to login', function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
       needsSso: true,
+      requireSso: false,
       existingMember: false,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
       TestStubs.routerContext()
     );
@@ -84,22 +93,51 @@ describe('AcceptOrganizationInvite', function() {
     const joinButton = wrapper.find('Button[label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
 
-    expect(wrapper.find('[data-test-id="suggests-sso"]').exists()).toBe(true);
     expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
   });
 
-  it('shows a logout button for existing members', async function() {
+  it('enforce required sso authentication', function () {
+    addMock({
+      orgSlug: 'test-org',
+      needsAuthentication: true,
+      needs2fa: false,
+      needsSso: true,
+      requireSso: true,
+      existingMember: false,
+    });
+
+    const wrapper = mountWithTheme(
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
+      TestStubs.routerContext()
+    );
+
+    const joinButton = wrapper.find('Button[label="join-organization"]');
+    expect(joinButton.exists()).toBe(false);
+
+    expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
+
+    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
+  });
+
+  it('shows a logout button for existing members', async function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
       needsSso: false,
+      requireSso: false,
       existingMember: true,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
       TestStubs.routerContext()
     );
@@ -110,7 +148,10 @@ describe('AcceptOrganizationInvite', function() {
     const {replace} = window.location;
     window.location.replace = jest.fn();
 
-    existingMember.find('Link').simulate('click');
+    existingMember
+      .find('[data-test-id="existing-member-link"]')
+      .hostNodes()
+      .simulate('click');
     expect(logout).toHaveBeenCalled();
     await tick();
     expect(window.location.replace).toHaveBeenCalled();
@@ -118,16 +159,17 @@ describe('AcceptOrganizationInvite', function() {
     window.location.replace = replace;
   });
 
-  it('shows 2fa warning', function() {
+  it('shows 2fa warning', function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: true,
       needsSso: false,
+      requireSso: false,
       existingMember: false,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
       TestStubs.routerContext()
     );

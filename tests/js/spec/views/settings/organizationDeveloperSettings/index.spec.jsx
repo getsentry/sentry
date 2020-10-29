@@ -1,16 +1,27 @@
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
 import OrganizationDeveloperSettings from 'app/views/settings/organizationDeveloperSettings/index';
 import App from 'app/views/app';
 
-describe('Organization Developer Settings', function() {
+describe('Organization Developer Settings', function () {
   const org = TestStubs.Organization();
-  const sentryApp = TestStubs.SentryApp();
+  const sentryApp = TestStubs.SentryApp({
+    scopes: [
+      'team:read',
+      'project:releases',
+      'event:read',
+      'event:write',
+      'org:read',
+      'org:write',
+    ],
+  });
   const routerContext = TestStubs.routerContext();
 
-  const publishButtonSelector = 'StyledButton[icon="icon-upgrade"]';
+  const publishButtonSelector = 'StyledButton[aria-label="Publish"]';
+  const deleteButtonSelector = 'StyledButton[aria-label="Delete"]';
 
   beforeEach(() => {
     Client.clearMockResponses();
@@ -22,13 +33,13 @@ describe('Organization Developer Settings', function() {
       body: [],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
     it('displays empty state', () => {
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
       expect(wrapper.exists('EmptyMessage')).toBe(true);
       expect(wrapper.text()).toMatch('No internal integrations have been created yet');
       expect(wrapper.text()).toMatch('No public integrations have been created yet');
@@ -44,7 +55,7 @@ describe('Organization Developer Settings', function() {
         body: [sentryApp],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
         routerContext
       );
@@ -66,14 +77,11 @@ describe('Organization Developer Settings', function() {
         body: [],
       });
 
-      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
-      wrapper.find('[icon="icon-trash"]').simulate('click');
+      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(false);
+      wrapper.find(deleteButtonSelector).simulate('click');
       // confirm deletion by entering in app slug
       wrapper.find('input').simulate('change', {target: {value: 'sample-app'}});
-      wrapper
-        .find('ConfirmDelete Button')
-        .last()
-        .simulate('click');
+      wrapper.find('ConfirmDelete Button').last().simulate('click');
       await tick();
       wrapper.update();
       expect(wrapper.text()).toMatch('No public integrations have been created yet');
@@ -88,7 +96,7 @@ describe('Organization Developer Settings', function() {
         },
       });
       Client.addMockResponse({
-        url: '/assistant/',
+        url: '/assistant/?v2',
         body: [],
       });
       Client.addMockResponse({
@@ -117,7 +125,7 @@ describe('Organization Developer Settings', function() {
       });
 
       //mock with App to render modal
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <App>
           <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
         </App>,
@@ -151,12 +159,12 @@ describe('Organization Developer Settings', function() {
               {
                 answer: 'Answer 2',
                 question:
-                  'Please justify why you are requesting each of the following scopes: project-read.',
+                  'Do you operate the web service your integration communicates with?',
               },
               {
                 answer: 'Answer 3',
                 question:
-                  'Do you operate the web service your integration communicates with?',
+                  'Please justify why you are requesting each of the following permissions: Team Read, Release Admin, Event Write, Organization Write.',
               },
             ],
           },
@@ -172,7 +180,7 @@ describe('Organization Developer Settings', function() {
       body: [publishedSentryApp],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
@@ -182,7 +190,7 @@ describe('Organization Developer Settings', function() {
     });
 
     it('trash button is disabled', () => {
-      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
+      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(true);
     });
 
     it('publish button is disabled', () => {
@@ -198,7 +206,7 @@ describe('Organization Developer Settings', function() {
       body: [internalIntegration],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
@@ -208,7 +216,7 @@ describe('Organization Developer Settings', function() {
     });
 
     it('allows deleting', () => {
-      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
+      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(false);
     });
 
     it('publish button does not exist', () => {
@@ -223,7 +231,7 @@ describe('Organization Developer Settings', function() {
       body: [sentryApp],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings
         params={{orgId: newOrg.slug}}
         organization={newOrg}
@@ -232,7 +240,7 @@ describe('Organization Developer Settings', function() {
     );
 
     it('trash button is disabled', () => {
-      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
+      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(true);
     });
 
     it('publish button is disabled', () => {

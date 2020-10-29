@@ -70,6 +70,7 @@ class OptionsTypesTest(TestCase):
         assert Dict({}) == {}
         assert Dict({"foo": "bar"}) == {"foo": "bar"}
         assert Dict("{foo: bar}") == {"foo": "bar"}
+
         assert Dict() == {}
         with self.assertRaises(InvalidTypeError):
             assert Dict("[]")
@@ -78,8 +79,8 @@ class OptionsTypesTest(TestCase):
         with self.assertRaises(InvalidTypeError):
             assert Dict("")
         with self.assertRaises(InvalidTypeError):
-            # malformed yaml/json
-            assert Dict("{foo:bar}")
+            # malformed yaml/json (a plain scalar, "b: ar", cannot contain ": ")
+            assert Dict("{foo: b: ar}")
 
     def test_sequence(self):
         assert Sequence(()) == ()

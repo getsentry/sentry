@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import F
 from datetime import timedelta
 
+from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
@@ -12,7 +13,6 @@ from sentry.models import (
     InviteStatus,
     Organization,
     OrganizationMember,
-    TotpInterface,
     AuthProvider,
 )
 from sentry.testutils import TestCase
@@ -32,7 +32,7 @@ class AcceptInviteTest(TestCase):
         invite_link = om.get_invite_link()
         invite_data = dict(parse_qsl(response.client.cookies["pending-invite"].value))
 
-        self.assertIn(invite_data.get("url"), invite_link)
+        assert invite_data.get("url") in invite_link
 
     def _assert_pending_invite_cookie_not_set(self, response):
         self.assertNotIn("pending-invite", response.client.cookies)

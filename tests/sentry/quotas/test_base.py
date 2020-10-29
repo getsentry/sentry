@@ -2,9 +2,12 @@
 
 from __future__ import absolute_import
 
+from sentry.constants import DataCategory
 from sentry.models import OrganizationOption, ProjectKey
-from sentry.quotas.base import Quota
+from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
 from sentry.testutils import TestCase
+
+import pytest
 
 
 class QuotaTest(TestCase):
@@ -84,3 +87,75 @@ class QuotaTest(TestCase):
             SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE="50%", SENTRY_SINGLE_ORGANIZATION=True
         ), self.options({"system.rate-limit": 10}):
             assert self.backend.get_organization_quota(org) == (10, 60)
+
+
+@pytest.mark.parametrize(
+    "obj,json",
+    [
+        (
+            QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast"),
+            {"prefix": "o", "limit": 4711, "window": 42, "reasonCode": "not_so_fast"},
+        ),
+        (
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=1,
+                limit=None,
+                window=1,
+                reason_code="go_away",
+            ),
+            {"prefix": "p", "subscope": "1", "window": 1, "reasonCode": "go_away"},
+        ),
+        (QuotaConfig(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
+        (
+            QuotaConfig(limit=0, categories=[DataCategory.TRANSACTION], reason_code="not_yet"),
+            {"limit": 0, "reasonCode": "not_yet"},
+        ),
+    ],
+)
+def test_quotas_to_json_legacy(obj, json):
+    assert obj.to_json_legacy() == json
+
+
+@pytest.mark.parametrize(
+    "obj,json",
+    [
+        (
+            QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast"),
+            {
+                "id": "o",
+                "scope": "organization",
+                "limit": 4711,
+                "window": 42,
+                "reasonCode": "not_so_fast",
+            },
+        ),
+        (
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=1,
+                limit=None,
+                window=1,
+                reason_code="go_away",
+            ),
+            {"id": "p", "scope": "project", "scopeId": "1", "window": 1, "reasonCode": "go_away"},
+        ),
+        (
+            QuotaConfig(limit=0, reason_code="go_away"),
+            {"limit": 0, "scope": "organization", "reasonCode": "go_away"},
+        ),
+        (
+            QuotaConfig(limit=0, categories=[DataCategory.TRANSACTION], reason_code="go_away"),
+            {
+                "limit": 0,
+                "scope": "organization",
+                "categories": ["transaction"],
+                "reasonCode": "go_away",
+            },
+        ),
+    ],
+)
+def test_quotas_to_json(obj, json):
+    assert obj.to_json() == json

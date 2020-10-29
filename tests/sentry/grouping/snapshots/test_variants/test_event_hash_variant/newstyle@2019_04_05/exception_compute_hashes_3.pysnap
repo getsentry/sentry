@@ -1,10 +1,10 @@
 ---
-created: '2019-04-03T22:37:15.751245Z'
+created: '2020-02-26T19:54:30.068024Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '9c694b5c648e2e8a0822dcbd4c7f9c36'
+  hash: "9c694b5c648e2e8a0822dcbd4c7f9c36"
   component:
     app*
       chained-exception*
@@ -12,19 +12,19 @@ app:
           stacktrace
             frame (non app frame)
               filename*
-                u'baz.py'
+                "baz.py"
           type*
-            u'ValueError'
+            "ValueError"
         exception*
           stacktrace
             frame (non app frame)
               filename*
-                u'baz.py'
+                "baz.py"
           type*
-            u'ValueError'
+            "ValueError"
 --------------------------------------------------------------------------
 system:
-  hash: '669cb6664e0f5fed38665da04e464f7e'
+  hash: "669cb6664e0f5fed38665da04e464f7e"
   component:
     system*
       chained-exception*
@@ -32,13 +32,13 @@ system:
           stacktrace*
             frame*
               filename*
-                u'baz.py'
+                "baz.py"
           type*
-            u'ValueError'
+            "ValueError"
         exception*
           stacktrace*
             frame*
               filename*
-                u'baz.py'
+                "baz.py"
           type*
-            u'ValueError'
+            "ValueError"

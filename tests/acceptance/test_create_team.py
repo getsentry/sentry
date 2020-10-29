@@ -26,7 +26,6 @@ class CreateTeamTest(AcceptanceTestCase):
         self.browser.click('.modal-dialog button[aria-label="Create Team"]')
 
         # Wait for modal to go away.
-        self.browser.save_screenshot("create-team.png")
         self.browser.wait_until_not(".modal-header")
 
         # New team should be in dom

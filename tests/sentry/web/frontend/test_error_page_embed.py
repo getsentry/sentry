@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from six.moves.urllib.parse import quote
+from django.test import override_settings
+from six.moves.urllib.parse import quote, urlencode
 from uuid import uuid4
 import logging
 
@@ -10,9 +11,8 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
+@override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedTest(TestCase):
-    urls = "sentry.conf.urls"
-
     def setUp(self):
         super(ErrorPageEmbedTest, self).setUp()
         self.project = self.create_project()
@@ -57,7 +57,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.status_code == 400, resp.content
         assert resp["Content-Type"] == "text/javascript"
         assert resp["X-Sentry-Context"] == '{"eventId":"Missing or invalid parameter."}'
-        assert resp.content == ""
+        assert resp.content == b""
 
     def test_missing_dsn(self):
         path = "%s?eventId=%s" % (self.path, quote(self.event_id))
@@ -68,7 +68,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.status_code == 404, resp.content
         assert resp["Content-Type"] == "text/javascript"
         assert resp["X-Sentry-Context"] == '{"dsn":"Missing or invalid parameter."}'
-        assert resp.content == ""
+        assert resp.content == b""
 
     def test_renders(self):
         resp = self.client.get(
@@ -88,19 +88,58 @@ class ErrorPageEmbedTest(TestCase):
         )
         assert resp.status_code == 200, resp.content
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
-        assert "Fermer" in resp.content  # Close
+        assert b"Fermer" in resp.content  # Close
+
+    def test_xss(self):
+        user_feedback_options = {}
+
+        option_keys = [
+            "errorFormEntry",
+            "successMessage",
+            "errorGeneric",
+            "title",
+            "subtitle",
+            "subtitle2",
+            "labelName",
+            "labelEmail",
+            "labelComments",
+            "labelSubmit",
+            "labelClose",
+        ]
+        for key in option_keys:
+            user_feedback_options[key] = "<img src=x onerror=alert({0})>XSS_{0}".format(key).encode(
+                "utf-8"
+            )
+
+        user_feedback_options_qs = urlencode(user_feedback_options)
+        path_with_qs = "%s?eventId=%s&dsn=%s&%s" % (
+            self.path,
+            quote(self.event_id),
+            quote(self.key.dsn_public),
+            user_feedback_options_qs,
+        )
+        resp = self.client.get(
+            path_with_qs,
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="text/html, text/javascript",
+        )
+        assert resp.status_code == 200, resp.content
+        self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+
+        for xss_payload in user_feedback_options.values():
+            assert xss_payload not in resp.content
 
     def test_submission(self):
         resp = self.client.post(
             self.path_with_qs,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
             HTTP_ACCEPT="application/json",
         )
         assert resp.status_code == 200, resp.content
 
         report = UserReport.objects.get()
-        assert report.name == "Jane Doe"
+        assert report.name == "Jane Bloggs"
         assert report.email == "jane@example.com"
         assert report.comments == "This is an example!"
         assert report.event_id == self.event_id
@@ -133,17 +172,15 @@ class ErrorPageEmbedTest(TestCase):
 
         resp = self.client.post(
             path,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
             HTTP_ACCEPT="application/json",
         )
         assert resp.status_code == 400, resp.content
 
 
+@override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedEnvironmentTest(TestCase):
-
-    urls = "sentry.conf.urls"
-
     def setUp(self):
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
@@ -179,7 +216,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.login_as(user=self.user)
         response = self.client.post(
             self.path,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
         )
 
@@ -190,7 +227,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.login_as(user=self.user)
         response = self.client.post(
             self.path,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
         )
         self.make_event(environment=self.environment.name, event_id=self.event_id)

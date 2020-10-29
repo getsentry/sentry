@@ -1,5 +1,5 @@
 import {observable, computed, action, ObservableMap} from 'mobx';
-import _ from 'lodash';
+import isEqual from 'lodash/isEqual';
 
 import {Client, APIRequestMethod} from 'app/api';
 import {addErrorMessage, saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
@@ -8,10 +8,11 @@ import {t} from 'app/locale';
 import FormState from 'app/components/forms/state';
 
 type Snapshot = Map<string, FieldValue>;
-type FieldValue = string | number | undefined; //is undefined valid here?
 type SaveSnapshot = (() => number) | null;
 
-type FormOptions = {
+export type FieldValue = string | number | boolean | undefined; //is undefined valid here?
+
+export type FormOptions = {
   apiEndpoint?: string;
   apiMethod?: APIRequestMethod;
   allowUndo?: boolean;
@@ -47,7 +48,6 @@ class FormModel {
    *
    * Map of field name -> object
    */
-
   @observable fieldState = new Map();
 
   /**
@@ -72,7 +72,7 @@ class FormModel {
    */
   initialData = {};
 
-  api: Client | null;
+  api: Client;
 
   formErrors: any;
 
@@ -91,8 +91,7 @@ class FormModel {
    * Reset state of model
    */
   reset() {
-    this.api && this.api.clear();
-    this.api = null;
+    this.api.clear();
     this.fieldDescriptor.clear();
     this.resetForm();
   }
@@ -110,7 +109,7 @@ class FormModel {
    */
   @computed
   get formChanged() {
-    return !_.isEqual(this.initialData, this.fields.toJSON());
+    return !isEqual(this.initialData, this.fields.toJSON());
   }
 
   @computed
@@ -135,7 +134,7 @@ class FormModel {
    *
    * Also resets snapshots
    */
-  setInitialData(initialData) {
+  setInitialData(initialData?: object) {
     this.fields.replace(initialData || {});
     this.initialData = this.fields.toJSON() || {};
 
@@ -145,14 +144,15 @@ class FormModel {
   /**
    * Set form options
    */
-  setFormOptions(options) {
+  setFormOptions(options: FormOptions) {
     this.options = options || {};
   }
 
   /**
    * Set field properties
    */
-  setFieldDescriptor(id, props) {
+  setFieldDescriptor(id: string, props) {
+    //TODO(TS): add type to props
     this.fieldDescriptor.set(id, props);
 
     // Set default value iff initialData for field is undefined
@@ -179,7 +179,7 @@ class FormModel {
   /**
    * Remove a field from the descriptor map and errors.
    */
-  removeField(id) {
+  removeField(id: string) {
     this.fieldDescriptor.delete(id);
     this.errors.delete(id);
   }
@@ -193,7 +193,7 @@ class FormModel {
     return () => this.snapshots.unshift(snapshot);
   }
 
-  getDescriptor(id, key) {
+  getDescriptor(id: string, key: string) {
     // Needs to call `has` or else component will not be reactive if `id` doesn't exist in observable map
     const descriptor = this.fieldDescriptor.has(id) && this.fieldDescriptor.get(id);
     if (!descriptor) {
@@ -203,7 +203,7 @@ class FormModel {
     return descriptor[key];
   }
 
-  getFieldState(id, key) {
+  getFieldState(id: string, key: string) {
     // Needs to call `has` or else component will not be reactive if `id` doesn't exist in observable map
     const fieldState = this.fieldState.has(id) && this.fieldState.get(id);
     if (!fieldState) {
@@ -213,7 +213,7 @@ class FormModel {
     return fieldState[key];
   }
 
-  getValue(id) {
+  getValue(id: string) {
     if (!this.fields.has(id)) {
       return '';
     }
@@ -221,7 +221,7 @@ class FormModel {
     return this.fields.get(id);
   }
 
-  getTransformedValue(id) {
+  getTransformedValue(id: string) {
     const fieldDescriptor = this.fieldDescriptor.get(id);
     const transformer =
       fieldDescriptor && typeof fieldDescriptor.getValue === 'function'
@@ -253,18 +253,19 @@ class FormModel {
       }, {});
   }
 
-  getError(id) {
+  getError(id: string) {
     return this.errors.has(id) && this.errors.get(id);
   }
 
   // Returns true if not required or is required and is not empty
-  isValidRequiredField(id) {
+  isValidRequiredField(id: string) {
     // Check field descriptor to see if field is required
     const isRequired = this.getDescriptor(id, 'required');
-    return !isRequired || this.getValue(id) !== '';
+    const value = this.getValue(id);
+    return !isRequired || (value !== '' && defined(value));
   }
 
-  isValidField(id) {
+  isValidField(id: string) {
     return (this.getError(id) || []).length === 0;
   }
 
@@ -280,22 +281,22 @@ class FormModel {
     const endpoint = apiEndpoint || this.options.apiEndpoint || '';
     const method = apiMethod || this.options.apiMethod;
 
-    return new Promise((resolve, reject) => {
-      //should never happen but TS complains if we don't check
-      if (!this.api) {
-        return reject(new Error('Api not set'));
-      }
-      return this.api.request(endpoint, {
+    return new Promise((resolve, reject) =>
+      this.api.request(endpoint, {
         method,
         data,
         success: response => resolve(response),
         error: error => reject(error),
-      });
-    });
+      })
+    );
   }
 
+  /**
+   * Set the value of the form field
+   * if quiet is true, we skip callbacks, validations
+   */
   @action
-  setValue(id, value) {
+  setValue(id: string, value: FieldValue, {quiet}: {quiet?: boolean} = {}) {
     const fieldDescriptor = this.fieldDescriptor.get(id);
     let finalValue = value;
 
@@ -304,6 +305,9 @@ class FormModel {
     }
 
     this.fields.set(id, finalValue);
+    if (quiet) {
+      return;
+    }
 
     if (this.options.onFieldChange) {
       this.options.onFieldChange(id, finalValue);
@@ -315,7 +319,7 @@ class FormModel {
   }
 
   @action
-  validateField(id) {
+  validateField(id: string) {
     const validate = this.getDescriptor(id, 'validate');
     let errors: any[] = [];
 
@@ -338,7 +342,7 @@ class FormModel {
   }
 
   @action
-  updateShowSaveState(id, value) {
+  updateShowSaveState(id: string, value: FieldValue) {
     const isValueChanged = value !== this.initialData[id];
     // Update field state to "show save" if save on blur is disabled for this field
     // (only if contents of field differs from initial value)
@@ -354,7 +358,7 @@ class FormModel {
   }
 
   @action
-  updateShowReturnButtonState(id, value) {
+  updateShowReturnButtonState(id: string, value: FieldValue) {
     const isValueChanged = value !== this.initialData[id];
     const shouldShowReturnButton = this.getDescriptor(id, 'showReturnButton');
 
@@ -390,10 +394,10 @@ class FormModel {
    */
   @action
   saveForm() {
-    this.validateForm();
-    if (this.isError) {
+    if (!this.validateForm()) {
       return null;
     }
+
     let saveSnapshot: SaveSnapshot = this.createSnapshot();
 
     const request = this.doApiRequest({
@@ -434,7 +438,7 @@ class FormModel {
    * TODO(billy): This should return a promise that resolves (instead of null)
    */
   @action
-  saveField(id, currentValue) {
+  saveField(id: string, currentValue: FieldValue) {
     const oldValue = this.initialData[id];
     const savePromise = this.saveFieldRequest(id, currentValue);
 
@@ -447,7 +451,7 @@ class FormModel {
         const newValue = this.getValue(id);
         const change = {old: oldValue, new: newValue};
 
-        // Only use `allowUndo` option if explicity defined
+        // Only use `allowUndo` option if explicitly defined
         if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
           saveOnBlurUndoMessage(change, this, id);
         }
@@ -476,7 +480,7 @@ class FormModel {
    * If failed then: 1) reset save state, 2) add error state
    */
   @action
-  saveFieldRequest(id, currentValue) {
+  saveFieldRequest(id: string, currentValue: FieldValue) {
     const initialValue = this.initialData[id];
 
     // Don't save if field hasn't changed
@@ -543,15 +547,16 @@ class FormModel {
         // 1) map of {[fieldName] => Array<ErrorMessages>}
         // 2) {'non_field_errors' => Array<ErrorMessages>}
         if (resp && resp.responseJSON) {
+          //non-field errors can be camelcase or snake case
+          const nonFieldErrors =
+            resp.responseJSON.non_field_errors || resp.responseJSON.nonFieldErrors;
+
           // Show resp msg from API endpoint if possible
           if (Array.isArray(resp.responseJSON[id]) && resp.responseJSON[id].length) {
             // Just take first resp for now
             this.setError(id, resp.responseJSON[id][0]);
-          } else if (
-            Array.isArray(resp.responseJSON.non_field_errors) &&
-            resp.responseJSON.non_field_errors.length
-          ) {
-            addErrorMessage(resp.responseJSON.non_field_errors[0], 10000);
+          } else if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
+            addErrorMessage(nonFieldErrors[0], {duration: 10000});
             // Reset saving state
             this.setError(id, '');
           } else {
@@ -575,7 +580,7 @@ class FormModel {
    * If `saveOnBlur` is set then call `saveField` and handle form callbacks accordingly
    */
   @action
-  handleBlurField(id, currentValue) {
+  handleBlurField(id: string, currentValue: FieldValue) {
     // Nothing to do if `saveOnBlur` is not on
     if (!this.options.saveOnBlur) {
       return null;
@@ -599,7 +604,7 @@ class FormModel {
    * This is called when a field does not saveOnBlur and has an individual "Save" button
    */
   @action
-  handleSaveField(id, currentValue) {
+  handleSaveField(id: string, currentValue: FieldValue) {
     const savePromise = this.saveField(id, currentValue);
 
     if (!savePromise) {
@@ -615,13 +620,13 @@ class FormModel {
    * Cancel "Save Field" state and revert form value back to initial value
    */
   @action
-  handleCancelSaveField(id) {
+  handleCancelSaveField(id: string) {
     this.setValue(id, this.initialData[id]);
     this.setFieldState(id, 'showSave', false);
   }
 
   @action
-  setFieldState(id, key, value) {
+  setFieldState(id: string, key: string, value: FieldValue) {
     const state = {
       ...(this.fieldState.get(id) || {}),
       [key]: value,
@@ -633,7 +638,7 @@ class FormModel {
    * Set "saving" state for field
    */
   @action
-  setSaving(id, value) {
+  setSaving(id: string, value: FieldValue) {
     // When saving, reset error state
     this.setError(id, false);
     this.setFieldState(id, FormState.SAVING, value);
@@ -644,7 +649,7 @@ class FormModel {
    * Set "error" state for field
    */
   @action
-  setError(id, error) {
+  setError(id: string, error: boolean | string) {
     // Note we don't keep error in `this.fieldState` so that we can easily
     // See if the form is in an "error" state with the `isError` getter
     if (!!error) {
@@ -659,9 +664,14 @@ class FormModel {
     this.setFieldState(id, FormState.SAVING, false);
   }
 
+  /**
+   * Returns true if there are no errors
+   */
   @action
-  validateForm() {
+  validateForm(): boolean {
     Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
+
+    return !this.isError;
   }
 
   @action
@@ -672,12 +682,14 @@ class FormModel {
 
     // Show resp msg from API endpoint if possible
     Object.keys(resp).forEach(id => {
+      //non-field errors can be camelcase or snake case
+      const nonFieldErrors = resp.non_field_errors || resp.nonFieldErrors;
       if (
-        id === 'non_field_errors' &&
-        Array.isArray(resp.non_field_errors) &&
-        resp.non_field_errors.length
+        (id === 'non_field_errors' || id === 'nonFieldErrors') &&
+        Array.isArray(nonFieldErrors) &&
+        nonFieldErrors.length
       ) {
-        addErrorMessage(resp.non_field_errors[0], 10000);
+        addErrorMessage(nonFieldErrors[0], {duration: 10000});
       } else if (Array.isArray(resp[id]) && resp[id].length) {
         // Just take first resp for now
         this.setError(id, resp[id][0]);
@@ -686,17 +698,21 @@ class FormModel {
   }
 
   @action
-  submitSuccess(data) {
+  submitSuccess(data: object) {
     // update initial data
     this.formState = FormState.READY;
     this.initialData = data;
   }
 
   @action
-  submitError(err) {
+  submitError(err: {responseJSON?: any}) {
     this.formState = FormState.ERROR;
-    this.formErrors = err.responseJSON;
-    this.handleErrorResponse(err);
+    this.formErrors = this.mapFormErrors(err.responseJSON);
+    this.handleErrorResponse({responseJSON: this.formErrors});
+  }
+
+  mapFormErrors(responseJSON?: any) {
+    return responseJSON;
   }
 }
 

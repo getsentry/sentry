@@ -4,9 +4,9 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.interfaces.exception import Exception, slim_exception_data
+from sentry import eventstore
+from sentry.interfaces.exception import Exception
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
-from sentry.models import Event
 from sentry.event_manager import EventManager
 
 
@@ -15,7 +15,7 @@ def make_exception_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"exception": data})
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
 
         interface = evt.interfaces.get("exception")
 
@@ -224,33 +224,3 @@ def test_iteration():
     assert inst[0].type == "ValueError"
     for exc in inst:
         assert exc.type == "ValueError"
-
-
-def test_slim_exception_data_under_max(insta_snapshot):
-    interface = Exception.to_python(
-        {"values": [{"value": "foo", "stacktrace": {"frames": [{"filename": "foo"}]}}]}
-    )
-    slim_exception_data(interface)
-    insta_snapshot(interface.to_json())
-
-
-def test_slim_exception_data_over_max(insta_snapshot):
-    values = []
-    for x in range(5):
-        exc = {"value": "exc %d" % x, "stacktrace": {"frames": []}}
-        values.append(exc)
-        for y in range(5):
-            exc["stacktrace"]["frames"].append(
-                {
-                    "filename": "exc %d frame %d" % (x, y),
-                    "vars": {"foo": "bar"},
-                    "context_line": "b",
-                    "pre_context": ["a"],
-                    "post_context": ["c"],
-                }
-            )
-
-    interface = Exception.to_python({"values": values})
-    # slim to 10 frames to make tests easier
-    slim_exception_data(interface, 10)
-    insta_snapshot(interface.to_json())

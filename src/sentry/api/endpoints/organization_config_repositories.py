@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.plugins import bindings
+from sentry.plugins.base import bindings
 
 
 class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):

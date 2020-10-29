@@ -4,8 +4,8 @@ from __future__ import absolute_import
 
 import pytest
 
+from sentry import eventstore
 from sentry.event_manager import EventManager
-from sentry.models import Event
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def make_frames_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"stacktrace": {"frames": [data]}})
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
         frame = evt.interfaces["stacktrace"].frames[0]
 
         insta_snapshot({"errors": evt.data.get("errors"), "to_json": frame.to_json()})

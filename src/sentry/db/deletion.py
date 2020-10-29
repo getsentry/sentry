@@ -6,8 +6,7 @@ from uuid import uuid4
 from datetime import timedelta
 from django.db import connections, router
 from django.utils import timezone
-
-from sentry.utils import db
+from sentry.utils.compat import zip
 
 
 class BulkDeleteQuery(object):
@@ -19,7 +18,7 @@ class BulkDeleteQuery(object):
         self.order_by = order_by
         self.using = router.db_for_write(model)
 
-    def execute_postgres(self, chunk_size=10000):
+    def execute(self, chunk_size=10000):
         quote_name = connections[self.using].ops.quote_name
 
         where = []
@@ -75,50 +74,7 @@ class BulkDeleteQuery(object):
             cursor.execute(query)
             results = cursor.rowcount > 0
 
-    def execute_generic(self, chunk_size=100):
-        qs = self.get_generic_queryset()
-        return self._continuous_generic_query(qs, chunk_size)
-
-    def get_generic_queryset(self):
-        qs = self.model.objects.all()
-
-        if self.days:
-            cutoff = timezone.now() - timedelta(days=self.days)
-            qs = qs.filter(**{u"{}__lte".format(self.dtfield): cutoff})
-        if self.project_id:
-            if "project" in self.model._meta.get_all_field_names():
-                qs = qs.filter(project=self.project_id)
-            else:
-                qs = qs.filter(project_id=self.project_id)
-
-        return qs
-
-    def _continuous_generic_query(self, query, chunk_size):
-        # XXX: we step through because the deletion collector will pull all
-        # relations into memory
-        exists = True
-        while exists:
-            exists = False
-            for item in query[:chunk_size].iterator():
-                item.delete()
-                exists = True
-
-    def execute(self, chunk_size=10000):
-        if db.is_postgres():
-            self.execute_postgres(chunk_size)
-        else:
-            self.execute_generic(chunk_size)
-
-    def iterator(self, chunk_size=100):
-        if db.is_postgres():
-            g = self.iterator_postgres(chunk_size)
-        else:
-            g = self.iterator_generic(chunk_size)
-
-        for chunk in g:
-            yield chunk
-
-    def iterator_postgres(self, chunk_size, batch_size=100000):
+    def iterator(self, chunk_size=100, batch_size=100000):
         assert self.days is not None
         assert self.dtfield is not None and self.dtfield == self.order_by
 
@@ -192,17 +148,3 @@ class BulkDeleteQuery(object):
 
             if chunk:
                 yield tuple(chunk)
-
-    def iterator_generic(self, chunk_size):
-        from sentry.utils.query import RangeQuerySetWrapper
-
-        qs = self.get_generic_queryset()
-
-        chunk = []
-        for item in RangeQuerySetWrapper(qs):
-            chunk.append(item.id)
-            if len(chunk) == chunk_size:
-                yield tuple(chunk)
-                chunk = []
-        if chunk:
-            yield tuple(chunk)

@@ -1,12 +1,14 @@
-import {isUndefined, isNil, get} from 'lodash';
+import isUndefined from 'lodash/isUndefined';
+import isNil from 'lodash/isNil';
 import $ from 'jquery';
-import * as Sentry from '@sentry/browser';
+import {Severity} from '@sentry/react';
 
 import {
   PROJECT_MOVED,
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'app/constants/apiErrorCodes';
+import {run} from 'app/utils/apiSentryClient';
 import {metric} from 'app/utils/analytics';
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import {uniqueId} from 'app/utils/guid';
@@ -121,7 +123,7 @@ export class Client {
    */
   // TODO: refine this type later
   hasProjectBeenRenamed(response: JQueryXHR) {
-    const code = get(response, 'responseJSON.detail.code');
+    const code = response?.responseJSON?.detail?.code;
 
     // XXX(billy): This actually will never happen because we can't intercept the 302
     // jQuery ajax will follow the redirect by default...
@@ -129,7 +131,7 @@ export class Client {
       return false;
     }
 
-    const slug = get(response, 'responseJSON.detail.extra.slug');
+    const slug = response?.responseJSON?.detail?.extra?.slug;
 
     redirectToProject(slug);
     return true;
@@ -149,7 +151,7 @@ export class Client {
       if (req && req.alive) {
         // Check if API response is a 302 -- means project slug was renamed and user
         // needs to be redirected
-        // @ts-ignore
+        // @ts-expect-error
         if (this.hasProjectBeenRenamed(...args)) {
           return;
         }
@@ -183,15 +185,15 @@ export class Client {
     textStatus: string,
     errorThrown: string
   ) {
-    const code = get(response, 'responseJSON.detail.code');
+    const code = response?.responseJSON?.detail?.code;
     const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
 
     if (isSudoRequired) {
       openSudo({
         superuser: code === SUPERUSER_REQUIRED,
         sudo: code === SUDO_REQUIRED,
-        retryRequest: () => {
-          return this.requestPromise(path, requestOptions)
+        retryRequest: () =>
+          this.requestPromise(path, requestOptions)
             .then(data => {
               if (typeof requestOptions.success !== 'function') {
                 return;
@@ -204,8 +206,7 @@ export class Client {
                 return;
               }
               requestOptions.error(err);
-            });
-        },
+            }),
         onClose: () => {
           if (typeof requestOptions.error !== 'function') {
             return;
@@ -240,16 +241,18 @@ export class Client {
     try {
       query = $.param(options.query || [], true);
     } catch (err) {
-      Sentry.withScope(scope => {
-        scope.setExtra('path', path);
-        scope.setExtra('query', options.query);
-        Sentry.captureException(err);
-      });
+      run(Sentry =>
+        Sentry.withScope(scope => {
+          scope.setExtra('path', path);
+          scope.setExtra('query', options.query);
+          Sentry.captureException(err);
+        })
+      );
       throw err;
     }
 
     const id: string = uniqueId();
-    metric.mark(`api-request-start-${id}`);
+    metric.mark({name: `api-request-start-${id}`});
 
     let fullUrl: string;
     if (path.indexOf(this.baseUrl) === -1) {
@@ -264,14 +267,6 @@ export class Client {
         fullUrl += '?' + query;
       }
     }
-
-    const requestSpan = Sentry.startSpan({
-      data: {
-        request_data: data,
-      },
-      op: 'http',
-      description: `${method} ${fullUrl}`,
-    });
 
     const errorObject = new Error();
 
@@ -309,24 +304,28 @@ export class Client {
             },
           });
 
-          Sentry.withScope(scope => {
-            // `requestPromise` can pass its error object
-            const preservedError = options.preservedError || errorObject;
+          if (resp && resp.status !== 0 && resp.status !== 404) {
+            run(Sentry =>
+              Sentry.withScope(scope => {
+                // `requestPromise` can pass its error object
+                const preservedError = options.preservedError || errorObject;
 
-            const errorObjectToUse = createRequestError(
-              resp,
-              preservedError.stack,
-              method,
-              path
+                const errorObjectToUse = createRequestError(
+                  resp,
+                  preservedError.stack,
+                  method,
+                  path
+                );
+
+                errorObjectToUse.removeFrames(3);
+
+                // Setting this to warning because we are going to capture all failed requests
+                scope.setLevel(Severity.Warning);
+                scope.setTag('http.statusCode', String(resp.status));
+                Sentry.captureException(errorObjectToUse);
+              })
             );
-
-            errorObjectToUse.removeFrames(2);
-
-            // Setting this to warning because we are going to capture all failed requests
-            scope.setLevel(Sentry.Severity.Warning);
-            scope.setTag('http.statusCode', String(resp.status));
-            Sentry.captureException(errorObjectToUse);
-          });
+          }
 
           this.handleRequestError(
             {
@@ -339,13 +338,12 @@ export class Client {
             errorThrown
           );
         },
-        complete: (jqXHR: JQueryXHR, textStatus: string) => {
-          Sentry.finishSpan(requestSpan);
-          return this.wrapCallback<[JQueryXHR, string]>(id, options.complete, true)(
-            jqXHR,
-            textStatus
-          );
-        },
+        complete: (jqXHR: JQueryXHR, textStatus: string) =>
+          this.wrapCallback<[JQueryXHR, string]>(
+            id,
+            options.complete,
+            true
+          )(jqXHR, textStatus),
       })
     );
 
@@ -397,9 +395,7 @@ export class Client {
 
   _chain<Args extends any[]>(...funcs: Array<((...args: Args) => any) | undefined>) {
     const filteredFuncs = funcs.filter(
-      (f): f is (...args: Args) => any => {
-        return typeof f === 'function';
-      }
+      (f): f is (...args: Args) => any => typeof f === 'function'
     );
     return (...args: Args): void => {
       filteredFuncs.forEach(func => {

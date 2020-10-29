@@ -1,13 +1,12 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
-
 import {TeamProjects as OrganizationTeamProjects} from 'app/views/settings/organizationTeams/teamProjects';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-
-describe('OrganizationTeamProjects', function() {
+describe('OrganizationTeamProjects', function () {
   let team;
   let getMock;
   let putMock;
@@ -26,7 +25,7 @@ describe('OrganizationTeamProjects', function() {
     projects: [project, project2],
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     team = TestStubs.Team({slug: 'team-slug'});
 
     getMock = Client.addMockResponse({
@@ -55,12 +54,12 @@ describe('OrganizationTeamProjects', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     Client.clearMockResponses();
   });
 
-  it('fetches linked and unlinked projects', async function() {
-    mount(
+  it('fetches linked and unlinked projects', async function () {
+    mountWithTheme(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -76,8 +75,8 @@ describe('OrganizationTeamProjects', function() {
     expect(getMock.mock.calls[1][1].query.query).toBe('!team:team-slug');
   });
 
-  it('Should render', async function() {
-    const wrapper = mount(
+  it('Should render', async function () {
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -90,17 +89,12 @@ describe('OrganizationTeamProjects', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper).toMatchSnapshot();
-    expect(
-      wrapper
-        .find('.project-name')
-        .first()
-        .text()
-    ).toBe('project-slug');
+    expect(wrapper).toSnapshot();
+    expect(wrapper.find('.project-name').first().text()).toBe('project-slug');
   });
 
-  it('Should allow bookmarking', async function() {
-    const wrapper = mount(
+  it('Should allow bookmarking', async function () {
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -116,18 +110,13 @@ describe('OrganizationTeamProjects', function() {
     const stars = wrapper.find('BookmarkStar');
     expect(stars).toHaveLength(2);
     stars.first().simulate('click');
-    expect(
-      wrapper
-        .find('Star')
-        .first()
-        .prop('isBookmarked')
-    ).toBeTruthy();
+    expect(wrapper.find('Star').first().prop('isBookmarked')).toBeTruthy();
 
     expect(putMock).toHaveBeenCalledTimes(1);
   });
 
-  it('Should allow adding and removing projects', async function() {
-    const wrapper = mount(
+  it('Should allow adding and removing projects', async function () {
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -160,8 +149,8 @@ describe('OrganizationTeamProjects', function() {
     expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 
-  it('handles filtering unlinked projects', async function() {
-    const wrapper = mount(
+  it('handles filtering unlinked projects', async function () {
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}

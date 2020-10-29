@@ -1,11 +1,12 @@
 ---
-created: '2019-08-05T10:20:54.371341Z'
+created: '2020-10-13T10:09:30.459242Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
-  - fingerprint:
+  - attributes: {}
+    fingerprint:
     - database-unavailable
     - '{{ function }}'
     matchers:
@@ -17,9 +18,22 @@ config:
 fingerprint:
 - database-unavailable
 - '{{ function }}'
+title: 'DatabaseUnavailable: For some reason the database went away'
 variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
   custom-fingerprint:
     type: custom-fingerprint
     values:
     - database-unavailable
     - main
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

@@ -1,31 +1,38 @@
 import React from 'react';
 import {Location} from 'history';
-import {browserHistory} from 'react-router';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {Organization} from 'app/types';
+import {t} from 'app/locale';
+import {Organization, TagCollection} from 'app/types';
+import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
-
+import withTags from 'app/utils/withTags';
+import Measurements from 'app/utils/measurements/measurements';
 import Pagination from 'app/components/pagination';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
-import {DEFAULT_EVENT_VIEW_V1} from '../data';
-import EventView from '../eventView';
 import TableView from './tableView';
-import {TableData} from './types';
 
 type TableProps = {
   api: Client;
   location: Location;
+  eventView: EventView;
   organization: Organization;
+  showTags: boolean;
+  tags: TagCollection;
+  setError: (msg: string, code: number) => void;
+  title: string;
+  onChangeShowTags: () => void;
+  confirmedQuery: boolean;
 };
+
 type TableState = {
   isLoading: boolean;
+  tableFetchID: symbol | undefined;
   error: null | string;
-
-  eventView: EventView;
   pageLinks: null | string;
-
   tableData: TableData | null | undefined;
 };
 
@@ -38,103 +45,136 @@ type TableState = {
  * Table is maintained and controlled
  */
 class Table extends React.PureComponent<TableProps, TableState> {
-  static getDerivedStateFromProps(props: TableProps, state: TableState): TableState {
-    return {
-      ...state,
-      eventView: EventView.fromLocation(props.location),
-    };
-  }
-
   state: TableState = {
     isLoading: true,
+    tableFetchID: undefined,
     error: null,
 
-    eventView: EventView.fromLocation(this.props.location),
     pageLinks: null,
-
     tableData: null,
   };
 
   componentDidMount() {
-    const {location} = this.props;
-
-    if (!this.state.eventView.isValid()) {
-      const nextEventView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
-
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          ...nextEventView.generateQueryStringObject(),
-        },
-      });
-      return;
-    }
-
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: TableProps) {
+    // Reload data if we aren't already loading, or if we've moved
+    // from an invalid view state to a valid one.
     if (
-      this.props.location !== prevProps.location ||
-      this.props.location.query !== prevProps.location.query ||
-      this.props.location.query.fieldnames !== prevProps.location.query.fieldnames ||
-      this.props.location.query.field !== prevProps.location.query.field ||
-      this.props.location.query.sort !== prevProps.location.query.sort
+      (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
+      (prevProps.eventView.isValid() === false && this.props.eventView.isValid()) ||
+      prevProps.confirmedQuery !== this.props.confirmedQuery
     ) {
       this.fetchData();
     }
   }
 
+  shouldRefetchData = (prevProps: TableProps): boolean => {
+    const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
+    const otherAPIPayload = prevProps.eventView.getEventsAPIPayload(prevProps.location);
+
+    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+  };
+
   fetchData = () => {
-    const {organization, location} = this.props;
+    const {eventView, organization, location, setError, confirmedQuery} = this.props;
+
+    if (!eventView.isValid() || !confirmedQuery) {
+      return;
+    }
+
+    // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
+    // the API payload response
+
     const url = `/organizations/${organization.slug}/eventsv2/`;
+    const tableFetchID = Symbol('tableFetchID');
+    const apiPayload = eventView.getEventsAPIPayload(location);
 
-    this.setState({isLoading: true});
+    setError('', 200);
 
+    this.setState({isLoading: true, tableFetchID});
+    metric.mark({name: `discover-events-start-${apiPayload.query}`});
+
+    this.props.api.clear();
     this.props.api
       .requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
-        query: this.state.eventView.getEventsAPIPayload(location),
+        query: apiPayload,
       })
       .then(([data, _, jqXHR]) => {
-        this.setState(prevState => {
-          return {
-            isLoading: false,
-            error: null,
-            pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
-            tableData: data,
-          };
+        // We want to measure this metric regardless of whether we use the result
+        metric.measure({
+          name: 'app.api.discover-query',
+          start: `discover-events-start-${apiPayload.query}`,
+          data: {
+            status: jqXHR && jqXHR.status,
+          },
         });
+        if (this.state.tableFetchID !== tableFetchID) {
+          // invariant: a different request was initiated after this request
+          return;
+        }
+
+        this.setState(prevState => ({
+          isLoading: false,
+          tableFetchID: undefined,
+          error: null,
+          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
+          tableData: data,
+        }));
       })
       .catch(err => {
+        metric.measure({
+          name: 'app.api.discover-query',
+          start: `discover-events-start-${apiPayload.query}`,
+          data: {
+            status: err.status,
+          },
+        });
+        const message = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({
           isLoading: false,
-          error: err.responseJSON.detail,
+          tableFetchID: undefined,
+          error: message,
+          pageLinks: null,
+          tableData: null,
         });
+        setError(message, err.status);
       });
   };
 
   render() {
-    const {pageLinks, eventView, tableData, isLoading, error} = this.state;
+    const {eventView, tags} = this.props;
+    const {pageLinks, tableData, isLoading, error} = this.state;
+    const tagKeys = Object.values(tags).map(({key}) => key);
 
     return (
       <Container>
-        <TableView
-          {...this.props}
-          isLoading={isLoading}
-          error={error}
-          eventView={eventView}
-          tableData={tableData}
-        />
+        <Measurements>
+          {({measurements}) => {
+            const measurementKeys = Object.values(measurements).map(({key}) => key);
+            return (
+              <TableView
+                {...this.props}
+                isLoading={isLoading}
+                error={error}
+                eventView={eventView}
+                tableData={tableData}
+                tagKeys={tagKeys}
+                measurementKeys={measurementKeys}
+              />
+            );
+          }}
+        </Measurements>
         <Pagination pageLinks={pageLinks} />
       </Container>
     );
   }
 }
 
-export default withApi<TableProps>(Table);
+export default withApi(withTags(Table));
 
 const Container = styled('div')`
   min-width: 0;

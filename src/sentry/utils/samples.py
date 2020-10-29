@@ -2,10 +2,12 @@ from __future__ import absolute_import
 
 import os.path
 import random
+import pytz
+import six
+from uuid import uuid4
+
 from datetime import datetime, timedelta
 from django.utils import timezone
-
-import six
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager
@@ -100,7 +102,15 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
     ).to_json()
 
 
-def load_data(platform, default=None, sample_name=None):
+def load_data(
+    platform,
+    default=None,
+    sample_name=None,
+    timestamp=None,
+    start_timestamp=None,
+    trace=None,
+    span=None,
+):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
     # has production consequences.
@@ -116,12 +126,18 @@ def load_data(platform, default=None, sample_name=None):
     if platform_data is not None and platform_data["type"] != "language":
         language = platform_data["language"]
 
+    samples_root = os.path.join(DATA_ROOT, "samples")
+    all_samples = set(f for f in os.listdir(samples_root) if f.endswith(".json"))
+
     for platform in (platform, language, default):
         if not platform:
             continue
 
-        json_path = os.path.join(DATA_ROOT, "samples", "%s.json" % (platform.encode("utf-8"),))
-        if not os.path.exists(json_path):
+        # Verify by checking if the file is within our folder explicitly
+        # avoids being able to have a name that invokes traversing directories.
+        json_path = u"{}.json".format(platform)
+
+        if json_path not in all_samples:
             continue
 
         if not sample_name:
@@ -130,8 +146,11 @@ def load_data(platform, default=None, sample_name=None):
             except KeyError:
                 pass
 
-        with open(json_path) as fp:
-            data = json.loads(fp.read())
+        # XXX: At this point, it's assumed that `json_path` was safely found
+        # within `samples_root` due to the check above and cannot traverse
+        # into paths.
+        with open(os.path.join(samples_root, json_path)) as fp:
+            data = json.load(fp)
             break
 
     if data is None:
@@ -141,16 +160,56 @@ def load_data(platform, default=None, sample_name=None):
     if platform in ("csp", "hkpk", "expectct", "expectstaple"):
         return data
 
-    # Transaction events need timestamp data set to something current.
-    if platform == "transaction":
-        now = timezone.now()
-        now_time = to_timestamp(now)
-        start_time = to_timestamp(now - timedelta(seconds=-2))
-        data.setdefault("timestamp", now_time)
-        data.setdefault("start_timestamp", start_time)
-        for span in data["spans"]:
-            span.setdefault("timestamp", now_time)
-            span.setdefault("start_timestamp", start_time)
+    # Generate a timestamp in the present.
+    if timestamp is None:
+        timestamp = timezone.now()
+    else:
+        timestamp = timestamp.replace(tzinfo=pytz.utc)
+    data.setdefault("timestamp", to_timestamp(timestamp))
+
+    if data.get("type") == "transaction":
+        if start_timestamp is None:
+            start_timestamp = timestamp - timedelta(seconds=3)
+        else:
+            start_timestamp = start_timestamp.replace(tzinfo=pytz.utc)
+        data["start_timestamp"] = to_timestamp(start_timestamp)
+
+        if trace is None:
+            trace = uuid4().hex
+        if span is None:
+            span = uuid4().hex[:16]
+
+        for tag in data["tags"]:
+            if tag[0] == "trace":
+                tag[1] = trace
+            elif tag[0] == "trace.ctx":
+                tag[1] = trace + "-" + span
+            elif tag[0] == "trace.span":
+                tag[1] = span
+        data["contexts"]["trace"]["trace_id"] = trace
+        data["contexts"]["trace"]["span_id"] = span
+
+        for span in data.get("spans", []):
+            # Use data to generate span timestamps consistently and based
+            # on event timestamp
+            duration = span.get("data", {}).get("duration", 10.0)
+            offset = span.get("data", {}).get("offset", 0)
+
+            span_start = data["start_timestamp"] + offset
+            span["trace_id"] = trace
+            span.setdefault("start_timestamp", span_start)
+            span.setdefault("timestamp", span_start + duration)
+
+        measurements = data.get("measurements")
+
+        if measurements:
+            measurement_markers = {}
+            for key, entry in measurements.items():
+                if key in ["fp", "fcp", "lcp", "fid"]:
+                    measurement_markers["mark.{}".format(key)] = {
+                        "value": round(data["start_timestamp"] + entry["value"] / 1000, 3)
+                    }
+            measurements.update(measurement_markers)
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
@@ -193,11 +252,21 @@ def load_data(platform, default=None, sample_name=None):
     return data
 
 
-def create_sample_event(project, platform=None, default=None, raw=True, sample_name=None, **kwargs):
+def create_sample_event(
+    project,
+    platform=None,
+    default=None,
+    raw=True,
+    sample_name=None,
+    timestamp=None,
+    start_timestamp=None,
+    trace=None,
+    **kwargs
+):
     if not platform and not default:
         return
 
-    data = load_data(platform, default, sample_name)
+    data = load_data(platform, default, sample_name, timestamp, start_timestamp, trace)
 
     if not data:
         return

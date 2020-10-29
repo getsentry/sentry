@@ -14,18 +14,45 @@ class OrganizationReleasesTest(AcceptanceTestCase):
             organization=self.org, name="Mariachi Band", members=[self.user]
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
+        self.project2 = self.create_project(
+            organization=self.org, teams=[self.team], name="Bengal 2"
+        )
+        self.create_project(organization=self.org, teams=[self.team], name="Bengal 3")
         self.login_as(self.user)
         self.path = u"/organizations/{}/releases/".format(self.org.slug)
-
-    def test_with_releases(self):
-        release = self.create_release(project=self.project, version="1.0")
-        self.create_group(first_release=release, project=self.project, message="Foo bar")
         self.project.update(first_event=timezone.now())
-        self.browser.get(self.path)
-        self.browser.wait_until_not(".loading")
-        self.browser.snapshot("organization releases with releases")
 
-    def test_with_no_releases(self):
+    def test_list(self):
+        self.create_release(project=self.project, version="1.0")
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot("organization releases without releases")
+        self.browser.snapshot("organization releases - with releases")
+        # TODO(releases): add health data
+
+    def test_detail(self):
+        release = self.create_release(project=self.project, version="1.0")
+        self.browser.get(self.path + release.version)
+        self.browser.wait_until_not(".loading")
+        self.browser.wait_until_test_id("release-wrapper")
+        self.browser.snapshot("organization releases - detail")
+        # TODO(releases): add health data
+
+    def test_detail_pick_project(self):
+        release = self.create_release(
+            project=self.project, additional_projects=[self.project2], version="1.0"
+        )
+        self.browser.get(self.path + release.version)
+        self.browser.wait_until_not(".loading")
+        assert "Select a project to continue" in self.browser.element(".modal-header").text
+
+    # This is snapshotting feature of globalSelectionHeader project picker where we see only specified projects
+    # and a custom footer message saying "Only projects with this release are visible."
+    def test_detail_global_header(self):
+        release = self.create_release(
+            project=self.project, additional_projects=[self.project2], version="1.0"
+        )
+        self.browser.get(u"{}?project={}".format(self.path + release.version, self.project.id))
+        self.browser.wait_until_not(".loading")
+        self.browser.click('[data-test-id="global-header-project-selector"]')
+        self.browser.wait_until_test_id("release-wrapper")
+        self.browser.snapshot("organization releases - detail - global project header")

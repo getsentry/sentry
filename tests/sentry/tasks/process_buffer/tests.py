@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 
 from sentry.tasks.process_buffer import process_incr, process_pending
 from sentry.testutils import TestCase

@@ -8,7 +8,7 @@ from sentry.exceptions import NotRegistered
 
 
 # Ideally this and PluginManager abstracted from the same base, but
-# InstanceManager has become convulated and wasteful
+# InstanceManager has become convoluted and wasteful
 class IntegrationManager(object):
     def __init__(self):
         self.__values = {}

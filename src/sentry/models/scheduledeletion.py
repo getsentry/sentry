@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+from django.apps import apps
 from django.db import models
-from django.db.models import get_model
 from django.utils import timezone
 from uuid import uuid4
 
@@ -48,7 +48,7 @@ class ScheduledDeletion(Model):
         )
 
     def get_model(self):
-        return get_model(self.app_label, self.model_name)
+        return apps.get_model(self.app_label, self.model_name)
 
     def get_instance(self):
         return self.get_model().objects.get(pk=self.object_id)

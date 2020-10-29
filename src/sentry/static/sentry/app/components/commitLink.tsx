@@ -1,13 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {Repository} from 'app/types';
 import {t} from 'app/locale';
 import {getShortCommitHash} from 'app/utils';
 import Button from 'app/components/button';
+import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
-import InlineSvg from 'app/components/inlineSvg';
 
 type CommitFormatterParameters = {
   baseUrl: string;
@@ -15,7 +13,7 @@ type CommitFormatterParameters = {
 };
 
 type CommitProvider = {
-  icon: string;
+  icon: React.ReactNode;
   providerIds: string[];
   commitUrl: (CommitFormatterParameters) => string;
 };
@@ -23,22 +21,22 @@ type CommitProvider = {
 // TODO(epurkhiser, jess): This should be moved into plugins.
 const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
   {
-    icon: 'icon-github',
+    icon: <IconGithub size="xs" />,
     providerIds: ['github', 'integrations:github', 'integrations:github_enterprise'],
     commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commit/${commitId}`,
   },
   {
-    icon: 'icon-bitbucket',
+    icon: <IconBitbucket size="xs" />,
     providerIds: ['bitbucket', 'integrations:bitbucket'],
     commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commits/${commitId}`,
   },
   {
-    icon: 'icon-vsts',
+    icon: <IconVsts size="xs" />,
     providerIds: ['visualstudio', 'integrations:vsts'],
     commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commit/${commitId}`,
   },
   {
-    icon: 'icon-gitlab',
+    icon: <IconGitlab size="xs" />,
     providerIds: ['gitlab', 'integrations:gitlab'],
     commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commit/${commitId}`,
   },
@@ -81,27 +79,10 @@ function CommitLink({inline, commitId, repository}: Props) {
     </Button>
   ) : (
     <ExternalLink className="inline-commit" href={commitUrl}>
-      <CommitIcon src={providerData.icon} />
+      {providerData.icon}
       {' ' + shortId}
     </ExternalLink>
   );
 }
-
-CommitLink.propTypes = {
-  commitId: PropTypes.string,
-  repository: PropTypes.object,
-  inline: PropTypes.bool,
-};
-
-type CommitIconProps = {
-  src: string;
-  className?: string;
-};
-const CommitIcon = styled((p: CommitIconProps) => (
-  <InlineSvg size="14px" src={p.src} className={p.className} />
-))`
-  vertical-align: text-top;
-  margin-top: 2px;
-`;
 
 export default CommitLink;

@@ -1,24 +1,41 @@
-import {Client} from 'app/api';
-import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
-import {getPeriod} from 'app/utils/getPeriod';
-import {EventsStats, Organization} from 'app/types';
+import {LocationDescriptor} from 'history';
+import pick from 'lodash/pick';
 
-const getBaseUrl = (org: Organization) => `/organizations/${org.slug}/events-stats/`;
+import {Client} from 'app/api';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {canIncludePreviousPeriod} from 'app/components/charts/utils';
+import {getPeriod} from 'app/utils/getPeriod';
+import {
+  EventsStats,
+  DateString,
+  OrganizationSummary,
+  MultiSeriesEventsStats,
+} from 'app/types';
+
+function getBaseUrl(org: OrganizationSummary, keyTransactions: boolean | undefined) {
+  if (keyTransactions) {
+    return `/organizations/${org.slug}/key-transactions-stats/`;
+  }
+
+  return `/organizations/${org.slug}/events-stats/`;
+}
 
 type Options = {
-  organization: Organization;
+  organization: OrganizationSummary;
   project?: number[];
   environment?: string[];
   period?: string;
-  start?: Date;
-  end?: Date;
+  start?: DateString;
+  end?: DateString;
   interval?: string;
   includePrevious?: boolean;
   limit?: number;
   query?: string;
-  yAxis?: 'event_count' | 'user_count';
+  yAxis?: string | string[];
   field?: string[];
-  referenceEvent?: string;
+  keyTransactions?: boolean;
+  topEvents?: number;
+  orderby?: string;
 };
 
 /**
@@ -49,9 +66,11 @@ export const doEventsRequest = (
     query,
     yAxis,
     field,
-    referenceEvent,
+    keyTransactions,
+    topEvents,
+    orderby,
   }: Options
-): Promise<EventsStats> => {
+): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
   const urlQuery = Object.fromEntries(
     Object.entries({
@@ -61,7 +80,8 @@ export const doEventsRequest = (
       query,
       yAxis,
       field,
-      referenceEvent,
+      topEvents,
+      orderby,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -70,10 +90,73 @@ export const doEventsRequest = (
   // the tradeoff for now.
   const periodObj = getPeriod({period, start, end}, {shouldDoublePeriod});
 
-  return api.requestPromise(`${getBaseUrl(organization)}`, {
+  return api.requestPromise(`${getBaseUrl(organization, keyTransactions)}`, {
     query: {
       ...urlQuery,
       ...periodObj,
     },
   });
 };
+
+export type EventQuery = {
+  field: string[];
+  project?: string | string[];
+  sort?: string | string[];
+  query: string;
+  per_page?: number;
+  referrer?: string;
+};
+
+export type TagSegment = {
+  count: number;
+  name: string;
+  value: string;
+  url: LocationDescriptor;
+  isOther?: boolean;
+  key?: string;
+};
+
+export type Tag = {
+  key: string;
+  topValues: Array<TagSegment>;
+};
+
+/**
+ * Fetches tag facets for a query
+ */
+export async function fetchTagFacets(
+  api: Client,
+  orgSlug: string,
+  query: EventQuery
+): Promise<Tag[]> {
+  const urlParams = pick(query, Object.values(URL_PARAM));
+
+  const queryOption = {...urlParams, query: query.query};
+
+  return api.requestPromise(`/organizations/${orgSlug}/events-facets/`, {
+    query: queryOption,
+  });
+}
+
+/**
+ * Fetches total count of events for a given query
+ */
+export async function fetchTotalCount(
+  api: Client,
+  orgSlug: String,
+  query: EventQuery
+): Promise<number> {
+  const urlParams = pick(query, Object.values(URL_PARAM));
+
+  const queryOption = {...urlParams, query: query.query};
+
+  type Response = {
+    count: number;
+  };
+
+  return api
+    .requestPromise(`/organizations/${orgSlug}/events-meta/`, {
+      query: queryOption,
+    })
+    .then((res: Response) => res.count);
+}

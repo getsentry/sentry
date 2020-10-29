@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {HeaderTitle} from 'app/styles/organization';
@@ -73,7 +73,10 @@ const Title = styled('div')<TitleProps & React.HTMLProps<HTMLDivElement>>`
     `
     font-size: 20px;
     font-weight: bold;`};
-  margin: ${p => (p.tabs ? `${space(4)} 0 ${space(2)}` : `${space(4)} 0`)};
+  margin: ${p =>
+    p.tabs
+      ? `${space(4)} ${space(2)} ${space(2)} 0`
+      : `${space(4)} ${space(2)} ${space(4)} 0`};
   flex: 1;
 `;
 

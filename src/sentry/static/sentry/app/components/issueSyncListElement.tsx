@@ -1,17 +1,22 @@
+import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
-import InlineSvg from 'app/components/inlineSvg';
+import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
+
+import {
+  IconClose,
+  IconBitbucket,
+  IconGeneric,
+  IconGithub,
+  IconGitlab,
+  IconJira,
+  IconAdd,
+  IconVsts,
+} from 'app/icons';
 import space from 'app/styles/space';
-import {capitalize} from 'lodash';
 import Hovercard from 'app/components/hovercard';
 import {callIfFunction} from 'app/utils/callIfFunction';
-
-const hoverCardContainer = css`
-  display: flex;
-  align-items: center;
-  min-width: 0; /* flex-box overflow workaround */
-`;
 
 type Props = {
   externalIssueLink: string | null;
@@ -49,20 +54,20 @@ class IssueSyncListElement extends React.Component<Props> {
   getIcon(): React.ReactNode {
     switch (this.props.integrationType) {
       case 'bitbucket':
-        return <IntegrationIcon src="icon-bitbucket" />;
+        return <IconBitbucket size="md" />;
       case 'gitlab':
-        return <IntegrationIcon src="icon-gitlab" />;
+        return <IconGitlab size="md" />;
       case 'github':
-        return <IntegrationIcon src="icon-github" />;
+        return <IconGithub size="md" />;
       case 'github_enterprise':
-        return <IntegrationIcon src="icon-github" />;
+        return <IconGithub size="md" />;
       case 'jira':
       case 'jira_server':
-        return <IntegrationIcon src="icon-jira" />;
+        return <IconJira size="md" />;
       case 'vsts':
-        return <IntegrationIcon src="icon-vsts" />;
+        return <IconVsts size="md" />;
       default:
-        return <IntegrationIcon src="icon-generic-box" />;
+        return <IconGeneric size="md" />;
     }
   }
 
@@ -112,20 +117,26 @@ class IssueSyncListElement extends React.Component<Props> {
   render() {
     return (
       <IssueSyncListElementContainer>
-        <Hovercard
-          containerClassName={hoverCardContainer}
-          header={this.props.hoverCardHeader}
-          body={this.props.hoverCardBody}
-        >
-          {this.getIcon()}
-          {this.getLink()}
-        </Hovercard>
+        <ClassNames>
+          {({css}) => (
+            <Hovercard
+              containerClassName={css`
+                display: flex;
+                align-items: center;
+                min-width: 0; /* flex-box overflow workaround */
+              `}
+              header={this.props.hoverCardHeader}
+              body={this.props.hoverCardBody}
+            >
+              {this.getIcon()}
+              {this.getLink()}
+            </Hovercard>
+          )}
+        </ClassNames>
         {this.props.onOpen && this.props.onClose && (
-          <OpenCloseIcon
-            src="icon-close"
-            onClick={this.isLinked() ? this.handleDelete : this.props.onOpen}
-            isLinked={this.isLinked()}
-          />
+          <StyledIcon onClick={this.isLinked() ? this.handleDelete : this.props.onOpen}>
+            {this.isLinked() ? <IconClose /> : <IconAdd />}
+          </StyledIcon>
         )}
       </IssueSyncListElementContainer>
     );
@@ -143,20 +154,12 @@ export const IssueSyncListElementContainer = styled('div')`
   }
 `;
 
-export const IntegrationIcon = styled(InlineSvg)`
-  color: ${p => p.theme.gray4};
-  width: ${space(3)};
-  height: ${space(3)};
-  cursor: pointer;
-  flex-shrink: 0;
-`;
-
 export const IntegrationLink = styled('a')`
   text-decoration: none;
   padding-bottom: ${space(0.25)};
   margin-left: ${space(1)};
-  color: ${p => p.theme.gray4};
-  border-bottom: 1px solid ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
+  border-bottom: 1px solid ${p => p.theme.gray700};
   cursor: pointer;
   line-height: 1;
   white-space: nowrap;
@@ -165,19 +168,13 @@ export const IntegrationLink = styled('a')`
 
   &,
   &:hover {
-    border-bottom: 1px solid ${p => p.theme.linkColor};
+    border-bottom: 1px solid ${p => p.theme.blue400};
   }
 `;
 
-export const OpenCloseIcon = styled(InlineSvg)`
-  height: ${space(1.5)};
-  color: ${p => p.theme.gray4};
-  transition: 0.2s transform;
+const StyledIcon = styled('span')`
+  color: ${p => p.theme.gray700};
   cursor: pointer;
-  box-sizing: content-box;
-  padding: ${space(1)};
-  margin: -${space(1)};
-  ${(p: any) => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.9);')};
 `;
 
 export default IssueSyncListElement;

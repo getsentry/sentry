@@ -4,11 +4,9 @@ import 'react-date-range/dist/theme/default.css';
 import {DateRangePicker} from 'react-date-range';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import moment from 'moment';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
 import {
   getEndOfDay,
@@ -26,6 +24,8 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 class DateRange extends React.Component {
+  static getTimeStringFromDate = date => moment(date).local().format('HH:mm');
+
   static propTypes = {
     /**
      * Start date value for absolute date selector
@@ -74,20 +74,19 @@ class DateRange extends React.Component {
     organization: SentryTypes.Organization,
   };
 
+  static contextTypes = {
+    router: PropTypes.object,
+  };
+
   static defaultProps = {
     showAbsolute: true,
     showRelative: false,
     maxPickableDays: MAX_PICKABLE_DAYS,
   };
 
-  static contextTypes = {
-    router: PropTypes.object,
-  };
-
-  static getTimeStringFromDate = date => {
-    return moment(date)
-      .local()
-      .format('HH:mm');
+  state = {
+    hasStartErrors: false,
+    hasEndErrors: false,
   };
 
   handleSelectDateRange = ({selection}) => {
@@ -110,63 +109,55 @@ class DateRange extends React.Component {
     const {start, end, onChange} = this.props;
     const startTime = e.target.value;
 
-    try {
-      if (!startTime || !isValidTime(startTime)) {
-        throw new Error('Invalid start time');
-      }
-      const newTime = setDateToTime(start, startTime, {local: true});
-
-      analytics('dateselector.time_changed', {
-        field_changed: 'start',
-        time: startTime,
-        path: getRouteStringFromRoutes(this.context.router.routes),
-        org_id: parseInt(this.props.organization.id, 10),
-      });
-
-      onChange({
-        start: newTime,
-        end,
-      });
-    } catch (err) {
-      Sentry.withScope(scope => {
-        scope.setExtra('startTime', startTime);
-        Sentry.captureException(err);
-      });
-
-      addErrorMessage(t('Invalid start time'));
+    if (!startTime || !isValidTime(startTime)) {
+      this.setState({hasStartErrors: true});
+      onChange({hasDateRangeErrors: true});
+      return;
     }
+    const newTime = setDateToTime(start, startTime, {local: true});
+
+    analytics('dateselector.time_changed', {
+      field_changed: 'start',
+      time: startTime,
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+
+    onChange({
+      start: newTime,
+      end,
+      hasDateRangeErrors: this.state.hasEndErrors,
+    });
+
+    this.setState({hasStartErrors: false});
   };
 
   handleChangeEnd = e => {
     const {start, end, onChange} = this.props;
     const endTime = e.target.value;
 
-    try {
-      if (!endTime || !isValidTime(endTime)) {
-        throw new Error('Invalid end time');
-      }
-
-      const newTime = setDateToTime(end, endTime, {local: true});
-
-      analytics('dateselector.time_changed', {
-        field_changed: 'end',
-        time: endTime,
-        path: getRouteStringFromRoutes(this.context.router.routes),
-        org_id: parseInt(this.props.organization.id, 10),
-      });
-
-      onChange({
-        start,
-        end: newTime,
-      });
-    } catch (err) {
-      Sentry.withScope(scope => {
-        scope.setExtra('endTime', endTime);
-        Sentry.captureException(err);
-      });
-
-      addErrorMessage(t('Invalid end time'));
+    if (!endTime || !isValidTime(endTime)) {
+      this.setState({hasEndErrors: true});
+      onChange({hasDateRangeErrors: true});
+      return;
     }
+
+    const newTime = setDateToTime(end, endTime, {local: true});
+
+    analytics('dateselector.time_changed', {
+      field_changed: 'end',
+      time: endTime,
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+
+    onChange({
+      start,
+      end: newTime,
+      hasDateRangeErrors: this.state.hasStartErrors,
+    });
+
+    this.setState({hasEndErrors: false});
   };
 
   render() {
@@ -196,7 +187,7 @@ class DateRange extends React.Component {
     return (
       <div className={className} data-test-id="date-range">
         <StyledDateRangePicker
-          rangeColors={[theme.purple]}
+          rangeColors={[theme.purple400]}
           ranges={[
             {
               startDate: moment(start).local(),
@@ -318,15 +309,15 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   }
 
   .rdrNextPrevButton {
-    background-color: ${p => p.theme.offWhite2};
+    background-color: ${p => p.theme.gray300};
   }
 
   .rdrPprevButton i {
-    border-right-color: ${p => p.theme.gray4};
+    border-right-color: ${p => p.theme.gray700};
   }
 
   .rdrNextButton i {
-    border-left-color: ${p => p.theme.gray4};
+    border-left-color: ${p => p.theme.gray700};
   }
 `;
 
@@ -338,7 +329,7 @@ const TimeAndUtcPicker = styled('div')`
 `;
 
 const UtcPicker = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   display: flex;
   align-items: center;
   justify-content: flex-end;

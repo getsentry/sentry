@@ -1,19 +1,23 @@
 import React from 'react';
 import moment from 'moment';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
 
 jest.mock('app/utils/analytics');
 
-describe('EventCauseEmpty', function() {
+describe('EventCauseEmpty', function () {
   let putMock;
   const routerContext = TestStubs.routerContext();
   const organization = TestStubs.Organization();
-  const project = TestStubs.Project({platform: 'javascript'});
+  const project = TestStubs.Project({
+    platform: 'javascript',
+    firstEvent: '2020-01-01T23:54:33.831199Z',
+  });
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -31,8 +35,8 @@ describe('EventCauseEmpty', function() {
     });
   });
 
-  it('renders', async function() {
-    const wrapper = mount(
+  it('renders', async function () {
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -50,8 +54,8 @@ describe('EventCauseEmpty', function() {
     });
   });
 
-  it('can be snoozed', async function() {
-    const wrapper = mount(
+  it('can be snoozed', async function () {
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -59,10 +63,7 @@ describe('EventCauseEmpty', function() {
     await tick();
     wrapper.update();
 
-    wrapper
-      .find('button[aria-label="Snooze"]')
-      .first()
-      .simulate('click');
+    wrapper.find('button[aria-label="Snooze"]').first().simulate('click');
 
     expect(putMock).toHaveBeenCalledWith(
       '/promptsactivity/',
@@ -88,10 +89,8 @@ describe('EventCauseEmpty', function() {
     });
   });
 
-  it('does not render when snoozed', async function() {
-    const snoozed_ts = moment()
-      .subtract(1, 'day')
-      .unix();
+  it('does not render when snoozed', async function () {
+    const snoozed_ts = moment().subtract(1, 'day').unix();
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -99,7 +98,7 @@ describe('EventCauseEmpty', function() {
       body: {data: {snoozed_ts}},
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -110,10 +109,8 @@ describe('EventCauseEmpty', function() {
     expect(wrapper.find('ExampleCommitPanel').exists()).toBe(false);
   });
 
-  it('renders when snoozed more than 7 days ago', async function() {
-    const snoozed_ts = moment()
-      .subtract(9, 'day')
-      .unix();
+  it('renders when snoozed more than 7 days ago', async function () {
+    const snoozed_ts = moment().subtract(9, 'day').unix();
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -121,7 +118,7 @@ describe('EventCauseEmpty', function() {
       body: {data: {snoozed_ts}},
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -132,8 +129,8 @@ describe('EventCauseEmpty', function() {
     expect(wrapper.find('ExampleCommitPanel').exists()).toBe(true);
   });
 
-  it('can be dismissed', async function() {
-    const wrapper = mount(
+  it('can be dismissed', async function () {
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -141,10 +138,7 @@ describe('EventCauseEmpty', function() {
     await tick();
     wrapper.update();
 
-    wrapper
-      .find('button[aria-label="Dismiss"]')
-      .first()
-      .simulate('click');
+    wrapper.find('button[aria-label="Dismiss"]').first().simulate('click');
 
     expect(putMock).toHaveBeenCalledWith(
       '/promptsactivity/',
@@ -170,14 +164,14 @@ describe('EventCauseEmpty', function() {
     });
   });
 
-  it('does not render when dismissed', async function() {
+  it('does not render when dismissed', async function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/promptsactivity/',
       body: {data: {dismissed_ts: moment().unix()}},
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -188,8 +182,8 @@ describe('EventCauseEmpty', function() {
     expect(wrapper.find('ExampleCommitPanel').exists()).toBe(false);
   });
 
-  it('can capture analytics on docs click', async function() {
-    const wrapper = mount(
+  it('can capture analytics on docs click', async function () {
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -197,10 +191,7 @@ describe('EventCauseEmpty', function() {
     await tick();
     wrapper.update();
 
-    wrapper
-      .find('[aria-label="Read the docs"]')
-      .first()
-      .simulate('click');
+    wrapper.find('[aria-label="Read the docs"]').first().simulate('click');
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
       eventKey: 'event_cause.docs_clicked',

@@ -12,18 +12,18 @@ class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
     permission_classes = (SuperuserPermission,)
 
     def get(self, request):
-        sentry_apps = SentryApp.objects.filter(installations__date_deleted=None).annotate(
-            Count("installations")
+        sentry_apps = (
+            SentryApp.objects.filter(installations__date_deleted=None)
+            .annotate(Count("installations"))
+            .order_by()
         )
-        results = []
-        for app in sentry_apps:
-            results.append(
-                {
-                    "id": app.id,
-                    "slug": app.slug,
-                    "name": app.name,
-                    "installs": app.installations__count,
-                }
-            )
 
-        return Response(results)
+        if "per_page" in request.query_params:
+            sentry_apps = sentry_apps[: int(request.query_params["per_page"])]
+
+        apps = [
+            {"id": app.id, "slug": app.slug, "name": app.name, "installs": app.installations__count}
+            for app in sentry_apps
+        ]
+
+        return Response(apps)

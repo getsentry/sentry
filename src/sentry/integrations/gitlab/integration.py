@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
@@ -15,7 +16,7 @@ from sentry.integrations import (
     IntegrationProvider,
     IntegrationMetadata,
 )
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
@@ -91,6 +92,26 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         resp = self.get_client().search_group_projects(group, query)
         return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
 
+    def get_stacktrace_link(self, repo, filepath, version):
+        project_id = repo.config["project_id"]
+        repo_name = repo.config["path"]
+        try:
+            # repos are projects in GL so the project_id is the repo id which
+            # GL's API uses instead of slugs like GH
+            self.get_client().check_file(project_id, filepath, version)
+        except ApiError as e:
+            if e.code != 404:
+                raise
+            return None
+
+        base_url = self.model.metadata["base_url"]
+
+        # Must format the url ourselves since `check_file` is a head request
+        # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
+        web_url = u"{}/{}/blob/{}/{}".format(base_url, repo_name, version, filepath)
+
+        return web_url
+
     def search_projects(self, query):
         client = self.get_client()
         group_id = self.get_group_id()
@@ -135,6 +156,13 @@ class InstallationForm(forms.Form):
         ),
         widget=forms.TextInput(attrs={"placeholder": _("my-group/my-subgroup")}),
     )
+    include_subgroups = forms.BooleanField(
+        label=_("Include Subgroups"),
+        help_text=_("Include projects in subgroups of the GitLab group."),
+        widget=forms.CheckboxInput(),
+        required=False,
+        initial=False,
+    )
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
         help_text=_(
@@ -167,6 +195,10 @@ class InstallationForm(forms.Form):
 
 class InstallationConfigView(PipelineView):
     def dispatch(self, request, pipeline):
+        if "goback" in request.GET:
+            pipeline.state.step_index = 0
+            return pipeline.current_step()
+
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -268,7 +300,8 @@ class GitlabIntegrationProvider(IntegrationProvider):
                     "base_url": installation_data["url"],
                     "verify_ssl": installation_data["verify_ssl"],
                     "group": installation_data["group"],
-                    "error_message": e.message,
+                    "include_subgroups": installation_data["include_subgroups"],
+                    "error_message": six.text_type(e),
                     "error_status": e.code,
                 },
             )
@@ -286,6 +319,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         oauth_data = get_oauth_data(data)
         user = get_user_info(data["access_token"], state["installation_data"])
         group = self.get_group_info(data["access_token"], state["installation_data"])
+        include_subgroups = state["installation_data"]["include_subgroups"]
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
 
@@ -314,6 +348,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 "base_url": base_url,
                 "webhook_secret": secret.hexdigest(),
                 "group_id": group["id"],
+                "include_subgroups": include_subgroups,
             },
             "user_identity": {
                 "type": "gitlab",
@@ -325,7 +360,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         return integration
 
     def setup(self):
-        from sentry.plugins import bindings
+        from sentry.plugins.base import bindings
 
         bindings.add(
             "integration-repository.provider", GitlabRepositoryProvider, id="integrations:gitlab"

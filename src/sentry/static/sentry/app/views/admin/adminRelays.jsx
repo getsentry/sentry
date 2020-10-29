@@ -6,11 +6,10 @@ import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
-
 import ResultGrid from 'app/components/resultGrid';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 
-const prettyDate = function(x) {
+const prettyDate = function (x) {
   return moment(x).format('ll LTS');
 };
 

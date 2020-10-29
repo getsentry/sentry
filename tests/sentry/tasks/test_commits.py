@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.core import mail
-from mock import patch
+from sentry.utils.compat.mock import patch
 from social_auth.models import UserSocialAuth
 
 from sentry.exceptions import InvalidIdentity, PluginError
@@ -9,7 +9,7 @@ from sentry.models import (
     Commit,
     Deploy,
     Integration,
-    LatestRelease,
+    LatestRepoReleaseEnvironment,
     Release,
     ReleaseHeadCommit,
     Repository,
@@ -65,10 +65,12 @@ class FetchCommitsTest(TestCase):
 
         mock_notify_if_ready.assert_called_with(deploy.id, fetch_complete=True)
 
-        latest_release = LatestRelease.objects.get(repository_id=repo.id, environment_id=5)
-        assert latest_release.deploy_id == deploy.id
-        assert latest_release.release_id == release2.id
-        assert latest_release.commit_id == commit_list[0].id
+        latest_repo_release_environment = LatestRepoReleaseEnvironment.objects.get(
+            repository_id=repo.id, environment_id=5
+        )
+        assert latest_repo_release_environment.deploy_id == deploy.id
+        assert latest_repo_release_environment.release_id == release2.id
+        assert latest_repo_release_environment.commit_id == commit_list[0].id
 
     @patch("sentry.tasks.commits.handle_invalid_identity")
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
@@ -125,6 +127,41 @@ class FetchCommitsTest(TestCase):
             fetch_commits(
                 release_id=release2.id,
                 user_id=self.user.id,
+                refs=refs,
+                previous_release_id=release.id,
+            )
+
+        msg = mail.outbox[-1]
+        assert msg.subject == "Unable to Fetch Commits"
+        assert msg.to == [self.user.email]
+        assert "secrets" not in msg.body
+
+    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
+    def test_fetch_error_plugin_error_for_sentry_app(self, mock_compare_commits):
+        org = self.create_organization(owner=self.user, name="baz")
+        sentry_app = self.create_sentry_app(
+            organization=org, published=True, verify_install=False, name="Super Awesome App"
+        )
+
+        repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+
+        commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="a" * 40)
+
+        ReleaseHeadCommit.objects.create(
+            organization_id=org.id, repository_id=repo.id, release=release, commit=commit
+        )
+
+        refs = [{"repository": repo.name, "commit": "b" * 40}]
+
+        release2 = Release.objects.create(organization_id=org.id, version="12345678")
+
+        mock_compare_commits.side_effect = Exception("secrets")
+
+        with self.tasks():
+            fetch_commits(
+                release_id=release2.id,
+                user_id=sentry_app.proxy_user_id,
                 refs=refs,
                 previous_release_id=release.id,
             )

@@ -25,6 +25,6 @@ class ProjectEventRedirect(ProjectView):
         return HttpResponseRedirect(
             reverse(
                 "sentry-organization-event-detail",
-                args=[organization.slug, event.group_id, event.id],
+                args=[organization.slug, event.group_id, event.event_id],
             )
         )

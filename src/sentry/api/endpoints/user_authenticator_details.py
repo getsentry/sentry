@@ -140,7 +140,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             authenticator.delete()
 
             # if we delete an actual authenticator and all that
-            # remainds are backup interfaces, then we kill them in the
+            # remains are backup interfaces, then we kill them in the
             # process.
             if not interface.is_backup_interface:
                 interfaces = Authenticator.objects.all_interfaces_for_user(user)

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -97,7 +97,7 @@ const StyledPanelBody = styled(PanelBody)`
 `;
 
 const Placeholder = styled('div')`
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   height: 237px;
 `;
 

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
-import {find, flatMap, get} from 'lodash';
+import find from 'lodash/find';
+import flatMap from 'lodash/flatMap';
 
 import {t} from 'app/locale';
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
@@ -89,23 +89,20 @@ type State = {
 };
 
 export default class PermissionSelection extends React.Component<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-    form: PropTypes.object,
-  };
-
   static propTypes = {
     permissions: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired,
     appPublished: PropTypes.bool,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      permissions: this.props.permissions,
-    };
-  }
+  static contextTypes = {
+    router: PropTypes.object.isRequired,
+    form: PropTypes.object,
+  };
+
+  state = {
+    permissions: this.props.permissions,
+  };
 
   /**
    * Converts the "Permission" values held in `state` to a list of raw
@@ -117,8 +114,9 @@ export default class PermissionSelection extends React.Component<Props, State> {
   permissionStateToList() {
     const {permissions} = this.state;
     const findResource = r => find(SENTRY_APP_PERMISSIONS, ['resource', r]);
-    return flatMap(Object.entries(permissions), ([r, p]) =>
-      get(findResource(r), `choices[${p}].scopes`)
+    return flatMap(
+      Object.entries(permissions),
+      ([r, p]) => findResource(r)?.choices?.[p]?.scopes
     );
   }
 
@@ -146,6 +144,7 @@ export default class PermissionSelection extends React.Component<Props, State> {
 
           return (
             <SelectField
+              deprecatedSelectControl
               // These are not real fields we want submitted, so we use
               // `--permission` as a suffix here, then filter these
               // fields out when submitting the form in

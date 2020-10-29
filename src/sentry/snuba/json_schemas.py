@@ -16,15 +16,47 @@ SUBSCRIPTION_PAYLOAD_VERSIONS = {
             "subscription_id": {"type": "string", "minLength": 1},
             "values": {
                 "type": "object",
-                "minProperties": 1,
-                "additionalProperties": {"type": "number"},
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "minProperties": 1,
+                            "additionalProperties": {"type": "number"},
+                        },
+                    }
+                },
+                "required": ["data"],
             },
-            "timestamp": {"type": "number", "minimum": 0},
-            "interval": {"type": "number", "minimum": 0},
-            "partition": {"type": "number"},
-            "offset": {"type": "number"},
+            "timestamp": {"type": "string", "format": "date-time"},
         },
-        "required": ["subscription_id", "values", "timestamp", "interval", "partition", "offset"],
+        "required": ["subscription_id", "values", "timestamp"],
         "additionalProperties": False,
-    }
+    },
+    2: {
+        "type": "object",
+        "properties": {
+            "subscription_id": {"type": "string", "minLength": 1},
+            "request": {"type": "object"},
+            "result": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "minProperties": 1,
+                            "additionalProperties": {"type": ["number", "null"]},
+                        },
+                    }
+                },
+                "required": ["data"],
+            },
+            "timestamp": {"type": "string", "format": "date-time"},
+        },
+        "required": ["subscription_id", "request", "result", "timestamp"],
+        "additionalProperties": False,
+    },
 }

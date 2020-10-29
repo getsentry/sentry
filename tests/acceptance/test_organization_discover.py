@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import pytz
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -53,9 +53,12 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
         self.path = u"/organizations/{}/discover/".format(self.org.slug)
 
     def test_no_access(self):
-        self.browser.get(self.path)
-        self.browser.wait_until_not(".loading")
-        self.browser.snapshot("discover - no access")
+        with self.feature(
+            {"organizations:discover-basic": False, "organizations:discover-query": False}
+        ):
+            self.browser.get(self.path)
+            self.browser.wait_until_not(".loading")
+            self.browser.snapshot("discover - no access")
 
     def test_query_builder(self):
         with self.feature("organizations:discover"):
@@ -70,10 +73,10 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature("organizations:discover"):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading")
-            self.browser.find_element_by_xpath("//button//span[contains(text(), 'Run')]").click()
+            self.browser.click_when_visible('[aria-label="Run"]')
             self.browser.wait_until_not(".loading")
+            self.browser.wait_until_test_id("result")
             self.browser.snapshot("discover - query results")
-            self.browser.save_screenshot("discover1.png")
 
     def test_save_query_edit(self):
         with self.feature("organizations:discover"):

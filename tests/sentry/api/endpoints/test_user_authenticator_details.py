@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import datetime
-import mock
+from sentry.utils.compat import mock
 import six
 
 from django.core.urlresolvers import reverse
@@ -9,13 +9,12 @@ from django.db.models import F
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.models import (
-    Authenticator,
+from sentry.auth.authenticators import (
     TotpInterface,
     RecoveryCodeInterface,
     SmsInterface,
-    Organization,
 )
+from sentry.models import Authenticator, Organization
 from sentry.testutils import APITestCase
 
 
@@ -319,7 +318,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
 
         resp = self.client.delete(url, format="json")
         assert resp.status_code == 403, (resp.status_code, resp.content)
-        self.assertIn("requires 2FA", resp.content)
+        assert b"requires 2FA" in resp.content
 
         assert Authenticator.objects.filter(id=auth.id).exists()
 

@@ -30,8 +30,12 @@ class BlankJSONFieldTestModel(models.Model):
         app_label = "sentry"
 
 
+def default():
+    return {"x": 2}
+
+
 class CallableDefaultModel(models.Model):
-    json = JSONField(default=lambda: {"x": 2})
+    json = JSONField(default=default)
 
     class Meta:
         app_label = "sentry"
@@ -70,7 +74,7 @@ class JSONFieldTest(TestCase):
         field.set_attributes_from_name("json")
         self.assertEqual(None, field.get_db_prep_save(None, connection=None))
         self.assertEqual(
-            '{"spam": "eggs"}', field.get_db_prep_save({"spam": "eggs"}, connection=None)
+            '{"spam":"eggs"}', field.get_db_prep_save({"spam": "eggs"}, connection=None)
         )
 
     def test_formfield(self):
@@ -176,7 +180,7 @@ class JSONFieldTest(TestCase):
     def test_invalid_json(self):
         obj = JSONFieldTestModel()
         obj.json = '{"foo": 2}'
-        self.assertIn("foo", obj.json)
+        assert "foo" in obj.json
         with self.assertRaises(forms.ValidationError):
             obj.json = '{"foo"}'
 

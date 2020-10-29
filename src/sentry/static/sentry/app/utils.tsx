@@ -1,5 +1,11 @@
-import _ from 'lodash';
-import {Project} from 'app/types/index';
+import {Query} from 'history';
+import isArray from 'lodash/isArray';
+import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
+import isUndefined from 'lodash/isUndefined';
+
+import {Project, EventTag} from 'app/types';
+import {appendTagCondition} from 'app/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
   // if the other array is a falsy value, return
@@ -22,11 +28,11 @@ function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
 export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean {
   if (value === other) {
     return true;
-  } else if (_.isArray(value) || _.isArray(other)) {
+  } else if (isArray(value) || isArray(other)) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
-  } else if (_.isObject(value) || _.isObject(other)) {
+  } else if (isObject(value) || isObject(other)) {
     if (objectMatchesSubset(value, other, deep)) {
       return true;
     }
@@ -85,7 +91,7 @@ export function sortArray<T>(arr: Array<T>, score_fn: (entry: T) => string): Arr
   return arr;
 }
 
-export function objectIsEmpty(obj: object): boolean {
+export function objectIsEmpty(obj = {}): boolean {
   for (const prop in obj) {
     if (obj.hasOwnProperty(prop)) {
       return false;
@@ -106,8 +112,8 @@ export function explodeSlug(slug: string): string {
   return trim(slug.replace(/[-_]+/g, ' '));
 }
 
-export function defined(item: any): boolean {
-  return !_.isUndefined(item) && item !== null;
+export function defined<T>(item: T): item is Exclude<T, null | undefined> {
+  return !isUndefined(item) && item !== null;
 }
 
 export function nl2br(str: string): string {
@@ -121,26 +127,29 @@ export function nl2br(str: string): string {
 export function isUrl(str: any): boolean {
   return (
     !!str &&
-    _.isString(str) &&
+    isString(str) &&
     (str.indexOf('http://') === 0 || str.indexOf('https://') === 0)
   );
 }
 
 export function escape(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export function percent(value: number, totalValue: number): number {
+  // prevent division by zero
+  if (totalValue === 0) {
+    return 0;
+  }
+
   return (value / totalValue) * 100;
 }
 
 export function toTitleCase(str: string): string {
-  return str.replace(/\w\S*/g, txt => {
-    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-  });
+  return str.replace(
+    /\w\S*/g,
+    txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
 }
 
 export function formatBytes(bytes: number): string {
@@ -185,6 +194,23 @@ export function extractMultilineFields(value: string): Array<string> {
     .split('\n')
     .map(f => trim(f))
     .filter(f => f !== '');
+}
+
+/**
+ * If the value is of type Array, converts it to type string, keeping the line breaks, if there is any
+ */
+export function convertMultilineFieldValue<T extends string | Array<string>>(
+  value: T
+): string {
+  if (Array.isArray(value)) {
+    return value.join('\n');
+  }
+
+  if (typeof value === 'string') {
+    return value.split('\n').join('\n');
+  }
+
+  return '';
 }
 
 function projectDisplayCompare(a: Project, b: Project): number {
@@ -246,3 +272,29 @@ export type OmitHtmlDivProps<P extends object> = Omit<
   keyof P
 > &
   P;
+
+export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
+  const query = {...prevQuery};
+
+  // some tags are dedicated query strings since other parts of the app consumes this,
+  // for example, the global selection header.
+  switch (tag.key) {
+    case 'environment':
+      query.environment = tag.value;
+      break;
+    case 'project':
+      query.project = tag.value;
+      break;
+    default:
+      query.query = appendTagCondition(query.query, tag.key, tag.value);
+  }
+
+  return query;
+}
+
+export const isFunction = (value: any): value is Function => typeof value === 'function';
+
+// NOTE: only escapes a " if it's not already escaped
+export function escapeDoubleQuotes(str) {
+  return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
+}

@@ -21,9 +21,9 @@ from sentry.models import (
     User,
 )
 
-from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.models.apitoken import generate_token
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 
 logger = logging.getLogger("sentry.tasks.integrations")
 
@@ -192,17 +192,18 @@ def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
     max_retries=5,
 )
 @retry(exclude=(Integration.DoesNotExist))
+@track_group_async_operation
 def sync_status_outbound(group_id, external_issue_id, **kwargs):
     try:
         group = Group.objects.filter(
             id=group_id, status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED]
         )[0]
     except IndexError:
-        return
+        return False
 
     has_issue_sync = features.has("organizations:integrations-issue-sync", group.organization)
     if not has_issue_sync:
-        return
+        return False
 
     try:
         external_issue = ExternalIssue.objects.get(id=external_issue_id)
@@ -230,7 +231,9 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
     max_retries=5,
 )
 @retry()
+@track_group_async_operation
 def kick_off_status_syncs(project_id, group_id, **kwargs):
+
     # doing this in a task since this has to go in the event manager
     # and didn't want to introduce additional queries there
     external_issue_ids = GroupLink.objects.filter(
@@ -390,7 +393,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
             integration.metadata["subscription"]["id"] = subscription["id"]
             integration.metadata["subscription"]["secret"] = secret
             logger.info(
-                "vsts_subscription_check.updated_diabled_subscription",
+                "vsts_subscription_check.updated_disabled_subscription",
                 extra={
                     "integration_id": integration_id,
                     "organization_id": organization_id,

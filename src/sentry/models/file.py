@@ -4,6 +4,7 @@ import os
 import six
 import mmap
 import tempfile
+import time
 
 from hashlib import sha1
 from uuid import uuid4
@@ -20,11 +21,12 @@ from django.utils import timezone
 
 from sentry.app import locks
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model
-from sentry.tasks.files import delete_file as delete_file_task
+from sentry.tasks.files import delete_file as delete_file_task, delete_unreferenced_blobs
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
+ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 
 UPLOAD_RETRY_TIME = getattr(settings, "SENTRY_UPLOAD_RETRY_TIME", 60)  # 1min
 
@@ -328,20 +330,12 @@ class File(Model):
             delete=delete,
         )
 
-    def getfile(self, mode=None, prefetch=False, as_tempfile=False):
+    def getfile(self, mode=None, prefetch=False):
         """Returns a file object.  By default the file is fetched on
         demand but if prefetch is enabled the file is fully prefetched
         into a tempfile before reading can happen.
-
-        Additionally if `as_tempfile` is passed a NamedTemporaryFile is
-        returned instead which can help in certain situations where a
-        tempfile is necessary.
         """
-        if as_tempfile:
-            prefetch = True
         impl = self._get_chunked_blob(mode, prefetch)
-        if as_tempfile:
-            return impl.detach_tempfile()
         return FileObj(impl, self.name)
 
     def save_to(self, path):
@@ -437,12 +431,24 @@ class File(Model):
         tf.seek(0)
         return tf
 
+    def delete(self, *args, **kwargs):
+        blob_ids = [blob.id for blob in self.blobs.all()]
+        super(File, self).delete(*args, **kwargs)
+
+        # Wait to delete blobs. This helps prevent
+        # races around frequently used blobs in debug images and release files.
+        transaction.on_commit(
+            lambda: delete_unreferenced_blobs.apply_async(
+                kwargs={"blob_ids": blob_ids}, countdown=60 * 5
+            )
+        )
+
 
 class FileBlobIndex(Model):
     __core__ = False
 
     file = FlexibleForeignKey("sentry.File")
-    blob = FlexibleForeignKey("sentry.FileBlob")
+    blob = FlexibleForeignKey("sentry.FileBlob", on_delete=models.PROTECT)
     offset = BoundedPositiveIntegerField()
 
     class Meta:
@@ -511,7 +517,7 @@ class ChunkedFileBlobIndexWrapper(object):
 
         # Zero out the file
         f.seek(size - 1)
-        f.write("\x00")
+        f.write(b"\x00")
         f.flush()
 
         mem = mmap.mmap(f.fileno(), size)
@@ -548,6 +554,10 @@ class ChunkedFileBlobIndexWrapper(object):
 
         if pos < 0:
             raise IOError("Invalid argument")
+        if pos == 0 and not self._indexes:
+            # Empty file, there's no seeking to be done.
+            return
+
         for n, idx in enumerate(self._indexes[::-1]):
             if idx.offset <= pos:
                 if idx != self._curidx:
@@ -608,3 +618,30 @@ class FileBlobOwner(Model):
         app_label = "sentry"
         db_table = "sentry_fileblobowner"
         unique_together = (("blob", "organization"),)
+
+
+def clear_cached_files(cache_path):
+    try:
+        cache_folders = os.listdir(cache_path)
+    except OSError:
+        return
+
+    cutoff = int(time.time()) - ONE_DAY_AND_A_HALF
+
+    for cache_folder in cache_folders:
+        cache_folder = os.path.join(cache_path, cache_folder)
+        try:
+            items = os.listdir(cache_folder)
+        except OSError:
+            continue
+        for cached_file in items:
+            cached_file = os.path.join(cache_folder, cached_file)
+            try:
+                mtime = os.path.getmtime(cached_file)
+            except OSError:
+                continue
+            if mtime < cutoff:
+                try:
+                    os.remove(cached_file)
+                except OSError:
+                    pass

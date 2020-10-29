@@ -66,6 +66,7 @@
   "restructuredtext.confPath": "",
   "python.linting.enabled": true,
   "python.linting.flake8Path": "${workspaceFolder}/.venv/bin/flake8",
-  "python.linting.pep8Path": "${workspaceFolder}/.venv/bin/pep8",
-  "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest"
+  "python.linting.pycodestylePath": "${workspaceFolder}/.venv/bin/pep8",
+  "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
+  "python.formatting.provider": "black"
 }

@@ -3,13 +3,12 @@ from __future__ import absolute_import, print_function
 import importlib
 import six
 
-from django.conf import settings
+from sentry.db.models.utils import Creator
+
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED
 from psycopg2.extensions import register_adapter
 from uuid import uuid4, UUID
-
-SOUTH = "south" in settings.INSTALLED_APPS
 
 
 # Adapted from django-pgfields
@@ -62,10 +61,7 @@ class UUIDField(models.Field):
         super(UUIDField, self).__init__(**kwargs)
 
     def db_type(self, connection):
-        engine = connection.settings_dict["ENGINE"]
-        if "postgres" in engine:
-            return "uuid"
-        return super(UUIDField, self).db_type(connection)
+        return "uuid"
 
     def get_internal_type(self):
         return "CharField"
@@ -88,18 +84,6 @@ class UUIDField(models.Field):
         # Convert our value to a UUID.
         return UUID(value)
 
-    def get_db_prep_value(self, value, connection, prepared=False):
-        """Return a UUID object. Also, ensure that psycopg2 is
-        aware how to address that object.
-        """
-        engine = connection.settings_dict["ENGINE"]
-        if "postgres" not in engine:
-            if not prepared:
-                value = self.get_prep_value(value)
-            return six.text_type(value.hex) if value else None
-        # Run the normal functionality.
-        return super(UUIDField, self).get_db_prep_value(value, connection, prepared=prepared)
-
     def pre_save(self, instance, add):
         """If auto is set, generate a UUID at random."""
 
@@ -115,6 +99,10 @@ class UUIDField(models.Field):
 
         # This is the standard case; just use the superclass logic.
         return super(UUIDField, self).pre_save(instance, add)
+
+    def contribute_to_class(self, cls, name):
+        super(UUIDField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
 
     def to_python(self, value):
         """Return a UUID object."""
@@ -142,27 +130,5 @@ class UUIDAdapter(object):
         return ("'%s'" % self.value).encode("utf8")
 
 
-if hasattr(models, "SubfieldBase"):
-    UUIDField = six.add_metaclass(models.SubfieldBase)(UUIDField)
-
 # Register the UUID type with psycopg2.
 register_adapter(UUID, UUIDAdapter)
-
-# If South is installed, then tell South how to properly
-# introspect a UUIDField.
-if SOUTH:
-    from south.modelsinspector import add_introspection_rules
-
-    add_introspection_rules(
-        [
-            (
-                (UUIDField,),
-                [],
-                {
-                    "auto_add": ["_auto_add_str", {"default": False}],
-                    "coerce_to": ["_coerce_to", {"default": UUID}],
-                },
-            )
-        ],
-        (r"^sentry\.db\.models\.fields\.uuid\.UUIDField",),
-    )

@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.core.urlresolvers import reverse, resolve
-from sudo.utils import is_safe_url
+from django.utils.http import is_safe_url
 from time import time
 
 from sentry.models import User, Authenticator
@@ -24,19 +24,6 @@ MFA_SESSION_KEY = "mfa"
 class AuthUserPasswordExpired(Exception):
     def __init__(self, user):
         self.user = user
-
-
-def _make_key_value(val):
-    return val.strip().split(u"=", 1)
-
-
-def parse_auth_header(header):
-    if isinstance(header, bytes):
-        header = header.decode("latin1")
-    try:
-        return dict(map(_make_key_value, header.split(u" ", 1)[1].split(u",")))
-    except Exception:
-        return {}
 
 
 def get_auth_providers():
@@ -186,7 +173,7 @@ def find_users(username, with_valid_password=True, is_active=None):
 
 def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, source=None):
     """
-    This logs a user in for the sesion and current request.
+    This logs a user in for the session and current request.
 
     If 2FA is enabled this method will start the MFA flow and return False as
     required.  If `passed_2fa` is set to `True` then the 2FA flow is set to be
@@ -225,7 +212,7 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
     # figure out that their passwords are expired this is still the more
     # reasonable behavior.
     #
-    # We also rememebr _after_2fa here so that we can continue the flow if
+    # We also remember _after_2fa here so that we can continue the flow if
     # someone does it in the same browser.
     if user.is_password_expired:
         raise AuthUserPasswordExpired(user)
@@ -298,3 +285,10 @@ class EmailAuthBackend(ModelBackend):
                 except ValueError:
                     continue
         return None
+
+    # TODO(joshuarli): When we're fully on Django 1.10, we should switch to
+    # subclassing AllowAllUsersModelBackend (this isn't available in 1.9 and
+    # simply overriding user_can_authenticate here is a lot less verbose than
+    # conditionally importing).
+    def user_can_authenticate(self, user):
+        return True

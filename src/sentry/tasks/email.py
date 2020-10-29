@@ -32,7 +32,7 @@ def _get_user_from_email(group, email):
 def process_inbound_email(mailfrom, group_id, payload):
     """
     """
-    from sentry.models import Event, Group
+    from sentry.models import Group
     from sentry.web.forms import NewNoteForm
 
     try:
@@ -49,7 +49,6 @@ def process_inbound_email(mailfrom, group_id, payload):
     event = group.get_latest_event()
 
     if event:
-        Event.objects.bind_nodes([event], "data")
         event.group = group
         event.project = group.project
 

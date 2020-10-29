@@ -5,7 +5,7 @@ import pkg_resources
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.api.permissions import SuperuserPermission
 
 

@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import absolute_import
 
 import pytest
 
-from sentry.models import Event
+from sentry import eventstore
 from sentry.event_manager import EventManager
 
 
@@ -13,7 +11,7 @@ def make_http_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"request": data})
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
 
         interface = evt.interfaces.get("request")
 
@@ -47,10 +45,6 @@ def test_query_string_as_dict(make_http_snapshot):
 
 def test_query_string_as_pairlist(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com", query_string=[["foo", "bar"]]))
-
-
-def test_query_string_as_bytes(make_http_snapshot):
-    make_http_snapshot(dict(url="http://example.com", query_string=b"foo=\x00"))
 
 
 def test_data_as_dict(make_http_snapshot):

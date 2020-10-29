@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.constants import ENVIRONMENT_NAME_PATTERN, ENVIRONMENT_NAME_MAX_LENGTH
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 import re
@@ -46,8 +47,7 @@ class Environment(Model):
     def is_valid_name(cls, value):
         """Limit length and reject problematic bytes
 
-        If you change the rules here also update the event ingestion schema
-        in sentry.interfaces.schemas
+        If you change the rules here also update the event ingestion schema in Relay.
         """
         if len(value) > ENVIRONMENT_NAME_MAX_LENGTH:
             return False
@@ -76,18 +76,24 @@ class Environment(Model):
 
     @classmethod
     def get_or_create(cls, project, name):
-        name = cls.get_name_or_default(name)
+        with metrics.timer("models.environment.get_or_create") as metrics_tags:
+            name = cls.get_name_or_default(name)
 
-        cache_key = cls.get_cache_key(project.organization_id, name)
+            cache_key = cls.get_cache_key(project.organization_id, name)
 
-        env = cache.get(cache_key)
-        if env is None:
-            env = cls.objects.get_or_create(name=name, organization_id=project.organization_id)[0]
-            cache.set(cache_key, env, 3600)
+            env = cache.get(cache_key)
+            if env is None:
+                metrics_tags["cache_hit"] = "false"
+                env = cls.objects.get_or_create(name=name, organization_id=project.organization_id)[
+                    0
+                ]
+                cache.set(cache_key, env, 3600)
+            else:
+                metrics_tags["cache_hit"] = "true"
 
-        env.add_project(project)
+            env.add_project(project)
 
-        return env
+            return env
 
     def add_project(self, project, is_hidden=None):
         cache_key = "envproj:c:%s:%s" % (self.id, project.id)

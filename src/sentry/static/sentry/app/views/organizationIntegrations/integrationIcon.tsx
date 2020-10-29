@@ -1,27 +1,47 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import PluginIcon from 'app/plugins/components/pluginIcon';
+import PluginIcon, {ICON_PATHS, DEFAULT_ICON} from 'app/plugins/components/pluginIcon';
 import {Integration} from 'app/types';
 
 type Props = {
   integration: Integration;
-  size: number;
+  size?: number;
 };
 
 type IconProps = Pick<Props, 'size'>;
 
-const Icon = styled('img')<IconProps>`
+const StyledIcon = styled('img')<IconProps>`
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   border-radius: 2px;
   display: block;
 `;
 
-const IntegrationIcon = ({integration, size}: Props) =>
+class Icon extends React.Component<Props> {
+  state = {
+    imgSrc: this.props.integration.icon,
+  };
+
+  render() {
+    const {integration, size} = this.props;
+
+    return (
+      <StyledIcon
+        size={size}
+        src={this.state.imgSrc}
+        onError={() => {
+          this.setState({imgSrc: ICON_PATHS[integration.provider.key] || DEFAULT_ICON});
+        }}
+      />
+    );
+  }
+}
+
+const IntegrationIcon = ({integration, size = 32}: Props) =>
   integration.icon ? (
-    <Icon size={size} src={integration.icon} />
+    <Icon size={size} integration={integration} />
   ) : (
     <PluginIcon size={size} pluginId={integration.provider.key} />
   );
@@ -29,10 +49,6 @@ const IntegrationIcon = ({integration, size}: Props) =>
 IntegrationIcon.propTypes = {
   integration: PropTypes.object.isRequired,
   size: PropTypes.number,
-};
-
-IntegrationIcon.defaultProps = {
-  size: 32,
 };
 
 export default IntegrationIcon;

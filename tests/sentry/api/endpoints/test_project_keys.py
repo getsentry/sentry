@@ -29,10 +29,14 @@ class CreateProjectKeyTest(APITestCase):
             "sentry-api-0-project-keys",
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
-        resp = self.client.post(url, data={"name": "hello world"})
+        resp = self.client.post(
+            url, data={"name": "hello world", "rateLimit": {"count": 10, "window": 60}}
+        )
         assert resp.status_code == 201, resp.content
         key = ProjectKey.objects.get(public_key=resp.data["public"])
         assert key.label == "hello world"
+        assert key.rate_limit_count == 10
+        assert key.rate_limit_window == 60
 
     def test_minimal_args(self):
         project = self.create_project()

@@ -11,6 +11,7 @@ from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, KEYWORD_MAP, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
+from sentry.utils.compat import map
 
 
 class InvalidQuery(Exception):
@@ -37,6 +38,34 @@ def parse_status_value(value):
     if value in STATUS_CHOICES.values():
         return value
     raise ValueError("Invalid status value")
+
+
+def parse_duration(value, interval):
+    try:
+        value = float(value)
+    except ValueError:
+        raise InvalidQuery(u"{} is not a valid duration value".format(value))
+
+    if interval == "ms":
+        delta = timedelta(milliseconds=value)
+    elif interval == "s":
+        delta = timedelta(seconds=value)
+    elif interval in ["min", "m"]:
+        delta = timedelta(minutes=value)
+    elif interval in ["hr", "h"]:
+        delta = timedelta(hours=value)
+    elif interval in ["day", "d"]:
+        delta = timedelta(days=value)
+    elif interval in ["wk", "w"]:
+        delta = timedelta(days=value * 7)
+    else:
+        raise InvalidQuery(
+            u"{} is not a valid duration type, must be ms, s, min, m, hr, h, day, d, wk or w".format(
+                interval
+            )
+        )
+
+    return delta.total_seconds() * 1000.0
 
 
 def parse_datetime_range(value):
@@ -78,6 +107,8 @@ def parse_datetime_string(value):
     # timezones are not supported and are assumed UTC
     if value[-1:] == "Z":
         value = value[:-1]
+    if len(value) >= 6 and value[-6] == "+":
+        value = value[:-6]
 
     for format in [DATETIME_FORMAT_MICROSECONDS, DATETIME_FORMAT, DATE_FORMAT]:
         try:
@@ -90,7 +121,7 @@ def parse_datetime_string(value):
     except ValueError:
         pass
 
-    raise InvalidQuery(u"{} is not a valid datetime query".format(value))
+    raise InvalidQuery(u"{} is not a valid ISO8601 date query".format(value))
 
 
 def parse_datetime_comparison(value):
@@ -110,6 +141,8 @@ def parse_datetime_value(value):
     # timezones are not supported and are assumed UTC
     if value[-1:] == "Z":
         value = value[:-1]
+    if len(value) >= 6 and value[-6] == "+":
+        value = value[:-6]
 
     result = None
 
@@ -191,12 +224,17 @@ def parse_user_value(value, user):
         return User(id=0)
 
 
-def get_latest_release(projects, environments):
-    release_qs = Release.objects.filter(
-        organization_id=projects[0].organization_id, projects__in=projects
-    )
+def get_latest_release(projects, environments, organization_id=None):
+    if organization_id is None:
+        project = projects[0]
+        if hasattr(project, "organization_id"):
+            organization_id = project.organization_id
+        else:
+            return ""
 
-    if environments is not None:
+    release_qs = Release.objects.filter(organization_id=organization_id, projects__in=projects)
+
+    if environments:
         release_qs = release_qs.filter(
             releaseprojectenvironment__environment__id__in=[
                 environment.id for environment in environments
@@ -211,10 +249,10 @@ def get_latest_release(projects, environments):
     )
 
 
-def parse_release(value, projects, environments):
+def parse_release(value, projects, environments, organization_id=None):
     if value == "latest":
         try:
-            return get_latest_release(projects, environments)
+            return get_latest_release(projects, environments, organization_id)
         except Release.DoesNotExist:
             # Should just get no results here, so return an empty release name.
             return ""
@@ -278,15 +316,20 @@ def tokenize_query(query):
         'query': ['foo', 'bar'],
         'tag': ['value'],
     }
+
+    Has a companion implementation in static/app/utils/tokenizeSearch.tsx
     """
     result = defaultdict(list)
     query_params = defaultdict(list)
     tokens = split_query_into_tokens(query)
     for token in tokens:
+        if token.upper() in ["OR", "AND"] or token.strip("()") == "":
+            continue
+
         state = "query"
         for idx, char in enumerate(token):
             next_char = token[idx + 1] if idx < len(token) - 1 else None
-            if idx == 0 and char in ('"', "'"):
+            if idx == 0 and char in ('"', "'", ":"):
                 break
             if char == ":":
                 if next_char in (":", " "):
@@ -296,7 +339,8 @@ def tokenize_query(query):
                 break
         query_params[state].append(token)
 
-    result["query"] = map(format_query, query_params["query"])
+    if "query" in query_params:
+        result["query"] = map(format_query, query_params["query"])
     for tag in query_params["tags"]:
         key, value = format_tag(tag)
         result[key].append(value)
@@ -305,7 +349,7 @@ def tokenize_query(query):
 
 def format_tag(tag):
     """
-    Splits tags on ':' and removes enclosing quotes if present and returns
+    Splits tags on ':' and removes enclosing quotes and grouping parens if present and returns
     returns both sides of the split as strings
 
     Example:
@@ -315,20 +359,20 @@ def format_tag(tag):
     'user', 'foo bar'
     """
     idx = tag.index(":")
-    key = tag[:idx].strip('"')
-    value = tag[idx + 1 :].strip('"')
+    key = tag[:idx].lstrip("(").strip('"')
+    value = tag[idx + 1 :].rstrip(")").strip('"')
     return key, value
 
 
 def format_query(query):
     """
-    Strips enclosing quotes from queries if present.
+    Strips enclosing quotes and grouping parens from queries if present.
 
     Example:
     >>> format_query('"user:foo bar"')
     'user:foo bar'
     """
-    return query.strip('"')
+    return query.strip('"()')
 
 
 def split_query_into_tokens(query):
@@ -442,4 +486,4 @@ def convert_user_tag_to_query(key, value):
     if key == "user" and ":" in value:
         sub_key, value = value.split(":", 1)
         if KEYWORD_MAP.get_key(sub_key, None):
-            return "user.%s:%s" % (sub_key, value)
+            return 'user.%s:"%s"' % (sub_key, value.replace('"', '\\"'))

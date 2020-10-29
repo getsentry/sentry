@@ -1,27 +1,30 @@
 import React from 'react';
-import {mount} from 'enzyme';
 
-import changeReactMentionsInput from 'app-test/helpers/changeReactMentionsInput';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
 
 import NoteInput from 'app/components/activity/note/input';
 
-describe('NoteInput', function() {
+describe('NoteInput', function () {
   const routerContext = TestStubs.routerContext();
 
-  describe('New item', function() {
+  describe('New item', function () {
     const props = {
       group: {project: {}, id: 'groupId'},
       memberList: [],
       teams: [],
     };
 
-    it('renders', function() {
-      mount(<NoteInput {...props} />, routerContext);
+    it('renders', function () {
+      mountWithTheme(<NoteInput {...props} />, routerContext);
     });
 
-    it('submits when meta + enter is pressed', function() {
+    it('submits when meta + enter is pressed', function () {
       const onCreate = jest.fn();
-      const wrapper = mount(<NoteInput {...props} onCreate={onCreate} />, routerContext);
+      const wrapper = mountWithTheme(
+        <NoteInput {...props} onCreate={onCreate} />,
+        routerContext
+      );
 
       const input = wrapper.find('textarea');
 
@@ -29,9 +32,12 @@ describe('NoteInput', function() {
       expect(onCreate).toHaveBeenCalled();
     });
 
-    it('submits when ctrl + enter is pressed', function() {
+    it('submits when ctrl + enter is pressed', function () {
       const onCreate = jest.fn();
-      const wrapper = mount(<NoteInput {...props} onCreate={onCreate} />, routerContext);
+      const wrapper = mountWithTheme(
+        <NoteInput {...props} onCreate={onCreate} />,
+        routerContext
+      );
 
       const input = wrapper.find('textarea');
 
@@ -39,9 +45,9 @@ describe('NoteInput', function() {
       expect(onCreate).toHaveBeenCalled();
     });
 
-    it('handles errors', async function() {
+    it('handles errors', async function () {
       const errorJSON = {detail: {message: '', code: 401, extra: ''}};
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />,
         routerContext
       );
@@ -54,7 +60,7 @@ describe('NoteInput', function() {
     });
   });
 
-  describe('Existing Item', function() {
+  describe('Existing Item', function () {
     const defaultProps = {
       group: {project: {}, id: 'groupId'},
       modelId: 'item-id',
@@ -63,34 +69,22 @@ describe('NoteInput', function() {
       teams: [],
     };
 
-    const createWrapper = props => {
-      return mount(<NoteInput {...defaultProps} {...props} />, routerContext);
-    };
+    const createWrapper = props =>
+      mountWithTheme(<NoteInput {...defaultProps} {...props} />, routerContext);
 
-    it('edits existing message', async function() {
+    it('edits existing message', async function () {
       const onUpdate = jest.fn();
       const wrapper = createWrapper({onUpdate});
 
-      expect(
-        wrapper
-          .find('NoteInputNavTabLink')
-          .first()
-          .text()
-      ).toBe('Edit');
+      expect(wrapper.find('NoteInputNavTabLink').first().text()).toBe('Edit');
 
       // Switch to preview
-      wrapper
-        .find('NoteInputNavTabLink')
-        .last()
-        .simulate('click');
+      wrapper.find('NoteInputNavTabLink').last().simulate('click');
 
       expect(wrapper.find('NotePreview').text()).toBe('an existing item\n');
 
       // Switch to edit
-      wrapper
-        .find('NoteInputNavTabLink')
-        .first()
-        .simulate('click');
+      wrapper.find('NoteInputNavTabLink').first().simulate('click');
 
       expect(wrapper.find('textarea').prop('value')).toBe('an existing item');
 
@@ -102,23 +96,15 @@ describe('NoteInput', function() {
       expect(onUpdate).toHaveBeenCalledWith({text: 'new item', mentions: []});
     });
 
-    it('canels editing and moves to preview mode', async function() {
+    it('canels editing and moves to preview mode', async function () {
       const onEditFinish = jest.fn();
       const wrapper = createWrapper({onEditFinish});
 
       changeReactMentionsInput(wrapper, 'new value');
 
-      expect(
-        wrapper
-          .find('FooterButton')
-          .first()
-          .text()
-      ).toBe('Cancel');
+      expect(wrapper.find('FooterButton').first().text()).toBe('Cancel');
 
-      wrapper
-        .find('FooterButton')
-        .first()
-        .simulate('click');
+      wrapper.find('FooterButton').first().simulate('click');
 
       expect(onEditFinish).toHaveBeenCalled();
     });

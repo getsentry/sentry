@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -12,31 +13,12 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
 )
-from sentry.models import Activity, Group, Release, ReleaseFile
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
-
-
-@scenario("RetrieveOrganizationRelease")
-def retrieve_organization_release_scenario(runner):
-    runner.request(
-        method="GET",
-        path="/organizations/%s/releases/%s/" % (runner.org.slug, runner.default_release.version),
-    )
-
-
-@scenario("UpdateOrganizationRelease")
-def update_organization_release_scenario(runner):
-    release = runner.utils.create_release(runner.default_project, runner.me, version="3000")
-    runner.request(
-        method="PUT",
-        path="/organization/%s/releases/%s/" % (runner.org.slug, release.version),
-        data={
-            "url": "https://vcshub.invalid/user/project/refs/deadbeef1337",
-            "ref": "deadbeef1337",
-        },
-    )
+from sentry.models import Activity, Release, Project
+from sentry.models.release import UnsafeReleaseDeletion
+from sentry.snuba.sessions import STATS_PERIODS
+from sentry.api.endpoints.organization_releases import get_stats_period_detail
+from sentry.utils.sdk import configure_scope, bind_organization_context
+from sentry.web.decorators import transaction_start
 
 
 class OrganizationReleaseSerializer(ReleaseSerializer):
@@ -47,9 +29,7 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
 
 
 class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
-    doc_section = DocSection.RELEASES
-
-    @attach_scenarios([retrieve_organization_release_scenario])
+    @transaction_start("OrganizationReleaseDetailsEndpoint.get")
     def get(self, request, organization, version):
         """
         Retrieve an Organization's Release
@@ -62,6 +42,15 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string version: the version identifier of the release.
         :auth: required
         """
+        project_id = request.GET.get("project")
+        with_health = request.GET.get("health") == "1"
+        summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
+        health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+        if summary_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
+        if health_stats_period and health_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS))
+
         try:
             release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:
@@ -70,9 +59,24 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        return Response(serialize(release, request.user))
+        if with_health and project_id:
+            try:
+                project = Project.objects.get_from_cache(id=int(project_id))
+            except (ValueError, Project.DoesNotExist):
+                raise ParseError(detail="Invalid project")
+            release._for_project_id = project.id
 
-    @attach_scenarios([update_organization_release_scenario])
+        return Response(
+            serialize(
+                release,
+                request.user,
+                with_health_data=with_health,
+                summary_stats_period=summary_stats_period,
+                health_stats_period=health_stats_period,
+            )
+        )
+
+    @transaction_start("OrganizationReleaseDetailsEndpoint.put")
     def put(self, request, organization, version):
         """
         Update an Organization's Release
@@ -105,72 +109,84 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                            be specified if this is the first time you've sent commit data.
         :auth: required
         """
-        try:
-            release = Release.objects.get(organization_id=organization, version=version)
-        except Release.DoesNotExist:
-            raise ResourceDoesNotExist
+        bind_organization_context(organization)
 
-        if not self.has_release_permission(request, organization, release):
-            raise ResourceDoesNotExist
-
-        serializer = OrganizationReleaseSerializer(data=request.data)
-
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        result = serializer.validated_data
-
-        was_released = bool(release.date_released)
-
-        kwargs = {}
-        if result.get("dateReleased"):
-            kwargs["date_released"] = result["dateReleased"]
-        if result.get("ref"):
-            kwargs["ref"] = result["ref"]
-        if result.get("url"):
-            kwargs["url"] = result["url"]
-
-        if kwargs:
-            release.update(**kwargs)
-
-        commit_list = result.get("commits")
-        if commit_list:
-            # TODO(dcramer): handle errors with release payloads
-            release.set_commits(commit_list)
-
-        refs = result.get("refs")
-        if not refs:
-            refs = [
-                {
-                    "repository": r["repository"],
-                    "previousCommit": r.get("previousId"),
-                    "commit": r["currentId"],
-                }
-                for r in result.get("headCommits", [])
-            ]
-        if refs:
-            if not request.user.is_authenticated():
-                return Response(
-                    {"refs": ["You must use an authenticated API token to fetch refs"]}, status=400
-                )
-            fetch_commits = not commit_list
+        with configure_scope() as scope:
+            scope.set_tag("version", version)
             try:
-                release.set_refs(refs, request.user, fetch=fetch_commits)
-            except InvalidRepository as exc:
-                return Response({"refs": [exc.message]}, status=400)
+                release = Release.objects.get(organization_id=organization, version=version)
+            except Release.DoesNotExist:
+                scope.set_tag("failure_reason", "Release.DoesNotExist")
+                raise ResourceDoesNotExist
 
-        if not was_released and release.date_released:
-            for project in release.projects.all():
-                Activity.objects.create(
-                    type=Activity.RELEASE,
-                    project=project,
-                    ident=Activity.get_version_ident(release.version),
-                    data={"version": release.version},
-                    datetime=release.date_released,
-                )
+            if not self.has_release_permission(request, organization, release):
+                scope.set_tag("failure_reason", "no_release_permission")
+                raise ResourceDoesNotExist
 
-        return Response(serialize(release, request.user))
+            serializer = OrganizationReleaseSerializer(data=request.data)
 
+            if not serializer.is_valid():
+                scope.set_tag("failure_reason", "serializer_error")
+                return Response(serializer.errors, status=400)
+
+            result = serializer.validated_data
+
+            was_released = bool(release.date_released)
+
+            kwargs = {}
+            if result.get("dateReleased"):
+                kwargs["date_released"] = result["dateReleased"]
+            if result.get("ref"):
+                kwargs["ref"] = result["ref"]
+            if result.get("url"):
+                kwargs["url"] = result["url"]
+
+            if kwargs:
+                release.update(**kwargs)
+
+            commit_list = result.get("commits")
+            if commit_list:
+                # TODO(dcramer): handle errors with release payloads
+                release.set_commits(commit_list)
+
+            refs = result.get("refs")
+            if not refs:
+                refs = [
+                    {
+                        "repository": r["repository"],
+                        "previousCommit": r.get("previousId"),
+                        "commit": r["currentId"],
+                    }
+                    for r in result.get("headCommits", [])
+                ]
+            scope.set_tag("has_refs", bool(refs))
+            if refs:
+                if not request.user.is_authenticated():
+                    scope.set_tag("failure_reason", "user_not_authenticated")
+                    return Response(
+                        {"refs": ["You must use an authenticated API token to fetch refs"]},
+                        status=400,
+                    )
+                fetch_commits = not commit_list
+                try:
+                    release.set_refs(refs, request.user, fetch=fetch_commits)
+                except InvalidRepository as e:
+                    scope.set_tag("failure_reason", "InvalidRepository")
+                    return Response({"refs": [six.text_type(e)]}, status=400)
+
+            if not was_released and release.date_released:
+                for project in release.projects.all():
+                    Activity.objects.create(
+                        type=Activity.RELEASE,
+                        project=project,
+                        ident=Activity.get_version_ident(release.version),
+                        data={"version": release.version},
+                        datetime=release.date_released,
+                    )
+
+            return Response(serialize(release, request.user))
+
+    @transaction_start("OrganizationReleaseDetailsEndpoint.delete")
     def delete(self, request, organization, version):
         """
         Delete an Organization's Release
@@ -191,18 +207,9 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        # we don't want to remove the first_release metadata on the Group, and
-        # while people might want to kill a release (maybe to remove files),
-        # removing the release is prevented
-        if Group.objects.filter(first_release=release).exists():
-            return Response({"detail": ERR_RELEASE_REFERENCED}, status=400)
-
-        # TODO(dcramer): this needs to happen in the queue as it could be a long
-        # and expensive operation
-        file_list = ReleaseFile.objects.filter(release=release).select_related("file")
-        for releasefile in file_list:
-            releasefile.file.delete()
-            releasefile.delete()
-        release.delete()
+        try:
+            release.safe_delete()
+        except UnsafeReleaseDeletion as e:
+            return Response({"detail": six.text_type(e)}, status=400)
 
         return Response(status=204)

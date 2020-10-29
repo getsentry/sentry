@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.template import Library
+from django.utils.safestring import mark_safe
 
 from sentry import options
 from sentry.utils.assets import get_asset_url
@@ -56,4 +57,4 @@ def locale_js_include(context):
         return ""
 
     href = get_asset_url("sentry", "dist/locale/" + lang_code + ".js")
-    return u'<script src="{0}"{1}></script>'.format(href, crossorigin())
+    return mark_safe('<script src="{0}"{1}></script>'.format(href, crossorigin()))

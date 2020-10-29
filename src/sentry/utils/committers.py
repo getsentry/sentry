@@ -4,33 +4,35 @@ import operator
 import six
 
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Event, Group
+from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.utils import metrics
+from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path
 
 from django.db.models import Q
+from django.core.cache import cache
 
-from itertools import izip
 from collections import defaultdict
 from functools import reduce
+from sentry.utils.compat import zip
 
-PATH_SEPERATORS = frozenset(["/", "\\"])
+PATH_SEPARATORS = frozenset(["/", "\\"])
 
 
 def tokenize_path(path):
-    for sep in PATH_SEPERATORS:
+    for sep in PATH_SEPARATORS:
         if sep in path:
             # Exclude empty path segments as some repository integrations
             # start their paths with `/` which we want to ignore.
-            return reversed(filter(lambda x: x != "", path.split(sep)))
+            return reversed([x for x in path.split(sep) if x != ""])
     else:
         return iter([path])
 
 
 def score_path_match_length(path_a, path_b):
     score = 0
-    for a, b in izip(tokenize_path(path_a), tokenize_path(path_b)):
+    for a, b in zip(tokenize_path(path_a), tokenize_path(path_b)):
         if a.lower() != b.lower():
             break
         score += 1
@@ -49,7 +51,7 @@ def _get_frame_paths(event):
 def _get_commits(releases):
     return list(
         Commit.objects.filter(
-            releasecommit=ReleaseCommit.objects.filter(release__in=releases)
+            releasecommit__in=ReleaseCommit.objects.filter(release__in=releases)
         ).select_related("author")
     )
 
@@ -86,7 +88,7 @@ def _match_commits_path(commit_file_changes, path):
             #  we want a list of unique commits that tie for longest match
             matching_commits[file_change.commit.id] = (file_change.commit, score)
 
-    return matching_commits.values()
+    return list(matching_commits.values())
 
 
 def _get_commits_committer(commits, author_id):
@@ -133,34 +135,36 @@ def _get_committers(annotated_frames, commits):
 def get_previous_releases(project, start_version, limit=5):
     # given a release version + project, return the previous
     # `limit` releases (includes the release specified by `version`)
-    try:
-        release_dates = (
-            Release.objects.filter(
-                organization_id=project.organization_id, version=start_version, projects=project
+    key = "get_previous_releases:1:%s" % hash_values([project.id, start_version, limit])
+    rv = cache.get(key)
+    if rv is None:
+        try:
+            release_dates = (
+                Release.objects.filter(
+                    organization_id=project.organization_id, version=start_version, projects=project
+                )
+                .values("date_released", "date_added")
+                .get()
             )
-            .values("date_released", "date_added")
-            .get()
-        )
-    except Release.DoesNotExist:
-        return []
+        except Release.DoesNotExist:
+            rv = []
+        else:
+            start_date = release_dates["date_released"] or release_dates["date_added"]
 
-    start_date = release_dates["date_released"] or release_dates["date_added"]
-
-    return list(
-        Release.objects.filter(projects=project, organization_id=project.organization_id)
-        .extra(
-            select={"date": "COALESCE(date_released, date_added)"},
-            where=["COALESCE(date_released, date_added) <= %s"],
-            params=[start_date],
-        )
-        .extra(order_by=["-date"])[:limit]
-    )
+            rv = list(
+                Release.objects.filter(projects=project, organization_id=project.organization_id)
+                .extra(
+                    select={"date": "COALESCE(date_released, date_added)"},
+                    where=["COALESCE(date_released, date_added) <= %s"],
+                    params=[start_date],
+                )
+                .extra(order_by=["-date"])[:limit]
+            )
+        cache.set(key, rv, 60)
+    return rv
 
 
 def get_event_file_committers(project, event, frame_limit=25):
-    # populate event data
-    Event.objects.bind_nodes([event], "data")
-
     group = Group.objects.get(id=event.group_id)
 
     first_release_version = group.get_first_release()
@@ -242,7 +246,8 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
 
     for committer in committers:
         commit_ids = [commit.id for (commit, _) in committer["commits"]]
-        committer["commits"] = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
+        commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
+        committer["commits"] = dedupe_commits(commits_result)
 
     metrics.incr(
         "feature.owners.has-committers",
@@ -250,3 +255,7 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
         skip_internal=False,
     )
     return committers
+
+
+def dedupe_commits(commits):
+    return list({c["id"]: c for c in commits}.values())

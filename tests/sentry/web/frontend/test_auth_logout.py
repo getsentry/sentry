@@ -41,9 +41,14 @@ class AuthLogoutTest(TestCase):
 
     def test_doesnt_redirect_to_external_next_url(self):
         next = "http://example.com"
-        self.client.post(self.path + "?next=" + quote(next))
+        resp = self.client.post(self.path + "?next=" + quote(next))
+        self.assertRedirects(resp, "/auth/login/")
 
-        resp = self.client.post(self.path)
-        assert resp.status_code == 302
-        assert next not in resp["Location"]
-        assert resp["Location"] == "http://testserver/auth/login/"
+        resp = self.client.post(self.path + "?next=" + quote("http:1234556"))
+        self.assertRedirects(resp, "/auth/login/")
+
+        resp = self.client.post(self.path + "?next=" + quote("///example.com"))
+        self.assertRedirects(resp, "/auth/login/")
+
+        resp = self.client.post(self.path + "?next=" + quote("http:///example.com"))
+        self.assertRedirects(resp, "/auth/login/")

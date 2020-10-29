@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import absolute_import
 
 import pytest
 
-from sentry.models import Event
+from sentry import eventstore
 from sentry.event_manager import EventManager
 
 
@@ -13,7 +11,7 @@ def make_message_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"logentry": data})
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
 
         interface = evt.interfaces.get("logentry")
         insta_snapshot(

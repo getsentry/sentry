@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import calendar
 from datetime import timedelta
-import json
 import pytest
 import requests
 import six
@@ -19,6 +18,7 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.utils import json
 
 
 class TagStorageTest(TestCase, SnubaTestCase):
@@ -42,63 +42,85 @@ class TagStorageTest(TestCase, SnubaTestCase):
         self.now = timezone.now().replace(microsecond=0)
         data = json.dumps(
             [
-                {
-                    "event_id": six.text_type(r) * 32,
-                    "primary_hash": hash1,
-                    "group_id": self.proj1group1.id,
-                    "project_id": self.proj1.id,
-                    "message": "message 1",
-                    "platform": "python",
-                    "datetime": (self.now - timedelta(seconds=r)).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "data": {
-                        "received": calendar.timegm(self.now.timetuple()) - r,
-                        "tags": {
-                            "foo": "bar",
-                            "baz": "quux",
-                            "environment": self.proj1env1.name,
-                            "sentry:release": 100 * r,
-                            "sentry:user": u"id:user{}".format(r),
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": six.text_type(r) * 32,
+                        "primary_hash": hash1,
+                        "group_id": self.proj1group1.id,
+                        "project_id": self.proj1.id,
+                        "message": "message 1",
+                        "platform": "python",
+                        "datetime": (self.now - timedelta(seconds=r)).strftime(
+                            "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ),
+                        "data": {
+                            "received": calendar.timegm(self.now.timetuple()) - r,
+                            "tags": {
+                                "foo": "bar",
+                                "baz": "quux",
+                                "environment": self.proj1env1.name,
+                                "sentry:release": 100 * r,
+                                "sentry:user": u"id:user{}".format(r),
+                            },
+                            "user": {
+                                "id": u"user{}".format(r),
+                                "email": u"user{}@sentry.io".format(r),
+                            },
+                            "exception": {"values": [{"stacktrace": {"frames": [{"lineno": 29}]}}]},
                         },
-                        "user": {"id": u"user{}".format(r), "email": u"user{}@sentry.io".format(r)},
                     },
-                }
+                )
                 for r in [1, 2]
             ]
             + [
-                {
-                    "event_id": "3" * 32,
-                    "primary_hash": hash2,
-                    "group_id": self.proj1group2.id,
-                    "project_id": self.proj1.id,
-                    "message": "message 2",
-                    "platform": "python",
-                    "datetime": (self.now - timedelta(seconds=2)).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "data": {
-                        "received": calendar.timegm(self.now.timetuple()) - 2,
-                        "tags": {
-                            "browser": "chrome",
-                            "environment": self.proj1env1.name,
-                            "sentry:user": "id:user1",
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": "3" * 32,
+                        "primary_hash": hash2,
+                        "group_id": self.proj1group2.id,
+                        "project_id": self.proj1.id,
+                        "message": "message 2",
+                        "platform": "python",
+                        "datetime": (self.now - timedelta(seconds=2)).strftime(
+                            "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ),
+                        "data": {
+                            "received": calendar.timegm(self.now.timetuple()) - 2,
+                            "tags": {
+                                "browser": "chrome",
+                                "environment": self.proj1env1.name,
+                                "sentry:user": "id:user1",
+                            },
+                            "user": {"id": "user1"},
                         },
-                        "user": {"id": "user1"},
                     },
-                }
+                )
             ]
             + [
-                {
-                    "event_id": "4" * 32,
-                    "primary_hash": hash2,
-                    "group_id": self.proj1group1.id,
-                    "project_id": self.proj1.id,
-                    "message": "message 2",
-                    "platform": "python",
-                    "datetime": (self.now - timedelta(seconds=2)).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "data": {
-                        "received": calendar.timegm(self.now.timetuple()) - 2,
-                        "tags": {"foo": "bar", "environment": self.proj1env2.name},
-                        "user": {"id": "user1"},
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": "4" * 32,
+                        "primary_hash": hash2,
+                        "group_id": self.proj1group1.id,
+                        "project_id": self.proj1.id,
+                        "message": "message 2",
+                        "platform": "python",
+                        "datetime": (self.now - timedelta(seconds=2)).strftime(
+                            "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ),
+                        "data": {
+                            "received": calendar.timegm(self.now.timetuple()) - 2,
+                            "tags": {"foo": "bar", "environment": self.proj1env2.name},
+                            "user": {"id": "user1"},
+                        },
                     },
-                }
+                )
             ]
         )
 
@@ -270,6 +292,14 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 key="foo",
                 value="notreal",
             )
+
+    def test_get_tag_value_label(self):
+        assert self.ts.get_tag_value_label("foo", "notreal") == "notreal"
+        assert self.ts.get_tag_value_label("sentry:user", None) is None
+        assert self.ts.get_tag_value_label("sentry:user", "id:stuff") == "stuff"
+        assert self.ts.get_tag_value_label("sentry:user", "email:stuff") == "stuff"
+        assert self.ts.get_tag_value_label("sentry:user", "username:stuff") == "stuff"
+        assert self.ts.get_tag_value_label("sentry:user", "ip:stuff") == "stuff"
 
     def test_get_groups_user_counts(self):
         assert self.ts.get_groups_user_counts(
@@ -451,12 +481,79 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
         ]
 
+    def test_get_tag_value_paginator_with_dates(self):
+        from sentry.tagstore.types import TagValue
+
+        day_ago = self.now - timedelta(days=1)
+        two_days_ago = self.now - timedelta(days=2)
+        assert list(
+            self.ts.get_tag_value_paginator(
+                self.proj1.id, self.proj1env1.id, "sentry:user", start=day_ago, end=self.now
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key="sentry:user",
+                value="id:user1",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1),
+            ),
+            TagValue(
+                key="sentry:user",
+                value="id:user2",
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=2),
+            ),
+        ]
+
+        day_ago = self.now - timedelta(days=1)
+        assert (
+            list(
+                self.ts.get_tag_value_paginator(
+                    self.proj1.id, self.proj1env1.id, "sentry:user", start=two_days_ago, end=day_ago
+                ).get_result(10)
+            )
+            == []
+        )
+
+    def test_numeric_tag_value_paginator(self):
+        from sentry.tagstore.types import TagValue
+
+        assert list(
+            self.ts.get_tag_value_paginator(
+                self.proj1.id, self.proj1env1.id, "stack.lineno"
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key="stack.lineno",
+                value="29",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1),
+            )
+        ]
+
+        assert list(
+            self.ts.get_tag_value_paginator(
+                self.proj1.id, self.proj1env1.id, "stack.lineno", query="30"
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key="stack.lineno",
+                value="29",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1),
+            )
+        ]
+
     def test_get_group_tag_value_iter(self):
         from sentry.tagstore.types import GroupTagValue
 
         assert list(
             self.ts.get_group_tag_value_iter(
-                self.proj1.id, self.proj1group1.id, self.proj1env1.id, "sentry:user"
+                self.proj1.id, self.proj1group1.id, [self.proj1env1.id], "sentry:user"
             )
         ) == [
             GroupTagValue(
@@ -482,7 +579,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
         assert list(
             self.ts.get_group_tag_value_paginator(
-                self.proj1.id, self.proj1group1.id, self.proj1env1.id, "sentry:user"
+                self.proj1.id, self.proj1group1.id, [self.proj1env1.id], "sentry:user"
             ).get_result(10)
         ) == [
             GroupTagValue(

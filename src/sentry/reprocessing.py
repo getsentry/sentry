@@ -1,9 +1,31 @@
 from __future__ import absolute_import
 
 import uuid
+import logging
 
 
 REPROCESSING_OPTION = "sentry:processing-rev"
+
+
+logger = logging.getLogger("sentry.events")
+
+
+def event_supports_reprocessing(data):
+    """Only events of a certain format support reprocessing."""
+    from sentry.stacktraces.processing import find_stacktraces_in_data
+    from sentry.stacktraces.platform import NATIVE_PLATFORMS, JAVASCRIPT_PLATFORMS
+
+    platform = data.get("platform")
+    if platform in NATIVE_PLATFORMS:
+        return True
+    elif platform == "java" and data.get("debug_meta"):
+        return True
+    elif platform not in JAVASCRIPT_PLATFORMS:
+        return False
+    for stacktrace_info in find_stacktraces_in_data(data):
+        if not stacktrace_info.platforms.isdisjoint(NATIVE_PLATFORMS):
+            return True
+    return False
 
 
 def get_reprocessing_revision(project, cached=True):
@@ -40,6 +62,12 @@ def report_processing_issue(event_data, scope, object=None, type=None, data=None
         from sentry.models import EventError
 
         type = EventError.INVALID_DATA
+
+    # This really should not happen.
+    if not event_supports_reprocessing(event_data):
+        logger.error("processing_issue.bad_report", extra={"platform": event_data.get("platform")})
+        return
+
     uid = "%s:%s" % (scope, object)
     event_data.setdefault("processing_issues", {})[uid] = {
         "scope": scope,

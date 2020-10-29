@@ -1,0 +1,23 @@
+---
+created: '2020-08-11T11:59:11.370175Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","L"],["module","sentry/dist/vendor"]],[["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","M"],["module","sentry/dist/vendor"]],[["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","W"],["module","sentry/dist/vendor"]],[["module","sentry/dist/app"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","b"],["module","sentry/dist/vendor"]],[["function","n"],["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","c"],["module","sentry/dist/vendor"]],[["function","n"],["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","componentPromise"],["module","sentry/dist/app"]],[["function","e"],["module","sentry/dist/app"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","e"],["module","sentry/dist/app"]],[["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","g/</t[e]"],["module","sentry/dist/vendor"]],[["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","i"],["module","sentry/dist/vendor"]],[["function","b"],["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","n"],["module","sentry/dist/vendor"]],[["function","g/</t[e]"],["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","sentry/dist/app"]],[["function","componentPromise"],["module","sentry/dist/app"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","sentry/dist/app"]],[["module","sentry/dist/app"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","sentry/dist/app"]],[["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","sentry/dist/vendor"]],[["function","L"],["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","sentry/dist/vendor"]],[["function","W"],["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","sentry/dist/vendor"]],[["function","c"],["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","sentry/dist/vendor"]],[["function","i"],["module","sentry/dist/vendor"]]]
+similarity:2020-07-23:type:ident-shingle: "NS_ERROR_NOT_INITIALIZED"

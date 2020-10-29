@@ -6,6 +6,8 @@ from sentry.coreapi import APIError
 from sentry.mediators.external_requests import SelectRequester
 from sentry.testutils import TestCase
 
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+
 
 class TestSelectRequester(TestCase):
     def setUp(self):
@@ -49,6 +51,13 @@ class TestSelectRequester(TestCase):
         request = responses.calls[0].request
         assert request.headers["Sentry-App-Signature"]
 
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 200
+        assert requests[0]["event_type"] == "select_options.requested"
+
     @responses.activate
     def test_invalid_response_format(self):
         # missing 'label'
@@ -91,3 +100,10 @@ class TestSelectRequester(TestCase):
                 uri="/get-issues",
                 fields={},
             )
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 500
+        assert requests[0]["event_type"] == "select_options.requested"

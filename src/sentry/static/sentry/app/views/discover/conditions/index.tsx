@@ -1,7 +1,7 @@
 import React from 'react';
 
-import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
+import {IconClose} from 'app/icons/iconClose';
 import Link from 'app/components/links/link';
 
 import ConditionRow from './condition';
@@ -41,7 +41,15 @@ export default class Conditions extends React.Component<ConditionsProps> {
           <SidebarLabel>{t('Conditions')}</SidebarLabel>
           {!disabled && (
             <AddText>
-              (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
+              (
+              <Link
+                to=""
+                data-test-id="conditions-add-text-link"
+                onClick={() => this.addRow()}
+              >
+                {t('Add')}
+              </Link>
+              )
             </AddText>
           )}
         </div>
@@ -58,7 +66,7 @@ export default class Conditions extends React.Component<ConditionsProps> {
             />
             <div>
               <a onClick={() => this.removeRow(idx)}>
-                <InlineSvg src="icon-circle-close" height="38px" />
+                <IconClose isCircled />
               </a>
             </div>
           </SelectListItem>

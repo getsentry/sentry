@@ -1,4 +1,5 @@
-import {isNumber, isString} from 'lodash';
+import isNumber from 'lodash/isNumber';
+import isString from 'lodash/isString';
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment-timezone';
@@ -10,30 +11,36 @@ const ONE_MINUTE_IN_MS = 60000;
 
 type RelaxedDateType = string | number | Date;
 
-type Props = {
+type DefaultProps = {
+  /**
+   * Suffix after elapsed time
+   * e.g. "ago" in "5 minutes ago"
+   */
+  suffix: string;
+};
+
+type TimeProps = React.HTMLProps<HTMLTimeElement>;
+
+type Props = DefaultProps & {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    */
   date: RelaxedDateType;
 
-  /**
-   * Suffix after elapsed time
-   * e.g. "ago" in "5 minutes ago"
-   */
-
-  // TODO(ts): This should be "required", but emotion doesn't seem to like its defaultProps
-  suffix?: string;
-
   className?: string;
+} & TimeProps;
+
+type State = {
+  relative: string;
 };
 
-class TimeSince extends React.PureComponent<Props> {
+class TimeSince extends React.PureComponent<Props, State> {
   static propTypes = {
     date: PropTypes.any.isRequired,
     suffix: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     suffix: 'ago',
   };
 
@@ -41,7 +48,9 @@ class TimeSince extends React.PureComponent<Props> {
     relative: '',
   };
 
-  static getDerivedStateFromProps(props: Props) {
+  // TODO(ts) TODO(emotion): defining the props type breaks emotion's typings
+  // See: https://github.com/emotion-js/emotion/pull/1514
+  static getDerivedStateFromProps(props) {
     return {
       relative: getRelativeDate(props.date, props.suffix),
     };
@@ -70,16 +79,18 @@ class TimeSince extends React.PureComponent<Props> {
   };
 
   render() {
-    const date = getDateObj(this.props.date);
+    const {date, suffix: _suffix, className, ...props} = this.props;
+    const dateObj = getDateObj(date);
     const user = ConfigStore.get('user');
-    const options = user ? user.options : {};
-    const format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
+    const options = user ? user.options : null;
+    const format = options?.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
 
     return (
       <time
-        dateTime={date.toISOString()}
-        title={moment.tz(date, options.timezone).format(format)}
-        className={this.props.className}
+        dateTime={dateObj.toISOString()}
+        title={moment.tz(dateObj, options?.timezone ?? '').format(format)}
+        className={className}
+        {...props}
       >
         {this.state.relative}
       </time>
@@ -96,7 +107,7 @@ function getDateObj(date: RelaxedDateType): Date {
   return date;
 }
 
-function getRelativeDate(currentDateTime: RelaxedDateType, suffix?: string) {
+function getRelativeDate(currentDateTime: RelaxedDateType, suffix?: string): string {
   const date = getDateObj(currentDateTime);
 
   if (!suffix) {

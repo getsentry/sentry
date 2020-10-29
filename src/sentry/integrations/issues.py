@@ -2,20 +2,14 @@ from __future__ import absolute_import
 
 import logging
 import six
+from collections import defaultdict
 
 from sentry import features
-from sentry.integrations.exceptions import ApiError, IntegrationError
-from sentry.models import (
-    Activity,
-    Event,
-    ExternalIssue,
-    Group,
-    GroupLink,
-    GroupStatus,
-    Organization,
-)
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+from sentry.utils.compat import filter
 
 logger = logging.getLogger("sentry.integrations.issues")
 
@@ -66,8 +60,6 @@ class IssueBasicMixin(object):
         in Jira, VSTS, GitHub, etc
         """
         event = group.get_latest_event()
-        if event is not None:
-            Event.objects.bind_nodes([event], "data")
 
         return [
             {
@@ -123,7 +115,9 @@ class IssueBasicMixin(object):
 
         defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
 
-        self.org_integration.config.update({"project_issue_defaults": {project_id: defaults}})
+        self.org_integration.config.setdefault("project_issue_defaults", {}).setdefault(
+            six.text_type(project_id), {}
+        ).update(defaults)
         self.org_integration.save()
 
     def get_project_defaults(self, project_id):
@@ -187,13 +181,13 @@ class IssueBasicMixin(object):
         Returns the display name of the issue.
 
         This is not required but helpful for integrations whose external issue key
-        does not match the disired display name.
+        does not match the desired display name.
         """
         return ""
 
     def get_repository_choices(self, group, **kwargs):
         """
-        Returns the default repository and a set/subset of repositories of asscoaited with the installation
+        Returns the default repository and a set/subset of repositories of associated with the installation
         """
         try:
             repos = self.get_repositories()
@@ -230,17 +224,29 @@ class IssueBasicMixin(object):
         """
         return (default_repo, default_repo)
 
-    def get_annotations(self, group):
-        external_issue_ids = GroupLink.objects.filter(
-            group_id=group.id,
-            project_id=group.project_id,
+    def get_annotations_for_group_list(self, group_list):
+        group_links = GroupLink.objects.filter(
+            group_id__in=[group.id for group in group_list],
+            project_id__in=list(set(group.project.id for group in group_list)),
             linked_type=GroupLink.LinkedType.issue,
             relationship=GroupLink.Relationship.references,
-        ).values_list("linked_id", flat=True)
+        )
 
         external_issues = ExternalIssue.objects.filter(
-            id__in=external_issue_ids, integration_id=self.model.id
+            id__in=[group_link.linked_id for group_link in group_links],
+            integration_id=self.model.id,
         )
+
+        # group annotations by group id
+        annotations_by_group_id = defaultdict(list)
+        for group_link in group_links:
+            issues_for_group = filter(lambda x: x.id == group_link.linked_id, external_issues)
+            annotations = self.map_external_issues_to_annotations(issues_for_group)
+            annotations_by_group_id[group_link.group_id].extend(annotations)
+
+        return annotations_by_group_id
+
+    def map_external_issues_to_annotations(self, external_issues):
         annotations = []
         for ei in external_issues:
             link = self.get_issue_url(ei.key)

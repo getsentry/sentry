@@ -1,35 +1,15 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-from django.db import IntegrityError, transaction
-from django.utils import timezone
+import six
 from rest_framework import serializers
-from uuid import uuid4
 
-from sentry import eventstore
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import Environment, EventUser, GroupStatus, ProjectKey, UserReport
-from sentry.signals import user_feedback_received
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario("CreateUserFeedback")
-def create_user_feedback_scenario(runner):
-    with runner.isolated_project("Plain Proxy") as project:
-        runner.request(
-            method="POST",
-            path=u"/projects/{}/{}/user-feedback/".format(runner.org.slug, project.slug),
-            data={
-                "name": "Jane Smith",
-                "email": "jane@example.com",
-                "comments": "It broke!",
-                "event_id": uuid4().hex,
-            },
-        )
+from sentry.models import Environment, GroupStatus, ProjectKey, UserReport
+from sentry.ingest.userreport import save_userreport, Conflict
 
 
 class UserReportSerializer(serializers.ModelSerializer):
@@ -40,7 +20,6 @@ class UserReportSerializer(serializers.ModelSerializer):
 
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
-    doc_section = DocSection.PROJECTS
 
     def get(self, request, project):
         """
@@ -88,7 +67,6 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             paginator_cls=DateTimePaginator,
         )
 
-    @attach_scenarios([create_user_feedback_scenario])
     def post(self, request, project):
         """
         Submit User Feedback
@@ -121,69 +99,10 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             return self.respond(serializer.errors, status=400)
 
         report = serializer.validated_data
-
-        # XXX(dcramer): enforce case insensitivty by coercing this to a lowercase string
-        report["event_id"] = report["event_id"].lower()
-        report["project"] = project
-
-        event = eventstore.get_event_by_id(project.id, report["event_id"])
-
-        # TODO(dcramer): we should probably create the user if they dont
-        # exist, and ideally we'd also associate that with the event
-        euser = self.find_event_user(report, event)
-        if euser and not euser.name and report["name"]:
-            euser.update(name=report["name"])
-        if euser:
-            report["event_user_id"] = euser.id
-
-        if event:
-            # if the event is more than 30 minutes old, we dont allow updates
-            # as it might be abusive
-            if event.datetime < timezone.now() - timedelta(minutes=30):
-                return self.respond(
-                    {"detail": "Feedback for this event cannot be modified."}, status=409
-                )
-
-            report["environment"] = event.get_environment()
-            report["group"] = event.group
-
         try:
-            with transaction.atomic():
-                report_instance = UserReport.objects.create(**report)
-        except IntegrityError:
-            # There was a duplicate, so just overwrite the existing
-            # row with the new one. The only way this ever happens is
-            # if someone is messing around with the API, or doing
-            # something wrong with the SDK, but this behavior is
-            # more reasonable than just hard erroring and is more
-            # expected.
-            existing_report = UserReport.objects.get(
-                project=report["project"], event_id=report["event_id"]
-            )
-
-            # if the existing report was submitted more than 5 minutes ago, we dont
-            # allow updates as it might be abusive (replay attacks)
-            if existing_report.date_added < timezone.now() - timedelta(minutes=5):
-                return self.respond(
-                    {"detail": "Feedback for this event cannot be modified."}, status=409
-                )
-
-            existing_report.update(
-                name=report["name"],
-                email=report["email"],
-                comments=report["comments"],
-                date_added=timezone.now(),
-                event_user_id=euser.id if euser else None,
-            )
-            report_instance = existing_report
-
-        else:
-            if report_instance.group:
-                report_instance.notify()
-
-        user_feedback_received.send(
-            project=report_instance.project, group=report_instance.group, sender=self
-        )
+            report_instance = save_userreport(project, report)
+        except Conflict as e:
+            return self.respond({"detail": six.text_type(e)}, status=409)
 
         return self.respond(
             serialize(
@@ -194,23 +113,3 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 ),
             )
         )
-
-    def find_event_user(self, report_data, event):
-        if not event:
-            if not report_data.get("email"):
-                return None
-            try:
-                return EventUser.objects.filter(
-                    project_id=report_data["project"].id, email=report_data["email"]
-                )[0]
-            except IndexError:
-                return None
-
-        tag = event.get_tag("sentry:user")
-        if not tag:
-            return None
-
-        try:
-            return EventUser.for_tags(project_id=report_data["project"].id, values=[tag])[tag]
-        except KeyError:
-            pass

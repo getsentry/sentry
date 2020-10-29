@@ -4,13 +4,14 @@ import six
 
 from collections import defaultdict
 from django.db.models import Count
-from six.moves import zip
+
 
 from sentry import roles
 from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
+    InviteStatus,
     OrganizationAccessRequest,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -19,6 +20,7 @@ from sentry.models import (
     Team,
     TeamAvatar,
 )
+from sentry.utils.compat import zip
 
 
 def get_team_memberships(team_list, user):
@@ -34,7 +36,10 @@ def get_member_totals(team_list, user):
     """Get the total number of members in each team"""
     if user.is_authenticated():
         query = (
-            Team.objects.filter(id__in=[t.pk for t in team_list])
+            Team.objects.filter(
+                id__in=[t.pk for t in team_list],
+                organizationmember__invite_status=InviteStatus.APPROVED.value,
+            )
             .annotate(member_count=Count("organizationmemberteam"))
             .values("id", "member_count")
         )

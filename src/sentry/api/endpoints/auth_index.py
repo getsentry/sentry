@@ -28,10 +28,6 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
-    # XXX: it's not quite clear if this should be documented or not at
-    # this time.
-    # doc_section = DocSection.ACCOUNTS
-
     def get(self, request):
         if not request.user.is_authenticated():
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -106,7 +102,7 @@ class AuthIndexEndpoint(Endpoint):
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
                 interface = Authenticator.objects.get_interface(request.user, "u2f")
-                if not interface.is_enrolled:
+                if not interface.is_enrolled():
                     raise LookupError()
 
                 challenge = json.loads(validator.validated_data["challenge"])
@@ -146,13 +142,8 @@ class AuthIndexEndpoint(Endpoint):
         Logout the Authenticated User
         `````````````````````````````
 
-        Deauthenticate the currently active session. Can also deactivate
-        all sessions for a user if the ``all`` parameter is sent.
+        Deauthenticate all active sessions for this user.
         """
-        if request.data.get("all"):
-            # Rotate the session nonce to invalidate all other sessions.
-            request.user.refresh_session_nonce()
-            request.user.save()
         logout(request._request)
         request.user = AnonymousUser()
         return Response(status=status.HTTP_204_NO_CONTENT)

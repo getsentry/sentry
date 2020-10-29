@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import classnames from 'classnames';
 
 type Props = {
-  underlined: boolean | undefined;
+  underlined?: boolean;
   className?: string;
 };
 

@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import logging
-
 from sentry.testutils.cases import RuleTestCase
 from sentry.rules.conditions.level import LevelCondition, MatchType
 
@@ -11,10 +9,10 @@ class LevelConditionTest(RuleTestCase):
 
     def test_render_label(self):
         rule = self.get_rule(data={"match": MatchType.EQUAL, "level": "30"})
-        assert rule.render_label() == u"An event's level is equal to warning"
+        assert rule.render_label() == u"The event's level is equal to warning"
 
     def test_equals(self):
-        event = self.create_event(event_id="a" * 32, tags={"level": "info"})
+        event = self.store_event(data={"level": "info"}, project_id=self.project.id)
         rule = self.get_rule(data={"match": MatchType.EQUAL, "level": "20"})
         self.assertPasses(rule, event)
 
@@ -22,7 +20,7 @@ class LevelConditionTest(RuleTestCase):
         self.assertDoesNotPass(rule, event)
 
     def test_greater_than(self):
-        event = self.create_event(event_id="a" * 32, tags={"level": "info"})
+        event = self.store_event(data={"level": "info"}, project_id=self.project.id)
         rule = self.get_rule(data={"match": MatchType.GREATER_OR_EQUAL, "level": "40"})
         self.assertDoesNotPass(rule, event)
 
@@ -30,7 +28,7 @@ class LevelConditionTest(RuleTestCase):
         self.assertPasses(rule, event)
 
     def test_less_than(self):
-        event = self.create_event(event_id="a" * 32, tags={"level": "info"})
+        event = self.store_event(data={"level": "info"}, project_id=self.project.id)
         rule = self.get_rule(data={"match": MatchType.LESS_OR_EQUAL, "level": "10"})
         self.assertDoesNotPass(rule, event)
 
@@ -38,12 +36,7 @@ class LevelConditionTest(RuleTestCase):
         self.assertPasses(rule, event)
 
     def test_without_tag(self):
-        event = self.create_event(event_id="a" * 32, tags={})
-        rule = self.get_rule(data={"match": MatchType.EQUAL, "level": "30"})
-        self.assertDoesNotPass(rule, event)
-
-    def test_errors_with_invalid_level(self):
-        event = self.create_event(event_id="a" * 32, tags={"level": "foobar"})
+        event = self.store_event(data={}, project_id=self.project.id)
         rule = self.get_rule(data={"match": MatchType.EQUAL, "level": "30"})
         self.assertDoesNotPass(rule, event)
 
@@ -56,16 +49,10 @@ class LevelConditionTest(RuleTestCase):
     #
     # Specifically here to make sure the check is properly checking the event's level
     def test_differing_levels(self):
-        eevent = self.create_event(tags={"level": "error"})
-        wevent = self.create_event(tags={"level": "warning"})
-
-        assert wevent.id != eevent.id
+        eevent = self.store_event(data={"level": "error"}, project_id=self.project.id)
+        wevent = self.store_event(data={"level": "warning"}, project_id=self.project.id)
+        assert wevent.event_id != eevent.event_id
         assert wevent.group.id == eevent.group.id
-
-        wevent.group.level = logging.WARNING
-
-        assert wevent.level == logging.WARNING
-        assert eevent.level == logging.WARNING
 
         rule = self.get_rule(data={"match": MatchType.GREATER_OR_EQUAL, "level": "40"})
         self.assertDoesNotPass(rule, wevent)

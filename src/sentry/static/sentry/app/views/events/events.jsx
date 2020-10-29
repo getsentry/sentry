@@ -1,10 +1,9 @@
-import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
-import {isEqual} from 'lodash';
+import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Panel} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -16,10 +15,10 @@ import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withOrganization from 'app/utils/withOrganization';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
-import {getParams} from './utils/getParams';
-import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
+import Chart from './chart';
 
 const parseRowFromLinks = (links, numRows) => {
   links = parseLinkHeader(links);
@@ -122,19 +121,31 @@ class Events extends AsyncView {
     return `Events - ${this.props.organization.slug}`;
   }
 
-  onRequestSuccess({data, jqXHR}) {
-    const {organization} = this.props;
-
+  async handleRequestSuccess({stateKey, data, jqXHR}, ...args) {
+    // When a direct hit is found, do not update state in `handleRequestSuccess`
     if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+      const {organization} = this.props;
       const event = data[0];
-      const project = organization.projects.find(p => p.id === event.projectID);
 
-      browserHistory.replace(
-        `/organizations/${organization.slug}/projects/${project.slug}/events/${
-          event.eventID
-        }/`
+      const resp = await this.api.requestPromise(
+        `/organizations/${organization.slug}/projects/`,
+        {
+          query: {
+            query: `id:${event.projectID}`,
+          },
+        }
       );
+
+      if (resp && resp.length > 0) {
+        const project = resp[0];
+        browserHistory.replace(
+          `/organizations/${organization.slug}/projects/${project.slug}/events/${event.eventID}/`
+        );
+        return;
+      }
     }
+
+    super.handleRequestSuccess({stateKey, data, jqXHR}, ...args);
   }
 
   onRequestError(resp) {
@@ -182,7 +193,7 @@ class Events extends AsyncView {
             true
           )}
         <Panel>
-          <EventsChart
+          <Chart
             router={router}
             query={location.query.query}
             organization={organization}
@@ -200,7 +211,7 @@ class Events extends AsyncView {
         />
 
         {!loading && !reloading && !error && (
-          <Flex align="center" justify="space-between">
+          <PaginationWrapper>
             <RowDisplay>
               {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
               {!!events.length && eventsPageLinks && (
@@ -216,16 +227,27 @@ class Events extends AsyncView {
                 </Feature>
               )}
             </RowDisplay>
-            <Pagination pageLinks={eventsPageLinks} className="" />
-          </Flex>
+
+            <PaginationNoMargin pageLinks={eventsPageLinks} />
+          </PaginationWrapper>
         )}
       </React.Fragment>
     );
   }
 }
 
+const PaginationNoMargin = styled(Pagination)`
+  margin: 0;
+`;
+
+const PaginationWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
 const RowDisplay = styled('div')`
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
 `;
 
 export default withOrganization(Events);

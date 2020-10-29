@@ -26,25 +26,23 @@ class EventsTable extends React.Component {
             <th>{t('ID')}</th>
             {hasUser && <th>{t('User')}</th>}
 
-            {tagList.map(tag => {
-              return <th key={tag.key}>{tag.name}</th>;
-            })}
+            {tagList.map(tag => (
+              <th key={tag.key}>{tag.name}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {events.map(event => {
-            return (
-              <EventsTableRow
-                key={event.id}
-                event={event}
-                orgId={orgId}
-                projectId={projectId}
-                groupId={groupId}
-                tagList={tagList}
-                hasUser={hasUser}
-              />
-            );
-          })}
+          {events.map(event => (
+            <EventsTableRow
+              key={event.id}
+              event={event}
+              orgId={orgId}
+              projectId={projectId}
+              groupId={groupId}
+              tagList={tagList}
+              hasUser={hasUser}
+            />
+          ))}
         </tbody>
       </table>
     );

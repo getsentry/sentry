@@ -15,13 +15,19 @@ export default class BarChart extends React.Component {
       <BaseChart
         {...props}
         xAxis={xAxis !== null ? {...(xAxis || {}), boundaryGap: true} : null}
-        series={series.map((s, i) => {
-          return BarSeries({
-            name: s.seriesName,
+        series={series.map(({seriesName, data, ...options}) =>
+          BarSeries({
+            name: seriesName,
             stack: stacked ? 'stack1' : null,
-            data: s.data.map(({value, name}) => [name, value]),
-          });
-        })}
+            data: data.map(({value, name, itemStyle}) => {
+              if (itemStyle === undefined) {
+                return [name, value];
+              }
+              return {value: [name, value], itemStyle};
+            }),
+            ...options,
+          })
+        )}
       />
     );
   }

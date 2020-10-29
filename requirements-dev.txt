@@ -1,4 +1,13 @@
-Babel
 docker>=3.7.0,<3.8.0
-isort>=4.3.4,<4.4.0
-sentry-flake8==0.1.1
+exam>=0.5.1
+freezegun==0.3.11
+honcho>=1.0.0,<1.1.0
+openapi-core @ https://github.com/getsentry/openapi-core/archive/master.zip#egg=openapi-core
+pytest==4.6.5
+pytest-cov==2.5.1
+pytest-django==3.5.1
+pytest-html==1.22.0
+pytest-sentry==0.1.5
+pytest-rerunfailures==8.0
+responses>=0.8.1,<0.9.0
+werkzeug==0.15.5

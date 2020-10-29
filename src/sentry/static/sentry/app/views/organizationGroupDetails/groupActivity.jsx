@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
 
 import {
   addErrorMessage,
@@ -54,7 +53,7 @@ class GroupActivity extends React.Component {
   };
 
   /**
-   * Note: This is nearly the same logic as `app/views/incidents/details/activity`
+   * Note: This is nearly the same logic as `app/views/alerts/details/activity`
    * This can be abstracted a bit if we create more objects that can have activities
    */
   handleNoteCreate = async note => {
@@ -112,7 +111,7 @@ class GroupActivity extends React.Component {
   };
 
   render() {
-    const {organization, group} = this.props;
+    const {group} = this.props;
     const me = ConfigStore.get('user');
     const projectSlugs = group && group.project ? [group.project.slug] : [];
     const noteProps = {
@@ -170,11 +169,10 @@ class GroupActivity extends React.Component {
                       date={item.dateCreated}
                       header={
                         <GroupActivityItem
-                          organization={organization}
                           author={<ActivityAuthor>{authorName}</ActivityAuthor>}
                           item={item}
-                          orgId={this.props.params.orgId}
-                          projectId={group.project.slug}
+                          orgSlug={this.props.params.orgId}
+                          projectId={group.project.id}
                         />
                       }
                     />

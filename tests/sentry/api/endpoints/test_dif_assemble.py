@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 from hashlib import sha1
 
 from django.core.urlresolvers import reverse
@@ -37,7 +37,7 @@ class DifAssembleEndpoint(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-        checksum = sha1("1").hexdigest()
+        checksum = sha1(b"1").hexdigest()
         response = self.client.post(
             self.url,
             data={checksum: "test"},
@@ -101,6 +101,7 @@ class DifAssembleEndpoint(APITestCase):
         # Finally, we simulate a successful job
         ProjectDebugFile.objects.create(
             file=file1,
+            checksum=file1.checksum,
             object_name="baz.dSYM",
             cpu_name="x86_64",
             project=self.project,
@@ -120,7 +121,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.data[checksum]["state"] == ChunkFileState.OK
         assert response.data[checksum]["missingChunks"] == []
 
-        not_found_checksum = sha1("1").hexdigest()
+        not_found_checksum = sha1(b"1").hexdigest()
 
         response = self.client.post(
             self.url,
@@ -223,7 +224,7 @@ class DifAssembleEndpoint(APITestCase):
         )
 
     def test_dif_error_response(self):
-        sym_file = "fail"
+        sym_file = b"fail"
         blob1 = FileBlob.from_file(ContentFile(sym_file))
         total_checksum = sha1(sym_file).hexdigest()
         chunks = [blob1.checksum]

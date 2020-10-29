@@ -4,7 +4,7 @@ import functools
 
 import pytest
 from django.core import mail
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry import options
 from sentry.models import GroupEmailThread, User, UserOption
@@ -16,6 +16,7 @@ from sentry.utils.email import (
     get_from_email_domain,
     get_mail_backend,
     create_fake_email,
+    send_mail,
 )
 
 
@@ -31,8 +32,7 @@ class ListResolverTestCase(TestCase):
             self.resolver(object())
 
     def test_generates_list_ids(self):
-        expected = u"{0.project.slug}.{0.organization.slug}.namespace".format(self.event)
-        assert self.resolver(self.event) == expected
+        expected = u"<{0.project.slug}.{0.organization.slug}.namespace>".format(self.event)
         assert self.resolver(self.event.group) == expected
         assert self.resolver(self.event.project) == expected
 
@@ -66,6 +66,28 @@ class MessageBuilderTest(TestCase):
             "text/html",
         )
 
+    def test_inline_css(self):
+        msg = MessageBuilder(
+            subject="Test",
+            body="hello world",
+            html_body="<head><style type='text/css'>h1 { color: red; }</style></head><h1>foobar</h1><h2><b>hello world</b></h2>",
+            headers={"X-Test": "foo"},
+        )
+        msg.send(["foo@example.com"])
+
+        assert len(mail.outbox) == 1
+
+        out = mail.outbox[0]
+        assert out.to == ["foo@example.com"]
+        assert out.subject == "Test"
+        assert out.extra_headers["X-Test"] == "foo"
+        assert out.body == "hello world"
+        assert len(out.alternatives) == 1
+        assert out.alternatives[0] == (
+            '<!DOCTYPE html>\n<html><head></head><body><h1 style="color: red">foobar</h1><h2><b>hello world</b></h2></body></html>',
+            "text/html",
+        )
+
     def test_explicit_reply_to(self):
         msg = MessageBuilder(
             subject="Test",
@@ -95,7 +117,6 @@ class MessageBuilderTest(TestCase):
         user_b = User.objects.create(email="bar@example.com")
         user_c = User.objects.create(email="baz@example.com")
 
-        UserOption.objects.create(user=user_b, key="alert_email", value="fizzle@example.com")
         UserOption.objects.create(
             user=user_c, project=project, key="mail:email", value="bazzer@example.com"
         )
@@ -109,8 +130,8 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 3
 
         assert sorted([out.to[0] for out in mail.outbox]) == [
+            "bar@example.com",
             "bazzer@example.com",
-            "fizzle@example.com",
             "foo@example.com",
         ]
 
@@ -121,9 +142,6 @@ class MessageBuilderTest(TestCase):
         user_b = User.objects.create(email=create_fake_email("bar", "fake"))
         user_c = User.objects.create(email=create_fake_email("baz", "fake"))
 
-        UserOption.objects.create(
-            user=user_b, key="alert_email", value=create_fake_email("fizzle", "fake")
-        )
         UserOption.objects.create(
             user=user_c,
             project=project,
@@ -279,11 +297,11 @@ class MessageBuilderTest(TestCase):
             MessageBuilder, subject="Test", body="hello world", html_body="<b>hello world</b>"
         )
 
-        expected = u"{event.project.slug}.{event.organization.slug}.{namespace}".format(
+        expected = u"<{event.project.slug}.{event.organization.slug}.{namespace}>".format(
             event=self.event, namespace=options.get("mail.list-namespace")
         )
 
-        references = (self.event, self.event.group, self.event.project, self.activity)
+        references = (self.event.group, self.event.project, self.activity)
 
         for reference in references:
             (message,) = build_message(reference=reference).get_built_messages(["foo@example.com"])
@@ -336,3 +354,22 @@ class MiscTestCase(TestCase):
 
         with self.options({"mail.backend": "something.else"}):
             assert get_mail_backend() == "something.else"
+
+
+class SendMail(TestCase):
+    @patch("django.core.mail.EmailMessage", autospec=True)
+    @patch("django.core.mail.get_connection", return_value="connection")
+    def test_send_mail_with_kwargs(self, get_connection, MockEmailMessage):
+        patch.object(MockEmailMessage.return_value, "send")
+        send_mail(
+            "subject", "my_message", "fake@example.com", ["a@b.com"], reply_to=["emusk@tesla.com"]
+        )
+        MockEmailMessage.assert_called_once_with(
+            "subject",
+            "my_message",
+            "fake@example.com",
+            ["a@b.com"],
+            connection="connection",
+            reply_to=["emusk@tesla.com"],
+        )
+        MockEmailMessage.return_value.send.assert_called_once_with(fail_silently=False)

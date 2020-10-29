@@ -1,6 +1,6 @@
-import Modal from 'react-bootstrap/lib/Modal';
+import {ClassNames} from '@emotion/core';
 import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
+import Modal from 'react-bootstrap/lib/Modal';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
@@ -9,39 +9,32 @@ import {closeModal, ModalRenderProps, ModalOptions} from 'app/actionCreators/mod
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
 
-type Props = {
-  children?: (renderProps: ModalRenderProps) => React.ReactNode;
+type DefaultProps = {
   options: ModalOptions;
   visible: boolean;
+};
+
+type Props = DefaultProps & {
+  /**
+   * Needs to be a function that returns a React Element
+   * Function is injected with:
+   * Modal `Header`, `Body`, and `Footer`,
+   * `closeModal`
+   *
+   */
+  children?: (renderProps: ModalRenderProps) => React.ReactNode;
+
+  /**
+   * Note this is the callback for the main App container and
+   * NOT the calling component.  GlobalModal is never used directly,
+   * but is controlled via stores. To access the onClose callback from
+   * the component, you must specify it when using the action creator.
+   */
   onClose?: () => void;
 };
 
 class GlobalModal extends React.Component<Props> {
-  static propTypes = {
-    /**
-     * Needs to be a function that returns a React Element
-     * Function is injected with:
-     * Modal `Header`, `Body`, and `Footer`,
-     * `closeModal`
-     *
-     */
-    children: PropTypes.func,
-    options: PropTypes.shape({
-      onClose: PropTypes.func,
-      dialogClassName: PropTypes.string,
-      modalClassName: PropTypes.string,
-    }),
-    visible: PropTypes.bool,
-    /**
-     * Note this is the callback for the main App container and
-     * NOT the calling component.  GlobalModal is never used directly,
-     * but is controlled via stores. To access the onClose callback from
-     * the component, you must specify it when using the action creator.
-     */
-    onClose: PropTypes.func,
-  };
-
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     visible: false,
     options: {},
   };
@@ -80,22 +73,29 @@ class GlobalModal extends React.Component<Props> {
     }
 
     return (
-      <Modal
-        className={options && options.modalClassName}
-        dialogClassName={options && options.dialogClassName}
-        show={visible}
-        animation={false}
-        onHide={this.handleCloseModal}
-      >
-        {renderedChild}
-      </Modal>
+      <ClassNames>
+        {({css, cx}) => (
+          <Modal
+            className={cx(
+              options?.modalClassName,
+              options?.modalCss && css(options.modalCss)
+            )}
+            dialogClassName={options && options.dialogClassName}
+            show={visible}
+            animation={false}
+            onHide={this.handleCloseModal}
+          >
+            {renderedChild}
+          </Modal>
+        )}
+      </ClassNames>
     );
   }
 }
 
-const GlobalModalContainer = createReactClass({
+const GlobalModalContainer = createReactClass<Partial<Props>>({
   displayName: 'GlobalModalContainer',
-  mixins: [Reflux.connect(ModalStore, 'modalStore')],
+  mixins: [Reflux.connect(ModalStore, 'modalStore') as any],
 
   getInitialState() {
     return {

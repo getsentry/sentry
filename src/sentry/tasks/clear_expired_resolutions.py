@@ -13,17 +13,17 @@ def clear_expired_resolutions(release_id):
     the system that any pending resolutions older than the given release can now
     be safely transitioned to resolved.
 
-    This is currenlty only used for ``in_next_release`` resolutions.
+    This is currently only used for ``in_next_release`` resolutions.
     """
     try:
-        release = Release.objects.get_from_cache(id=release_id)
+        release = Release.objects.get(id=release_id)
     except Release.DoesNotExist:
         return
 
     resolution_list = list(
         GroupResolution.objects.filter(
             Q(type=GroupResolution.Type.in_next_release) | Q(type__isnull=True),
-            release__projects=release.projects.all(),
+            release__projects__in=[p.id for p in release.projects.all()],
             release__date_added__lt=release.date_added,
             status=GroupResolution.Status.pending,
         ).exclude(release=release)

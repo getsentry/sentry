@@ -4,6 +4,7 @@ import pytest
 
 from sentry.lang.native.symbolicator import get_sources_for_project
 from sentry.testutils.helpers import Feature
+from sentry.utils.compat import map
 
 
 CUSTOM_SOURCE_CONFIG = """

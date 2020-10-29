@@ -3,11 +3,13 @@ from __future__ import absolute_import, print_function
 import logging
 import re
 import six
+import sentry_sdk
 import itertools
 
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
+from django.utils.functional import cached_property
 from time import time
 
 from sentry.app import locks
@@ -20,19 +22,29 @@ from sentry.db.models import (
     sane_repr,
 )
 
+from sentry_relay import parse_release, RelayError
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.models import CommitFileChange
-from sentry.signals import issue_resolved, release_commits_updated
+from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
 _sha1_re = re.compile(r"^[a-f0-9]{40}$")
 _dotted_path_prefix_re = re.compile(r"^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-")
 DB_VERSION_LENGTH = 250
+
+
+ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
+ERR_RELEASE_HEALTH_DATA = "This release has health data and cannot be removed."
+
+
+class UnsafeReleaseDeletion(Exception):
+    pass
 
 
 class ReleaseProject(Model):
@@ -52,6 +64,8 @@ class Release(Model):
     """
     A release is generally created when a new version is pushed into a
     production state.
+
+    A commit is generally a git commit. See also releasecommit.py
     """
 
     __core__ = False
@@ -72,6 +86,7 @@ class Release(Model):
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
     data = JSONField(default={})
+    # new issues (groups) that arise as a consequence of this release
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
     owner = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
@@ -83,6 +98,13 @@ class Release(Model):
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
 
+    # HACK HACK HACK
+    # As a transitionary step we permit release rows to exist multiple times
+    # where they are "specialized" for a specific project.  The goal is to
+    # later split up releases by project again.  This is for instance used
+    # by the org release listing.
+    _for_project_id = None
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_release"
@@ -90,12 +112,19 @@ class Release(Model):
 
     __repr__ = sane_repr("organization_id", "version")
 
+    def __eq__(self, other):
+        """Make sure that specialized releases are only comparable to the same
+        other specialized release.  This for instance lets us treat them
+        separately for serialization purposes.
+        """
+        return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
+
     @staticmethod
     def is_valid_version(value):
         return not (
-            any(c in value for c in BAD_RELEASE_CHARS)
+            not value
+            or any(c in value for c in BAD_RELEASE_CHARS)
             or value in (".", "..")
-            or not value
             or value.lower() == "latest"
         )
 
@@ -128,6 +157,11 @@ class Release(Model):
 
     @classmethod
     def get_or_create(cls, project, version, date_added=None):
+        with metrics.timer("models.release.get_or_create") as metric_tags:
+            return cls._get_or_create_impl(project, version, date_added, metric_tags)
+
+    @classmethod
+    def _get_or_create_impl(cls, project, version, date_added, metric_tags):
         from sentry.models import Project
 
         if date_added is None:
@@ -136,6 +170,7 @@ class Release(Model):
         cache_key = cls.get_cache_key(project.organization_id, version)
 
         release = cache.get(cache_key)
+
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
@@ -147,11 +182,13 @@ class Release(Model):
                     projects=project,
                 )
             )
+
             if releases:
                 try:
                     release = [r for r in releases if r.version == project_version][0]
                 except IndexError:
                     release = releases[0]
+                metric_tags["created"] = "false"
             else:
                 try:
                     with transaction.atomic():
@@ -161,10 +198,14 @@ class Release(Model):
                             date_added=date_added,
                             total_deploys=0,
                         )
+
+                    metric_tags["created"] = "true"
                 except IntegrityError:
+                    metric_tags["created"] = "false"
                     release = cls.objects.get(
                         organization_id=project.organization_id, version=version
                     )
+
                 release.add_project(project)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
@@ -173,8 +214,19 @@ class Release(Model):
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
+            metric_tags["cache_hit"] = "false"
+        else:
+            metric_tags["cache_hit"] = "true"
 
         return release
+
+    @cached_property
+    def version_info(self):
+        try:
+            return parse_release(self.version)
+        except RelayError:
+            # This can happen on invalid legacy releases
+            return None
 
     @classmethod
     def merge(cls, to_release, from_releases):
@@ -282,54 +334,57 @@ class Release(Model):
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
     def set_refs(self, refs, user, fetch=False):
-        from sentry.api.exceptions import InvalidRepository
-        from sentry.models import Commit, ReleaseHeadCommit, Repository
-        from sentry.tasks.commits import fetch_commits
+        with sentry_sdk.start_span(op="set_refs"):
+            from sentry.api.exceptions import InvalidRepository
+            from sentry.models import Commit, ReleaseHeadCommit, Repository
+            from sentry.tasks.commits import fetch_commits
 
-        # TODO: this does the wrong thing unless you are on the most
-        # recent release.  Add a timestamp compare?
-        prev_release = (
-            type(self)
-            .objects.filter(organization_id=self.organization_id, projects__in=self.projects.all())
-            .extra(select={"sort": "COALESCE(date_released, date_added)"})
-            .exclude(version=self.version)
-            .order_by("-sort")
-            .first()
-        )
-
-        names = {r["repository"] for r in refs}
-        repos = list(
-            Repository.objects.filter(organization_id=self.organization_id, name__in=names)
-        )
-        repos_by_name = {r.name: r for r in repos}
-        invalid_repos = names - set(repos_by_name.keys())
-        if invalid_repos:
-            raise InvalidRepository("Invalid repository names: %s" % ",".join(invalid_repos))
-
-        self.handle_commit_ranges(refs)
-
-        for ref in refs:
-            repo = repos_by_name[ref["repository"]]
-
-            commit = Commit.objects.get_or_create(
-                organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
-            )[0]
-            # update head commit for repo/release if exists
-            ReleaseHeadCommit.objects.create_or_update(
-                organization_id=self.organization_id,
-                repository_id=repo.id,
-                release=self,
-                values={"commit": commit},
+            # TODO: this does the wrong thing unless you are on the most
+            # recent release.  Add a timestamp compare?
+            prev_release = (
+                type(self)
+                .objects.filter(
+                    organization_id=self.organization_id, projects__in=self.projects.all()
+                )
+                .extra(select={"sort": "COALESCE(date_released, date_added)"})
+                .exclude(version=self.version)
+                .order_by("-sort")
+                .first()
             )
-        if fetch:
-            fetch_commits.apply_async(
-                kwargs={
-                    "release_id": self.id,
-                    "user_id": user.id,
-                    "refs": refs,
-                    "prev_release_id": prev_release and prev_release.id,
-                }
+
+            names = {r["repository"] for r in refs}
+            repos = list(
+                Repository.objects.filter(organization_id=self.organization_id, name__in=names)
             )
+            repos_by_name = {r.name: r for r in repos}
+            invalid_repos = names - set(repos_by_name.keys())
+            if invalid_repos:
+                raise InvalidRepository("Invalid repository names: %s" % ",".join(invalid_repos))
+
+            self.handle_commit_ranges(refs)
+
+            for ref in refs:
+                repo = repos_by_name[ref["repository"]]
+
+                commit = Commit.objects.get_or_create(
+                    organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
+                )[0]
+                # update head commit for repo/release if exists
+                ReleaseHeadCommit.objects.create_or_update(
+                    organization_id=self.organization_id,
+                    repository_id=repo.id,
+                    release=self,
+                    values={"commit": commit},
+                )
+            if fetch:
+                fetch_commits.apply_async(
+                    kwargs={
+                        "release_id": self.id,
+                        "user_id": user.id,
+                        "refs": refs,
+                        "prev_release_id": prev_release and prev_release.id,
+                    }
+                )
 
     def set_commits(self, commit_list):
         """
@@ -340,9 +395,9 @@ class Release(Model):
         """
 
         # Sort commit list in reverse order
-        commit_list.sort(key=lambda commit: commit.get("timestamp"), reverse=True)
+        commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
-        # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
+        # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
         from sentry.models import (
             Commit,
             CommitAuthor,
@@ -371,9 +426,6 @@ class Release(Model):
             with transaction.atomic():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
-                initial_commit_ids = set(
-                    ReleaseCommit.objects.filter(release=self).values_list("commit_id", flat=True)
-                )
                 ReleaseCommit.objects.filter(release=self).delete()
 
                 authors = {}
@@ -399,25 +451,24 @@ class Release(Model):
                             + "@localhost"
                         )
 
+                    author_email = truncatechars(author_email, 75)
+
                     if not author_email:
                         author = None
                     elif author_email not in authors:
                         author_data = {"name": data.get("author_name")}
-                        author, created = CommitAuthor.objects.create_or_update(
+                        author, created = CommitAuthor.objects.get_or_create(
                             organization_id=self.organization_id,
                             email=author_email,
-                            values=author_data,
+                            defaults=author_data,
                         )
-                        if not created:
-                            author = CommitAuthor.objects.get(
-                                organization_id=self.organization_id, email=author_email
-                            )
+                        if author.name != author_data["name"]:
+                            author.update(name=author_data["name"])
                         authors[author_email] = author
                     else:
                         author = authors[author_email]
 
                     commit_data = {}
-                    defaults = {}
 
                     # Update/set message and author if they are provided.
                     if author is not None:
@@ -426,29 +477,29 @@ class Release(Model):
                         commit_data["message"] = data["message"]
                     if "timestamp" in data:
                         commit_data["date_added"] = data["timestamp"]
-                    else:
-                        defaults["date_added"] = timezone.now()
 
-                    commit, created = Commit.objects.create_or_update(
+                    commit, created = Commit.objects.get_or_create(
                         organization_id=self.organization_id,
                         repository_id=repo.id,
                         key=data["id"],
-                        defaults=defaults,
-                        values=commit_data,
+                        defaults=commit_data,
                     )
                     if not created:
-                        commit = Commit.objects.get(
-                            organization_id=self.organization_id,
-                            repository_id=repo.id,
-                            key=data["id"],
-                        )
+                        commit_data = {
+                            key: value
+                            for key, value in six.iteritems(commit_data)
+                            if getattr(commit, key) != value
+                        }
+                        if commit_data:
+                            commit.update(**commit_data)
 
                     if author is None:
                         author = commit.author
 
                     commit_author_by_commit[commit.id] = author
 
-                    patch_set = data.get("patch_set", [])
+                    # Guard against patch_set being None
+                    patch_set = data.get("patch_set") or []
                     for patched_file in patch_set:
                         try:
                             with transaction.atomic():
@@ -509,16 +560,6 @@ class Release(Model):
             .select_related("commit")
             .values("commit_id", "commit__key")
         )
-        final_commit_ids = set(rc["commit_id"] for rc in release_commits)
-        removed_commit_ids = initial_commit_ids - final_commit_ids
-        added_commit_ids = final_commit_ids - initial_commit_ids
-        if removed_commit_ids or added_commit_ids:
-            release_commits_updated.send_robust(
-                release=self,
-                removed_commit_ids=removed_commit_ids,
-                added_commit_ids=added_commit_ids,
-                sender=self.__class__,
-            )
 
         commit_resolutions = list(
             GroupLink.objects.filter(
@@ -602,3 +643,32 @@ class Release(Model):
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group_project_lookup[group_id], "group_id": group_id}
             )
+
+    def safe_delete(self):
+        """Deletes a release if possible or raises a `UnsafeReleaseDeletion`
+        exception.
+        """
+        from sentry.models import Group, ReleaseFile
+        from sentry.snuba.sessions import check_has_health_data
+
+        # we don't want to remove the first_release metadata on the Group, and
+        # while people might want to kill a release (maybe to remove files),
+        # removing the release is prevented
+        if Group.objects.filter(first_release=self).exists():
+            raise UnsafeReleaseDeletion(ERR_RELEASE_REFERENCED)
+
+        # We do not allow releases with health data to be deleted because
+        # the upserting from snuba data would create the release again.
+        # We would need to be able to delete this data from snuba which we
+        # can't do yet.
+        project_ids = list(self.projects.values_list("id").all())
+        if check_has_health_data([(p[0], self.version) for p in project_ids]):
+            raise UnsafeReleaseDeletion(ERR_RELEASE_HEALTH_DATA)
+
+        # TODO(dcramer): this needs to happen in the queue as it could be a long
+        # and expensive operation
+        file_list = ReleaseFile.objects.filter(release=self).select_related("file")
+        for releasefile in file_list:
+            releasefile.file.delete()
+            releasefile.delete()
+        self.delete()

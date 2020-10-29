@@ -1,14 +1,17 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 export const zIndex = {
-  minimapContainer: 99999999999,
-  dividerLine: 999999,
-  spanTreeToggler: 99999,
+  minimapContainer: theme.zIndex.traceView.minimapContainer,
+  rowInfoMessage: theme.zIndex.traceView.rowInfoMessage,
+  dividerLine: theme.zIndex.traceView.dividerLine,
+  spanTreeToggler: theme.zIndex.traceView.spanTreeToggler,
 };
 
-export const SPAN_ROW_HEIGHT = 25;
+export const SPAN_ROW_HEIGHT = 24;
+export const SPAN_ROW_PADDING = 4;
 
 type SpanRowProps = {
   visible?: boolean;
@@ -18,14 +21,13 @@ type SpanRowProps = {
 type SpanRowAndDivProps = Omit<React.HTMLProps<HTMLDivElement>, keyof SpanRowProps> &
   SpanRowProps;
 
-export const SpanRow = styled.div<SpanRowAndDivProps>`
+export const SpanRow = styled('div')<SpanRowAndDivProps>`
   display: ${p => (p.visible ? 'block' : 'none')};
-  border-top: ${p => (p.showBorder ? `1px solid  ${p.theme.gray1}` : null)};
+  border-top: ${p => (p.showBorder ? `1px solid ${p.theme.borderDark}` : null)};
+  margin-top: ${p => (p.showBorder ? '-1px' : null)}; /* to prevent offset on toggle */
   position: relative;
   overflow: hidden;
-
   min-height: ${SPAN_ROW_HEIGHT}px;
-
   cursor: pointer;
   transition: background-color 0.15s ease-in-out;
 
@@ -34,27 +36,57 @@ export const SpanRow = styled.div<SpanRowAndDivProps>`
       border-bottom: none !important;
     }
   }
-
-  &:hover {
-    background-color: rgba(189, 180, 199, 0.1);
-  }
 `;
 
 export const SpanRowMessage = styled(SpanRow)`
   display: block;
-
   cursor: auto;
-
-  color: #4a3e56;
-  font-size: 12px;
   line-height: ${SPAN_ROW_HEIGHT}px;
-
   padding-left: ${space(1)};
   padding-right: ${space(1)};
+  color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.gray200};
+  outline: 1px solid ${p => p.theme.borderDark};
+  font-size: ${p => p.theme.fontSizeSmall};
 
-  background-color: #f1f5fb !important;
+  z-index: ${zIndex.rowInfoMessage};
 
-  outline: 1px solid #c9d4ea;
-
-  z-index: 99999;
+  > * + * {
+    margin-left: ${space(2)};
+  }
 `;
+
+type HatchProps = {
+  spanBarHatch: boolean;
+};
+
+export function getHatchPattern(
+  {spanBarHatch}: HatchProps,
+  primary: string,
+  alternate: string
+) {
+  if (spanBarHatch === true) {
+    return `
+      background-image: linear-gradient(135deg,
+        ${alternate},
+        ${alternate} 2.5px,
+        ${primary} 2.5px,
+        ${primary} 5px,
+        ${alternate} 6px,
+        ${alternate} 8px,
+        ${primary} 8px,
+        ${primary} 11px,
+        ${alternate} 11px,
+        ${alternate} 14px,
+        ${primary} 14px,
+        ${primary} 16.5px,
+        ${alternate} 16.5px,
+        ${alternate} 19px,
+        ${primary} 20px
+      );
+      background-size: 16px 16px;
+    `;
+  }
+
+  return null;
+}

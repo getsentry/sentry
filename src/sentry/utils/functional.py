@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 
 from django.utils.functional import empty
+from sentry.utils.compat import zip
 
 
 def extract_lazy_object(lo):
@@ -46,7 +47,7 @@ def compact(seq):
         Removes keys with a corresponding ``None`` value.
 
     list:
-        Removes ``None`` valules.
+        Removes ``None`` values.
 
     >>> compact({'foo': 'bar', 'baz': None})
     {'foo': 'bar'}

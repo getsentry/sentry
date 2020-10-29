@@ -6,7 +6,7 @@ from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.incidents.models import AlertRule, AlertRuleTrigger
+from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 
 
 class ProjectAlertRuleEndpoint(ProjectEndpoint):
@@ -22,7 +22,7 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
 
         try:
             kwargs["alert_rule"] = AlertRule.objects.get(
-                query_subscriptions__project=project, id=alert_rule_id
+                snuba_query__subscriptions__project=project, id=alert_rule_id
             )
         except AlertRule.DoesNotExist:
             raise ResourceDoesNotExist
@@ -66,6 +66,27 @@ class OrganizationAlertRuleTriggerEndpoint(OrganizationAlertRuleEndpoint):
                 alert_rule=alert_rule, id=alert_rule_trigger_id
             )
         except AlertRuleTrigger.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return args, kwargs
+
+
+class OrganizationAlertRuleTriggerActionEndpoint(OrganizationAlertRuleTriggerEndpoint):
+    def convert_args(self, request, alert_rule_trigger_action_id, *args, **kwargs):
+        args, kwargs = super(OrganizationAlertRuleTriggerActionEndpoint, self).convert_args(
+            request, *args, **kwargs
+        )
+        organization = kwargs["organization"]
+        trigger = kwargs["alert_rule_trigger"]
+
+        if not features.has("organizations:incidents", organization, actor=request.user):
+            raise ResourceDoesNotExist
+
+        try:
+            kwargs["alert_rule_trigger_action"] = AlertRuleTriggerAction.objects.get(
+                alert_rule_trigger=trigger, id=alert_rule_trigger_action_id
+            )
+        except AlertRuleTriggerAction.DoesNotExist:
             raise ResourceDoesNotExist
 
         return args, kwargs

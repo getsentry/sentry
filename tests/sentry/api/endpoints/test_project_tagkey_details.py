@@ -1,20 +1,30 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 
 from django.core.urlresolvers import reverse
 
 from sentry import tagstore
 from sentry.tagstore import TagKeyStatus
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class ProjectTagKeyDetailsTest(APITestCase):
+class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         project = self.create_project()
-        tagkey = tagstore.create_tag_key(
-            project_id=project.id, environment_id=None, key="foo", values_seen=16
-        )
+
+        def make_event(i):
+            self.store_event(
+                data={
+                    "tags": {"foo": "val{}".format(i)},
+                    "timestamp": iso_format(before_now(seconds=1)),
+                },
+                project_id=project.id,
+            )
+
+        for i in range(0, 16):
+            make_event(i)
 
         self.login_as(user=self.user)
 
@@ -23,22 +33,27 @@ class ProjectTagKeyDetailsTest(APITestCase):
             kwargs={
                 "organization_slug": project.organization.slug,
                 "project_slug": project.slug,
-                "key": tagkey.key,
+                "key": "foo",
             },
         )
 
         response = self.client.get(url)
 
         assert response.status_code == 200
-        assert response.data["uniqueValues"] == tagkey.values_seen
+        assert response.data["uniqueValues"] == 16
 
 
 class ProjectTagKeyDeleteTest(APITestCase):
     @mock.patch("sentry.eventstream")
-    @mock.patch("sentry.tagstore.tasks.delete_tag_key")
-    def test_simple(self, mock_delete_tag_key, mock_eventstream):
+    def test_simple(self, mock_eventstream):
+        key = "foo"
+        val = "bar"
+
         project = self.create_project()
-        tagkey = tagstore.create_tag_key(project_id=project.id, environment_id=None, key="foo")
+        self.store_event(
+            data={"tags": {key: val}, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
+        )
 
         self.login_as(user=self.user)
 
@@ -50,7 +65,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
             kwargs={
                 "organization_slug": project.organization.slug,
                 "project_slug": project.slug,
-                "key": tagkey.key,
+                "key": key,
             },
         )
 
@@ -58,25 +73,14 @@ class ProjectTagKeyDeleteTest(APITestCase):
 
         assert response.status_code == 204
 
-        from sentry.tagstore.models import TagKey
-
-        mock_delete_tag_key.delay.assert_called_once_with(object_id=tagkey.id, model=TagKey)
-
-        assert (
-            tagstore.get_tag_key(
-                project.id, None, tagkey.key, status=TagKeyStatus.PENDING_DELETION  # environment_id
-            ).status
-            == TagKeyStatus.PENDING_DELETION
-        )
-
         mock_eventstream.start_delete_tag.assert_called_once_with(project.id, "foo")
         mock_eventstream.end_delete_tag.assert_called_once_with(eventstream_state)
 
-    @mock.patch("sentry.tagstore.tasks.delete_tag_key")
-    def test_protected(self, mock_delete_tag_key):
+    def test_protected(self):
         project = self.create_project()
-        tagkey = tagstore.create_tag_key(
-            project_id=project.id, environment_id=None, key="environment"
+        self.store_event(
+            data={"environment": "prod", "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
         )
 
         self.login_as(user=self.user)
@@ -86,18 +90,17 @@ class ProjectTagKeyDeleteTest(APITestCase):
             kwargs={
                 "organization_slug": project.organization.slug,
                 "project_slug": project.slug,
-                "key": tagkey.key,
+                "key": "environment",
             },
         )
 
         response = self.client.delete(url)
 
         assert response.status_code == 403
-        assert mock_delete_tag_key.delay.call_count == 0
 
         assert (
             tagstore.get_tag_key(
-                project.id, None, tagkey.key, status=TagKeyStatus.VISIBLE  # environment_id
+                project.id, None, "environment", status=TagKeyStatus.VISIBLE  # environment_id
             ).status
             == TagKeyStatus.VISIBLE
         )

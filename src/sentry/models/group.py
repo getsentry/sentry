@@ -6,12 +6,12 @@ import re
 import warnings
 from collections import namedtuple
 from enum import Enum
-
 from datetime import timedelta
-from django.core.urlresolvers import reverse
+
+import six
 from django.db import models
 from django.utils import timezone
-from django.utils.http import urlencode
+from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventstore, eventtypes, tagstore
@@ -47,7 +47,7 @@ def parse_short_id(short_id):
         short_id = base32_decode(id)
         # We need to make sure the short id is not overflowing the
         # field's max or the lookup will fail with an assertion error.
-        max_id = Group._meta.get_field_by_name("short_id")[0].MAX_VALUE
+        max_id = Group._meta.get_field("short_id").MAX_VALUE
         if short_id > max_id:
             return None
     except ValueError:
@@ -78,7 +78,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         getter = queryset.get
 
     if not (
-        isinstance(id_or_qualified_short_id, (long, int))  # noqa
+        isinstance(id_or_qualified_short_id, six.integer_types)  # noqa
         or id_or_qualified_short_id.isdigit()
     ):  # NOQA
         short_id = parse_short_id(id_or_qualified_short_id)
@@ -125,6 +125,10 @@ class GroupStatus(object):
     DELETION_IN_PROGRESS = 4
     PENDING_MERGE = 5
 
+    # The group's events are being re-processed and after that the group will
+    # be deleted. In this state no new events shall be added to the group.
+    REPROCESSING = 6
+
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
 
@@ -137,25 +141,22 @@ class EventOrdering(Enum):
 def get_oldest_or_latest_event_for_environments(
     ordering, environments=(), issue_id=None, project_id=None
 ):
-    from sentry.utils import snuba
-    from sentry.models import SnubaEvent
-
     conditions = []
 
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
 
-    result = snuba.raw_query(
-        selected_columns=SnubaEvent.selected_columns,
-        conditions=conditions,
-        filter_keys={"issue": [issue_id], "project_id": [project_id]},
-        orderby=ordering.value,
+    events = eventstore.get_events(
+        filter=eventstore.Filter(
+            conditions=conditions, project_ids=[project_id], group_ids=[issue_id]
+        ),
         limit=1,
+        orderby=ordering.value,
         referrer="Group.get_latest",
     )
 
-    if "error" not in result and len(result["data"]) == 1:
-        return SnubaEvent(result["data"][0])
+    if events:
+        return events[0]
 
     return None
 
@@ -188,8 +189,10 @@ class GroupManager(BaseManager):
             return manager.save(project)
 
         # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as exc:
-            logger.info("discarded.hash", extra={"project_id": project, "description": exc.message})
+        except HashDiscarded as e:
+            logger.info(
+                "discarded.hash", extra={"project_id": project, "description": six.text_type(e)}
+            )
 
     def from_event_id(self, project, event_id):
         """
@@ -212,39 +215,19 @@ class GroupManager(BaseManager):
         return Group.objects.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
+        event_ids = [event_id]
+        conditions = [["group_id", "IS NOT NULL", None]]
         data = eventstore.get_events(
-            conditions=[["group_id", "IS NOT NULL", None]],
-            filter_keys={"event_id": [event_id], "project_id": project_ids},
-            limit=len(project_ids),
+            filter=eventstore.Filter(
+                event_ids=event_ids, project_ids=project_ids, conditions=conditions
+            ),
+            limit=max(len(project_ids), 100),
             referrer="Group.filter_by_event_id",
         )
 
         group_ids = set([evt.group_id for evt in data])
 
         return Group.objects.filter(id__in=group_ids)
-
-    def add_tags(self, group, environment, tags):
-        project_id = group.project_id
-        date = group.last_seen
-
-        for tag_item in tags:
-            if len(tag_item) == 2:
-                (key, value), data = tag_item, None
-            else:
-                key, value, data = tag_item
-
-            tagstore.incr_tag_value_times_seen(
-                project_id, environment.id, key, value, extra={"last_seen": date, "data": data}
-            )
-
-            tagstore.incr_group_tag_value_times_seen(
-                project_id,
-                group.id,
-                environment.id,
-                key,
-                value,
-                extra={"project_id": project_id, "last_seen": date},
-            )
 
     def get_groups_by_external_issue(self, integration, external_issue_key):
         from sentry.models import ExternalIssue, GroupLink
@@ -269,13 +252,18 @@ class Group(Model):
     __core__ = False
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
+    logger = models.CharField(
+        max_length=64, blank=True, default=six.text_type(DEFAULT_LOGGER_NAME), db_index=True
+    )
     level = BoundedPositiveIntegerField(
-        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
+        choices=[(key, six.text_type(val)) for key, val in sorted(LOG_LEVELS.items())],
+        default=logging.ERROR,
+        blank=True,
+        db_index=True,
     )
     message = models.TextField()
     culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column="view"
+        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column=u"view"
     )
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
@@ -303,7 +291,7 @@ class Group(Model):
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
 
-    objects = GroupManager()
+    objects = GroupManager(cache_fields=("id",))
 
     class Meta:
         app_label = "sentry"
@@ -338,9 +326,13 @@ class Group(Model):
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
-        url = reverse("sentry-organization-issue", args=[self.organization.slug, self.id])
-        if params:
-            url = url + "?" + urlencode(params)
+        # Built manually in preference to django.core.urlresolvers.reverse,
+        # because reverse has a measured performance impact.
+        url = u"organizations/{org}/issues/{id}/{params}".format(
+            org=urlquote(self.organization.slug),
+            id=self.id,
+            params="?" + urlencode(params) if params else "",
+        )
         return absolute_uri(url)
 
     @property
@@ -357,6 +349,9 @@ class Group(Model):
     def is_ignored(self):
         return self.get_status() == GroupStatus.IGNORED
 
+    def is_unresolved(self):
+        return self.get_status() == GroupStatus.UNRESOLVED
+
     # TODO(dcramer): remove in 9.0 / after plugins no long ref
     is_muted = is_ignored
 
@@ -371,7 +366,7 @@ class Group(Model):
 
         if status == GroupStatus.IGNORED:
             try:
-                snooze = GroupSnooze.objects.get(group=self)
+                snooze = GroupSnooze.objects.get_from_cache(group=self)
             except GroupSnooze.DoesNotExist:
                 pass
             else:
@@ -480,13 +475,23 @@ class Group(Model):
         return ""
 
     def get_email_subject(self):
-        return "%s - %s" % (self.qualified_short_id.encode("utf-8"), self.title.encode("utf-8"))
+        return u"{} - {}".format(self.qualified_short_id, self.title)
 
     def count_users_seen(self):
-        return tagstore.get_groups_user_counts([self.project_id], [self.id], environment_ids=None)[
-            self.id
-        ]
+        return tagstore.get_groups_user_counts(
+            [self.project_id], [self.id], environment_ids=None, start=self.first_seen
+        )[self.id]
 
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
+
+    @staticmethod
+    def issues_mapping(group_ids, project_ids, organization):
+        """ Create a dictionary of group_ids to their qualified_short_ids """
+        return {
+            i.id: i.qualified_short_id
+            for i in Group.objects.filter(
+                id__in=group_ids, project_id__in=project_ids, project__organization=organization
+            )
+        }

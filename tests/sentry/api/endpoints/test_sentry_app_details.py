@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryApp
+from sentry.models import SentryApp, OrganizationMember
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import Feature, with_feature
 from sentry.utils import json
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -122,10 +122,17 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
+            "featureData": [
+                {
+                    "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                    "featureGate": "integrations-api",
+                }
+            ],
         }
 
     def test_update_unpublished_app(self):
         self.login_as(user=self.user)
+        slug = self.unpublished_app.slug
         url = reverse("sentry-api-0-sentry-app-details", args=[self.unpublished_app.slug])
 
         response = self.client.put(
@@ -141,12 +148,13 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
         assert response.status_code == 200
         assert response.data["name"] == "NewName"
+        assert response.data["slug"] == slug
         assert response.data["scopes"] == ["event:read"]
         assert response.data["events"] == set(["issue"])
         assert response.data["uuid"] == self.unpublished_app.uuid
         assert response.data["webhookUrl"] == "https://newurl.com"
 
-    def test_cannot_update_name_with_non_unique_slug(self):
+    def test_can_update_name_with_non_unique_name(self):
         from sentry.mediators import sentry_apps
 
         self.login_as(user=self.user)
@@ -155,8 +163,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
 
         response = self.client.put(self.url, data={"name": sentry_app.name}, format="json")
-        assert response.status_code == 400
-        assert response.data == {"name": ["Name Foo Bar is already taken, please use another."]}
+        assert response.status_code == 200
 
     def test_cannot_update_events_without_permissions(self):
         self.login_as(user=self.user)
@@ -203,10 +210,13 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
     def test_superusers_can_publish_apps(self):
         self.login_as(user=self.superuser, superuser=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.org)
+        assert not app.date_published
         url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
         response = self.client.put(url, data={"status": "published"}, format="json")
         assert response.status_code == 200
-        assert SentryApp.objects.get(id=app.id).status == SentryAppStatus.PUBLISHED
+        app = SentryApp.objects.get(id=app.id)
+        assert app.status == SentryAppStatus.PUBLISHED
+        assert app.date_published
 
     def test_nonsuperusers_cannot_publish_apps(self):
         self.login_as(user=self.user)
@@ -218,10 +228,11 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     def test_cannot_add_error_created_hook_without_flag(self):
         self.login_as(user=self.user)
-        app = self.create_sentry_app(name="SampleApp", organization=self.org)
-        url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
-        response = self.client.put(url, data={"events": ("error",)}, format="json")
-        assert response.status_code == 403
+        with Feature({"organizations:integrations-event-hooks": False}):
+            app = self.create_sentry_app(name="SampleApp", organization=self.org)
+            url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
+            response = self.client.put(url, data={"events": ("error",)}, format="json")
+            assert response.status_code == 403
 
     @with_feature("organizations:integrations-event-hooks")
     def test_can_add_error_created_hook_with_flag(self):
@@ -319,6 +330,24 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert response.status_code == 400
         assert response.data == {"allowedOrigins": ["'*' not allowed in origin"]}
+
+    def test_create_integration_exceeding_scopes(self):
+        member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
+        member_om.role = "member"
+        member_om.save()
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-sentry-app-details", args=[self.unpublished_app.slug])
+        response = self.client.put(
+            url, data={"scopes": ["member:read", "member:write", "member:admin"]}
+        )
+
+        assert response.status_code == 400
+        assert response.data == {
+            "scopes": [
+                "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
+                "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+            ]
+        }
 
 
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):

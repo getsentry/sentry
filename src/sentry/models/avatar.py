@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from django.utils.encoding import force_bytes
 from django.db import models, transaction
 from PIL import Image
 from six import BytesIO
@@ -70,8 +71,10 @@ class AvatarBase(Model):
         if avatar:
             with transaction.atomic():
                 photo = File.objects.create(name=filename, type=cls.FILE_TYPE)
+                # XXX: Avatar may come in as a string instance in python2
+                # if it's not wrapped in BytesIO.
                 if isinstance(avatar, six.string_types):
-                    avatar = BytesIO(avatar)
+                    avatar = BytesIO(force_bytes(avatar))
                 photo.putfile(avatar)
         else:
             photo = None

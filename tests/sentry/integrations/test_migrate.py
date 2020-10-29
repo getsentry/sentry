@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.integrations.example import ExampleIntegrationProvider
 from sentry.mediators.plugins import Migrator
 from sentry.models import Integration, Repository
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.testutils import TestCase
 

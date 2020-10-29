@@ -1,12 +1,13 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
 
-describe('ProcessingIssueList', function() {
+describe('ProcessingIssueList', function () {
   let wrapper, projects, organization, fetchIssueRequest;
 
-  beforeEach(function() {
+  beforeEach(function () {
     fetchIssueRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/processingissues/',
       method: 'GET',
@@ -29,40 +30,40 @@ describe('ProcessingIssueList', function() {
     projects = [1, 2];
   });
 
-  describe('componentDidMount', function() {
+  describe('componentDidMount', function () {
     let instance;
-    beforeEach(async function() {
-      wrapper = shallow(
+    beforeEach(async function () {
+      wrapper = mountWithTheme(
         <ProcessingIssueList organization={organization} projects={projects} />
       );
       instance = wrapper.instance();
       await instance.componentDidMount();
     });
 
-    it('fetches issues', function() {
+    it('fetches issues', function () {
       expect(instance.state.issues).toBeTruthy();
       expect(fetchIssueRequest).toHaveBeenCalled();
     });
   });
 
-  describe('render', function() {
-    beforeEach(async function() {
-      wrapper = shallow(
+  describe('render', function () {
+    beforeEach(async function () {
+      wrapper = mountWithTheme(
         <ProcessingIssueList
           organization={organization}
           projects={projects}
-          showProject={true}
+          showProject
         />
       );
       await wrapper.instance().componentDidMount();
       await wrapper.update();
     });
 
-    it('renders multiple issues', function() {
+    it('renders multiple issues', function () {
       expect(wrapper.find('ProcessingIssueHint')).toHaveLength(2);
     });
 
-    it('forwards the showProject prop', function() {
+    it('forwards the showProject prop', function () {
       const hint = wrapper.find('ProcessingIssueHint').first();
       expect(hint.props().showProject).toBeTruthy();
     });

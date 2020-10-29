@@ -16,7 +16,8 @@ Tags
 
 * browser = Chrome 28.0.1500
 * browser.name = Chrome
-* client_os.name = Windows 8
+* client_os = Windows 8
+* client_os.name = Windows
 * device = Other
 * environment = prod
 * level = error
@@ -28,13 +29,18 @@ Tags
 Stacktrace
 -----------
 
+Stacktrace (most recent call last):
 
-
-
-Template
------------
-
-
+  File "raven/base.py", line 303, in build_msg
+    transformer=self.transform)
+  File "raven/base.py", line 459, in capture
+    **kwargs)
+  File "raven/base.py", line 577, in captureMessage
+    return self.capture('raven.events.Message', message=message, **kwargs)
+  File "raven/scripts/runner.py", line 77, in send_test_message
+    'loadavg': get_loadavg(),
+  File "raven/scripts/runner.py", line 112, in main
+    send_test_message(client, opts.__dict__)
 
 
 Request
@@ -52,7 +58,7 @@ User
 Message
 -----------
 
-
+goose smiling gobbler sterling feline
 
 
 

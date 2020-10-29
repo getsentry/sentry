@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.lang.native.applecrashreport import AppleCrashReport
 
 
@@ -374,34 +375,28 @@ def test_get_binary_images_apple_string():
     acr = AppleCrashReport(
         debug_images=[
             {
-                "cpu_subtype": 3,
-                "cpu_type": 16777223,
                 "image_addr": "0x141c5000",
                 "image_size": 20480,
                 "image_vmaddr": "0x0",
-                "name": "/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8C286977-D498-44FF-B7BE-42BFE3DE38BD/SwiftExample.app/Frameworks/libswiftContacts.dylib",
-                "type": "apple",
-                "uuid": "4B5A054F-B7A1-3AD0-81E1-513B4DBE2A33",
+                "code_file": "/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8C286977-D498-44FF-B7BE-42BFE3DE38BD/SwiftExample.app/Frameworks/libswiftContacts.dylib",
+                "type": "native",
+                "debug_id": "4B5A054F-B7A1-3AD0-81E1-513B4DBE2A33",
             },
             {
-                "cpu_subtype": 3,
-                "cpu_type": 16777223,
                 "image_addr": "0x1400c000",
                 "image_size": 266240,
                 "image_vmaddr": "0x0",
-                "name": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/ContentIndex.framework/ContentIndex",
-                "type": "apple",
-                "uuid": "766DFB14-72EE-32D2-8961-687D32548F2B",
+                "code_file": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/ContentIndex.framework/ContentIndex",
+                "type": "native",
+                "debug_id": "766DFB14-72EE-32D2-8961-687D32548F2B",
             },
             {
-                "cpu_subtype": 3,
-                "cpu_type": 16777223,
                 "image_addr": "0x1406f000",
                 "image_size": 913408,
-                "image_vmaddr": "0x0",
-                "name": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/CorePDF.framework/CorePDF",
-                "type": "apple",
-                "uuid": "BE602DC1-D3A0-3389-B8F4-922C37DEA3DC",
+                # image_vmaddr defaults to 0x0
+                "code_file": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/CorePDF.framework/CorePDF",
+                "type": "native",
+                "debug_id": "BE602DC1-D3A0-3389-B8F4-922C37DEA3DC",
             },
         ],
         context={
@@ -437,6 +432,66 @@ def test_get_binary_images_apple_string():
     )
 
 
+def test_binary_images_without_code_file():
+    acr = AppleCrashReport(
+        debug_images=[
+            {
+                "image_addr": "0x141c5000",
+                "image_size": 20480,
+                "image_vmaddr": "0x0",
+                "type": "native",
+                "debug_id": "4B5A054F-B7A1-3AD0-81E1-513B4DBE2A33",
+            },
+            {
+                "image_addr": "0x1400c000",
+                "image_size": 266240,
+                "image_vmaddr": "0x0",
+                "type": "native",
+                "debug_id": "766DFB14-72EE-32D2-8961-687D32548F2B",
+            },
+            {
+                "image_addr": "0x1406f000",
+                "image_size": 913408,
+                # image_vmaddr defaults to 0x0
+                "type": "native",
+                "debug_id": "BE602DC1-D3A0-3389-B8F4-922C37DEA3DC",
+            },
+        ],
+        context={
+            "device": {
+                "arch": "x86",
+                "family": "iPhone",
+                "freeMemory": 169684992,
+                "memorySize": 17179869184,
+                "model": "iPhone9,1",
+                "simulator": True,
+                "storageSize": 249695305728,
+                "type": "device",
+                "usableMemory": 14919622656,
+            },
+            "os": {
+                "build": "16C67",
+                "bundleID": "com.rokkincat.SentryExample",
+                "bundleVersion": "2",
+                "kernel_version": "Darwin Kernel Version 16.3.0: Thu Nov 17 20:23:58 PST 2016; root:xnu-3789.31.2~1/RELEASE_X86_64",
+                "name": "iOS",
+                "type": "os",
+                "version": "10.2",
+            },
+        },
+    )
+    binary_images = acr.get_binary_images_apple_string()
+    assert (
+        binary_images
+        == "Binary Images:\n\
+0x1400c000 - 0x1404cfff {0} x86  <766dfb1472ee32d28961687d32548f2b> {0}\n\
+0x1406f000 - 0x1414dfff {0} x86  <be602dc1d3a03389b8f4922c37dea3dc> {0}\n\
+0x141c5000 - 0x141c9fff {0} x86  <4b5a054fb7a13ad081e1513b4dbe2a33> {0}".format(
+            NATIVE_UNKNOWN_STRING
+        )
+    )
+
+
 def test__convert_debug_meta_to_binary_image_row():
     acr = AppleCrashReport(
         context={
@@ -469,9 +524,9 @@ def test__convert_debug_meta_to_binary_image_row():
             "image_addr": "0xd69a000",
             "image_size": 495616,
             "image_vmaddr": "0x0",
-            "name": "/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift",
+            "code_file": "/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift",
             "type": "apple",
-            "uuid": "B427AE1D-BF36-3B50-936F-D78A7D1C8340",
+            "debug_id": "B427AE1D-BF36-3B50-936F-D78A7D1C8340",
         }
     )
     assert (

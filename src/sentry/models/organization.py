@@ -47,7 +47,7 @@ class OrganizationStatus(IntEnum):
             # realistically Enum shouldn't even creating these, but alas
             if name.startswith("_"):
                 continue
-            result.append((member.value, member.label))
+            result.append((member.value, six.text_type(member.label)))
         return tuple(result)
 
 
@@ -98,10 +98,7 @@ class Organization(Model):
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
-        choices=OrganizationStatus.as_choices(),
-        # south will generate a default value of `'<OrganizationStatus.ACTIVE: 0>'`
-        # if `.value` is omitted
-        default=OrganizationStatus.ACTIVE.value,
+        choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(
@@ -110,32 +107,30 @@ class Organization(Model):
         related_name="org_memberships",
         through_fields=("organization", "user"),
     )
-    default_role = models.CharField(
-        choices=roles.get_choices(), max_length=32, default=roles.get_default().id
-    )
+    default_role = models.CharField(max_length=32, default=six.text_type(roles.get_default().id))
 
     flags = BitField(
         flags=(
             (
-                "allow_joinleave",
-                "Allow members to join and leave teams without requiring approval.",
+                u"allow_joinleave",
+                u"Allow members to join and leave teams without requiring approval.",
             ),
             (
-                "enhanced_privacy",
-                "Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
+                u"enhanced_privacy",
+                u"Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
             ),
             (
-                "disable_shared_issues",
-                "Disable sharing of limited details on issues to anonymous users.",
+                u"disable_shared_issues",
+                u"Disable sharing of limited details on issues to anonymous users.",
             ),
             (
-                "early_adopter",
-                "Enable early adopter status, gaining access to features prior to public release.",
+                u"early_adopter",
+                u"Enable early adopter status, gaining access to features prior to public release.",
             ),
-            ("require_2fa", "Require and enforce two-factor authentication for all members."),
+            (u"require_2fa", u"Require and enforce two-factor authentication for all members."),
             (
-                "disable_new_visibility_features",
-                "Temporarily opt out of new visibility features and ui",
+                u"disable_new_visibility_features",
+                u"Temporarily opt out of new visibility features and ui",
             ),
         ),
         default=1,

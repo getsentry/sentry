@@ -4,12 +4,11 @@ from __future__ import absolute_import
 
 
 import pytest
-import mock
-from django.conf import settings
+from sentry.utils.compat import mock
 
+from sentry import eventstore
 from sentry.interfaces.stacktrace import get_context, is_url
 from sentry.event_manager import EventManager
-from sentry.models import Event
 
 
 def test_is_url():
@@ -33,7 +32,7 @@ def make_stacktrace_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"stacktrace": data})
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
 
         interface = evt.interfaces.get("stacktrace")
 
@@ -95,29 +94,13 @@ def test_serialize_returns_frames(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "foo.py"}]))
 
 
-def test_frame_hard_limit(make_stacktrace_snapshot):
-    hard_limit = settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT
-    make_stacktrace_snapshot(
-        {
-            "frames": [
-                {
-                    "filename": "Application.java",
-                    "function": "main",
-                    "lineno": i,  # linenos from 1 to the hard limit + 1
-                }
-                for i in range(1, hard_limit + 2)
-            ]
-        }
-    )
-
-
 @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_stacktrace", mock.Mock(return_value="foo"))
 def test_to_string_returns_stacktrace(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[]))
 
 
 @mock.patch("sentry.interfaces.stacktrace.is_newest_frame_first", mock.Mock(return_value=False))
-def test_get_stacktrace_with_only_filename():
+def test_get_stacktrace_with_only_filename(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"filename": "foo"}, {"filename": "bar"}]))
 
 

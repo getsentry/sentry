@@ -1,38 +1,8 @@
 {
+  "extends": "./config/tsconfig.build.json",
   "compilerOptions": {
-    "allowJs": false,
-    "alwaysStrict": false,
-    "declaration": false,
-    "declarationMap": false,
-    "downlevelIteration": true,
-    "inlineSources": true,
-    "importHelpers": true,
-    "lib": ["esnext", "dom"],
-    "module": "esnext",
-    "moduleResolution": "node",
-    "noEmitHelpers": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": false,
-    "noImplicitReturns": true,
-    "noImplicitUseStrict": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "pretty": true,
-    "sourceMap": true,
-    "strict": true,
-    "target": "es5",
-    "strictBindCallApply": false,
-    "experimentalDecorators": true,
-
-    "esModuleInterop": true,
-    "jsx": "react",
-    "baseUrl": ".",
-    "outDir": "src/sentry/static/sentry/dist",
-    "paths": {
-      "app/*": ["src/sentry/static/sentry/app/*"]
-    },
-    "plugins": [{"name": "typescript-styled-plugin"}]
+    "allowJs": true,
   },
-  "include": ["src"]
+  "include": ["src", "tests", "docs-ui"],
+  "exclude": ["node_modules"]
 }

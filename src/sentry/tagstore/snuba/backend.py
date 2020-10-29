@@ -1,10 +1,18 @@
 from __future__ import absolute_import
 
 import functools
-from collections import defaultdict, Iterable
-from dateutil.parser import parse as parse_datetime
 import six
+from collections import defaultdict, Iterable, OrderedDict
+from dateutil.parser import parse as parse_datetime
+from pytz import UTC
 
+from django.core.cache import cache
+
+from sentry import options
+from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
+from sentry.models import Project
+from sentry.api.utils import default_start_end_dates
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
@@ -14,8 +22,10 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
-from sentry.utils import snuba
+from sentry.utils import snuba, metrics
+from sentry.utils.hashlib import md5_text
 from sentry.utils.dates import to_timestamp
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 
 SEEN_COLUMN = "timestamp"
@@ -24,13 +34,18 @@ SEEN_COLUMN = "timestamp"
 # all values for a given tag/column
 BLACKLISTED_COLUMNS = frozenset(["project_id"])
 
+FUZZY_NUMERIC_KEYS = frozenset(
+    ["stack.colno", "stack.in_app", "stack.lineno", "stack.stack_level", "transaction.duration"]
+)
+FUZZY_NUMERIC_DISTANCE = 50
+
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
 
 
 def fix_tag_value_data(data):
     for key, transformer in tag_value_data_transformers.items():
         if key in data:
-            data[key] = transformer(data[key])
+            data[key] = transformer(data[key]).replace(tzinfo=UTC)
     return data
 
 
@@ -39,20 +54,13 @@ def get_project_list(project_id):
 
 
 class SnubaTagStorage(TagStorage):
-
-    # These keys correspond to tags that are typically prefixed with `sentry:`
-    # and will wreak havok in the UI if both the `sentry:`-prefixed and
-    # non-prefixed variations occur in a response. For now, it's easier to hide
-    # these results since they happen relatively infrequently.
-    EXCLUDE_TAG_KEYS = frozenset(["dist", "release", "user"])
-
     def __get_tag_key(self, project_id, group_id, environment_id, key):
         tag = u"tags[{}]".format(key)
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         conditions = [[tag, "!=", ""]]
         aggregations = [["uniq", tag, "values_seen"], ["count()", "", "count"]]
 
@@ -80,7 +88,7 @@ class SnubaTagStorage(TagStorage):
         if environment_id:
             filters["environment"] = [environment_id]
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         conditions = kwargs.get("conditions", [])
         aggregations = kwargs.get("aggregations", [])
 
@@ -93,12 +101,12 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result, totals = snuba.query(
-            kwargs.get("start"),
-            kwargs.get("end"),
-            [tag],
-            conditions,
-            filters,
-            aggregations,
+            start=kwargs.get("start"),
+            end=kwargs.get("end"),
+            groupby=[tag],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
             orderby="-count",
             limit=limit,
             totals=True,
@@ -164,33 +172,86 @@ class SnubaTagStorage(TagStorage):
         limit=1000,
         keys=None,
         include_values_seen=True,
+        use_cache=False,
         **kwargs
     ):
-        filters = {"project_id": projects}
+        """ Query snuba for tag keys based on projects
+
+            When use_cache is passed, we'll attempt to use the cache. There's an exception if group_id was passed
+            which refines the query enough caching isn't required.
+            The cache key is based on the filters being passed so that different queries don't hit the same cache, with
+            exceptions for start and end dates. Since even a microsecond passing would result in a different caching
+            key, which means always missing the cache.
+            Instead, to keep the cache key the same for a short period we append the duration, and the end time rounded
+            with a certain jitter to the cache key.
+            This jitter is based on the hash of the key before duration/end time is added for consistency per query.
+            The jitter's intent is to avoid a dogpile effect of many queries being invalidated at the same time.
+            This is done by changing the rounding of the end key to a random offset. See snuba.quantize_time for
+            further explanation of how that is done.
+        """
+        default_start, default_end = default_start_end_dates()
+        if start is None:
+            start = default_start
+        if end is None:
+            end = default_end
+
+        filters = {"project_id": sorted(projects)}
         if environments:
-            filters["environment"] = environments
+            filters["environment"] = sorted(environments)
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         if keys is not None:
-            filters["tags_key"] = keys
+            filters["tags_key"] = sorted(keys)
         aggregations = [["count()", "", "count"]]
 
         if include_values_seen:
             aggregations.append(["uniq", "tags_value", "values_seen"])
-        conditions = [["tags_key", "NOT IN", self.EXCLUDE_TAG_KEYS]]
+        conditions = []
 
-        result = snuba.query(
-            start,
-            end,
-            ["tags_key"],
-            conditions,
-            filters,
-            aggregations,
-            limit=limit,
-            orderby="-count",
-            referrer="tagstore.__get_tag_keys",
-            **kwargs
-        )
+        should_cache = use_cache and group_id is None
+        result = None
+
+        if should_cache:
+            filtering_strings = [
+                u"{}={}".format(key, value) for key, value in six.iteritems(filters)
+            ]
+            cache_key = u"tagstore.__get_tag_keys:{}".format(
+                md5_text(*filtering_strings).hexdigest()
+            )
+            key_hash = hash(cache_key)
+            should_cache = (key_hash % 1000) / 1000.0 <= options.get(
+                "snuba.tagstore.cache-tagkeys-rate"
+            )
+
+        # If we want to continue attempting to cache after checking against the cache rate
+        if should_cache:
+            # Needs to happen before creating the cache suffix otherwise rounding will cause different durations
+            duration = (end - start).total_seconds()
+            # Cause there's rounding to create this cache suffix, we want to update the query end so results match
+            end = snuba.quantize_time(end, key_hash)
+            cache_key += u":{}@{}".format(duration, end.isoformat())
+            result = cache.get(cache_key, None)
+            if result is not None:
+                metrics.incr("testing.tagstore.cache_tag_key.hit")
+            else:
+                metrics.incr("testing.tagstore.cache_tag_key.miss")
+
+        if result is None:
+            result = snuba.query(
+                start=start,
+                end=end,
+                groupby=["tags_key"],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                limit=limit,
+                orderby="-count",
+                referrer="tagstore.__get_tag_keys",
+                **kwargs
+            )
+            if should_cache:
+                cache.set(cache_key, result, 300)
+                metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
         if group_id is None:
             ctor = TagKey
@@ -217,7 +278,7 @@ class SnubaTagStorage(TagStorage):
         if environment_id:
             filters["environment"] = [environment_id]
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         conditions = [[tag, "=", value]]
         aggregations = [
             ["count()", "", "times_seen"],
@@ -251,7 +312,7 @@ class SnubaTagStorage(TagStorage):
         return self.__get_tag_keys(project_id, None, environment_id and [environment_id])
 
     def get_tag_keys_for_projects(
-        self, projects, environments, start, end, status=TagKeyStatus.VISIBLE
+        self, projects, environments, start, end, status=TagKeyStatus.VISIBLE, use_cache=False
     ):
         MAX_UNSAMPLED_PROJECTS = 50
         # We want to disable FINAL in the snuba query to reduce load.
@@ -263,7 +324,14 @@ class SnubaTagStorage(TagStorage):
         if len(projects) <= MAX_UNSAMPLED_PROJECTS:
             optimize_kwargs["sample"] = 1
         return self.__get_tag_keys_for_projects(
-            projects, None, environments, start, end, include_values_seen=False, **optimize_kwargs
+            projects,
+            None,
+            environments,
+            start,
+            end,
+            include_values_seen=False,
+            use_cache=use_cache,
+            **optimize_kwargs
         )
 
     def get_tag_value(self, project_id, environment_id, key, value):
@@ -306,7 +374,7 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
         tag = u"tags[{}]".format(key)
-        filters = {"project_id": project_ids, "issue": group_id_list}
+        filters = {"project_id": project_ids, "group_id": group_id_list}
         if environment_ids:
             filters["environment"] = environment_ids
         conditions = [[tag, "=", value]]
@@ -317,7 +385,7 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
-            groupby=["issue"],
+            groupby=["group_id"],
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
@@ -333,8 +401,7 @@ class SnubaTagStorage(TagStorage):
         self, project_ids, group_id_list, environment_ids, start=None, end=None
     ):
         # Get the total times seen, first seen, and last seen across multiple environments
-        filters = {"project_id": project_ids, "issue": group_id_list}
-        conditions = None
+        filters = {"project_id": project_ids, "group_id": group_id_list}
         if environment_ids:
             filters["environment"] = environment_ids
 
@@ -345,12 +412,12 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
-            start,
-            end,
-            ["issue"],
-            conditions,
-            filters,
-            aggregations,
+            start=start,
+            end=end,
+            groupby=["group_id"],
+            conditions=None,
+            filter_keys=filters,
+            aggregations=aggregations,
             referrer="tagstore.get_group_seen_values_for_environments",
         )
 
@@ -358,7 +425,7 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         tag = u"tags[{}]".format(key)
-        filters = {"project_id": get_project_list(project_id), "issue": [group_id]}
+        filters = {"project_id": get_project_list(project_id), "group_id": [group_id]}
         if environment_id:
             filters["environment"] = [environment_id]
         conditions = [[tag, "!=", ""]]
@@ -402,7 +469,7 @@ class SnubaTagStorage(TagStorage):
         if keys is not None:
             filters["tags_key"] = keys
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         conditions = kwargs.get("conditions", [])
         aggregations = kwargs.get("aggregations", [])
         aggregations += [
@@ -410,16 +477,14 @@ class SnubaTagStorage(TagStorage):
             ["min", SEEN_COLUMN, "first_seen"],
             ["max", SEEN_COLUMN, "last_seen"],
         ]
-        if not kwargs.get("get_excluded_tags"):
-            conditions.append(["tags_key", "NOT IN", self.EXCLUDE_TAG_KEYS])
 
         values_by_key = snuba.query(
-            kwargs.get("start"),
-            kwargs.get("end"),
-            ["tags_key", "tags_value"],
-            conditions,
-            filters,
-            aggregations,
+            start=kwargs.get("start"),
+            end=kwargs.get("end"),
+            groupby=["tags_key", "tags_value"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
             orderby="-count",
             limitby=[value_limit, "tags_key"],
             referrer="tagstore.__get_tag_keys_and_top_values",
@@ -451,7 +516,7 @@ class SnubaTagStorage(TagStorage):
         filters = {"project_id": get_project_list(project_id)}
         conditions = [["tags[sentry:release]", "IS NOT NULL", None]]
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         aggregations = [["min" if first else "max", SEEN_COLUMN, "seen"]]
         orderby = "seen" if first else "-seen"
 
@@ -467,7 +532,7 @@ class SnubaTagStorage(TagStorage):
         if not result:
             return None
         else:
-            return result.keys()[0]
+            return list(result.keys())[0]
 
     def get_first_release(self, project_id, group_id):
         return self.__get_release(project_id, group_id, True)
@@ -509,12 +574,12 @@ class SnubaTagStorage(TagStorage):
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         filters = {"project_id": project_ids}
         conditions = [
-            ["tags[sentry:user]", "IN", filter(None, [eu.tag_value for eu in event_users])]
+            ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
         ]
         aggregations = [["max", SEEN_COLUMN, "last_seen"]]
 
         result = snuba.query(
-            groupby=["issue"],
+            groupby=["group_id"],
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
@@ -527,7 +592,7 @@ class SnubaTagStorage(TagStorage):
     def get_group_tag_values_for_users(self, event_users, limit=100):
         filters = {"project_id": [eu.project_id for eu in event_users]}
         conditions = [
-            ["tags[sentry:user]", "IN", filter(None, [eu.tag_value for eu in event_users])]
+            ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
         ]
         aggregations = [
             ["count()", "", "times_seen"],
@@ -536,7 +601,7 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
-            groupby=["issue", "user_id"],
+            groupby=["group_id", "user_id"],
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
@@ -556,58 +621,167 @@ class SnubaTagStorage(TagStorage):
         return values
 
     def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
-        filters = {"project_id": project_ids, "issue": group_ids}
+        filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters["environment"] = environment_ids
         aggregations = [["uniq", "tags[sentry:user]", "count"]]
 
         result = snuba.query(
-            start,
-            end,
-            ["issue"],
-            None,
-            filters,
-            aggregations,
+            start=start,
+            end=end,
+            groupby=["group_id"],
+            conditions=None,
+            filter_keys=filters,
+            aggregations=aggregations,
             referrer="tagstore.get_groups_user_counts",
         )
+
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(
-        self, project_id, environment_id, key, query=None, order_by="-last_seen"
+        self,
+        project_id,
+        environment_id,
+        key,
+        start=None,
+        end=None,
+        query=None,
+        order_by="-last_seen",
     ):
         return self.get_tag_value_paginator_for_projects(
             get_project_list(project_id),
             [environment_id] if environment_id else None,
             key,
+            start=start,
+            end=end,
             query=query,
             order_by=order_by,
         )
 
     def get_tag_value_paginator_for_projects(
-        self, projects, environments, key, start=None, end=None, query=None, order_by="-last_seen"
+        self,
+        projects,
+        environments,
+        key,
+        start=None,
+        end=None,
+        query=None,
+        order_by="-last_seen",
+        include_transactions=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
         if not order_by == "-last_seen":
             raise ValueError("Unsupported order_by: %s" % order_by)
 
+        dataset = Dataset.Events
         snuba_key = snuba.get_snuba_column_name(key)
+        if include_transactions and snuba_key.startswith("tags["):
+            snuba_key = snuba.get_snuba_column_name(key, dataset=Dataset.Discover)
+            if not snuba_key.startswith("tags["):
+                dataset = Dataset.Discover
+
+        # We cannot search the values of these columns like we do other columns because they are
+        # a different type, and as such, LIKE and != do not work on them. Furthermore, because the
+        # use case for these values in autosuggestion is minimal, so we choose to disable them here.
+        #
+        # event_id:     This is a FixedString which disallows us to use LIKE on it when searching,
+        #               but does work with !=. However, for consistency sake we disallow it
+        #               entirely, furthermore, suggesting an event_id is not a very useful feature
+        #               as they are not human readable.
+        # timestamp:    This is a DateTime which disallows us to use both LIKE and != on it when
+        #               searching. Suggesting a timestamp can potentially be useful but as it does
+        #               work at all, we opt to disable it here. A potential solution can be to
+        #               generate a time range to bound where they are searching. e.g. if a user
+        #               enters 2020-07 we can generate the following conditions:
+        #               >= 2020-07-01T00:00:00 AND <= 2020-07-31T23:59:59
+        # time:         This is a column computed from timestamp so it suffers the same issues
+        if snuba_key in {"event_id", "timestamp", "time"}:
+            return SequencePaginator([])
+
+        # These columns have fixed values and we don't need to emit queries to find out the
+        # potential options.
+        if key in {"error.handled", "error.unhandled"}:
+            return SequencePaginator(
+                [
+                    (
+                        1,
+                        TagValue(
+                            key=key, value="true", times_seen=None, first_seen=None, last_seen=None
+                        ),
+                    ),
+                    (
+                        2,
+                        TagValue(
+                            key=key, value="false", times_seen=None, first_seen=None, last_seen=None
+                        ),
+                    ),
+                ]
+            )
 
         conditions = []
+        # transaction status needs a special case so that the user interacts with the names and not codes
+        transaction_status = snuba_key == "transaction_status"
+        if include_transactions and transaction_status:
+            conditions.append(
+                [
+                    snuba_key,
+                    "IN",
+                    # Here we want to use the status codes during filtering,
+                    # but want to do this with names that include our query
+                    [
+                        span_key
+                        for span_key, value in six.iteritems(SPAN_STATUS_CODE_TO_NAME)
+                        if (query and query in value) or (not query)
+                    ],
+                ]
+            )
+        elif key in FUZZY_NUMERIC_KEYS:
+            converted_query = int(query) if query is not None and query.isdigit() else None
+            if converted_query is not None:
+                conditions.append([snuba_key, ">=", converted_query - FUZZY_NUMERIC_DISTANCE])
+                conditions.append([snuba_key, "<=", converted_query + FUZZY_NUMERIC_DISTANCE])
+        elif include_transactions and key == PROJECT_ALIAS:
+            project_filters = {
+                "id__in": projects,
+            }
+            if query:
+                project_filters["slug__icontains"] = query
+            project_queryset = Project.objects.filter(**project_filters).values("id", "slug")
 
-        if snuba_key in BLACKLISTED_COLUMNS:
-            snuba_key = "tags[%s]" % (key,)
+            if not project_queryset.exists():
+                return SequencePaginator([])
 
-        if query:
-            conditions.append([snuba_key, "LIKE", u"%{}%".format(query)])
+            project_slugs = {project["id"]: project["slug"] for project in project_queryset}
+            projects = [project["id"] for project in project_queryset]
+            snuba_key = "project_id"
+            dataset = Dataset.Discover
         else:
-            conditions.append([snuba_key, "!=", ""])
+            snuba_name = snuba_key
+
+            is_user_alias = include_transactions and key == USER_DISPLAY_ALIAS
+            if is_user_alias:
+                # user.alias is a pseudo column in discover. It is computed by coalescing
+                # together multiple user attributes. Here we get the coalese function used,
+                # and resolve it to the corresponding snuba query
+                dataset = Dataset.Discover
+                resolver = snuba.resolve_column(dataset)
+                snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
+                snuba.resolve_complex_column(snuba_name, resolver)
+            elif snuba_name in BLACKLISTED_COLUMNS:
+                snuba_name = "tags[%s]" % (key,)
+
+            if query:
+                conditions.append([snuba_name, "LIKE", u"%{}%".format(query)])
+            else:
+                conditions.append([snuba_name, "!=", ""])
 
         filters = {"project_id": projects}
         if environments:
             filters["environment"] = environments
 
         results = snuba.query(
+            dataset=dataset,
             start=start,
             end=end,
             groupby=[snuba_key],
@@ -625,8 +799,27 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore.get_tag_value_paginator_for_projects",
         )
 
+        if include_transactions:
+            # With transaction_status we need to map the ids back to their names
+            if transaction_status:
+                results = OrderedDict(
+                    [
+                        (SPAN_STATUS_CODE_TO_NAME[result_key], data)
+                        for result_key, data in six.iteritems(results)
+                    ]
+                )
+            # With project names we map the ids back to the project slugs
+            elif key == PROJECT_ALIAS:
+                results = OrderedDict(
+                    [
+                        (project_slugs[value], data)
+                        for value, data in six.iteritems(results)
+                        if value in project_slugs
+                    ]
+                )
+
         tag_values = [
-            TagValue(key=key, value=value, **fix_tag_value_data(data))
+            TagValue(key=key, value=six.text_type(value), **fix_tag_value_data(data))
             for value, data in six.iteritems(results)
         ]
 
@@ -637,14 +830,16 @@ class SnubaTagStorage(TagStorage):
             reverse=desc,
         )
 
-    def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
+    def get_group_tag_value_iter(
+        self, project_id, group_id, environment_ids, key, callbacks=(), limit=1000, offset=0
+    ):
         filters = {
             "project_id": get_project_list(project_id),
             "tags_key": [key],
-            "issue": [group_id],
+            "group_id": [group_id],
         }
-        if environment_id:
-            filters["environment"] = [environment_id]
+        if environment_ids:
+            filters["environment"] = environment_ids
         results = snuba.query(
             groupby=["tags_value"],
             filter_keys=filters,
@@ -654,9 +849,9 @@ class SnubaTagStorage(TagStorage):
                 ["max", "timestamp", "last_seen"],
             ],
             orderby="-first_seen",  # Closest thing to pre-existing `-id` order
-            # TODO: This means they can't actually iterate all GroupTagValues.
-            limit=1000,
+            limit=limit,
             referrer="tagstore.get_group_tag_value_iter",
+            offset=offset,
         )
 
         group_tag_values = [
@@ -670,7 +865,7 @@ class SnubaTagStorage(TagStorage):
         return group_tag_values
 
     def get_group_tag_value_paginator(
-        self, project_id, group_id, environment_id, key, order_by="-id"
+        self, project_id, group_id, environment_ids, key, order_by="-id"
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -682,7 +877,7 @@ class SnubaTagStorage(TagStorage):
         else:
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        group_tag_values = self.get_group_tag_value_iter(project_id, group_id, environment_id, key)
+        group_tag_values = self.get_group_tag_value_iter(project_id, group_id, environment_ids, key)
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")
@@ -700,7 +895,7 @@ class SnubaTagStorage(TagStorage):
         raise NotImplementedError
 
     def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
-        filters = {"project_id": get_project_list(project_id), "issue": [group_id]}
+        filters = {"project_id": get_project_list(project_id), "group_id": [group_id]}
         if environment_ids:
             filters["environment"] = environment_ids
 
@@ -726,88 +921,3 @@ class SnubaTagStorage(TagStorage):
             return None
 
         return {"event_id__in": event_id_set}
-
-
-class SnubaCompatibilityTagStorage(SnubaTagStorage):
-    """
-    This class extends the read-only SnubaTagStorage backend, implementing the
-    subset of the ``TagStorage`` write interface that is actually used by
-    callers external to the ``tagstore`` module.
-
-    This is necessary since writes to Snuba occur via the event stream and an
-    external writer process, instead of through this service backend. However,
-    we need still to "implement" these methods (so that at least they do not
-    raise a ``NotImplementedError``, as well as providing compatible return
-    types when required by the call site) so that other backends that *do*
-    require these methods in the application to be available can still be used.
-
-    If Snuba becomes the exclusive implementer of the ``TagStorage`` interface
-    in the future, this subclass can be removed (along with the entire
-    ``TagStorage`` write interface from the base implementation.)
-    """
-
-    def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
-        # Called by ``unmerge.repair_tag_data``. The return value is not used.
-        pass
-
-    def get_or_create_group_tag_value(
-        self, project_id, group_id, environment_id, key, value, **kwargs
-    ):
-        # Called by ``unmerge.repair_tag_data``. The first member of the return
-        # value is not used, the second indicates whether or not an object was
-        # created (always False in our case.)
-        return None, False
-
-    def create_event_tags(
-        self, project_id, group_id, environment_id, event_id, tags, date_added=None
-    ):
-        # Called by ``post_process.index_event_tags``. The return value is not
-        # used.
-        pass
-
-    def delete_all_group_tag_keys(self, project_id, group_id):
-        # Called by ``unmerge.truncate_denormalizations``. The return value is
-        # not used.
-        pass
-
-    def delete_all_group_tag_values(self, project_id, group_id):
-        # Called by ``unmerge.truncate_denormalizations``. The return value is
-        # not used.
-        pass
-
-    def delete_tag_key(self, project_id, key):
-        # Called by ``ProjectTagKeyDetailsEndpoint.delete``. The return value
-        # is used for audit logging.
-        try:
-            return [self.get_tag_key(project_id=project_id, key=key, environment_id=None)]
-        except TagKeyNotFound:
-            return []
-
-    def incr_tag_value_times_seen(
-        self, project_id, environment_id, key, value, extra=None, count=1
-    ):
-        # Called by ``Group.add_tags``. The return value is not used.
-        pass
-
-    def incr_group_tag_value_times_seen(
-        self, project_id, group_id, environment_id, key, value, extra=None, count=1
-    ):
-        # Called by ``Group.add_tags`` (and ``unmerge.repair_tag_data`` if
-        # ``get_or_create_group_tag_value`` indicates an object is created --
-        # in our case this will never happen.) The return value is not used.
-        pass
-
-    def update_group_for_events(self, project_id, event_ids, destination_id):
-        # Called by ``unmerge.migrate_events``. The return value is not used.
-        pass
-
-    def update_group_tag_key_values_seen(self, project_id, group_ids):
-        # Called by ``unmerge``. The return value is not used.
-        pass
-
-    def delay_index_event_tags(
-        self, organization_id, project_id, group_id, environment_id, event_id, tags, date_added
-    ):
-        # Called by ``EventManager.save``. The return value is not
-        # used.
-        pass

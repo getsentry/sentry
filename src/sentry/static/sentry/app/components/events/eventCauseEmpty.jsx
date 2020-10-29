@@ -1,12 +1,13 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import codesworth from 'app/../images/codesworth.png';
+import codesworth from 'app/../images/spot/codesworth.png';
 import CommitRow from 'app/components/commitRow';
 import getDynamicText from 'app/utils/getDynamicText';
+import {DataSection} from 'app/components/events/styles';
 import {Panel} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
 import SentryTypes from 'app/sentryTypes';
@@ -24,9 +25,7 @@ const DUMMY_COMMIT = {
     fixed: '5ca1ed',
   }),
   author: {name: 'codesworth'},
-  dateCreated: moment()
-    .subtract(3, 'day')
-    .format(),
+  dateCreated: moment().subtract(3, 'day').format(),
   repository: {
     provider: {id: 'integrations:github', name: 'GitHub', status: 'active'},
   },
@@ -119,7 +118,7 @@ class EventCauseEmpty extends React.Component {
     }
 
     return (
-      <div className="box" data-test-id="loaded-event-cause-empty">
+      <DataSection data-test-id="loaded-event-cause-empty">
         <StyledPanel dashedBorder>
           <BoxHeader>
             <Description>
@@ -179,7 +178,7 @@ class EventCauseEmpty extends React.Component {
             />
           </ExampleCommitPanel>
         </StyledPanel>
-      </div>
+      </DataSection>
     );
   }
 }
@@ -190,24 +189,18 @@ const StyledPanel = styled(Panel)`
   background: none;
 `;
 
-const BoxHeader = styled('div')`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
-`;
-
 const Description = styled('div')`
   h3 {
     font-size: 14px;
     text-transform: uppercase;
     margin-bottom: ${space(0.25)};
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
   }
 
   p {
     font-size: 13px;
     font-weight: bold;
-    color: ${p => p.theme.gray4};
+    color: ${p => p.theme.gray700};
     margin-bottom: ${space(1.5)};
   }
 `;
@@ -264,6 +257,12 @@ const CustomAvatar = styled('img')`
   height: 48px;
   padding-right: 12px;
   margin: -6px 0px -6px -2px;
+`;
+
+const BoxHeader = styled('div')`
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
 `;
 
 export default withApi(EventCauseEmpty);

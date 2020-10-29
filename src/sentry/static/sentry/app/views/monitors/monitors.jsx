@@ -1,33 +1,24 @@
-import React from 'react';
 import {Link, withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
-import {Box} from 'grid-emotion';
+import React from 'react';
+import styled from '@emotion/styled';
 
-import AsyncView from 'app/views/asyncView';
-import BetaTag from 'app/components/betaTag';
-import Button from 'app/components/button';
-import {getParams} from 'app/views/events/utils/getParams';
-import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import {PageHeader} from 'app/styles/organization';
+import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import FeatureBadge from 'app/components/featureBadge';
+import Button from 'app/components/button';
 import PageHeading from 'app/components/pageHeading';
-import TimeSince from 'app/components/timeSince';
 import Pagination from 'app/components/pagination';
-import SentryTypes from 'app/sentryTypes';
 import SearchBar from 'app/components/searchBar';
+import SentryTypes from 'app/sentryTypes';
+import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import {t} from 'app/locale';
 
 import MonitorIcon from './monitorIcon';
-
-const HeaderTitle = styled(PageHeading)`
-  flex: 1;
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex: 1;
-`;
 
 class Monitors extends AsyncView {
   static propTypes = {
@@ -75,15 +66,16 @@ class Monitors extends AsyncView {
       <React.Fragment>
         <PageHeader>
           <HeaderTitle>
-            {t('Monitors')} <BetaTag />
-            <Button
+            <div>
+              {t('Monitors')} <FeatureBadge type="beta" />
+            </div>
+            <NewMonitorButton
               to={`/organizations/${organization.slug}/monitors/create/`}
               priority="primary"
               size="xsmall"
-              style={{marginLeft: space(0.5)}}
             >
-              New Monitor
-            </Button>
+              {t('New Monitor')}
+            </NewMonitorButton>
           </HeaderTitle>
           <StyledSearchBar
             organization={organization}
@@ -94,29 +86,21 @@ class Monitors extends AsyncView {
         </PageHeader>
         <Panel>
           <PanelBody>
-            {this.state.monitorList.map(monitor => {
-              return (
-                <PanelItem key={monitor.id}>
-                  <Box style={{width: 16}} align="center" justify="center" mr={2}>
-                    <MonitorIcon status={monitor.status} size={16} />
-                  </Box>
-                  <Box flex="1" mr={2}>
-                    <Link
-                      to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
-                    >
-                      {monitor.name}
-                    </Link>
-                  </Box>
-                  <Box>
-                    {monitor.nextCheckIn ? (
-                      <TimeSince date={monitor.lastCheckIn} />
-                    ) : (
-                      t('n/a')
-                    )}
-                  </Box>
-                </PanelItem>
-              );
-            })}
+            {this.state.monitorList.map(monitor => (
+              <PanelItemCentered key={monitor.id}>
+                <MonitorIcon status={monitor.status} size={16} />
+                <StyledLink
+                  to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
+                >
+                  {monitor.name}
+                </StyledLink>
+                {monitor.nextCheckIn ? (
+                  <TimeSince date={monitor.lastCheckIn} />
+                ) : (
+                  t('n/a')
+                )}
+              </PanelItemCentered>
+            ))}
           </PanelBody>
         </Panel>
         {monitorListPageLinks && (
@@ -126,5 +110,32 @@ class Monitors extends AsyncView {
     );
   }
 }
+
+const HeaderTitle = styled(PageHeading)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex: 1;
+`;
+
+const NewMonitorButton = styled(Button)`
+  margin-right: ${space(2)};
+`;
+
+const PanelItemCentered = styled(PanelItem)`
+  align-items: center;
+  padding: 0;
+  padding-left: ${space(2)};
+  padding-right: ${space(2)};
+`;
+
+const StyledLink = styled(Link)`
+  flex: 1;
+  padding: ${space(2)};
+`;
 
 export default withRouter(withOrganization(Monitors));

@@ -14,8 +14,8 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 
 # api compat
 from sentry.exceptions import PluginError  # NOQA
-from sentry.models import Activity, Event, GroupMeta
-from sentry.plugins import Plugin
+from sentry.models import Activity, GroupMeta
+from sentry.plugins.base.v1 import Plugin
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.endpoints import PluginGroupEndpoint
 from sentry.signals import issue_tracker_used
@@ -237,7 +237,6 @@ class IssueTrackingPlugin2(Plugin):
                 },
                 status=400,
             )
-        Event.objects.bind_nodes([event], "data")
         try:
             fields = self.get_new_issue_fields(request, group, event, **kwargs)
         except Exception as e:
@@ -306,8 +305,6 @@ class IssueTrackingPlugin2(Plugin):
                 },
                 status=400,
             )
-
-        Event.objects.bind_nodes([event], "data")
 
         try:
             fields = self.get_link_existing_issue_fields(request, group, event, **kwargs)

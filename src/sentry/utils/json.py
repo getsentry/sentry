@@ -1,16 +1,21 @@
 # Avoid shadowing the standard library json module
 from __future__ import absolute_import
 
+# XXX(epurkhiser): We import JSONDecodeError just to have it be exported as
+# part of this module. We don't use it directly within the module, but modules
+# that import it from here will. Do not remove.
+from simplejson import JSONEncoder, JSONDecodeError, _default_decoder  # NOQA
 from enum import Enum
-from simplejson import JSONEncoder, _default_decoder
 import datetime
 import uuid
 import six
 import decimal
 
 from bitfield.types import BitHandler
-from django.utils.timezone import is_aware
+from django.utils.encoding import force_text
+from django.utils.functional import Promise
 from django.utils.html import mark_safe
+from django.utils.timezone import is_aware
 
 
 def better_default_encoder(o):
@@ -37,6 +42,9 @@ def better_default_encoder(o):
         return int(o)
     elif callable(o):
         return "<function>"
+    # seralization for certain Django objects here: https://docs.djangoproject.com/en/1.8/topics/serialization/
+    elif isinstance(o, Promise):
+        return force_text(o)
     raise TypeError(repr(o) + " is not JSON serializable")
 
 
@@ -97,6 +105,10 @@ def dumps(value, escape=False, **kwargs):
     if escape:
         return _default_escaped_encoder.encode(value)
     return _default_encoder.encode(value)
+
+
+def load(fp, **kwargs):
+    return loads(fp.read())
 
 
 def loads(value, **kwargs):

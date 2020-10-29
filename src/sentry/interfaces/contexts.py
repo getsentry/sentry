@@ -7,7 +7,7 @@ from django.utils.encoding import force_text
 
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
-from sentry.utils.safe import get_path, trim
+from sentry.utils.safe import get_path
 
 __all__ = ("Contexts",)
 
@@ -37,8 +37,8 @@ class ContextType(object):
     def __init__(self, alias, data):
         self.alias = alias
         ctx_data = {}
-        for key, value in six.iteritems(trim(data)):
-            # we use simple checks here, rathern than ' in set()' to avoid
+        for key, value in six.iteritems(data):
+            # we use simple checks here, rather than ' in set()' to avoid
             # issues with maps/lists
             if value is not None and value != "":
                 ctx_data[force_text(key)] = value

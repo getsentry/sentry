@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 import six
 
 from django.core.urlresolvers import reverse
@@ -23,6 +23,7 @@ from sentry.models import (
     AuditLogEntryEvent,
 )
 from sentry.testutils import APITestCase
+from sentry.utils.compat import zip
 
 
 class ProjectDetailsTest(APITestCase):
@@ -80,10 +81,28 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug,
             "foobar",
         )
-        assert response["Location"] == "http://testserver/api/0/projects/%s/%s/" % (
-            project.organization.slug,
-            "foobar",
+        redirect_path = "/api/0/projects/%s/%s/" % (project.organization.slug, "foobar")
+        # XXX: AttributeError: 'Response' object has no attribute 'url'
+        # (this is with self.assertRedirects(response, ...))
+        assert response["Location"] == redirect_path
+
+    def test_non_org_rename_403(self):
+        org = self.create_organization()
+        team = self.create_team(organization=org, name="foo", slug="foo")
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=org, role="member", teams=[team])
+
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        ProjectRedirect.record(other_project, "old_slug")
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={"organization_slug": other_org.slug, "project_slug": "old_slug"},
         )
+        self.login_as(user=user)
+        response = self.client.get(url)
+        assert response.status_code == 403
 
 
 class ProjectUpdateTest(APITestCase):
@@ -97,6 +116,18 @@ class ProjectUpdateTest(APITestCase):
             },
         )
         self.login_as(user=self.user)
+
+    def test_blank_subject_prefix(self):
+        project = Project.objects.get(id=self.project.id)
+        options = {"mail:subject_prefix": "[Sentry]"}
+        resp = self.client.put(self.path, data={"options": options})
+        assert resp.status_code == 200, resp.content
+        assert project.get_option("mail:subject_prefix") == "[Sentry]"
+
+        options["mail:subject_prefix"] = ""
+        resp = self.client.put(self.path, data={"options": options})
+        assert resp.status_code == 200, resp.content
+        assert project.get_option("mail:subject_prefix") == ""
 
     def test_team_changes_deprecated(self):
         project = self.create_project()
@@ -177,10 +208,14 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 400, resp.content
 
     def test_platform(self):
-        resp = self.client.put(self.path, data={"platform": "cocoa"})
+        resp = self.client.put(self.path, data={"platform": "python"})
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=self.project.id)
-        assert project.platform == "cocoa"
+        assert project.platform == "python"
+
+    def test_platform_invalid(self):
+        resp = self.client.put(self.path, data={"platform": "lol"})
+        assert resp.status_code == 400, resp.content
 
     def test_options(self):
         options = {
@@ -189,7 +224,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:scrub_defaults": False,
             "sentry:sensitive_fields": ["foo", "bar"],
             "sentry:safe_fields": ["token"],
-            "sentry:store_crash_reports": False,
+            "sentry:store_crash_reports": 0,
             "sentry:relay_pii_config": '{"applications": {"freeform": []}}',
             "sentry:csp_ignored_sources_defaults": False,
             "sentry:csp_ignored_sources": "foo\nbar",
@@ -227,7 +262,7 @@ class ProjectUpdateTest(APITestCase):
         ).exists()
         assert project.get_option("sentry:safe_fields", []) == options["sentry:safe_fields"]
         assert (
-            project.get_option("sentry:store_crash_reports", False)
+            project.get_option("sentry:store_crash_reports")
             == options["sentry:store_crash_reports"]
         )
 
@@ -409,25 +444,17 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["safeFields"] == ["foobar.com", "https://example.com"]
 
     def test_store_crash_reports(self):
-        resp = self.client.put(self.path, data={"storeCrashReports": True})
+        resp = self.client.put(self.path, data={"storeCrashReports": 10})
         assert resp.status_code == 200, resp.content
-        assert self.project.get_option("sentry:store_crash_reports") is True
-        assert resp.data["storeCrashReports"] is True
+        assert self.project.get_option("sentry:store_crash_reports") == 10
+        assert resp.data["storeCrashReports"] == 10
 
     def test_relay_pii_config(self):
-        with self.feature("organizations:relay"):
-            value = '{"applications": {"freeform": []}}'
-            resp = self.client.put(self.path, data={"relayPiiConfig": value})
-            assert resp.status_code == 200, resp.content
-            assert self.project.get_option("sentry:relay_pii_config") == value
-            assert resp.data["relayPiiConfig"] == value
-
-    def test_relay_pii_config_forbidden(self):
         value = '{"applications": {"freeform": []}}'
         resp = self.client.put(self.path, data={"relayPiiConfig": value})
-        assert resp.status_code == 400
-        assert "feature" in resp.content
-        assert self.project.get_option("sentry:relay_pii_config") is None
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option("sentry:relay_pii_config") == value
+        assert resp.data["relayPiiConfig"] == value
 
     def test_sensitive_fields(self):
         resp = self.client.put(
@@ -621,8 +648,10 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
     def test_project_from_another_org(self):
-        project = self.create_project()
-        other_project = self.create_project(organization=self.create_organization())
+        project = self.create_project(fire_project_created=True)
+        other_project = self.create_project(
+            organization=self.create_organization(), fire_project_created=True
+        )
         resp = self.client.put(self.path(project), data={"copy_from_project": other_project.id})
         assert resp.status_code == 400
         assert resp.data == {"copy_from_project": ["Project to copy settings from not found."]}
@@ -630,7 +659,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_not_copied(other_project)
 
     def test_project_does_not_exist(self):
-        project = self.create_project()
+        project = self.create_project(fire_project_created=True)
         resp = self.client.put(self.path(project), data={"copy_from_project": 1234567890})
         assert resp.status_code == 400
         assert resp.data == {"copy_from_project": ["Project to copy settings from not found."]}
@@ -640,7 +669,7 @@ class CopyProjectSettingsTest(APITestCase):
         user = self.create_user()
         self.login_as(user=user)
         team = self.create_team(members=[user])
-        project = self.create_project(teams=[team])
+        project = self.create_project(teams=[team], fire_project_created=True)
         OrganizationMember.objects.filter(user=user, organization=self.organization).update(
             role="admin"
         )
@@ -663,7 +692,7 @@ class CopyProjectSettingsTest(APITestCase):
         user = self.create_user()
         self.login_as(user=user)
         team = self.create_team(members=[user])
-        project = self.create_project(teams=[team])
+        project = self.create_project(teams=[team], fire_project_created=True)
         OrganizationMember.objects.filter(user=user, organization=self.organization).update(
             role="admin"
         )
@@ -691,7 +720,7 @@ class CopyProjectSettingsTest(APITestCase):
     @mock.patch("sentry.models.project.Project.copy_settings_from")
     def test_copy_project_settings_fails(self, mock_copy_settings_from):
         mock_copy_settings_from.return_value = False
-        project = self.create_project()
+        project = self.create_project(fire_project_created=True)
         resp = self.client.put(
             self.path(project), data={"copy_from_project": self.other_project.id}
         )

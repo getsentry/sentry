@@ -135,7 +135,7 @@ class GroupSubscriptionManager(BaseManager):
         users = {
             user.id: user
             for user in User.objects.filter(
-                sentry_orgmember_set__teams=group.project.teams.all(), is_active=True
+                sentry_orgmember_set__teams__in=group.project.teams.all(), is_active=True
             )
         }
 
@@ -154,7 +154,7 @@ class GroupSubscriptionManager(BaseManager):
 
         options = get_user_options(
             "workflow:notifications",
-            users.keys(),
+            list(users.keys()),
             group.project,
             UserOptionValue.participating_only,
         )

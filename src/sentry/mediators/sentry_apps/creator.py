@@ -4,6 +4,7 @@ import six
 
 from collections import Iterable
 from django.db import IntegrityError, transaction
+from rest_framework.serializers import ValidationError
 
 from sentry import analytics
 from sentry.mediators import Mediator, Param
@@ -15,6 +16,8 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
+from sentry.constants import SentryAppStatus
+from sentry.models.sentryapp import generate_slug, default_uuid
 
 
 class Creator(Mediator):
@@ -34,8 +37,10 @@ class Creator(Mediator):
     allowed_origins = Param(Iterable, default=lambda self: [])
     request = Param("rest_framework.request.Request", required=False)
     user = Param("sentry.models.User")
+    is_internal = Param(bool)
 
     def call(self):
+        self.slug = self._generate_and_validate_slug()
         self.proxy = self._create_proxy_user()
         self.api_app = self._create_api_application()
         self.sentry_app = self._create_sentry_app()
@@ -43,8 +48,24 @@ class Creator(Mediator):
         self._create_integration_feature()
         return self.sentry_app
 
+    def _generate_and_validate_slug(self):
+        slug = generate_slug(self.name, is_internal=self.is_internal)
+
+        # validate globally unique slug
+        queryset = SentryApp.with_deleted.filter(slug=slug)
+
+        if queryset.exists():
+            # In reality, the slug is taken but it's determined by the name field
+            raise ValidationError(
+                {"name": [u"Name {} is already taken, please use another.".format(self.name)]}
+            )
+        return slug
+
     def _create_proxy_user(self):
-        return User.objects.create(username=self.name.lower(), is_sentry_app=True)
+        # need a proxy user name that will always be unique
+        return User.objects.create(
+            username=u"{}-{}".format(self.slug, default_uuid()), is_sentry_app=True
+        )
 
     def _create_api_application(self):
         return ApiApplication.objects.create(
@@ -54,21 +75,30 @@ class Creator(Mediator):
     def _create_sentry_app(self):
         from sentry.mediators.service_hooks.creator import expand_events
 
-        return SentryApp.objects.create(
-            name=self.name,
-            author=self.author,
-            application_id=self.api_app.id,
-            owner_id=self.organization.id,
-            proxy_user_id=self.proxy.id,
-            scope_list=self.scopes,
-            events=expand_events(self.events),
-            schema=self.schema or {},
-            webhook_url=self.webhook_url,
-            redirect_url=self.redirect_url,
-            is_alertable=self.is_alertable,
-            verify_install=self.verify_install,
-            overview=self.overview,
-        )
+        kwargs = {
+            "name": self.name,
+            "slug": self.slug,
+            "author": self.author,
+            "application_id": self.api_app.id,
+            "owner_id": self.organization.id,
+            "proxy_user_id": self.proxy.id,
+            "scope_list": self.scopes,
+            "events": expand_events(self.events),
+            "schema": self.schema or {},
+            "webhook_url": self.webhook_url,
+            "redirect_url": self.redirect_url,
+            "is_alertable": self.is_alertable,
+            "verify_install": self.verify_install,
+            "overview": self.overview,
+            "creator_user": self.user,
+            "creator_label": self.user.email
+            or self.user.username,  # email is not required for some users (sentry apps)
+        }
+
+        if self.is_internal:
+            kwargs["status"] = SentryAppStatus.INTERNAL
+
+        return SentryApp.objects.create(**kwargs)
 
     def _create_ui_components(self):
         schema = self.schema or {}
@@ -85,7 +115,7 @@ class Creator(Mediator):
             with transaction.atomic():
                 IntegrationFeature.objects.create(sentry_app=self.sentry_app)
         except IntegrityError as e:
-            self.log(sentry_app=self.sentry_app.slug, error_message=e.message)
+            self.log(sentry_app=self.sentry_app.slug, error_message=six.text_type(e))
 
     def audit(self):
         from sentry.utils.audit import create_audit_entry

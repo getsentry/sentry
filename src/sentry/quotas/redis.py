@@ -5,125 +5,21 @@ import six
 
 from time import time
 
-from sentry import options
-from sentry.exceptions import InvalidConfiguration
-from sentry.quotas.base import NotRateLimited, Quota, RateLimited
-from sentry.utils.redis import get_cluster_from_options, load_script, redis_clusters
-from sentry.utils.json import prune_empty_keys
+from sentry.constants import DataCategory
+from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
+from sentry.utils.redis import (
+    get_dynamic_cluster_from_options,
+    validate_dynamic_cluster,
+    load_script,
+)
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 is_rate_limited = load_script("quotas/is_rate_limited.lua")
 
 
-def get_dynamic_cluster_from_options(setting, config):
-    cluster_name = config.get("cluster", "default")
-    cluster_opts = options.default_manager.get("redis.clusters").get(cluster_name)
-    if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
-        return True, redis_clusters.get(cluster_name), config
-
-    return (False,) + get_cluster_from_options(setting, config)
-
-
-class BasicRedisQuota(object):
-    """
-    A quota in the most abstract sense consists of an identifier (such as
-    `"organization quota"`, `"smart limit"`, etc) and two integers `limit` and
-    `window` (we accept "limit" events per "window" seconds).
-
-    Sentry applies multiple quotas to an event before accepting it, some of
-    which can be configured by the user depending on plan. An event will be
-    counted against all quotas. For example:
-
-    * If Sentry is told to apply two quotas "one event per minute" and "9999999
-      events per hour", it will practically accept only one event per minute
-    * If Sentry is told to apply "one event per minute" and "30 events per
-      hour", we will be able to get one event accepted every minute. However, if
-      we do that for 30 minutes (ingesting 30 events), we will not be able to get
-      an event through for the rest of the hour. (This example assumes that we
-      start sending events exactly at the start of the time window)
-
-    A `BasicRedisQuota` is a specific quota type that also includes some
-    attributes necessary for looking up event counters and refunds in Redis.
-
-    The `BasicRedisQuota` object is not persisted in any way. It is just a
-    function argument passed around in code. Most importantly, a
-    `BasicRedisQuota` instance does not contain information about how many
-    events can still be accepted (that stuff is stored in Redis but isn't typed
-    out), it only represents settings that should be applied.
-    """
-
-    __slots__ = ["prefix", "subscope", "limit", "window", "reason_code"]
-
-    def __init__(self, prefix=None, subscope=None, limit=None, window=None, reason_code=None):
-        if limit == 0:
-            assert prefix is None and subscope is None, "zero-sized quotas are not tracked in redis"
-            assert window is None, "zero-sized quotas cannot have a window"
-        else:
-            assert prefix, "measured quotas need a prefix to run in redis"
-            assert window and window > 0, "window cannot be zero"
-
-        self.prefix = prefix
-        self.subscope = subscope
-        # maximum number of events in the given window
-        #
-        # None indicates "unlimited amount"
-        # 0 indicates "reject all"
-        # NOTE: Use `quotas.base._limit_from_settings` to map from settings
-        self.limit = limit
-        # time in seconds that this quota reflects
-        self.window = window
-        # a machine readable string
-        self.reason_code = reason_code
-
-    @classmethod
-    def reject_all(cls, reason_code):
-        """
-        A zero-sized quota, which is never counted in Redis. Unconditionally
-        reject the event.
-        """
-
-        return cls(limit=0, reason_code=reason_code)
-
-    @classmethod
-    def limited(cls, prefix, limit, window, reason_code, subscope=None):
-        """
-        A regular quota with limit.
-        """
-
-        assert limit and limit > 0
-        return cls(
-            prefix=prefix, limit=limit, window=window, reason_code=reason_code, subscope=subscope
-        )
-
-    @classmethod
-    def unlimited(cls, prefix, window, subscope=None):
-        """
-        Unlimited quota that is still being counted.
-        """
-
-        return cls(prefix=prefix, window=window, subscope=subscope)
-
-    @property
-    def should_track(self):
-        """
-        Whether the quotas service should track this quota at all.
-        """
-
-        return self.prefix is not None
-
-    def to_json(self):
-        return prune_empty_keys(
-            {
-                "prefix": six.text_type(self.prefix),
-                "subscope": six.text_type(self.subscope) if self.subscope is not None else None,
-                "limit": self.limit,
-                "window": self.window,
-                "reasonCode": self.reason_code,
-            }
-        )
-
-
 class RedisQuota(Quota):
-    #: The ``grace`` period allows accomodating for clock drift in TTL
+    #: The ``grace`` period allows accommodating for clock drift in TTL
     #: calculation since the clock on the Redis instance used to store quota
     #: metrics may not be in sync with the computer running this code.
     grace = 60
@@ -144,14 +40,7 @@ class RedisQuota(Quota):
         self.namespace = "quota"
 
     def validate(self):
-        try:
-            if self.is_redis_cluster:
-                self.cluster.ping()
-            else:
-                with self.cluster.all() as client:
-                    client.ping()
-        except Exception as e:
-            raise InvalidConfiguration(six.text_type(e))
+        validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
     def __get_redis_client(self, routing_key):
         if self.is_redis_cluster:
@@ -161,16 +50,17 @@ class RedisQuota(Quota):
 
     def __get_redis_key(self, quota, timestamp, shift, organization_id):
         if self.is_redis_cluster:
+            scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
             # new style redis cluster format which always has the organization id in
-            local_key = "%s{%s}%s" % (quota.prefix, organization_id, quota.subscope or "")
+            local_key = "%s{%s}%s" % (quota.id, organization_id, scope_id)
         else:
             # legacy key format
-            local_key = "%s:%s" % (quota.prefix, quota.subscope or organization_id)
+            local_key = "%s:%s" % (quota.id, quota.scope_id or organization_id)
 
         interval = quota.window
         return u"{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
 
-    def get_quotas(self, project, key=None):
+    def get_quotas(self, project, key=None, keys=None):
         if key:
             key.project = project
 
@@ -179,9 +69,11 @@ class RedisQuota(Quota):
         pquota = self.get_project_quota(project)
         if pquota[0] is not None:
             results.append(
-                BasicRedisQuota.limited(
-                    prefix="p",
-                    subscope=project.id,
+                QuotaConfig(
+                    id="p",
+                    scope=QuotaScope.PROJECT,
+                    scope_id=project.id,
+                    categories=DataCategory.error_categories(),
                     limit=pquota[0],
                     window=pquota[1],
                     reason_code="project_quota",
@@ -191,18 +83,31 @@ class RedisQuota(Quota):
         oquota = self.get_organization_quota(project.organization)
         if oquota[0] is not None:
             results.append(
-                BasicRedisQuota.limited(
-                    prefix="o", limit=oquota[0], window=oquota[1], reason_code="org_quota"
+                QuotaConfig(
+                    id="o",
+                    scope=QuotaScope.ORGANIZATION,
+                    scope_id=project.organization.id,
+                    categories=DataCategory.error_categories(),
+                    limit=oquota[0],
+                    window=oquota[1],
+                    reason_code="org_quota",
                 )
             )
 
-        if key:
+        if key and not keys:
+            keys = [key]
+        elif not keys:
+            keys = []
+
+        for key in keys:
             kquota = self.get_key_quota(key)
             if kquota[0] is not None:
                 results.append(
-                    BasicRedisQuota.limited(
-                        prefix="k",
-                        subscope=key.id,
+                    QuotaConfig(
+                        id="k",
+                        scope=QuotaScope.KEY,
+                        scope_id=key.id,
+                        categories=DataCategory.error_categories(),
                         limit=kquota[0],
                         window=kquota[1],
                         reason_code="key_quota",
@@ -248,11 +153,24 @@ class RedisQuota(Quota):
     def get_refunded_quota_key(self, key):
         return u"r:{}".format(key)
 
-    def refund(self, project, key=None, timestamp=None):
+    def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
         if timestamp is None:
             timestamp = time()
 
-        quotas = [quota for quota in self.get_quotas(project, key=key) if quota.should_track]
+        if category is None:
+            category = DataCategory.ERROR
+
+        if quantity is None:
+            quantity = 1
+
+        # only refund quotas that can be tracked and that specify the given
+        # category. an empty categories list usually refers to all categories,
+        # but such quotas are invalid with counters.
+        quotas = [
+            quota
+            for quota in self.get_quotas(project, key=key)
+            if quota.should_track and category in quota.categories
+        ]
 
         if not quotas:
             return
@@ -268,7 +186,7 @@ class RedisQuota(Quota):
             return_key = self.get_refunded_quota_key(
                 self.__get_redis_key(quota, timestamp, shift, project.organization_id)
             )
-            pipe.incr(return_key, 1)
+            pipe.incr(return_key, quantity)
             pipe.expireat(return_key, int(expiry))
 
         pipe.execute()
@@ -278,10 +196,23 @@ class RedisQuota(Quota):
         return (((timestamp - shift) // interval) + 1) * interval + shift
 
     def is_rate_limited(self, project, key=None, timestamp=None):
+        # XXX: This is effectively deprecated and scheduled for removal. Event
+        # ingestion quotas are now enforced in Relay. This function will be
+        # deleted once the Python store endpoints are removed.
+
         if timestamp is None:
             timestamp = time()
 
-        quotas = self.get_quotas(project, key=key)
+        # Relay supports separate rate limiting per data category and and can
+        # handle scopes explicitly. This function implements a simplified logic
+        # that treats all events the same and ignores transaction rate limits.
+        # Thus, we filter for (1) no categories, which implies this quota
+        # affects all data, and (2) quotas that specify `error` events.
+        quotas = [
+            q
+            for q in self.get_quotas(project, key=key)
+            if not q.categories or DataCategory.ERROR in q.categories
+        ]
 
         # If there are no quotas to actually check, skip the trip to the database.
         if not quotas:

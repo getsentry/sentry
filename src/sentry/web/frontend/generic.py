@@ -8,15 +8,12 @@ from django.http import HttpResponseNotFound, Http404
 from django.contrib.staticfiles import finders
 from django.utils.six.moves.urllib.parse import unquote
 from django.views import static
-from django.views.generic import TemplateView as BaseTemplateView
-
-from sentry.web.helpers import render_to_response
 
 FOREVER_CACHE = "max-age=315360000"
 NEVER_CACHE = "max-age=0, no-cache, no-store, must-revalidate"
 
 
-def dev_favicon(request):
+def dev_favicon(request, extension):
     document_root, path = resolve("sentry/images/favicon_dev.png")
     return static.serve(request, path, document_root=document_root)
 
@@ -90,13 +87,3 @@ def static_media(request, **kwargs):
         response["Cache-Control"] = NEVER_CACHE
 
     return response
-
-
-class TemplateView(BaseTemplateView):
-    def render_to_response(self, context, **response_kwargs):
-        return render_to_response(
-            request=self.request,
-            template=self.get_template_names(),
-            context=context,
-            **response_kwargs
-        )

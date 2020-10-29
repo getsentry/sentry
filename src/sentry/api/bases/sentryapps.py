@@ -264,7 +264,12 @@ class SentryAppInstallationPermission(SentryPermission):
 
     def has_permission(self, request, *args, **kwargs):
         # To let the app mark the installation as installed, we don't care about permissions
-        if request.user.is_sentry_app and request.method == "PUT":
+        if (
+            hasattr(request, "user")
+            and hasattr(request.user, "is_sentry_app")
+            and request.user.is_sentry_app
+            and request.method == "PUT"
+        ):
             return True
         return super(SentryAppInstallationPermission, self).has_permission(request, *args, **kwargs)
 
@@ -330,6 +335,26 @@ class SentryInternalAppTokenPermission(SentryPermission):
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
         "POST": ("org:read", "org:integrations", "org:write", "org:admin"),
         "DELETE": ("org:write", "org:admin"),
+    }
+
+    def has_object_permission(self, request, view, sentry_app):
+        if not hasattr(request, "user") or not request.user:
+            return False
+
+        self.determine_access(request, sentry_app.owner)
+
+        if is_active_superuser(request):
+            return True
+
+        return ensure_scoped_permission(request, self.scope_map.get(request.method))
+
+
+class SentryAppStatsPermission(SentryPermission):
+    scope_map = {
+        "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
+        # Anyone logged in can increment the stats, so leave the scopes empty
+        # Note: this only works for session-based auth so you cannot increment stats through API
+        "POST": (),
     }
 
     def has_object_permission(self, request, view, sentry_app):

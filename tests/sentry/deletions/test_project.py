@@ -5,7 +5,6 @@ from sentry.models import (
     CommitAuthor,
     Environment,
     EnvironmentProject,
-    Event,
     EventAttachment,
     File,
     Group,
@@ -26,8 +25,8 @@ from sentry.testutils import TestCase
 class DeleteProjectTest(TestCase):
     def test_simple(self):
         project = self.create_project(name="test")
-        group = self.create_group(project=project)
-        event = self.create_event(group=group)
+        event = self.store_event(data={}, project_id=project.id)
+        group = event.group
         GroupAssignee.objects.create(group=group, project=project, user=self.user)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         release = Release.objects.create(version="a" * 32, organization_id=project.organization_id)
@@ -63,10 +62,12 @@ class DeleteProjectTest(TestCase):
             object_name="object",
             project=project,
         )
+        file_attachment = File.objects.create(name="hello.png", type="image/png")
         EventAttachment.objects.create(
             event_id=event.event_id,
             project_id=event.project_id,
-            file=File.objects.create(name="hello.png", type="image/png"),
+            file=file_attachment,
+            type=file_attachment.type,
             name="hello.png",
         )
 
@@ -82,7 +83,6 @@ class DeleteProjectTest(TestCase):
         ).exists()
         assert Environment.objects.filter(id=env.id).exists()
         assert not Group.objects.filter(project_id=project.id).exists()
-        assert not Event.objects.filter(project_id=project.id).exists()
         assert not EventAttachment.objects.filter(project_id=project.id).exists()
         assert Release.objects.filter(id=release.id).exists()
         assert ReleaseCommit.objects.filter(release_id=release.id).exists()

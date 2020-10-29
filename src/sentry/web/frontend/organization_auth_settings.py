@@ -13,7 +13,7 @@ from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, User
-from sentry.plugins import Response
+from sentry.plugins.base import Response
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
@@ -44,9 +44,9 @@ class AuthProviderSettingsForm(forms.Form):
 
 
 class OrganizationAuthSettingsView(OrganizationView):
-    # We restrict auth settings to org:admin as it allows a non-owner to
+    # We restrict auth settings to org:write as it allows a non-owner to
     # escalate members to own by disabling the default role.
-    required_scope = "org:admin"
+    required_scope = "org:write"
 
     def _disable_provider(self, request, organization, auth_provider):
         self.create_audit_entry(

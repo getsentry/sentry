@@ -1,10 +1,12 @@
 from __future__ import absolute_import, print_function
 
-import imp
+import io
 import six
 import sys
 
 import click
+
+from sentry.utils.compat import new_module
 
 
 def install(name, config_path, default_settings, callback=None):
@@ -17,7 +19,7 @@ class ConfigurationError(ValueError, click.ClickException):
             from click._compat import get_text_stderr
 
             file = get_text_stderr()
-        click.secho("!! Configuration error: %s" % self.format_message(), file=file, fg="red")
+        click.secho("!! Configuration error: %s" % six.text_type(self), file=file, fg="red")
 
 
 class Importer(object):
@@ -66,7 +68,7 @@ class Importer(object):
         else:
             default_settings_mod = None
 
-        settings_mod = imp.new_module(self.name)
+        settings_mod = new_module(self.name)
 
         # Django doesn't play too nice without the config file living as a real
         # file, so let's fake it.
@@ -85,11 +87,11 @@ class Importer(object):
 
 def load_settings(mod_or_filename, settings, silent=False):
     if isinstance(mod_or_filename, six.string_types):
-        conf = imp.new_module("temp_config")
+        conf = new_module("temp_config")
         conf.__file__ = mod_or_filename
 
         try:
-            with open(mod_or_filename) as source_file:
+            with io.open(mod_or_filename, mode="rb") as source_file:
                 six.exec_(source_file.read(), conf.__dict__)
         except IOError as e:
             import errno
@@ -131,9 +133,7 @@ def add_settings(mod, settings):
             continue
 
         setting_value = getattr(mod, setting)
-        if setting in ("INSTALLED_APPS", "TEMPLATE_DIRS") and isinstance(
-            setting_value, six.string_types
-        ):
+        if setting in ("INSTALLED_APPS",) and isinstance(setting_value, six.string_types):
             setting_value = (setting_value,)  # In case the user forgot the comma.
 
         # Any setting that starts with EXTRA_ and matches a setting that is a list or tuple

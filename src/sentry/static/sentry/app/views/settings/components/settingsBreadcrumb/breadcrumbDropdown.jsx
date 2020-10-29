@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
-import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
+import DropdownAutoCompleteMenu from 'app/components/dropdownAutoComplete/menu';
 import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
 
 const EXIT_DELAY = 0;
@@ -43,7 +43,7 @@ class BreadcrumbDropdown extends React.Component {
   handleStateChange = () => {};
 
   // Adds a delay when mouse hovers on actor (in this case the breadcrumb)
-  handleMouseEnterActor = (actions, e) => {
+  handleMouseEnterActor = () => {
     if (this.leaving) {
       clearTimeout(this.leaving);
     }
@@ -52,7 +52,7 @@ class BreadcrumbDropdown extends React.Component {
   };
 
   // handles mouseEnter event on actor and menu, should clear the leaving timeout and keep menu open
-  handleMouseEnter = (actions, e) => {
+  handleMouseEnter = () => {
     if (this.leaving) {
       clearTimeout(this.leaving);
     }
@@ -62,7 +62,7 @@ class BreadcrumbDropdown extends React.Component {
 
   // handles mouseLeave event on actor and menu, adds a timeout before updating state to account for
   // mouseLeave into
-  handleMouseLeave = (actions, e) => {
+  handleMouseLeave = () => {
     if (this.entering) {
       clearTimeout(this.entering);
     }
@@ -71,12 +71,12 @@ class BreadcrumbDropdown extends React.Component {
   };
 
   // Close immediately when actor is clicked clicked
-  handleClickActor = (actions, e) => {
+  handleClickActor = () => {
     this.close();
   };
 
   // Close immediately when clicked outside
-  handleClose = actions => {
+  handleClose = () => {
     this.close();
   };
 
@@ -85,7 +85,6 @@ class BreadcrumbDropdown extends React.Component {
     return (
       <DropdownAutoCompleteMenu
         blendCorner={false}
-        alignMenu="left"
         onOpen={this.handleMouseEnter}
         onClose={this.close}
         isOpen={this.state.isOpen}
@@ -95,25 +94,21 @@ class BreadcrumbDropdown extends React.Component {
         }}
         items={items}
         onSelect={onSelect}
-        isStyled
         virtualizedHeight={41}
       >
-        {({getActorProps, actions, isOpen}) => {
-          return (
-            <Crumb
-              {...getActorProps({
-                isStyled: true,
-                hasMenu,
-                onClick: this.handleClickActor.bind(this, actions),
-                onMouseEnter: this.handleMouseEnterActor.bind(this, actions),
-                onMouseLeave: this.handleMouseLeave.bind(this, actions),
-              })}
-            >
-              <span>{name || route.name} </span>
-              <Divider isHover={hasMenu && isOpen} isLast={isLast} />
-            </Crumb>
-          );
-        }}
+        {({getActorProps, actions, isOpen}) => (
+          <Crumb
+            {...getActorProps({
+              hasMenu,
+              onClick: this.handleClickActor.bind(this, actions),
+              onMouseEnter: this.handleMouseEnterActor.bind(this, actions),
+              onMouseLeave: this.handleMouseLeave.bind(this, actions),
+            })}
+          >
+            <span>{name || route.name} </span>
+            <Divider isHover={hasMenu && isOpen} isLast={isLast} />
+          </Crumb>
+        )}
       </DropdownAutoCompleteMenu>
     );
   }

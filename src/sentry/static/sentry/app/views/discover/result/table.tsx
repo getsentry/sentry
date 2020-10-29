@@ -1,9 +1,10 @@
 import React from 'react';
 import {MultiGrid, AutoSizer} from 'react-virtualized';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
+
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
-import Link from 'app/components/links/link';
+import ExternalLink from 'app/components/links/externalLink';
 import Tooltip from 'app/components/tooltip';
 import Panel from 'app/components/panels/panel';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -108,9 +109,7 @@ class ResultTable extends React.Component<Props> {
 
     return (
       <Tooltip title={t('Open event')}>
-        <Link href={`${basePath}events/${event.id}/`} target="_blank">
-          {event.id}
-        </Link>
+        <ExternalLink href={`${basePath}events/${event.id}/`}>{event.id}</ExternalLink>
       </Tooltip>
     );
   };
@@ -121,9 +120,9 @@ class ResultTable extends React.Component<Props> {
 
     return (
       <Tooltip title={t('Open issue')}>
-        <Link to={`${basePath}issues/${event['issue.id']}`} target="_blank">
+        <ExternalLink href={`${basePath}issues/${event['issue.id']}`}>
           {event['issue.id']}
-        </Link>
+        </ExternalLink>
       </Tooltip>
     );
   };
@@ -190,9 +189,9 @@ class ResultTable extends React.Component<Props> {
     }
 
     const row = data[rowIndex - 1]; // -1 offset due to header row
-    const colWidths = columnsToCheck.map(col => {
-      return this.measureText(getDisplayText(row[col]), false);
-    });
+    const colWidths = columnsToCheck.map(col =>
+      this.measureText(getDisplayText(row[col]), false)
+    );
     const maxColWidth = Math.max(...colWidths, 0);
 
     // Number of rows to be rendered based on text content divided by cell width
@@ -299,9 +298,7 @@ class ResultTable extends React.Component<Props> {
             }}
           </AutoSizer>
         </Grid>
-        {!data.length && (
-          <EmptyStateWarning small={true}>{t('No results')}</EmptyStateWarning>
-        )}
+        {!data.length && <EmptyStateWarning small>{t('No results')}</EmptyStateWarning>}
       </Panel>
     );
   }
@@ -320,10 +317,9 @@ class ResultTable extends React.Component<Props> {
 export {ResultTable};
 export default withOrganization(ResultTable);
 
-const Grid = styled('div')`
-  height: ${(p: {visibleRows: number}) =>
-    p.visibleRows * TABLE_ROW_HEIGHT_WITH_BORDER +
-    2}px; /* cell height + cell border + top and bottom Panel border */
+const Grid = styled('div')<{visibleRows: number}>`
+  /* cell height + cell border + top and bottom Panel border */
+  height: ${p => `${p.visibleRows * TABLE_ROW_HEIGHT_WITH_BORDER + 2}px`};
   overflow: hidden;
 
   .ReactVirtualized__Grid {
@@ -331,9 +327,10 @@ const Grid = styled('div')`
   }
 ` as any;
 
-const Cell = styled('div')`
-  ${(p: any) => !p.isOddRow && `background-color: ${p.theme.whiteDark};`} ${p =>
-    `text-align: ${p.align};`} overflow: scroll;
+const Cell = styled('div')<{isOddRow: boolean; align: 'right' | 'left'}>`
+  ${p => !p.isOddRow && `background-color: ${p.theme.gray100};`};
+  ${p => `text-align: ${p.align};`};
+  overflow: scroll;
   font-size: 14px;
   line-height: ${TABLE_ROW_HEIGHT}px;
   padding: 0 10px;
@@ -351,8 +348,8 @@ const Cell = styled('div')`
 ` as any;
 
 const TableHeader = styled(Cell)`
-  background: ${p => p.theme.offWhite};
-  color: ${p => p.theme.gray3};
+  background: ${p => p.theme.gray100};
+  color: ${p => p.theme.gray600};
   border-top: none;
   border-bottom: 1px solid ${p => p.theme.borderDark};
   &:first-of-type {

@@ -4,37 +4,26 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize, ProjectSummarySerializer
 from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
 from sentry.signals import project_created
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
-
-
-@scenario("ListTeamProjects")
-def list_team_projects_scenario(runner):
-    runner.request(
-        method="GET", path="/teams/%s/%s/projects/" % (runner.org.slug, runner.default_team.slug)
-    )
-
-
-@scenario("CreateNewProject")
-def create_project_scenario(runner):
-    runner.request(
-        method="POST",
-        path="/teams/%s/%s/projects/" % (runner.org.slug, runner.default_team.slug),
-        data={"name": "The Spoiled Yoghurt"},
-    )
 
 
 class ProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
     slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False, allow_null=True)
     platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    default_rules = serializers.BooleanField(required=False, initial=True)
+
+    def validate_platform(self, value):
+        if Project.is_valid_platform(value):
+            return value
+        raise serializers.ValidationError("Invalid platform")
 
 
 # While currently the UI suggests teams are a parent of a project, in reality
@@ -55,10 +44,8 @@ class TeamProjectPermission(TeamPermission):
 
 
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
-    doc_section = DocSection.TEAMS
     permission_classes = (TeamProjectPermission,)
 
-    @attach_scenarios([list_team_projects_scenario])
     def get(self, request, team):
         """
         List a Team's Projects
@@ -103,7 +90,6 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             paginator_cls=OffsetPaginator,
         )
 
-    @attach_scenarios([create_project_scenario])
     def post(self, request, team):
         """
         Create a New Project
@@ -118,6 +104,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         :param string name: the name for the new project.
         :param string slug: optionally a slug for the new project.  If it's
                             not provided a slug is generated from the name.
+        :param bool default_rules: create default rules (defaults to True)
         :auth: required
         """
         serializer = ProjectSerializer(data=request.data)
@@ -125,30 +112,38 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            try:
-                with transaction.atomic():
-                    project = Project.objects.create(
-                        name=result["name"],
-                        slug=result.get("slug"),
-                        organization=team.organization,
-                        platform=result.get("platform"),
+            with transaction.atomic():
+                try:
+                    with transaction.atomic():
+                        project = Project.objects.create(
+                            name=result["name"],
+                            slug=result.get("slug"),
+                            organization=team.organization,
+                            platform=result.get("platform"),
+                        )
+                except IntegrityError:
+                    return Response(
+                        {"detail": "A project with this slug already exists."}, status=409
                     )
-            except IntegrityError:
-                return Response({"detail": "A project with this slug already exists."}, status=409)
-            else:
-                project.add_team(team)
+                else:
+                    project.add_team(team)
 
-            # XXX: create sample event?
+                # XXX: create sample event?
 
-            self.create_audit_entry(
-                request=request,
-                organization=team.organization,
-                target_object=project.id,
-                event=AuditLogEntryEvent.PROJECT_ADD,
-                data=project.get_audit_log_data(),
-            )
+                self.create_audit_entry(
+                    request=request,
+                    organization=team.organization,
+                    target_object=project.id,
+                    event=AuditLogEntryEvent.PROJECT_ADD,
+                    data=project.get_audit_log_data(),
+                )
 
-            project_created.send_robust(project=project, user=request.user, sender=self)
+                project_created.send(
+                    project=project,
+                    user=request.user,
+                    default_rules=result.get("default_rules", True),
+                    sender=self,
+                )
 
             return Response(serialize(project, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

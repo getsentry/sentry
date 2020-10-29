@@ -1,7 +1,7 @@
-import {pickBy} from 'lodash';
+import pickBy from 'lodash/pickBy';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
   height?: string;
 };
 
-type InlineSvgProps = Omit<React.HTMLProps<SVGSVGElement>, keyof Props> & Props;
+type InlineSvgProps = React.ComponentProps<'svg'> & Props;
 
 const InlineSvg = styled(
   React.forwardRef<SVGSVGElement, InlineSvgProps>(

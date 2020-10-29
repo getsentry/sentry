@@ -6,9 +6,17 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.integrations.exceptions import IntegrationError
-from sentry.models import Deploy, LatestRelease, Release, ReleaseHeadCommit, Repository, User
-from sentry.plugins import bindings
+from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.models import (
+    Deploy,
+    LatestRepoReleaseEnvironment,
+    Release,
+    ReleaseHeadCommit,
+    Repository,
+    User,
+    OrganizationMember,
+)
+from sentry.plugins.base import bindings
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -31,8 +39,8 @@ def generate_invalid_identity_email(identity, commit_failure=False):
     )
 
 
-def generate_fetch_commits_error_email(release, error_message):
-    new_context = {"release": release, "error_message": error_message}
+def generate_fetch_commits_error_email(release, repo, error_message):
+    new_context = {"release": release, "error_message": error_message, "repo": repo}
 
     return MessageBuilder(
         subject="Unable to Fetch Commits",
@@ -62,7 +70,7 @@ def handle_invalid_identity(identity, commit_failure=False):
 )
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
 def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
-    # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
+    # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
     commit_list = []
 
     release = Release.objects.get(id=release_id)
@@ -125,7 +133,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                 repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
         except NotImplementedError:
             pass
-        except Exception as exc:
+        except Exception as e:
             logger.info(
                 "fetch_commits.error",
                 extra={
@@ -133,21 +141,23 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                     "user_id": user_id,
                     "repository": repo.name,
                     "provider": provider.id,
-                    "error": six.text_type(exc),
+                    "error": six.text_type(e),
                     "end_sha": end_sha,
                     "start_sha": start_sha,
                 },
             )
-            if isinstance(exc, InvalidIdentity) and getattr(exc, "identity", None):
-                handle_invalid_identity(identity=exc.identity, commit_failure=True)
-            elif isinstance(exc, (PluginError, InvalidIdentity, IntegrationError)):
-                msg = generate_fetch_commits_error_email(release, exc.message)
-                msg.send_async(to=[user.email])
+            if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
+                handle_invalid_identity(identity=e.identity, commit_failure=True)
+            elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
+                msg = generate_fetch_commits_error_email(release, repo, six.text_type(e))
+                emails = get_emails_for_user_or_org(user, release.organization_id)
+                msg.send_async(to=emails)
             else:
                 msg = generate_fetch_commits_error_email(
-                    release, "An internal system error occurred."
+                    release, repo, "An internal system error occurred."
                 )
-                msg.send_async(to=[user.email])
+                emails = get_emails_for_user_or_org(user, release.organization_id)
+                msg.send_async(to=emails)
         else:
             logger.info(
                 "fetch_commits.complete",
@@ -180,19 +190,24 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             organization_id=release.organization_id, release=release
         ).values_list("repository_id", "commit")
 
-        # we need to mark LatestRelease, but only if there's not a deploy which has completed
-        # *after* this deploy (given we might process commits out of order)
+        # for each repo, update (or create if this is the first one) our records
+        # of the latest commit-associated release in each env
+        # use deploys as a proxy for ReleaseEnvironment, because they contain
+        # a timestamp in addition to release and env data
         for repository_id, commit_id in repo_queryset:
             for environment_id, (deploy_id, date_finished) in six.iteritems(
                 last_deploy_per_environment
             ):
+                # we need to mark LatestRepoReleaseEnvironment, but only if there's not a
+                # deploy in the given environment which has completed *after*
+                # this deploy (given we might process commits out of order)
                 if not Deploy.objects.filter(
-                    id__in=LatestRelease.objects.filter(
+                    id__in=LatestRepoReleaseEnvironment.objects.filter(
                         repository_id=repository_id, environment_id=environment_id
                     ).values("deploy_id"),
                     date_finished__gt=date_finished,
                 ).exists():
-                    LatestRelease.objects.create_or_update(
+                    LatestRepoReleaseEnvironment.objects.create_or_update(
                         repository_id=repository_id,
                         environment_id=environment_id,
                         values={
@@ -208,3 +223,17 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
 def is_integration_provider(provider):
     return provider and provider.startswith("integrations:")
+
+
+def get_emails_for_user_or_org(user, orgId):
+    emails = []
+    if user.is_sentry_app:
+        members = OrganizationMember.objects.filter(
+            organization_id=orgId, role="owner", user_id__isnull=False
+        ).select_related("user")
+        for m in list(members):
+            emails.append(m.user.email)
+    else:
+        emails = [user.email]
+
+    return emails

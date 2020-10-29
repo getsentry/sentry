@@ -2,9 +2,13 @@
 # process.  Thus we do not want to import non stdlib things here.
 from __future__ import absolute_import
 
+# Import the stdlib json instead of sentry.utils.json, since this command is
+# run in setup.py
+import json  # NOQA
+
+import io
 import os
 import sys
-import json
 from distutils import log
 
 import sentry
@@ -17,17 +21,9 @@ LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), "
 # We cannot leverage six here, so we need to vendor
 # bits that we need.
 if sys.version_info[0] == 3:
-
-    def iteritems(d, **kw):
-        return iter(d.items(**kw))
-
+    unicode = str  # NOQA
     from urllib.request import urlopen
-
 else:
-
-    def iteritems(d, **kw):
-        return d.iteritems(**kw)  # NOQA
-
     from urllib2 import urlopen
 
 
@@ -38,9 +34,10 @@ def dump_registry(path, data):
         os.makedirs(directory)
     except OSError:
         pass
-    with open(fn, "wb") as f:
-        json.dump(data, f, indent=2)
-        f.write("\n")
+    with io.open(fn, "wt", encoding="utf-8") as f:
+        # XXX: ideally, we use six.text_type here, but we can't use six.
+        f.write(unicode(json.dumps(data, indent=2)))  # NOQA
+        f.write(u"\n")
 
 
 def sync_registry():
@@ -60,4 +57,4 @@ class BuildJsSdkRegistryCommand(BaseBuildCommand):
         try:
             sync_registry()
         except BaseException:
-            log.error("error ocurred while trying to fetch js sdk information from the registry")
+            log.error("error occurred while trying to fetch js sdk information from the registry")

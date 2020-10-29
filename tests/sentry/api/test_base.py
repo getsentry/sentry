@@ -6,6 +6,7 @@ from django.http import HttpRequest
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.testutils import APITestCase
 
@@ -15,6 +16,23 @@ class DummyEndpoint(Endpoint):
 
     def get(self, request):
         return Response({"ok": True})
+
+
+class DummyPaginationEndpoint(Endpoint):
+    permission_classes = ()
+
+    def get(self, request):
+        values = [x for x in range(0, 100)]
+
+        def data_fn(offset, limit):
+            page_offset = offset * limit
+            return values[page_offset : page_offset + limit]
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn),
+            on_results=lambda results: results,
+        )
 
 
 _dummy_endpoint = DummyEndpoint.as_view()
@@ -28,8 +46,8 @@ class EndpointTest(APITestCase):
         request = HttpRequest()
         request.method = "GET"
         request.META["HTTP_ORIGIN"] = "http://example.com"
-        request.META["HTTP_AUTHORIZATION"] = u"Basic {}".format(
-            base64.b64encode(apikey.key).decode("utf-8")
+        request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
+            apikey.key.encode("utf-8")
         )
 
         response = _dummy_endpoint(request)
@@ -38,6 +56,33 @@ class EndpointTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response["Access-Control-Allow-Origin"] == "http://example.com"
+
+
+class PaginateTest(APITestCase):
+    def setUp(self):
+        super(PaginateTest, self).setUp()
+        self.request = HttpRequest()
+        self.request.method = "GET"
+        self.view = DummyPaginationEndpoint().as_view()
+
+    def test_success(self):
+        response = self.view(self.request)
+        assert response.status_code == 200, response.content
+
+    def test_invalid_per_page(self):
+        self.request.GET = {"per_page": "nope"}
+        response = self.view(self.request)
+        assert response.status_code == 400
+
+    def test_invalid_cursor(self):
+        self.request.GET = {"cursor": "no:no:no"}
+        response = self.view(self.request)
+        assert response.status_code == 400
+
+    def test_per_page_out_of_bounds(self):
+        self.request.GET = {"per_page": "101"}
+        response = self.view(self.request)
+        assert response.status_code == 400
 
 
 class EndpointJSONBodyTest(APITestCase):

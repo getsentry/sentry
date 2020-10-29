@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
+import pytest
+
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.stacktraces.processing import (
     find_stacktraces_in_data,
     normalize_stacktraces_for_grouping,
+    get_crash_frame_from_event_data,
 )
 from sentry.testutils import TestCase
 
@@ -142,6 +145,13 @@ class FindStacktracesTest(TestCase):
                 ]
             },
         }
+
+        infos = find_stacktraces_in_data(data, with_exceptions=True)
+        assert len(infos) == 4
+        assert sum(1 for x in infos if x.stacktrace) == 3
+        assert sum(1 for x in infos if x.is_exception) == 4
+        # XXX: The null frame is still part of this stack trace!
+        assert len(infos[3].stacktrace["frames"]) == 3
 
         infos = find_stacktraces_in_data(data)
         assert len(infos) == 1
@@ -334,3 +344,19 @@ class NormalizeInApptest(TestCase):
         assert frames[4]["in_app"] is False
         assert frames[5]["in_app"] is True
         assert frames[6]["in_app"] is True
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        {"threads": {"values": [{"stacktrace": {"frames": [{"in_app": True, "marco": "polo"}]}}]}},
+        {
+            "exception": {
+                "values": [{"stacktrace": {"frames": [{"in_app": True, "marco": "polo"}]}}]
+            }
+        },
+        {"stacktrace": {"frames": [{"in_app": True, "marco": "polo"}]}},
+    ],
+)
+def test_get_crash_frame(event):
+    assert get_crash_frame_from_event_data(event)["marco"] == "polo"

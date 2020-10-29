@@ -13,22 +13,36 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
-        action_data = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
-        condition_data = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "name": "Send a notification (for all legacy integrations)",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "mail",
+                "name": "Send a notification via mail",
+            },
+        ]
+        condition_data = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            },
+            {
+                "id": "sentry.rules.conditions.every_event.EveryEventCondition",
+                "name": "The event occurs",
+            },
+        ]
 
         Rule.objects.filter(project=self.project).delete()
 
         Rule.objects.create(
-            project=self.project, data={"conditions": [condition_data], "actions": [action_data]}
+            project=self.project, data={"conditions": condition_data, "actions": action_data}
         )
 
         self.login_as(self.user)
-        self.path1 = u"/settings/{}/projects/{}/alerts/settings/".format(
-            self.org.slug, self.project.slug
-        )
-        self.path2 = u"/settings/{}/projects/{}/alerts/rules/".format(
-            self.org.slug, self.project.slug
-        )
+        self.path1 = u"/settings/{}/projects/{}/alerts/".format(self.org.slug, self.project.slug)
 
     def test_settings_load(self):
         self.browser.get(self.path1)
@@ -39,13 +53,8 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.browser.wait_until(".ref-plugin-config-webhooks")
         self.browser.wait_until_not(".loading-indicator")
 
-        # flakey Toast animation being snapshotted by percy
+        # flakey Toast animation being snapshotted in CI
         # click it to clear it before snapshotting
         self.browser.click_when_visible('[data-test-id="toast-success"]')
         self.browser.wait_until_not('[data-test-id="toast-success"]')
         self.browser.snapshot("project alert settings webhooks enabled")
-
-    def test_rules_load(self):
-        self.browser.get(self.path2)
-        self.browser.wait_until_not(".loading-indicator")
-        self.browser.snapshot("project alert rules")

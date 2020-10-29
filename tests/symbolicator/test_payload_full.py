@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 import zipfile
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from six import BytesIO
 
@@ -10,12 +10,17 @@ from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry import eventstore
-from sentry.testutils import TransactionTestCase
+from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models import File, ProjectDebugFile
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils import json
 
 from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
+
+
+# IMPORTANT:
+# For these tests to run, write `symbolicator.enabled: true` into your
+# `~/.sentry/config.yml` and run `sentry devservices up`
+
 
 REAL_RESOLVING_EVENT_DATA = {
     "platform": "cocoa",
@@ -57,7 +62,21 @@ REAL_RESOLVING_EVENT_DATA = {
 }
 
 
-class ResolvingIntegrationTestBase(object):
+class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
+    # For these tests to run, write `symbolicator.enabled: true` into your
+    # `~/.sentry/config.yml` and run `sentry devservices up`
+
+    @pytest.fixture(autouse=True)
+    def initialize(self, live_server):
+        self.project.update_option("sentry:builtin_symbol_sources", [])
+        new_prefix = live_server.url
+
+        with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
+            {"system.url-prefix": new_prefix}
+        ):
+            # Run test case:
+            yield
+
     def get_event(self, event_id):
         return eventstore.get_event_by_id(self.project.id, event_id)
 
@@ -89,10 +108,7 @@ class ResolvingIntegrationTestBase(object):
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
 
-        resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
-        assert resp.status_code == 200
-
-        event = self.get_event(json.loads(resp.content)["id"])
+        event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
 
         assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
@@ -151,20 +167,14 @@ class ResolvingIntegrationTestBase(object):
             "timestamp": iso_format(before_now(seconds=1)),
         }
 
-        resp = self._postWithHeader(event_data)
-        assert resp.status_code == 200
-
-        event = self.get_event(json.loads(resp.content)["id"])
+        event = self.post_and_retrieve_event(event_data)
         assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_missing_dsym(self):
         self.login_as(user=self.user)
 
-        resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
-        assert resp.status_code == 200
-
-        event = self.get_event(json.loads(resp.content)["id"])
+        event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
         assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
 
@@ -174,26 +184,6 @@ class ResolvingIntegrationTestBase(object):
         payload = dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA)
         del payload["debug_meta"]
 
-        resp = self._postWithHeader(payload)
-        assert resp.status_code == 200
-
-        event = self.get_event(json.loads(resp.content)["id"])
+        event = self.post_and_retrieve_event(payload)
         assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
-
-
-class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
-    # For these tests to run, write `symbolicator.enabled: true` into your
-    # `~/.sentry/config.yml` and run `sentry devservices up`
-
-    @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
-        self.project.update_option("sentry:builtin_symbol_sources", [])
-        new_prefix = live_server.url
-
-        with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
-            {"system.url-prefix": new_prefix}
-        ):
-
-            # Run test case:
-            yield

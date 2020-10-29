@@ -1,7 +1,9 @@
-import {orderBy} from 'lodash';
+import orderBy from 'lodash/orderBy';
 import Papa from 'papaparse';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
+
+import {formatVersion} from 'app/utils/formatters';
 
 import {Aggregation, Query, Result, SnubaResult} from '../types';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
@@ -19,18 +21,14 @@ const CHART_KEY = '__CHART_KEY__';
 export function getChartData(data: any[], query: any) {
   const {fields} = query;
 
-  return query.aggregations.map((aggregation: Aggregation) => {
-    return {
-      seriesName: aggregation[2],
-      animation: false,
-      data: data.map(res => {
-        return {
-          value: res[aggregation[2]],
-          name: fields.map((field: string) => `${field} ${res[field]}`).join(' '),
-        };
-      }),
-    };
-  });
+  return query.aggregations.map((aggregation: Aggregation) => ({
+    seriesName: aggregation[2],
+    animation: false,
+    data: data.map(res => ({
+      value: res[aggregation[2]],
+      name: fields.map((field: string) => `${field} ${res[field]}`).join(' '),
+    })),
+  }));
 }
 
 /**
@@ -113,7 +111,7 @@ export function getChartDataByDay(rawData: any[], query: Query, options: any = {
   );
 
   // Reverse to get ascending dates - we request descending to ensure latest
-  // day data is compplete in the case of limits being hit
+  // day data is complete in the case of limits being hit
   const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))].reverse();
 
   // Temporarily store series as object with series names as keys
@@ -131,12 +129,10 @@ export function getChartDataByDay(rawData: any[], query: Query, options: any = {
   });
 
   // Format for echarts
-  return Object.entries(seriesHash).map(([seriesName, series]) => {
-    return {
-      seriesName,
-      data: series,
-    };
-  });
+  return Object.entries(seriesHash).map(([seriesName, series]) => ({
+    seriesName,
+    data: series,
+  }));
 }
 
 /**
@@ -191,12 +187,10 @@ function getEmptySeriesHash(seriesSet: any, dates: number[]): any {
 }
 
 function getEmptySeries(dates: number[]) {
-  return dates.map(date => {
-    return {
-      value: 0,
-      name: date,
-    };
-  });
+  return dates.map(date => ({
+    value: 0,
+    name: date,
+  }));
 }
 
 // Get the top series ranked by latest time / largest aggregate
@@ -263,7 +257,9 @@ function getLabel(value: any, options: any): string {
     return options.fieldLabelMap[value];
   }
 
-  return value;
+  return options.formatVersion && typeof value === 'string'
+    ? formatVersion(value, true)
+    : value;
 }
 
 /**
@@ -337,11 +333,11 @@ export function getDisplayText(val: any): string {
 }
 
 const LightGray = styled('span')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
 `;
 
 const DarkGray = styled('span')`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
 `;
 
 /**
@@ -358,17 +354,16 @@ export function downloadAsCsv(result: SnubaResult) {
 
   const csvContent = Papa.unparse({
     fields: headings,
-    data: data.map(row => {
-      return headings.map(col => disableMacros(row[col]));
-    }),
+    data: data.map(row => headings.map(col => disableMacros(row[col]))),
   });
 
-  const encodedDataUrl = encodeURI(`data:text/csv;charset=utf8,${csvContent}`);
+  // Need to also manually replace # since encodeURI skips them
+  const encodedDataUrl = `data:text/csv;charset=utf8,${encodeURIComponent(csvContent)}`;
 
   window.location.assign(encodedDataUrl);
 }
 
-function disableMacros(value: string | null | boolean | number) {
+export function disableMacros(value: string | null | boolean | number) {
   const unsafeCharacterRegex = /^[\=\+\-\@]/;
 
   if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {

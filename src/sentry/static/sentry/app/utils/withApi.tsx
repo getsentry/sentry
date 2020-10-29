@@ -9,11 +9,26 @@ type InjectedApiProps = {
 
 type WrappedProps<P> = Omit<P, keyof InjectedApiProps> & Partial<InjectedApiProps>;
 
+type OptionProps = {
+  /**
+   * Enabling this option will disable clearing in-flight requests when the
+   * component is unmounted.
+   *
+   * This may be useful in situations where your component needs to finish up
+   * some where the client was passed into some type of action creator and the
+   * component is unmounted.
+   */
+  persistInFlight?: boolean;
+};
+
 /**
  * HoC that provides "api" client when mounted, and clears API requests when
  * component is unmounted
  */
-const withApi = <P extends InjectedApiProps>(WrappedComponent: React.ComponentType<P>) =>
+const withApi = <P extends InjectedApiProps>(
+  WrappedComponent: React.ComponentType<P>,
+  {persistInFlight}: OptionProps = {}
+) =>
   class extends React.Component<WrappedProps<P>> {
     static displayName = `withApi(${getDisplayName(WrappedComponent)})`;
 
@@ -23,13 +38,16 @@ const withApi = <P extends InjectedApiProps>(WrappedComponent: React.ComponentTy
     }
 
     componentWillUnmount() {
-      this.api.clear();
+      if (!persistInFlight) {
+        this.api.clear();
+      }
     }
 
     private api: Client;
 
     render() {
-      return <WrappedComponent api={this.api} {...this.props as P} />;
+      const {api, ...props} = this.props;
+      return <WrappedComponent {...({api: api ?? this.api, ...props} as P)} />;
     }
   };
 

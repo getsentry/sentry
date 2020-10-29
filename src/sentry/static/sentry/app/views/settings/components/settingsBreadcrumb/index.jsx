@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
 import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
@@ -12,7 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
 import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
 import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';
-import TextLink from 'app/components/links/textLink';
+import Link from 'app/components/links/link';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import recreateRoute from 'app/utils/recreateRoute';
 
@@ -46,10 +46,11 @@ class SettingsBreadcrumb extends React.Component {
   }
 
   render() {
-    const {routes, params, pathMap} = this.props;
+    const {className, routes, params, pathMap} = this.props;
     const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
+
     return (
-      <Breadcrumbs>
+      <Breadcrumbs className={className}>
         {routes.map((route, i) => {
           if (!route.name) {
             return null;
@@ -93,12 +94,17 @@ export default createReactClass({
   },
 });
 
-const CrumbLink = styled(TextLink)`
+const CrumbLink = styled(Link)`
   display: block;
 
   &.focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue} 0 2px 0;
+    box-shadow: ${p => p.theme.blue400} 0 2px 0;
+  }
+
+  color: ${p => p.theme.gray600};
+  &:hover {
+    color: ${p => p.theme.gray800};
   }
 `;
 

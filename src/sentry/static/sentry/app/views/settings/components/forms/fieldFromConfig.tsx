@@ -1,12 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Scope} from 'app/types';
+
 import BooleanField from './booleanField';
 import EmailField from './emailField';
 import HiddenField from './hiddenField';
 import NumberField from './numberField';
 import RangeField from './rangeField';
 import SelectField from './selectField';
+import TableField from './tableField';
 import TextField from './textField';
 import TextareaField from './textareaField';
 import RadioField from './radioField';
@@ -14,16 +17,22 @@ import InputField from './inputField';
 import ChoiceMapperField from './choiceMapperField';
 import RichListField from './richListField';
 import FieldSeparator from './fieldSeparator';
-
+import ProjectMapperField from './projectMapperField';
+import SentryProjectSelectorField from './sentryProjectSelectorField';
 import {Field} from './type';
 
 type Props = {
   field: Field;
   highlighted?: boolean;
-  disabled?: boolean;
-
-  // TODO(ts): Investigate further
-  access: any;
+  disabled?: boolean | ((props) => boolean);
+  flexibleControlStateSize?: boolean;
+  getData?: (data) => any;
+  stacked?: boolean;
+  inline?: boolean;
+  onBlur?: (value, event) => void;
+  access?: Set<Scope>;
+  deprecatedSelectControl?: boolean;
+  noOptionsMessage?: () => string;
 };
 
 export default class FieldFromConfig extends React.Component<Props> {
@@ -50,6 +59,9 @@ export default class FieldFromConfig extends React.Component<Props> {
         'text',
         'textarea',
         'url',
+        'table',
+        'project_mapper',
+        'sentry_project_selector',
       ]),
       required: PropTypes.bool,
       multiline: PropTypes.bool,
@@ -86,7 +98,7 @@ export default class FieldFromConfig extends React.Component<Props> {
 
     switch (field.type) {
       case 'separator':
-        return <FieldSeparator {...props} />;
+        return <FieldSeparator />;
       case 'secret':
         return <InputField {...props} type="password" />;
       case 'range':
@@ -121,13 +133,19 @@ export default class FieldFromConfig extends React.Component<Props> {
         // return <SelectAsyncField {...props} />;
         // }
 
-        return <SelectField {...props} />;
+        return <SelectField deprecatedSelectControl {...props} />;
       case 'choice_mapper':
         return <ChoiceMapperField {...props} />;
       case 'radio':
         return <RadioField {...props} />;
       case 'rich_list':
         return <RichListField {...props} />;
+      case 'table':
+        return <TableField {...props} />;
+      case 'project_mapper':
+        return <ProjectMapperField {...props} />;
+      case 'sentry_project_selector':
+        return <SentryProjectSelectorField {...props} />;
       case 'custom':
         return field.Component(props);
       default:

@@ -1,231 +1,231 @@
 ---
-created: '2019-05-08T07:31:17.178420Z'
+created: '2020-08-25T09:17:20.100596Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '6b059b9febc815ac18ac4d2082e38a9b'
+  hash: "6b059b9febc815ac18ac4d2082e38a9b"
   component:
     app*
       exception*
         stacktrace*
           frame*
             module*
-              u'sentry.utils.safe'
+              "sentry.utils.safe"
             filename (module takes precedence)
-              u'safe.py'
+              "safe.py"
             function*
-              u'safe_execute'
+              "safe_execute"
             context-line*
-              u'result = func(*args, **kwargs)'
+              "result = func(*args, **kwargs)"
           frame*
             module*
-              u'sentry.utils.services'
+              "sentry.utils.services"
             filename (module takes precedence)
-              u'services.py'
+              "services.py"
             function*
-              u'<lambda>'
+              "<lambda>"
             context-line*
-              u'context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)'
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
           frame*
             module*
-              u'getsentry.quotas'
+              "getsentry.quotas"
             filename (module takes precedence)
-              u'quotas.py'
+              "quotas.py"
             function*
-              u'is_rate_limited'
+              "is_rate_limited"
             context-line*
-              u'return super(SubscriptionQuota, self).is_rate_limited(project, key=key)'
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
           frame*
             module*
-              u'sentry.quotas.redis'
+              "sentry.quotas.redis"
             filename (module takes precedence)
-              u'redis.py'
+              "redis.py"
             function*
-              u'is_rate_limited'
+              "is_rate_limited"
             context-line*
-              u'rejections = is_rate_limited(client, keys, args)'
+              "rejections = is_rate_limited(client, keys, args)"
           frame*
             module*
-              u'sentry.utils.redis'
+              "sentry.utils.redis"
             filename (module takes precedence)
-              u'redis.py'
+              "redis.py"
             function*
-              u'call_script'
+              "call_script"
             context-line*
-              u'return script(keys, args, client)'
+              "return script(keys, args, client)"
           frame (non app frame)
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'client.py'
+              "client.py"
             function*
-              u'__call__'
+              "__call__"
             context-line*
-              u'return client.evalsha(self.sha, len(keys), *args)'
+              "return client.evalsha(self.sha, len(keys), *args)"
           frame (non app frame)
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'client.py'
+              "client.py"
             function*
-              u'evalsha'
+              "evalsha"
             context-line*
-              u"return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+              "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
           frame (non app frame)
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'client.py'
+              "client.py"
             function*
-              u'execute_command'
+              "execute_command"
             context-line*
-              u'return self.parse_response(connection, command_name, **options)'
+              "return self.parse_response(connection, command_name, **options)"
           frame (non app frame)
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'client.py'
+              "client.py"
             function*
-              u'parse_response'
+              "parse_response"
             context-line*
-              u'response = connection.read_response()'
+              "response = connection.read_response()"
           frame (non app frame)
             module*
-              u'redis.connection'
+              "redis.connection"
             filename (module takes precedence)
-              u'connection.py'
+              "connection.py"
             function*
-              u'read_response'
+              "read_response"
             context-line*
-              u'response = self._parser.read_response()'
+              "response = self._parser.read_response()"
           frame (non app frame)
             module*
-              u'redis.connection'
+              "redis.connection"
             filename (module takes precedence)
-              u'connection.py'
+              "connection.py"
             function*
-              u'read_response'
+              "read_response"
             context-line*
-              u'(e.args,))'
+              "(e.args,))"
         type*
-          u'ConnectionError'
+          "ConnectionError"
         value (ignored because stacktrace takes precedence)
-          u"Error while reading from socket: ('Connection closed by server.',)"
+          "Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
 default:
-  hash: None
+  hash: null
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
-        u'%s.process_error'
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
+        "%s.process_error"
 --------------------------------------------------------------------------
 system:
-  hash: '013d3477a774fe20c468dc8accd516f1'
+  hash: "013d3477a774fe20c468dc8accd516f1"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'sentry.utils.safe'
+              "sentry.utils.safe"
             filename (module takes precedence)
-              u'safe.py'
+              "safe.py"
             function*
-              u'safe_execute'
+              "safe_execute"
             context-line*
-              u'result = func(*args, **kwargs)'
+              "result = func(*args, **kwargs)"
           frame*
             module*
-              u'sentry.utils.services'
+              "sentry.utils.services"
             filename (module takes precedence)
-              u'services.py'
+              "services.py"
             function*
-              u'<lambda>'
+              "<lambda>"
             context-line*
-              u'context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)'
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
           frame*
             module*
-              u'getsentry.quotas'
+              "getsentry.quotas"
             filename (module takes precedence)
-              u'quotas.py'
+              "quotas.py"
             function*
-              u'is_rate_limited'
+              "is_rate_limited"
             context-line*
-              u'return super(SubscriptionQuota, self).is_rate_limited(project, key=key)'
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
           frame*
             module*
-              u'sentry.quotas.redis'
+              "sentry.quotas.redis"
             filename (module takes precedence)
-              u'redis.py'
+              "redis.py"
             function*
-              u'is_rate_limited'
+              "is_rate_limited"
             context-line*
-              u'rejections = is_rate_limited(client, keys, args)'
+              "rejections = is_rate_limited(client, keys, args)"
           frame*
             module*
-              u'sentry.utils.redis'
+              "sentry.utils.redis"
             filename (module takes precedence)
-              u'redis.py'
+              "redis.py"
             function*
-              u'call_script'
+              "call_script"
             context-line*
-              u'return script(keys, args, client)'
+              "return script(keys, args, client)"
           frame*
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'client.py'
+              "client.py"
             function*
-              u'__call__'
+              "__call__"
             context-line*
-              u'return client.evalsha(self.sha, len(keys), *args)'
+              "return client.evalsha(self.sha, len(keys), *args)"
           frame*
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'client.py'
+              "client.py"
             function*
-              u'evalsha'
+              "evalsha"
             context-line*
-              u"return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+              "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
           frame*
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'client.py'
+              "client.py"
             function*
-              u'execute_command'
+              "execute_command"
             context-line*
-              u'return self.parse_response(connection, command_name, **options)'
+              "return self.parse_response(connection, command_name, **options)"
           frame*
             module*
-              u'redis.client'
+              "redis.client"
             filename (module takes precedence)
-              u'client.py'
+              "client.py"
             function*
-              u'parse_response'
+              "parse_response"
             context-line*
-              u'response = connection.read_response()'
+              "response = connection.read_response()"
           frame*
             module*
-              u'redis.connection'
+              "redis.connection"
             filename (module takes precedence)
-              u'connection.py'
+              "connection.py"
             function*
-              u'read_response'
+              "read_response"
             context-line*
-              u'response = self._parser.read_response()'
+              "response = self._parser.read_response()"
           frame*
             module*
-              u'redis.connection'
+              "redis.connection"
             filename (module takes precedence)
-              u'connection.py'
+              "connection.py"
             function*
-              u'read_response'
+              "read_response"
             context-line*
-              u'(e.args,))'
+              "(e.args,))"
         type*
-          u'ConnectionError'
+          "ConnectionError"
         value (ignored because stacktrace takes precedence)
-          u"Error while reading from socket: ('Connection closed by server.',)"
+          "Error while reading from socket: ('Connection closed by server.',)"

@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django import forms
 from django.conf import settings
+from django.conf.urls import url
 from django.contrib import admin, messages
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AdminPasswordChangeForm
 from django.core.exceptions import PermissionDenied
@@ -224,14 +225,9 @@ class UserAdmin(admin.ModelAdmin):
         return super(UserAdmin, self).get_form(request, obj, **defaults)
 
     def get_urls(self):
-        from django.conf.urls import patterns
-
-        return (
-            patterns(
-                "", (r"^(\d+)/password/$", self.admin_site.admin_view(self.user_change_password))
-            )
-            + super(UserAdmin, self).get_urls()
-        )
+        return [
+            url(r"^(\d+)/password/$", self.admin_site.admin_view(self.user_change_password))
+        ] + super(UserAdmin, self).get_urls()
 
     def lookup_allowed(self, lookup, value):
         # See #20078: we don't want to allow any lookups involving passwords.
@@ -290,7 +286,7 @@ class UserAdmin(admin.ModelAdmin):
             "adminForm": adminForm,
             "form_url": form_url,
             "form": form,
-            "is_popup": "_popup" in request.REQUEST,
+            "is_popup": "_popup" in request.GET,
             "add": True,
             "change": False,
             "has_delete_permission": False,

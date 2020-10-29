@@ -7,8 +7,8 @@ from django.conf import settings
 from django.utils.html import format_html
 from social_auth.models import UserSocialAuth
 
-from sentry.models import Activity, Event, GroupMeta
-from sentry.plugins import Plugin
+from sentry.models import Activity, GroupMeta
+from sentry.plugins.base.v1 import Plugin
 from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
@@ -183,6 +183,8 @@ class IssueTrackingPlugin(Plugin):
             else:
                 required_auth_settings = None
 
+            project = group.project
+
             return self.render(
                 self.not_configured_template,
                 {
@@ -190,6 +192,9 @@ class IssueTrackingPlugin(Plugin):
                     "project": group.project,
                     "has_auth_configured": has_auth_configured,
                     "required_auth_settings": required_auth_settings,
+                    "plugin_link": u"/settings/{}/projects/{}/plugins/{}/".format(
+                        project.organization.slug, project.slug, self.slug
+                    ),
                 },
             )
 
@@ -205,7 +210,6 @@ class IssueTrackingPlugin(Plugin):
 
         prefix = self.get_conf_key()
         event = group.get_latest_event()
-        Event.objects.bind_nodes([event], "data")
 
         op = request.POST.get("op", "create")
 

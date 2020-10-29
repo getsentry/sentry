@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 
+import six
 from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 
@@ -106,6 +107,8 @@ manager.add(81, "data_scrubbers", "Data Scrubbers", "admin", prerequisite=["firs
 manager.add(90, "release_created", "Create Release Using API", "api")
 manager.add(91, "deploy_created", "Create Deploy Using API", "api")
 
+manager.add(92, "metric_alert_rules", "Metric Alert Rules", "web", prerequisite=["first_event"])
+
 
 class FeatureAdoptionManager(BaseManager):
     def in_cache(self, organization_id, feature_id):
@@ -200,7 +203,9 @@ class FeatureAdoption(Model):
     __core__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
-    feature_id = models.PositiveIntegerField(choices=[(f.id, f.name) for f in manager.all()])
+    feature_id = models.PositiveIntegerField(
+        choices=[(f.id, six.text_type(f.name)) for f in manager.all()]
+    )
     date_completed = models.DateTimeField(default=timezone.now)
     complete = models.BooleanField(default=False)
     applicable = models.BooleanField(default=True)  # Is this feature applicable to this team?

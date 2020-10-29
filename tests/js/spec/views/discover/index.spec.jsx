@@ -1,37 +1,50 @@
 import React from 'react';
-import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import DiscoverContainerWithStore, {DiscoverContainer} from 'app/views/discover';
-import ProjectsStore from 'app/stores/projectsStore';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
-describe('DiscoverContainer', function() {
-  beforeEach(function() {
+import DiscoverContainerWithStore, {DiscoverContainer} from 'app/views/discover';
+
+describe('DiscoverContainer', function () {
+  beforeEach(function () {
     browserHistory.push = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+      method: 'POST',
+      body: {
+        data: [
+          {tags_key: 'tag1', count: 5},
+          {tags_key: 'tag2', count: 1},
+        ],
+        timing: {},
+        meta: [],
+      },
+    });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('new query', function() {
+  describe('new query', function () {
     let wrapper;
     const organization = TestStubs.Organization({
       projects: [TestStubs.Project({id: '1', slug: 'test-project'})],
       features: ['discover'],
     });
-    beforeEach(async function() {
+    beforeEach(async function () {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
-        method: 'POST',
+        url: '/organizations/org-slug/projects',
+        method: 'GET',
         body: {
-          data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
-          timing: {},
-          meta: [],
+          data: organization.projects,
         },
       });
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <DiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
@@ -43,35 +56,15 @@ describe('DiscoverContainer', function() {
       await tick();
     });
 
-    it('fetches tags', function() {
+    it('fetches tags', function () {
       const queryBuilder = wrapper.instance().queryBuilder;
       expect(wrapper.state().isLoading).toBe(false);
       expect(queryBuilder.getColumns().some(column => column.name === 'tag1')).toBe(true);
       expect(queryBuilder.getColumns().some(column => column.name === 'tag2')).toBe(true);
     });
-
-    it('sets active projects from global selection', async function() {
-      ProjectsStore.loadInitialData(organization.projects);
-
-      GlobalSelectionStore.reset({
-        projects: [1],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d'},
-      });
-
-      wrapper = mount(
-        <DiscoverContainerWithStore
-          location={{query: {}, search: ''}}
-          params={{}}
-          organization={organization}
-        />,
-        TestStubs.routerContext()
-      );
-      expect(wrapper.find('MultipleProjectSelector').text()).toBe('test-project');
-    });
   });
 
-  describe('saved query', function() {
+  describe('saved query', function () {
     let wrapper, savedQueryMock, addMock, savedQueries;
     const organization = TestStubs.Organization({
       projects: [TestStubs.Project()],
@@ -80,7 +73,7 @@ describe('DiscoverContainer', function() {
 
     const createWrapper = async (props, withStore) => {
       const Component = withStore ? DiscoverContainerWithStore : DiscoverContainer;
-      const wrap = mount(
+      const wrap = mountWithTheme(
         <Component
           location={{query: {}, search: ''}}
           params={{savedQueryId: 1}}
@@ -95,14 +88,14 @@ describe('DiscoverContainer', function() {
       return wrap;
     };
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       savedQueries = [
         TestStubs.DiscoverSavedQuery({id: '1', name: 'one'}),
         TestStubs.DiscoverSavedQuery({
           id: '2',
           name: 'two',
-          start: '2019-04-01T07:00:00.000Z',
-          end: '2019-04-04T06:59:59.000Z',
+          start: '2019-04-01T07:00:00.000',
+          end: '2019-04-04T06:59:59.000',
         }),
       ];
 
@@ -122,9 +115,9 @@ describe('DiscoverContainer', function() {
       });
     });
 
-    describe('Without Global Header Store', function() {
+    describe('Without Global Header Store', function () {
       let request;
-      beforeEach(async function() {
+      beforeEach(async function () {
         request = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
           method: 'POST',
@@ -133,15 +126,15 @@ describe('DiscoverContainer', function() {
         wrapper = await createWrapper();
       });
 
-      afterEach(function() {
+      afterEach(function () {
         MockApiClient.clearMockResponses();
       });
 
-      it('fetches saved query', function() {
+      it('fetches saved query', function () {
         expect(savedQueryMock).toHaveBeenCalled();
       });
 
-      it('navigates to and opens query with no date ranges saved', function() {
+      it('navigates to and opens query with no date ranges saved', function () {
         const nextQueryMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/discover/saved/1/',
           body: savedQueries[0],
@@ -171,7 +164,7 @@ describe('DiscoverContainer', function() {
         );
       });
 
-      it('navigates to and opens query with absolute dates saved', async function() {
+      it('navigates to and opens query with absolute dates saved', async function () {
         const nextQueryMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/discover/saved/2/',
           body: savedQueries[1],
@@ -196,8 +189,8 @@ describe('DiscoverContainer', function() {
             data: {
               aggregations: [],
               conditions: [],
-              start: '2019-04-01T07:00:00.000Z',
-              end: '2019-04-04T06:59:59.000Z',
+              start: '2019-04-01T07:00:00.000',
+              end: '2019-04-04T06:59:59.000',
               fields: ['test'],
               limit: expect.any(Number),
               orderby: expect.any(String),
@@ -207,7 +200,7 @@ describe('DiscoverContainer', function() {
         );
       });
 
-      it('toggles edit mode', function() {
+      it('toggles edit mode', function () {
         wrapper.instance().toggleEditMode();
         expect(browserHistory.push).toHaveBeenCalledWith({
           pathname: '/organizations/org-slug/discover/saved/1/',
@@ -216,7 +209,7 @@ describe('DiscoverContainer', function() {
       });
     });
 
-    it('changes date correctly', async function() {
+    it('changes date correctly', async function () {
       wrapper = await createWrapper({}, true);
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
@@ -248,10 +241,7 @@ describe('DiscoverContainer', function() {
 
       // Go to New Query and try to save
       // We need this click because it updates component state :/
-      wrapper
-        .find('SidebarTabs .nav-tabs a')
-        .first()
-        .simulate('click');
+      wrapper.find('SidebarTabs .nav-tabs a').first().simulate('click');
       // We need to update savedQueryId because there's also logic in cWRP of container
       wrapper.setProps({
         params: {savedQueryId: undefined},
@@ -271,10 +261,52 @@ describe('DiscoverContainer', function() {
     });
   });
 
-  describe('no access', function() {
-    it('display no access message', async function() {
+  describe('no access', function () {
+    it('redirects to discover query if they have access to discover-query', function () {
+      const organization = TestStubs.Organization({
+        projects: [TestStubs.Project()],
+        features: ['discover-query'],
+      });
+      const router = TestStubs.router();
+      mountWithTheme(
+        <DiscoverContainer
+          location={{query: {}, search: ''}}
+          params={{}}
+          selection={{datetime: {}}}
+          organization={organization}
+          router={router}
+        />,
+        TestStubs.routerContext()
+      );
+      expect(router.replace).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/discover/queries/`
+      );
+    });
+
+    it('redirects to discover results if they have access to discover-basic', function () {
+      const organization = TestStubs.Organization({
+        projects: [TestStubs.Project()],
+        features: ['discover-basic'],
+      });
+      const router = TestStubs.router();
+      mountWithTheme(
+        <DiscoverContainer
+          location={{query: {}, search: ''}}
+          params={{}}
+          selection={{datetime: {}}}
+          organization={organization}
+          router={router}
+        />,
+        TestStubs.routerContext()
+      );
+      expect(router.replace).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/discover/results/`
+      );
+    });
+
+    it('shows no feature alert if they have no access', function () {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <DiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}

@@ -22,16 +22,17 @@ class AsanaBackend(OAuthBackend):
     EXTRA_DATA = [
         ("email", "email"),
         ("name", "full_name"),
-        ("id", "id"),
+        ("gid", "id"),
         ("refresh_token", "refresh_token"),
     ]
+    ID_KEY = "gid"
 
     def get_user_details(self, response):
         """Return user details from Asana account"""
 
         return {
             "email": response.get("email"),
-            "id": response.get("id"),
+            "id": response.get("gid"),
             "full_name": response.get("name"),
         }
 
@@ -57,7 +58,7 @@ class AsanaAuth(BaseOAuth2):
             return None
 
     def auth_complete(self, *args, **kwargs):
-        """Completes loging process, must return user instance"""
+        """Completes logging process, must return user instance"""
         self.process_error(self.data)
         params = self.auth_complete_params(self.validate_state())
 

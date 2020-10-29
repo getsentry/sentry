@@ -1,24 +1,23 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import map
 
 
 class ProjectEventsTest(APITestCase, SnubaTestCase):
-    def setUp(self):
-        super(ProjectEventsTest, self).setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
-
     def test_simple(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event(event_id="b" * 32, group=group, datetime=self.min_ago)
+        event_1 = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+        event_2 = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
 
         url = reverse(
             "sentry-api-0-project-events",
@@ -36,12 +35,13 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        self.create_event(
-            event_id="x" * 32, group=group, message="how to make fast", datetime=self.min_ago
+        self.store_event(
+            data={"message": "how to make fast", "timestamp": iso_format(before_now(minutes=1))},
+            project_id=project.id,
         )
-        event_2 = self.create_event(
-            event_id="y" * 32, group=group, message="Delet the Data", datetime=self.min_ago
+        event_2 = self.store_event(
+            data={"message": "Delet the Data", "timestamp": iso_format(before_now(minutes=1))},
+            project_id=project.id,
         )
 
         url = reverse(
@@ -59,10 +59,10 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        two_days_ago = timezone.now() - timedelta(days=2)
-        self.create_event(event_id="c" * 32, group=group, datetime=two_days_ago)
-        event_2 = self.create_event(event_id="d" * 32, group=group, datetime=self.min_ago)
+        self.store_event(data={"timestamp": iso_format(before_now(days=2))}, project_id=project.id)
+        event_2 = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
 
         with self.options({"system.event-retention-days": 1}):
             url = reverse(

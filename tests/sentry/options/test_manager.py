@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from exam import fixture, around
-from mock import patch
+from sentry.utils.compat.mock import patch
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 

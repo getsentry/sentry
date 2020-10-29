@@ -11,7 +11,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
-from simplejson import JSONDecodeError
 
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -51,6 +50,12 @@ class Webhook(object):
 
     def update_repo_data(self, repo, event):
         """
+        # TODO(kmclb): the name w namespace bit is currently causing false positives
+        # for people with three or more levels in their repo names. Need to research
+        # exactly how gitlab handles these cases (what's the name, what's the namespace,
+        # does the url reliably have the info we need?) and then fix this for those
+        # cases.
+
         Given a webhook payload, update stored repo data if needed.
 
         Assumes a 'project' key in event payload, with certain subkeys. Rework
@@ -87,8 +92,9 @@ class MergeEventWebhook(Webhook):
         if repo is None:
             return
 
+        # TODO(kmclb): turn this back on once tri-level repo problem has been solved
         # while we're here, make sure repo data is up to date
-        self.update_repo_data(repo, event)
+        # self.update_repo_data(repo, event)
 
         try:
             number = event["object_attributes"]["iid"]
@@ -145,8 +151,9 @@ class PushEventWebhook(Webhook):
         if repo is None:
             return
 
+        # TODO(kmclb): turn this back on once tri-level repo problem has been solved
         # while we're here, make sure repo data is up to date
-        self.update_repo_data(repo, event)
+        # self.update_repo_data(repo, event)
 
         authors = {}
 
@@ -233,7 +240,7 @@ class GitlabWebhookEndpoint(View):
 
         try:
             event = json.loads(request.body.decode("utf-8"))
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             logger.info(
                 "gitlab.webhook.invalid-json", extra={"external_id": integration.external_id}
             )

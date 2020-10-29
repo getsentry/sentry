@@ -10,7 +10,7 @@ from exam import fixture
 from sentry.models import Integration, Repository
 from sentry.testutils import TestCase, IntegrationRepositoryTestCase
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from .testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH, REPO
 
 

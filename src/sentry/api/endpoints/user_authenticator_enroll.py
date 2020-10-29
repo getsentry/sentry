@@ -27,6 +27,7 @@ class TotpRestSerializer(serializers.Serializer):
         help_text="Code from authenticator",
         required=True,
         max_length=20,
+        trim_whitespace=False,
     )
 
 
@@ -36,6 +37,7 @@ class SmsRestSerializer(serializers.Serializer):
         help_text="Phone number to send SMS code",
         required=True,
         max_length=20,
+        trim_whitespace=False,
     )
     otp = serializers.CharField(
         label="Authenticator code",
@@ -44,6 +46,7 @@ class SmsRestSerializer(serializers.Serializer):
         allow_null=True,
         allow_blank=True,
         max_length=20,
+        trim_whitespace=False,
     )
 
 
@@ -54,10 +57,11 @@ class U2fRestSerializer(serializers.Serializer):
         allow_null=True,
         allow_blank=True,
         max_length=60,
+        trim_whitespace=False,
         default=lambda: petname.Generate(2, " ", letters=10).title(),
     )
-    challenge = serializers.CharField(required=True)
-    response = serializers.CharField(required=True)
+    challenge = serializers.CharField(required=True, trim_whitespace=False)
+    response = serializers.CharField(required=True, trim_whitespace=False)
 
 
 serializer_map = {"totp": TotpRestSerializer, "sms": SmsRestSerializer, "u2f": U2fRestSerializer}
@@ -107,7 +111,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         interface = Authenticator.objects.get_interface(user, interface_id)
 
         # Not all interfaces allow multi enrollment
-        if interface.is_enrolled and not interface.allow_multi_enrollment:
+        if interface.is_enrolled() and not interface.allow_multi_enrollment:
             return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         # User is not enrolled in auth interface:
@@ -166,7 +170,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         #
         # This is probably un-needed because we catch
         # `Authenticator.AlreadyEnrolled` when attempting to enroll
-        if interface.is_enrolled and not interface.allow_multi_enrollment:
+        if interface.is_enrolled() and not interface.allow_multi_enrollment:
             return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         try:

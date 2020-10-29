@@ -1,15 +1,27 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Commit} from 'app/types';
-import Avatar from 'app/components/avatar';
+import {AvatarUser, Commit} from 'app/types';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import TimeSince from 'app/components/timeSince';
-
 import {t} from 'app/locale';
 
 type Props = {
   commit: Commit;
   headerClass: string;
+};
+
+const unknownUser: AvatarUser = {
+  id: '',
+  name: '',
+  username: '??',
+  email: '',
+  avatarUrl: '',
+  avatar: {
+    avatarUuid: '',
+    avatarType: 'letter_avatar',
+  },
+  ip_address: '',
 };
 
 class LastCommit extends React.Component<Props> {
@@ -18,7 +30,7 @@ class LastCommit extends React.Component<Props> {
     headerClass: PropTypes.string,
   };
 
-  renderMessage(message: string): string {
+  renderMessage(message: Commit['message']): string {
     if (!message) {
       return t('No message provided');
     }
@@ -45,7 +57,7 @@ class LastCommit extends React.Component<Props> {
         <h6 className={headerClass}>Last commit</h6>
         <div className="commit">
           <div className="commit-avatar">
-            <Avatar user={commitAuthor || {username: '?'}} />
+            <UserAvatar user={commitAuthor || unknownUser} />
           </div>
           <div className="commit-message truncate">
             {this.renderMessage(commit.message)}

@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
 import logging
-import json
-from jsonschema import Draft4Validator
+
+from jsonschema import Draft7Validator
 from jsonschema.exceptions import best_match
 from jsonschema.exceptions import ValidationError as SchemaValidationError
+
+from sentry.utils import json
+
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +44,11 @@ SCHEMA = {
                 "type": {"type": "string", "enum": ["select"]},
                 "label": {"type": "string"},
                 "name": {"type": "string"},
+                "async": {"type": "boolean"},
+                "skip_load_on_open": {"type": "boolean"},
                 "uri": {"$ref": "#/definitions/uri"},
                 "options": {"$ref": "#/definitions/options"},
+                "depends_on": {"type": "array", "minItems": 1, "items": {"type": "string"}},
             },
             "required": ["type", "name", "label"],
             "oneOf": [{"required": ["uri"]}, {"required": ["options"]}],
@@ -198,11 +204,14 @@ def validate_component(schema):
 
 
 def check_elements_is_array(instance):
-    if not isinstance(instance["elements"], list):
+    if "elements" in instance and not isinstance(instance["elements"], list):
         raise SchemaValidationError("'elements' should be an array of objects")
 
 
 def check_each_element_for_error(instance):
+    if "elements" not in instance:
+        return
+
     for element in instance["elements"]:
         if "type" not in element:
             raise SchemaValidationError("Each element needs a 'type' field")
@@ -228,7 +237,7 @@ def validate_ui_element_schema(instance):
         raise e
     except Exception as e:
         logger.warn(
-            "Unexepcted error validating schema: %s",
+            "Unexpected error validating schema: %s",
             e,
             exc_info=True,
             extra={"schema": json.dumps(instance)},
@@ -240,6 +249,6 @@ def validate_ui_element_schema(instance):
 
 
 def validate(instance, schema):
-    v = Draft4Validator(schema)
+    v = Draft7Validator(schema)
     if not v.is_valid(instance):
         raise best_match(v.iter_errors(instance))

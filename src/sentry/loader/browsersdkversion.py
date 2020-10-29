@@ -3,15 +3,16 @@ from __future__ import absolute_import
 import os
 import re
 import logging
-import json
 import six
 
 from pkg_resources import parse_version
-from functools32 import lru_cache
+from sentry.utils.compat import functools
 
 import sentry
 
 from django.conf import settings
+from sentry.utils import json
+from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry")
 
@@ -19,7 +20,7 @@ _version_regexp = re.compile(r"^\d+\.\d+\.\d+$")  # We really only want stable r
 LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), "loader"))
 
 
-@lru_cache(maxsize=10)
+@functools.lru_cache(maxsize=10)
 def load_registry(path):
     if "/" in path:
         return None
@@ -32,9 +33,9 @@ def load_registry(path):
 
 
 def get_highest_browser_sdk_version(versions):
-    full_versions = filter(lambda x: _version_regexp.match(x), versions)
+    full_versions = [x for x in versions if _version_regexp.match(x)]
     return (
-        six.binary_type(max(map(parse_version, full_versions)))
+        six.text_type(max(map(parse_version, full_versions)))
         if full_versions
         else settings.JS_SDK_LOADER_SDK_VERSION
     )
@@ -63,7 +64,7 @@ def get_highest_selected_browser_sdk_version(selected_version):
     if selected_version == "latest":
         return get_highest_browser_sdk_version(versions)
     return get_highest_browser_sdk_version(
-        filter(lambda x: x.startswith(selected_version[0]), versions)
+        [x for x in versions if x.startswith(selected_version[0])]
     )
 
 
@@ -73,7 +74,7 @@ def get_browser_sdk_version(project_key):
     try:
         return get_highest_selected_browser_sdk_version(selected_version)
     except BaseException:
-        logger.error("error ocurred while trying to read js sdk information from the registry")
+        logger.error("error occurred while trying to read js sdk information from the registry")
         return settings.JS_SDK_LOADER_SDK_VERSION
 
 

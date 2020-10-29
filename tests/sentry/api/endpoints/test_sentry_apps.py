@@ -3,15 +3,22 @@ from __future__ import absolute_import
 import six
 import re
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 from django.core.urlresolvers import reverse
 
 from sentry.constants import SentryAppStatus
 from sentry.utils import json
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
-from sentry.models import SentryApp, SentryAppInstallationToken, SentryAppInstallation, ApiToken
+from sentry.testutils.helpers import Feature, with_feature
+from sentry.models import (
+    SentryApp,
+    SentryAppInstallationToken,
+    SentryAppInstallation,
+    ApiToken,
+    OrganizationMember,
+)
 from sentry.models.sentryapp import MASKED_VALUE
+from sentry.mediators import sentry_apps
 
 
 class SentryAppsTest(APITestCase):
@@ -79,6 +86,12 @@ class GetSentryAppsTest(SentryAppsTest):
             "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
+            "featureData": [
+                {
+                    "featureGate": "integrations-api",
+                    "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                }
+            ],
         } in json.loads(response.content)
 
     def test_users_filter_on_internal_apps(self):
@@ -105,6 +118,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "clientId": self.internal_app.application.client_id,
             "clientSecret": self.internal_app.application.client_secret,
             "owner": {"id": self.internal_org.id, "slug": self.internal_org.slug},
+            "featureData": [],
         } in json.loads(response.content)
 
         response_uuids = set(o["uuid"] for o in response.data)
@@ -141,6 +155,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "clientId": self.internal_app.application.client_id,
             "clientSecret": self.internal_app.application.client_secret,
             "owner": {"id": self.internal_org.id, "slug": self.internal_org.slug},
+            "featureData": [],
         } in json.loads(response.content)
 
         response_uuids = set(o["uuid"] for o in response.data)
@@ -173,6 +188,12 @@ class GetSentryAppsTest(SentryAppsTest):
             "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
+            "featureData": [
+                {
+                    "featureGate": "integrations-api",
+                    "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                }
+            ],
         } in json.loads(response.content)
 
         response_uuids = set(o["uuid"] for o in response.data)
@@ -214,6 +235,12 @@ class GetSentryAppsTest(SentryAppsTest):
             "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
+            "featureData": [
+                {
+                    "featureGate": "integrations-api",
+                    "description": "Testin can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                }
+            ],
         } in json.loads(response.content)
 
         response_uuids = set(o["uuid"] for o in response.data)
@@ -259,6 +286,12 @@ class GetSentryAppsTest(SentryAppsTest):
             "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
+            "featureData": [
+                {
+                    "featureGate": "integrations-api",
+                    "description": "Boo Far can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                }
+            ],
         } in json.loads(response.content)
 
     def test_users_dont_see_unpublished_apps_their_org_owns(self):
@@ -303,15 +336,30 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 201, response.content
         assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
 
-    def test_non_unique_app_slug(self):
-        from sentry.mediators import sentry_apps
-
+    def test_non_unique_app_slug_fails(self):
         self.login_as(user=self.user)
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.org)
         sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
         response = self._post(**{"name": sentry_app.name})
         assert response.status_code == 400
         assert response.data == {"name": ["Name Foo Bar is already taken, please use another."]}
+
+    def test_same_name_internal_integration(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        sentry_app = self.create_internal_integration(name="Foo Bar", organization=self.org)
+        response = self._post(**{"name": sentry_app.name})
+        assert response.status_code == 201
+        assert response.data["name"] == sentry_app.name
+        assert response.data["slug"] != sentry_app.slug
+
+    def test_long_name_internal_integration(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        kwargs = {"name": "k" * 58}
+        response = self._post(**kwargs)
+        assert response.status_code == 400
+        assert response.data == {"name": ["Cannot exceed 57 characters"]}
 
     def test_invalid_with_missing_webhool_url_scheme(self):
         self.login_as(user=self.user)
@@ -359,13 +407,17 @@ class PostSentryAppsTest(SentryAppsTest):
             "schema": ["['#general'] is too short for element of type 'alert-rule-action'"]
         }
 
+        # XXX: Compare schema as an object instead of json to avoid key
+        # ordering issues
+        record.call_args.kwargs["schema"] = json.loads(record.call_args.kwargs["schema"])
+
         record.assert_called_with(
             "sentry_app.schema_validation_error",
+            schema=kwargs["schema"],
             user_id=self.user.id,
-            organization_id=self.org.id,
             sentry_app_name="MyApp",
+            organization_id=self.org.id,
             error_message="['#general'] is too short for element of type 'alert-rule-action'",
-            schema='{"elements":[{"required_fields":[{"label":"Channel","type":"select","options":[["#general"]],"name":"channel"}],"type":"alert-rule-action"}]}',
         )
 
     @with_feature("organizations:integrations-event-hooks")
@@ -387,14 +439,16 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_cannot_create_with_error_created_hook_without_flag(self):
         self.login_as(user=self.user)
 
-        kwargs = {"events": ("error",)}
-        response = self._post(**kwargs)
+        with Feature({"organizations:integrations-event-hooks": False}):
+            kwargs = {"events": ("error",)}
+            response = self._post(**kwargs)
 
-        assert response.status_code == 403, response.content
-        assert (
-            response.content
-            == '{"non_field_errors":["Your organization does not have access to the \'error\' resource subscription."]}'
-        )
+            assert response.status_code == 403, response.content
+            assert response.data == {
+                "non_field_errors": [
+                    "Your organization does not have access to the 'error' resource subscription."
+                ]
+            }
 
     def test_allows_empty_schema(self):
         self.login_as(self.user)
@@ -517,6 +571,41 @@ class PostSentryAppsTest(SentryAppsTest):
             url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION="Bearer %s" % (token.token)
         )
         assert response.status_code == 400
+
+    def test_create_integration_exceeding_scopes(self):
+        member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
+        member_om.role = "member"
+        member_om.save()
+        self.login_as(user=self.user)
+        response = self._post(events=(), scopes=("member:read", "member:write", "member:admin"))
+
+        assert response.status_code == 400
+        assert response.data == {
+            "scopes": [
+                "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
+                "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+            ]
+        }
+
+    def test_create_internal_integration_with_non_globally_unique_name(self):
+        # Internal integration names should only need to be unique within an organization
+        self.login_as(user=self.user)
+        self.create_project(organization=self.org)
+
+        other_org = self.create_organization()
+        other_org_integration = self.create_sentry_app(name="Foo Bar", organization=other_org)
+
+        response = self._post(name=other_org_integration.name, isInternal=True)
+        assert response.status_code == 201
+
+        other_org = self.create_organization()
+        self.create_project(organization=other_org)
+        other_org_internal_integration = self.create_internal_integration(
+            name="Foo Bar 2", organization=other_org
+        )
+
+        response = self._post(name=other_org_internal_integration.name, isInternal=True)
+        assert response.status_code == 201
 
     def _post(self, **kwargs):
         body = {

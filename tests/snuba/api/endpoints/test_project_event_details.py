@@ -49,7 +49,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-    def test_snuba(self):
+    def test_simple(self):
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={
@@ -91,9 +91,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
                 "project_slug": self.cur_event.project.slug,
                 "organization_slug": self.cur_event.project.organization.slug,
             },
-        )
-        response = self.client.get(
-            url, format="json", data={"enable_snuba": "1", "environment": ["production", "staging"]}
         )
         response = self.client.get(
             url, format="json", data={"environment": ["production", "staging"]}

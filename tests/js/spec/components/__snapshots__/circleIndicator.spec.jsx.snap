@@ -1,8 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`CircleIndicator renders 1`] = `
-<div
-  className="css-onxsyu-CircleIndicator exfjg1y0"
-  size={14}
-/>
-`;

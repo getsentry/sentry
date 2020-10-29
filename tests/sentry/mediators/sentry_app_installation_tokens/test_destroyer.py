@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.mediators.sentry_app_installation_tokens import Destroyer
 from sentry.models import AuditLogEntry, ApiToken, SentryAppInstallationToken, SentryAppInstallation

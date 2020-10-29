@@ -1,7 +1,6 @@
-import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
@@ -10,6 +9,8 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectControl from 'app/components/forms/selectControl';
+import {IconAdd, IconDelete} from 'app/icons';
+import space from 'app/styles/space';
 
 const selectControlShape = PropTypes.shape(SelectControl.propTypes);
 
@@ -147,7 +148,7 @@ export default class ChoiceMapper extends React.Component {
       >
         {({isOpen}) => (
           <DropdownButton
-            icon="icon-circle-add"
+            icon={<IconAdd size="xs" isCircled />}
             isOpen={isOpen}
             size="xsmall"
             disabled={disabled}
@@ -161,35 +162,30 @@ export default class ChoiceMapper extends React.Component {
     // The field will be set to inline when there is no value set for the
     // field, just show the dropdown.
     if (!valueIsEmpty) {
-      return <Box>{dropdown}</Box>;
+      return <div>{dropdown}</div>;
     }
 
     return (
       <React.Fragment>
-        <Flex align="center">
+        <Header>
           <LabelColumn>
-            <StyledHeader>{mappedColumnLabel}</StyledHeader>
+            <HeadingItem>{mappedColumnLabel}</HeadingItem>
           </LabelColumn>
           {mappedKeys.map((fieldKey, i) => (
-            <Flex
-              key={fieldKey}
-              ml={1}
-              flex="1 0 0"
-              align="center"
-              justify="space-between"
-            >
-              <StyledHeader>{columnLabels[fieldKey]}</StyledHeader>
+            <Heading key={fieldKey}>
+              <HeadingItem>{columnLabels[fieldKey]}</HeadingItem>
               {i === mappedKeys.length - 1 && dropdown}
-            </Flex>
+            </Heading>
           ))}
-        </Flex>
+        </Header>
         {Object.keys(value).map(itemKey => (
-          <Flex key={itemKey} align="center" mt={1}>
+          <Row key={itemKey}>
             <LabelColumn>{valueMap[itemKey]}</LabelColumn>
             {mappedKeys.map((fieldKey, i) => (
-              <Flex key={fieldKey} align="center" ml={1} flex="1 0 0">
-                <Box flex={1}>
+              <Column key={fieldKey}>
+                <Control>
                   <SelectControl
+                    deprecatedSelectControl
                     {...(perItemMapping
                       ? mappedSelectors[itemKey][fieldKey]
                       : mappedSelectors[fieldKey])}
@@ -198,20 +194,20 @@ export default class ChoiceMapper extends React.Component {
                     onChange={v => setValue(itemKey, fieldKey, v ? v.value : null)}
                     value={value[itemKey][fieldKey]}
                   />
-                </Box>
+                </Control>
                 {i === mappedKeys.length - 1 && (
-                  <Box ml={1}>
+                  <Actions>
                     <Button
-                      icon="icon-trash"
+                      icon={<IconDelete />}
                       size="small"
                       disabled={disabled}
                       onClick={() => removeRow(itemKey)}
                     />
-                  </Box>
+                  </Actions>
                 )}
-              </Flex>
+              </Column>
             ))}
-          </Flex>
+          </Row>
         ))}
       </React.Fragment>
     );
@@ -228,10 +224,46 @@ export default class ChoiceMapper extends React.Component {
   }
 }
 
-const LabelColumn = styled(p => <Box flex="0 0 200px" {...p} />)``;
+const Header = styled('div')`
+  display: flex;
+  align-items: center;
+`;
 
-const StyledHeader = styled(Box)`
+const Heading = styled('div')`
+  display: flex;
+  margin-left: ${space(1)};
+  flex: 1 0 0;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const Row = styled('div')`
+  display: flex;
+  margin-top: ${space(1)};
+  align-items: center;
+`;
+
+const Column = styled('div')`
+  display: flex;
+  margin-left: ${space(1)};
+  align-items: center;
+  flex: 1 0 0;
+`;
+
+const Control = styled('div')`
+  flex: 1;
+`;
+
+const LabelColumn = styled('div')`
+  flex: 0 0 200px;
+`;
+
+const HeadingItem = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
+`;
+
+const Actions = styled('div')`
+  margin-left: ${space(1)};
 `;

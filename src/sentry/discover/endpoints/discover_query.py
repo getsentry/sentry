@@ -7,12 +7,14 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.models import Project, ProjectStatus
 from sentry.utils import snuba
+from sentry.discover.utils import transform_aliases_and_query
 from sentry import features
 
 from .serializers import DiscoverQuerySerializer
+from sentry.utils.compat import map
 
 
 class DiscoverQueryPermission(OrganizationPermission):
@@ -21,6 +23,11 @@ class DiscoverQueryPermission(OrganizationPermission):
 
 class DiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverQueryPermission,)
+
+    def has_feature(self, request, organization):
+        return features.has(
+            "organizations:discover", organization, actor=request.user
+        ) or features.has("organizations:discover-basic", organization, actor=request.user)
 
     def handle_results(self, snuba_results, requested_query, projects):
         if "project.name" in requested_query["selected_columns"]:
@@ -83,7 +90,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
 
         if not kwargs["aggregations"]:
 
-            data_fn = partial(snuba.transform_aliases_and_query, referrer="discover", **kwargs)
+            data_fn = partial(transform_aliases_and_query, referrer="discover", **kwargs)
             return self.paginate(
                 request=request,
                 on_results=lambda results: self.handle_results(results, requested_query, projects),
@@ -91,27 +98,20 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
                 max_per_page=1000,
             )
         else:
-            snuba_results = snuba.transform_aliases_and_query(referrer="discover", **kwargs)
+            snuba_results = transform_aliases_and_query(referrer="discover", **kwargs)
             return Response(
                 self.handle_results(snuba_results, requested_query, projects), status=200
             )
 
     def post(self, request, organization):
-        if not features.has("organizations:discover", organization, actor=request.user):
+        if not self.has_feature(request, organization):
             return Response(status=404)
 
-        requested_projects = request.data["projects"]
-
-        projects = list(
-            Project.objects.filter(
-                id__in=requested_projects, organization=organization, status=ProjectStatus.VISIBLE
-            )
-        )
-
-        has_invalid_projects = len(projects) < len(requested_projects)
-
-        if has_invalid_projects or not request.access.has_projects_access(projects):
-            return Response("Invalid projects", status=403)
+        try:
+            requested_projects = set(map(int, request.data.get("projects", [])))
+        except (ValueError, TypeError):
+            raise ResourceDoesNotExist()
+        projects = self._get_projects_by_id(requested_projects, request, organization)
 
         serializer = DiscoverQuerySerializer(data=request.data)
 
@@ -152,7 +152,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
             limit=serialized.get("limit"),
             aggregations=serialized.get("aggregations"),
             rollup=serialized.get("rollup"),
-            filter_keys={"project.id": serialized.get("projects")},
+            filter_keys={"project.id": list(projects_map.keys())},
             arrayjoin=serialized.get("arrayjoin"),
             request=request,
             turbo=serialized.get("turbo"),

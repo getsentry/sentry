@@ -36,10 +36,11 @@ class VstsApiPath(object):
     work_item_states = u"{instance}{project}/_apis/wit/workitemtypes/{type}/states"
     # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
     users = u"https://{account_name}.vssps.visualstudio.com/_apis/graph/users"
+    work_item_categories = u"{instance}{project}/_apis/wit/workitemtypecategories"
 
 
 class VstsApiClient(ApiClient, OAuth2RefreshMixin):
-    api_version = "4.1"
+    api_version = "4.1"  # TODO: update api version
     api_version_preview = "-preview.1"
     integration_name = "vsts"
 
@@ -68,7 +69,14 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def create_work_item(
-        self, instance, project, title=None, description=None, comment=None, link=None
+        self,
+        instance,
+        project,
+        item_type=None,
+        title=None,
+        description=None,
+        comment=None,
+        link=None,
     ):
         data = []
         if title:
@@ -89,7 +97,9 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         #     })
 
         return self.patch(
-            VstsApiPath.work_items_create.format(instance=instance, project=project, type="Bug"),
+            VstsApiPath.work_items_create.format(
+                instance=instance, project=project, type=item_type
+            ),
             data=data,
         )
 
@@ -149,11 +159,8 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             api_preview=True,
         )
 
-    def get_work_item_types(self, instance, process_id):
-        return self.get(
-            VstsApiPath.work_item_types.format(instance=instance, process_id=process_id),
-            api_preview=True,
-        )
+    def get_work_item_categories(self, instance, project):
+        return self.get(VstsApiPath.work_item_categories.format(instance=instance, project=project))
 
     def get_repo(self, instance, name_or_id, project=None):
         return self.get(
@@ -206,11 +213,25 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def get_projects(self, instance):
-        # TODO(dcramer): VSTS doesn't provide a way to search, so we're
-        # making the assumption that a user has 100 or less projects today.
-        return self.get(
-            VstsApiPath.projects.format(instance=instance), params={"stateFilter": "WellFormed"}
-        )
+        limit = 100  # 100 is max
+        offset = 0
+        projects = []
+
+        # no one should have more than 1000 projects
+        for i in range(10):
+            # ADO supports a continuation token in the response but only in the newer API version (https://docs.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-6.1)
+            # the token comes as a repsponse header instead of the body and our API clients currently only return the body
+            # we can use count, $skip, and $top to get the same result
+            resp = self.get(
+                VstsApiPath.projects.format(instance=instance),
+                params={"stateFilter": "WellFormed", "$skip": offset, "$top": limit},
+            )
+            projects += resp["value"]
+            offset += resp["count"]
+            # if the number is lower than our limit, we can quit
+            if resp["count"] < limit:
+                return projects
+        return projects
 
     def get_users(self, account_name, continuation_token=None):
         """

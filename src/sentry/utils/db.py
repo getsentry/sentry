@@ -2,26 +2,9 @@ from __future__ import absolute_import
 
 import six
 
-from django.conf import settings
 from django.db import connections, DEFAULT_DB_ALIAS
 
-# TODO: (Django 1.9) Remove once on Django 1.9+
-try:
-    from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
-except ImportError:
-    from django.db.models.fields.related import (
-        SingleRelatedObjectDescriptor as ReverseOneToOneDescriptor,
-    )
-
-
-def get_db_engine(alias="default"):
-    value = settings.DATABASES[alias]["ENGINE"]
-    return value.rsplit(".", 1)[-1]
-
-
-def is_postgres(alias="default"):
-    engine = get_db_engine(alias)
-    return "postgres" in engine
+from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
 
 
 def attach_foreignkey(objects, field, related=(), database=None):
@@ -63,9 +46,9 @@ def attach_foreignkey(objects, field, related=(), database=None):
 
     # Ensure values are unique, do not contain already present values, and are not missing
     # values specified in select_related
-    values = set(filter(None, (getattr(o, column) for o in objects)))
+    values = set([_f for _f in (getattr(o, column) for o in objects) if _f])
     if values:
-        qs = model.objects
+        qs = model._default_manager
         if database:
             qs = qs.using(database)
         if related:

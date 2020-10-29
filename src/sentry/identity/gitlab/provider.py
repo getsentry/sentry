@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import logging
 
+import six
+
 from sentry import http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
@@ -50,7 +52,7 @@ def get_user_info(access_token, installation_data):
                 "verify_ssl": installation_data["verify_ssl"],
                 "client_id": installation_data["client_id"],
                 "error_status": e.code,
-                "error_message": e.message,
+                "error_message": six.text_type(e),
             },
         )
         raise e
@@ -100,7 +102,7 @@ class GitlabIdentityProvider(OAuth2Provider):
                 extra={
                     "identity_id": identity.id,
                     "error_status": e.code,
-                    "error_message": e.message,
+                    "error_message": six.text_type(e),
                 },
             )
             payload = {}

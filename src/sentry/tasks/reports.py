@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import bisect
 import functools
-import itertools
 import logging
 import math
 import operator
@@ -31,7 +30,10 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
-from six.moves import reduce
+from six.moves import reduce, zip_longest
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
+from sentry.utils.compat import filter
 
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
@@ -134,7 +136,12 @@ def merge_sequences(target, other, function=operator.add):
     sequences must be equal.
     """
     assert len(target) == len(other), "sequence lengths must match"
-    return type(target)([function(x, y) for x, y in zip(target, other)])
+
+    rt_type = type(target)
+    if rt_type == range:
+        rt_type = list
+
+    return rt_type([function(x, y) for x, y in zip(target, other)])
 
 
 def merge_mappings(target, other, function=lambda x, y: x + y):
@@ -153,7 +160,7 @@ def merge_series(target, other, function=operator.add):
     """
     missing = object()
     results = []
-    for x, y in itertools.izip_longest(target, other, fillvalue=missing):
+    for x, y in zip_longest(target, other, fillvalue=missing):
         assert x is not missing and y is not missing, "series must be same length"
         assert x[0] == y[0], "series timestamps must match"
         results.append((x[0], function(x[1], y[1])))
@@ -406,7 +413,7 @@ class RedisReportBackend(ReportBackend):
         )
 
     def __encode(self, report):
-        return zlib.compress(json.dumps(list(report)))
+        return zlib.compress(json.dumps(list(report)).encode("utf-8"))
 
     def __decode(self, value):
         if value is None:
@@ -437,7 +444,7 @@ class RedisReportBackend(ReportBackend):
                 [project.id for project in projects],
             )
 
-        return list(map(self.__decode, result.value))
+        return map(self.__decode, result.value)
 
 
 backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
@@ -538,6 +545,7 @@ def build_message(timestamp, duration, organization, user, reports):
             "report": to_context(organization, interval, reports),
             "user": user,
         },
+        headers={"category": "organization_report_email"},
     )
 
     message.add_users((user.id,))
@@ -757,6 +765,8 @@ def to_context(organization, interval, reports):
 def get_percentile(values, percentile):
     # XXX: ``values`` must be sorted.
     assert 1 >= percentile > 0
+    if len(values) == 0:
+        return 0
     if percentile == 1:
         index = -1
     else:
@@ -772,7 +782,7 @@ def colorize(spectrum, values):
     for i, color in enumerate(spectrum, 1):
         legend[color] = calculate_percentile(i * width)
 
-    find_index = functools.partial(bisect.bisect_left, legend.values())
+    find_index = functools.partial(bisect.bisect_left, list(legend.values()))
 
     results = []
     for value in values:

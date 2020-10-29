@@ -3,21 +3,24 @@ from __future__ import absolute_import, print_function
 import logging
 from collections import namedtuple
 
+from django.utils.encoding import force_text, python_2_unicode_compatible
+
+
 from .view import ConfigureView
 
 
+@python_2_unicode_compatible
 class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):
     """
     MigratingIdentityId may be used in the ``id`` field of an identity
-    dictionary to facilitate migrating user identites from one identifying id
+    dictionary to facilitate migrating user identities from one identifying id
     to another.
     """
 
     __slots__ = ()
 
-    def __unicode__(self):
-        # Default to id when coercing for query lookup
-        return self.id
+    def __str__(self):
+        return force_text(self.id)
 
 
 class Provider(object):

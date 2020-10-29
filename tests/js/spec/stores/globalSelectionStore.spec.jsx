@@ -5,48 +5,44 @@ import {
   updateEnvironments,
 } from 'app/actionCreators/globalSelection';
 
-jest.mock('app/utils/localStorage', () => {
-  return {
-    getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),
-    setItem: jest.fn(),
-  };
-});
+jest.mock('app/utils/localStorage', () => ({
+  getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),
+  setItem: jest.fn(),
+}));
 
-describe('GlobalSelectionStore', function() {
-  const organization = TestStubs.Organization({
-    features: ['global-views'],
-    projects: [TestStubs.Project({id: '5'})],
-  });
-
-  afterEach(function() {
+describe('GlobalSelectionStore', function () {
+  afterEach(function () {
     GlobalSelectionStore.reset();
   });
 
-  it('get()', function() {
+  it('get()', function () {
     expect(GlobalSelectionStore.get()).toEqual({
-      projects: [],
-      environments: [],
-      datetime: {period: null, start: null, end: null, utc: null},
+      isReady: false,
+      selection: {
+        projects: [],
+        environments: [],
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      },
     });
   });
 
-  it('updateProjects()', async function() {
-    expect(GlobalSelectionStore.get().projects).toEqual([]);
+  it('updateProjects()', async function () {
+    expect(GlobalSelectionStore.get().selection.projects).toEqual([]);
     updateProjects([1]);
     await tick();
-    expect(GlobalSelectionStore.get().projects).toEqual([1]);
+    expect(GlobalSelectionStore.get().selection.projects).toEqual([1]);
   });
 
-  it('updateDateTime()', async function() {
-    expect(GlobalSelectionStore.get().datetime).toEqual({
-      period: null,
+  it('updateDateTime()', async function () {
+    expect(GlobalSelectionStore.get().selection.datetime).toEqual({
+      period: '14d',
       start: null,
       end: null,
       utc: null,
     });
     updateDateTime({period: '2h', start: null, end: null});
     await tick();
-    expect(GlobalSelectionStore.get().datetime).toEqual({
+    expect(GlobalSelectionStore.get().selection.datetime).toEqual({
       period: '2h',
       start: null,
       end: null,
@@ -59,7 +55,7 @@ describe('GlobalSelectionStore', function() {
       utc: true,
     });
     await tick();
-    expect(GlobalSelectionStore.get().datetime).toEqual({
+    expect(GlobalSelectionStore.get().selection.datetime).toEqual({
       period: null,
       start: '2018-08-08T00:00:00',
       end: '2018-09-08T00:00:00',
@@ -73,7 +69,7 @@ describe('GlobalSelectionStore', function() {
       utc: null,
     });
     await tick();
-    expect(GlobalSelectionStore.get().datetime).toEqual({
+    expect(GlobalSelectionStore.get().selection.datetime).toEqual({
       period: null,
       start: null,
       end: null,
@@ -81,38 +77,10 @@ describe('GlobalSelectionStore', function() {
     });
   });
 
-  it('updateEnvironments()', async function() {
-    expect(GlobalSelectionStore.get().environments).toEqual([]);
+  it('updateEnvironments()', async function () {
+    expect(GlobalSelectionStore.get().selection.environments).toEqual([]);
     updateEnvironments(['alpha']);
     await tick();
-    expect(GlobalSelectionStore.get().environments).toEqual(['alpha']);
-  });
-
-  it('loadInitialData() - queryParams', async function() {
-    GlobalSelectionStore.loadInitialData(organization, {
-      project: '5',
-      environment: ['staging'],
-    });
-
-    await tick();
-
-    expect(GlobalSelectionStore.get().projects).toEqual([5]);
-    expect(GlobalSelectionStore.get().environments).toEqual(['staging']);
-  });
-
-  it('loadInitialData() - localStorage', async function() {
-    GlobalSelectionStore.loadInitialData(organization, {});
-    await tick();
-
-    expect(GlobalSelectionStore.get().projects).toEqual([5]);
-    expect(GlobalSelectionStore.get().environments).toEqual(['staging']);
-  });
-
-  it('loadInitialData() - defaults used if invalid', async function() {
-    GlobalSelectionStore.loadInitialData(organization, {project: [2]});
-    await tick();
-
-    expect(GlobalSelectionStore.get().projects).toEqual([]);
-    expect(GlobalSelectionStore.get().environments).toEqual([]);
+    expect(GlobalSelectionStore.get().selection.environments).toEqual(['alpha']);
   });
 });

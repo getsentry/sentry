@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Integration
 from sentry.plugins import providers
 
@@ -12,7 +12,7 @@ WEBHOOK_EVENTS = ["push", "pull_request"]
 
 class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = "GitHub"
-    logger = logging.getLogger("sentry.plugins.github")
+    logger = logging.getLogger("sentry.integrations.github")
     repo_provider = "github"
 
     def _validate_repo(self, client, installation, repo):
@@ -23,11 +23,11 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         try:
             # make sure installation has access to this specific repo
-            # use hooks endpoint since we explicity ask for those permissions
+            # use hooks endpoint since we explicitly ask for those permissions
             # when installing the app (commits can be accessed for public repos)
             # https://developer.github.com/v3/repos/hooks/#list-hooks
             client.repo_hooks(repo)
-        except ApiError as e:
+        except ApiError:
             raise IntegrationError(u"You must grant Sentry access to {}".format(repo))
 
         return repo_data

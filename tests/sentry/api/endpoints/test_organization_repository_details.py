@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from django.core.urlresolvers import reverse
 
@@ -209,6 +209,51 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert not OrganizationOption.objects.filter(
             organization_id=org.id, key=repo.build_pending_deletion_key()
         ).exists()
+
+    def test_put_cancel_deletion_duplicate_exists(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+        integration = Integration.objects.create(provider="example", name="example")
+        integration.add_organization(org)
+
+        repo = Repository.objects.create(
+            name="uuid-name",
+            external_id="uuid-external-id",
+            organization_id=org.id,
+            status=ObjectStatus.PENDING_DELETION,
+            config={"pending_deletion_name": "example-name"},
+        )
+
+        repo2 = Repository.objects.create(
+            name="example_name",
+            external_id="uuid-external-id",
+            organization_id=org.id,
+            status=ObjectStatus.VISIBLE,
+        )
+
+        OrganizationOption.objects.create(
+            organization_id=org.id,
+            key=repo.build_pending_deletion_key(),
+            value={
+                "name": "example_name",
+                "external_id": "example-external-id",
+                "id": repo.id,
+                "model": Repository.__name__,
+            },
+        )
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
+        response = self.client.put(url, data={"status": "visible", "integrationId": integration.id})
+        assert response.status_code == 500
+
+        repo = Repository.objects.get(id=repo.id)
+        assert repo.status == ObjectStatus.PENDING_DELETION
+        assert repo.name == "uuid-name"
+
+        repo2 = Repository.objects.get(id=repo2.id)
+        assert repo2.status == ObjectStatus.VISIBLE
+        assert repo2.name == "example_name"
 
     def test_put_bad_integration_org(self):
         self.login_as(user=self.user)

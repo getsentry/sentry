@@ -20,7 +20,7 @@ from sentry.models import (
     ProjectKey,
     ProjectStatus,
 )
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import configure_scope, bind_organization_context
 
 
 class CheckInSerializer(serializers.Serializer):
@@ -59,8 +59,9 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         self.check_object_permissions(request, project)
 
         with configure_scope() as scope:
-            scope.set_tag("organization", project.organization_id)
             scope.set_tag("project", project.id)
+
+        bind_organization_context(project.organization)
 
         try:
             checkin = MonitorCheckIn.objects.get(monitor=monitor, guid=checkin_id)
@@ -75,7 +76,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
     def get(self, request, project, monitor, checkin):
         """
         Retrieve a check-in
-        ``````````````````
+        ```````````````````
 
         :pparam string monitor_id: the id of the monitor.
         :pparam string checkin_id: the id of the check-in.

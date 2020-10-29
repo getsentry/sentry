@@ -1,26 +1,26 @@
 ---
-created: '2019-03-19T22:59:40.767479Z'
+created: '2020-02-26T19:54:30.422087Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
           module (ignored java lambda)
-            u'foo.bar.Baz$$Lambda$40/1673859467'
+            "foo.bar.Baz$$Lambda$40/1673859467"
           function*
-            u'call'
+            "call"
 --------------------------------------------------------------------------
 system:
-  hash: '53b9e9679a8ea25880376080b76f98ad'
+  hash: "53b9e9679a8ea25880376080b76f98ad"
   component:
     system*
       stacktrace*
         frame*
           module (ignored java lambda)
-            u'foo.bar.Baz$$Lambda$40/1673859467'
+            "foo.bar.Baz$$Lambda$40/1673859467"
           function*
-            u'call'
+            "call"

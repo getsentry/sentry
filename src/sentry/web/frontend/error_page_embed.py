@@ -6,15 +6,14 @@ from django import forms
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.views.generic import View
-from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry import eventstore
-from sentry.models import Event, ProjectKey, ProjectOption, UserReport
-from sentry.web.helpers import render_to_response
+from sentry.models import ProjectKey, ProjectOption, UserReport
+from sentry.web.helpers import render_to_response, render_to_string
 from sentry.signals import user_feedback_received
 from sentry.utils import json
 from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
@@ -52,7 +51,7 @@ DEFAULT_OPTIONS = {
 
 class UserReportForm(forms.ModelForm):
     name = forms.CharField(
-        max_length=128, widget=forms.TextInput(attrs={"placeholder": _("Jane Doe")})
+        max_length=128, widget=forms.TextInput(attrs={"placeholder": _("Jane Bloggs")})
     )
     email = forms.EmailField(
         max_length=75,
@@ -153,7 +152,6 @@ class ErrorPageEmbedView(View):
             event = eventstore.get_event_by_id(report.project.id, report.event_id)
 
             if event is not None:
-                Event.objects.bind_nodes([event])
                 report.environment = event.get_environment()
                 report.group = event.group
 
@@ -193,7 +191,7 @@ class ErrorPageEmbedView(View):
 
         template = render_to_string(
             "sentry/error-page-embed.html",
-            {
+            context={
                 "form": form,
                 "show_branding": show_branding,
                 "title": options["title"],
@@ -208,9 +206,7 @@ class ErrorPageEmbedView(View):
         )
 
         context = {
-            "endpoint": mark_safe(
-                "*/" + json.dumps(absolute_uri(request.get_full_path())) + ";/*"
-            ),
+            "endpoint": mark_safe("*/" + json.dumps(absolute_uri(request.get_full_path())) + ";/*"),
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
             "strings": json.dumps_htmlsafe(
                 {

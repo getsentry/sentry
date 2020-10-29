@@ -1,24 +1,21 @@
-import {isEqual} from 'lodash';
+import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Location} from 'history';
-import * as Sentry from '@sentry/browser';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
-import {metric} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
+import {metric} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-type AsyncComponentProps = {
-  location?: Location;
-  router?: any;
-  params?: any;
-};
+type AsyncComponentProps = Partial<RouteComponentProps<{}, {}>>;
 
 type AsyncComponentState = {
   loading: boolean;
@@ -28,6 +25,39 @@ type AsyncComponentState = {
   remainingRequests?: number;
   [key: string]: any;
 };
+
+type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
+
+type RenderSearchInputArgs = Omit<
+  SearchInputProps,
+  'api' | 'onSuccess' | 'onError' | 'url' | keyof WithRouterProps
+> & {
+  stateKey?: string;
+  url?: SearchInputProps['url'];
+};
+
+/**
+ * Wraps methods on the AsyncComponent to catch errors and set the `error`
+ * state on error.
+ */
+function wrapErrorHandling<T extends any[], U>(
+  component: AsyncComponent,
+  fn: (...args: T) => U
+) {
+  return (...args: T): U | null => {
+    try {
+      return fn(...args);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      setTimeout(() => {
+        throw error;
+      });
+      component.setState({error});
+      return null;
+    }
+  };
+}
 
 export default class AsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
@@ -41,22 +71,6 @@ export default class AsyncComponent<
   static contextTypes = {
     router: PropTypes.object,
   };
-
-  static errorHandler(component, fn) {
-    return (...args) => {
-      try {
-        return fn(...args);
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error(error);
-        setTimeout(() => {
-          throw error;
-        });
-        component.setState({error});
-        return null;
-      }
-    };
-  }
 
   // Override this flag to have the component reload it's state when the window
   // becomes visible again. This will set the loading and reloading state, but
@@ -81,23 +95,23 @@ export default class AsyncComponent<
   // should `renderError` render the `detail` attribute of a 400 error
   shouldRenderBadRequests = false;
 
-  constructor(props, context) {
+  constructor(props: P, context: any) {
     super(props, context);
 
-    this.fetchData = AsyncComponent.errorHandler(this, this.fetchData.bind(this));
-    this.render = AsyncComponent.errorHandler(this, this.render.bind(this));
+    this.fetchData = wrapErrorHandling(this, this.fetchData.bind(this));
+    this.render = wrapErrorHandling(this, this.render.bind(this));
 
     this.state = this.getDefaultState() as Readonly<S>;
 
     this._measurement = {
       hasMeasured: false,
     };
-    if (props.router && props.router.routes) {
-      metric.mark(`async-component-${getRouteStringFromRoutes(props.router.routes)}`);
+    if (props.routes && props.routes) {
+      metric.mark({name: `async-component-${getRouteStringFromRoutes(props.routes)}`});
     }
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.api = new Client();
     this.fetchData();
 
@@ -106,10 +120,10 @@ export default class AsyncComponent<
     }
   }
 
-  // Compatiblity shim for child classes that call super on this hook.
-  componentWillReceiveProps(_newProps, _newContext) {}
+  // Compatibility shim for child classes that call super on this hook.
+  UNSAFE_componentWillReceiveProps(_newProps: P, _newContext: any) {}
 
-  componentDidUpdate(prevProps, prevContext) {
+  componentDidUpdate(prevProps: P, prevContext: any) {
     const isRouterInContext = !!prevContext.router;
     const isLocationInProps = prevProps.location !== undefined;
 
@@ -133,10 +147,9 @@ export default class AsyncComponent<
     if (
       !this._measurement.hasMeasured &&
       this._measurement.finished &&
-      this.props.router &&
-      this.props.router.routes
+      this.props.routes
     ) {
-      const routeString = getRouteStringFromRoutes(this.props.router.routes);
+      const routeString = getRouteStringFromRoutes(this.props.routes);
       metric.measure({
         name: 'app.component.async-component',
         start: `async-component-${routeString}`,
@@ -197,12 +210,7 @@ export default class AsyncComponent<
 
   remountComponent = () => {
     if (this.shouldReload) {
-      this.setState(
-        {
-          reloading: true,
-        },
-        this.fetchData
-      );
+      this.reloadData();
     } else {
       this.setState(this.getDefaultState(), this.fetchData);
     }
@@ -214,7 +222,9 @@ export default class AsyncComponent<
     !document.hidden &&
     this.reloadData();
 
-  reloadData = () => this.fetchData({reloading: true});
+  reloadData() {
+    this.fetchData({reloading: true});
+  }
 
   fetchData = (extraState?: object) => {
     const endpoints = this.getEndpoints();
@@ -234,7 +244,7 @@ export default class AsyncComponent<
       ...extraState,
     });
 
-    endpoints.forEach(([stateKey, endpoint, params, options]: any) => {
+    endpoints.forEach(([stateKey, endpoint, params, options]) => {
       options = options || {};
       // If you're using nested async components/views make sure to pass the
       // props through so that the child component has access to props.location
@@ -273,25 +283,37 @@ export default class AsyncComponent<
     // Allow children to implement this
   }
 
-  handleRequestSuccess = ({stateKey, data, jqXHR}, initialRequest?: boolean) => {
-    this.setState(prevState => {
-      const state = {
-        [stateKey]: data,
-        // TODO(billy): This currently fails if this request is retried by SudoModal
-        [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
-      };
+  onLoadAllEndpointsSuccess() {
+    // Allow children to implement this
+  }
 
-      if (initialRequest) {
-        state.remainingRequests = prevState.remainingRequests! - 1;
-        state.loading = prevState.remainingRequests! > 1;
-        state.reloading = prevState.reloading && state.loading;
-        this.markShouldMeasure({remainingRequests: state.remainingRequests});
+  handleRequestSuccess({stateKey, data, jqXHR}, initialRequest?: boolean) {
+    this.setState(
+      prevState => {
+        const state = {
+          [stateKey]: data,
+          // TODO(billy): This currently fails if this request is retried by SudoModal
+          [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
+        };
+
+        if (initialRequest) {
+          state.remainingRequests = prevState.remainingRequests! - 1;
+          state.loading = prevState.remainingRequests! > 1;
+          state.reloading = prevState.reloading && state.loading;
+          this.markShouldMeasure({remainingRequests: state.remainingRequests});
+        }
+
+        return state;
+      },
+      () => {
+        //if everything is loaded and we don't have an error, call the callback
+        if (this.state.remainingRequests === 0 && !this.state.error) {
+          this.onLoadAllEndpointsSuccess();
+        }
       }
-
-      return state;
-    });
+    );
     this.onRequestSuccess({stateKey, data, jqXHR});
-  };
+  }
 
   handleError(error, args) {
     const [stateKey] = args;
@@ -322,14 +344,18 @@ export default class AsyncComponent<
     this.onRequestError(error, args);
   }
 
-  // DEPRECATED: use getEndpoints()
+  /**
+   * @deprecated use getEndpoints
+   */
   getEndpointParams() {
     // eslint-disable-next-line no-console
     console.warn('getEndpointParams is deprecated');
     return {};
   }
 
-  // DEPRECATED: use getEndpoints()
+  /**
+   * @deprecated use getEndpoints
+   */
   getEndpoint() {
     // eslint-disable-next-line no-console
     console.warn('getEndpoint is deprecated');
@@ -340,11 +366,10 @@ export default class AsyncComponent<
    * Return a list of endpoint queries to make.
    *
    * return [
-   *   ['stateKeyName', '/endpoint/', {optional: 'query params'}]
+   *   ['stateKeyName', '/endpoint/', {optional: 'query params'}, {options}]
    * ]
    */
-
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+  getEndpoints(): Array<[string, string, any?, any?]> {
     const endpoint = this.getEndpoint();
     if (!endpoint) {
       return [];
@@ -352,16 +377,14 @@ export default class AsyncComponent<
     return [['data', endpoint, this.getEndpointParams()]];
   }
 
-  renderSearchInput({onSearchSubmit, stateKey, url, updateRoute, ...other}) {
-    const [firstEndpoint]: any = this.getEndpoints() || [];
+  renderSearchInput({stateKey, url, ...props}: RenderSearchInputArgs) {
+    const [firstEndpoint] = this.getEndpoints() || [null];
     const stateKeyOrDefault = stateKey || (firstEndpoint && firstEndpoint[0]);
     const urlOrDefault = url || (firstEndpoint && firstEndpoint[1]);
     return (
       <AsyncComponentSearchInput
-        updateRoute={updateRoute}
-        onSearchSubmit={onSearchSubmit}
-        stateKey={stateKeyOrDefault}
         url={urlOrDefault}
+        {...props}
         api={this.api}
         onSuccess={(data, jqXHR) => {
           this.handleRequestSuccess({stateKey: stateKeyOrDefault, data, jqXHR});
@@ -369,31 +392,31 @@ export default class AsyncComponent<
         onError={() => {
           this.renderError(new Error('Error with AsyncComponentSearchInput'));
         }}
-        {...other}
       />
     );
   }
 
-  renderLoading() {
+  renderLoading(): React.ReactNode {
     return <LoadingIndicator />;
   }
 
-  renderError(error, disableLog = false, disableReport = false): React.ReactNode {
+  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+    const {errors} = this.state;
+
     // 401s are captured by SudoModal, but may be passed back to AsyncComponent if they close the modal without identifying
-    const unauthorizedErrors = Object.values(this.state.errors).find(
+    const unauthorizedErrors = Object.values(errors).find(
       resp => resp && resp.status === 401
     );
 
     // Look through endpoint results to see if we had any 403s, means their role can not access resource
-    const permissionErrors = Object.values(this.state.errors).find(
+    const permissionErrors = Object.values(errors).find(
       resp => resp && resp.status === 403
     );
 
     // If all error responses have status code === 0, then show error message but don't
     // log it to sentry
     const shouldLogSentry =
-      !!Object.values(this.state.errors).find(resp => resp && resp.status !== 0) ||
-      disableLog;
+      !!Object.values(errors).find(resp => resp && resp.status !== 0) || disableLog;
 
     if (unauthorizedErrors) {
       return (
@@ -406,7 +429,7 @@ export default class AsyncComponent<
     }
 
     if (this.shouldRenderBadRequests) {
-      const badRequests = Object.values(this.state.errors)
+      const badRequests = Object.values(errors)
         .filter(
           resp =>
             resp && resp.status === 400 && resp.responseJSON && resp.responseJSON.detail
@@ -421,10 +444,8 @@ export default class AsyncComponent<
     return (
       <RouteError
         error={error}
-        component={this}
         disableLogSentry={!shouldLogSentry}
         disableReport={disableReport}
-        onRetry={this.remountComponent}
       />
     );
   }
@@ -437,6 +458,9 @@ export default class AsyncComponent<
       : this.renderBody();
   }
 
+  /**
+   * Renders once all endpoints have been loaded
+   */
   renderBody(): React.ReactNode {
     // Allow children to implement this
     throw new Error('Not implemented');

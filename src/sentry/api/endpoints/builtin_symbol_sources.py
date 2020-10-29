@@ -9,7 +9,12 @@ from sentry.api.serializers import serialize
 
 
 def normalize_symbol_source(key, source):
-    return {"sentry_key": key, "id": source["id"], "name": source["name"]}
+    return {
+        "sentry_key": key,
+        "id": source["id"],
+        "name": source["name"],
+        "hidden": bool(source.get("hidden")),
+    }
 
 
 class BuiltinSymbolSourcesEndpoint(Endpoint):

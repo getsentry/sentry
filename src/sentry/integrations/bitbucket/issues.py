@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from sentry.integrations.issues import IssueBasicMixin
-from sentry.integrations.exceptions import ApiError, IntegrationFormError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
 
 
 ISSUE_TYPES = (

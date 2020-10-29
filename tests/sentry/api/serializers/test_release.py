@@ -2,10 +2,8 @@
 
 from __future__ import absolute_import
 
-import datetime
 import six
 
-from django.utils import timezone
 from uuid import uuid4
 
 from sentry import tagstore
@@ -23,16 +21,19 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class ReleaseSerializerTest(TestCase):
+class ReleaseSerializerTest(TestCase, SnubaTestCase):
     def test_simple(self):
         user = self.create_user()
         project = self.create_project()
         project2 = self.create_project(organization=project.organization)
+        release_version = uuid4().hex
+
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex
+            organization_id=project.organization_id, version=release_version
         )
         release.add_project(project)
         release.add_project(project2)
@@ -40,44 +41,16 @@ class ReleaseSerializerTest(TestCase):
         ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
         ReleaseProject.objects.filter(release=release, project=project2).update(new_groups=1)
 
-        environment = Environment.objects.create(
-            organization_id=project.organization_id, name="prod"
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "release": release_version,
+                "environment": "prod",
+            },
+            project_id=project.id,
         )
-        environment.add_project(project)
-        environment.add_project(project2)
 
-        ReleaseProjectEnvironment.objects.create(
-            project_id=project.id,
-            release_id=release.id,
-            environment_id=environment.id,
-            new_issues_count=1,
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=project2.id,
-            release_id=release.id,
-            environment_id=environment.id,
-            new_issues_count=1,
-        )
-        key = "sentry:release"
-        value = release.version
-        tagstore.create_tag_value(
-            project_id=project.id,
-            environment_id=None,
-            key=key,
-            value=value,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            times_seen=5,
-        )
-        tagstore.create_tag_value(
-            project_id=project2.id,
-            environment_id=None,
-            key=key,
-            value=value,
-            first_seen=timezone.now() - datetime.timedelta(days=2),
-            last_seen=timezone.now() - datetime.timedelta(days=1),
-            times_seen=5,
-        )
+        release = Release.objects.get(version=release_version)
         commit_author = CommitAuthor.objects.create(
             name="stebe", email="stebe@sentry.io", organization_id=project.organization_id
         )
@@ -103,20 +76,57 @@ class ReleaseSerializerTest(TestCase):
         assert result["version"] == release.version
         # should be sum of all projects
         assert result["newGroups"] == 2
-        # should be tags from all projects
-        tagvalue1 = tagstore.get_tag_value(project.id, None, key, value)
-        tagvalue2 = tagstore.get_tag_value(project2.id, None, key, value)
-        assert result["firstEvent"] == tagvalue2.first_seen
+        tagvalue1 = tagstore.get_tag_value(project.id, None, "sentry:release", release_version)
         assert result["lastEvent"] == tagvalue1.last_seen
         assert result["commitCount"] == 1
         assert result["authors"] == [{"name": "stebe", "email": "stebe@sentry.io"}]
 
+        assert result["version"] == release.version
+        assert result["versionInfo"]["package"] is None
+        assert result["versionInfo"]["version"]["raw"] == release_version
+        assert result["versionInfo"]["buildHash"] == release_version
+        assert result["versionInfo"]["description"] == release_version[:12]
+
         result = serialize(release, user, project=project)
-        # should be groups from one project
         assert result["newGroups"] == 1
-        # should be tags from one project
         assert result["firstEvent"] == tagvalue1.first_seen
         assert result["lastEvent"] == tagvalue1.last_seen
+
+    def test_mobile_version(self):
+        user = self.create_user()
+        project = self.create_project()
+        release_version = "foo.bar.BazApp@1.0a+20200101100"
+
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=release_version
+        )
+        release.add_project(project)
+
+        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "release": release_version,
+                "environment": "prod",
+            },
+            project_id=project.id,
+        )
+
+        release = Release.objects.get(version=release_version)
+
+        result = serialize(release, user)
+        assert result["version"] == release.version
+        assert result["versionInfo"]["package"] == "foo.bar.BazApp"
+        assert result["versionInfo"]["version"]["raw"] == "1.0a+20200101100"
+        assert result["versionInfo"]["version"]["major"] == 1
+        assert result["versionInfo"]["version"]["minor"] == 0
+        assert result["versionInfo"]["version"]["patch"] == 0
+        assert result["versionInfo"]["version"]["pre"] == "a"
+        assert result["versionInfo"]["version"]["buildCode"] == "20200101100"
+        assert result["versionInfo"]["buildHash"] is None
+        assert result["versionInfo"]["description"] == "1.0-a (20200101100)"
+        assert result["versionInfo"]["version"]["components"] == 2
 
     def test_no_tag_data(self):
         user = self.create_user()
@@ -149,7 +159,9 @@ class ReleaseSerializerTest(TestCase):
         assert not result["lastEvent"]
 
     def test_get_user_from_email(self):
-        user = User.objects.create(email="stebe@sentry.io")
+        user = User.objects.create(
+            email="Stebe@sentry.io"
+        )  # upper case so we can test case sensitivity
         UserEmail.get_primary_email(user=user)
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 from django.utils.text import re_camel_case
 from rest_framework.fields import empty
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, Serializer
 
 
 def camel_to_snake_case(value):
@@ -26,7 +26,9 @@ def convert_dict_key_case(obj, converter):
     Recursively converts the keys of a dictionary using the provided converter
     param.
     """
-    if not isinstance(obj, dict):
+    if isinstance(obj, list):
+        return [convert_dict_key_case(x, converter) for x in obj]
+    elif not isinstance(obj, dict):
         return obj
 
     obj = obj.copy()
@@ -35,6 +37,24 @@ def convert_dict_key_case(obj, converter):
         obj[converted_key] = convert_dict_key_case(obj.pop(key), converter)
 
     return obj
+
+
+class CamelSnakeSerializer(Serializer):
+    """
+    Allows parameters to be defined in snake case, but passed as camel case.
+
+    Errors are output in camel case.
+    """
+
+    def __init__(self, instance=None, data=empty, **kwargs):
+        if data is not empty:
+            data = convert_dict_key_case(data, camel_to_snake_case)
+        return super(CamelSnakeSerializer, self).__init__(instance=instance, data=data, **kwargs)
+
+    @property
+    def errors(self):
+        errors = super(CamelSnakeSerializer, self).errors
+        return convert_dict_key_case(errors, snake_to_camel_case)
 
 
 class CamelSnakeModelSerializer(ModelSerializer):
@@ -53,6 +73,5 @@ class CamelSnakeModelSerializer(ModelSerializer):
 
     @property
     def errors(self):
-        return convert_dict_key_case(
-            super(CamelSnakeModelSerializer, self).errors, snake_to_camel_case
-        )
+        errors = super(CamelSnakeModelSerializer, self).errors
+        return convert_dict_key_case(errors, snake_to_camel_case)

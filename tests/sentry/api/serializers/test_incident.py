@@ -10,9 +10,8 @@ from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
-from sentry.incidents.logic import create_alert_rule, subscribe_to_incident
-from sentry.incidents.models import AlertRuleThresholdType, IncidentGroup
-from sentry.snuba.models import QueryAggregations
+from sentry.snuba.models import QueryDatasets
+from sentry.incidents.logic import subscribe_to_incident
 from sentry.testutils import TestCase
 
 
@@ -27,17 +26,13 @@ class IncidentSerializerTest(TestCase):
         assert result["organizationId"] == six.text_type(incident.organization_id)
         assert result["projects"] == [p.slug for p in incident.projects.all()]
         assert result["status"] == incident.status
+        assert result["statusMethod"] == incident.status_method
         assert result["type"] == incident.type
         assert result["title"] == incident.title
-        assert result["query"] == incident.query
         assert result["dateStarted"] == incident.date_started
         assert result["dateDetected"] == incident.date_detected
-        assert result["dateAdded"] == incident.date_added
+        assert result["dateCreated"] == incident.date_added
         assert result["dateClosed"] == incident.date_closed
-        assert len(result["eventStats"]["data"]) == 52
-        assert [data[1] for data in result["eventStats"]["data"]] == [[]] * 52
-        assert result["totalEvents"] == 0
-        assert result["uniqueUsers"] == 0
 
 
 class DetailedIncidentSerializerTest(TestCase):
@@ -50,37 +45,30 @@ class DetailedIncidentSerializerTest(TestCase):
         result = serialize(incident, serializer=serializer, user=self.user)
         assert result["isSubscribed"]
 
-    def test_groups(self):
-        incident = self.create_incident()
-        serializer = DetailedIncidentSerializer()
-        result = serialize(incident, serializer=serializer)
-        assert result["groups"] == []
-        IncidentGroup.objects.create(incident=incident, group=self.group)
-        result = serialize(incident, serializer=serializer)
-        assert result["groups"] == [six.text_type(self.group.id)]
-
-    def test_no_alert_rule(self):
-        incident = self.create_incident()
-        serializer = DetailedIncidentSerializer()
-        result = serialize(incident, serializer=serializer)
-        assert result["alertRule"] is None
-
-    def test_alert_rule(self):
-        incident = self.create_incident()
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "hi",
-            AlertRuleThresholdType.ABOVE,
-            "test query",
-            QueryAggregations.TOTAL,
-            10,
-            1000,
-            400,
-            1,
-        )
-        incident.update(alert_rule=alert_rule)
+    def test_error_alert_rule(self):
+        query = "test query"
+        incident = self.create_incident(query=query)
 
         serializer = DetailedIncidentSerializer()
         result = serialize(incident, serializer=serializer)
-        assert result["alertRule"] == serialize(alert_rule)
+        assert result["alertRule"] == serialize(incident.alert_rule)
+        assert result["discoverQuery"] == "(event.type:error) AND ({})".format(query)
+
+    def test_error_alert_rule_unicode(self):
+        query = u"统一码"
+        incident = self.create_incident(query=query)
+
+        serializer = DetailedIncidentSerializer()
+        result = serialize(incident, serializer=serializer)
+        assert result["alertRule"] == serialize(incident.alert_rule)
+        assert result["discoverQuery"] == u"(event.type:error) AND ({})".format(query)
+
+    def test_transaction_alert_rule(self):
+        query = "test query"
+        alert_rule = self.create_alert_rule(dataset=QueryDatasets.TRANSACTIONS, query=query)
+        incident = self.create_incident(alert_rule=alert_rule)
+
+        serializer = DetailedIncidentSerializer()
+        result = serialize(incident, serializer=serializer)
+        assert result["alertRule"] == serialize(incident.alert_rule)
+        assert result["discoverQuery"] == "(event.type:transaction) AND ({})".format(query)

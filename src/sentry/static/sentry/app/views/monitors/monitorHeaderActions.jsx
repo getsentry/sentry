@@ -1,18 +1,22 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import {
   addErrorMessage,
   addLoadingMessage,
-  removeIndicator,
+  clearIndicators,
 } from 'app/actionCreators/indicator';
 import {logException} from 'app/utils/logging';
-import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
+import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconDelete, IconEdit} from 'app/icons';
+import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
+import space from 'app/styles/space';
 
 class MonitorHeaderActions extends React.Component {
   static propTypes = {
@@ -35,7 +39,6 @@ class MonitorHeaderActions extends React.Component {
         browserHistory.push(redirectPath);
       })
       .catch(() => {
-        removeIndicator();
         addErrorMessage(t('Unable to remove monitor.'));
       });
   };
@@ -49,12 +52,11 @@ class MonitorHeaderActions extends React.Component {
         data,
       })
       .then(resp => {
-        removeIndicator();
+        clearIndicators();
         this.props.onUpdate && this.props.onUpdate(resp);
       })
       .catch(err => {
         logException(err);
-        removeIndicator();
         addErrorMessage(t('Unable to update monitor.'));
       });
   };
@@ -69,36 +71,39 @@ class MonitorHeaderActions extends React.Component {
   render() {
     const {monitor, orgId} = this.props;
     return (
-      <div className="m-b-1">
-        <div className="btn-group">
+      <ButtonContainer>
+        <ButtonBar gap={1}>
           <Button
             size="small"
-            icon="icon-edit"
+            icon={<IconEdit size="xs" />}
             to={`/organizations/${orgId}/monitors/${monitor.id}/edit/`}
           >
+            &nbsp;
             {t('Edit')}
           </Button>
-        </div>
-        <div className="btn-group" style={{marginLeft: 10}}>
-          <Button size="small" icon="icon-edit" onClick={this.toggleStatus}>
+          <Button size="small" onClick={this.toggleStatus}>
             {monitor.status !== 'disabled' ? t('Pause') : t('Enable')}
           </Button>
-        </div>
-        <div className="btn-group" style={{marginLeft: 10}}>
           <Confirm
             onConfirm={this.handleDelete}
             message={t(
               'Deleting this monitor is permanent. Are you sure you wish to continue?'
             )}
           >
-            <Button size="small" icon="icon-trash">
+            <Button size="small" icon={<IconDelete size="xs" />}>
               {t('Delete')}
             </Button>
           </Confirm>
-        </div>
-      </div>
+        </ButtonBar>
+      </ButtonContainer>
     );
   }
 }
+
+const ButtonContainer = styled('div')`
+  margin-bottom: ${space(3)};
+  display: flex;
+  flex-shrink: 1;
+`;
 
 export default withApi(MonitorHeaderActions);

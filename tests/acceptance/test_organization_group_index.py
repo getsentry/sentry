@@ -9,7 +9,7 @@ from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from tests.acceptance.page_objects.issue_list import IssueListPage
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
@@ -29,6 +29,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         )
         self.login_as(self.user)
         self.page = IssueListPage(self.browser, self.client)
+        self.dismiss_assistant()
 
     def create_issues(self):
         self.store_event(
@@ -70,7 +71,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.page.wait_for_stream()
         self.browser.snapshot("organization issues with issues")
 
-        groups = self.browser.find_elements_by_class_name("event-issue-header")
+        groups = self.browser.elements('[data-test-id="event-issue-header"]')
         assert len(groups) == 2
         assert "oh snap" in groups[0].text
         assert "oh no" in groups[1].text

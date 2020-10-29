@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, get_culprit as get_culprit_impl
 
 
 def get_culprit(data):
     mgr = EventManager(data)
     mgr.normalize()
-    return mgr.get_culprit()
+    return get_culprit_impl(mgr.get_data())
 
 
 def test_cocoa_culprit():
