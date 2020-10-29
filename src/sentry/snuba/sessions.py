@@ -36,7 +36,8 @@ def get_changed_project_release_model_adoptions(project_ids):
         selected_columns=["project_id", "release", "users"],
         groupby=["release", "project_id"],
         start=start,
-        filter_keys={"project_id": project_ids},
+        referrer="sessions.get-adoption",
+        filter_keys={"project_id": list(project_ids)},
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
@@ -55,6 +56,7 @@ def get_oldest_health_data_for_releases(project_releases):
         groupby=["release", "project_id"],
         start=datetime.utcnow() - timedelta(days=90),
         conditions=conditions,
+        referrer="sessions.oldest-data-backfill",
         filter_keys=filter_keys,
     )["data"]
     rv = {}
@@ -74,6 +76,7 @@ def check_has_health_data(project_releases):
             groupby=["release", "project_id"],
             start=datetime.utcnow() - timedelta(days=90),
             conditions=conditions,
+            referrer="sessions.health-data-check",
             filter_keys=filter_keys,
         )["data"]
     )
@@ -118,6 +121,7 @@ def get_project_releases_by_stability(
         limit=limit,
         conditions=conditions,
         filter_keys=filter_keys,
+        referrer="sessions.stability-sort",
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
@@ -175,6 +179,7 @@ def get_release_adoption(project_releases, environments=None, now=None):
         start=start,
         conditions=total_conditions,
         filter_keys=filter_keys,
+        referrer="sessions.release-adoption-total-users",
     )["data"]:
         total_users[x["project_id"]] = x["users"]
 
@@ -186,6 +191,7 @@ def get_release_adoption(project_releases, environments=None, now=None):
         start=start,
         conditions=conditions,
         filter_keys=filter_keys,
+        referrer="sessions.release-adoption-list",
     )["data"]:
         total = total_users.get(x["project_id"])
         if not total:
@@ -241,6 +247,7 @@ def get_release_health_data_overview(
         start=summary_start,
         conditions=conditions,
         filter_keys=filter_keys,
+        referrer="sessions.release-overview",
     )["data"]:
         rp = {
             "duration_p50": _convert_duration(x["duration_quantiles"][0]),
@@ -308,14 +315,18 @@ def get_release_health_data_overview(
             start=stats_start,
             conditions=conditions,
             filter_keys=filter_keys,
+            referrer="sessions.release-stats",
         )["data"]:
             time_bucket = int(
                 (parse_snuba_datetime(x["bucketed_started"]) - stats_start).total_seconds()
                 / stats_rollup
             )
-            rv[x["project_id"], x["release"]]["stats"][health_stats_period][time_bucket][1] = x[
-                stat
-            ]
+            key = (x["project_id"], x["release"])
+            # Sometimes this might return a release we haven't seen yet or it might
+            # return a time bucket that did not exist yet at the time of the initial
+            # query.  In that case, just skip it.
+            if key in rv and time_bucket < len(rv[key]["stats"][health_stats_period]):
+                rv[key]["stats"][health_stats_period][time_bucket][1] = x[stat]
 
     return rv
 
@@ -336,6 +347,7 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
             start=start,
             conditions=conditions,
             filter_keys=filter_keys,
+            referrer="sessions.crash-free-breakdown",
         )["data"][0]
         return {
             "date": end,
@@ -417,6 +429,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         rollup=rollup,
         conditions=conditions,
         filter_keys=filter_keys,
+        referrer="sessions.release-stats-details",
     )["data"]:
         ts = parse_snuba_datetime(rv["bucketed_started"])
         bucket = int((ts - start).total_seconds() / rollup)
@@ -460,6 +473,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             end=end,
             conditions=conditions,
             filter_keys=filter_keys,
+            referrer="sessions.crash-free-breakdown-users",
         )["data"]
         if rows:
             rv = rows[0]

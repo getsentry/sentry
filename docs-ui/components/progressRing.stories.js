@@ -1,5 +1,4 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {number, text, boolean, color} from '@storybook/addon-knobs';
 import styled from '@emotion/styled';
@@ -30,61 +29,66 @@ class Ticker extends React.Component {
   }
 }
 
-storiesOf('UI|ProgressRing', module).add(
-  'default',
-  withInfo('Circle style progress bar ')(() => {
-    const value = number('Value', 29);
-    const size = number('Size', 40);
-    const minValue = number('Min Value', 0);
-    const maxValue = number('Max Value', 100);
-    const barWidth = number('Bar Width', 3);
-    const textValue = text('Text Value', '');
-    const animateText = boolean('Animate Text', false);
-    const backgroundColor = color('Background color');
-    const progressColor = color('Progress color');
+export default {
+  title: 'DataVisualization/Charts/ProgressRing',
+};
 
-    return (
-      <Grid>
-        <ProgressRing
-          value={value}
-          minValue={minValue}
-          maxValue={maxValue}
-          size={size}
-          barWidth={barWidth}
-          text={textValue}
-          animateText={animateText}
-          backgroundColor={backgroundColor}
-          progressColor={progressColor}
-        />
-        <Ticker>
-          {({tickNumber}) => (
-            <ProgressRing
-              animateText
-              value={tickNumber}
-              text={tickNumber}
-              size={38}
-              barWidth={4}
-              progressColor="#f58159"
-            />
-          )}
-        </Ticker>
-        <ProgressRing
-          value={65}
-          size={60}
-          barWidth={6}
-          text="BAD"
-          textCss={() => css`
-            font-size: 14px;
-            font-weight: bold;
-            color: #ec5f5f;
-          `}
-          progressColor="#ff4d44"
-          backgroundColor="#fbe6e6"
-        />
-      </Grid>
-    );
-  })
-);
+export const Default = withInfo('Circle style progress bar ')(() => {
+  const value = number('Value', 29);
+  const size = number('Size', 40);
+  const minValue = number('Min Value', 0);
+  const maxValue = number('Max Value', 100);
+  const barWidth = number('Bar Width', 3);
+  const textValue = text('Text Value', '');
+  const animateText = boolean('Animate Text', false);
+  const backgroundColor = color('Background color');
+  const progressColor = color('Progress color');
+
+  return (
+    <Grid>
+      <ProgressRing
+        value={value}
+        minValue={minValue}
+        maxValue={maxValue}
+        size={size}
+        barWidth={barWidth}
+        text={textValue}
+        animateText={animateText}
+        backgroundColor={backgroundColor}
+        progressColor={progressColor}
+      />
+      <Ticker>
+        {({tickNumber}) => (
+          <ProgressRing
+            animateText
+            value={tickNumber}
+            text={tickNumber}
+            size={38}
+            barWidth={4}
+            progressColor="#f58159"
+          />
+        )}
+      </Ticker>
+      <ProgressRing
+        value={65}
+        size={60}
+        barWidth={6}
+        text="BAD"
+        textCss={() => css`
+          font-size: 14px;
+          font-weight: bold;
+          color: #ec5f5f;
+        `}
+        progressColor="#ff4d44"
+        backgroundColor="#fbe6e6"
+      />
+    </Grid>
+  );
+});
+
+Default.story = {
+  name: 'default',
+};
 
 const Grid = styled('div')`
   margin-top: 8px;

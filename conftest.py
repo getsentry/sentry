@@ -2,10 +2,6 @@ from __future__ import absolute_import
 
 import os
 import sys
-from hashlib import md5
-
-import six
-import pytest
 
 pytest_plugins = ["sentry.utils.pytest"]
 
@@ -22,14 +18,6 @@ def pytest_configure(config):
     # always install plugins for the tests
     install_sentry_plugins()
 
-    # add custom test markers
-    config.addinivalue_line(
-        "markers",
-        "sentry_store_integration: mark test as using the sentry store endpoint and therefore using legacy code",
-    )
-    config.addinivalue_line(
-        "markers", "relay_store_integration: mark test as using the relay store endpoint"
-    )
     config.addinivalue_line("markers", "obsolete: mark test as obsolete and soon to be removed")
 
 
@@ -56,15 +44,3 @@ def install_sentry_plugins():
     settings.GITHUB_API_SECRET = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
-
-
-def pytest_collection_modifyitems(config, items):
-    for item in items:
-        total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
-        # TODO(joshuarli): six 1.12.0 adds ensure_binary: six.ensure_binary(item.location[0])
-        group_num = (
-            int(md5(six.text_type(item.location[0]).encode("utf-8")).hexdigest(), 16) % total_groups
-        )
-        marker = "group_%s" % group_num
-        config.addinivalue_line("markers", marker)
-        item.add_marker(getattr(pytest.mark, marker))

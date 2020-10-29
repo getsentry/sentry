@@ -9,7 +9,6 @@ import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 import {
@@ -61,13 +60,18 @@ class IncidentDetails extends React.Component<Props, State> {
     } = this.props;
 
     try {
-      const [incident, stats] = await Promise.all([
-        fetchIncident(api, orgId, alertId),
-        fetchIncidentStats(api, orgId, alertId),
-      ]);
+      const incidentPromise = fetchIncident(api, orgId, alertId).then(incident => {
+        this.setState({incident});
+        markIncidentAsSeen(api, orgId, incident);
+      });
+      const statsPromise = fetchIncidentStats(api, orgId, alertId).then(stats =>
+        this.setState({stats})
+      );
 
-      this.setState({incident, stats, isLoading: false, hasError: false});
-      markIncidentAsSeen(api, orgId, incident);
+      // State not set after promise.all because stats *usually* takes
+      // more time than the incident api
+      await Promise.all([incidentPromise, statsPromise]);
+      this.setState({isLoading: false, hasError: false});
     } catch (_err) {
       this.setState({isLoading: false, hasError: true});
     }
@@ -154,4 +158,4 @@ class IncidentDetails extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withOrganization(IncidentDetails));
+export default withApi(IncidentDetails);

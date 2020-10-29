@@ -8,7 +8,7 @@ import styled from '@emotion/styled';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron} from 'app/icons';
 import TableChart from 'app/components/charts/tableChart';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -21,7 +21,9 @@ const Delta = ({current, previous, className}) => {
   const direction = !changePercent ? 0 : current - previous;
   return (
     <StyledDelta direction={direction} className={className}>
-      {!!direction && <DeltaCaret direction={direction} src="icon-chevron-down" />}
+      {!!direction && (
+        <IconChevron direction={direction > 0 ? 'up' : 'down'} size="10px" />
+      )}
       {changePercent !== 0 ? `${changePercent}%` : <span>&mdash;</span>}
     </StyledDelta>
   );
@@ -31,13 +33,6 @@ Delta.propTypes = {
   previous: PropTypes.number,
 };
 
-const DeltaCaret = styled(InlineSvg)`
-  /* should probably have a chevron-up svg (: */
-  ${p => p.direction > 0 && 'transform: rotate(180deg)'};
-  width: 10px;
-  height: 10px;
-`;
-
 const StyledDelta = styled('div')`
   display: flex;
   align-items: center;
@@ -45,7 +40,11 @@ const StyledDelta = styled('div')`
   margin-right: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p =>
-    p.direction > 0 ? p.theme.green400 : p.direction < 0 ? p.theme.red : p.theme.gray500};
+    p.direction > 0
+      ? p.theme.green400
+      : p.direction < 0
+      ? p.theme.red400
+      : p.theme.gray500};
 `;
 
 class PercentageTableChart extends React.Component {

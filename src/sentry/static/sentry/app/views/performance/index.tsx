@@ -30,6 +30,7 @@ class PerformanceContainer extends React.Component<Props> {
 
     return (
       <Feature
+        hookName="feature-disabled:performance-page"
         features={['performance-view']}
         organization={organization}
         renderDisabled={this.renderNoAccess}

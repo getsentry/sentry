@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
-import posed from 'react-pose';
+import {motion} from 'framer-motion';
 import moment from 'moment';
 
 import {tct, t} from 'app/locale';
@@ -16,6 +16,7 @@ import Button from 'app/components/button';
 import {IconLock, IconCheckmark, IconClose, IconEvent} from 'app/icons';
 import Avatar from 'app/components/avatar';
 import LetterAvatar from 'app/components/letterAvatar';
+import testableTransition from 'app/utils/testableTransition';
 
 import {taskIsDone} from './utils';
 import SkipConfirm from './skipConfirm';
@@ -81,8 +82,10 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
 
     return (
       <ItemComplete ref={forwardedRef} onClick={handleClick}>
-        {task.status === 'complete' && <CompleteIndicator />}
-        {task.status === 'skipped' && <SkippedIndicator />}
+        <StatusIndicator>
+          {task.status === 'complete' && <CompleteIndicator />}
+          {task.status === 'skipped' && <SkippedIndicator />}
+        </StatusIndicator>
         {task.title}
         <CompletedDate title={completedOn.toString()}>
           {completedOn.fromNow()}
@@ -108,7 +111,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color="redLight" />
+      <IconLock size="xs" color="red400" />
     </Tooltip>
   );
 
@@ -201,7 +204,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 ))`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
-  color: ${p => p.theme.yellowOrange};
+  color: ${p => p.theme.orange300};
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
@@ -218,11 +221,7 @@ const SkipButton = styled(Button)`
   color: ${p => p.theme.gray500};
 `;
 
-const PosedItemComplete = posed(Card)({
-  complete: {staggerChildren: 500},
-});
-
-const ItemComplete = styled(PosedItemComplete)`
+const ItemComplete = styled(Card)`
   cursor: pointer;
   color: ${p => p.theme.gray600};
   padding: ${space(1)} ${space(1.5)};
@@ -232,39 +231,58 @@ const ItemComplete = styled(PosedItemComplete)`
   align-items: center;
 `;
 
-const completedItemPoses = {
-  completeInit: {
-    opacity: 0,
-    x: -10,
+const transition = testableTransition();
+
+const StatusIndicator = styled(motion.div)`
+  display: flex;
+`;
+StatusIndicator.defaultProps = {
+  variants: {
+    initial: {opacity: 0, x: 10},
+    animate: {opacity: 1, x: 0},
   },
-  complete: {
-    opacity: 1,
-    x: 0,
-  },
+  transition,
 };
 
-const CompleteIndicator = posed(IconCheckmark)(completedItemPoses);
+const CompleteIndicator = styled(IconCheckmark)``;
 CompleteIndicator.defaultProps = {
   isCircled: true,
   color: 'green400',
 };
 
-const SkippedIndicator = posed(IconClose)(completedItemPoses);
+const SkippedIndicator = styled(IconClose)``;
 SkippedIndicator.defaultProps = {
   isCircled: true,
-  color: 'yellowOrange',
+  color: 'orange300',
 };
 
-const CompletedDate = styled(posed.div(completedItemPoses))`
+const completedItemAnimation = {
+  initial: {opacity: 0, x: -10},
+  animate: {opacity: 1, x: 0},
+};
+
+const CompletedDate = styled(motion.div)`
   color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
+CompletedDate.defaultProps = {
+  variants: completedItemAnimation,
+  transition,
+};
 
-const TaskUserAvatar = posed(Avatar)(completedItemPoses);
+const TaskUserAvatar = motion.custom(Avatar);
+TaskUserAvatar.defaultProps = {
+  variants: completedItemAnimation,
+  transition,
+};
 
-const TaskBlankAvatar = styled(posed(LetterAvatar)(completedItemPoses))`
+const TaskBlankAvatar = styled(motion.custom(LetterAvatar))`
   position: unset;
 `;
+TaskBlankAvatar.defaultProps = {
+  variants: completedItemAnimation,
+  transition,
+};
 
 const WrappedTask = withOrganization(ReactRouter.withRouter(Task));
 

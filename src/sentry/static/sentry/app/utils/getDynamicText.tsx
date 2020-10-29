@@ -1,7 +1,7 @@
-/* global process */
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
 
 // Return a specified "fixed" string when we are in a testing environment
-// (more specifically in a PERCY env (e.g. CI))
+// (more specifically, when IS_ACCEPTANCE_TEST is true)
 export default function getDynamicText<Value, Fixed = Value>({
   value,
   fixed,
@@ -9,5 +9,5 @@ export default function getDynamicText<Value, Fixed = Value>({
   value: Value;
   fixed: Fixed;
 }): Value | Fixed {
-  return process.env.IS_PERCY || process.env.FIXED_DYNAMIC_CONTENT ? fixed : value;
+  return IS_ACCEPTANCE_TEST ? fixed : value;
 }

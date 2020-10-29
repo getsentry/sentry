@@ -4,10 +4,13 @@ import functools
 import six
 from collections import defaultdict, Iterable, OrderedDict
 from dateutil.parser import parse as parse_datetime
+from pytz import UTC
 
 from django.core.cache import cache
 
 from sentry import options
+from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
+from sentry.models import Project
 from sentry.api.utils import default_start_end_dates
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
@@ -32,18 +35,7 @@ SEEN_COLUMN = "timestamp"
 BLACKLISTED_COLUMNS = frozenset(["project_id"])
 
 FUZZY_NUMERIC_KEYS = frozenset(
-    [
-        "device.battery_level",
-        "device.charging",
-        "device.online",
-        "device.simulator",
-        "error.handled",
-        "stack.colno",
-        "stack.in_app",
-        "stack.lineno",
-        "stack.stack_level",
-        "transaction.duration",
-    ]
+    ["stack.colno", "stack.in_app", "stack.lineno", "stack.stack_level", "transaction.duration"]
 )
 FUZZY_NUMERIC_DISTANCE = 50
 
@@ -53,7 +45,7 @@ tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_
 def fix_tag_value_data(data):
     for key, transformer in tag_value_data_transformers.items():
         if key in data:
-            data[key] = transformer(data[key])
+            data[key] = transformer(data[key]).replace(tzinfo=UTC)
     return data
 
 
@@ -410,7 +402,6 @@ class SnubaTagStorage(TagStorage):
     ):
         # Get the total times seen, first seen, and last seen across multiple environments
         filters = {"project_id": project_ids, "group_id": group_id_list}
-        conditions = None
         if environment_ids:
             filters["environment"] = environment_ids
 
@@ -424,7 +415,7 @@ class SnubaTagStorage(TagStorage):
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=conditions,
+            conditions=None,
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_group_seen_values_for_environments",
@@ -541,7 +532,7 @@ class SnubaTagStorage(TagStorage):
         if not result:
             return None
         else:
-            return result.keys()[0]
+            return list(result.keys())[0]
 
     def get_first_release(self, project_id, group_id):
         return self.__get_release(project_id, group_id, True)
@@ -644,6 +635,7 @@ class SnubaTagStorage(TagStorage):
             aggregations=aggregations,
             referrer="tagstore.get_groups_user_counts",
         )
+
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(
@@ -667,7 +659,15 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_tag_value_paginator_for_projects(
-        self, projects, environments, key, start=None, end=None, query=None, order_by="-last_seen"
+        self,
+        projects,
+        environments,
+        key,
+        start=None,
+        end=None,
+        query=None,
+        order_by="-last_seen",
+        include_transactions=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -676,16 +676,53 @@ class SnubaTagStorage(TagStorage):
 
         dataset = Dataset.Events
         snuba_key = snuba.get_snuba_column_name(key)
-        if snuba_key.startswith("tags["):
+        if include_transactions and snuba_key.startswith("tags["):
             snuba_key = snuba.get_snuba_column_name(key, dataset=Dataset.Discover)
             if not snuba_key.startswith("tags["):
                 dataset = Dataset.Discover
 
-        conditions = []
+        # We cannot search the values of these columns like we do other columns because they are
+        # a different type, and as such, LIKE and != do not work on them. Furthermore, because the
+        # use case for these values in autosuggestion is minimal, so we choose to disable them here.
+        #
+        # event_id:     This is a FixedString which disallows us to use LIKE on it when searching,
+        #               but does work with !=. However, for consistency sake we disallow it
+        #               entirely, furthermore, suggesting an event_id is not a very useful feature
+        #               as they are not human readable.
+        # timestamp:    This is a DateTime which disallows us to use both LIKE and != on it when
+        #               searching. Suggesting a timestamp can potentially be useful but as it does
+        #               work at all, we opt to disable it here. A potential solution can be to
+        #               generate a time range to bound where they are searching. e.g. if a user
+        #               enters 2020-07 we can generate the following conditions:
+        #               >= 2020-07-01T00:00:00 AND <= 2020-07-31T23:59:59
+        # time:         This is a column computed from timestamp so it suffers the same issues
+        if snuba_key in {"event_id", "timestamp", "time"}:
+            return SequencePaginator([])
 
+        # These columns have fixed values and we don't need to emit queries to find out the
+        # potential options.
+        if key in {"error.handled", "error.unhandled"}:
+            return SequencePaginator(
+                [
+                    (
+                        1,
+                        TagValue(
+                            key=key, value="true", times_seen=None, first_seen=None, last_seen=None
+                        ),
+                    ),
+                    (
+                        2,
+                        TagValue(
+                            key=key, value="false", times_seen=None, first_seen=None, last_seen=None
+                        ),
+                    ),
+                ]
+            )
+
+        conditions = []
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
-        if transaction_status:
+        if include_transactions and transaction_status:
             conditions.append(
                 [
                     snuba_key,
@@ -704,14 +741,40 @@ class SnubaTagStorage(TagStorage):
             if converted_query is not None:
                 conditions.append([snuba_key, ">=", converted_query - FUZZY_NUMERIC_DISTANCE])
                 conditions.append([snuba_key, "<=", converted_query + FUZZY_NUMERIC_DISTANCE])
+        elif include_transactions and key == PROJECT_ALIAS:
+            project_filters = {
+                "id__in": projects,
+            }
+            if query:
+                project_filters["slug__icontains"] = query
+            project_queryset = Project.objects.filter(**project_filters).values("id", "slug")
+
+            if not project_queryset.exists():
+                return SequencePaginator([])
+
+            project_slugs = {project["id"]: project["slug"] for project in project_queryset}
+            projects = [project["id"] for project in project_queryset]
+            snuba_key = "project_id"
+            dataset = Dataset.Discover
         else:
-            if snuba_key in BLACKLISTED_COLUMNS:
-                snuba_key = "tags[%s]" % (key,)
+            snuba_name = snuba_key
+
+            is_user_alias = include_transactions and key == USER_DISPLAY_ALIAS
+            if is_user_alias:
+                # user.alias is a pseudo column in discover. It is computed by coalescing
+                # together multiple user attributes. Here we get the coalese function used,
+                # and resolve it to the corresponding snuba query
+                dataset = Dataset.Discover
+                resolver = snuba.resolve_column(dataset)
+                snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
+                snuba.resolve_complex_column(snuba_name, resolver)
+            elif snuba_name in BLACKLISTED_COLUMNS:
+                snuba_name = "tags[%s]" % (key,)
 
             if query:
-                conditions.append([snuba_key, "LIKE", u"%{}%".format(query)])
+                conditions.append([snuba_name, "LIKE", u"%{}%".format(query)])
             else:
-                conditions.append([snuba_key, "!=", ""])
+                conditions.append([snuba_name, "!=", ""])
 
         filters = {"project_id": projects}
         if environments:
@@ -736,14 +799,24 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore.get_tag_value_paginator_for_projects",
         )
 
-        # With transaction_status we need to map the ids back to their names
-        if transaction_status:
-            results = OrderedDict(
-                [
-                    (SPAN_STATUS_CODE_TO_NAME[result_key], value)
-                    for result_key, value in six.iteritems(results)
-                ]
-            )
+        if include_transactions:
+            # With transaction_status we need to map the ids back to their names
+            if transaction_status:
+                results = OrderedDict(
+                    [
+                        (SPAN_STATUS_CODE_TO_NAME[result_key], data)
+                        for result_key, data in six.iteritems(results)
+                    ]
+                )
+            # With project names we map the ids back to the project slugs
+            elif key == PROJECT_ALIAS:
+                results = OrderedDict(
+                    [
+                        (project_slugs[value], data)
+                        for value, data in six.iteritems(results)
+                        if value in project_slugs
+                    ]
+                )
 
         tag_values = [
             TagValue(key=key, value=six.text_type(value), **fix_tag_value_data(data))

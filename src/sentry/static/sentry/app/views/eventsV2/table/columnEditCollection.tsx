@@ -10,7 +10,7 @@ import {
 } from 'app/components/events/interfaces/spans/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
-import {SelectValue, OrganizationSummary} from 'app/types';
+import {SelectValue, LightWeightOrganization} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Column} from 'app/utils/discover/fields';
@@ -22,8 +22,9 @@ import {generateFieldOptions} from '../utils';
 type Props = {
   // Input columns
   columns: Column[];
-  organization: OrganizationSummary;
+  organization: LightWeightOrganization;
   tagKeys: null | string[];
+  measurementKeys: null | string[];
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
 };
@@ -40,6 +41,7 @@ type State = {
 
 const DRAG_CLASS = 'draggable-item';
 const GRAB_HANDLE_FUDGE = 25;
+const MAX_COL_COUNT = 20;
 
 enum PlaceholderPosition {
   TOP,
@@ -72,7 +74,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.props.tagKeys !== prevProps.tagKeys) {
+    if (
+      this.props.tagKeys !== prevProps.tagKeys ||
+      this.props.measurementKeys !== prevProps.measurementKeys
+    ) {
       this.syncFields();
     }
   }
@@ -89,9 +94,13 @@ class ColumnEditCollection extends React.Component<Props, State> {
   dragGhostRef = React.createRef<HTMLDivElement>();
 
   get fieldOptions() {
+    const {organization, measurementKeys} = this.props;
     return generateFieldOptions({
       organization: this.props.organization,
       tagKeys: this.props.tagKeys,
+      measurementKeys: organization.features.includes('measurements')
+        ? measurementKeys
+        : undefined,
     });
   }
 
@@ -142,6 +151,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       userSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
+      webkitUserSelect: 'none',
     });
 
     // attach event listeners so that the mouse cursor can drag anywhere
@@ -286,6 +296,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
               icon={<IconGrabbable size="xs" color="gray700" />}
+              size="zero"
               borderless
             />
           ) : (
@@ -317,6 +328,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   render() {
     const {columns} = this.props;
     const canDelete = columns.length > 1;
+    const canAdd = columns.length < MAX_COL_COUNT;
+    const title = canAdd
+      ? undefined
+      : `Sorry, you reached the maximum number of columns. Delete columns to add more.`;
 
     // Get the longest number of columns so we can layout the rows.
     // We always want at least 2 columns.
@@ -344,6 +359,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
               size="small"
               label={t('Add a Column')}
               onClick={this.handleAddColumn}
+              title={title}
+              disabled={!canAdd}
               icon={<IconAdd isCircled size="xs" />}
             >
               {t('Add a Column')}
@@ -357,7 +374,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
 const RowContainer = styled('div')`
   display: grid;
-  grid-template-columns: 30px auto 30px;
+  grid-template-columns: 24px auto 24px;
   align-items: center;
   width: 100%;
   padding-bottom: ${space(1)};
@@ -404,7 +421,7 @@ const Heading = styled('div')<{gridColumns: number}>`
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  margin-bottom: 0;
+  margin: 0;
 `;
 
 export default ColumnEditCollection;

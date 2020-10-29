@@ -1,117 +1,117 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
 import {IconAdd, IconArrow, IconBookmark, IconGroup, IconPin} from 'app/icons';
 
-storiesOf('Style|Icons', module).add(
-  'Icon Props',
-  withInfo('Props you can assign to the icon components')(() => {
-    return (
-      <SwatchWrapper>
-        <ColorSwatches>
-          <Header>Color Prop</Header>
-          <Swatch>
-            <IconBookmark />
-            <LabelWrapper>IconBookmark</LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconBookmark isSolid color="#6C5FC7" />
-            <LabelWrapper>
-              IconBookmark <Highlight>solid color="#6C5FC7"</Highlight>
-            </LabelWrapper>
-          </Swatch>
-        </ColorSwatches>
-        <SizeSwatches>
-          <Header>Size Prop</Header>
-          <Swatch>
-            <IconGroup size="xs" />
-            <LabelWrapper>
-              IconGroup <Highlight>size="xs"</Highlight>
-            </LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconGroup />
-            <LabelWrapper>IconGroup</LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconGroup size="md" />
-            <LabelWrapper>
-              IconGroup <Highlight>size="md"</Highlight>
-            </LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconGroup size="lg" />
-            <LabelWrapper>
-              IconGroup <Highlight>size="lg"</Highlight>
-            </LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconGroup size="xl" />
-            <LabelWrapper>
-              IconGroup <Highlight>size="xl"</Highlight>
-            </LabelWrapper>
-          </Swatch>
-        </SizeSwatches>
-        <DirectionSwatches>
-          <Header>Direction Prop</Header>
-          <Swatch>
-            <IconArrow />
-            <LabelWrapper>IconArrow</LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconArrow direction="left" />
-            <LabelWrapper>
-              IconArrow <Highlight>direction="left"</Highlight>
-            </LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconArrow direction="down" />
-            <LabelWrapper>
-              IconArrow <Highlight>direction="down"</Highlight>
-            </LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconArrow direction="right" />
-            <LabelWrapper>
-              IconArrow <Highlight>direction="right"</Highlight>
-            </LabelWrapper>
-          </Swatch>
-        </DirectionSwatches>
-        <CircleSwatches>
-          <Header>Circle Prop</Header>
-          <Swatch>
-            <IconAdd />
-            <LabelWrapper>IconAdd</LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconAdd circle />
-            <LabelWrapper>
-              IconAdd <Highlight>circle</Highlight>
-            </LabelWrapper>
-          </Swatch>
-        </CircleSwatches>
-        <SolidSwatches>
-          <Header>Solid Prop</Header>
-          <Swatch>
-            <IconPin />
-            <LabelWrapper>IconPin</LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconPin solid />
-            <LabelWrapper>
-              IconPin <Highlight>solid</Highlight>
-            </LabelWrapper>
-          </Swatch>
-        </SolidSwatches>
-      </SwatchWrapper>
-    );
-  })
-);
+export default {
+  title: 'Core/Style/Icons',
+};
+
+export const IconProps = withInfo('Props you can assign to the icon components')(() => {
+  return (
+    <SwatchWrapper>
+      <ColorSwatches>
+        <Header>Color Prop</Header>
+        <Swatch>
+          <IconBookmark />
+          <LabelWrapper>IconBookmark</LabelWrapper>
+        </Swatch>
+        <Swatch>
+          <IconBookmark isSolid color="#6C5FC7" />
+          <LabelWrapper>
+            IconBookmark <Highlight>solid color="#6C5FC7"</Highlight>
+          </LabelWrapper>
+        </Swatch>
+      </ColorSwatches>
+      <SizeSwatches>
+        <Header>Size Prop</Header>
+        <Swatch>
+          <IconGroup size="xs" />
+          <LabelWrapper>
+            IconGroup <Highlight>size="xs"</Highlight>
+          </LabelWrapper>
+        </Swatch>
+        <Swatch>
+          <IconGroup />
+          <LabelWrapper>IconGroup</LabelWrapper>
+        </Swatch>
+        <Swatch>
+          <IconGroup size="md" />
+          <LabelWrapper>
+            IconGroup <Highlight>size="md"</Highlight>
+          </LabelWrapper>
+        </Swatch>
+        <Swatch>
+          <IconGroup size="lg" />
+          <LabelWrapper>
+            IconGroup <Highlight>size="lg"</Highlight>
+          </LabelWrapper>
+        </Swatch>
+        <Swatch>
+          <IconGroup size="xl" />
+          <LabelWrapper>
+            IconGroup <Highlight>size="xl"</Highlight>
+          </LabelWrapper>
+        </Swatch>
+      </SizeSwatches>
+      <DirectionSwatches>
+        <Header>Direction Prop</Header>
+        <Swatch>
+          <IconArrow />
+          <LabelWrapper>IconArrow</LabelWrapper>
+        </Swatch>
+        <Swatch>
+          <IconArrow direction="left" />
+          <LabelWrapper>
+            IconArrow <Highlight>direction="left"</Highlight>
+          </LabelWrapper>
+        </Swatch>
+        <Swatch>
+          <IconArrow direction="down" />
+          <LabelWrapper>
+            IconArrow <Highlight>direction="down"</Highlight>
+          </LabelWrapper>
+        </Swatch>
+        <Swatch>
+          <IconArrow direction="right" />
+          <LabelWrapper>
+            IconArrow <Highlight>direction="right"</Highlight>
+          </LabelWrapper>
+        </Swatch>
+      </DirectionSwatches>
+      <CircleSwatches>
+        <Header>Circle Prop</Header>
+        <Swatch>
+          <IconAdd />
+          <LabelWrapper>IconAdd</LabelWrapper>
+        </Swatch>
+        <Swatch>
+          <IconAdd circle />
+          <LabelWrapper>
+            IconAdd <Highlight>circle</Highlight>
+          </LabelWrapper>
+        </Swatch>
+      </CircleSwatches>
+      <SolidSwatches>
+        <Header>Solid Prop</Header>
+        <Swatch>
+          <IconPin />
+          <LabelWrapper>IconPin</LabelWrapper>
+        </Swatch>
+        <Swatch>
+          <IconPin solid />
+          <LabelWrapper>
+            IconPin <Highlight>solid</Highlight>
+          </LabelWrapper>
+        </Swatch>
+      </SolidSwatches>
+    </SwatchWrapper>
+  );
+});
 
 const Highlight = styled('span')`
-  color: ${p => p.theme.purple};
+  color: ${p => p.theme.purple400};
   font-weight: 600;
 `;
 

@@ -9,7 +9,7 @@ const COLORS = {
     border: theme.borderLight,
   },
   danger: {
-    background: theme.redLightest,
+    background: theme.red100,
     // TODO(theme) This pink is non-standard
     border: '#e7c0bc',
   },
@@ -57,7 +57,7 @@ export const BannerSummary = styled('p')`
     flex-shrink: 0;
     flex-grow: 0;
     margin-right: ${space(1)};
-    margin-top: ${space(0.5)};
+    margin-top: 2px;
   }
 
   & > span {

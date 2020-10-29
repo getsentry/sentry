@@ -32,16 +32,18 @@ class RedisBackend(object):
 class AmqpBackend(object):
     def __init__(self, broker_url):
         dsn = urlparse(broker_url)
+        host, port = dsn.hostname, dsn.port
+        if port is None:
+            port = 5672
         self.conn_info = dict(
-            host=dsn.hostname,
-            port=dsn.port,
+            host="%s:%d" % (host, port),
             userid=dsn.username,
             password=dsn.password,
             virtual_host=dsn.path[1:],
         )
 
     def get_conn(self):
-        from librabbitmq import Connection
+        from amqp import Connection
 
         return Connection(**self.conn_info)
 
@@ -87,7 +89,7 @@ def get_queue_by_name(name):
             return queue
 
 
-backends = {"redis": RedisBackend, "amqp": AmqpBackend, "librabbitmq": AmqpBackend}
+backends = {"redis": RedisBackend, "amqp": AmqpBackend}
 
 try:
     backend = get_backend_for_broker(settings.BROKER_URL)

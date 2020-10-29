@@ -10,6 +10,7 @@ from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
+from sentry.snuba.models import QueryDatasets
 from sentry.incidents.logic import subscribe_to_incident
 from sentry.testutils import TestCase
 
@@ -44,11 +45,30 @@ class DetailedIncidentSerializerTest(TestCase):
         result = serialize(incident, serializer=serializer, user=self.user)
         assert result["isSubscribed"]
 
-    def test_alert_rule(self):
-        incident = self.create_incident()
+    def test_error_alert_rule(self):
         query = "test query"
+        incident = self.create_incident(query=query)
 
         serializer = DetailedIncidentSerializer()
         result = serialize(incident, serializer=serializer)
         assert result["alertRule"] == serialize(incident.alert_rule)
-        assert result["discoverQuery"] == "event.type:error {}".format(query)
+        assert result["discoverQuery"] == "(event.type:error) AND ({})".format(query)
+
+    def test_error_alert_rule_unicode(self):
+        query = u"统一码"
+        incident = self.create_incident(query=query)
+
+        serializer = DetailedIncidentSerializer()
+        result = serialize(incident, serializer=serializer)
+        assert result["alertRule"] == serialize(incident.alert_rule)
+        assert result["discoverQuery"] == u"(event.type:error) AND ({})".format(query)
+
+    def test_transaction_alert_rule(self):
+        query = "test query"
+        alert_rule = self.create_alert_rule(dataset=QueryDatasets.TRANSACTIONS, query=query)
+        incident = self.create_incident(alert_rule=alert_rule)
+
+        serializer = DetailedIncidentSerializer()
+        result = serialize(incident, serializer=serializer)
+        assert result["alertRule"] == serialize(incident.alert_rule)
+        assert result["discoverQuery"] == "(event.type:transaction) AND ({})".format(query)

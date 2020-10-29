@@ -7,7 +7,7 @@ import OrganizationRateLimits from 'app/views/settings/organizationRateLimits/or
 
 const ENDPOINT = '/organizations/org-slug/';
 
-describe('Organization Rate Limits', function() {
+describe('Organization Rate Limits', function () {
   const organization = {
     ...TestStubs.Organization(),
     quota: {
@@ -20,28 +20,18 @@ describe('Organization Rate Limits', function() {
     <OrganizationRateLimits organization={organization} {...props} />
   );
 
-  beforeEach(function() {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
-  it('renders with initialData', function() {
+  it('renders with initialData', function () {
     const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
-    expect(
-      wrapper
-        .find('RangeSlider')
-        .first()
-        .prop('value')
-    ).toBe(70000);
-    expect(
-      wrapper
-        .find('RangeSlider')
-        .at(1)
-        .prop('value')
-    ).toBe(75);
+    expect(wrapper.find('RangeSlider').first().prop('value')).toBe(70000);
+    expect(wrapper.find('RangeSlider').at(1).prop('value')).toBe(75);
   });
 
-  it('renders with maxRate and maxRateInterval set', function() {
+  it('renders with maxRate and maxRateInterval set', function () {
     const org = {
       ...organization,
       quota: {
@@ -56,10 +46,10 @@ describe('Organization Rate Limits', function() {
 
     expect(wrapper.find('RangeSlider')).toHaveLength(1);
 
-    expect(wrapper.find('Form TextBlock')).toMatchSnapshot();
+    expect(wrapper.find('Form TextBlock')).toSnapshot();
   });
 
-  it('can change Account Rate Limit', function() {
+  it('can change Account Rate Limit', function () {
     const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -89,7 +79,7 @@ describe('Organization Rate Limits', function() {
     );
   });
 
-  it('can change Project Rate Limit', function() {
+  it('can change Project Rate Limit', function () {
     const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',

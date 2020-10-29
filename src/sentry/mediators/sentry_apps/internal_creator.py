@@ -23,13 +23,13 @@ class InternalCreator(Mediator):
     is_alertable = Param(bool, default=False)
     schema = Param(dict, default=lambda self: {})
     overview = Param(six.string_types, required=False)
+    author = Param(six.string_types, required=False)
     allowed_origins = Param(Iterable, default=lambda self: [])
     request = Param("rest_framework.request.Request", required=False)
     user = Param("sentry.models.User")
 
     def call(self):
-        # SentryAppCreator expects an author so just set it to the org name
-        self.kwargs["author"] = self.organization.name
+        self.kwargs["author"] = self.kwargs.get("author") or self.organization.name
         self.kwargs["is_internal"] = True
         self.sentry_app = SentryAppCreator.run(**self.kwargs)
         self.sentry_app.verify_install = False

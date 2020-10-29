@@ -157,6 +157,9 @@ class IntegrationPipeline(Pipeline):
         org_integration = self.integration.add_organization(
             self.organization, self.request.user, default_auth_id=default_auth_id
         )
+        return self._dialog_success(org_integration)
+
+    def _dialog_success(self, org_integration):
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):

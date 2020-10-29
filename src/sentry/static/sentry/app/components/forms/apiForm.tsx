@@ -33,7 +33,7 @@ export default class ApiForm extends Form<Props> {
   static defaultProps = {
     ...Form.defaultProps,
     submitErrorMessage: t('There was an error saving your changes.'),
-    submitLoadingMessage: t('Saving changes..'),
+    submitLoadingMessage: t('Saving changes\u2026'),
   };
 
   componentWillUnmount() {

@@ -25,8 +25,6 @@ type Params = {
    * enable the arrow on the menu
    */
   menuWithArrow?: boolean;
-
-  theme: Theme;
 };
 
 /**
@@ -40,7 +38,7 @@ const getMenuBorderRadius = ({
   alignMenu,
   width,
   theme,
-}: Params) => {
+}: Params & {theme: Theme}) => {
   const radius = theme.borderRadius;
   if (!blendCorner) {
     return css`
@@ -105,7 +103,7 @@ const getMenuArrow = ({menuWithArrow, alignMenu}: Params) => {
 };
 
 const DropdownBubble = styled('div')<Params>`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.white};
   border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: calc(100% - 1px);

@@ -14,6 +14,8 @@ export function IncidentRule(params) {
     projects: ['project-slug'],
     dateModified: '2019-07-31T23:02:02.731Z',
     triggers: [IncidentTrigger()],
+    resolveThreshold: 36,
+    thresholdType: 0,
     ...params,
   };
 }

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import calendar
 from datetime import datetime, timedelta
-import json
 import pytz
 import requests
 import six
@@ -10,6 +9,7 @@ import six
 from django.conf import settings
 from sentry.utils.compat.mock import patch
 
+from sentry.utils import json
 from sentry.models import GroupHash, GroupRelease, Release
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
@@ -41,8 +41,8 @@ def has_shape(data, shape, allow_empty=False):
     if isinstance(data, dict):
         return (
             (allow_empty or len(data) > 0)
-            and all(has_shape(k, shape.keys()[0]) for k in data.keys())
-            and all(has_shape(v, shape.values()[0]) for v in data.values())
+            and all(has_shape(k, list(shape.keys())[0]) for k in data.keys())
+            and all(has_shape(v, list(shape.values())[0]) for v in data.values())
         )
     elif isinstance(data, list):
         return (allow_empty or len(data) > 0) and all(has_shape(v, shape[0]) for v in data)
@@ -98,32 +98,38 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
         data = json.dumps(
             [
-                {
-                    "event_id": (six.text_type(r) * 32)[:32],
-                    "primary_hash": [hash1, hash2][(r // 600) % 2],  # Switch every 10 mins
-                    "group_id": [self.proj1group1.id, self.proj1group2.id][(r // 600) % 2],
-                    "project_id": self.proj1.id,
-                    "message": "message 1",
-                    "platform": "python",
-                    "datetime": (self.now + timedelta(seconds=r)).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "data": {
-                        "type": "transaction" if r % 1200 == 0 else "error",
-                        "received": calendar.timegm(self.now.timetuple()) + r,
-                        "tags": {
-                            "foo": "bar",
-                            "baz": "quux",
-                            # Switch every 2 hours
-                            "environment": [self.proj1env1.name, None][(r // 7200) % 3],
-                            "sentry:user": u"id:user{}".format(r // 3300),
-                            "sentry:release": six.text_type(r // 3600) * 10,  # 1 per hour
-                        },
-                        "user": {
-                            # change every 55 min so some hours have 1 user, some have 2
-                            "id": u"user{}".format(r // 3300),
-                            "email": u"user{}@sentry.io".format(r),
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": (six.text_type(r) * 32)[:32],
+                        "primary_hash": [hash1, hash2][(r // 600) % 2],  # Switch every 10 mins
+                        "group_id": [self.proj1group1.id, self.proj1group2.id][(r // 600) % 2],
+                        "project_id": self.proj1.id,
+                        "message": "message 1",
+                        "platform": "python",
+                        "datetime": (self.now + timedelta(seconds=r)).strftime(
+                            "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ),
+                        "data": {
+                            "type": "transaction" if r % 1200 == 0 else "error",
+                            "received": calendar.timegm(self.now.timetuple()) + r,
+                            "tags": {
+                                "foo": "bar",
+                                "baz": "quux",
+                                # Switch every 2 hours
+                                "environment": [self.proj1env1.name, None][(r // 7200) % 3],
+                                "sentry:user": u"id:user{}".format(r // 3300),
+                                "sentry:release": six.text_type(r // 3600) * 10,  # 1 per hour
+                            },
+                            "user": {
+                                # change every 55 min so some hours have 1 user, some have 2
+                                "id": u"user{}".format(r // 3300),
+                                "email": u"user{}@sentry.io".format(r),
+                            },
                         },
                     },
-                }
+                )
                 for r in range(0, 14400, 600)
             ]
         )  # Every 10 min for 4 hours

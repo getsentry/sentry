@@ -23,7 +23,8 @@ section.org-login {
     margin: 0 0 20px;
   }
   .org-avatar {
-    .square(56px);
+    width: 56px;
+    height: 56px;
     border-radius: 3px;
     margin-bottom: 20px;
   }
@@ -31,7 +32,8 @@ section.org-login {
 
 .provider-logo {
   display: inline-block;
-  .square(16px);
+  width: 16px;
+  height: 16px;
   vertical-align: text-top;
   margin-right: 4px;
   border-radius: 2px;
@@ -63,7 +65,7 @@ section.org-login {
     background-image: url(../images/logos/logo-rippling.svg);
   }
 
-  &.activedirectory {
+  &.active-directory {
     background-image: url(../images/logos/logo-microsoft.svg);
   }
 
@@ -78,6 +80,10 @@ section.org-login {
   &.vsts {
     background-image: url(../images/logos/logo-azure.svg);
   }
+}
+
+.btn-default > .provider-logo {
+  margin-right: 8px;
 }
 
 .sso-link {
@@ -102,7 +108,8 @@ section.org-login {
       right: 6px;
       color: #fff;
       background: rgba(0, 0, 0, 0.4);
-      .square(20px);
+      width: 20px;
+      height: 20px;
       border-radius: 3px;
       text-align: center;
       line-height: 20px;
@@ -123,7 +130,8 @@ section.org-login {
     right: 0;
 
     .avatar {
-      .square(118px);
+      width: 118px;
+      height: 118px;
       border-radius: 3px;
     }
   }
@@ -149,15 +157,12 @@ section.org-login {
       margin-top: -4px;
     }
 
-    .icon-trash {
-      margin-left: -2px;
-    }
-
     &.enrolled {
       h4:after {
         display: inline-block;
         content: '';
-        .square(14px);
+        width: 14px;
+        height: 14px;
         border-radius: 14px;
         margin-left: 10px;
         background: @green;

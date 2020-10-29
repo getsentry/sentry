@@ -9,13 +9,10 @@ from enum import Enum
 from datetime import timedelta
 
 import six
-from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
-from django.utils.http import urlencode
+from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
-
-import sentry_sdk
 
 from sentry import eventstore, eventtypes, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
@@ -127,6 +124,10 @@ class GroupStatus(object):
     PENDING_DELETION = 3
     DELETION_IN_PROGRESS = 4
     PENDING_MERGE = 5
+
+    # The group's events are being re-processed and after that the group will
+    # be deleted. In this state no new events shall be added to the group.
+    REPROCESSING = 6
 
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
@@ -251,13 +252,18 @@ class Group(Model):
     __core__ = False
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
+    logger = models.CharField(
+        max_length=64, blank=True, default=six.text_type(DEFAULT_LOGGER_NAME), db_index=True
+    )
     level = BoundedPositiveIntegerField(
-        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
+        choices=[(key, six.text_type(val)) for key, val in sorted(LOG_LEVELS.items())],
+        default=logging.ERROR,
+        blank=True,
+        db_index=True,
     )
     message = models.TextField()
     culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column="view"
+        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column=u"view"
     )
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
@@ -320,16 +326,14 @@ class Group(Model):
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
-        url_args = [self.organization.slug, self.id]
-        with sentry_sdk.start_span(op="models.group.absolute_url.reverse") as span:
-            span.set_data("url_args", url_args)
-            url = reverse("sentry-organization-issue", args=url_args)
-        if params:
-            with sentry_sdk.start_span(op="models.group.absolute_url.params") as span:
-                span.set_data("params", params)
-                url = url + "?" + urlencode(params)
-        with sentry_sdk.start_span(op="models.group.absolute_url.format", description=url):
-            return absolute_uri(url)
+        # Built manually in preference to django.core.urlresolvers.reverse,
+        # because reverse has a measured performance impact.
+        url = u"organizations/{org}/issues/{id}/{params}".format(
+            org=urlquote(self.organization.slug),
+            id=self.id,
+            params="?" + urlencode(params) if params else "",
+        )
+        return absolute_uri(url)
 
     @property
     def qualified_short_id(self):
@@ -471,7 +475,7 @@ class Group(Model):
         return ""
 
     def get_email_subject(self):
-        return "%s - %s" % (self.qualified_short_id.encode("utf-8"), self.title.encode("utf-8"))
+        return u"{} - {}".format(self.qualified_short_id, self.title)
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(

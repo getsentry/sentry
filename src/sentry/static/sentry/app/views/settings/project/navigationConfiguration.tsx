@@ -3,8 +3,8 @@ import {NavigationSection} from 'app/views/settings/types';
 import {Organization, Project} from 'app/types';
 
 type ConfigParams = {
-  organization: Organization;
-  project: Project;
+  organization?: Organization;
+  project?: Project;
 };
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
@@ -65,19 +65,18 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/source-maps/`,
           title: t('Source Maps'),
-          show: () => organization.features?.includes('artifacts-in-settings'),
         },
         {
-          path: `${pathPrefix}/android-mappings/`,
-          title: t('Android Mappings'),
-          show: () => organization.features?.includes('android-mappings'),
+          path: `${pathPrefix}/proguard/`,
+          title: t('ProGuard'),
+          show: () => !!organization?.features?.includes('android-mappings'),
         },
         {
-          path: `${pathPrefix}/data-privacy/`,
-          title: t('Data Privacy'),
-          description: t('Configure Datascrubbers for a project'),
-          show: () => organization.features?.includes('datascrubbers-v2'),
-          badge: () => 'new',
+          path: `${pathPrefix}/security-and-privacy/`,
+          title: t('Security & Privacy'),
+          description: t(
+            'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
+          ),
         },
 
         {
@@ -108,7 +107,7 @@ export default function getConfiguration({
       items: [
         {
           path: `${pathPrefix}/install/`,
-          title: t('Error Tracking'),
+          title: t('Instrumentation'),
         },
         {
           path: `${pathPrefix}/keys/`,

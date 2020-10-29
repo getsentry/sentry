@@ -12,11 +12,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 from sentry.utils.compat.mock import call, Mock
 
-from sentry.incidents.logic import (
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
-)
+from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -42,6 +38,9 @@ from sentry.snuba.models import QuerySubscription
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils.compat import map
+
+
+EMPTY = object()
 
 
 @freeze_time()
@@ -78,19 +77,18 @@ class ProcessUpdateTest(TestCase):
 
     @fixture
     def rule(self):
-        rule = create_alert_rule(
-            self.organization,
-            [self.project, self.other_project],
-            "some rule",
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule",
             query="",
             aggregate="count()",
             time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
             threshold_period=1,
         )
         # Make sure the trigger exists
-        trigger = create_alert_rule_trigger(
-            rule, "hi", AlertRuleThresholdType.ABOVE, 100, resolve_threshold=10
-        )
+        trigger = create_alert_rule_trigger(rule, "hi", 100)
         create_alert_rule_trigger_action(
             trigger,
             AlertRuleTriggerAction.Type.EMAIL,
@@ -107,7 +105,7 @@ class ProcessUpdateTest(TestCase):
     def action(self):
         return self.trigger.alertruletriggeraction_set.get()
 
-    def build_subscription_update(self, subscription, time_delta=None, value=None):
+    def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
         if time_delta is not None:
             timestamp = timezone.now() + time_delta
         else:
@@ -117,7 +115,7 @@ class ProcessUpdateTest(TestCase):
         data = {}
 
         if subscription:
-            data = {"some_col_name": randint(0, 100) if value is None else value}
+            data = {"some_col_name": randint(0, 100) if value is EMPTY else value}
         values = {"data": [data]}
         return {
             "subscription_id": subscription.subscription_id if subscription else uuid4().hex,
@@ -136,7 +134,10 @@ class ProcessUpdateTest(TestCase):
             subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        processor.process_update(message)
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.capture_on_commit_callbacks(execute=True):
+            processor.process_update(message)
         return processor
 
     def assert_trigger_exists_with_status(self, incident, trigger, status):
@@ -205,21 +206,45 @@ class ProcessUpdateTest(TestCase):
 
     def assert_trigger_counts(self, processor, trigger, alert_triggers=0, resolve_triggers=0):
         assert processor.trigger_alert_counts[trigger.id] == alert_triggers
-        assert processor.trigger_resolve_counts[trigger.id] == resolve_triggers
+        assert processor.rule_resolve_counts == resolve_triggers
         alert_stats, resolve_stats = get_alert_rule_stats(
             processor.alert_rule, processor.subscription, [trigger]
         )[1:]
         assert alert_stats[trigger.id] == alert_triggers
-        assert resolve_stats[trigger.id] == resolve_triggers
+        assert resolve_stats == resolve_triggers
 
     def test_removed_alert_rule(self):
         message = self.build_subscription_update(self.sub)
         self.rule.delete()
-        SubscriptionProcessor(self.sub).process_update(message)
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
         )
         # TODO: Check subscription is deleted once we start doing that
+
+    def test_removed_project(self):
+        message = self.build_subscription_update(self.sub)
+        self.project.delete()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.ignore_deleted_project")
+
+    def test_no_feature(self):
+        message = self.build_subscription_update(self.sub)
+        SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_missing_incidents"
+        )
+
+    def test_no_feature_performance(self):
+        self.sub.snuba_query.dataset = "transactions"
+        message = self.build_subscription_update(self.sub)
+        with self.feature("organizations:incidents"):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_missing_incidents_performance"
+        )
 
     def test_skip_already_processed_update(self):
         self.send_update(self.rule, self.trigger.alert_threshold)
@@ -254,8 +279,49 @@ class ProcessUpdateTest(TestCase):
         processor = self.send_update(rule, trigger.alert_threshold + 1)
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(rule)
+        assert incident.date_started == (
+            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+        )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(incident, [self.action])
+
+    def test_alert_dedupe(self):
+        # Verify that an alert rule that only expects a single update to be over the
+        # alert threshold triggers correctly
+        rule = self.rule
+        c_trigger = self.trigger
+        c_action = self.action
+        create_alert_rule_trigger_action(
+            self.trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            six.text_type(self.user.id),
+        )
+        w_trigger = create_alert_rule_trigger(self.rule, "hello", c_trigger.alert_threshold - 10)
+        create_alert_rule_trigger_action(
+            w_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            six.text_type(self.user.id),
+        )
+
+        processor = self.send_update(rule, c_trigger.alert_threshold + 1)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        assert incident.date_started == (
+            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+        )
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [c_action])
+
+    def test_alert_nullable(self):
+        # Verify that an alert rule that only expects a single update to be over the
+        # alert threshold triggers correctly
+        rule = self.rule
+        self.trigger
+        processor = self.send_update(rule, None)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
 
     def test_alert_multiple_threshold_periods(self):
         # Verify that a rule that expects two consecutive updates to be over the
@@ -305,10 +371,10 @@ class ProcessUpdateTest(TestCase):
         # related to the alert rule.
         rule = self.rule
         trigger = self.trigger
-        processor = self.send_update(rule, trigger.resolve_threshold - 1)
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        processor = self.send_update(rule, rule.resolve_threshold - 1)
+        self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(self.trigger)
+        self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
 
     def test_resolve(self):
@@ -322,7 +388,7 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(incident, [self.action])
 
-        processor = self.send_update(rule, trigger.resolve_threshold - 1, timedelta(minutes=-1))
+        processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
@@ -341,13 +407,13 @@ class ProcessUpdateTest(TestCase):
         self.assert_actions_fired_for_incident(incident, [self.action])
 
         rule.update(threshold_period=2)
-        processor = self.send_update(rule, trigger.resolve_threshold - 1, timedelta(minutes=-2))
+        processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-2))
         self.assert_trigger_counts(processor, self.trigger, 0, 1)
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-        processor = self.send_update(rule, trigger.resolve_threshold - 1, timedelta(minutes=-1))
+        processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
@@ -367,46 +433,143 @@ class ProcessUpdateTest(TestCase):
         self.assert_actions_fired_for_incident(incident, [self.action])
 
         rule.update(threshold_period=2)
-        processor = self.send_update(rule, trigger.resolve_threshold - 1, timedelta(minutes=-3))
+        processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-3))
         self.assert_trigger_counts(processor, self.trigger, 0, 1)
         self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-        processor = self.send_update(rule, trigger.resolve_threshold, timedelta(minutes=-2))
+        processor = self.send_update(rule, rule.resolve_threshold, timedelta(minutes=-2))
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-        processor = self.send_update(rule, trigger.resolve_threshold - 1, timedelta(minutes=-1))
+        processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
         self.assert_trigger_counts(processor, self.trigger, 0, 1)
         self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
+
+    def test_auto_resolve(self):
+        # Verify that we resolve an alert rule automatically even if no resolve
+        # threshold is set
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(rule, trigger.alert_threshold - 1, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_auto_resolve_percent_boundary(self):
+        # Verify that we resolve an alert rule automatically even if no resolve
+        # threshold is set
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        trigger.update(alert_threshold=0.5)
+        processor = self.send_update(rule, trigger.alert_threshold + 0.1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(rule, trigger.alert_threshold, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_auto_resolve_boundary(self):
+        # Verify that we resolve an alert rule automatically if the value hits the
+        # original alert trigger value
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(rule, trigger.alert_threshold, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_auto_resolve_reversed(self):
+        # Test auto resolving works correctly when threshold is reversed
+        rule = self.rule
+        rule.update(resolve_threshold=None, threshold_type=AlertRuleThresholdType.BELOW.value)
+        trigger = self.trigger
+        processor = self.send_update(rule, trigger.alert_threshold - 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_auto_resolve_multiple_trigger(self):
+        # Test auto resolving works correctly when multiple triggers are present.
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        other_trigger = create_alert_rule_trigger(self.rule, "hello", trigger.alert_threshold - 10)
+        other_action = create_alert_rule_trigger_action(
+            other_trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
+        )
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action, other_action])
+
+        processor = self.send_update(rule, other_trigger.alert_threshold - 1, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action, other_action])
 
     def test_reversed_threshold_alert(self):
         # Test that inverting thresholds correctly alerts
         rule = self.rule
         trigger = self.trigger
-        trigger.update(threshold_type=AlertRuleThresholdType.BELOW.value)
+        rule.update(threshold_type=AlertRuleThresholdType.BELOW.value)
+        trigger.update(alert_threshold=rule.resolve_threshold + 1)
         processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(self.trigger)
+        self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
 
         processor = self.send_update(rule, trigger.alert_threshold - 1, timedelta(minutes=-1))
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_trigger_counts(processor, trigger, 0, 0)
         incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(incident, [self.action])
 
     def test_reversed_threshold_resolve(self):
         # Test that inverting thresholds correctly resolves
         rule = self.rule
         trigger = self.trigger
-        trigger.update(threshold_type=AlertRuleThresholdType.BELOW.value)
+        rule.update(threshold_type=AlertRuleThresholdType.BELOW.value)
+        trigger.update(alert_threshold=rule.resolve_threshold + 1)
 
         processor = self.send_update(rule, trigger.alert_threshold - 1, timedelta(minutes=-3))
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
@@ -414,13 +577,13 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(incident, [self.action])
 
-        processor = self.send_update(rule, trigger.resolve_threshold - 1, timedelta(minutes=-2))
+        processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-2))
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-        processor = self.send_update(rule, trigger.resolve_threshold + 1, timedelta(minutes=-1))
+        processor = self.send_update(rule, rule.resolve_threshold + 1, timedelta(minutes=-1))
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
@@ -482,7 +645,7 @@ class ProcessUpdateTest(TestCase):
         # Now we want to test that resolving is isolated. Send another update through
         # for the first subscription.
         processor = self.send_update(
-            rule, trigger.resolve_threshold - 1, timedelta(minutes=-7), subscription=self.sub
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-7), subscription=self.sub
         )
         self.assert_trigger_counts(processor, self.trigger, 0, 1)
         incident = self.assert_active_incident(rule, self.sub)
@@ -493,7 +656,7 @@ class ProcessUpdateTest(TestCase):
         self.assert_action_handler_called_with_actions(other_incident, [])
 
         processor = self.send_update(
-            rule, trigger.resolve_threshold - 1, timedelta(minutes=-7), subscription=self.other_sub
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-7), subscription=self.other_sub
         )
         self.assert_trigger_counts(processor, self.trigger, 0, 1)
         incident = self.assert_active_incident(rule, self.sub)
@@ -506,7 +669,7 @@ class ProcessUpdateTest(TestCase):
         # This second update for the second subscription should resolve its incident,
         # but not the incident from the first subscription.
         processor = self.send_update(
-            rule, trigger.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.other_sub
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.other_sub
         )
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(rule, self.sub)
@@ -517,7 +680,7 @@ class ProcessUpdateTest(TestCase):
 
         # This second update for the first subscription should resolve its incident now.
         processor = self.send_update(
-            rule, trigger.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.sub
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.sub
         )
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_no_active_incident(rule, self.sub)
@@ -531,9 +694,7 @@ class ProcessUpdateTest(TestCase):
         rule = self.rule
         rule.update(threshold_period=2)
         trigger = self.trigger
-        other_trigger = create_alert_rule_trigger(
-            self.rule, "hello", AlertRuleThresholdType.ABOVE, 200, resolve_threshold=50
-        )
+        other_trigger = create_alert_rule_trigger(self.rule, "hello", 200)
         other_action = create_alert_rule_trigger_action(
             other_trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
         )
@@ -569,12 +730,12 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(incident, [other_action])
 
-        # Now send through two updates where we're below threshold for `other_trigger`.
-        # The trigger should end up resolved, but the incident should still be active
+        # Now send through two updates where we're below threshold for the rule. This
+        # should resolve all triggers and the incident should be closed.
         processor = self.send_update(
-            rule, other_trigger.resolve_threshold - 1, timedelta(minutes=-7), subscription=self.sub
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-7), subscription=self.sub
         )
-        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, trigger, 0, 1)
         self.assert_trigger_counts(processor, other_trigger, 0, 1)
         incident = self.assert_active_incident(rule, self.sub)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
@@ -582,61 +743,7 @@ class ProcessUpdateTest(TestCase):
         self.assert_action_handler_called_with_actions(incident, [])
 
         processor = self.send_update(
-            rule, other_trigger.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.sub
-        )
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_trigger_counts(processor, other_trigger, 0, 0)
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(incident, [other_action])
-
-        # Now we push the other trigger below the resolve threshold twice. This should
-        # close the incident.
-        processor = self.send_update(
-            rule, trigger.resolve_threshold - 1, timedelta(minutes=-5), subscription=self.sub
-        )
-        self.assert_trigger_counts(processor, trigger, 0, 1)
-        self.assert_trigger_counts(processor, other_trigger, 0, 0)
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
-        self.assert_action_handler_called_with_actions(incident, [])
-
-        processor = self.send_update(
-            rule, trigger.resolve_threshold - 1, timedelta(minutes=-4), subscription=self.sub
-        )
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_trigger_counts(processor, other_trigger, 0, 0)
-        self.assert_no_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(incident, [self.action])
-
-    def test_multiple_triggers_at_same_time(self):
-        # Check that both triggers fire if an update comes through that exceeds both of
-        # their thresholds
-        rule = self.rule
-        trigger = self.trigger
-        other_trigger = create_alert_rule_trigger(
-            self.rule, "hello", AlertRuleThresholdType.ABOVE, 200, resolve_threshold=50
-        )
-        other_action = create_alert_rule_trigger_action(
-            other_trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
-        )
-
-        processor = self.send_update(
-            rule, other_trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
-        )
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_trigger_counts(processor, other_trigger, 0, 0)
-        incident = self.assert_active_incident(rule, self.sub)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
-        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(incident, [self.action, other_action])
-
-        processor = self.send_update(
-            rule, trigger.resolve_threshold - 1, timedelta(minutes=-9), subscription=self.sub
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.sub
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_trigger_counts(processor, other_trigger, 0, 0)
@@ -645,14 +752,12 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(incident, [self.action, other_action])
 
-    def test_multiple_triggers_one_with_no_resolve(self):
+    def test_multiple_triggers_at_same_time(self):
         # Check that both triggers fire if an update comes through that exceeds both of
         # their thresholds
         rule = self.rule
         trigger = self.trigger
-        other_trigger = create_alert_rule_trigger(
-            self.rule, "hello", AlertRuleThresholdType.ABOVE, 200
-        )
+        other_trigger = create_alert_rule_trigger(self.rule, "hello", 200)
         other_action = create_alert_rule_trigger_action(
             other_trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
         )
@@ -668,20 +773,23 @@ class ProcessUpdateTest(TestCase):
         self.assert_actions_fired_for_incident(incident, [self.action, other_action])
 
         processor = self.send_update(
-            rule, trigger.resolve_threshold - 1, timedelta(minutes=-9), subscription=self.sub
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-9), subscription=self.sub
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_trigger_counts(processor, other_trigger, 0, 0)
         self.assert_no_active_incident(rule, self.sub)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
-        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_resolved_for_incident(incident, [self.action])
+        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action, other_action])
 
 
 class TestBuildAlertRuleStatKeys(unittest.TestCase):
     def test(self):
         stat_keys = build_alert_rule_stat_keys(AlertRule(id=1), QuerySubscription(project_id=2))
-        assert stat_keys == ["{alert_rule:1:project:2}:last_update"]
+        assert stat_keys == [
+            "{alert_rule:1:project:2}:last_update",
+            "{alert_rule:1:project:2}:resolve_triggered",
+        ]
 
 
 class TestBuildTriggerStatKeys(unittest.TestCase):
@@ -693,9 +801,7 @@ class TestBuildTriggerStatKeys(unittest.TestCase):
         )
         assert stat_keys == [
             "{alert_rule:1:project:2}:trigger:3:alert_triggered",
-            "{alert_rule:1:project:2}:trigger:3:resolve_triggered",
             "{alert_rule:1:project:2}:trigger:4:alert_triggered",
-            "{alert_rule:1:project:2}:trigger:4:resolve_triggered",
         ]
 
 
@@ -722,11 +828,10 @@ class TestGetAlertRuleStats(TestCase):
         pipeline = client.pipeline()
         timestamp = datetime.now().replace(tzinfo=pytz.utc, microsecond=0)
         pipeline.set("{alert_rule:1:project:2}:last_update", int(to_timestamp(timestamp)))
+        pipeline.set("{alert_rule:1:project:2}:resolve_triggered", 20)
         for key, value in [
             ("{alert_rule:1:project:2}:trigger:3:alert_triggered", 1),
-            ("{alert_rule:1:project:2}:trigger:3:resolve_triggered", 2),
             ("{alert_rule:1:project:2}:trigger:4:alert_triggered", 3),
-            ("{alert_rule:1:project:2}:trigger:4:resolve_triggered", 4),
         ]:
             pipeline.set(key, value)
         pipeline.execute()
@@ -734,7 +839,7 @@ class TestGetAlertRuleStats(TestCase):
         last_update, alert_counts, resolve_counts = get_alert_rule_stats(alert_rule, sub, triggers)
         assert last_update == timestamp
         assert alert_counts == {3: 1, 4: 3}
-        assert resolve_counts == {3: 2, 4: 4}
+        assert resolve_counts == 20
 
 
 class TestUpdateAlertRuleStats(TestCase):
@@ -742,7 +847,7 @@ class TestUpdateAlertRuleStats(TestCase):
         alert_rule = AlertRule(id=1)
         sub = QuerySubscription(project_id=2)
         date = datetime.utcnow().replace(tzinfo=pytz.utc)
-        update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, {3: 10, 4: 15})
+        update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, 15)
         client = get_redis_client()
         results = map(
             int,
@@ -750,11 +855,10 @@ class TestUpdateAlertRuleStats(TestCase):
                 [
                     "{alert_rule:1:project:2}:last_update",
                     "{alert_rule:1:project:2}:trigger:3:alert_triggered",
-                    "{alert_rule:1:project:2}:trigger:3:resolve_triggered",
                     "{alert_rule:1:project:2}:trigger:4:alert_triggered",
-                    "{alert_rule:1:project:2}:trigger:4:resolve_triggered",
+                    "{alert_rule:1:project:2}:resolve_triggered",
                 ]
             ),
         )
 
-        assert results == [int(to_timestamp(date)), 20, 10, 3, 15]
+        assert results == [int(to_timestamp(date)), 20, 3, 15]

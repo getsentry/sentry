@@ -1,6 +1,8 @@
-import * as Sentry from '@sentry/browser';
 import React from 'react';
+import * as Sentry from '@sentry/react';
+import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
 import {NavigationSection, NavigationProps} from 'app/views/settings/types';
 
@@ -44,14 +46,32 @@ class SettingsNavigation extends React.Component<Props> {
     const navWithHooks = navigationObjects.concat(hookConfigs);
 
     return (
-      <div>
+      <PositionStickyWrapper>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
         ))}
         {hooks.map((Hook, i) => React.cloneElement(Hook, {key: `hook-${i}`}))}
-      </div>
+      </PositionStickyWrapper>
     );
   }
 }
+
+const PositionStickyWrapper = styled('div')`
+  padding: ${space(4)};
+  padding-right: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    position: sticky;
+    top: 70px;
+    overflow: scroll;
+    height: calc(100vh - 70px);
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+`;
 
 export default SettingsNavigation;

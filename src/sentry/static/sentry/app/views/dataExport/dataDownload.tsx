@@ -1,14 +1,16 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import Button from 'app/components/button';
+import {IconDownload} from 'app/icons';
 import {ExportQueryType} from 'app/components/dataExport';
 import DateTime from 'app/components/dateTime';
 import AsyncView from 'app/views/asyncView';
 import Layout from 'app/views/auth/layout';
 import space from 'app/styles/space';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 
 export enum DownloadStatus {
   Early = 'EARLY',
@@ -36,6 +38,7 @@ type Download = {
     info: object;
   };
   status: DownloadStatus;
+  checksum: string;
 };
 
 type Props = {} & RouteComponentProps<RouteParams, {}>;
@@ -108,6 +111,7 @@ class DataDownload extends AsyncView<Props, State> {
       </React.Fragment>
     );
   }
+
   renderExpired(): React.ReactNode {
     const {query} = this.state.download;
     const actionLink = this.getActionLink(query.type);
@@ -134,11 +138,54 @@ class DataDownload extends AsyncView<Props, State> {
       </React.Fragment>
     );
   }
+
+  openInDiscover() {
+    const {
+      download: {
+        query: {info},
+      },
+    } = this.state;
+    const {orgId} = this.props.params;
+
+    const to = {
+      pathname: `/organizations/${orgId}/discover/results/`,
+      query: info,
+    };
+
+    browserHistory.push(to);
+  }
+
+  renderOpenInDiscover() {
+    const {
+      download: {
+        query = {
+          type: ExportQueryType.IssuesByTag,
+          info: {},
+        },
+      },
+    } = this.state;
+
+    // default to IssuesByTag because we dont want to
+    // display this unless we're sure its a discover query
+    const {type = ExportQueryType.IssuesByTag} = query;
+
+    return type === 'Discover' ? (
+      <React.Fragment>
+        <p>{t('Need to make changes?')}</p>
+        <Button priority="primary" onClick={() => this.openInDiscover()}>
+          {t('Open in Discover')}
+        </Button>
+        <br />
+      </React.Fragment>
+    ) : null;
+  }
+
   renderValid(): React.ReactNode {
     const {
-      download: {dateExpired},
+      download: {dateExpired, checksum},
     } = this.state;
     const {orgId, dataExportId} = this.props.params;
+
     return (
       <React.Fragment>
         <Header>
@@ -148,7 +195,7 @@ class DataDownload extends AsyncView<Props, State> {
           <p>{t("See, that wasn't so bad. Your data is all ready for download.")}</p>
           <Button
             priority="primary"
-            icon="icon-download"
+            icon={<IconDownload />}
             href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
           >
             {t('Download CSV')}
@@ -158,10 +205,29 @@ class DataDownload extends AsyncView<Props, State> {
             <br />
             {this.renderDate(dateExpired)}
           </p>
+          {this.renderOpenInDiscover()}
+          <p>
+            <small>
+              <strong>SHA1:{checksum}</strong>
+            </small>
+            <br />
+            {tct('Need help verifying? [link].', {
+              link: (
+                <a
+                  href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t('Check out our docs')}
+                </a>
+              ),
+            })}
+          </p>
         </Body>
       </React.Fragment>
     );
   }
+
   renderError(): React.ReactNode {
     const {
       errors: {download: err},

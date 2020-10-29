@@ -6,7 +6,7 @@ import {t, tct} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
 import TextOverflow from 'app/components/textOverflow';
 import {EntryTypeData} from 'app/types';
-import {IconFire, IconCheckmark} from 'app/icons';
+import {IconFire} from 'app/icons';
 
 import {Grid, GridCell} from './styles';
 
@@ -26,6 +26,7 @@ type ThreadInfo = {
 const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
   const {label = `<${t('unknown')}>`, filename = `<${t('unknown')}>`} = details;
   const optionName = name || `<${t('unknown')}>`;
+
   return (
     <Grid>
       <GridCell>
@@ -43,38 +44,37 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
         </InnerCell>
       </GridCell>
       <GridCell>
-        <InnerCell color="blue">
+        <InnerCell color="blue400">
           <Tooltip title={label} position="top">
             <TextOverflow>{label}</TextOverflow>
           </Tooltip>
         </InnerCell>
       </GridCell>
       <GridCell>
-        <InnerCell color="purple">
+        <InnerCell color="purple400">
           <Tooltip title={filename} position="top">
             <TextOverflow>{filename}</TextOverflow>
           </Tooltip>
         </InnerCell>
       </GridCell>
       <GridCell>
-        <InnerCell isCentered>
-          {crashed ? (
-            crashedInfo ? (
+        {crashed && (
+          <InnerCell isCentered>
+            {crashedInfo ? (
               <Tooltip
-                title={`${tct('errored with [crashedInfo]', {
+                skipWrapper
+                title={tct('Errored with [crashedInfo]', {
                   crashedInfo: crashedInfo.values[0].type,
-                })}`}
+                })}
                 position="top"
               >
-                <IconFire color="red" />
+                <IconFire color="red400" />
               </Tooltip>
             ) : (
-              <IconFire color="red" />
-            )
-          ) : (
-            <IconCheckmark color="green" size="xs" />
-          )}
-        </InnerCell>
+              <IconFire color="red400" />
+            )}
+          </InnerCell>
+        )}
       </GridCell>
     </Grid>
   );
@@ -85,7 +85,6 @@ export default Option;
 const InnerCell = styled('div')<{isCentered?: boolean; color?: Color; isBold?: boolean}>`
   display: flex;
   align-items: center;
-  height: 100%;
   justify-content: ${p => (p.isCentered ? 'center' : 'flex-start')};
   font-weight: ${p => (p.isBold ? 600 : 400)};
   ${p => p.color && `color: ${p.theme[p.color]}`}

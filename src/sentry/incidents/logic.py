@@ -1,18 +1,22 @@
 from __future__ import absolute_import
 
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
+from itertools import chain
 
 import six
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, quotas
 from sentry.api.event_search import get_filter, resolve_field
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleActivity,
+    AlertRuleActivityType,
     AlertRuleExcludedProjects,
     AlertRuleStatus,
     AlertRuleTrigger,
@@ -23,29 +27,40 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentProject,
     IncidentSnapshot,
+    IncidentTrigger,
     PendingIncidentSnapshot,
     IncidentSeen,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
     TimeSeriesSnapshot,
+    TriggerStatus,
 )
-from sentry.models import Integration, Project
+from sentry.models import Integration, Project, PagerDutyService, SentryApp
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
+    bulk_enable_snuba_subscriptions,
+    bulk_disable_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     create_snuba_query,
     update_snuba_query,
 )
 from sentry.snuba.tasks import build_snuba_filter
-from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
+from sentry.utils.compat import zip
+from sentry.utils.dates import to_timestamp
+from sentry.utils.snuba import bulk_raw_query, is_measurement, SnubaQueryParams, SnubaTSResult
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
 # after the incident started to display the correct start date.
 WINDOWED_STATS_DATA_POINTS = 200
+NOT_SET = object()
+
+CRITICAL_TRIGGER_LABEL = "critical"
+WARNING_TRIGGER_LABEL = "warning"
 
 
 class AlreadyDeletedError(Exception):
@@ -53,6 +68,10 @@ class AlreadyDeletedError(Exception):
 
 
 class InvalidTriggerActionError(Exception):
+    pass
+
+
+class ChannelLookupTimeoutError(Exception):
     pass
 
 
@@ -93,7 +112,10 @@ def create_incident(
                     sender=type(incident_project), instance=incident_project, created=True
                 )
 
-        create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
+        create_incident_activity(
+            incident, IncidentActivityType.DETECTED, user=user, date_added=date_detected
+        )
+        create_incident_activity(incident, IncidentActivityType.CREATED, user=user)
         analytics.record(
             "incident.created",
             incident_id=incident.id,
@@ -105,7 +127,12 @@ def create_incident(
 
 
 def update_incident_status(
-    incident, status, user=None, comment=None, status_method=IncidentStatusMethod.RULE_TRIGGERED
+    incident,
+    status,
+    user=None,
+    comment=None,
+    status_method=IncidentStatusMethod.RULE_TRIGGERED,
+    date_closed=None,
 ):
     """
     Updates the status of an Incident and write an IncidentActivity row to log
@@ -128,10 +155,9 @@ def update_incident_status(
             subscribe_to_incident(incident, user)
 
         prev_status = incident.status
-
         kwargs = {"status": status.value, "status_method": status_method.value}
         if status == IncidentStatus.CLOSED:
-            kwargs["date_closed"] = timezone.now()
+            kwargs["date_closed"] = date_closed if date_closed else timezone.now()
         elif status == IncidentStatus.OPEN:
             # If we're moving back out of closed status then unset the closed
             # date
@@ -154,6 +180,13 @@ def update_incident_status(
             prev_status=prev_status,
             status=incident.status,
         )
+
+        if status == IncidentStatus.CLOSED and (
+            status_method == IncidentStatusMethod.MANUAL
+            or status_method == IncidentStatusMethod.RULE_UPDATED
+        ):
+            trigger_incident_triggers(incident)
+
         return incident
 
 
@@ -191,11 +224,15 @@ def create_incident_activity(
     previous_value=None,
     comment=None,
     mentioned_user_ids=None,
+    date_added=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user)
     value = six.text_type(value) if value is not None else value
     previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
+    kwargs = {}
+    if date_added:
+        kwargs["date_added"] = date_added
     activity = IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,
@@ -203,6 +240,7 @@ def create_incident_activity(
         value=value,
         previous_value=previous_value,
         comment=comment,
+        **kwargs
     )
 
     if mentioned_user_ids:
@@ -271,10 +309,22 @@ def create_incident_snapshot(incident, windowed_stats=False):
     and total events, plus a time series snapshot of the entire incident.
     """
     assert incident.status == IncidentStatus.CLOSED.value
+    if IncidentSnapshot.objects.filter(incident=incident).exists():
+        return None
+
+    start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+    if start == end:
+        return IncidentSnapshot.objects.create(
+            incident=incident,
+            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
+                start=start, end=end, values=[], period=incident.alert_rule.snuba_query.time_window,
+            ),
+            unique_users=0,
+            total_events=0,
+        )
 
     event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
     aggregates = get_incident_aggregates(incident)
-
     return IncidentSnapshot.objects.create(
         incident=incident,
         event_stats_snapshot=event_stats_snapshot,
@@ -290,6 +340,7 @@ def create_event_stat_snapshot(incident, windowed_stats=False):
 
     event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
     start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+
     return TimeSeriesSnapshot.objects.create(
         start=start,
         end=end,
@@ -316,6 +367,7 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
         snuba_query.query,
         snuba_query.aggregate,
         snuba_query.environment,
+        snuba_query.event_types,
         params=params,
     )
 
@@ -331,7 +383,6 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
 
 
 def calculate_incident_time_range(incident, start=None, end=None, windowed_stats=False):
-    # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
     time_window = (
         incident.alert_rule.snuba_query.time_window if incident.alert_rule is not None else 60
     )
@@ -357,6 +408,13 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
 
             start = end - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
 
+    retention = quotas.get_event_retention(organization=incident.organization) or 90
+    start = max(
+        start.replace(tzinfo=timezone.utc),
+        datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention),
+    )
+    end = max(start, end.replace(tzinfo=timezone.utc))
+
     return start, end
 
 
@@ -377,18 +435,69 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
     query_params = build_incident_query_params(
         incident, start=start, end=end, windowed_stats=windowed_stats
     )
+    time_window = incident.alert_rule.snuba_query.time_window
     aggregations = query_params.pop("aggregations")[0]
-    snuba_params = SnubaQueryParams(
-        aggregations=[(aggregations[0], aggregations[1], "count")],
-        orderby="time",
-        groupby=["time"],
-        rollup=incident.alert_rule.snuba_query.time_window,
-        limit=10000,
-        **query_params
-    )
+    snuba_params = [
+        SnubaQueryParams(
+            aggregations=[(aggregations[0], aggregations[1], "count")],
+            orderby="time",
+            groupby=["time"],
+            rollup=time_window,
+            limit=10000,
+            **query_params
+        )
+    ]
 
-    results = bulk_raw_query([snuba_params], referrer="incidents.get_incident_event_stats")
-    return SnubaTSResult(results[0], snuba_params.start, snuba_params.end, snuba_params.rollup)
+    # We make extra queries to fetch these buckets
+    def build_extra_query_params(bucket_start):
+        extra_bucket_query_params = build_incident_query_params(
+            incident, start=bucket_start, end=bucket_start + timedelta(seconds=time_window)
+        )
+        aggregations = extra_bucket_query_params.pop("aggregations")[0]
+        return SnubaQueryParams(
+            aggregations=[(aggregations[0], aggregations[1], "count")],
+            limit=1,
+            **extra_bucket_query_params
+        )
+
+    # We want to include the specific buckets for the incident start and closed times,
+    # so that there's no need to interpolate to show them on the frontend. If they're
+    # cleanly divisible by the `time_window` then there's no need to fetch, since
+    # they'll be included in the standard results anyway.
+    start_query_params = None
+    extra_buckets = []
+    retention = quotas.get_event_retention(organization=incident.organization) or 90
+    if (
+        incident.date_started
+        > datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention)
+        and int(to_timestamp(incident.date_started)) % time_window
+    ):
+        start_query_params = build_extra_query_params(incident.date_started)
+        snuba_params.append(start_query_params)
+        extra_buckets.append(incident.date_started)
+
+    if incident.date_closed:
+        date_closed = incident.date_closed.replace(second=0, microsecond=0)
+        if int(to_timestamp(date_closed)) % time_window:
+            snuba_params.append(build_extra_query_params(date_closed))
+            extra_buckets.append(date_closed)
+
+    results = bulk_raw_query(snuba_params, referrer="incidents.get_incident_event_stats")
+    # Once we receive the results, if we requested extra buckets we now need to label
+    # them with timestamp data, since the query we ran only returns the count.
+    for extra_start, result in zip(extra_buckets, results[1:]):
+        result["data"][0]["time"] = int(to_timestamp(extra_start))
+    merged_data = list(chain(*[r["data"] for r in results]))
+    merged_data.sort(key=lambda row: row["time"])
+    results[0]["data"] = merged_data
+    # When an incident has just been created it's possible for the actual incident start
+    # date to be greater than the latest bucket for the query. Get the actual end date
+    # here.
+    end_date = snuba_params[0].end
+    if start_query_params:
+        end_date = max(end_date, start_query_params.end)
+
+    return SnubaTSResult(results[0], snuba_params[0].start, end_date, snuba_params[0].rollup)
 
 
 def get_incident_aggregates(
@@ -477,11 +586,16 @@ def create_alert_rule(
     query,
     aggregate,
     time_window,
+    threshold_type,
     threshold_period,
+    resolve_threshold=None,
     environment=None,
     include_all_projects=False,
     excluded_projects=None,
     dataset=QueryDatasets.EVENTS,
+    user=None,
+    event_types=None,
+    **kwargs
 ):
     """
     Creates an alert rule for an organization.
@@ -495,13 +609,17 @@ def create_alert_rule(
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
     :param environment: An optional environment that this rule applies to
+    :param threshold_type: An AlertRuleThresholdType
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
+    :param resolve_threshold: Optional value that the subscription needs to reach to
+    resolve the alert
     :param include_all_projects: Whether to include all current and future projects
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`.
     :param dataset: The dataset that this query will be executed on
+    :param event_types: List of `EventType` that this alert will be related to
 
     :return: The created `AlertRule`
     """
@@ -517,11 +635,14 @@ def create_alert_rule(
             timedelta(minutes=time_window),
             timedelta(minutes=resolution),
             environment,
+            event_types=event_types,
         )
         alert_rule = AlertRule.objects.create(
             organization=organization,
             snuba_query=snuba_query,
             name=name,
+            threshold_type=threshold_type.value,
+            resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
         )
@@ -539,10 +660,14 @@ def create_alert_rule(
 
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
+        AlertRuleActivity.objects.create(
+            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.CREATED.value
+        )
+
     return alert_rule
 
 
-def snapshot_alert_rule(alert_rule):
+def snapshot_alert_rule(alert_rule, user=None):
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
     with transaction.atomic():
@@ -556,6 +681,12 @@ def snapshot_alert_rule(alert_rule):
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
         alert_rule_snapshot.save()
+        AlertRuleActivity.objects.create(
+            alert_rule=alert_rule_snapshot,
+            previous_alert_rule=alert_rule,
+            user=user,
+            type=AlertRuleActivityType.SNAPSHOT.value,
+        )
 
         incidents.update(alert_rule=alert_rule_snapshot)
 
@@ -584,9 +715,14 @@ def update_alert_rule(
     aggregate=None,
     time_window=None,
     environment=None,
+    threshold_type=None,
     threshold_period=None,
+    resolve_threshold=NOT_SET,
     include_all_projects=None,
     excluded_projects=None,
+    user=None,
+    event_types=None,
+    **kwargs
 ):
     """
     Updates an alert rule.
@@ -600,12 +736,16 @@ def update_alert_rule(
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
     :param environment: An optional environment that this rule applies to
+    :param threshold_type: An AlertRuleThresholdType
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
+    :param resolve_threshold: Optional value that the subscription needs to reach to
+    resolve the alert
     :param include_all_projects: Whether to include all current and future projects
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`. Ignored otherwise.
+    :param event_types: List of `EventType` that this alert will be related to
     :return: The updated `AlertRule`
     """
     if (
@@ -626,18 +766,27 @@ def update_alert_rule(
         updated_query_fields["aggregate"] = aggregate
     if time_window:
         updated_query_fields["time_window"] = timedelta(minutes=time_window)
+    if threshold_type:
+        updated_fields["threshold_type"] = threshold_type.value
+    if resolve_threshold is not NOT_SET:
+        updated_fields["resolve_threshold"] = resolve_threshold
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
     if include_all_projects is not None:
         updated_fields["include_all_projects"] = include_all_projects
     if dataset is not None and dataset.value != alert_rule.snuba_query.dataset:
         updated_query_fields["dataset"] = dataset
+    if event_types is not None:
+        updated_query_fields["event_types"] = event_types
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
-            snapshot_alert_rule(alert_rule)
+            snapshot_alert_rule(alert_rule, user)
         alert_rule.update(**updated_fields)
+        AlertRuleActivity.objects.create(
+            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.UPDATED.value
+        )
 
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
             snuba_query = alert_rule.snuba_query
@@ -647,6 +796,7 @@ def update_alert_rule(
             updated_query_fields.setdefault(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
+            updated_query_fields.setdefault("event_types", None)
             update_snuba_query(
                 alert_rule.snuba_query,
                 resolution=timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
@@ -730,7 +880,23 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
     )
 
 
-def delete_alert_rule(alert_rule):
+def enable_alert_rule(alert_rule):
+    if alert_rule.status != AlertRuleStatus.DISABLED.value:
+        return
+    with transaction.atomic():
+        alert_rule.update(status=AlertRuleStatus.PENDING.value)
+        bulk_enable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
+
+
+def disable_alert_rule(alert_rule):
+    if alert_rule.status != AlertRuleStatus.PENDING.value:
+        return
+    with transaction.atomic():
+        alert_rule.update(status=AlertRuleStatus.DISABLED.value)
+        bulk_disable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
+
+
+def delete_alert_rule(alert_rule, user=None):
     """
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
@@ -743,6 +909,9 @@ def delete_alert_rule(alert_rule):
         bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
         if incidents:
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
+            AlertRuleActivity.objects.create(
+                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value
+            )
         else:
             alert_rule.delete()
 
@@ -771,23 +940,13 @@ class ProjectsNotAssociatedWithAlertRuleError(Exception):
         self.project_slugs = project_slugs
 
 
-def create_alert_rule_trigger(
-    alert_rule,
-    label,
-    threshold_type,
-    alert_threshold,
-    resolve_threshold=None,
-    excluded_projects=None,
-):
+def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):
     """
     Creates a new AlertRuleTrigger
     :param alert_rule: The alert rule to create the trigger for
     :param label: A description of the trigger
-    :param threshold_type: An AlertRuleThresholdType
     :param alert_threshold: Value that the subscription needs to reach to trigger the
     alert rule
-    :param resolve_threshold: Optional value that the subscription needs to reach to
-    resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
     :return: The created AlertRuleTrigger
@@ -801,11 +960,7 @@ def create_alert_rule_trigger(
 
     with transaction.atomic():
         trigger = AlertRuleTrigger.objects.create(
-            alert_rule=alert_rule,
-            label=label,
-            threshold_type=threshold_type.value,
-            alert_threshold=alert_threshold,
-            resolve_threshold=resolve_threshold,
+            alert_rule=alert_rule, label=label, alert_threshold=alert_threshold
         )
         if excluded_subs:
             new_exclusions = [
@@ -817,22 +972,12 @@ def create_alert_rule_trigger(
     return trigger
 
 
-def update_alert_rule_trigger(
-    trigger,
-    label=None,
-    threshold_type=None,
-    alert_threshold=None,
-    resolve_threshold=None,
-    excluded_projects=None,
-):
+def update_alert_rule_trigger(trigger, label=None, alert_threshold=None, excluded_projects=None):
     """
     :param trigger: The AlertRuleTrigger to update
     :param label: A description of the trigger
-    :param threshold_type: An AlertRuleThresholdType
     :param alert_threshold: Value that the subscription needs to reach to trigger the
     alert rule
-    :param resolve_threshold: Optional value that the subscription needs to reach to
-    resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
     :return: The updated AlertRuleTrigger
@@ -848,12 +993,8 @@ def update_alert_rule_trigger(
     updated_fields = {}
     if label is not None:
         updated_fields["label"] = label
-    if threshold_type is not None:
-        updated_fields["threshold_type"] = threshold_type.value
     if alert_threshold is not None:
         updated_fields["alert_threshold"] = alert_threshold
-    # We set resolve_threshold to None as a 'reset', in case it was previously a value and we're removing it here.
-    updated_fields["resolve_threshold"] = resolve_threshold
 
     deleted_exclusion_ids = []
     new_subs = []
@@ -899,6 +1040,68 @@ def get_triggers_for_alert_rule(alert_rule):
     return AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
 
 
+def trigger_incident_triggers(incident):
+    from sentry.incidents.tasks import handle_trigger_action
+
+    triggers = IncidentTrigger.objects.filter(incident=incident).select_related(
+        "alert_rule_trigger"
+    )
+    actions = list(
+        AlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger__in=[t.alert_rule_trigger for t in triggers]
+        ).select_related("alert_rule_trigger")
+    )
+    actions = deduplicate_trigger_actions(actions)
+    with transaction.atomic():
+        for trigger in triggers:
+            trigger.status = TriggerStatus.RESOLVED.value
+            trigger.save()
+
+        for action in actions:
+            for project in incident.projects.all():
+                transaction.on_commit(
+                    handle_trigger_action.s(
+                        action_id=action.id,
+                        incident_id=incident.id,
+                        project_id=project.id,
+                        method="resolve",
+                    ).delay
+                )
+
+
+def deduplicate_trigger_actions(actions):
+    """
+    Given a list of trigger actions, this returns a list of actions that is unique on
+    (type, target_type, target_identifier, integration_id, sentry_app_id). If there are
+    duplicate actions, we'll prefer the action from a critical trigger over a warning
+    trigger. If there are duplicate actions on a critical trigger, we'll just choose
+    one arbitrarily.
+    :param actions: A list of `AlertRuleTriggerAction` instances from the same
+    `AlertRule`.
+    :return: A list of deduplicated `AlertRuleTriggerAction` instances.
+    """
+    # Make sure we process actions from the critical trigger first
+    actions.sort(
+        key=lambda action: (
+            0 if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL else 1,
+            action.id,
+        )
+    )
+    deduped = {}
+    for action in actions:
+        deduped.setdefault(
+            (
+                action.type,
+                action.target_type,
+                action.target_identifier,
+                action.integration_id,
+                action.sentry_app_id,
+            ),
+            action,
+        )
+    return list(deduped.values())
+
+
 def get_subscriptions_from_alert_rule(alert_rule, projects):
     """
     Fetches subscriptions associated with an alert rule filtered by a list of projects.
@@ -918,7 +1121,13 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger, type, target_type, target_identifier=None, integration=None
+    trigger,
+    type,
+    target_type,
+    target_identifier=None,
+    integration=None,
+    sentry_app=None,
+    use_async_lookup=False,
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -928,21 +1137,25 @@ def create_alert_rule_trigger_action(
     :param target_identifier: (Optional) The identifier of the target
     :param target_display: (Optional) Human readable name for the target
     :param integration: (Optional) The Integration related to this action.
+    :param sentry_app: (Optional) The Sentry App related to this action.
     :return: The created action
     """
     target_display = None
-    if type == AlertRuleTriggerAction.Type.SLACK:
-
+    if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
-            raise InvalidTriggerActionError("Slack action must specify channel")
+            raise InvalidTriggerActionError("Must specify specific target type")
 
-        channel_id = get_alert_rule_trigger_action_slack_channel_id(
-            trigger.alert_rule.organization, integration.id, target_identifier
+        target_identifier, target_display = get_target_identifier_display_for_integration(
+            type.value,
+            target_identifier,
+            trigger.alert_rule.organization,
+            integration.id,
+            use_async_lookup=use_async_lookup,
         )
-
-        # Use the channel name for display
-        target_display = target_identifier
-        target_identifier = channel_id
+    elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
+        target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
+            trigger.alert_rule.organization, sentry_app.id
+        )
 
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
@@ -951,11 +1164,18 @@ def create_alert_rule_trigger_action(
         target_identifier=target_identifier,
         target_display=target_display,
         integration=integration,
+        sentry_app=sentry_app,
     )
 
 
 def update_alert_rule_trigger_action(
-    trigger_action, type=None, target_type=None, target_identifier=None, integration=None
+    trigger_action,
+    type=None,
+    target_type=None,
+    target_identifier=None,
+    integration=None,
+    sentry_app=None,
+    use_async_lookup=False,
 ):
     """
     Updates values on an AlertRuleTriggerAction
@@ -963,8 +1183,8 @@ def update_alert_rule_trigger_action(
     :param type: Which sort of action to take
     :param target_type: Which type of target to send to
     :param target_identifier: The identifier of the target
-    :param target_display: Human readable name for the target
-    :param integration: The Integration related to this action.
+    :param integration: (Optional) The Integration related to this action.
+    :param sentry_app: (Optional) The SentryApp related to this action.
     :return:
     """
     updated_fields = {}
@@ -974,34 +1194,85 @@ def update_alert_rule_trigger_action(
         updated_fields["target_type"] = target_type.value
     if integration is not None:
         updated_fields["integration"] = integration
+    if sentry_app is not None:
+        updated_fields["sentry_app"] = sentry_app
     if target_identifier is not None:
         type = updated_fields.get("type", trigger_action.type)
 
-        if type == AlertRuleTriggerAction.Type.SLACK.value:
+        if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
             integration = updated_fields.get("integration", trigger_action.integration)
-            channel_id = get_alert_rule_trigger_action_slack_channel_id(
-                trigger_action.alert_rule_trigger.alert_rule.organization,
-                integration.id,
+            organization = trigger_action.alert_rule_trigger.alert_rule.organization
+
+            target_identifier, target_display = get_target_identifier_display_for_integration(
+                type,
                 target_identifier,
+                organization,
+                integration.id,
+                use_async_lookup=use_async_lookup,
             )
+            updated_fields["target_display"] = target_display
 
-            # Use the channel name for display
-            updated_fields["target_display"] = target_identifier
-            updated_fields["target_identifier"] = channel_id
-        else:
-            updated_fields["target_identifier"] = target_identifier
+        elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
+            sentry_app = updated_fields.get("sentry_app", trigger_action.sentry_app)
+            organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
+            target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
+                organization, sentry_app.id
+            )
+            updated_fields["target_display"] = target_display
+
+        updated_fields["target_identifier"] = target_identifier
     trigger_action.update(**updated_fields)
     return trigger_action
 
 
-def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id, name):
+def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
+    # target_value is the Slack username or channel name
+    if type == AlertRuleTriggerAction.Type.SLACK.value:
+        target_identifier = get_alert_rule_trigger_action_slack_channel_id(
+            target_value, *args, **kwargs
+        )
+    # target_value is the MSTeams username or channel name
+    elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
+        target_identifier = get_alert_rule_trigger_action_msteams_channel_id(
+            target_value, *args, **kwargs
+        )
+    # target_value is the ID of the PagerDuty service
+    elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
+        target_identifier, target_value = get_alert_rule_trigger_action_pagerduty_service(
+            target_value, *args, **kwargs
+        )
+    else:
+        raise Exception("Not implemented")
+
+    return target_identifier, target_value
+
+
+def get_alert_rule_trigger_action_slack_channel_id(
+    name, organization, integration_id, use_async_lookup
+):
     from sentry.integrations.slack.utils import get_channel_id
 
-    _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name,)
-    if timed_out:
+    try:
+        integration = Integration.objects.get(id=integration_id)
+    except Integration.DoesNotExist:
+        raise InvalidTriggerActionError("Slack workspace is a required field.")
+
+    try:
+        _prefix, channel_id, timed_out = get_channel_id(
+            organization, integration, name, use_async_lookup
+        )
+    except DuplicateDisplayNameError as e:
+        domain = integration.metadata["domain_name"]
+
         raise InvalidTriggerActionError(
-            "Could not find channel %s. We have timed out trying to look for it. " % name
+            'Multiple users were found with display name "%s". Please use your username, found at %s/account/settings.'
+            % (e.message, domain)
+        )
+
+    if timed_out:
+        raise ChannelLookupTimeoutError(
+            "Could not find channel %s. We have timed out trying to look for it." % name
         )
 
     if channel_id is None:
@@ -1011,6 +1282,40 @@ def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id,
         )
 
     return channel_id
+
+
+def get_alert_rule_trigger_action_msteams_channel_id(
+    name, organization, integration_id, use_async_lookup=False
+):
+    from sentry.integrations.msteams.utils import get_channel_id
+
+    channel_id = get_channel_id(organization, integration_id, name)
+
+    if channel_id is None:
+        # no granting access for msteams channels unlike slack
+        raise InvalidTriggerActionError("Could not find channel %s." % name)
+
+    return channel_id
+
+
+def get_alert_rule_trigger_action_pagerduty_service(
+    target_value, organization, integration_id, use_async_lookup=False
+):
+    try:
+        service = PagerDutyService.objects.get(id=target_value)
+    except PagerDutyService.DoesNotExist:
+        raise InvalidTriggerActionError("No PagerDuty service found.")
+
+    return (service.id, service.service_name)
+
+
+def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
+    try:
+        sentry_app = SentryApp.objects.get(id=sentry_app_id, owner=organization)
+    except SentryApp.DoesNotExist:
+        raise InvalidTriggerActionError("No SentryApp found.")
+
+    return sentry_app.id, sentry_app.name
 
 
 def delete_alert_rule_trigger_action(trigger_action):
@@ -1038,6 +1343,26 @@ def get_available_action_integrations_for_org(organization):
     return Integration.objects.filter(organizations=organization, provider__in=providers)
 
 
+def get_alertable_sentry_apps(organization_id, with_metric_alerts=False):
+    query = SentryApp.objects.filter(
+        installations__organization_id=organization_id,
+        is_alertable=True,
+        installations__status=SentryAppInstallationStatus.INSTALLED,
+        installations__date_deleted=None,
+    )
+
+    if with_metric_alerts:
+        query = query.exclude(status=SentryAppStatus.PUBLISHED)
+    return query.distinct()
+
+
+def get_pagerduty_services(organization, integration_id):
+    return PagerDutyService.objects.filter(
+        organization_integration__organization=organization,
+        organization_integration__integration_id=integration_id,
+    ).values("id", "service_name")
+
+
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
 # Uses a function from discover to break the aggregate down into parts, and then compare the "field"
 # to a list of accepted fields, or a list of fields we need to translate.
@@ -1056,22 +1381,26 @@ TRANSLATABLE_COLUMNS = {
 
 
 def get_column_from_aggregate(aggregate):
-    field = resolve_field(aggregate)
-    if field[1] is not None:
-        column = field[1][0][1]
-        return column
+    function = resolve_field(aggregate)
+    if function.aggregate is not None:
+        return function.aggregate[1]
     return None
 
 
 def check_aggregate_column_support(aggregate):
     column = get_column_from_aggregate(aggregate)
-    return column is None or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS.keys()
+    return (
+        column is None
+        or is_measurement(column)
+        or column in SUPPORTED_COLUMNS
+        or column in TRANSLATABLE_COLUMNS
+    )
 
 
 def translate_aggregate_field(aggregate, reverse=False):
     column = get_column_from_aggregate(aggregate)
     if not reverse:
-        if column in TRANSLATABLE_COLUMNS.keys():
+        if column in TRANSLATABLE_COLUMNS:
             return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])
     else:
         if column is not None:

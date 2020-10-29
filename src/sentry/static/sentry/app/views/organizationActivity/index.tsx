@@ -6,7 +6,7 @@ import {PageContent} from 'app/styles/organization';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
@@ -42,10 +42,19 @@ class OrganizationActivity extends AsyncView<Props, State> {
 
   renderEmpty() {
     return (
-      <EmptyMessage icon="icon-circle-exclamation">
-        {t('Nothing to show here, move along.')}
-      </EmptyMessage>
+      <EmptyStateWarning>
+        <p>{t('Nothing to show here, move along.')}</p>
+      </EmptyStateWarning>
     );
+  }
+
+  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+    const {errors} = this.state;
+    const notFound = Object.values(errors).find(resp => resp && resp.status === 404);
+    if (notFound) {
+      return this.renderBody();
+    }
+    return super.renderError(error, disableLog, disableReport);
   }
 
   renderBody() {
@@ -56,8 +65,8 @@ class OrganizationActivity extends AsyncView<Props, State> {
         <PageHeading withMargins>{t('Activity')}</PageHeading>
         <Panel>
           {loading && <LoadingIndicator />}
-          {!loading && !activity.length && this.renderEmpty()}
-          {!loading && !!activity.length && (
+          {!loading && !activity?.length && this.renderEmpty()}
+          {!loading && activity?.length > 0 && (
             <div data-test-id="activity-feed-list">
               {activity.map(item => (
                 <ErrorBoundary

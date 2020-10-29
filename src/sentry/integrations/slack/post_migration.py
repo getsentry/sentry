@@ -13,13 +13,13 @@ from .client import SlackClient
 logger = logging.getLogger(__name__)
 
 
-doc_link = "https://docs.sentry.io/workflow/integrations/global-integrations/#upgrading-slack"
+doc_link = "https://docs.sentry.io/product/integrations/slack/#upgrading-slack"
 
 
 def build_migration_attachment():
     return {
         "title": "Action required",
-        "text": "Your Sentry Slack Integration is upgraded and nearly ready to report errors. Mention `@sentry` to get notifications in this channel. To learn more, <%s|see our documentation>."
+        "text": "Your Sentry Slack Integration is upgraded and nearly ready to report errors. Mention @sentry to get notifications in this channel (the one with the pink logo, not Sentry Legacy). To learn more, <%s|see our documentation>."
         % (doc_link),
         "footer": "Sentry API",
         "footer_icon": "https://sentryio-assets.storage.googleapis.com/img/slack/integration-avatar.png",

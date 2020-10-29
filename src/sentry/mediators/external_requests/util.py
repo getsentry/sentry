@@ -1,11 +1,15 @@
 from __future__ import absolute_import
 
-from jsonschema import Draft4Validator
-from requests.exceptions import Timeout
+import logging
+
+from jsonschema import Draft7Validator
+from requests.exceptions import Timeout, ConnectionError
 
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.http import safe_urlopen
 from sentry.models.sentryapp import track_response_code
+
+logger = logging.getLogger(__name__)
 
 SELECT_OPTIONS_SCHEMA = {
     "type": "array",
@@ -34,7 +38,7 @@ SCHEMA_LIST = {"select": SELECT_OPTIONS_SCHEMA, "issue_link": ISSUE_LINKER_SCHEM
 
 def validate(instance, schema_type):
     schema = SCHEMA_LIST[schema_type]
-    v = Draft4Validator(schema)
+    v = Draft7Validator(schema)
 
     if not v.is_valid(instance):
         return False
@@ -57,8 +61,17 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
     try:
         resp = safe_urlopen(url=url, **kwargs)
 
-    except Timeout:
-        track_response_code("timeout", slug, event)
+    except (Timeout, ConnectionError) as e:
+        error_type = e.__class__.__name__.lower()
+        logger.info(
+            "send_and_save_sentry_app_request.timeout",
+            extra={
+                "error_type": error_type,
+                "organization_id": org_id,
+                "integration_slug": sentry_app.slug,
+            },
+        )
+        track_response_code(error_type, slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception

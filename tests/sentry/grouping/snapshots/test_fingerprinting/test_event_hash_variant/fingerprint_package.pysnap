@@ -1,11 +1,12 @@
 ---
-created: '2019-08-05T12:11:53.473003Z'
+created: '2020-10-13T10:09:31.756199Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
-  - fingerprint:
+  - attributes: {}
+    fingerprint:
     - '{{ package }}'
     matchers:
     - - type
@@ -13,8 +14,21 @@ config:
   version: 1
 fingerprint:
 - '{{ package }}'
+title: 'DatabaseUnavailable: For some reason the database went away'
 variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
   custom-fingerprint:
     type: custom-fingerprint
     values:
     - foo.dylib
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

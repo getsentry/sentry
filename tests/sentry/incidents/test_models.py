@@ -14,6 +14,8 @@ from sentry.utils.compat.mock import Mock, patch
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleActivity,
+    AlertRuleActivityType,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -23,7 +25,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.incidents.logic import delete_alert_rule
+from sentry.incidents.logic import delete_alert_rule, update_alert_rule
 from sentry.testutils import TestCase
 
 
@@ -384,6 +386,40 @@ class IncidentCurrentEndDateTest(unittest.TestCase):
         assert incident.current_end_date == timezone.now() - timedelta(minutes=10)
 
 
+class AlertRuleFetchForOrganizationTest(TestCase):
+    def test_empty(self):
+        alert_rule = AlertRule.objects.fetch_for_organization(self.organization)
+        assert [] == list(alert_rule)
+
+    def test_simple(self):
+        alert_rule = self.create_alert_rule()
+
+        assert [alert_rule] == list(AlertRule.objects.fetch_for_organization(self.organization))
+
+    def test_with_projects(self):
+        project = self.create_project()
+        alert_rule = self.create_alert_rule(projects=[project])
+
+        assert [] == list(
+            AlertRule.objects.fetch_for_organization(self.organization, [self.project])
+        )
+        assert [alert_rule] == list(
+            AlertRule.objects.fetch_for_organization(self.organization, [project])
+        )
+
+    def test_multi_project(self):
+        project = self.create_project()
+        alert_rule1 = self.create_alert_rule(projects=[project, self.project])
+        alert_rule2 = self.create_alert_rule(projects=[project])
+
+        assert [alert_rule1] == list(
+            AlertRule.objects.fetch_for_organization(self.organization, [self.project])
+        )
+        assert set([alert_rule1, alert_rule2]) == set(
+            AlertRule.objects.fetch_for_organization(self.organization, [project])
+        )
+
+
 class AlertRuleTriggerActionTargetTest(TestCase):
     def test_user(self):
         trigger = AlertRuleTriggerAction(
@@ -431,7 +467,7 @@ class AlertRuleTriggerActionActivateTest(object):
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        assert trigger.fire(Mock(), Mock()) is None
+        assert trigger.fire(Mock(), Mock(), 123) is None
 
     def test_handler(self):
         mock_handler = Mock()
@@ -440,7 +476,7 @@ class AlertRuleTriggerActionActivateTest(object):
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
-        assert getattr(trigger, self.method)(Mock(), Mock()) == mock_method.return_value
+        assert getattr(trigger, self.method)(Mock(), Mock(), 123) == mock_method.return_value
 
 
 class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateTest, unittest.TestCase):
@@ -477,3 +513,33 @@ class AlertRuleTriggerActionActivateTest(TestCase):
         trigger.build_handler(incident, project)
         mock_handler.assert_called_once_with(trigger, incident, project)
         assert not self.metrics.incr.called
+
+
+class AlertRuleActivityTest(TestCase):
+    def test_simple(self):
+        assert AlertRuleActivity.objects.all().count() == 0
+        self.alert_rule = self.create_alert_rule()
+        assert AlertRuleActivity.objects.filter(
+            alert_rule=self.alert_rule, type=AlertRuleActivityType.CREATED.value
+        ).exists()
+
+    def test_delete(self):
+        assert AlertRuleActivity.objects.all().count() == 0
+        self.alert_rule = self.create_alert_rule()
+        self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        delete_alert_rule(self.alert_rule)
+        assert AlertRuleActivity.objects.filter(
+            alert_rule=self.alert_rule, type=AlertRuleActivityType.DELETED.value
+        ).exists()
+
+    def test_update(self):
+        assert AlertRuleActivity.objects.all().count() == 0
+        self.alert_rule = self.create_alert_rule()
+        self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        update_alert_rule(self.alert_rule, name="updated_name")
+        assert AlertRuleActivity.objects.filter(
+            previous_alert_rule=self.alert_rule, type=AlertRuleActivityType.SNAPSHOT.value
+        ).exists()
+        assert AlertRuleActivity.objects.filter(
+            alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
+        ).exists()

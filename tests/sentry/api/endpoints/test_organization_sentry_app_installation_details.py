@@ -6,6 +6,7 @@ from sentry.utils.compat.mock import patch
 from sentry.testutils import APITestCase
 import responses
 from sentry.mediators.token_exchange import GrantExchanger
+from sentry.constants import SentryAppInstallationStatus
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -23,13 +24,19 @@ class SentryAppInstallationDetailsTest(APITestCase):
         )
 
         self.installation = self.create_sentry_app_installation(
-            slug=self.published_app.slug, organization=self.super_org, user=self.superuser
+            slug=self.published_app.slug,
+            organization=self.super_org,
+            user=self.superuser,
+            status=SentryAppInstallationStatus.PENDING,
         )
 
         self.unpublished_app = self.create_sentry_app(name="Testin", organization=self.org)
 
         self.installation2 = self.create_sentry_app_installation(
-            slug=self.unpublished_app.slug, organization=self.org, user=self.user
+            slug=self.unpublished_app.slug,
+            organization=self.org,
+            user=self.user,
+            status=SentryAppInstallationStatus.PENDING,
         )
 
         self.url = reverse(

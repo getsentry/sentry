@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import re
 import sentry_sdk
-import six
 
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
@@ -11,34 +10,84 @@ from sentry import search
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.api.helpers.group_index import build_query_params_from_request
-from sentry.api.event_search import parse_search_query
+from sentry.api.event_search import parse_search_query, get_function_alias
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.snuba import discover
-from sentry.utils import snuba
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
-            span.set_data("organization", organization)
-            try:
-                params = self.get_filter_params(request, organization)
-            except NoProjects:
-                return Response({"count": 0})
-            params = self.quantize_date_params(request, params)
-
         try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response({"count": 0})
+
+        with self.handle_query_errors():
             result = discover.query(
                 selected_columns=["count()"],
                 params=params,
                 query=request.query_params.get("query"),
                 referrer="api.organization-events-meta",
             )
-        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
-            raise ParseError(detail=six.text_type(error))
 
         return Response({"count": result["data"][0]["count"]})
+
+
+class OrganizationEventBaseline(OrganizationEventsEndpointBase):
+    def get(self, request, organization):
+        """ Find the event id with the closest value to an aggregate for a given query """
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response(status=404)
+
+        # Assumption is that users will want the 50th percentile
+        baseline_function = request.GET.get("baselineFunction", "p50()")
+        # If the baseline was calculated already save ourselves a query
+        baseline_value = request.GET.get("baselineValue")
+        baseline_alias = get_function_alias(baseline_function)
+
+        with self.handle_query_errors():
+            if baseline_value is None:
+                result = discover.query(
+                    selected_columns=[baseline_function],
+                    params=params,
+                    query=request.GET.get("query"),
+                    limit=1,
+                    referrer="api.transaction-baseline.get_value",
+                )
+                baseline_value = result["data"][0].get(baseline_alias) if "data" in result else None
+                if baseline_value is None:
+                    return Response(status=404)
+
+            delta_column = "absolute_delta(transaction.duration,{})".format(baseline_value)
+
+            result = discover.query(
+                selected_columns=[
+                    "project",
+                    "timestamp",
+                    "id",
+                    "transaction.duration",
+                    delta_column,
+                ],
+                # Find the most recent transaction that's closest to the baseline value
+                # id is the last item of the orderby for consistent results
+                orderby=[get_function_alias(delta_column), "-timestamp", "id"],
+                params=params,
+                query=request.GET.get("query"),
+                limit=1,
+                referrer="api.transaction-baseline.get_id",
+            )
+            if len(result["data"]) == 0:
+                return Response(status=404)
+
+        baseline_data = result["data"][0]
+        baseline_data[baseline_alias] = baseline_value
+        return Response(baseline_data)
 
 
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
@@ -46,13 +95,13 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
     def get(self, request, organization):
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
-            span.set_data("organization", organization)
-            try:
-                params = self.get_filter_params(request, organization)
-            except NoProjects:
-                return Response([])
+        try:
+            # events-meta is still used by events v1 which doesn't require global views
+            params = self.get_snuba_params(request, organization, check_global_views=False)
+        except NoProjects:
+            return Response([])
 
+        with sentry_sdk.start_span(op="discover.endpoint", description="find_lookup_keys") as span:
             possible_keys = ["transaction"]
             lookup_keys = {key: request.query_params.get(key) for key in possible_keys}
 
@@ -66,7 +115,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                     status=400,
                 )
 
-        try:
+        with self.handle_query_errors():
             with sentry_sdk.start_span(op="discover.endpoint", description="filter_creation"):
                 projects = self.get_projects(request, organization)
                 query_kwargs = build_query_params_from_request(
@@ -87,8 +136,6 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
 
             with sentry_sdk.start_span(op="discover.endpoint", description="issue_search"):
                 results = search.query(**query_kwargs)
-        except discover.InvalidSearchQuery as err:
-            raise ParseError(detail=six.text_type(err))
 
         with sentry_sdk.start_span(op="discover.endpoint", description="serialize_results") as span:
             results = list(results)

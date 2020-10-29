@@ -1,7 +1,14 @@
-import getDynamicText from 'app/utils/getDynamicText';
+describe('getDynamicText', function () {
+  beforeEach(() => {
+    jest.resetModules();
+  });
 
-describe('getDynamicText', function() {
-  it('renders actual value', function() {
+  it('renders actual value', function () {
+    jest.doMock('app/constants', () => ({
+      IS_ACCEPTANCE_TEST: false,
+    }));
+    const getDynamicText = require('app/utils/getDynamicText').default;
+
     expect(
       getDynamicText({
         fixed: 'Text',
@@ -10,16 +17,17 @@ describe('getDynamicText', function() {
     ).toEqual('Dynamic Content');
   });
 
-  it('renders fixed content when `process.env.IS_PERCY` is true', function() {
-    // eslint-disable-next-line no-undef
-    process.env.IS_PERCY = true;
+  it('renders fixed content when `app/constants/IS_ACCEPTANCE_TEST` is true', function () {
+    jest.doMock('app/constants', () => ({
+      IS_ACCEPTANCE_TEST: true,
+    }));
+    const getDynamicText = require('app/utils/getDynamicText').default;
+
     expect(
       getDynamicText({
         fixed: 'Text',
         value: 'Dynamic Content',
       })
     ).toEqual('Text');
-    // eslint-disable-next-line no-undef
-    process.env.IS_PERCY = null;
   });
 });

@@ -4,10 +4,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import AccountNotifications from 'app/views/settings/account/accountNotifications';
 
-describe('AccountNotifications', function() {
+describe('AccountNotifications', function () {
   const url = '/users/me/notifications/';
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url,
       method: 'GET',
@@ -22,11 +22,11 @@ describe('AccountNotifications', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders with values from API', function() {
+  it('renders with values from API', function () {
     const wrapper = mountWithTheme(<AccountNotifications />, TestStubs.routerContext());
 
     // "Send Me Alerts"
@@ -53,17 +53,14 @@ describe('AccountNotifications', function() {
     );
   });
 
-  it('can change "Deploy Notifications"', function() {
+  it('can change "Deploy Notifications"', function () {
     const wrapper = mountWithTheme(<AccountNotifications />, TestStubs.routerContext());
     const mock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
     });
 
-    wrapper
-      .find('Field[id="deployNotifications"] Radio')
-      .at(2)
-      .simulate('change');
+    wrapper.find('Field[id="deployNotifications"] Radio').at(2).simulate('change');
 
     expect(mock).toHaveBeenCalledWith(
       url,

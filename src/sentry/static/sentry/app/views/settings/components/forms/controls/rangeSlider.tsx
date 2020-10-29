@@ -140,9 +140,9 @@ class RangeSlider extends React.Component<Props, State> {
     }
   }
 
-  getActualValue = sliderValue => {
+  getActualValue = (sliderValue: State['sliderValue']): number | '' => {
     const {allowedValues} = this.props;
-    let value;
+    let value: number | '';
 
     if (allowedValues) {
       // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
@@ -260,7 +260,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     border-radius: 3px;
     border: 0;
   }
@@ -269,7 +269,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     border-radius: 3px;
     border: 0;
   }
@@ -278,7 +278,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     border-radius: 3px;
     border: 0;
   }
@@ -288,7 +288,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple};
+    background: ${p => p.theme.purple400};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -301,7 +301,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple};
+    background: ${p => p.theme.purple400};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -314,7 +314,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple};
+    background: ${p => p.theme.purple400};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -323,13 +323,13 @@ const Slider = styled('input')<{hasLabel: boolean}>`
   }
 
   &::-ms-fill-lower {
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     border: 0;
     border-radius: 50%;
   }
 
   &::-ms-fill-upper {
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     border: 0;
     border-radius: 50%;
   }
@@ -338,15 +338,15 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     outline: none;
 
     &::-webkit-slider-runnable-track {
-      background: ${p => p.theme.borderDark};
+      background: ${p => p.theme.gray400};
     }
 
     &::-ms-fill-upper {
-      background: ${p => p.theme.borderDark};
+      background: ${p => p.theme.gray400};
     }
 
     &::-ms-fill-lower {
-      background: ${p => p.theme.borderDark};
+      background: ${p => p.theme.gray400};
     }
   }
 

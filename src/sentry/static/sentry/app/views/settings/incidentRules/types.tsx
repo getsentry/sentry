@@ -18,9 +18,7 @@ export type UnsavedTrigger = {
   // id yet
   alertRuleId?: string;
   label: string;
-  thresholdType: AlertRuleThresholdType;
   alertThreshold: number | '' | null;
-  resolveThreshold: number | '' | null;
   actions: Action[];
 };
 
@@ -45,9 +43,11 @@ export type UnsavedIncidentRule = {
   projects: string[];
   environment: string | null;
   query: string;
-  timeWindow: number;
+  timeWindow: TimeWindow;
   triggers: Trigger[];
   aggregate: string;
+  thresholdType: AlertRuleThresholdType;
+  resolveThreshold: number | '' | null;
 };
 
 export type SavedIncidentRule = UnsavedIncidentRule & {
@@ -59,6 +59,16 @@ export type SavedIncidentRule = UnsavedIncidentRule & {
 };
 
 export type IncidentRule = Partial<SavedIncidentRule> & UnsavedIncidentRule;
+
+export enum TimePeriod {
+  SIX_HOURS = '6h',
+  ONE_DAY = '1d',
+  THREE_DAYS = '3d',
+  // Seven days is actually 10080m but we have a max of 10000 events
+  SEVEN_DAYS = '10000m',
+  FOURTEEN_DAYS = '14d',
+  THIRTY_DAYS = '30d',
+}
 
 export enum TimeWindow {
   ONE_MINUTE = 1,
@@ -80,22 +90,28 @@ export type ProjectSelectOption = {
 export enum ActionType {
   EMAIL = 'email',
   SLACK = 'slack',
-  PAGER_DUTY = 'pagerduty',
+  PAGERDUTY = 'pagerduty',
+  MSTEAMS = 'msteams',
+  SENTRY_APP = 'sentry_app',
 }
 
 export enum TargetType {
-  // The name can be customized for each integration. Email for email, channel for slack, service for Pagerduty). We probably won't support this for email at first, since we need to be careful not to enable spam
+  // A direct reference, like an email address, Slack channel, or PagerDuty service
   SPECIFIC = 'specific',
 
-  // Just works with email for now, grabs given user's email address
+  // A specific user. This could be used to grab the user's email address.
   USER = 'user',
 
-  // Just works with email for now, grabs the emails for all team members
+  // A specific team. This could be used to send an email to everyone associated with a team.
   TEAM = 'team',
+
+  // A Sentry App instead of any of the above.
+  SENTRY_APP = 'sentry_app',
 }
 
 /**
- * This is an available action template that is associated to a Trigger in a Metric Alert Rule
+ * This is an available action template that is associated to a Trigger in a
+ * Metric Alert Rule. They are defined by the available-actions API.
  */
 export type MetricActionTemplate = {
   /**
@@ -111,12 +127,32 @@ export type MetricActionTemplate = {
   /**
    * Name of the integration. This is a text field that differentiates integrations from the same provider from each other
    */
-  integrationName: string;
+  integrationName?: string;
 
   /**
    * Integration id for this `type`, should be passed to backend as `integrationId` when creating an action
    */
-  integrationId: number;
+  integrationId?: number;
+
+  /**
+   * Name of the SentryApp. Like `integrationName`, this differentiates SentryApps from each other.
+   */
+  sentryAppName?: string;
+
+  /**
+   * SentryApp id for this `type`, should be passed to backend as `sentryAppId` when creating an action.
+   */
+  sentryAppId?: number;
+
+  /**
+   * For some available actions, we pass in the list of available targets.
+   */
+  options?: Array<{label: string; value: any}>;
+
+  /**
+   * If this is a `sentry_app` action, this is the Sentry App's status.
+   */
+  status?: 'unpublished' | 'published' | 'internal';
 };
 
 /**
@@ -154,7 +190,7 @@ export type UnsavedAction = {
 
   /**
    * How to identify the target. Can be email, slack channel, pagerduty service,
-   * user_id, team_id, etc
+   * user_id, team_id, SentryApp id, etc
    */
   targetIdentifier: string | null;
 
@@ -162,4 +198,19 @@ export type UnsavedAction = {
    * The id of the integration, can be null (e.g. email) or undefined (server errors when posting w/ null value)
    */
   integrationId?: number | null;
+
+  /**
+   * The id of the SentryApp, can be null (e.g. email) or undefined (server errors when posting w/ null value)
+   */
+  sentryAppId?: number | null;
+
+  /**
+   * For some available actions, we pass in the list of available targets.
+   */
+  options: Array<{label: string; value: any}> | null;
+
+  /**
+   * If this is a `sentry_app` action, this is the Sentry App's status.
+   */
+  status?: 'unpublished' | 'published' | 'internal';
 };

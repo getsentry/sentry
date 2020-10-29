@@ -1,7 +1,7 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -23,10 +23,10 @@ type Props = RouteComponentProps<RouteParams, {}>;
 
 class ProjectUserFeedbackSettings extends AsyncView<Props> {
   componentDidMount() {
-    window.sentryEmbedCallback = function(embed) {
+    window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
-      embed.submit = function(_body) {
+      embed.submit = function (_body) {
         this._submitInProgress = true;
         setTimeout(() => {
           this._submitInProgress = false;

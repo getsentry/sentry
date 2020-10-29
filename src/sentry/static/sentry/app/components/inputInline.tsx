@@ -208,7 +208,7 @@ const Input = styled('div')<{
 
   &:focus,
   &:active {
-    border: 1px solid ${p => (p.isDisabled ? 'transparent' : p.theme.gray300)};
+    border: 1px solid ${p => (p.isDisabled ? 'transparent' : p.theme.borderLight)};
     background-color: ${p => (p.isDisabled ? 'transparent' : p.theme.gray300)};
   }
 `;

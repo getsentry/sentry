@@ -16,6 +16,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventView from 'app/utils/discover/eventView';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
+import TimeSince from 'app/components/timeSince';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
@@ -178,6 +179,7 @@ class QueryList extends React.Component<Props> {
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
       const to = eventView.getResultsViewUrlTarget(organization.slug);
+      const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
 
       return (
         <QueryCard
@@ -187,12 +189,12 @@ class QueryList extends React.Component<Props> {
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           createdBy={eventView.createdBy}
+          dateStatus={dateStatus}
           onEventClick={() => {
             trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
+              eventKey: 'discover_v2.saved_query_click',
+              eventName: 'Discoverv2: Click a saved query',
               organization_id: parseInt(this.props.organization.id, 10),
-              query_name: eventView.name,
             });
           }}
           renderGraph={() => (
@@ -228,12 +230,12 @@ class QueryList extends React.Component<Props> {
     return (
       <React.Fragment>
         <QueryGrid>{this.renderQueries()}</QueryGrid>
-        <Pagination
+        <PaginationRow
           pageLinks={pageLinks}
           onCursor={(cursor: string, path: string, query: Query, direction: number) => {
             const offset = Number(cursor.split(':')[1]);
 
-            const newQuery = {...query, cursor};
+            const newQuery: Query & {cursor?: string} = {...query, cursor};
             const isPrevious = direction === -1;
 
             if (offset <= 0 && isPrevious) {
@@ -250,6 +252,10 @@ class QueryList extends React.Component<Props> {
     );
   }
 }
+
+const PaginationRow = styled(Pagination)`
+  margin-bottom: 20px;
+`;
 
 const QueryGrid = styled('div')`
   display: grid;
@@ -302,6 +308,7 @@ const ContextMenu = ({children}) => (
 
 const MoreOptions = styled('span')`
   display: flex;
+  color: ${p => p.theme.gray700};
 `;
 
 const DropdownTarget = styled('div')`

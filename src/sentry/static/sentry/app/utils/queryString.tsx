@@ -1,6 +1,8 @@
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 import parseurl from 'parseurl';
 import isString from 'lodash/isString';
+
+import {escapeDoubleQuotes} from 'app/utils';
 
 // remove leading and trailing whitespace and remove double spaces
 export function formatQueryString(qs: string): string {
@@ -37,15 +39,8 @@ export function appendTagCondition(
 ): string {
   let currentQuery = Array.isArray(query) ? query.pop() : isString(query) ? query : '';
 
-  // The user key values have additional key data inside them.
-  if (key === 'user' && isString(value) && value.includes(':')) {
-    const parts = value.split(':', 2);
-    key = [key, parts[0]].join('.');
-    value = parts[1];
-  }
-
-  if (isString(value) && value.includes(' ')) {
-    value = `"${value}"`;
+  if (typeof value === 'string' && /[:\s\(\)\\"]/g.test(value)) {
+    value = `"${escapeDoubleQuotes(value)}"`;
   }
   if (currentQuery) {
     currentQuery += ` ${key}:${value}`;
@@ -71,7 +66,17 @@ export function decodeScalar(
   return isString(unwrapped) ? unwrapped : undefined;
 }
 
+export function decodeList(
+  value: string[] | string | undefined | null
+): string[] | undefined {
+  if (!value) {
+    return undefined;
+  }
+  return Array.isArray(value) ? value : isString(value) ? [value] : [];
+}
+
 export default {
+  decodeList,
   decodeScalar,
   formatQueryString,
   addQueryParamsToExistingUrl,

@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ConfirmDelete from 'app/components/confirmDelete';
 
-describe('ConfirmDelete', function() {
-  it('renders', function() {
+describe('ConfirmDelete', function () {
+  it('renders', function () {
     const mock = jest.fn();
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -15,10 +15,10 @@ describe('ConfirmDelete', function() {
     );
     wrapper.find('button').simulate('click');
     // jest had an issue rendering root component snapshot so using ModalDialog instead
-    expect(wrapper.find('ModalDialog')).toMatchSnapshot();
+    expect(wrapper.find('ModalDialog')).toSnapshot();
   });
 
-  it('confirm button is disabled and bypass prop is false when modal opens', function() {
+  it('confirm button is disabled and bypass prop is false when modal opens', function () {
     const mock = jest.fn();
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -33,7 +33,7 @@ describe('ConfirmDelete', function() {
     expect(wrapper.state('disableConfirmButton')).toBe(true);
   });
 
-  it('confirm button stays disabled with non-matching input', function() {
+  it('confirm button stays disabled with non-matching input', function () {
     const mock = jest.fn();
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -46,7 +46,7 @@ describe('ConfirmDelete', function() {
     expect(wrapper.find('Confirm').prop('disableConfirmButton')).toBe(true);
   });
 
-  it('confirm button is enabled when confirm input matches', function() {
+  it('confirm button is enabled when confirm input matches', function () {
     const mock = jest.fn();
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -58,17 +58,9 @@ describe('ConfirmDelete', function() {
     wrapper.find('input').simulate('change', {target: {value: 'CoolOrg'}});
     expect(wrapper.find('Confirm').prop('disableConfirmButton')).toBe(false);
 
-    wrapper
-      .find('Button')
-      .last()
-      .simulate('click');
+    wrapper.find('Button').last().simulate('click');
 
-    expect(
-      wrapper
-        .find('Modal')
-        .first()
-        .prop('show')
-    ).toBe(false);
+    expect(wrapper.find('Modal').first().prop('show')).toBe(false);
     expect(mock).toHaveBeenCalled();
     expect(mock.mock.calls).toHaveLength(1);
   });

@@ -103,7 +103,6 @@ export default class TeamSettings extends AsyncView {
                 <Button
                   icon={<IconDelete />}
                   priority="danger"
-                  title={t('Remove Team')}
                   disabled={!access.has('team:admin')}
                 >
                   {t('Remove Team')}

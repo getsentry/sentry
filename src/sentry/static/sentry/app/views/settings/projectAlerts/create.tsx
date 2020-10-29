@@ -1,14 +1,19 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
+import {PageContent, PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {uniqueId} from 'app/utils/guid';
+import space from 'app/styles/space';
+import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
+import EventView from 'app/utils/discover/eventView';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withProject from 'app/utils/withProject';
+import PageHeading from 'app/components/pageHeading';
 
 import AlertTypeChooser from './alertTypeChooser';
 
@@ -23,12 +28,16 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
 };
 
+type AlertType = 'metric' | 'issue' | null;
+
 type State = {
-  alertType: string | null;
+  alertType: AlertType;
+  eventView: EventView | undefined;
 };
 
 class Create extends React.Component<Props, State> {
-  state = {
+  state: State = {
+    eventView: undefined,
     alertType: this.props.location.pathname.includes('/alerts/rules/')
       ? 'issue'
       : this.props.location.pathname.includes('/alerts/metric-rules/')
@@ -37,48 +46,83 @@ class Create extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, project} = this.props;
+    const {organization, location, project} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'new_alert_rule.viewed',
       eventName: 'New Alert Rule: Viewed',
-      organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
+      organization_id: organization.id,
+      project_id: project.id,
+      session_id: this.sessionId,
     });
+
+    if (location?.query?.createFromDiscover) {
+      const eventView = EventView.fromLocation(location);
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({alertType: 'metric', eventView});
+    }
   }
 
-  handleChangeAlertType = (alertType: string) => {
+  /** Used to track analytics within one visit to the creation page */
+  sessionId = uniqueId();
+
+  handleChangeAlertType = (alertType: AlertType) => {
     // alertType should be `issue` or `metric`
-    this.setState({
-      alertType,
-    });
+    this.setState({alertType});
   };
 
   render() {
-    const {hasMetricAlerts} = this.props;
-    const {projectId} = this.props.params;
-    const {alertType} = this.state;
+    const {
+      hasMetricAlerts,
+      organization,
+      project,
+      params: {projectId},
+    } = this.props;
+    const {alertType, eventView} = this.state;
 
     const shouldShowAlertTypeChooser = hasMetricAlerts;
-    const title = t('New Alert');
+    const title = t('New Alert Rule');
 
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={projectId} />
-        <SettingsPageHeader title={title} />
+        <PageContent>
+          <BuilderBreadCrumbs
+            hasMetricAlerts={hasMetricAlerts}
+            orgSlug={organization.slug}
+            title={title}
+          />
+          <StyledPageHeader>
+            <PageHeading>{title}</PageHeading>
+          </StyledPageHeader>
+          {shouldShowAlertTypeChooser && (
+            <AlertTypeChooser
+              organization={organization}
+              selected={alertType}
+              onChange={this.handleChangeAlertType}
+            />
+          )}
 
-        {shouldShowAlertTypeChooser && (
-          <AlertTypeChooser selected={alertType} onChange={this.handleChangeAlertType} />
-        )}
+          {(!hasMetricAlerts || alertType === 'issue') && (
+            <IssueEditor {...this.props} project={project} />
+          )}
 
-        {(!hasMetricAlerts || alertType === 'issue') && <IssueEditor {...this.props} />}
-
-        {hasMetricAlerts && alertType === 'metric' && (
-          <IncidentRulesCreate {...this.props} />
-        )}
+          {hasMetricAlerts && alertType === 'metric' && (
+            <IncidentRulesCreate
+              {...this.props}
+              eventView={eventView}
+              sessionId={this.sessionId}
+              project={project}
+            />
+          )}
+        </PageContent>
       </React.Fragment>
     );
   }
 }
 
-export default withProject(Create);
+const StyledPageHeader = styled(PageHeader)`
+  margin-bottom: ${space(4)};
+`;
+
+export default Create;

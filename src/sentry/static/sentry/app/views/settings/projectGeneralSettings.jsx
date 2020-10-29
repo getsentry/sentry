@@ -26,14 +26,10 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
-import FeatureBadge from 'app/components/featureBadge';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import marked from 'app/utils/marked';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
-import Link from 'app/components/links/link';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Feature from 'app/components/acl/feature';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
@@ -56,14 +52,12 @@ class ProjectGeneralSettings extends AsyncView {
 
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
-    const endpoints = [['data', `/projects/${orgId}/${projectId}/`]];
-    const {organization} = this.context;
-    const features = new Set(organization.features);
-    if (features.has('set-grouping-config') || features.has('tweak-grouping-config')) {
-      endpoints.push(['groupingConfigs', '/grouping-configs/']);
-      endpoints.push(['groupingEnhancementBases', '/grouping-enhancements/']);
-    }
-    return endpoints;
+
+    return [
+      ['data', `/projects/${orgId}/${projectId}/`],
+      ['groupingConfigs', '/grouping-configs/'],
+      ['groupingEnhancementBases', '/grouping-enhancements/'],
+    ];
   }
 
   handleTransferFieldChange = (id, value) => {
@@ -157,7 +151,7 @@ class ProjectGeneralSettings extends AsyncView {
       newData.groupingConfig = latestGroupingConfig.id;
     }
     if (latestEnhancementsBase) {
-      newData.groupingEnhancementBases = latestEnhancementsBase.id;
+      newData.groupingEnhancementsBase = latestEnhancementsBase.id;
     }
 
     let riskNote;
@@ -443,68 +437,19 @@ class ProjectGeneralSettings extends AsyncView {
             fields={[fields.resolveAge]}
           />
 
-          {(jsonFormProps.features.has('set-grouping-config') ||
-            jsonFormProps.features.has('tweak-grouping-config')) && (
-            <JsonForm
-              {...jsonFormProps}
-              title={
-                <React.Fragment>
-                  {t('Grouping Settings')} <FeatureBadge type="beta" />
-                </React.Fragment>
-              }
-              fields={[
-                fields.groupingConfig,
-                fields.groupingEnhancementsBase,
-                fields.groupingEnhancements,
-                fields.fingerprintingRules,
-              ]}
-              renderHeader={() => (
-                <React.Fragment>
-                  <PanelAlert type="warning">
-                    <TextBlock noMargin>
-                      {t(
-                        'This is an experimental feature. Changing the value here will only apply to future events and is likely to cause events to create different groups than before.'
-                      )}
-                    </TextBlock>
-                  </PanelAlert>
-                  {jsonFormProps.features.has('tweak-grouping-config') &&
-                    this.renderUpgradeGrouping()}
-                </React.Fragment>
-              )}
-            />
-          )}
-
-          <Feature features={['datascrubbers-v2']}>
-            {({hasFeature}) =>
-              hasFeature ? (
-                <Panel>
-                  <PanelHeader>{t('Data Privacy')}</PanelHeader>
-                  <EmptyMessage
-                    title={t('Data Privacy section now has its own tab')}
-                    description={
-                      <Link to={`/settings/${orgId}/projects/${projectId}/data-privacy/`}>
-                        {t('Go to Data Privacy')}
-                      </Link>
-                    }
-                  />
-                </Panel>
-              ) : (
-                <JsonForm
-                  {...jsonFormProps}
-                  title={t('Data Privacy')}
-                  fields={[
-                    fields.dataScrubber,
-                    fields.dataScrubberDefaults,
-                    fields.scrubIPAddresses,
-                    fields.sensitiveFields,
-                    fields.safeFields,
-                    fields.storeCrashReports,
-                    fields.relayPiiConfig,
-                  ]}
-                />
-              )
-            }
-          </Feature>
+          <JsonForm
+            {...jsonFormProps}
+            title={<React.Fragment>{t('Grouping Settings')}</React.Fragment>}
+            fields={[
+              fields.groupingConfig,
+              fields.groupingEnhancementsBase,
+              fields.groupingEnhancements,
+              fields.fingerprintingRules,
+            ]}
+            renderHeader={() => (
+              <React.Fragment>{this.renderUpgradeGrouping()}</React.Fragment>
+            )}
+          />
 
           <JsonForm
             {...jsonFormProps}

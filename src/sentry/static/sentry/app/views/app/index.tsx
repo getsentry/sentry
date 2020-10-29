@@ -10,10 +10,12 @@ import keydown from 'react-keydown';
 import {Client} from 'app/api';
 import {Config} from 'app/types';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
-import {displayDeployPreviewAlert} from 'app/actionCreators/deployPreview';
+import {
+  displayDeployPreviewAlert,
+  displayExperimentalSpaAlert,
+} from 'app/actionCreators/deployPreview';
 import {fetchGuides} from 'app/actionCreators/guides';
 import {openCommandPalette} from 'app/actionCreators/modal';
-import {setTransactionName} from 'app/utils/apm';
 import {t} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
 import ConfigStore from 'app/stores/configStore';
@@ -24,7 +26,6 @@ import Indicators from 'app/components/indicators';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 
@@ -79,8 +80,6 @@ class App extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    this.updateTracing();
-
     this.props.api.request('/organizations/', {
       query: {
         member: '1',
@@ -125,9 +124,11 @@ class App extends React.Component<Props, State> {
 
     if (DEPLOY_PREVIEW_CONFIG) {
       displayDeployPreviewAlert();
+    } else if (EXPERIMENTAL_SPA) {
+      displayExperimentalSpaAlert();
     }
 
-    $(document).ajaxError(function(_evt, jqXHR) {
+    $(document).ajaxError(function (_evt, jqXHR) {
       const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
         regex.test(window.location.pathname)
       );
@@ -175,7 +176,6 @@ class App extends React.Component<Props, State> {
     if (!isEqual(config, prevProps.config)) {
       this.handleConfigStoreChange(config);
     }
-    this.updateTracing();
   }
 
   componentWillUnmount() {
@@ -183,11 +183,6 @@ class App extends React.Component<Props, State> {
   }
 
   mainContainerRef = React.createRef<HTMLDivElement>();
-
-  updateTracing() {
-    const route = getRouteStringFromRoutes(this.props.routes);
-    setTransactionName(route);
-  }
 
   handleConfigStoreChange(config) {
     const newState = {} as State;
@@ -228,8 +223,9 @@ class App extends React.Component<Props, State> {
     const {needsUpgrade, newsletterConsentPrompt} = this.state;
 
     if (needsUpgrade) {
-      const InstallWizard = React.lazy(() =>
-        import(/* webpackChunkName: "InstallWizard" */ 'app/views/installWizard')
+      const InstallWizard = React.lazy(
+        () =>
+          import(/* webpackChunkName: "InstallWizard" */ 'app/views/admin/installWizard')
       );
 
       return (

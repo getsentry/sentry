@@ -68,26 +68,11 @@
       margin-right: 5px;
     }
 
-    .more .icon-arrow-down {
-      margin-left: 5px;
-    }
-
-    .icon-checkmark {
-      font-size: 13px;
-    }
-
     .group-resolve.active {
       background: @green;
       color: #fff;
       border-color: @green-dark;
       text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-    }
-
-    .group-bookmark .icon-star-solid {
-      position: relative;
-      top: 1px;
-      margin-left: -1px;
-      margin-right: -1px;
     }
 
     .group-bookmark.active {
@@ -223,7 +208,8 @@
         position: absolute;
         content: '';
         border-radius: 8px;
-        .square(8px);
+        height: 8px;
+        width: 8px;
         right: 0;
         top: 0;
       }
@@ -240,43 +226,6 @@
 
   .seen-info .dotted-underline {
     border-bottom: 1px dotted @trim;
-  }
-
-  .bar-chart figure a,
-  .bar-chart figure g {
-    height: 50px;
-
-    span,
-    .barchart-rect {
-      background: @purple;
-      fill: @purple;
-
-      &.inactive {
-        background: @gray-lightest;
-        fill: @gray-lightest;
-      }
-
-      &.environment {
-        background: @purple-lightest;
-        fill: @purple-lightest;
-      }
-    }
-
-    &:hover span,
-    &:hover .barchart-rect {
-      background: @purple-dark;
-      fill: @purple-dark;
-
-      &.inactive {
-        background: @gray-lighter;
-        fill: @gray-lighter;
-      }
-
-      &.environment {
-        background: @purple;
-        fill: @purple;
-      }
-    }
   }
 
   dl {
@@ -328,6 +277,7 @@
   margin: -20px -40px;
   background: #fff;
   flex-direction: column;
+  flex: 1;
 
   @media (min-width: 1200px) {
     flex-direction: row;
@@ -388,7 +338,8 @@
       position: absolute;
       left: 0;
       top: 0;
-      .square(48px);
+      width: 48px;
+      height: 48px;
       background-repeat: no-repeat;
       background-position: center;
       background-image: url(../images/logos/context/unknown.svg);
@@ -595,12 +546,6 @@
     }
   }
 
-  .icon-skip-forward,
-  .icon-skip-back {
-    position: relative;
-    top: 1px;
-  }
-
   time {
     color: @60;
   }
@@ -635,7 +580,8 @@
 }
 
 .module-user .avatar {
-  .square(64px);
+  width: 64px;
+  height: 64px;
 
   img {
     height: 100%;
@@ -677,7 +623,8 @@
   margin-bottom: 20px;
 
   .avatar {
-    .square(48px);
+    width: 48px;
+    height: 48px;
     position: absolute;
     top: 0;
     right: 0;
@@ -720,7 +667,7 @@
   list-style-type: none;
   padding-left: 0;
   border: 1px solid @trim-dark;
-  border-radius: 3px;
+  border-radius: 0 3px 3px 3px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   margin-bottom: 20px;
 }
@@ -816,10 +763,6 @@ div.traceback > ul {
     position: relative;
     margin: 0;
     border-top: 1px solid @trim;
-
-    .box-clippable .clip-fade {
-      bottom: 0;
-    }
 
     h3 {
       font-size: 22px;
@@ -1040,19 +983,6 @@ div.traceback > ul {
       }
     }
 
-    .box-clippable {
-      margin-left: 0;
-      margin-right: 0;
-
-      &:first-of-type {
-        margin-top: 0;
-      }
-
-      &:first-child {
-        margin-top: -20px;
-      }
-    }
-
     .tag-app {
       color: #aaa;
       font-size: 0.9em;
@@ -1072,7 +1002,8 @@ div.traceback > ul {
     .btn-toggle {
       display: block;
       float: right;
-      .square(16px);
+      width: 16px;
+      height: 16px;
       padding: 0;
       margin-left: 10px;
       line-height: 16px;
@@ -1263,74 +1194,6 @@ div.traceback > ul {
   }
 }
 
-/* Language & Framework frame icons */
-
-.frame {
-  position: relative;
-
-  &.cocoa {
-    .frame-language-icon(cocoa, #fff, @blue, '\e912', true);
-  }
-
-  &.objc {
-    .frame-language-icon(objc, #fff, @blue, '\e912', true);
-  }
-
-  &.javascript {
-    .frame-language-icon(javascript, #000, @yellow, 'JS');
-  }
-}
-
-.frame-language-icon(@selectorName, @color, @background, @content, @icon : false) {
-  &:before {
-    content: '';
-    display: block;
-    position: absolute;
-    top: -1px;
-    left: 0;
-    right: -1px;
-    height: 1px;
-    background: @background;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
-  }
-
-  &:after {
-    content: @content;
-    display: block;
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    color: @color;
-    font-size: 11px;
-    background: @background;
-    text-align: center;
-    line-height: 20px;
-    top: -1px;
-    left: -20px;
-    border-radius: 3px 0 0 3px;
-  }
-
-  &:after when(@icon =true) {
-    font-family: 'sentry-simple';
-    speak: none;
-    font-style: normal;
-    font-weight: normal;
-    font-variant: normal;
-    text-transform: none;
-
-    /* Better Font Rendering =========== */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  & + .@{selectorName} {
-    &:before,
-    &:after {
-      display: none;
-    }
-  }
-}
-
 #full-message {
   line-height: 1.5em;
 
@@ -1410,7 +1273,6 @@ span.val {
   color: darken(@purple, 10);
   border-radius: 3px;
   padding: 2px 4px;
-  margin: -2px -4px;
 }
 
 .val-string-multiline {
@@ -1430,6 +1292,8 @@ span.val {
 }
 
 .val-dict {
+  display: inline;
+
   .val-dict-items {
     display: block;
     padding: 0 0 0 15px;
@@ -1453,56 +1317,8 @@ span.val {
     padding: 0 0 0 15px;
 
     .val-array-item {
-      display: flex;
-      flex-direction: row;
-    }
-  }
-}
-
-.val-toggle {
-  > a.val-toggle-link:before {
-    content: '+';
-  }
-
-  > .val-array-items,
-  > .val-dict-items {
-    display: none;
-  }
-
-  &.val-toggle-open {
-    > a.val-toggle-link:before {
-      content: '-';
-    }
-
-    > .val-array-items,
-    > .val-dict-items {
       display: block;
     }
-  }
-
-  a.val-toggle-link {
-    background: @link-color;
-    border-radius: 2px;
-    color: white;
-    font-weight: bold;
-    font-size: 10px;
-    line-height: 11px;
-    text-align: center;
-    height: 11px;
-    width: 11px;
-    display: inline-block;
-
-    &:hover {
-      background: @link-color-hover;
-    }
-  }
-
-  &.val-toggle-open > a.val-toggle-link {
-    background: @gray-light;
-  }
-
-  &.val-toggle-open > a.val-toggle-link:hover {
-    background: @gray;
   }
 }
 
@@ -1690,7 +1506,7 @@ ul.crumbs {
           display: block;
           width: 100%;
           height: 15px;
-          #gradient > .vertical(rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+          #gradient > .vertical(rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));;
           z-index: 1;
         }
 

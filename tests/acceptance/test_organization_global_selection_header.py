@@ -4,6 +4,7 @@ from datetime import datetime
 import six
 
 import pytz
+import pytest
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
@@ -84,6 +85,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.click('[data-test-id="global-header-timerange-selector"]')
         self.browser.snapshot("globalSelectionHeader - timerange selector")
 
+    @pytest.mark.skip(reason="Has been flaky lately.")
     def test_global_selection_header_loads_with_correct_project(self):
         """
         Global Selection Header should:
@@ -151,6 +153,76 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.issues_list.wait_until_loaded()
         assert u"project={}".format(self.project_1.id) in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
+
+    def test_global_selection_header_updates_environment_with_browser_navigation_buttons(self):
+        """
+        Global Selection Header should:
+        1) load project from URL if it exists
+        2) clear the current environment if the user clicks clear
+        3) reload the environment from URL if it exists on browser navigation
+        """
+        with self.feature("organizations:global-views"):
+            self.create_issues()
+
+            """
+            set up workflow:
+            1) environment=All environments
+            2) environment=prod
+            3) environment=All environments
+            """
+            self.issues_list.visit_issue_list(self.org.slug)
+            self.issues_list.wait_until_loaded()
+            assert u"environment=" not in self.browser.current_url
+            assert (
+                self.issue_details.global_selection.get_selected_environment() == "All Environments"
+            )
+
+            self.browser.click('[data-test-id="global-header-environment-selector"]')
+            self.browser.click('[data-test-id="environment-prod"]')
+            self.issues_list.wait_until_loaded()
+            assert u"environment=prod" in self.browser.current_url
+            assert self.issue_details.global_selection.get_selected_environment() == "prod"
+
+            self.browser.click('[data-test-id="global-header-environment-selector"] > svg')
+            self.issues_list.wait_until_loaded()
+            assert u"environment=" not in self.browser.current_url
+            assert (
+                self.issue_details.global_selection.get_selected_environment() == "All Environments"
+            )
+
+            """
+            navigate back through history to the beginning
+            1) environment=All Environments -> environment=prod
+            2) environment=prod -> environment=All Environments
+            """
+            self.browser.back()
+            self.issues_list.wait_until_loaded()
+            assert u"environment=prod" in self.browser.current_url
+            assert self.issue_details.global_selection.get_selected_environment() == "prod"
+
+            self.browser.back()
+            self.issues_list.wait_until_loaded()
+            assert u"environment=" not in self.browser.current_url
+            assert (
+                self.issue_details.global_selection.get_selected_environment() == "All Environments"
+            )
+
+            """
+            navigate forward through history to the end
+            1) environment=All Environments -> environment=prod
+            2) environment=prod -> environment=All Environments
+            """
+            self.browser.forward()
+            self.issues_list.wait_until_loaded()
+            assert u"environment=prod" in self.browser.current_url
+            assert self.issue_details.global_selection.get_selected_environment() == "prod"
+
+            self.browser.forward()
+            self.issues_list.wait_until_loaded()
+            assert u"environment=" not in self.browser.current_url
+            assert (
+                self.issue_details.global_selection.get_selected_environment() == "All Environments"
+            )
 
     def test_global_selection_header_loads_with_correct_project_with_multi_project(self):
         """

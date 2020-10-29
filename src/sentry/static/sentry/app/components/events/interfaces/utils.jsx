@@ -1,7 +1,7 @@
 import isEmpty from 'lodash/isEmpty';
 import isString from 'lodash/isString';
-import * as Sentry from '@sentry/browser';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
+import * as Sentry from '@sentry/react';
 
 import {FILTER_MASK} from 'app/constants';
 import {defined} from 'app/utils';
@@ -27,7 +27,7 @@ export function getCurlCommand(data) {
   }
 
   // sort headers
-  const headers = data.headers.sort(function(a, b) {
+  const headers = data.headers.sort(function (a, b) {
     return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
   });
 
@@ -116,7 +116,7 @@ export function objectToSortedTupleArray(obj) {
           : [[k, val]] // key has single value
       );
     }, [])
-    .sort(function([keyA, valA], [keyB, valB]) {
+    .sort(function ([keyA, valA], [keyB, valB]) {
       // if keys are identical, sort on value
       if (keyA === keyB) {
         return valA < valB ? -1 : 1;

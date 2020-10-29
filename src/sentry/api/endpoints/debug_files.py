@@ -1,24 +1,32 @@
 from __future__ import absolute_import
 
+import re
 import six
 import jsonschema
 import logging
 import posixpath
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.http import StreamingHttpResponse, HttpResponse, Http404
 from rest_framework.response import Response
 from symbolic import normalize_debug_id, SymbolicError
 
-from sentry import ratelimits
+from sentry import ratelimits, roles
 
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.models import FileBlobOwner, ProjectDebugFile, create_files_from_dif_zip
+from sentry.models import (
+    FileBlobOwner,
+    ProjectDebugFile,
+    create_files_from_dif_zip,
+    Release,
+    ReleaseFile,
+    OrganizationMember,
+)
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
@@ -26,11 +34,15 @@ from sentry.tasks.assemble import (
     ChunkFileState,
 )
 from sentry.utils import json
+from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
+from sentry.constants import DEBUG_FILES_ROLE_DEFAULT
 
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
 DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
+_release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
 
 def upload_from_request(request, project):
@@ -41,8 +53,35 @@ def upload_from_request(request, project):
     return Response(serialize(files, request.user), status=201)
 
 
+def has_download_permission(request, project):
+    if is_system_auth(request.auth) or is_active_superuser(request):
+        return True
+
+    if not request.user.is_authenticated():
+        return False
+
+    organization = project.organization
+    required_role = organization.get_option("sentry:debug_files_role") or DEBUG_FILES_ROLE_DEFAULT
+
+    if request.user.is_sentry_app:
+        if roles.get(required_role).priority > roles.get("member").priority:
+            return request.access.has_scope("project:write")
+        else:
+            return request.access.has_scope("project:read")
+
+    try:
+        current_role = (
+            OrganizationMember.objects.filter(organization=organization, user=request.user)
+            .values_list("role", flat=True)
+            .get()
+        )
+    except OrganizationMember.DoesNotExist:
+        return False
+
+    return roles.get(current_role).priority >= roles.get(required_role).priority
+
+
 class DebugFilesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission,)
 
     def download(self, debug_file_id, project):
@@ -94,8 +133,10 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :auth: required
         """
         download_requested = request.GET.get("id") is not None
-        if download_requested and (request.access.has_scope("project:write")):
+        if download_requested and (has_download_permission(request, project)):
             return self.download(request.GET.get("id"), project)
+        elif download_requested:
+            return Response(status=403)
 
         code_id = request.GET.get("code_id")
         debug_id = request.GET.get("debug_id")
@@ -133,10 +174,13 @@ class DebugFilesEndpoint(ProjectEndpoint):
         else:
             q = Q()
 
+        file_format_q = Q()
         for file_format in file_formats:
             known_file_format = DIF_MIMETYPES.get(file_format)
             if known_file_format:
-                q |= Q(file__headers__icontains=known_file_format)
+                file_format_q |= Q(file__headers__icontains=known_file_format)
+
+        q &= file_format_q
 
         queryset = ProjectDebugFile.objects.filter(q, project=project).select_related("file")
 
@@ -202,7 +246,6 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project):
@@ -212,7 +255,6 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
@@ -295,7 +337,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # This can under rare circumstances yield more than one file
             # which is why we use first() here instead of get().
             dif = (
-                ProjectDebugFile.objects.filter(project=project, file__checksum=checksum)
+                ProjectDebugFile.objects.filter(project=project, checksum=checksum)
                 .select_related("file")
                 .order_by("-id")
                 .first()
@@ -345,3 +387,97 @@ class DifAssembleEndpoint(ProjectEndpoint):
             file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
 
         return Response(file_response, status=200)
+
+
+class SourceMapsEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectReleasePermission,)
+
+    def get(self, request, project):
+        """
+        List a Project's Source Map Archives
+        ````````````````````````````````````
+
+        Retrieve a list of source map archives (releases, later bundles) for a given project.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          source map archive belongs to.
+        :pparam string project_slug: the slug of the project to list the
+                                     source map archives of.
+        :qparam string query: If set, this parameter is used to locate source map archives with.
+        :auth: required
+        """
+        query = request.GET.get("query")
+
+        try:
+            queryset = Release.objects.filter(
+                projects=project, organization_id=project.organization_id
+            ).values("id", "version", "date_added")
+        except Release.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        if query:
+            query_q = Q(version__icontains=query)
+
+            suffix_match = _release_suffix.match(query)
+            if suffix_match is not None:
+                query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
+
+            queryset = queryset.filter(query_q)
+
+        def expose_release(release, count):
+            return {
+                "type": "release",
+                "id": release["id"],
+                "name": release["version"],
+                "date": release["date_added"],
+                "fileCount": count,
+            }
+
+        def serialize_results(results):
+            file_counts = (
+                Release.objects.filter(id__in=[r["id"] for r in results])
+                .annotate(count=Count("releasefile"))
+                .values("count", "id")
+            )
+            file_count_map = {r["id"]: r["count"] for r in file_counts}
+            return serialize(
+                [expose_release(r, file_count_map[r["id"]]) for r in results], request.user
+            )
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by="-date_added",
+            paginator_cls=OffsetPaginator,
+            default_per_page=10,
+            on_results=serialize_results,
+        )
+
+    def delete(self, request, project):
+        """
+        Delete an Archive
+        ```````````````````````````````````````````````````
+
+        Delete all artifacts inside given archive.
+
+        :pparam string organization_slug: the slug of the organization the
+                                            archive belongs to.
+        :pparam string project_slug: the slug of the project to delete the
+                                        archive of.
+        :qparam string name: The name of the archive to delete.
+        :auth: required
+        """
+
+        archive_name = request.GET.get("name")
+
+        if archive_name:
+            with transaction.atomic():
+                release = Release.objects.get(
+                    organization_id=project.organization_id, projects=project, version=archive_name
+                )
+                if release is not None:
+                    release_files = ReleaseFile.objects.filter(release=release)
+                    release_files.delete()
+                    return Response(status=204)
+
+        return Response(status=404)

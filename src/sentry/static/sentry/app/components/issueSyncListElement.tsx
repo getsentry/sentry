@@ -4,13 +4,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import InlineSvg from 'app/components/inlineSvg';
 import {
+  IconClose,
   IconBitbucket,
   IconGeneric,
   IconGithub,
   IconGitlab,
   IconJira,
+  IconAdd,
   IconVsts,
 } from 'app/icons';
 import space from 'app/styles/space';
@@ -133,11 +134,9 @@ class IssueSyncListElement extends React.Component<Props> {
           )}
         </ClassNames>
         {this.props.onOpen && this.props.onClose && (
-          <OpenCloseIcon
-            src="icon-close"
-            onClick={this.isLinked() ? this.handleDelete : this.props.onOpen}
-            isLinked={this.isLinked()}
-          />
+          <StyledIcon onClick={this.isLinked() ? this.handleDelete : this.props.onOpen}>
+            {this.isLinked() ? <IconClose /> : <IconAdd />}
+          </StyledIcon>
         )}
       </IssueSyncListElementContainer>
     );
@@ -173,15 +172,9 @@ export const IntegrationLink = styled('a')`
   }
 `;
 
-export const OpenCloseIcon = styled(InlineSvg)<{isLinked: boolean}>`
-  height: ${space(1.5)};
+const StyledIcon = styled('span')`
   color: ${p => p.theme.gray700};
-  transition: 0.2s transform;
   cursor: pointer;
-  box-sizing: content-box;
-  padding: ${space(1)};
-  margin: -${space(1)};
-  ${p => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.9);')};
 `;
 
 export default IssueSyncListElement;

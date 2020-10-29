@@ -32,9 +32,7 @@ import {IconCalendar} from 'app/icons';
 const getDateWithTimezoneInUtc = (date, utc) =>
   moment
     .tz(
-      moment(date)
-        .local()
-        .format('YYYY-MM-DD HH:mm:ss'),
+      moment(date).local().format('YYYY-MM-DD HH:mm:ss'),
       utc ? 'UTC' : getUserTimezone()
     )
     .utc()
@@ -150,6 +148,7 @@ class TimeRangeSelector extends React.PureComponent {
       utc: defined(props.utc) ? props.utc : getUserTimezone() === 'UTC',
       isOpen: false,
       hasChanges: false,
+      hasDateRangeErrors: false,
       start,
       end,
       relative: props.relative,
@@ -252,7 +251,12 @@ class TimeRangeSelector extends React.PureComponent {
     this.handleUpdate(newDateTime);
   };
 
-  handleSelectDateRange = ({start, end}) => {
+  handleSelectDateRange = ({start, end, hasDateRangeErrors = false}) => {
+    if (hasDateRangeErrors) {
+      this.setState({hasDateRangeErrors});
+      return;
+    }
+
     const {onChange} = this.props;
 
     const newDateTime = {
@@ -265,7 +269,7 @@ class TimeRangeSelector extends React.PureComponent {
       newDateTime.utc = this.state.utc;
     }
 
-    this.setState({hasChanges: true, ...newDateTime});
+    this.setState({hasChanges: true, hasDateRangeErrors, ...newDateTime});
     this.callCallback(onChange, newDateTime);
   };
 
@@ -374,13 +378,12 @@ class TimeRangeSelector extends React.PureComponent {
                       onChange={this.handleSelectDateRange}
                       onChangeUtc={this.handleUseUtc}
                     />
-                    {this.state.hasChanges && (
-                      <SubmitRow>
-                        <MultipleSelectorSubmitRow
-                          onSubmit={() => this.handleCloseMenu()}
-                        />
-                      </SubmitRow>
-                    )}
+                    <SubmitRow>
+                      <MultipleSelectorSubmitRow
+                        onSubmit={this.handleCloseMenu}
+                        disabled={!this.state.hasChanges || this.state.hasDateRangeErrors}
+                      />
+                    </SubmitRow>
                   </div>
                 )}
               </Menu>

@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GuideActions from 'app/actions/guideActions';
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
 
-describe('GuideAnchor', function() {
+describe('GuideAnchor', function () {
   let wrapper, wrapper2;
   const serverGuide = [
     {
@@ -18,7 +18,7 @@ describe('GuideAnchor', function() {
 
   const routerContext = TestStubs.routerContext();
 
-  beforeEach(function() {
+  beforeEach(function () {
     ConfigStore.config = {
       user: {
         isSuperuser: false,
@@ -30,19 +30,19 @@ describe('GuideAnchor', function() {
     wrapper2 = mountWithTheme(<GuideAnchor target="exception" />, routerContext);
   });
 
-  afterEach(function() {
+  afterEach(function () {
     wrapper.unmount();
     wrapper2.unmount();
   });
 
-  it('renders, advances, and finishes', async function() {
+  it('renders, advances, and finishes', async function () {
     GuideActions.fetchSucceeded(serverGuide);
     await tick();
     wrapper.update();
 
     expect(wrapper.find('Hovercard').exists()).toBe(true);
     expect(wrapper.find('GuideTitle').text()).toBe("Let's Get This Over With");
-    expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.purple);
+    expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.purple400);
 
     // Clicking on next should deactivate the current card and activate the next one.
     wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
@@ -62,10 +62,7 @@ describe('GuideAnchor', function() {
       url: '/assistant/',
     });
 
-    wrapper2
-      .find('Button')
-      .last()
-      .simulate('click');
+    wrapper2.find('Button').last().simulate('click');
 
     expect(finishMock).toHaveBeenCalledWith(
       '/assistant/',
@@ -79,7 +76,7 @@ describe('GuideAnchor', function() {
     );
   });
 
-  it('dismisses', async function() {
+  it('dismisses', async function () {
     GuideActions.fetchSucceeded(serverGuide);
     await tick();
     wrapper.update();
@@ -106,8 +103,8 @@ describe('GuideAnchor', function() {
     expect(wrapper.state('active')).toBeFalsy();
   });
 
-  it('renders no container when inactive', function() {
-    wrapper = shallow(
+  it('renders no container when inactive', function () {
+    wrapper = mountWithTheme(
       <GuideAnchor target="target 1">
         <span>A child</span>
       </GuideAnchor>
@@ -119,7 +116,7 @@ describe('GuideAnchor', function() {
     expect(wrapper.find('Hovercard').exists()).toBe(false);
   });
 
-  it('renders children when disabled', async function() {
+  it('renders children when disabled', async function () {
     const wrapper3 = mountWithTheme(
       <GuideAnchor disabled target="exception">
         <div data-test-id="child-div" />

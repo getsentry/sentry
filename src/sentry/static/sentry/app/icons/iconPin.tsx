@@ -6,8 +6,11 @@ type Props = React.ComponentProps<typeof SvgIcon> & {
   isSolid?: boolean;
 };
 
-const IconPin = React.forwardRef<SVGSVGElement, Props>(
-  ({isSolid = false, ...props}: Props, ref) => (
+const IconPin = React.forwardRef(function IconPin(
+  {isSolid = false, ...props}: Props,
+  ref: React.Ref<SVGSVGElement>
+) {
+  return (
     <SvgIcon {...props} ref={ref}>
       {isSolid ? (
         <React.Fragment>
@@ -21,7 +24,9 @@ const IconPin = React.forwardRef<SVGSVGElement, Props>(
         </React.Fragment>
       )}
     </SvgIcon>
-  )
-);
+  );
+});
+
+IconPin.displayName = 'IconPin';
 
 export {IconPin};

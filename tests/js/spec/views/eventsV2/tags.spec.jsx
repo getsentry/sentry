@@ -7,13 +7,13 @@ import {Client} from 'app/api';
 import {Tags} from 'app/views/eventsV2/tags';
 import EventView from 'app/utils/discover/eventView';
 
-describe('Tags', function() {
+describe('Tags', function () {
   function generateUrl(key, value) {
     return `/endpoint/${key}/${value}`;
   }
 
   const org = TestStubs.Organization();
-  beforeEach(function() {
+  beforeEach(function () {
     Client.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
       body: [
@@ -33,11 +33,11 @@ describe('Tags', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     Client.clearMockResponses();
   });
 
-  it('renders', async function() {
+  it('renders', async function () {
     const api = new Client();
 
     const view = new EventView({
@@ -55,6 +55,7 @@ describe('Tags', function() {
         selection={{projects: [], environments: [], datetime: {}}}
         location={{query: {}}}
         generateUrl={generateUrl}
+        confirmedQuery={false}
       />
     );
 
@@ -68,7 +69,7 @@ describe('Tags', function() {
     expect(wrapper.find('StyledPlaceholder')).toHaveLength(0);
   });
 
-  it('creates URLs with generateUrl', async function() {
+  it('creates URLs with generateUrl', async function () {
     const api = new Client();
 
     const view = new EventView({
@@ -93,6 +94,7 @@ describe('Tags', function() {
         selection={{projects: [], environments: [], datetime: {}}}
         location={initialData.router.location}
         generateUrl={generateUrl}
+        confirmedQuery={false}
       />,
       initialData.routerContext
     );

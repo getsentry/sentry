@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {IncidentStats} from 'app/views/alerts/types';
 import Placeholder from 'app/components/placeholder';
 import theme from 'app/utils/theme';
-import {IncidentStats} from 'app/views/alerts/types';
 
 // Height of sparkline
 const SPARKLINE_HEIGHT = 38;
@@ -11,18 +11,23 @@ const SPARKLINE_HEIGHT = 38;
 type Props = {
   className?: string;
   eventStats: IncidentStats['eventStats'];
+  error?: React.ReactNode;
 };
 
-const Sparklines = React.lazy(() =>
-  import(/* webpackChunkName: "Sparklines" */ 'app/components/sparklines')
+const Sparklines = React.lazy(
+  () => import(/* webpackChunkName: "Sparklines" */ 'app/components/sparklines')
 );
-const SparklinesLine = React.lazy(() =>
-  import(/* webpackChunkName: "SparklinesLine" */ 'app/components/sparklines/line')
+const SparklinesLine = React.lazy(
+  () => import(/* webpackChunkName: "SparklinesLine" */ 'app/components/sparklines/line')
 );
 
 class SparkLine extends React.Component<Props> {
   render() {
-    const {className, eventStats} = this.props;
+    const {className, error, eventStats} = this.props;
+
+    if (error) {
+      return <SparklineError error={error} />;
+    }
 
     if (!eventStats) {
       return <SparkLinePlaceholder />;
@@ -54,6 +59,11 @@ const StyledSparkLine = styled(SparkLine)`
 
 const SparkLinePlaceholder = styled(Placeholder)`
   height: ${SPARKLINE_HEIGHT}px;
+`;
+
+const SparklineError = styled(SparkLinePlaceholder)`
+  align-items: center;
+  line-height: 1;
 `;
 
 export default StyledSparkLine;

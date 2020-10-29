@@ -26,6 +26,8 @@ repos:
       language: python
       files: \.py$
       log_file: '.artifacts/flake8.pycodestyle.log'
+      additional_dependencies:
+      - sentry-flake8==0.4.0
 -   repo: git://github.com/pre-commit/pre-commit-hooks
     rev: v2.5.0
     hooks:

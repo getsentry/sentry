@@ -16,7 +16,7 @@ class BaseIncidentCommentDetailsTest(object):
         self.login_as(self.user)
         self.activity = self.create_incident_comment(self.incident, user=self.user)
         self.detected_activity = self.create_incident_activity(
-            self.incident, user=self.user, type=IncidentActivityType.DETECTED.value
+            self.incident, user=self.user, type=IncidentActivityType.CREATED.value
         )
 
         user2 = self.create_user()

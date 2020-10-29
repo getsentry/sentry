@@ -1,15 +1,12 @@
 import {t} from 'app/locale';
-import pinIcon from 'app/../images/graph/icon-location-filled.svg';
 import {NewQuery} from 'app/types';
-
-export const PIN_ICON = `image://${pinIcon}`;
 
 export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   id: undefined,
   name: t('All Events'),
   query: '',
   projects: [],
-  fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
+  fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
   orderby: '-timestamp',
   version: 2,
   range: '24h',
@@ -18,7 +15,7 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
 export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
   {
     id: undefined,
-    name: t('Transactions'),
+    name: t('Transactions by Volume'),
     fields: [
       'transaction',
       'project',
@@ -29,6 +26,27 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
     ],
     orderby: '-count',
     query: 'event.type:transaction',
+    projects: [],
+    version: 2,
+    range: '24h',
+  },
+];
+
+export const WEB_VITALS_VIEWS: Readonly<Array<NewQuery>> = [
+  {
+    id: undefined,
+    name: t('Web Vitals'),
+    fields: [
+      'transaction',
+      'epm()',
+      'p75(measurements.fp)',
+      'p75(measurements.fcp)',
+      'p75(measurements.lcp)',
+      'p75(measurements.fid)',
+      'p75(measurements.cls)',
+    ],
+    orderby: '-epm',
+    query: 'event.type:transaction transaction.op:pageload',
     projects: [],
     version: 2,
     range: '24h',
@@ -46,15 +64,17 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     projects: [],
     version: 2,
     range: '24h',
+    display: 'top5',
   },
   {
     id: undefined,
     name: t('Errors by URL'),
-    fields: ['url', 'count()', 'count_unique(issue.id)'],
+    fields: ['url', 'count()', 'count_unique(issue)'],
     orderby: '-count',
-    query: 'event.type:error',
+    query: 'event.type:error has:url',
     projects: [],
     version: 2,
     range: '24h',
+    display: 'top5',
   },
 ];

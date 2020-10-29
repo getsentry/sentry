@@ -1,9 +1,10 @@
 from __future__ import absolute_import, print_function
 
 import os
-import json
 import subprocess
 import time
+
+from sentry.utils import json
 
 
 def pytest_configure(config):

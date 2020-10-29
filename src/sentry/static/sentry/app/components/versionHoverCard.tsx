@@ -12,83 +12,38 @@ import RepoLabel from 'app/components/repoLabel';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import withRelease from 'app/utils/withRelease';
+import withRepositories from 'app/utils/withRepositories';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy} from 'app/icons';
 import Version from 'app/components/version';
 import {Client} from 'app/api';
-import {Release, Deploy} from 'app/types';
+import {Deploy, Release, Repository} from 'app/types';
 
 type Props = {
   api: Client;
   orgSlug: string;
   projectSlug: string;
   releaseVersion: string;
+
+  release?: Release;
+  releaseLoading?: boolean;
+  releaseError?: Error;
+  deploys?: Array<Deploy>;
+  deploysLoading?: boolean;
+  deploysError?: Error;
+  repositories?: Array<Repository>;
+  repositoriesLoading?: boolean;
+  repositoriesError?: Error;
 };
 type State = {
-  loading: boolean;
-  error: boolean;
-  data: {};
   visible: boolean;
-  hasRepos: boolean;
-  deploys: Deploy[];
-  release: Release | null;
 };
 
 class VersionHoverCard extends React.Component<Props, State> {
   state: State = {
-    loading: true,
-    error: false,
-    data: {},
     visible: false,
-    hasRepos: false,
-    deploys: [],
-    release: null,
   };
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  async fetchData() {
-    const {api, orgSlug, projectSlug, releaseVersion} = this.props;
-
-    // releases
-    const releasePath = `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
-      releaseVersion
-    )}/`;
-    const releaseRequest = api.requestPromise(releasePath, {
-      method: 'GET',
-    });
-
-    // repos
-    const repoRequest = api.requestPromise(`/organizations/${orgSlug}/repos/`, {
-      method: 'GET',
-    });
-
-    //deploys
-    const deployPath = `/organizations/${orgSlug}/releases/${encodeURIComponent(
-      releaseVersion
-    )}/deploys/`;
-    const deployRequest = api.requestPromise(deployPath, {
-      method: 'GET',
-    });
-
-    try {
-      const [release, repos, deploys] = await Promise.all([
-        releaseRequest,
-        repoRequest,
-        deployRequest,
-      ]);
-      this.setState({
-        release,
-        deploys,
-        hasRepos: repos.length > 0,
-        loading: false,
-      });
-    } catch (e) {
-      this.setState({error: true});
-    }
-  }
 
   toggleHovercard() {
     this.setState({
@@ -117,14 +72,13 @@ class VersionHoverCard extends React.Component<Props, State> {
   }
 
   getBody() {
-    const {releaseVersion} = this.props;
-    const {release, deploys} = this.state;
-    if (!release) {
+    const {releaseVersion, release, deploys} = this.props;
+    if (release === undefined || deploys === undefined) {
       return {header: null, body: null};
     }
 
     const {lastCommit} = release;
-    const recentDeploysByEnvironment = deploys.reduce(function(dbe, deploy) {
+    const recentDeploysByEnvironment = deploys.reduce(function (dbe, deploy) {
       const {dateFinished, environment} = deploy;
       if (!dbe.hasOwnProperty(environment)) {
         dbe[environment] = dateFinished;
@@ -200,9 +154,22 @@ class VersionHoverCard extends React.Component<Props, State> {
   }
 
   render() {
-    const {loading, error, hasRepos, release} = this.state;
+    const {
+      deploysLoading,
+      deploysError,
+      release,
+      releaseLoading,
+      releaseError,
+      repositories,
+      repositoriesLoading,
+      repositoriesError,
+    } = this.props;
     let header: React.ReactNode = null;
     let body: React.ReactNode = null;
+
+    const loading = !!(deploysLoading || releaseLoading || repositoriesLoading);
+    const error = deploysError ?? releaseError ?? repositoriesError;
+    const hasRepos = repositories && repositories.length > 0;
 
     if (loading) {
       body = <LoadingIndicator mini />;
@@ -224,8 +191,7 @@ class VersionHoverCard extends React.Component<Props, State> {
 }
 
 export {VersionHoverCard};
-
-export default withApi(VersionHoverCard);
+export default withApi(withRelease(withRepositories(VersionHoverCard)));
 
 const ConnectRepo = styled('div')`
   padding: ${space(2)};

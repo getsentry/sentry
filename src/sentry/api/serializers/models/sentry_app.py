@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
+from sentry.api.serializers import serialize, Serializer, register
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
-from sentry.api.serializers import Serializer, register
-from sentry.models import SentryApp
-from sentry.models.sentryapp import MASKED_VALUE
 from sentry.constants import SentryAppStatus
-from sentry.models import IntegrationFeature
-from sentry.api.serializers import serialize
+from sentry.models import IntegrationFeature, SentryApp
+from sentry.models.sentryapp import MASKED_VALUE
 from sentry.utils.compat import map
 
 

@@ -4,24 +4,28 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization, Tag} from 'app/types';
+import {Organization, TagCollection} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
+import Measurements from 'app/utils/measurements/measurements';
 import Pagination from 'app/components/pagination';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
 import TableView from './tableView';
-import {TableData} from './types';
 
 type TableProps = {
   api: Client;
   location: Location;
   eventView: EventView;
   organization: Organization;
-  tags: {[key: string]: Tag};
+  showTags: boolean;
+  tags: TagCollection;
   setError: (msg: string, code: number) => void;
   title: string;
+  onChangeShowTags: () => void;
+  confirmedQuery: boolean;
 };
 
 type TableState = {
@@ -59,7 +63,8 @@ class Table extends React.PureComponent<TableProps, TableState> {
     // from an invalid view state to a valid one.
     if (
       (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
-      (prevProps.eventView.isValid() === false && this.props.eventView.isValid())
+      (prevProps.eventView.isValid() === false && this.props.eventView.isValid()) ||
+      prevProps.confirmedQuery !== this.props.confirmedQuery
     ) {
       this.fetchData();
     }
@@ -73,19 +78,25 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location, setError} = this.props;
+    const {eventView, organization, location, setError, confirmedQuery} = this.props;
 
-    if (!eventView.isValid()) {
+    if (!eventView.isValid() || !confirmedQuery) {
       return;
     }
+
+    // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
+    // the API payload response
+
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
+
     setError('', 200);
 
     this.setState({isLoading: true, tableFetchID});
     metric.mark({name: `discover-events-start-${apiPayload.query}`});
 
+    this.props.api.clear();
     this.props.api
       .requestPromise(url, {
         method: 'GET',
@@ -141,14 +152,22 @@ class Table extends React.PureComponent<TableProps, TableState> {
 
     return (
       <Container>
-        <TableView
-          {...this.props}
-          isLoading={isLoading}
-          error={error}
-          eventView={eventView}
-          tableData={tableData}
-          tagKeys={tagKeys}
-        />
+        <Measurements>
+          {({measurements}) => {
+            const measurementKeys = Object.values(measurements).map(({key}) => key);
+            return (
+              <TableView
+                {...this.props}
+                isLoading={isLoading}
+                error={error}
+                eventView={eventView}
+                tableData={tableData}
+                tagKeys={tagKeys}
+                measurementKeys={measurementKeys}
+              />
+            );
+          }}
+        </Measurements>
         <Pagination pageLinks={pageLinks} />
       </Container>
     );

@@ -88,7 +88,7 @@ class ReleaseActivityEmail(ActivityEmail):
                     (commit, users.get(commit.author.email) if commit.author_id else None)
                 )
 
-            self.repos = repos.values()
+            self.repos = list(repos.values())
 
             self.environment = (
                 Environment.objects.get(id=self.deploy.environment_id).name or "Default Environment"
@@ -238,3 +238,6 @@ class ReleaseActivityEmail(ActivityEmail):
 
     def get_html_template(self):
         return "sentry/emails/activity/release.html"
+
+    def get_category(self):
+        return "release_activity_email"

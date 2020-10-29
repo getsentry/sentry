@@ -4,9 +4,7 @@ import createReactClass from 'create-react-class';
 
 import getDisplayName from 'app/utils/getDisplayName';
 import TagStore from 'app/stores/tagStore';
-import {Tag} from 'app/types';
-
-type TagCollection = {[key: string]: Tag};
+import {TagCollection} from 'app/types';
 
 type InjectedTagsProps = {
   tags: TagCollection;
@@ -39,7 +37,8 @@ const withTags = <P extends InjectedTagsProps>(
     },
 
     render() {
-      return <WrappedComponent tags={this.state.tags} {...(this.props as P)} />;
+      const {tags, ...props} = this.props as P;
+      return <WrappedComponent {...({tags: tags ?? this.state.tags, ...props} as P)} />;
     },
   });
 

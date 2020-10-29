@@ -16,23 +16,10 @@ import EventsRequest from 'app/components/charts/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 
-import {PERFORMANCE_TERMS} from '../constants';
+import {getAxisOptions} from '../data';
 import {HeaderContainer, HeaderTitle, ErrorPanel} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
-
-const YAXIS_OPTIONS = [
-  {
-    label: 'Apdex',
-    value: 'apdex(300)',
-    tooltip: PERFORMANCE_TERMS.apdex,
-  },
-  {
-    label: 'Transactions Per Minute',
-    value: 'epm()',
-    tooltip: PERFORMANCE_TERMS.tpm,
-  },
-];
 
 type Props = {
   api: Client;
@@ -44,44 +31,53 @@ type Props = {
 };
 
 class Container extends React.Component<Props> {
+  getChartParameters() {
+    const {location, organization} = this.props;
+    const options = getAxisOptions(organization);
+    const left = options.find(opt => opt.value === location.query.left) || options[0];
+    const right = options.find(opt => opt.value === location.query.right) || options[1];
+
+    return [left, right];
+  }
+
   render() {
     const {api, organization, location, eventView, router, keyTransactions} = this.props;
 
     // construct request parameters for fetching chart data
-
     const globalSelection = eventView.getGlobalSelection();
-    const start = globalSelection.start
-      ? getUtcToLocalDateObject(globalSelection.start)
+    const start = globalSelection.datetime.start
+      ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : undefined;
 
-    const end = globalSelection.end
-      ? getUtcToLocalDateObject(globalSelection.end)
+    const end = globalSelection.datetime.end
+      ? getUtcToLocalDateObject(globalSelection.datetime.end)
       : undefined;
 
     const {utc} = getParams(location.query);
+    const axisOptions = this.getChartParameters();
 
     return (
       <Panel>
         <EventsRequest
           organization={organization}
           api={api}
-          period={globalSelection.statsPeriod}
-          project={globalSelection.project}
-          environment={globalSelection.environment}
+          period={globalSelection.datetime.period}
+          project={globalSelection.projects}
+          environment={globalSelection.environments}
           start={start}
           end={end}
           interval={getInterval(
             {
               start: start || null,
               end: end || null,
-              period: globalSelection.statsPeriod,
+              period: globalSelection.datetime.period,
             },
             true
           )}
           showLoading={false}
           query={eventView.getEventsAPIPayload(location).query}
           includePrevious={false}
-          yAxis={YAXIS_OPTIONS.map(option => option.value)}
+          yAxis={axisOptions.map(opt => opt.value)}
           keyTransactions={keyTransactions}
         >
           {({loading, reloading, errored, results}) => {
@@ -96,8 +92,8 @@ class Container extends React.Component<Props> {
             return (
               <React.Fragment>
                 <HeaderContainer>
-                  {YAXIS_OPTIONS.map(option => (
-                    <div key={option.label}>
+                  {axisOptions.map((option, i) => (
+                    <div key={`${option.label}:${i}`}>
                       <HeaderTitle>
                         {option.label}
                         <QuestionTooltip
@@ -116,10 +112,10 @@ class Container extends React.Component<Props> {
                         data={results}
                         loading={loading || reloading}
                         router={router}
-                        statsPeriod={globalSelection.statsPeriod}
+                        statsPeriod={globalSelection.datetime.period}
                         utc={utc === 'true'}
-                        projects={globalSelection.project}
-                        environments={globalSelection.environment}
+                        projects={globalSelection.projects}
+                        environments={globalSelection.environments}
                       />
                     ),
                     fixed: 'apdex and throughput charts',
@@ -133,6 +129,8 @@ class Container extends React.Component<Props> {
         </EventsRequest>
         <Footer
           api={api}
+          leftAxis={axisOptions[0].value}
+          rightAxis={axisOptions[1].value}
           organization={organization}
           eventView={eventView}
           location={location}

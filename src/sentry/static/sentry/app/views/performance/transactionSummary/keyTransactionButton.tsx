@@ -7,6 +7,7 @@ import {IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import EventView from 'app/utils/discover/eventView';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {saveKeyTransaction, deleteKeyTransaction} from 'app/actionCreators/performance';
 
 type Props = {
@@ -99,11 +100,17 @@ class KeyTransactionButton extends React.Component<Props, State> {
     const {eventView, api, organization, transactionName} = this.props;
     const projects = eventView.project as number[];
 
+    trackAnalyticsEvent({
+      eventName: 'Performance Views: Key Transaction toggle',
+      eventKey: 'performance_views.key_transaction.toggle',
+      orgId: parseInt(organization.id, 10),
+      action: this.state.isKeyTransaction ? 'remove' : 'add',
+    });
+
     if (!this.state.isKeyTransaction) {
       this.setState({
         isKeyTransaction: true,
       });
-
       saveKeyTransaction(api, organization.slug, projects, transactionName).catch(() => {
         this.setState({
           isKeyTransaction: false,
@@ -136,7 +143,7 @@ class KeyTransactionButton extends React.Component<Props, State> {
         icon={
           <IconStar
             size="xs"
-            color={isKeyTransaction ? 'yellow' : 'gray500'}
+            color={isKeyTransaction ? 'yellow500' : 'gray500'}
             isSolid={!!isKeyTransaction}
           />
         }

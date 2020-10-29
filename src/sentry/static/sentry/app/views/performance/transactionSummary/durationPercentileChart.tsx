@@ -12,6 +12,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import AsyncComponent from 'app/components/asyncComponent';
 import {OrganizationSummary} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {axisLabelFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
@@ -137,6 +138,14 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
         alignWithLabel: true,
       },
     };
+    const yAxis = {
+      type: 'value',
+      axisLabel: {
+        color: theme.gray400,
+        // Use p50() to force time formatting.
+        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+      },
+    };
     const tooltip = {
       valueFormatter(value) {
         return getDuration(value / 1000, 2);
@@ -148,7 +157,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
       <AreaChart
         grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
         xAxis={xAxis}
-        yAxis={{type: 'value'}}
+        yAxis={yAxis}
         series={transformData(chartData.data)}
         tooltip={tooltip}
         colors={colors}

@@ -75,7 +75,7 @@ setup_alert = {
     "text": "Your GitHub enterprise instance must be able to communicate with"
     " Sentry. Sentry makes outbound requests from a [static set of IP"
     " addresses](https://docs.sentry.io/ip-ranges/) that you may wish"
-    " to whitelist to support this integration.",
+    " to allow in your firewall to support this integration.",
 }
 
 metadata = IntegrationMetadata(
@@ -297,7 +297,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 installation_data["url"], installation_id
             ),
             headers={
-                "Authorization": "Bearer %s"
+                "Authorization": b"Bearer %s"
                 % get_jwt(
                     github_id=installation_data["id"],
                     github_private_key=installation_data["private_key"],

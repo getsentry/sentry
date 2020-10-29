@@ -14,9 +14,10 @@ from sentry.grouping.variants import (
 )
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, ENHANCEMENT_BASES
 from sentry.grouping.utils import (
-    DEFAULT_FINGERPRINT_VALUES,
+    is_default_fingerprint_var,
     hash_from_values,
     resolve_fingerprint_values,
+    expand_title_template,
 )
 
 
@@ -128,9 +129,15 @@ def get_fingerprinting_config_for_project(project):
     return rv
 
 
-def apply_server_fingerprinting(event, config):
-    new_fingerprint = config.get_fingerprint_values_for_event(event)
-    if new_fingerprint is not None:
+def apply_server_fingerprinting(event, config, allow_custom_title=True):
+    rv = config.get_fingerprint_values_for_event(event)
+    if rv is not None:
+        new_fingerprint, attributes = rv
+
+        # A custom title attribute is stored in the event to override the
+        # default title.
+        if "title" in attributes and allow_custom_title:
+            event["title"] = expand_title_template(attributes["title"], event)
         event["fingerprint"] = new_fingerprint
 
 
@@ -147,13 +154,19 @@ def _get_calculated_grouping_variants_for_event(event, config):
             if winning_strategy is None:
                 if component.contributes:
                     winning_strategy = strategy.name
-                    precedence_hint = "%s takes precedence" % (
-                        "%s of %s" % (strategy.name, variant)
+                    variants_hint = "/".join(
+                        sorted(k for k, v in six.iteritems(rv) if v.contributes)
+                    )
+                    precedence_hint = "%s take%s precedence" % (
+                        "%s of %s" % (strategy.name, variants_hint)
                         if variant != "default"
-                        else strategy.name
+                        else strategy.name,
+                        "" if strategy.name.endswith("s") else "s",
                     )
             elif component.contributes and winning_strategy != strategy.name:
-                component.update(contributes=False, hint=precedence_hint)
+                component.update(
+                    contributes=False, contributes_to_similarity=True, hint=precedence_hint
+                )
 
     rv = {}
     for (variant, components) in six.iteritems(per_variant_components):
@@ -188,13 +201,7 @@ def get_grouping_variants_for_event(event, config=None):
 
     # Otherwise we go to the various forms of fingerprint handling.
     fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
-    defaults_referenced = sum(1 if d in DEFAULT_FINGERPRINT_VALUES else 0 for d in fingerprint)
-
-    # If no defaults are referenced we produce a single completely custom
-    # fingerprint.
-    if defaults_referenced == 0:
-        fingerprint = resolve_fingerprint_values(fingerprint, event)
-        return {"custom-fingerprint": CustomFingerprintVariant(fingerprint)}
+    defaults_referenced = sum(1 if is_default_fingerprint_var(d) else 0 for d in fingerprint)
 
     if config is None:
         config = load_default_grouping_config()
@@ -202,16 +209,32 @@ def get_grouping_variants_for_event(event, config=None):
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
     components = _get_calculated_grouping_variants_for_event(event, config)
-    rv = {}
+
+    # If no defaults are referenced we produce a single completely custom
+    # fingerprint and mark all other variants as non-contributing
+    if defaults_referenced == 0:
+        rv = {}
+        for (key, component) in six.iteritems(components):
+            component.update(
+                contributes=False,
+                contributes_to_similarity=True,
+                hint="custom fingerprint takes precedence",
+            )
+            rv[key] = ComponentVariant(component, config)
+
+        fingerprint = resolve_fingerprint_values(fingerprint, event.data)
+        rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint)
 
     # If the fingerprints are unsalted, we can return them right away.
-    if defaults_referenced == 1 and len(fingerprint) == 1:
+    elif defaults_referenced == 1 and len(fingerprint) == 1:
+        rv = {}
         for (key, component) in six.iteritems(components):
             rv[key] = ComponentVariant(component, config)
 
     # Otherwise we need to salt each of the components.
     else:
-        fingerprint = resolve_fingerprint_values(fingerprint, event)
+        rv = {}
+        fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         for (key, component) in six.iteritems(components):
             rv[key] = SaltedComponentVariant(fingerprint, component, config)
 

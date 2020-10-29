@@ -8,13 +8,15 @@ import {escape} from 'app/utils';
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
 // In minutes
-const THIRTY_DAYS = 43200;
-const TWENTY_FOUR_HOURS = 1440;
-const ONE_HOUR = 60;
+export const THIRTY_DAYS = 43200;
+export const TWO_WEEKS = 20160;
+export const ONE_WEEK = 10080;
+export const TWENTY_FOUR_HOURS = 1440;
+export const ONE_HOUR = 60;
 
 export type DateTimeObject = Partial<GlobalSelection['datetime']>;
 
-export function truncationFormatter(value: string, truncate: number): string {
+export function truncationFormatter(value: string, truncate: number | undefined): string {
   if (!truncate) {
     return escape(value);
   }

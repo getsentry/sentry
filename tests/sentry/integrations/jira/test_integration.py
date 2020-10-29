@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 from sentry.utils.compat import mock
 import responses
 import six
@@ -12,6 +11,7 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 from sentry.utils.compat.mock import Mock
 
+from sentry.integrations.jira import JiraIntegrationProvider
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import (
     ExternalIssue,
@@ -19,8 +19,10 @@ from sentry.models import (
     IntegrationExternalProject,
     OrganizationIntegration,
 )
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, IntegrationTestCase
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
+from sentry.utils.signing import sign
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
@@ -385,6 +387,15 @@ SAMPLE_TRANSITION_RESPONSE = """
                     "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/3"
                 }
             }
+        },
+        {
+            "hasScreen": false,
+            "id": "61",
+            "isAvailable": true,
+            "isConditional": false,
+            "isGlobal": true,
+            "isInitial": false,
+            "name": "Kicked"
         }
     ]
 }
@@ -843,7 +854,7 @@ class JiraIntegrationTest(APITestCase):
         assign_issue_response = responses.calls[1][1]
         assert assign_issue_url in assign_issue_response.url
         assert assign_issue_response.status_code == 200
-        assert assign_issue_response.request.body == '{"accountId": "deadbeef123"}'
+        assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
 
     @responses.activate
     def test_sync_assignee_outbound_no_email(self):
@@ -897,7 +908,7 @@ class JiraIntegrationTest(APITestCase):
         assign_issue_response = responses.calls[2][1]
         assert assign_issue_url in assign_issue_response.url
         assert assign_issue_response.status_code == 200
-        assert assign_issue_response.request.body == '{"accountId": "deadbeef123"}'
+        assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
 
     def test_update_organization_config(self):
         org = self.organization
@@ -1106,3 +1117,37 @@ class JiraIntegrationTest(APITestCase):
                     "123",
                     "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
                 )
+
+
+class JiraInstallationTest(IntegrationTestCase):
+    provider = JiraIntegrationProvider
+
+    def setUp(self):
+        super(JiraInstallationTest, self).setUp()
+        self.metadata = {
+            "oauth_client_id": "oauth-client-id",
+            "shared_secret": "a-super-secret-key-from-atlassian",
+            "base_url": "https://example.atlassian.net",
+            "domain_name": "example.atlassian.net",
+        }
+        self.integration = Integration.objects.create(
+            provider="jira",
+            name="Jira Cloud",
+            external_id="my-external-id",
+            metadata=self.metadata,
+        )
+
+    def assert_setup_flow(self):
+        self.login_as(self.user)
+        signed_data = {"external_id": "my-external-id", "metadata": json.dumps(self.metadata)}
+        params = {"signed_params": sign(**signed_data)}
+        resp = self.client.get(self.configure_path, params)
+        assert resp.status_code == 302
+        integration = Integration.objects.get(external_id="my-external-id")
+        assert integration.metadata == self.metadata
+        assert OrganizationIntegration.objects.filter(
+            integration=integration, organization=self.organization
+        ).exists()
+
+    def test_installation(self):
+        self.assert_setup_flow()

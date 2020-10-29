@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:30.919728Z'
+created: '2020-08-25T09:17:13.909441Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -388,8 +388,8 @@ app:
 default:
   hash: null
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
         "Failed to start connector [Connector[HTTP/1.1-8080]]"
 --------------------------------------------------------------------------
 system:

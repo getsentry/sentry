@@ -27,6 +27,19 @@ class TestIssueLinkSchemaValidation(TestCase):
                 "required_fields": [
                     {"type": "text", "name": "title", "label": "Title"},
                     {"type": "text", "name": "description", "label": "Description"},
+                    {
+                        "type": "select",
+                        "uri": "/sentry/tasks/projects",
+                        "name": "project_id",
+                        "label": "Project",
+                    },
+                    {
+                        "depends_on": ["project_id"],
+                        "type": "select",
+                        "uri": "/sentry/tasks/boards",
+                        "name": "board_id",
+                        "label": "Board",
+                    },
                 ],
                 "optional_fields": [{"type": "text", "name": "owner", "label": "Owner"}],
             },
@@ -86,4 +99,14 @@ class TestIssueLinkSchemaValidation(TestCase):
 
     def test_missing_link_optional_fields(self):
         del self.schema["link"]["optional_fields"]
+        validate_component(self.schema)
+
+    @invalid_schema
+    def test_invalid_async_option(self):
+        self.schema["create"]["required_fields"][2]["async"] = "cat"
+        validate_component(self.schema)
+
+    @invalid_schema
+    def test_invalid_skip_load_on_open_option(self):
+        self.schema["create"]["required_fields"][2]["skip_load_on_open"] = "cat"
         validate_component(self.schema)

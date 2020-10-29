@@ -4,7 +4,7 @@ import TeamStore from 'app/stores/teamStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import OrganizationActions from 'app/actions/organizationActions';
 
-describe('OrganizationActionCreator', function() {
+describe('OrganizationActionCreator', function () {
   const detailedOrg = TestStubs.Organization({
     teams: [TestStubs.Team()],
     projects: [TestStubs.Project()],
@@ -16,7 +16,7 @@ describe('OrganizationActionCreator', function() {
 
   const api = new MockApiClient();
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     jest.spyOn(TeamStore, 'loadInitialData');
     jest.spyOn(ProjectsStore, 'loadInitialData');
@@ -26,12 +26,12 @@ describe('OrganizationActionCreator', function() {
     jest.spyOn(OrganizationsActionCreator, 'setActiveOrganization');
   });
 
-  afterEach(function() {
+  afterEach(function () {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
   });
 
-  it('fetches heavyweight organization details', async function() {
+  it('fetches heavyweight organization details', async function () {
     const getOrgMock = MockApiClient.addMockResponse({
       url: `/organizations/${detailedOrg.slug}/`,
       body: detailedOrg,
@@ -52,7 +52,7 @@ describe('OrganizationActionCreator', function() {
     expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.projects);
   });
 
-  it('fetches lightweight organization details', async function() {
+  it('fetches lightweight organization details', async function () {
     const getOrgMock = MockApiClient.addMockResponse({
       url: `/organizations/${lightOrg.slug}/`,
       body: lightOrg,
@@ -89,7 +89,7 @@ describe('OrganizationActionCreator', function() {
     expect(ProjectsStore.loadInitialData).not.toHaveBeenCalled();
   });
 
-  it('silently fetches organization details', async function() {
+  it('silently fetches organization details', async function () {
     const getOrgMock = MockApiClient.addMockResponse({
       url: `/organizations/${detailedOrg.slug}/`,
       body: detailedOrg,
@@ -110,7 +110,7 @@ describe('OrganizationActionCreator', function() {
     expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.projects);
   });
 
-  it('errors out correctly', async function() {
+  it('errors out correctly', async function () {
     const getOrgMock = MockApiClient.addMockResponse({
       url: `/organizations/${detailedOrg.slug}/`,
       statusCode: 400,

@@ -3,14 +3,15 @@ from __future__ import absolute_import
 from datetime import timedelta
 import functools
 import logging
-from uuid import uuid4
 
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import eventstream, tsdb, tagstore
+import sentry_sdk
+
+from sentry import tsdb, tagstore
 from sentry.api import client
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize, GroupSerializer, GroupSerializerSnuba
@@ -19,7 +20,6 @@ from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSeri
 from sentry.models import (
     Activity,
     Group,
-    GroupHash,
     GroupRelease,
     GroupSeen,
     GroupStatus,
@@ -29,34 +29,15 @@ from sentry.models import (
     User,
     UserReport,
 )
+from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.compat import zip
 
 delete_logger = logging.getLogger("sentry.deletions.api")
-
-
-@scenario("RetrieveAggregate")
-def retrieve_aggregate_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method="GET", path="/issues/%s/" % group.id)
-
-
-@scenario("UpdateAggregate")
-def update_aggregate_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method="PUT", path="/issues/%s/" % group.id, data={"status": "unresolved"})
-
-
-@scenario("DeleteAggregate")
-def delete_aggregate_scenario(runner):
-    with runner.isolated_project("Boring Mushrooms") as project:
-        group = Group.objects.filter(project=project).first()
-        runner.request(method="DELETE", path="/issues/%s/" % group.id)
 
 
 STATUS_CHOICES = {
@@ -70,8 +51,6 @@ STATUS_CHOICES = {
 
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
-    doc_section = DocSection.EVENTS
-
     def _get_activity(self, request, group, num):
         activity_items = set()
         activity = []
@@ -183,7 +162,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             for item, version in zip(serialized_releases, versions)
         ]
 
-    @attach_scenarios([retrieve_aggregate_scenario])
+    @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, group):
         """
         Retrieve an Issue
@@ -198,6 +177,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         try:
             # TODO(dcramer): handle unauthenticated/public response
+            from sentry.utils import snuba
 
             organization = group.project.organization
             environments = get_environments(request, organization)
@@ -283,46 +263,60 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
 
             # the current release is the 'latest seen' release within the
-            # environment even if it hasnt affected this issue
+            # environment even if it hasn't affected this issue
             if environments:
-                try:
-                    current_release = GroupRelease.objects.filter(
-                        group_id=group.id,
-                        environment__in=[env.name for env in environments],
-                        release_id=ReleaseEnvironment.objects.filter(
-                            release_id__in=ReleaseProject.objects.filter(
-                                project_id=group.project_id
-                            ).values_list("release_id", flat=True),
-                            organization_id=group.project.organization_id,
-                            environment_id__in=environment_ids,
-                        )
-                        .order_by("-first_seen")
-                        .values_list("release_id", flat=True)[:1],
-                    )[0]
-                except IndexError:
-                    current_release = None
+                with sentry_sdk.start_span(op="GroupDetailsEndpoint.get.current_release") as span:
+                    span.set_data("Environment Count", len(environments))
+                    span.set_data(
+                        "Raw Parameters",
+                        {
+                            "group.id": group.id,
+                            "group.project_id": group.project_id,
+                            "group.project.organization_id": group.project.organization_id,
+                            "environments": [{"id": e.id, "name": e.name} for e in environments],
+                        },
+                    )
 
-                data.update(
-                    {
-                        "currentRelease": serialize(
-                            current_release, request.user, GroupReleaseWithStatsSerializer()
-                        )
-                    }
+                    try:
+                        current_release = GroupRelease.objects.filter(
+                            group_id=group.id,
+                            environment__in=[env.name for env in environments],
+                            release_id=(
+                                ReleaseEnvironment.objects.filter(
+                                    release_id__in=ReleaseProject.objects.filter(
+                                        project_id=group.project_id
+                                    ).values_list("release_id", flat=True),
+                                    organization_id=group.project.organization_id,
+                                    environment_id__in=environment_ids,
+                                )
+                                .order_by("-first_seen")
+                                .values_list("release_id", flat=True)
+                            )[:1],
+                        )[0]
+                    except IndexError:
+                        current_release = None
+
+                data["currentRelease"] = serialize(
+                    current_release, request.user, GroupReleaseWithStatsSerializer()
                 )
+
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(data)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
 
-    @attach_scenarios([update_aggregate_scenario])
+    @rate_limit_endpoint(limit=10, window=1)
     def put(self, request, group):
         """
         Update an Issue
         ```````````````
 
-        Updates an individual issues's attributes.  Only the attributes
-        submitted are modified.
+        Updates an individual issue's attributes. Only the attributes submitted
+        are modified.
 
         :pparam string issue_id: the ID of the group to retrieve.
         :param string status: the new status for the issue.  Valid values
@@ -344,6 +338,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
+            from sentry.utils import snuba
+
             discard = request.data.get("discard")
 
             # TODO(dcramer): we need to implement assignedTo in the bulk mutation
@@ -387,11 +383,14 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "group.update.http_response", sample_rate=1.0, tags={"status": e.status_code}
             )
             return Response(e.body, status=e.status_code)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
 
-    @attach_scenarios([delete_aggregate_scenario])
+    @rate_limit_endpoint(limit=10, window=1)
     def delete(self, request, group):
         """
         Remove an Issue
@@ -403,35 +402,15 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
-            from sentry.tasks.deletion import delete_groups
+            from sentry.utils import snuba
+            from sentry.group_deletion import delete_group
 
-            updated = (
-                Group.objects.filter(id=group.id)
-                .exclude(
-                    status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
-                )
-                .update(status=GroupStatus.PENDING_DELETION)
-            )
-            if updated:
-                project = group.project
+            transaction_id = delete_group(group)
 
-                eventstream_state = eventstream.start_delete_groups(group.project_id, [group.id])
-                transaction_id = uuid4().hex
-
-                GroupHash.objects.filter(project_id=group.project_id, group__id=group.id).delete()
-
-                delete_groups.apply_async(
-                    kwargs={
-                        "object_ids": [group.id],
-                        "transaction_id": transaction_id,
-                        "eventstream_state": eventstream_state,
-                    },
-                    countdown=3600,
-                )
-
+            if transaction_id:
                 self.create_audit_entry(
                     request=request,
-                    organization_id=project.organization_id if project else None,
+                    organization_id=group.project.organization_id if group.project else None,
                     target_object=group.id,
                     transaction_id=transaction_id,
                 )
@@ -445,11 +424,16 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     },
                 )
 
+                # This is exclusively used for analytics, as such it should not run as part of reprocessing.
                 issue_deleted.send_robust(
                     group=group, user=request.user, delete_type="delete", sender=self.__class__
                 )
+
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(status=202)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise

@@ -11,7 +11,17 @@ from sentry.models import Integration, Repository, IdentityProvider, Identity, I
 from sentry.testutils import APITestCase
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
 from sentry.shared_integrations.exceptions import IntegrationError
-from .testutils import EXAMPLE_PRIVATE_KEY, COMPARE_COMMITS_EXAMPLE, REPO, COMMIT_CHANGELIST_EXAMPLE
+from .testutils import (
+    EXAMPLE_PRIVATE_KEY,
+    COMPARE_COMMITS_EXAMPLE,
+    REPO,
+    COMMIT_CHANGELIST_EXAMPLE,
+    COMPARE_COMMITS_WITH_PAGES_1_2_EXAMPLE,
+    COMPARE_COMMITS_WITH_PAGES_2_2_EXAMPLE,
+    COMMIT_CHANGELIST_WITH_PAGES_FIRST_COMMIT_EXAMPLE,
+    COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_1_2,
+    COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_2_2,
+)
 
 
 class BitbucketServerRepositoryProviderTest(APITestCase):
@@ -90,6 +100,77 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
                 ],
                 "timestamp": datetime.datetime(2019, 12, 19, 13, 56, 56, tzinfo=timezone.utc),
             }
+        ]
+
+    @responses.activate
+    def test_compare_commits_with_two_pages(self):
+        repo = Repository.objects.create(
+            provider="bitbucket_server",
+            name="sentryuser/newsdiffs",
+            organization_id=self.organization.id,
+            config={"name": "sentryuser/newsdiffs", "project": "sentryuser", "repo": "newsdiffs"},
+            integration_id=self.integration.id,
+        )
+
+        responses.add(
+            responses.GET,
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits?merges=exclude&limit=1000&since=d0352305beb41afb3a4ea79e3a97bf6a97520339&start=0&until=042bc8434e0c178d8745c7d9f90bddab9c927887",
+            json=COMPARE_COMMITS_WITH_PAGES_1_2_EXAMPLE,
+        )
+
+        responses.add(
+            responses.GET,
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits?merges=exclude&limit=1000&since=d0352305beb41afb3a4ea79e3a97bf6a97520339&start=1&until=042bc8434e0c178d8745c7d9f90bddab9c927887",
+            json=COMPARE_COMMITS_WITH_PAGES_2_2_EXAMPLE,
+        )
+
+        responses.add(
+            responses.GET,
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/d0352305beb41afb3a4ea79e3a97bf6a97520339/changes",
+            json=COMMIT_CHANGELIST_WITH_PAGES_FIRST_COMMIT_EXAMPLE,
+        )
+
+        responses.add(
+            responses.GET,
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?merges=exclude&limit=100&start=0",
+            json=COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_1_2,
+        )
+
+        responses.add(
+            responses.GET,
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/042bc8434e0c178d8745c7d9f90bddab9c927887/changes?merges=exclude&limit=100&start=1",
+            json=COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_2_2,
+        )
+
+        res = self.provider.compare_commits(
+            repo,
+            "d0352305beb41afb3a4ea79e3a97bf6a97520339",
+            "042bc8434e0c178d8745c7d9f90bddab9c927887",
+        )
+
+        assert res == [
+            {
+                "author_email": "sentryuser@getsentry.com",
+                "author_name": "Sentry User",
+                "message": "Fist commit",
+                "id": "d0352305beb41afb3a4ea79e3a97bf6a97520339",
+                "repository": "sentryuser/newsdiffs",
+                "patch_set": [{"path": "a.txt", "type": "M"}, {"path": "b.txt", "type": "A"}],
+                "timestamp": datetime.datetime(2019, 12, 19, 13, 56, 56, tzinfo=timezone.utc),
+            },
+            {
+                "author_email": "sentryuser@getsentry.com",
+                "author_name": "Sentry User",
+                "message": "Second commit",
+                "id": "042bc8434e0c178d8745c7d9f90bddab9c927887",
+                "repository": "sentryuser/newsdiffs",
+                "patch_set": [
+                    {"path": "c.txt", "type": "D"},
+                    {"path": "e.txt", "type": "D"},
+                    {"path": "d.txt", "type": "A"},
+                ],
+                "timestamp": datetime.datetime(2019, 12, 19, 13, 56, 56, tzinfo=timezone.utc),
+            },
         ]
 
     @responses.activate

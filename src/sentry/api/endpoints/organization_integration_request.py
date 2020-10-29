@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from django.utils.encoding import force_text
 
 from rest_framework.response import Response
 
@@ -31,6 +32,7 @@ def get_url(organization, provider_type, provider_slug):
                     "sentry_app": "sentry-apps",
                 }.get(provider_type),
                 provider_slug,
+                "?referrer=request_email",
             ]
         )
     )
@@ -49,7 +51,7 @@ def get_provider_name(provider_type, provider_slug):
     :return: The display name for the provider.
 
     :raises: ValueError if provider_type is not one of the three from above.
-    :raises: Exception if the provider is not found.
+    :raises: RuntimeError if the provider is not found.
     """
     try:
         if provider_type == "first_party":
@@ -61,7 +63,7 @@ def get_provider_name(provider_type, provider_slug):
         else:
             raise ValueError(u"Invalid providerType {}".format(provider_type))
     except (KeyError, SentryApp.DoesNotExist):
-        raise Exception(u"Provider {} not found".format(provider_slug))
+        raise RuntimeError(u"Provider {} not found".format(provider_slug))
 
 
 class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
@@ -79,14 +81,15 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
         :param string providerType: One of: first_party, plugin, sentry_app.
         :param string message: Optional message from the requester to the owners.
         """
+
         provider_type = request.data.get("providerType")
         provider_slug = request.data.get("providerSlug")
         message_option = request.data.get("message", "").strip()
 
         try:
             provider_name = get_provider_name(provider_type, provider_slug)
-        except Exception as error:
-            return Response({"detail": error.message}, status=400)
+        except RuntimeError as error:
+            return Response({"detail": force_text(error)}, status=400)
 
         requester = request.user
         owners_list = organization.get_owners()
@@ -116,7 +119,6 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
                 ),
             },
         )
-
         msg.send_async([user.email for user in owners_list])
 
         return Response(status=201)

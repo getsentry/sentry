@@ -210,16 +210,27 @@ class GroupTest(TestCase, SnubaTestCase):
         project = self.create_project()
         group = self.create_group(project=project)
 
-        assert group.get_email_subject() == "%s - %s" % (group.qualified_short_id, group.title)
+        expect = u"{} - {}".format(group.qualified_short_id, group.title)
+        assert group.get_email_subject() == expect
 
     def test_get_absolute_url(self):
-        project = self.create_project(name="pumped-quagga")
-        group = self.create_group(project=project)
-
-        result = group.get_absolute_url({"environment": u"d\u00E9v"})
-        assert (
-            result
-            == u"http://testserver/organizations/baz/issues/{}/?environment=d%C3%A9v".format(
-                group.id
-            )
-        )
+        for (org_slug, group_id, params, expected) in [
+            ("org1", 23, None, "http://testserver/organizations/org1/issues/23/"),
+            (
+                "org2",
+                42,
+                {"environment": "dev"},
+                "http://testserver/organizations/org2/issues/42/?environment=dev",
+            ),
+            (
+                u"\u00F6rg3",
+                86,
+                {u"env\u00EDronment": u"d\u00E9v"},
+                "http://testserver/organizations/%C3%B6rg3/issues/86/?env%C3%ADronment=d%C3%A9v",
+            ),
+        ]:
+            org = self.create_organization(slug=org_slug)
+            project = self.create_project(organization=org)
+            group = self.create_group(id=group_id, project=project)
+            actual = group.get_absolute_url(params)
+            assert actual == expected

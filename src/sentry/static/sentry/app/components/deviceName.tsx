@@ -5,10 +5,7 @@ import {IOSDeviceList} from 'app/types/iOSDeviceList';
 
 export function deviceNameMapper(model: string, iOSDeviceList): string {
   const modelIdentifier = model.split(' ')[0];
-  const modelId = model
-    .split(' ')
-    .splice(1)
-    .join(' ');
+  const modelId = model.split(' ').splice(1).join(' ');
   const modelName = iOSDeviceList.generationByIdentifier(modelIdentifier);
   return modelName === undefined ? model : modelName + ' ' + modelId;
 }
@@ -43,8 +40,6 @@ export default class DeviceName extends React.Component<Props, State> {
     };
   }
 
-  private _isMounted?: boolean;
-
   componentDidMount() {
     // This is to handle react's warning on calling setState for unmounted components
     // Since we can't cancel promises, we need to do this
@@ -64,6 +59,8 @@ export default class DeviceName extends React.Component<Props, State> {
   componentWillUnmount() {
     this._isMounted = false;
   }
+
+  private _isMounted?: boolean;
 
   render() {
     const {value, children} = this.props;

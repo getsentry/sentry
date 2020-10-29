@@ -9,21 +9,21 @@ import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
 
 type Props = {
-  avatarSize: UserAvatar['props']['size'];
-  className?: string;
-  displayName?: string;
+  avatarSize?: UserAvatar['props']['size'];
+  displayName?: React.ReactNode;
   displayEmail?: string;
   user?: AvatarUser;
   hideEmail?: boolean;
+  className?: string;
 };
 
 const UserBadge = ({
-  className,
+  avatarSize = 24,
+  hideEmail = false,
   displayName,
   displayEmail,
-  avatarSize,
-  hideEmail = false,
   user,
+  className,
 }: Props) => {
   const title =
     displayName ||
@@ -34,7 +34,8 @@ const UserBadge = ({
         user.ipAddress ||
         // Because this can be used to render EventUser models, or User *interface*
         // objects from serialized Event models. we try both ipAddress and ip_address.
-        user.ip_address));
+        user.ip_address ||
+        user.id));
 
   return (
     <StyledUserBadge className={className}>

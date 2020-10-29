@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from sentry.constants import SentryAppStatus
 from sentry.utils import json
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import Feature, with_feature
 from sentry.models import (
     SentryApp,
     SentryAppInstallationToken,
@@ -407,13 +407,17 @@ class PostSentryAppsTest(SentryAppsTest):
             "schema": ["['#general'] is too short for element of type 'alert-rule-action'"]
         }
 
+        # XXX: Compare schema as an object instead of json to avoid key
+        # ordering issues
+        record.call_args.kwargs["schema"] = json.loads(record.call_args.kwargs["schema"])
+
         record.assert_called_with(
             "sentry_app.schema_validation_error",
+            schema=kwargs["schema"],
             user_id=self.user.id,
-            organization_id=self.org.id,
             sentry_app_name="MyApp",
+            organization_id=self.org.id,
             error_message="['#general'] is too short for element of type 'alert-rule-action'",
-            schema='{"elements":[{"required_fields":[{"label":"Channel","type":"select","options":[["#general"]],"name":"channel"}],"type":"alert-rule-action"}]}',
         )
 
     @with_feature("organizations:integrations-event-hooks")
@@ -435,14 +439,16 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_cannot_create_with_error_created_hook_without_flag(self):
         self.login_as(user=self.user)
 
-        kwargs = {"events": ("error",)}
-        response = self._post(**kwargs)
+        with Feature({"organizations:integrations-event-hooks": False}):
+            kwargs = {"events": ("error",)}
+            response = self._post(**kwargs)
 
-        assert response.status_code == 403, response.content
-        assert (
-            response.content
-            == '{"non_field_errors":["Your organization does not have access to the \'error\' resource subscription."]}'
-        )
+            assert response.status_code == 403, response.content
+            assert response.data == {
+                "non_field_errors": [
+                    "Your organization does not have access to the 'error' resource subscription."
+                ]
+            }
 
     def test_allows_empty_schema(self):
         self.login_as(self.user)

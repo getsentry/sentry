@@ -7,8 +7,6 @@ from django.conf import settings
 from six.moves.urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
 from functools import partial
 
-import sentry_sdk
-
 from sentry import options
 from sentry.utils import json
 from sentry.utils.compat import map
@@ -18,11 +16,9 @@ ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 
 
 def absolute_uri(url=None):
-    with sentry_sdk.start_span(op="http.absolute_uri.options"):
-        url_prefix = options.get("system.url-prefix")
     if not url:
-        return url_prefix
-    return urljoin(url_prefix.rstrip("/") + "/", url.lstrip("/"))
+        return options.get("system.url-prefix")
+    return urljoin(options.get("system.url-prefix").rstrip("/") + "/", url.lstrip("/"))
 
 
 def origin_from_url(url):
@@ -108,7 +104,7 @@ def parse_uri_match(value):
     # idna/punycode encoded representation for normalization.
     if isinstance(domain, six.binary_type):
         domain = domain.decode("utf8")
-    domain = domain.encode("idna")
+    domain = domain.encode("idna").decode("utf-8")
 
     if port:
         domain = "%s:%s" % (domain, port)
@@ -168,7 +164,7 @@ def is_valid_origin(origin, project=None, allowed=None):
         parsed_hostname = ""
     else:
         try:
-            parsed_hostname = parsed.hostname.encode("idna")
+            parsed_hostname = parsed.hostname.encode("idna").decode("utf-8")
         except UnicodeError:
             # We sometimes shove in some garbage input here, so just opting to ignore and carry on
             parsed_hostname = parsed.hostname

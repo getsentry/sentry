@@ -46,3 +46,10 @@ f736793749a7e0a120a3d5f8630959864e553adb
 # chore: Prefer const
 # https://github.com/getsentry/sentry/pull/11862
 84747dbbabc7e974711c175232ddf71f6194edb6
+
+# chore(eslint): Use shortform boolean jsx attributes (#14950)
+# https://github.com/getsentry/sentry/pull/14950
+6ffce5ab2755cda5721df8e8eeac8314b47fab2e
+
+# chore(prettier): Apply prettier 2.1 (#21605)
+032754739fd210e1d12c076bad4ce8093cbae574

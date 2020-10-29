@@ -65,7 +65,7 @@ setup_alert = {
     "text": "Your Jira instance must be able to communicate with Sentry."
     " Sentry makes outbound requests from a [static set of IP"
     " addresses](https://docs.sentry.io/ip-ranges/) that you may wish"
-    " to whitelist to support this integration.",
+    " to allow in your firewall to support this integration.",
 }
 
 
@@ -318,8 +318,8 @@ class JiraServerIntegrationProvider(IntegrationProvider):
                 extra={"error": six.text_type(err), "external_id": external_id},
             )
             try:
-                details = err.json["messages"][0].values().pop()
-            except Exception:
+                details = next(x for x in err.json["messages"][0].values())
+            except (KeyError, TypeError, StopIteration):
                 details = ""
             message = u"Could not create issue webhook in Jira. {}".format(details)
             raise IntegrationError(message)

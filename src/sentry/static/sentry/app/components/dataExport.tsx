@@ -1,3 +1,4 @@
+import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import React from 'react';
 
@@ -8,7 +9,6 @@ import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
-import FeatureBadge from 'app/components/featureBadge';
 import withOrganization from 'app/utils/withOrganization';
 
 //! Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
@@ -27,11 +27,11 @@ type Props = {
   disabled?: boolean;
   organization: Organization;
   payload: DataExportPayload;
+  icon?: React.ReactNode;
 };
 
 type State = {
   inProgress: boolean;
-  dataExportId?: number;
 };
 
 class DataExport extends React.Component<Props, State> {
@@ -45,7 +45,6 @@ class DataExport extends React.Component<Props, State> {
   get initialState() {
     return {
       inProgress: false,
-      dataExportId: undefined,
     };
   }
 
@@ -60,6 +59,8 @@ class DataExport extends React.Component<Props, State> {
       payload: {queryType, queryInfo},
     } = this.props;
 
+    this.setState({inProgress: true});
+
     api
       .requestPromise(`/organizations/${slug}/data-export/`, {
         includeAllArgs: true,
@@ -69,8 +70,7 @@ class DataExport extends React.Component<Props, State> {
           query_info: queryInfo,
         },
       })
-      .then(([data, _, response]) => {
-        const {id: dataExportId} = data;
+      .then(([_data, _, response]) => {
         addSuccessMessage(
           response?.status === 201
             ? t(
@@ -78,53 +78,49 @@ class DataExport extends React.Component<Props, State> {
               )
             : t("It looks like we're already working on it. Sit tight, we'll email you.")
         );
-        this.setState({inProgress: true, dataExportId});
       })
-      .catch(_err => {
-        addErrorMessage(
-          t("We tried our hardest, but we couldn't export your data. Give it another go.")
-        );
+      .catch(err => {
+        const message =
+          err?.responseJSON?.detail ??
+          "We tried our hardest, but we couldn't export your data. Give it another go.";
+        addErrorMessage(t(message));
+        this.setState({inProgress: false});
       });
   };
 
   render() {
-    const {inProgress, dataExportId} = this.state;
-    const {children, disabled} = this.props;
+    const {inProgress} = this.state;
+    const {children, disabled, icon} = this.props;
     return (
-      <Feature features={['organizations:data-export']}>
-        {inProgress && dataExportId ? (
-          <NewButton
+      <Feature features={['organizations:discover-query']}>
+        {inProgress ? (
+          <Button
             size="small"
             priority="default"
             title="You can get on with your life. We'll email you when your data's ready."
             {...this.props}
             disabled
+            icon={icon}
           >
             {t("We're working on it...")}
-          </NewButton>
+          </Button>
         ) : (
-          <NewButton
-            onClick={this.startDataExport}
+          <Button
+            onClick={debounce(this.startDataExport, 500)}
             disabled={disabled || false}
             size="small"
             priority="default"
             title="Put your data to work. Start your export and we'll email you when it's finished."
+            icon={icon}
             {...this.props}
           >
             {children ? children : t('Export All to CSV')}
-          </NewButton>
+          </Button>
         )}
       </Feature>
     );
   }
 }
-
-const NewButton = ({children, ...buttonProps}) => (
-  <Button {...buttonProps}>
-    {children}
-    <FeatureBadge type="new" />
-  </Button>
-);
 
 export {DataExport};
 export default withApi(withOrganization(DataExport));

@@ -37,7 +37,7 @@ const inputStyles = (props: Props) =>
     &:hover,
     &:focus,
     &:active {
-      border: 1px solid ${props.theme.gray400};
+      border: 1px solid ${props.theme.borderDark};
     }
 
     &::placeholder {

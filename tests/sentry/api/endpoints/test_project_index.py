@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import Project, ProjectStatus
+from sentry.models import Project, ProjectStatus, SentryAppInstallationToken
 from sentry.testutils import APITestCase
 
 
@@ -138,3 +138,18 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(u"{}?query=id:-1".format(self.path))
         assert response.status_code == 200
         assert len(response.data) == 0
+
+    def test_valid_with_internal_integration(self):
+        project = self.create_project(organization=self.organization, teams=[self.team])
+        self.create_internal_integration(
+            name="my_app",
+            organization=self.organization,
+            scopes=("project:read",),
+            webhook_url="http://example.com",
+        )
+        # there should only be one record created so just grab the first one
+        token = SentryAppInstallationToken.objects.first()
+        response = self.client.get(
+            u"{}".format(self.path), HTTP_AUTHORIZATION=u"Bearer {}".format(token.api_token.token)
+        )
+        assert project.name.encode("utf-8") in response.content

@@ -11,18 +11,17 @@ import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
+import LineChart from 'app/components/charts/lineChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import {getDuration, formatPercentage} from 'app/utils/formatters';
+import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
+import {aggregateMultiPlotType} from 'app/utils/discover/fields';
 
 import EventsRequest from './eventsRequest';
-
-const DURATION_AGGREGATE_PATTERN = /^(p75|p95|p99|percentile)|transaction\.duration/;
-const PERCENTAGE_AGGREGATE_PATTERN = /^(error_rate)/;
 
 type ChartProps = {
   loading: boolean;
@@ -36,9 +35,16 @@ type ChartProps = {
   previousTimeseriesData?: Series | null;
   previousSeriesName?: string;
   showDaily?: boolean;
+  interval?: string;
+  yAxis: string;
 };
 
-class Chart extends React.Component<ChartProps> {
+type State = {
+  seriesSelection: Record<string, boolean>;
+  forceUpdate: boolean;
+};
+
+class Chart extends React.Component<ChartProps, State> {
   static propTypes = {
     loading: PropTypes.bool,
     reloading: PropTypes.bool,
@@ -50,9 +56,23 @@ class Chart extends React.Component<ChartProps> {
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
     showDaily: PropTypes.bool,
+    yAxis: PropTypes.string,
   };
 
-  shouldComponentUpdate(nextProps: ChartProps) {
+  state: State = {
+    seriesSelection: {},
+    forceUpdate: false,
+  };
+
+  shouldComponentUpdate(nextProps: ChartProps, nextState: State) {
+    if (nextState.forceUpdate) {
+      return true;
+    }
+
+    if (!isEqual(this.state.seriesSelection, nextState.seriesSelection)) {
+      return true;
+    }
+
     if (nextProps.reloading || !nextProps.timeseriesData) {
       return false;
     }
@@ -68,10 +88,45 @@ class Chart extends React.Component<ChartProps> {
     return true;
   }
 
+  getChartComponent() {
+    const {showDaily, timeseriesData, yAxis} = this.props;
+    if (showDaily) {
+      return BarChart;
+    }
+    if (timeseriesData.length > 1) {
+      switch (aggregateMultiPlotType(yAxis)) {
+        case 'line':
+          return LineChart;
+        case 'area':
+          return AreaChart;
+        default:
+          throw new Error(`Unknown multi plot type for ${yAxis}`);
+      }
+    }
+    return AreaChart;
+  }
+
+  handleLegendSelectChanged = legendChange => {
+    const {selected} = legendChange;
+    const seriesSelection = Object.keys(selected).reduce((state, key) => {
+      // we only want them to be able to disable the Releases series,
+      // and not any of the other possible series here
+      state[key] = key === 'Releases' ? selected[key] : true;
+      return state;
+    }, {});
+
+    // we have to force an update here otherwise ECharts will
+    // update its internal state and disable the series
+    this.setState({seriesSelection, forceUpdate: true}, () =>
+      this.setState({forceUpdate: false})
+    );
+  };
+
   render() {
     const {
       loading: _loading,
       reloading: _reloading,
+      yAxis,
       releaseSeries,
       zoomRenderProps,
       timeseriesData,
@@ -79,14 +134,18 @@ class Chart extends React.Component<ChartProps> {
       showLegend,
       currentSeriesName,
       previousSeriesName,
-      showDaily,
       ...props
     } = this.props;
+    const {seriesSelection} = this.state;
+
+    const data = [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous')];
+    if (Array.isArray(releaseSeries)) {
+      data.push(t('Releases'));
+    }
 
     const legend = showLegend && {
       right: 16,
       top: 12,
-      selectedMode: false,
       icon: 'circle',
       itemHeight: 8,
       itemWidth: 8,
@@ -97,11 +156,35 @@ class Chart extends React.Component<ChartProps> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      data: [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous'), ''],
+      data,
+      selected: seriesSelection,
     };
 
-    const colors = theme.charts.getColorPalette(timeseriesData.length - 2);
-    const Component = showDaily ? BarChart : AreaChart;
+    const chartOptions = {
+      colors: theme.charts.getColorPalette(timeseriesData.length - 2),
+      grid: {
+        left: '24px',
+        right: '24px',
+        top: '32px',
+        bottom: '12px',
+      },
+      seriesOptions: {
+        showSymbol: false,
+      },
+      tooltip: {
+        trigger: 'axis',
+        truncate: 80,
+        valueFormatter: (value: number) => tooltipFormatter(value, yAxis),
+      },
+      yAxis: {
+        axisLabel: {
+          color: theme.gray400,
+          formatter: (value: number) => axisLabelFormatter(value, yAxis),
+        },
+      },
+    };
+
+    const Component = this.getChartComponent();
     const series = Array.isArray(releaseSeries)
       ? [...timeseriesData, ...releaseSeries]
       : timeseriesData;
@@ -110,19 +193,11 @@ class Chart extends React.Component<ChartProps> {
       <Component
         {...props}
         {...zoomRenderProps}
+        {...chartOptions}
         legend={legend}
+        onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
-        seriesOptions={{
-          showSymbol: false,
-        }}
         previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
-        colors={colors}
-        grid={{
-          left: '24px',
-          right: '24px',
-          top: '32px',
-          bottom: '12px',
-        }}
       />
     );
   }
@@ -163,7 +238,7 @@ type Props = {
   /**
    * Should datetimes be formatted in UTC?
    */
-  utc?: boolean;
+  utc?: boolean | null;
   /**
    * Don't show the previous period's data. Will automatically disable
    * when start/end are used.
@@ -182,6 +257,10 @@ type Props = {
    */
   field?: string[];
   /**
+   * The interval resolution for a chart e.g. 1m, 5m, 1d
+   */
+  interval?: string;
+  /**
    * Order condition when showing topEvents
    */
   orderby?: string;
@@ -189,6 +268,7 @@ type Props = {
    * Overide the interval calculation and show daily results.
    */
   showDaily?: boolean;
+  confirmedQuery?: boolean;
 } & Pick<ChartProps, 'currentSeriesName' | 'previousSeriesName' | 'showLegend'>;
 
 type ChartDataProps = {
@@ -224,6 +304,7 @@ class EventsChart extends React.Component<Props> {
     field: PropTypes.arrayOf(PropTypes.string),
     showDaily: PropTypes.bool,
     orderby: PropTypes.string,
+    confirmedQuery: PropTypes.bool,
   };
 
   render() {
@@ -244,9 +325,11 @@ class EventsChart extends React.Component<Props> {
       currentSeriesName: currentName,
       previousSeriesName: previousName,
       field,
+      interval,
       showDaily,
       topEvents,
       orderby,
+      confirmedQuery,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -256,25 +339,7 @@ class EventsChart extends React.Component<Props> {
       previousName ?? yAxis ? t('previous %s', yAxis) : undefined;
     const currentSeriesName = currentName ?? yAxis;
 
-    const tooltip = {
-      truncate: 80,
-      valueFormatter(value: number) {
-        if (DURATION_AGGREGATE_PATTERN.test(yAxis)) {
-          return getDuration(value / 1000, 2);
-        }
-        if (PERCENTAGE_AGGREGATE_PATTERN.test(yAxis)) {
-          return formatPercentage(value, 2);
-        }
-        if (typeof value === 'number') {
-          return value.toLocaleString();
-        }
-
-        return value;
-      },
-    };
-    const interval = showDaily
-      ? '1d'
-      : router?.location?.query?.interval || getInterval(this.props, true);
+    const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, true);
 
     let chartImplementation = ({
       zoomRenderProps,
@@ -300,7 +365,6 @@ class EventsChart extends React.Component<Props> {
           <TransparentLoadingMask visible={reloading} />
           <Chart
             {...zoomRenderProps}
-            tooltip={tooltip}
             loading={loading}
             reloading={reloading}
             utc={utc}
@@ -311,6 +375,7 @@ class EventsChart extends React.Component<Props> {
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
             stacked={typeof topEvents === 'number' && topEvents > 0}
+            yAxis={yAxis}
             showDaily={showDaily}
           />
         </TransitionChart>
@@ -320,7 +385,14 @@ class EventsChart extends React.Component<Props> {
     if (!disableReleases) {
       const previousChart = chartImplementation;
       chartImplementation = chartProps => (
-        <ReleaseSeries utc={utc} api={api} projects={projects}>
+        <ReleaseSeries
+          utc={utc}
+          period={period}
+          start={start}
+          end={end}
+          projects={projects}
+          environments={environments}
+        >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
         </ReleaseSeries>
       );
@@ -344,7 +416,7 @@ class EventsChart extends React.Component<Props> {
             environment={environments}
             start={start}
             end={end}
-            interval={interval}
+            interval={intervalVal}
             query={query}
             includePrevious={includePrevious}
             currentSeriesName={currentSeriesName}
@@ -353,6 +425,7 @@ class EventsChart extends React.Component<Props> {
             field={field}
             orderby={orderby}
             topEvents={topEvents}
+            confirmedQuery={confirmedQuery}
           >
             {eventData =>
               chartImplementation({

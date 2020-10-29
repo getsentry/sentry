@@ -121,7 +121,8 @@ export type Interpolation<MergedProps = undefined> =
 export interface StyledComponent<
   ComponentProps extends {},
   SpecificComponentProps extends {} = {}
-> extends React.FC<ComponentProps & SpecificComponentProps>, ComponentSelector {
+> extends React.FC<ComponentProps & SpecificComponentProps>,
+    ComponentSelector {
   withComponent<C extends React.ComponentType<React.ComponentProps<C>>>(
     component: C
   ): StyledComponent<ComponentProps & PropsOf<C>>;
