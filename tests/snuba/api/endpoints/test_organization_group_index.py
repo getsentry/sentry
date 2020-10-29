@@ -743,7 +743,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             }
             add_group_to_inbox(event.group, GroupInboxReason.UNIGNORED, snooze_details)
             response = self.get_response(
-                sort_by="date", limit=10, query=query, expand=["group_inbox"]
+                sort_by="date", limit=10, query=query, expand=["inbox"]
             )
 
             assert response.status_code == 200
