@@ -374,10 +374,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
           return (
             <MeasurementsManager.Consumer key={String(timestamp)}>
-              {({hoveringMeasurement, notHovering, currentHoveredMeasurement}) => {
+              {({hoveringMeasurement, notHovering}) => {
                 return (
                   <MeasurementMarker
-                    hovering={currentHoveredMeasurement === measurementName}
                     style={{
                       left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
                     }}

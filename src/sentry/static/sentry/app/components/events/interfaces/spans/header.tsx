@@ -659,7 +659,7 @@ const Handle = ({
     }}
   >
     <svg
-      width={1}
+      width={2}
       height={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
       fill="none"
       style={{width: '1px', overflow: 'visible'}}
@@ -669,8 +669,7 @@ const Handle = ({
         x2="0"
         y1="0"
         y2={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
-        strokeWidth="1"
-        strokeDasharray="5 3"
+        strokeWidth="2"
         style={{stroke: '#302839'}}
       />
     </svg>
