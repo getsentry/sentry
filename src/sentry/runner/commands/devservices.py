@@ -30,7 +30,9 @@ def get_local_image_digest(repo, tag):
             "{repo}:{tag}".format(repo=repo, tag=tag)
         )
 
-    return local_image_details["Id"]
+    digest = local_image_details["RepoDigests"][0]
+    i = digest.index("@")
+    return digest[i + 1 :]
 
 
 def get_docker_registry_token(*, registry="default", repo):
