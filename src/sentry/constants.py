@@ -250,6 +250,13 @@ MIGRATED_CONDITIONS = frozenset(
     ]
 )
 
+TICKET_ACTIONS = frozenset(
+    [
+        "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+        "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+    ]
+)
+
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
@@ -530,6 +537,7 @@ REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
 SENSITIVE_FIELDS_DEFAULT = None
 SAFE_FIELDS_DEFAULT = None
 ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
+DEBUG_FILES_ROLE_DEFAULT = "admin"
 EVENTS_ADMIN_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True

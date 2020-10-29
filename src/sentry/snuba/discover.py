@@ -735,8 +735,8 @@ def top_events_timeseries(
             # project is handled by filter_keys already
             if field in ["project", "project.id"]:
                 continue
-            if field == "issue":
-                field = FIELD_ALIASES["issue"].alias
+            if field in FIELD_ALIASES:
+                field = FIELD_ALIASES[field].alias
             # Note that because orderby shouldn't be an array field its not included in the values
             values = list(
                 {
@@ -755,6 +755,8 @@ def top_events_timeseries(
                     if non_none_values:
                         condition.append([resolve_discover_column(field), "IN", non_none_values])
                     snuba_filter.conditions.append(condition)
+                elif field in FIELD_ALIASES:
+                    snuba_filter.conditions.append([field, "IN", values])
                 else:
                     snuba_filter.conditions.append([resolve_discover_column(field), "IN", values])
 
