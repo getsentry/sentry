@@ -34,6 +34,7 @@ describe('IssueList', function () {
 
   let fetchTagsRequest;
   let fetchMembersRequest;
+  const api = new MockApiClient();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -114,6 +115,7 @@ describe('IssueList', function () {
     TagStore.init();
 
     props = {
+      api,
       savedSearchLoading: false,
       savedSearches: [savedSearch],
       useOrgSavedSearches: true,
@@ -433,7 +435,7 @@ describe('IssueList', function () {
           }),
         ],
       });
-      createWrapper({location: {query: {query: ''}}});
+      createWrapper({location: {query: {query: undefined}}});
 
       await tick();
       await tick();
@@ -447,10 +449,10 @@ describe('IssueList', function () {
         })
       );
 
-      expect(getSearchBarValue(wrapper)).toBe('');
+      expect(getSearchBarValue(wrapper)).toBe('is:resolved');
 
       // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
+      expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
     });
 
     it('selects a saved search and changes sort', async function () {
@@ -480,11 +482,14 @@ describe('IssueList', function () {
           ...router.location,
           pathname: '/organizations/org-slug/issues/searches/789/',
           query: {
+            sort: 'freq',
             environment: [],
             project: [],
           },
         },
       });
+      await tick();
+      wrapper.update();
 
       wrapper.find('IssueListSortOptions DropdownButton').simulate('click');
       wrapper.find('IssueListSortOptions MenuItem span').at(3).simulate('click');
@@ -1472,6 +1477,10 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/projects/',
         body: projects,
       });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/foo/issues/',
+        body: [],
+      });
       wrapper = createWrapper({
         organization: TestStubs.Organization({
           projects,
@@ -1557,6 +1566,10 @@ describe('IssueList', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: projects,
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/foo/issues/',
+        body: [],
       });
 
       wrapper = createWrapper({

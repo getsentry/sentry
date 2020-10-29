@@ -207,7 +207,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
     });
 
     it('shows no options for parameterless functions', function () {
-      selectByLabel(wrapper, 'p95()', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'last_seen()', {name: 'field', at: 0, control: true});
 
       expect(wrapper.find('QueryField BlankSpace')).toHaveLength(1);
     });

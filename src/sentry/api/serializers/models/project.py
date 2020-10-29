@@ -11,7 +11,7 @@ from django.utils import timezone
 
 import sentry_sdk
 
-from sentry import options, roles, tsdb, projectoptions, features
+from sentry import options, roles, projectoptions, features
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
@@ -35,6 +35,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
+from sentry.snuba import discover
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.utils.compat import zip
 
@@ -61,12 +62,13 @@ class ProjectSerializer(Serializer):
     such as "show all projects for this organization", and its attributes be kept to a minimum.
     """
 
-    def __init__(self, environment_id=None, stats_period=None):
+    def __init__(self, environment_id=None, stats_period=None, transaction_stats=None):
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
 
         self.environment_id = environment_id
         self.stats_period = stats_period
+        self.transaction_stats = transaction_stats
 
     def get_access_by_project(self, item_list, user):
         request = env.request
@@ -128,31 +130,24 @@ class ProjectSerializer(Serializer):
                 user_options = {}
                 default_subscribe = False
 
-            if self.stats_period:
-                # we need to compute stats at 1d (1h resolution), and 14d
-                project_ids = [o.id for o in item_list]
+        with measure_span("stats"):
+            stats = None
+            transaction_stats = None
+            project_ids = [o.id for o in item_list]
+            if self.transaction_stats and self.stats_period:
+                stats = self.get_stats(project_ids, "!event.type:transaction")
+                transaction_stats = self.get_stats(project_ids, "event.type:transaction")
+            elif self.stats_period:
+                stats = self.get_stats(project_ids, "!event.type:transaction")
 
-                segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
-                now = timezone.now()
-                stats = tsdb.get_range(
-                    model=tsdb.models.project,
-                    keys=project_ids,
-                    end=now,
-                    start=now - ((segments - 1) * interval),
-                    rollup=int(interval.total_seconds()),
-                    environment_ids=self.environment_id and [self.environment_id],
-                )
-            else:
-                stats = None
-
-            avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
-            project_ids = [i.id for i in item_list]
-            platforms = ProjectPlatform.objects.filter(project_id__in=project_ids).values_list(
-                "project_id", "platform"
-            )
-            platforms_by_project = defaultdict(list)
-            for project_id, platform in platforms:
-                platforms_by_project[project_id].append(platform)
+        avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
+        project_ids = [i.id for i in item_list]
+        platforms = ProjectPlatform.objects.filter(project_id__in=project_ids).values_list(
+            "project_id", "platform"
+        )
+        platforms_by_project = defaultdict(list)
+        for project_id, platform in platforms:
+            platforms_by_project[project_id].append(platform)
 
         with measure_span("access"):
             result = self.get_access_by_project(item_list, user)
@@ -176,7 +171,46 @@ class ProjectSerializer(Serializer):
                 )
                 if stats:
                     serialized["stats"] = stats[project.id]
+                if transaction_stats:
+                    serialized["transactionStats"] = transaction_stats[project.id]
         return result
+
+    def get_stats(self, project_ids, query):
+        # we need to compute stats at 1d (1h resolution), and 14d
+        segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
+        now = timezone.now()
+
+        params = {
+            "project_id": project_ids,
+            "start": now - ((segments - 1) * interval),
+            "end": now,
+        }
+        if self.environment_id:
+            query = u"{} environment:{}".format(query, self.environment_id)
+
+        # Generate a query result to skip the top_events.find query
+        top_events = {"data": [{"project_id": p} for p in project_ids]}
+        stats = discover.top_events_timeseries(
+            timeseries_columns=["count()"],
+            selected_columns=["project_id"],
+            user_query=query,
+            params=params,
+            orderby="project_id",
+            rollup=int(interval.total_seconds()),
+            limit=10000,
+            organization=None,
+            referrer="api.serializer.projects.get_stats",
+            top_events=top_events,
+        )
+        results = {}
+        for project_id in project_ids:
+            serialized = []
+            str_id = six.text_type(project_id)
+            if str_id in stats:
+                for item in stats[str_id].data["data"]:
+                    serialized.append((item["time"], item.get("count", 0)))
+            results[project_id] = serialized
+        return results
 
     @staticmethod
     def _get_features_for_projects(all_projects, user):
@@ -187,8 +221,33 @@ class ProjectSerializer(Serializer):
             projects_by_org[project.organization].append(project)
 
         features_by_project = defaultdict(list)
-        for feature_name in features.all(feature_type=ProjectFeature).keys():
-            if not feature_name.startswith(_PROJECT_SCOPE_PREFIX):
+        project_features = [
+            feature
+            for feature in features.all(feature_type=ProjectFeature).keys()
+            if feature.startswith(_PROJECT_SCOPE_PREFIX)
+        ]
+
+        batch_checked = set()
+        for (organization, projects) in projects_by_org.items():
+            batch_features = features.batch_has(
+                project_features, actor=user, projects=projects, organization=organization
+            )
+
+            # batch_has has found some features
+            if batch_features:
+                for project in projects:
+                    for feature_name, active in batch_features.get(
+                        "project:{}".format(project.id), {}
+                    ):
+                        if active:
+                            features_by_project[project].append(
+                                feature_name[len(_PROJECT_SCOPE_PREFIX) :]
+                            )
+
+                        batch_checked.add(feature_name)
+
+        for feature_name in project_features:
+            if feature_name in batch_checked:
                 continue
             abbreviated_feature = feature_name[len(_PROJECT_SCOPE_PREFIX) :]
             for (organization, projects) in projects_by_org.items():
@@ -234,6 +293,8 @@ class ProjectSerializer(Serializer):
         }
         if "stats" in attrs:
             context["stats"] = attrs["stats"]
+        if "transactionStats" in attrs:
+            context["transactionStats"] = attrs["transactionStats"]
         return context
 
 
@@ -396,6 +457,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         }
         if "stats" in attrs:
             context["stats"] = attrs["stats"]
+        if "transactionStats" in attrs:
+            context["transactionStats"] = attrs["transactionStats"]
+
         return context
 
 

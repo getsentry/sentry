@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
-import {Event, LightWeightOrganization, SelectValue} from 'app/types';
+import {Event, LightWeightOrganization, SelectValue, Organization} from 'app/types';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -27,7 +27,7 @@ import {
   measurementType,
 } from 'app/utils/discover/fields';
 
-import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
+import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
 import {TableColumn, FieldValue, FieldValueKind} from './table/types';
 
 export type QueryWithColumnState =
@@ -104,7 +104,15 @@ export function pushEventViewToLocation(props: {
   });
 }
 
-export function generateTitle({eventView, event}: {eventView: EventView; event?: Event}) {
+export function generateTitle({
+  eventView,
+  event,
+  organization,
+}: {
+  eventView: EventView;
+  event?: Event;
+  organization?: Organization;
+}) {
   const titles = [t('Discover')];
 
   const eventViewName = eventView.name;
@@ -112,7 +120,7 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
     titles.push(String(eventViewName).trim());
   }
 
-  const eventTitle = event ? getTitle(event).title : undefined;
+  const eventTitle = event ? getTitle(event, organization).title : undefined;
   if (eventTitle) {
     titles.push(eventTitle);
   }
@@ -122,12 +130,14 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
 }
 
 export function getPrebuiltQueries(organization: LightWeightOrganization) {
-  let views = ALL_VIEWS;
+  const views = [...ALL_VIEWS];
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
-    const cloned = [...ALL_VIEWS];
-    cloned.splice(2, 0, ...TRANSACTION_VIEWS);
-    views = cloned;
+    views.splice(2, 0, ...TRANSACTION_VIEWS);
+  }
+
+  if (organization.features.includes('measurements')) {
+    views.push(...WEB_VITALS_VIEWS);
   }
 
   return views;
