@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import {Frame, SentryAppComponent, Event} from 'app/types';
+import {Frame, SentryAppComponent, Event, Organization} from 'app/types';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 import ClippedBox from 'app/components/clippedBox';
@@ -15,11 +15,13 @@ import {Assembly} from 'app/components/events/interfaces/assembly';
 import {parseAssembly} from 'app/components/events/interfaces/utils';
 import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
 import StacktraceLink from 'app/components/events/interfaces/stacktraceLink';
+import withOrganization from 'app/utils/withOrganization';
 import space from 'app/styles/space';
 
 type Props = {
   frame: Frame;
   event: Event;
+  organization: Organization;
   registers: {[key: string]: string};
   components: Array<SentryAppComponent>;
   isExpanded?: boolean;
@@ -43,6 +45,7 @@ const Context = ({
   components,
   frame,
   event,
+  organization,
 }: Props) => {
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
@@ -105,16 +108,18 @@ const Context = ({
                   />
                 </ErrorBoundary>
               )}
-              {isActive && isExpanded && (
-                <ErrorBoundary mini>
-                  <StacktraceLink
-                    key={index}
-                    lineNo={line[0]}
-                    frame={frame}
-                    event={event}
-                  />
-                </ErrorBoundary>
-              )}
+              {organization.features.includes('integrations-stacktrace-link') &&
+                isActive &&
+                isExpanded && (
+                  <ErrorBoundary mini>
+                    <StacktraceLink
+                      key={index}
+                      lineNo={line[0]}
+                      frame={frame}
+                      event={event}
+                    />
+                  </ErrorBoundary>
+                )}
             </ContextLine>
           );
         })}
@@ -133,7 +138,7 @@ const Context = ({
   );
 };
 
-export default Context;
+export default withOrganization(Context);
 
 const StyledClippedBox = styled(ClippedBox)`
   margin-left: 0;
