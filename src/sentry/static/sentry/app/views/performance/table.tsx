@@ -291,6 +291,10 @@ class Table extends React.Component<Props, State> {
     const sortedEventView = this.getSortedEventView();
     const columnSortBy = sortedEventView.getSorts();
 
+    const prependColumnWidths = organization.features.includes('key-transactions')
+      ? ['max-content']
+      : [];
+
     return (
       <div>
         <DiscoverQuery
@@ -311,7 +315,7 @@ class Table extends React.Component<Props, State> {
                   renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
                   renderBodyCell: this.renderBodyCellWithData(tableData) as any,
                   renderPrependColumns: this.renderPrependCellWithData(tableData) as any,
-                  prependColumnWidths: ['max-content'],
+                  prependColumnWidths,
                 }}
                 location={location}
               />
