@@ -1166,29 +1166,14 @@ export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   ${p => getHatchPattern(p, '#dedae3', '#f4f2f7')}
 `;
 
-const MeasurementMarker = styled('div')<{hovering: boolean}>`
+const MeasurementMarker = styled('div')`
   position: absolute;
-  top: 0;
-  height: ${SPAN_ROW_HEIGHT}px;
-  width: 1px;
+  top: 2px;
+  height: 100%;
   user-select: none;
-  background-color: ${p => p.theme.gray800};
-
-  transition: opacity 125ms ease-in-out;
+  border-left: 2px dashed ${p => p.theme.gray800};
+  opacity: 0.5;
   z-index: ${zIndex.dividerLine};
-
-  /* enhanced hit-box */
-  &:after {
-    content: '';
-    z-index: -1;
-    position: absolute;
-    left: -2px;
-    top: 0;
-    width: 9px;
-    height: 100%;
-  }
-
-  opacity: ${({hovering}) => (hovering ? '1' : '0.25')};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

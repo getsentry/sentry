@@ -104,6 +104,7 @@ const StyledLabelContainer = styled('div')`
 const Label = styled('div')`
   transform: translateX(-50%);
   font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: 600;
 `;
 
 export default MeasurementsPanel;
