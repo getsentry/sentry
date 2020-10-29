@@ -776,7 +776,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
             self.login_as(user=self.user)
             response = self.get_response(
-                sort_by="date", limit=10, query=query, expand="group_inbox"
+                sort_by="date", limit=10, query=query, expand="inbox"
             )
 
             assert response.status_code == 200
