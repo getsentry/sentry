@@ -1,5 +1,6 @@
 import React from 'react';
 
+import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 
@@ -19,26 +20,23 @@ export default class AdminOverview extends AsyncView {
     const resolution = '1h';
     const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
     return (
-      <div>
+      <React.Fragment>
         <h3>{t('System Overview')}</h3>
 
-        <div className="box">
-          <div className="box-header">
-            <h4>
-              {t('Event Throughput')}
-              <span id="rate" className="pull-right" />
-            </h4>
-          </div>
-          <EventChart since={since} resolution={resolution} />
-        </div>
+        <Panel key="events">
+          <PanelHeader>{t('Event Throughput')}</PanelHeader>
+          <PanelBody withPadding>
+            <EventChart since={since} resolution={resolution} />
+          </PanelBody>
+        </Panel>
 
-        <div className="box">
-          <div className="box-header">
-            <h4>{t('API Responses')}</h4>
-          </div>
-          <ApiChart since={since} resolution={resolution} />
-        </div>
-      </div>
+        <Panel key="api">
+          <PanelHeader>{t('API Responses')}</PanelHeader>
+          <PanelBody withPadding>
+            <ApiChart since={since} resolution={resolution} />
+          </PanelBody>
+        </Panel>
+      </React.Fragment>
     );
   }
 }

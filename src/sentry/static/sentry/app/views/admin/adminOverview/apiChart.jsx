@@ -1,18 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import StackedBarChart from 'app/components/stackedBarChart';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import withApi from 'app/utils/withApi';
+import theme from 'app/utils/theme';
 
-const ApiChart = createReactClass({
-  propTypes: {
+class ApiChart extends React.Component {
+  static propTypes = {
     api: PropTypes.object.isRequired,
     since: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
-  },
+  };
+
+  state = this.getInitialState();
 
   getInitialState() {
     return {
@@ -24,19 +26,19 @@ const ApiChart = createReactClass({
         'client-api.all-versions.responses.5xx': null,
       },
     };
-  },
+  }
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     if (this.props.since !== nextProps.since) {
       this.setState(this.getInitialState(), this.fetchData);
     }
-  },
+  }
 
-  fetchData() {
+  fetchData = () => {
     const statNameList = [
       'client-api.all-versions.responses.2xx',
       'client-api.all-versions.responses.4xx',
@@ -67,9 +69,9 @@ const ApiChart = createReactClass({
         },
       });
     });
-  },
+  };
 
-  requestFinished() {
+  requestFinished = () => {
     const {rawData} = this.state;
     if (rawData['events.total'] && rawData['events.dropped']) {
       this.processOrgData();
@@ -83,48 +85,55 @@ const ApiChart = createReactClass({
         loading: false,
       });
     }
-  },
+  };
 
   processRawSeries(series) {
-    return series.map(item => ({x: item[0], y: item[1]}));
-  },
+    return series.map(item => ({name: item[0] * 1000, value: item[1]}));
+  }
 
   getChartSeries() {
     const {rawData} = this.state;
     return [
       {
-        data: this.processRawSeries(rawData['client-api.all-versions.responses.4xx']),
-        color: 'rgb(86, 175, 232)',
-        shadowSize: 0,
-        label: '4xx',
-      },
-      {
-        data: this.processRawSeries(rawData['client-api.all-versions.responses.5xx']),
-        color: 'rgb(244, 63, 32)',
-        label: '5xx',
-      },
-      {
+        seriesName: '2xx',
         data: this.processRawSeries(rawData['client-api.all-versions.responses.2xx']),
-        color: 'rgb(78, 222, 73)',
-        label: '2xx',
+        color: theme.green300,
+      },
+      {
+        seriesName: '4xx',
+        data: this.processRawSeries(rawData['client-api.all-versions.responses.4xx']),
+        color: theme.blue300,
+      },
+      {
+        seriesName: '5xx',
+        data: this.processRawSeries(rawData['client-api.all-versions.responses.5xx']),
+        color: theme.red300,
       },
     ];
-  },
+  }
 
   render() {
-    if (this.state.loading) {
+    const {loading, error} = this.state;
+    if (loading) {
       return <LoadingIndicator />;
-    } else if (this.state.error) {
+    } else if (error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
+
+    const series = this.getChartSeries();
+    const colors = series.map(({color}) => color);
     return (
-      <StackedBarChart
-        series={this.getChartSeries()}
-        height={150}
-        className="standard-barchart"
+      <MiniBarChart
+        series={series}
+        colors={colors}
+        height={110}
+        stacked
+        isGroupedByDate
+        showTimeInTooltip
+        labelYAxisExtents
       />
     );
-  },
-});
+  }
+}
 
 export default withApi(ApiChart);
