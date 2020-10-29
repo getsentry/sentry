@@ -1,4 +1,4 @@
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 // More closely mocks a router push -- updates wrapper's props/context
 // with updated `router` and calls `wrapper.update()`

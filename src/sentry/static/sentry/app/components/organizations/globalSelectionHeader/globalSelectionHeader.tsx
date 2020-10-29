@@ -23,7 +23,7 @@ import {
 import BackToIssues from 'app/components/organizations/backToIssues';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconArrow} from 'app/icons';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import Projects from 'app/utils/projects';
@@ -301,7 +301,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
             data-test-id="back-to-issues"
             to={`/organizations/${organization.slug}/issues/${location.search}`}
           >
-            <InlineSvg src="icon-arrow-left" />
+            <IconArrow direction="left" size="sm" />
           </BackToIssues>
         </Tooltip>
       </BackButtonWrapper>

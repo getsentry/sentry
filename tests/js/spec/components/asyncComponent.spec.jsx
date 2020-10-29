@@ -1,11 +1,11 @@
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
 
-describe('AsyncComponent', function() {
+describe('AsyncComponent', function () {
   class TestAsyncComponent extends AsyncComponent {
     shouldRenderBadRequests = true;
 
@@ -23,7 +23,7 @@ describe('AsyncComponent', function() {
     }
   }
 
-  it('renders on successful request', function() {
+  it('renders on successful request', function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/some/path/to/something/',
@@ -32,12 +32,12 @@ describe('AsyncComponent', function() {
         message: 'hi',
       },
     });
-    const wrapper = shallow(<TestAsyncComponent />);
+    const wrapper = mountWithTheme(<TestAsyncComponent />);
     expect(wrapper.find('div')).toHaveLength(1);
     expect(wrapper.find('div').text()).toEqual('hi');
   });
 
-  it('renders error message', function() {
+  it('renders error message', function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/some/path/to/something/',
@@ -79,7 +79,7 @@ describe('AsyncComponent', function() {
         'onLoadAllEndpointsSuccess'
       );
 
-      const wrapper = shallow(<MultiRouteComponent />);
+      const wrapper = mountWithTheme(<MultiRouteComponent />);
 
       expect(wrapper.state('loading')).toEqual(true);
       expect(wrapper.state('remainingRequests')).toEqual(2);

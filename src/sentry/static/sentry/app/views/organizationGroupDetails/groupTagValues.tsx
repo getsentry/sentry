@@ -9,6 +9,7 @@ import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import UserBadge from 'app/components/idBadge/userBadge';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
@@ -96,7 +97,11 @@ class GroupTagValues extends AsyncComponent<
                 }}
               >
                 {tag.key === 'user' ? (
-                  <UserBadge user={tagValue} avatarSize={20} hideEmail />
+                  <UserBadge
+                    user={{...tagValue, id: tagValue.identifier ?? ''}}
+                    avatarSize={20}
+                    hideEmail
+                  />
                 ) : (
                   <DeviceName value={tagValue.name} />
                 )}
@@ -123,25 +128,26 @@ class GroupTagValues extends AsyncComponent<
     return (
       <React.Fragment>
         <Header>
-          {tag.key === 'user' ? t('Affected Users') : tag.name}
-          <BrowserExportButton
-            size="small"
-            priority="default"
-            href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-          >
-            {t('Export Page to CSV')}
-          </BrowserExportButton>
-          <a />
-          <DataExport
-            payload={{
-              queryType: ExportQueryType.IssuesByTag,
-              queryInfo: {
-                project: group.project.id,
-                group: group.id,
-                key: tagKey,
-              },
-            }}
-          />
+          <HeaderTitle>{tag.key === 'user' ? t('Affected Users') : tag.name}</HeaderTitle>
+          <HeaderButtons gap={1}>
+            <BrowserExportButton
+              size="small"
+              priority="default"
+              href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
+            >
+              {t('Export Page to CSV')}
+            </BrowserExportButton>
+            <DataExport
+              payload={{
+                queryType: ExportQueryType.IssuesByTag,
+                queryInfo: {
+                  project: group.project.id,
+                  group: group.id,
+                  key: tagKey,
+                },
+              }}
+            />
+          </HeaderButtons>
         </Header>
         <table className="table table-striped">
           <thead>
@@ -163,13 +169,24 @@ class GroupTagValues extends AsyncComponent<
     );
   }
 }
-const Header = styled('h3')`
+const Header = styled('div')`
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  margin: 0 0 20px;
+`;
+
+const HeaderTitle = styled('h3')`
+  margin: 0;
+`;
+
+const HeaderButtons = styled(ButtonBar)`
+  align-items: stretch;
+  margin: 0px ${space(1.5)};
 `;
 
 const BrowserExportButton = styled(Button)`
-  margin: 0 ${space(1.5)};
+  display: flex;
+  align-items: center;
 `;
 
 const TableHeader = styled('th')<{width: number}>`

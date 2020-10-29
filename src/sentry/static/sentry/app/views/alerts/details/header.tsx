@@ -11,6 +11,7 @@ import Duration from 'app/components/duration';
 import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
 import PageHeading from 'app/components/pageHeading';
+import Placeholder from 'app/components/placeholder';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
@@ -41,17 +42,26 @@ export default class DetailsHeader extends React.Component<Props> {
     const {incident, onStatusChange} = this.props;
 
     const isIncidentOpen = incident && isOpen(incident);
-    const statusLabel = incident ? <Status incident={incident} /> : null;
+    const statusLabel = incident ? <StyledStatus incident={incident} /> : null;
 
     return (
       <DropdownControl
         data-test-id="status-dropdown"
         label={statusLabel}
-        buttonProps={{size: 'small', disabled: !incident || !isIncidentOpen}}
+        alignRight
+        blendWithActor={false}
+        buttonProps={{
+          size: 'small',
+          disabled: !incident || !isIncidentOpen,
+          hideBottomBorder: false,
+        }}
       >
+        <StatusMenuItem isActive>
+          {incident && <Status disableIconColor incident={incident} />}
+        </StatusMenuItem>
         <StatusMenuItem onSelect={onStatusChange}>
           <IconCheckmark color="green400" />
-          {t('Resolve')}
+          {t('Resolved')}
         </StatusMenuItem>
       </DropdownControl>
     );
@@ -100,7 +110,7 @@ export default class DetailsHeader extends React.Component<Props> {
             {this.renderStatus()}
           </Controls>
         </BreadCrumbBar>
-        <Details>
+        <Details columns={isErrorDataset ? 5 : 3}>
           <div>
             <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
               {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
@@ -117,12 +127,12 @@ export default class DetailsHeader extends React.Component<Props> {
             <GroupedHeaderItems columns={isErrorDataset ? 5 : 3}>
               <ItemTitle>{t('Environment')}</ItemTitle>
               <ItemTitle>{t('Project')}</ItemTitle>
-              {isErrorDataset && stats && <ItemTitle>{t('Users affected')}</ItemTitle>}
-              {isErrorDataset && stats && <ItemTitle>{t('Total events')}</ItemTitle>}
+              {isErrorDataset && <ItemTitle>{t('Users affected')}</ItemTitle>}
+              {isErrorDataset && <ItemTitle>{t('Total events')}</ItemTitle>}
               <ItemTitle>{t('Active For')}</ItemTitle>
               <ItemValue>{environmentLabel}</ItemValue>
               <ItemValue>
-                {project && (
+                {project ? (
                   <Projects slugs={[project]} orgId={params.orgId}>
                     {({projects}) =>
                       projects?.length && (
@@ -130,25 +140,37 @@ export default class DetailsHeader extends React.Component<Props> {
                       )
                     }
                   </Projects>
+                ) : (
+                  <Placeholder height="25px" />
                 )}
               </ItemValue>
-              {isErrorDataset && stats && (
+              {isErrorDataset && (
                 <ItemValue>
-                  <Count value={stats.uniqueUsers} />
+                  {stats ? (
+                    <Count value={stats.uniqueUsers} />
+                  ) : (
+                    <Placeholder height="25px" />
+                  )}
                 </ItemValue>
               )}
-              {isErrorDataset && stats && (
+              {isErrorDataset && (
                 <ItemValue>
-                  <Count value={stats.totalEvents} />
+                  {stats ? (
+                    <Count value={stats.totalEvents} />
+                  ) : (
+                    <Placeholder height="25px" />
+                  )}
                 </ItemValue>
               )}
-              {incident && (
-                <ItemValue>
+              <ItemValue>
+                {incident ? (
                   <Duration
                     seconds={getDynamicText({value: duration || 0, fixed: 1200})}
                   />
-                </ItemValue>
-              )}
+                ) : (
+                  <Placeholder height="25px" />
+                )}
+              </ItemValue>
             </GroupedHeaderItems>
           )}
         </Details>
@@ -180,7 +202,9 @@ const Controls = styled('div')`
   grid-gap: ${space(1)};
 `;
 
-const Details = styled(PageHeader)`
+const Details = styled(PageHeader, {
+  shouldForwardProp: p => isPropValid(p) && p !== 'columns',
+})<{columns: 3 | 5}>`
   margin-bottom: 0;
   padding: ${space(1.5)} ${space(4)} ${space(2)};
 
@@ -189,7 +213,7 @@ const Details = styled(PageHeader)`
   grid-gap: ${space(3)};
   grid-auto-flow: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints[p.columns === 3 ? 1 : 2]}) {
     grid-template-columns: auto;
     grid-auto-flow: row;
   }
@@ -205,14 +229,14 @@ const StyledLoadingError = styled(LoadingError)`
 
 const GroupedHeaderItems = styled('div', {
   shouldForwardProp: p => isPropValid(p) && p !== 'columns',
-})<{columns: number}>`
+})<{columns: 3 | 5}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columns}, max-content);
   grid-gap: ${space(1)} ${space(4)};
   text-align: right;
   margin-top: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints[p.columns === 3 ? 1 : 2]}) {
     text-align: left;
   }
 `;
@@ -247,13 +271,20 @@ const IncidentSubTitle = styled('div', {
   color: ${p => p.theme.gray500};
 `;
 
+const StyledStatus = styled(Status)`
+  margin-right: ${space(2)};
+`;
+
 const StatusMenuItem = styled(MenuItem)`
   > span {
-    font-size: ${p => p.theme.fontSizeMedium};
+    padding: ${space(1)} ${space(1.5)};
+    font-size: ${p => p.theme.fontSizeSmall};
+    font-weight: 600;
+    line-height: 1;
     text-align: left;
     display: grid;
     grid-template-columns: max-content 1fr;
-    grid-gap: ${space(0.5)};
+    grid-gap: ${space(0.75)};
     align-items: center;
   }
 `;

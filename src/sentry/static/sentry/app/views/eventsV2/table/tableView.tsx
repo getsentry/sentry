@@ -3,34 +3,42 @@ import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {Organization, OrganizationSummary} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  COL_WIDTH_MINIMUM,
+} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
-import {IconEvent, IconStack} from 'app/icons';
+import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import {openModal} from 'app/actionCreators/modal';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import EventView, {
   isFieldSortable,
-  MetaType,
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
 import {Column} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
+import {TOP_N, DisplayModes} from 'app/utils/discover/types';
+import withProjects from 'app/utils/withProjects';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 import ColumnEditModal, {modalCss} from './columnEditModal';
-import {TableColumn, TableData, TableDataRow} from './types';
+import {TableColumn} from './types';
 import HeaderCell from './headerCell';
-import CellAction from './cellAction';
+import CellAction, {Actions, updateQuery} from './cellAction';
 import TableActions from './tableActions';
 
 export type TableViewProps = {
   location: Location;
   organization: Organization;
+  projects: Project[];
 
   isLoading: boolean;
   error: string | null;
@@ -38,7 +46,11 @@ export type TableViewProps = {
   eventView: EventView;
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
+  measurementKeys: null | string[];
   title: string;
+
+  onChangeShowTags: () => void;
+  showTags: boolean;
 };
 
 /**
@@ -77,31 +89,75 @@ class TableView extends React.Component<TableViewProps> {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
-    const {organization, eventView} = this.props;
-    const hasAggregates = eventView.getAggregateFields().length > 0;
+    const {organization, eventView, tableData, location} = this.props;
+    const hasAggregates = eventView.hasAggregateField();
+    const hasIdField = eventView.hasIdField();
+
     if (isHeader) {
-      return [
-        <HeaderIcon key="header-icon">
-          {hasAggregates ? <IconStack size="sm" /> : <IconEvent size="sm" />}
-        </HeaderIcon>,
-      ];
+      if (hasAggregates) {
+        return [
+          <PrependHeader key="header-icon">
+            <IconStack size="sm" />
+          </PrependHeader>,
+        ];
+      } else if (!hasIdField) {
+        return [
+          <PrependHeader key="header-event-id">
+            <SortLink
+              align="left"
+              title={t('Id')}
+              direction={undefined}
+              canSort={false}
+              generateSortLink={() => undefined}
+            />
+          </PrependHeader>,
+        ];
+      } else {
+        return [];
+      }
     }
 
-    const eventSlug = generateEventSlug(dataRow);
+    if (hasAggregates) {
+      const nextView = getExpandedResults(eventView, {}, dataRow);
 
-    const target = eventDetailsRouteWithEventView({
-      orgSlug: organization.slug,
-      eventSlug,
-      eventView,
-    });
+      const target = {
+        pathname: location.pathname,
+        query: nextView.generateQueryStringObject(),
+      };
 
-    return [
-      <Tooltip key={`eventlink${rowIndex}`} title={t('View Details')}>
-        <IconLink to={target} data-test-id="view-events">
-          {hasAggregates ? <IconStack size="sm" /> : <IconEvent size="sm" />}
-        </IconLink>
-      </Tooltip>,
-    ];
+      return [
+        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
+          <Link to={target} data-test-id="open-stack">
+            <StyledIcon size="sm" />
+          </Link>
+        </Tooltip>,
+      ];
+    } else if (!hasIdField) {
+      let value = dataRow.id;
+
+      if (tableData && tableData.meta) {
+        const fieldRenderer = getFieldRenderer('id', tableData.meta);
+        value = fieldRenderer(dataRow, {organization, location});
+      }
+
+      const eventSlug = generateEventSlug(dataRow);
+
+      const target = eventDetailsRouteWithEventView({
+        orgSlug: organization.slug,
+        eventSlug,
+        eventView,
+      });
+
+      return [
+        <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+          <StyledLink data-test-id="view-event" to={target}>
+            {value}
+          </StyledLink>
+        </Tooltip>,
+      ];
+    } else {
+      return [];
+    }
   };
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
@@ -144,48 +200,63 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderGridBodyCell = (
     column: TableColumn<keyof TableDataRow>,
-    dataRow: TableDataRow
+    dataRow: TableDataRow,
+    rowIndex: number,
+    columnIndex: number
   ): React.ReactNode => {
-    const {location, organization, tableData, eventView} = this.props;
+    const {eventView, location, organization, tableData} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
-    const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
-    const aggregation =
-      column.column.kind === 'function' ? column.column.function[0] : undefined;
 
-    // Aggregation columns offer drilldown behavior
-    if (aggregation) {
-      return (
-        <ExpandAggregateRow
-          organization={organization}
-          eventView={eventView}
-          column={column}
-          dataRow={dataRow}
-          location={location}
-          tableMeta={tableData.meta}
-        >
-          {fieldRenderer(dataRow, {organization, location})}
-        </ExpandAggregateRow>
+    const columnKey = String(column.key);
+    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta);
+
+    const display = eventView.getDisplayMode();
+    const isTopEvents =
+      display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
+
+    const count = Math.min(tableData?.data?.length ?? TOP_N, TOP_N);
+
+    let cell = fieldRenderer(dataRow, {organization, location});
+
+    if (columnKey === 'id') {
+      const eventSlug = generateEventSlug(dataRow);
+
+      const target = eventDetailsRouteWithEventView({
+        orgSlug: organization.slug,
+        eventSlug,
+        eventView,
+      });
+
+      cell = (
+        <Tooltip title={t('View Event')}>
+          <StyledLink data-test-id="view-event" to={target}>
+            {cell}
+          </StyledLink>
+        </Tooltip>
       );
     }
 
-    // Scalar fields offer cell actions to build queries.
     return (
-      <CellAction
-        organization={organization}
-        eventView={eventView}
-        column={column}
-        dataRow={dataRow}
-      >
-        {fieldRenderer(dataRow, {organization, location})}
-      </CellAction>
+      <React.Fragment>
+        {isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
+          <TopResultsIndicator count={count} index={rowIndex} />
+        ) : null}
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(dataRow, column)}
+        >
+          {cell}
+        </CellAction>
+      </React.Fragment>
     );
   };
 
   handleEditColumns = () => {
-    const {organization, eventView, tagKeys} = this.props;
+    const {organization, eventView, tagKeys, measurementKeys} = this.props;
 
     openModal(
       modalProps => (
@@ -193,12 +264,90 @@ class TableView extends React.Component<TableViewProps> {
           {...modalProps}
           organization={organization}
           tagKeys={tagKeys}
+          measurementKeys={measurementKeys}
           columns={eventView.getColumns().map(col => col.column)}
           onApply={this.handleUpdateColumns}
         />
       ),
       {modalCss}
     );
+  };
+
+  handleCellAction = (dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>) => {
+    return (action: Actions, value: React.ReactText) => {
+      const {eventView, organization, projects} = this.props;
+
+      const query = tokenizeSearch(eventView.query);
+
+      let nextView = eventView.clone();
+
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.results.cellaction',
+        eventName: 'Discoverv2: Cell Action Clicked',
+        organization_id: parseInt(organization.id, 10),
+        action,
+      });
+
+      switch (action) {
+        case Actions.TRANSACTION: {
+          const maybeProject = projects.find(project => project.slug === dataRow.project);
+
+          const projectID = maybeProject ? [maybeProject.id] : undefined;
+
+          const next = transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: String(value),
+            projectID,
+            query: nextView.getGlobalSelectionQuery(),
+          });
+
+          browserHistory.push(next);
+          return;
+        }
+        case Actions.RELEASE: {
+          const maybeProject = projects.find(project => {
+            return project.slug === dataRow.project;
+          });
+
+          browserHistory.push({
+            pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+              value
+            )}/`,
+            query: {
+              ...nextView.getGlobalSelectionQuery(),
+
+              project: maybeProject ? maybeProject.id : undefined,
+            },
+          });
+
+          return;
+        }
+        case Actions.DRILLDOWN: {
+          // count_unique(column) drilldown
+
+          trackAnalyticsEvent({
+            eventKey: 'discover_v2.results.drilldown',
+            eventName: 'Discoverv2: Click aggregate drilldown',
+            organization_id: parseInt(organization.id, 10),
+          });
+
+          // Drilldown into each distinct value and get a count() for each value.
+          nextView = getExpandedResults(nextView, {}, dataRow).withNewColumn({
+            kind: 'function',
+            function: ['count', '', undefined],
+          });
+
+          browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+
+          return;
+        }
+        default:
+          updateQuery(query, action, column.name, value);
+      }
+      nextView.query = stringifyQueryObject(query);
+
+      browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+    };
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
@@ -216,7 +365,16 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   renderHeaderButtons = () => {
-    const {organization, title, eventView, isLoading, tableData, location} = this.props;
+    const {
+      organization,
+      title,
+      eventView,
+      isLoading,
+      tableData,
+      location,
+      onChangeShowTags,
+      showTags,
+    } = this.props;
 
     return (
       <TableActions
@@ -227,6 +385,8 @@ class TableView extends React.Component<TableViewProps> {
         onEdit={this.handleEditColumns}
         tableData={tableData}
         location={location}
+        onChangeShowTags={onChangeShowTags}
+        showTags={showTags}
       />
     );
   };
@@ -236,6 +396,12 @@ class TableView extends React.Component<TableViewProps> {
 
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
+
+    const prependColumnWidths = eventView.hasAggregateField()
+      ? ['40px']
+      : eventView.hasIdField()
+      ? []
+      : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
     return (
       <GridEditable
@@ -250,7 +416,7 @@ class TableView extends React.Component<TableViewProps> {
           renderBodyCell: this._renderGridBodyCell as any,
           onResizeColumn: this._resizeColumn as any,
           renderPrependColumns: this._renderPrependColumns as any,
-          prependColumnWidths: ['40px'],
+          prependColumnWidths,
         }}
         headerButtons={this.renderHeaderButtons}
         location={location}
@@ -259,78 +425,40 @@ class TableView extends React.Component<TableViewProps> {
   }
 }
 
-function ExpandAggregateRow(props: {
-  organization: OrganizationSummary;
-  children: React.ReactNode;
-  eventView: EventView;
-  column: TableColumn<keyof TableDataRow>;
-  dataRow: TableDataRow;
-  location: Location;
-  tableMeta: MetaType;
-}) {
-  const {children, column, dataRow, eventView, location, organization} = props;
-  const aggregation =
-    column.column.kind === 'function' ? column.column.function[0] : undefined;
+const PrependHeader = styled('span')`
+  color: ${p => p.theme.gray600};
+`;
 
-  function handleClick() {
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.results.drilldown',
-      eventName: 'Discoverv2: Click aggregate drilldown',
-      organization_id: parseInt(organization.id, 10),
-    });
-  }
-
-  // count(column) drilldown
-  if (aggregation === 'count') {
-    const nextView = getExpandedResults(eventView, {}, dataRow);
-
-    const target = {
-      pathname: location.pathname,
-      query: nextView.generateQueryStringObject(),
-    };
-
-    return (
-      <Link data-test-id="expand-count" to={target} onClick={handleClick}>
-        {children}
-      </Link>
-    );
-  }
-
-  // count_unique(column) drilldown
-  if (aggregation === 'count_unique') {
-    // Drilldown into each distinct value and get a count() for each value.
-    const nextView = getExpandedResults(eventView, {}, dataRow).withNewColumn({
-      kind: 'function',
-      function: ['count', '', undefined],
-    });
-
-    const target = {
-      pathname: location.pathname,
-      query: nextView.generateQueryStringObject(),
-    };
-
-    return (
-      <Link data-test-id="expand-count-unique" to={target} onClick={handleClick}>
-        {children}
-      </Link>
-    );
-  }
-
-  return <React.Fragment>{children}</React.Fragment>;
-}
-
-const HeaderIcon = styled('span')`
-  & > svg {
-    vertical-align: top;
-    color: ${p => p.theme.gray600};
+const StyledLink = styled(Link)`
+  > div {
+    display: inline;
   }
 `;
 
-// Fudge the icon down so it is center aligned with the table contents.
-const IconLink = styled(Link)`
-  position: relative;
-  display: inline-block;
-  top: 3px;
+const StyledIcon = styled(IconStack)`
+  vertical-align: middle;
 `;
 
-export default TableView;
+type TopResultsIndicatorProps = {
+  count: number;
+  index: number;
+};
+
+const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
+  position: absolute;
+  left: -1px;
+  margin-top: 4.5px;
+  width: 9px;
+  height: 15px;
+  border-radius: 0 3px 3px 0;
+
+  background-color: ${p => {
+    // this background color needs to match the colors used in
+    // app/components/charts/eventsChart so that the ordering matches
+
+    // the color pallete contains n + 2 colors, so we subtract 2 here
+    return p.theme.charts.getColorPalette(p.count - 2)[p.index];
+  }};
+`;
+
+export default withProjects(TableView);

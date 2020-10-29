@@ -36,14 +36,16 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
   const search = tokenizeSearch(query);
 
   const filters = {
-    roles: search.role || [],
-    isInvited: getBoolean(search.isInvited),
-    ssoLinked: getBoolean(search.ssoLinked),
-    has2fa: getBoolean(search.has2fa),
+    roles: search.getTagValues('role') || [],
+    isInvited: getBoolean(search.getTagValues('isInvited')),
+    ssoLinked: getBoolean(search.getTagValues('ssoLinked')),
+    has2fa: getBoolean(search.getTagValues('has2fa')),
   };
 
   const handleRoleFilter = (id: string) => () => {
-    const roleList = new Set(search.role ? [...search.role] : []);
+    const roleList = new Set(
+      search.getTagValues('role') ? [...search.getTagValues('role')] : []
+    );
 
     if (roleList.has(id)) {
       roleList.delete(id);
@@ -51,16 +53,17 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
       roleList.add(id);
     }
 
-    onChange(stringifyQueryObject({...search, role: [...roleList]}));
+    const newSearch = search.copy();
+    newSearch.setTagValues('role', [...roleList]);
+    onChange(stringifyQueryObject(newSearch));
   };
 
   const handleBoolFilter = (key: keyof Filters) => (value: boolean | null) => {
-    const {[key]: _, ...searchObjectWithoutKey} = search;
-
-    const newQueryObject =
-      value !== null
-        ? {...search, [key]: [Boolean(value).toString()]}
-        : searchObjectWithoutKey;
+    const newQueryObject = search.copy();
+    newQueryObject.removeTag(key);
+    if (value !== null) {
+      newQueryObject.setTagValues(key, [Boolean(value).toString()]);
+    }
 
     onChange(stringifyQueryObject(newQueryObject));
   };

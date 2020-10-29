@@ -37,6 +37,7 @@ class StatusItem extends React.Component<Props> {
     const {activity, authorName, incident, showTime} = this.props;
 
     const isDetected = activity.type === IncidentActivityType.DETECTED;
+    const isStarted = activity.type === IncidentActivityType.STARTED;
     const isClosed =
       activity.type === IncidentActivityType.STATUS_CHANGE &&
       activity.value === `${IncidentStatus.CLOSED}`;
@@ -44,7 +45,7 @@ class StatusItem extends React.Component<Props> {
       activity.type === IncidentActivityType.STATUS_CHANGE && !isClosed;
 
     // Unknown activity, don't render anything
-    if (!isDetected && !isClosed && !isTriggerChange) {
+    if (!isStarted && !isDetected && !isClosed && !isTriggerChange) {
       return null;
     }
 
@@ -83,15 +84,15 @@ class StatusItem extends React.Component<Props> {
               })}
             {isDetected &&
               (incident?.alertRule
-                ? tct('[user] was triggered', {
-                    user: <StatusValue>{incident.alertRule.name}</StatusValue>,
-                  })
+                ? t('Alert was created')
                 : tct('[user] created an alert', {
                     user: <StatusValue>{authorName}</StatusValue>,
                   }))}
+            {isStarted && t('Trigger conditions were met for the interval')}
           </div>
         }
         date={getDynamicText({value: activity.dateCreated, fixed: new Date(0)})}
+        interval={isStarted ? incident?.alertRule.timeWindow : undefined}
       />
     );
   }

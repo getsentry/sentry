@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
@@ -14,7 +13,6 @@ import IdBadge from 'app/components/idBadge';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import SelectControl from 'app/components/forms/selectControl';
-import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
@@ -77,18 +75,6 @@ type FilterOption<T> = {
  * A component that allows you to select either members and/or teams
  */
 class SelectMembers extends React.Component<Props, State> {
-  static propTypes = {
-    project: SentryTypes.Project,
-    organization: SentryTypes.Organization,
-    value: PropTypes.string,
-    onChange: PropTypes.func.isRequired,
-    onInputChange: PropTypes.func,
-    disabled: PropTypes.bool,
-    styles: PropTypes.shape({
-      control: PropTypes.func,
-    }),
-  };
-
   state: State = {
     loading: false,
     inputValue: '',
@@ -103,10 +89,6 @@ class SelectMembers extends React.Component<Props, State> {
   selectRef = React.createRef<typeof SelectControl>();
 
   unlisteners = [
-    // See comments in `handleAddTeamToProject` for why we close the menu this way
-    ProjectsStore.listen(() => {
-      this.closeSelectMenu();
-    }),
     MemberListStore.listen(() => {
       this.setState({
         memberListLoading: !MemberListStore.isLoaded(),
@@ -180,6 +162,7 @@ class SelectMembers extends React.Component<Props, State> {
             }
           >
             <AddToProjectButton
+              type="button"
               size="zero"
               borderless
               disabled={!canAddTeam}
@@ -230,16 +213,17 @@ class SelectMembers extends React.Component<Props, State> {
       return;
     }
 
-    const select = this.selectRef.current.select;
-    const input: HTMLInputElement = select.input.input;
+    const select = this.selectRef.current.select.select;
+    const input: HTMLInputElement = select.inputRef;
     if (input) {
       // I don't think there's another way to close `react-select`
       input.blur();
     }
   }
 
-  async handleAddTeamToProject(team) {
+  async handleAddTeamToProject(team: Team) {
     const {api, organization, project, value} = this.props;
+    const {options} = this.state;
 
     // Copy old value
     const oldValue = [...value];
@@ -249,18 +233,25 @@ class SelectMembers extends React.Component<Props, State> {
 
     try {
       // Try to add team to project
-      // Note: we can't close select menu here because we have to wait for ProjectsStore to update first
-      // The reason for this is because we have little control over `react-select`'s `AsyncSelect`
-      // We can't control when `handleLoadOptions` gets called, but it gets called when select closes, so
-      // wait for store to update before closing the menu. Otherwise, we'll have stale items in the select menu
       if (project) {
         await addTeamToProject(api, organization.slug, project.slug, team);
+
+        // Remove add to project button without changing order
+        const newOptions = options!.map(option => {
+          if (option.actor.id === team.id) {
+            option.disabled = false;
+            option.label = <IdBadge team={team} />;
+          }
+
+          return option;
+        });
+        this.setState({options: newOptions});
       }
     } catch (err) {
       // Unable to add team to project, revert select menu value
       this.props.onChange(oldValue);
-      this.closeSelectMenu();
     }
+    this.closeSelectMenu();
   }
 
   handleChange = newValue => {
@@ -378,6 +369,7 @@ const AddToProjectButton = styled(Button)`
 const UnmentionableTeam = styled('div')`
   display: flex;
   justify-content: space-between;
+  align-items: flex-end;
 `;
 
 const StyledSelectControl = styled(SelectControl)`

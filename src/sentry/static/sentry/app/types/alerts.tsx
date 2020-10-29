@@ -51,10 +51,14 @@ export type IssueAlertRuleCondition = Omit<
 };
 
 export type UnsavedIssueAlertRule = {
-  actionMatch: 'all' | 'any';
+  /** When an issue matches [actionMatch] of the following */
+  actionMatch: 'all' | 'any' | 'none';
+  /** If that issue has [filterMatch] of these properties */
+  filterMatch: 'all' | 'any' | 'none';
   actions: IssueAlertRuleAction[];
   conditions: IssueAlertRuleCondition[];
-  environment: null | string;
+  filters: IssueAlertRuleCondition[];
+  environment?: null | string;
   frequency: number;
   name: string;
 };
@@ -62,6 +66,8 @@ export type UnsavedIssueAlertRule = {
 // Issue-based alert rule
 export type IssueAlertRule = UnsavedIssueAlertRule & {
   dateCreated: string;
+  createdBy: {id: number; email: string; name: string} | null;
+  projects: string[];
   id: string;
 };
 
@@ -70,3 +76,14 @@ export enum MailActionTargetType {
   Team = 'Team',
   Member = 'Member',
 }
+
+export enum AssigneeTargetType {
+  Unassigned = 'Unassigned',
+  Team = 'Team',
+  Member = 'Member',
+}
+
+export type NoteType = {
+  text: string;
+  mentions: string[];
+};

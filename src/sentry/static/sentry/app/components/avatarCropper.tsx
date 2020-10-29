@@ -59,8 +59,10 @@ class AvatarCropper extends React.Component<Props, State> {
   image = React.createRef<HTMLImageElement>();
   cropContainer = React.createRef<HTMLDivElement>();
 
+  // These values must be synced with the avatar endpoint in backend.
   MIN_DIMENSION = 256;
   MAX_DIMENSION = 1024;
+  ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
 
   onSelectFile = (ev: React.ChangeEvent<HTMLInputElement>) => {
     const file = ev.target.files && ev.target.files[0];
@@ -404,7 +406,7 @@ class AvatarCropper extends React.Component<Props, State> {
           <UploadInput
             ref={this.file}
             type="file"
-            accept="image/gif,image/jpeg,image/png"
+            accept={this.ALLOWED_MIMETYPES}
             onChange={this.onSelectFile}
           />
         </div>

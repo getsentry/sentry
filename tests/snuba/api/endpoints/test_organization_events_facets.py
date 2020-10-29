@@ -7,6 +7,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 from uuid import uuid4
+from rest_framework.exceptions import ParseError
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -36,7 +37,16 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                 break
         assert actual is not None, "Could not find {} facet in {}".format(key, response.data)
         assert "topValues" in actual
-        assert sorted(expected) == sorted(actual["topValues"])
+        key = lambda row: row["name"] if row["name"] is not None else ""
+        assert sorted(expected, key=key) == sorted(actual["topValues"], key=key)
+
+    def test_performance_view_feature(self):
+        with self.feature(
+            {"organizations:discover-basic": False, "organizations:performance-view": True}
+        ):
+            response = self.client.get(self.url, data={"project": self.project.id}, format="json")
+
+        assert response.status_code == 200, response.content
 
     def test_simple(self):
         self.store_event(
@@ -147,6 +157,47 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         expected = [{"count": 1, "name": "yellow", "value": "yellow"}]
+        self.assert_facet(response, "color", expected)
+
+    def test_with_conditional_filter(self):
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "message": "how to make fast",
+                "tags": {"color": "green"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "message": "Delet the Data",
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "message": "Data the Delet ",
+                "tags": {"color": "yellow"},
+            },
+            project_id=self.project2.id,
+        )
+
+        with self.feature(self.feature_list):
+            response = self.client.get(
+                self.url, {"query": "color:yellow OR color:red"}, format="json"
+            )
+
+        assert response.status_code == 200, response.content
+        expected = [
+            {"count": 1, "name": "yellow", "value": "yellow"},
+            {"count": 1, "name": "red", "value": "red"},
+        ]
         self.assert_facet(response, "color", expected)
 
     def test_start_end(self):
@@ -414,6 +465,14 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert response.data == {
             "detail": "Parse error at '\n\n\n\n' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         }
+
+    @mock.patch("sentry.snuba.discover.raw_query")
+    def test_handling_snuba_errors(self, mock_query):
+        mock_query.side_effect = ParseError("test")
+        with self.feature(self.feature_list):
+            response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 400, response.content
 
     def test_environment(self):
         self.store_event(

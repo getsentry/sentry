@@ -7,10 +7,15 @@ import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import Confirm from 'app/components/confirm';
 import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconSettings, IconWarning} from 'app/icons';
+import {IconDelete, IconFlag, IconSettings, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {IntegrationProvider, Integration, Organization, ObjectStatus} from 'app/types';
+import {
+  IntegrationProvider,
+  IntegrationWithConfig,
+  Organization,
+  ObjectStatus,
+} from 'app/types';
 import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
 import theme from 'app/utils/theme';
 
@@ -22,10 +27,10 @@ const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 export type Props = {
   organization: Organization;
   provider: IntegrationProvider;
-  integration: Integration;
-  onRemove: (integration: Integration) => void;
-  onDisable: (integration: Integration) => void;
-  onReAuthIntegration: (integration: Integration) => void;
+  integration: IntegrationWithConfig;
+  onRemove: (integration: IntegrationWithConfig) => void;
+  onDisable: (integration: IntegrationWithConfig) => void;
+  onReAuthIntegration: (integration: IntegrationWithConfig) => void;
   trackIntegrationEvent: (
     options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
   ) => void; //analytics callback
@@ -50,7 +55,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     );
   }
 
-  handleReAuthIntegration = (integration: Integration) => {
+  handleReAuthIntegration = (integration: IntegrationWithConfig) => {
     this.props.onReAuthIntegration(integration);
   };
 
@@ -61,7 +66,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     });
   };
 
-  getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
+  getRemovalBodyAndText(aspects: IntegrationWithConfig['provider']['aspects']) {
     if (aspects && aspects.removal_dialog) {
       return {
         body: aspects.removal_dialog.body,
@@ -77,7 +82,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     }
   }
 
-  handleRemove(integration: Integration) {
+  handleRemove(integration: IntegrationWithConfig) {
     this.props.onRemove(integration);
     this.props.trackIntegrationEvent({
       eventKey: 'integrations.uninstall_completed',
@@ -91,7 +96,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
     const message = (
       <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           {t('Deleting this integration has consequences!')}
         </Alert>
         {body}
@@ -109,7 +114,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
       <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           {t('This integration cannot be removed in Sentry')}
         </Alert>
         {body}

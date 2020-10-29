@@ -119,6 +119,11 @@ class SentryApp(ParanoidModel, HasApiScopes):
     date_updated = models.DateTimeField(default=timezone.now)
     date_published = models.DateTimeField(null=True, blank=True)
 
+    creator_user = FlexibleForeignKey(
+        "sentry.User", null=True, on_delete=models.SET_NULL, db_constraint=False
+    )
+    creator_label = models.TextField(null=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryapp"
@@ -166,7 +171,9 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return super(SentryApp, self).save(*args, **kwargs)
 
     def is_installed_on(self, organization):
-        return SentryAppInstallation.objects.filter(organization=organization).exists()
+        return SentryAppInstallation.objects.filter(
+            organization=organization, sentry_app=self,
+        ).exists()
 
     def build_signature(self, body):
         secret = self.application.client_secret

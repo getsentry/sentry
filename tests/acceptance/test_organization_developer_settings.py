@@ -35,7 +35,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         self.browser.click('[aria-label="Save Changes"]')
 
-        self.browser.wait_until(xpath="//div[contains(text(), 'Client ID')]", timeout=3)
+        self.browser.wait_until(xpath="//span[contains(text(), 'Client ID')]", timeout=3)
 
     def test_create_new_internal_integration(self):
         self.load_page(self.org_developer_settings_path)
@@ -116,4 +116,4 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="token-add"]')
         self.browser.wait_until(".ref-success")
 
-        assert len(self.browser.find_elements_by_css_selector('[data-test-id="token-delete"]')) == 2
+        assert len(self.browser.elements('[data-test-id="token-delete"]')) == 2

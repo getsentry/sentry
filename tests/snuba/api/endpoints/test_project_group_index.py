@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-import json
 from datetime import timedelta
 from uuid import uuid4
 
 import six
+from six.moves.urllib.parse import quote
+
 from django.conf import settings
 from django.utils import timezone
 from exam import fixture
@@ -34,7 +35,7 @@ from sentry.models import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from six.moves.urllib.parse import quote
+from sentry.utils import json
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
@@ -984,7 +985,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.binary_type(i)},
+                    "user": {"id": six.text_type(i)},
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
@@ -1313,7 +1314,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     @patch("sentry.api.helpers.group_index.eventstream")
     @patch("sentry.eventstream")
     def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
-        eventstream_state = object()
+        eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -1383,7 +1384,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             groups.append(
                 self.create_group(
                     project=self.project,
-                    checksum=six.binary_type(i) * 16,
+                    checksum=six.text_type(i).encode("utf-8") * 16,
                     status=GroupStatus.RESOLVED,
                 )
             )

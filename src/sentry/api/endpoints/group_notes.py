@@ -5,7 +5,6 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
@@ -17,8 +16,6 @@ from sentry.utils.functional import extract_lazy_object
 
 
 class GroupNotesEndpoint(GroupEndpoint):
-    doc_section = DocSection.EVENTS
-
     def get(self, request, group):
         notes = Activity.objects.filter(group=group, type=Activity.NOTE).select_related("user")
 

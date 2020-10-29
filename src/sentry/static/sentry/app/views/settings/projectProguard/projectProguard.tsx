@@ -102,7 +102,8 @@ class ProjectProguard extends AsyncView<Props, State> {
 
   renderMappings() {
     const {mappings, showDetails} = this.state;
-    const {orgId, projectId} = this.props.params;
+    const {organization, params} = this.props;
+    const {orgId, projectId} = params;
 
     if (!mappings?.length) {
       return null;
@@ -118,6 +119,7 @@ class ProjectProguard extends AsyncView<Props, State> {
           debugFile={mapping}
           showDetails={showDetails}
           downloadUrl={downloadUrl}
+          downloadRole={organization.debugFilesRole}
           onDelete={this.handleDelete}
           key={mapping.id}
         />
@@ -164,7 +166,7 @@ class ProjectProguard extends AsyncView<Props, State> {
           headers={[
             t('Debug ID'),
             t('Information'),
-            <TextRight key="actions">{t('Actions')}</TextRight>,
+            <Actions key="actions">{t('Actions')}</Actions>,
           ]}
           emptyMessage={this.getEmptyMessage()}
           isEmpty={mappings?.length === 0}
@@ -182,7 +184,7 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 37% 1fr auto;
 `;
 
-const TextRight = styled('div')`
+const Actions = styled('div')`
   text-align: right;
 `;
 

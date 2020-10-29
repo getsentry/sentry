@@ -15,7 +15,8 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             return Response({"detail": 'Invalid tag key format for "%s"' % (key,)}, status=400)
 
         try:
-            filter_params = self.get_filter_params(request, organization)
+            # still used by events v1 which doesn't require global views
+            filter_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             paginator = SequencePaginator([])
         else:
@@ -26,6 +27,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
                 filter_params["start"],
                 filter_params["end"],
                 query=request.GET.get("query"),
+                include_transactions=request.GET.get("includeTransactions") == "1",
             )
 
         return self.paginate(

@@ -4,6 +4,7 @@ from datetime import datetime
 
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.client import ApiClient
+from sentry.web.decorators import transaction_start
 
 
 class GitHubClientMixin(ApiClient):
@@ -104,12 +105,18 @@ class GitHubClientMixin(ApiClient):
 
     def create_token(self):
         return self.post(
-            u"/installations/{}/access_tokens".format(self.integration.external_id),
+            u"/app/installations/{}/access_tokens".format(self.integration.external_id),
             headers={
-                "Authorization": "Bearer %s" % self.get_jwt(),
+                "Authorization": b"Bearer %s" % self.get_jwt(),
                 # TODO(jess): remove this whenever it's out of preview
                 "Accept": "application/vnd.github.machine-man-preview+json",
             },
+        )
+
+    @transaction_start("GitHubClientMixin.check_file")
+    def check_file(self, repo, path, version):
+        return self.head_cached(
+            path="/repos/{}/contents/{}".format(repo, path), params={"ref": version}
         )
 
 

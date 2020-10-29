@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ConfigStore from 'app/stores/configStore';
 import SidebarContainer, {Sidebar} from 'app/components/sidebar';
@@ -8,7 +8,7 @@ import * as incidentActions from 'app/actionCreators/serviceIncidents';
 
 jest.mock('app/actionCreators/serviceIncidents');
 
-describe('Sidebar', function() {
+describe('Sidebar', function () {
   let wrapper;
   const routerContext = TestStubs.routerContext();
   const {organization, router} = routerContext.context;
@@ -27,7 +27,7 @@ describe('Sidebar', function() {
       routerContext
     );
 
-  beforeEach(function() {
+  beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/broadcasts/`,
       body: [TestStubs.Broadcast()],
@@ -42,8 +42,8 @@ describe('Sidebar', function() {
     });
   });
 
-  it('renders', function() {
-    wrapper = shallow(
+  it('renders', function () {
+    wrapper = mountWithTheme(
       <Sidebar organization={organization} user={user} router={router} />,
       TestStubs.routerContext()
     );
@@ -51,7 +51,7 @@ describe('Sidebar', function() {
     expect(wrapper.find('StyledSidebar')).toHaveLength(1);
   });
 
-  it('renders without org and router', function() {
+  it('renders without org and router', function () {
     wrapper = createWrapper({
       organization: null,
       router: null,
@@ -62,10 +62,10 @@ describe('Sidebar', function() {
     expect(wrapper.find('UserNameOrEmail').text()).toContain(user.email);
 
     wrapper.find('SidebarDropdownActor').simulate('click');
-    expect(wrapper.find('OrgAndUserMenu')).toMatchSnapshot();
+    expect(wrapper.find('OrgAndUserMenu')).toSnapshot();
   });
 
-  it('can toggle collapsed state', async function() {
+  it('can toggle collapsed state', async function () {
     wrapper = mountWithTheme(
       <SidebarContainer organization={organization} user={user} router={router} />,
       routerContext
@@ -88,7 +88,7 @@ describe('Sidebar', function() {
     expect(wrapper.find('SidebarItemLabel').length).toBeGreaterThan(0);
   });
 
-  it('can have onboarding feature', async function() {
+  it('can have onboarding feature', async function () {
     wrapper = mountWithTheme(
       <SidebarContainer
         organization={{...organization, features: ['onboarding']}}
@@ -103,10 +103,10 @@ describe('Sidebar', function() {
     wrapper.find('OnboardingStatus ProgressRing').simulate('click');
     wrapper.update();
 
-    expect(wrapper.find('OnboardingStatus SidebarPanel')).toMatchSnapshot();
+    expect(wrapper.find('OnboardingStatus TaskSidebarPanel').exists()).toBe(true);
   });
 
-  it('handles discover-basic feature', function() {
+  it('handles discover-basic feature', function () {
     wrapper = mountWithTheme(
       <SidebarContainer
         organization={{
@@ -125,7 +125,7 @@ describe('Sidebar', function() {
     expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(0);
   });
 
-  it('handles discover feature', function() {
+  it('handles discover feature', function () {
     wrapper = mountWithTheme(
       <SidebarContainer
         organization={{...organization, features: ['discover', 'events']}}
@@ -141,28 +141,28 @@ describe('Sidebar', function() {
     expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(1);
   });
 
-  describe('SidebarHelp', function() {
-    it('can toggle help menu', function() {
+  describe('SidebarHelp', function () {
+    it('can toggle help menu', function () {
       wrapper = createWrapper();
       wrapper.find('HelpActor').simulate('click');
       const menu = wrapper.find('HelpMenu');
       expect(menu).toHaveLength(1);
-      expect(menu).toMatchSnapshot();
+      expect(menu).toSnapshot();
       expect(menu.find('SidebarMenuItem')).toHaveLength(3);
       wrapper.find('HelpActor').simulate('click');
       expect(wrapper.find('HelpMenu')).toHaveLength(0);
     });
   });
 
-  describe('SidebarDropdown', function() {
-    it('can open Sidebar org/name dropdown menu', function() {
+  describe('SidebarDropdown', function () {
+    it('can open Sidebar org/name dropdown menu', function () {
       wrapper = createWrapper();
       wrapper.find('SidebarDropdownActor').simulate('click');
       expect(wrapper.find('OrgAndUserMenu')).toHaveLength(1);
-      expect(wrapper.find('OrgAndUserMenu')).toMatchSnapshot();
+      expect(wrapper.find('OrgAndUserMenu')).toSnapshot();
     });
 
-    it('has link to Members settings with `member:write`', function() {
+    it('has link to Members settings with `member:write`', function () {
       let org = TestStubs.Organization();
       org = {
         ...org,
@@ -179,7 +179,7 @@ describe('Sidebar', function() {
       ).toHaveLength(1);
     });
 
-    it('can open "Switch Organization" sub-menu', function() {
+    it('can open "Switch Organization" sub-menu', function () {
       ConfigStore.set('features', new Set(['organizations:create']));
       jest.useFakeTimers();
       wrapper = createWrapper();
@@ -188,11 +188,11 @@ describe('Sidebar', function() {
       jest.advanceTimersByTime(500);
       wrapper.update();
       expect(wrapper.find('SwitchOrganizationMenu')).toHaveLength(1);
-      expect(wrapper.find('SwitchOrganizationMenu')).toMatchSnapshot();
+      expect(wrapper.find('SwitchOrganizationMenu')).toSnapshot();
       jest.useRealTimers();
     });
 
-    it('has can logout', async function() {
+    it('has can logout', async function () {
       const mock = MockApiClient.addMockResponse({
         url: '/auth/',
         method: 'DELETE',
@@ -220,8 +220,8 @@ describe('Sidebar', function() {
     });
   });
 
-  describe('SidebarPanel', function() {
-    it('displays empty panel when there are no Broadcasts', async function() {
+  describe('SidebarPanel', function () {
+    it('displays empty panel when there are no Broadcasts', async function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/broadcasts/`,
         body: [],
@@ -237,7 +237,7 @@ describe('Sidebar', function() {
       expect(wrapper.find('SidebarPanelEmpty')).toHaveLength(1);
     });
 
-    it('can display Broadcasts panel and mark as seen', async function() {
+    it('can display Broadcasts panel and mark as seen', async function () {
       jest.useFakeTimers();
       wrapper = createWrapper();
       expect(apiMocks.broadcasts).toHaveBeenCalled();
@@ -249,7 +249,7 @@ describe('Sidebar', function() {
       expect(wrapper.find('SidebarPanelItem')).toHaveLength(1);
       expect(wrapper.find('SidebarPanelItem').prop('hasSeen')).toBe(false);
 
-      expect(wrapper.find('SidebarPanelItem')).toMatchSnapshot();
+      expect(wrapper.find('SidebarPanelItem')).toSnapshot();
 
       // Should mark as seen after a delay
       jest.advanceTimersByTime(2000);
@@ -267,7 +267,7 @@ describe('Sidebar', function() {
       jest.useRealTimers();
     });
 
-    it('can toggle display of Broadcasts SidebarPanel', function() {
+    it('can toggle display of Broadcasts SidebarPanel', function () {
       wrapper = createWrapper();
 
       // Show Broadcasts Panel
@@ -281,7 +281,7 @@ describe('Sidebar', function() {
       expect(wrapper.find('SidebarPanel')).toHaveLength(0);
     });
 
-    it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function() {
+    it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function () {
       jest.useFakeTimers();
       wrapper = createWrapper();
       const broadcasts = wrapper.find('Broadcasts').instance();
@@ -305,7 +305,7 @@ describe('Sidebar', function() {
       jest.useRealTimers();
     });
 
-    it('can show Incidents in Sidebar Panel', async function() {
+    it('can show Incidents in Sidebar Panel', async function () {
       incidentActions.loadIncidents = jest.fn(() => ({
         incidents: [TestStubs.ServiceIncident()],
       }));
@@ -317,10 +317,10 @@ describe('Sidebar', function() {
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
-      expect(wrapper.find('IncidentList')).toMatchSnapshot();
+      expect(wrapper.find('IncidentList')).toSnapshot();
     });
 
-    it('hides when path changes', async function() {
+    it('hides when path changes', async function () {
       wrapper = createWrapper();
       wrapper.update();
 

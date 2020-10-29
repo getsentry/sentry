@@ -179,3 +179,140 @@ REPO = {
         ]
     ),
 }
+
+
+COMPARE_COMMITS_WITH_PAGES_1_2_EXAMPLE = {
+    "values": [
+        {
+            "id": "d0352305beb41afb3a4ea79e3a97bf6a97520339",
+            "displayId": "d0352305beb",
+            "author": {
+                "name": "SentryU",
+                "displayName": "Sentry User",
+                "emailAddress": "sentryuser@getsentry.com",
+                "type": "NORMAL",
+            },
+            "message": "Fist commit",
+            "authorTimestamp": 1576763816000,
+        }
+    ],
+    "size": 1,
+    "isLastPage": False,
+    "start": 0,
+    "limit": 1,
+    "nextPageStart": 1,
+}
+
+COMPARE_COMMITS_WITH_PAGES_2_2_EXAMPLE = {
+    "values": [
+        {
+            "id": "042bc8434e0c178d8745c7d9f90bddab9c927887",
+            "displayId": "042bc8434e0",
+            "author": {
+                "name": "SentryU",
+                "displayName": "Sentry User",
+                "emailAddress": "sentryuser@getsentry.com",
+                "type": "NORMAL",
+            },
+            "message": "Second commit",
+            "authorTimestamp": 1576763816000,
+        }
+    ],
+    "size": 1,
+    "isLastPage": True,
+    "start": 1,
+    "limit": 1,
+    "nextPageStart": None,
+}
+
+COMMIT_CHANGELIST_WITH_PAGES_FIRST_COMMIT_EXAMPLE = {
+    "values": [
+        {
+            "path": {
+                "components": ["a.txt"],
+                "parent": "",
+                "name": "a.txt",
+                "extension": "txt",
+                "toString": "a.txt",
+            },
+            "executable": False,
+            "percentUnchanged": -1,
+            "type": "MODIFY",
+            "nodeType": "FILE",
+            "srcExecutable": False,
+            "properties": {"gitChangeType": "MODIFY"},
+        },
+        {
+            "path": {
+                "components": ["b.txt"],
+                "parent": "",
+                "name": "b.txt",
+                "extension": "txt",
+                "toString": "b.txt",
+            },
+            "executable": False,
+            "percentUnchanged": -1,
+            "type": "ADD",
+            "nodeType": "FILE",
+            "srcExecutable": False,
+            "properties": {"gitChangeType": "ADD"},
+        },
+    ]
+}
+
+COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_1_2 = {
+    "values": [
+        {
+            "path": {
+                "components": ["c.txt"],
+                "parent": "",
+                "name": "c.txt",
+                "extension": "txt",
+                "toString": "c.txt",
+            },
+            "executable": False,
+            "percentUnchanged": -1,
+            "type": "DELETE",
+            "nodeType": "FILE",
+            "srcExecutable": False,
+            "properties": {"gitChangeType": "DELETE"},
+        }
+    ],
+    "size": 1,
+    "isLastPage": False,
+    "start": 0,
+    "limit": 1,
+    "nextPageStart": 1,
+}
+
+COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_2_2 = {
+    "values": [
+        {
+            "path": {
+                "components": ["e.txt"],
+                "parent": "",
+                "name": "d.txt",
+                "extension": "txt",
+                "toString": "d.txt",
+            },
+            "srcPath": {
+                "components": ["d.txt"],
+                "parent": "",
+                "name": "e.txt",
+                "extension": "txt",
+                "toString": "e.txt",
+            },
+            "executable": False,
+            "percentUnchanged": -1,
+            "type": "MOVE",
+            "nodeType": "FILE",
+            "srcExecutable": False,
+            "properties": {"gitChangeType": "MOVE"},
+        },
+    ],
+    "size": 1,
+    "isLastPage": True,
+    "start": 1,
+    "limit": 1,
+    "nextPageStart": None,
+}

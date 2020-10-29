@@ -7,7 +7,6 @@ from six.moves.urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 from time import time
 from requests.exceptions import SSLError
-from simplejson import JSONDecodeError
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.auth.exceptions import IdentityNotValid
@@ -182,6 +181,8 @@ class OAuth2Provider(Provider):
         if not refresh_token:
             raise IdentityNotValid("Missing refresh token")
 
+        # XXX(meredith): This is used in VSTS's `get_refresh_token_params`
+        kwargs["identity"] = identity
         data = self.get_refresh_token_params(refresh_token, *args, **kwargs)
 
         req = safe_urlopen(
@@ -290,7 +291,7 @@ class OAuth2CallbackView(PipelineView):
                 "error": "Could not verify SSL certificate",
                 "error_description": u"Ensure that {} has a valid SSL certificate".format(url),
             }
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             logger.info("identity.oauth2.json-error", extra={"url": self.access_token_url})
             return {
                 "error": "Could not decode a JSON Response",

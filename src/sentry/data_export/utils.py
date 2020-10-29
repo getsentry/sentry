@@ -21,28 +21,28 @@ def handle_snuba_errors(logger):
                 metrics.incr(
                     "dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0
                 )
-                logger.info("dataexport.error: %s", six.text_type(error))
+                logger.warn("dataexport.error: %s", six.text_type(error))
                 capture_exception(error)
                 raise ExportError("Invalid query. Please fix the query and try again.")
             except snuba.QueryOutsideRetentionError as error:
                 metrics.incr(
                     "dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0
                 )
-                logger.info("dataexport.error: %s", six.text_type(error))
+                logger.warn("dataexport.error: %s", six.text_type(error))
                 capture_exception(error)
                 raise ExportError("Invalid date range. Please try a more recent date range.")
             except snuba.QueryIllegalTypeOfArgument as error:
                 metrics.incr(
                     "dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0
                 )
-                logger.info("dataexport.error: %s", six.text_type(error))
+                logger.warn("dataexport.error: %s", six.text_type(error))
                 capture_exception(error)
                 raise ExportError("Invalid query. Argument to function is wrong type.")
             except snuba.SnubaError as error:
                 metrics.incr(
                     "dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0
                 )
-                logger.info("dataexport.error: %s", six.text_type(error))
+                logger.warn("dataexport.error: %s", six.text_type(error))
                 capture_exception(error)
                 message = "Internal error. Please try again."
                 if isinstance(
@@ -50,6 +50,7 @@ def handle_snuba_errors(logger):
                     (
                         snuba.RateLimitExceeded,
                         snuba.QueryMemoryLimitExceeded,
+                        snuba.QueryExecutionTimeMaximum,
                         snuba.QueryTooManySimultaneous,
                     ),
                 ):
@@ -57,9 +58,12 @@ def handle_snuba_errors(logger):
                 elif isinstance(
                     error,
                     (
-                        snuba.UnqualifiedQueryError,
+                        snuba.DatasetSelectionError,
+                        snuba.QueryConnectionFailed,
+                        snuba.QuerySizeExceeded,
                         snuba.QueryExecutionError,
                         snuba.SchemaValidationError,
+                        snuba.UnqualifiedQueryError,
                     ),
                 ):
                     message = "Internal error. Your query failed to run."

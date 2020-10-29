@@ -1,6 +1,0 @@
-<svg viewBox="0 0 20 20">
-  <g stroke="currentColor" fill="none">
-    <path d="M0.5,0.5 L19.5,19.5" />
-    <path d="M0.5,19.5 L19.5,0.5" />
-  </g>
-</svg>

@@ -50,7 +50,10 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
 
         sort_by = request.query_params.get("sortBy")
         if sort_by in ("name", "-name"):
-            order_by = "-lower_name" if sort_by.startswith("-") else "lower_name"
+            order_by = [
+                "-lower_name" if sort_by.startswith("-") else "lower_name",
+                "-date_created",
+            ]
         elif sort_by in ("dateCreated", "-dateCreated"):
             order_by = "-date_created" if sort_by.startswith("-") else "date_created"
         elif sort_by in ("dateUpdated", "-dateUpdated"):
@@ -58,7 +61,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         elif sort_by == "myqueries":
             order_by = [
                 Case(When(created_by_id=request.user.id, then=-1), default="created_by_id"),
-                "lower_name",
+                "-date_created",
             ]
         else:
             order_by = "lower_name"
@@ -89,7 +92,12 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         serializer = DiscoverSavedQuerySerializer(
-            data=request.data, context={"organization": organization}
+            data=request.data,
+            context={
+                "params": self.get_filter_params(
+                    request, organization, project_ids=request.data.get("projects")
+                )
+            },
         )
 
         if not serializer.is_valid():

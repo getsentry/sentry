@@ -3,10 +3,9 @@ import pick from 'lodash/pick';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import EventView from 'app/utils/discover/eventView';
-import {TableData} from 'app/views/eventsV2/table/types';
 import {SentryTransactionEvent, Organization} from 'app/types';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';
@@ -14,6 +13,7 @@ import {RawSpanType, ParsedTraceType} from './types';
 import {generateRootSpan, getSpanID, getTraceContext} from './utils';
 import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
+import {ActiveOperationFilter} from './filter';
 
 type IndexedFusedSpan = {
   span: RawSpanType;
@@ -40,8 +40,8 @@ type Props = {
   event: Readonly<SentryTransactionEvent>;
   parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
-  eventView: EventView;
   spansWithErrors: TableData | null | undefined;
+  operationNameFilters: ActiveOperationFilter;
 };
 
 type State = {
@@ -49,8 +49,6 @@ type State = {
 };
 
 class TraceView extends React.PureComponent<Props, State> {
-  minimapInteractiveRef = React.createRef<HTMLDivElement>();
-
   constructor(props: Props) {
     super(props);
 
@@ -66,6 +64,8 @@ class TraceView extends React.PureComponent<Props, State> {
       this.filterOnSpans(this.props.searchQuery);
     }
   }
+
+  minimapInteractiveRef = React.createRef<HTMLDivElement>();
 
   async filterOnSpans(searchQuery: string | undefined) {
     if (!searchQuery) {
@@ -185,7 +185,7 @@ class TraceView extends React.PureComponent<Props, State> {
       );
     }
 
-    const {orgId, organization, eventView, spansWithErrors} = this.props;
+    const {orgId, organization, spansWithErrors, operationNameFilters} = this.props;
 
     return (
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
@@ -198,13 +198,13 @@ class TraceView extends React.PureComponent<Props, State> {
             {this.renderHeader(dragProps, parsedTrace)}
             <SpanTree
               event={event}
-              eventView={eventView}
               trace={parsedTrace}
               dragProps={dragProps}
               filterSpans={this.state.filterSpans}
               orgId={orgId}
               organization={organization}
               spansWithErrors={spansWithErrors}
+              operationNameFilters={operationNameFilters}
             />
           </CursorGuideHandler.Provider>
         )}

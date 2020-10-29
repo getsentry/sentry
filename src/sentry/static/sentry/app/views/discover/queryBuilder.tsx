@@ -66,15 +66,17 @@ export default function createQueryBuilder(
     query.range = DEFAULT_STATS_PERIOD;
   }
 
+  const hasGlobalProjectAccess =
+    ConfigStore.get('user').isSuperuser || organization.access.includes('org:admin');
+
   // TODO(lightweight-org): This needs to be refactored so that queries
   // do not depend on organization.projects
   const projectsToUse = specificProjects ?? organization.projects;
-  const defaultProjects = projectsToUse.filter(projects => projects.isMember);
+  const defaultProjects = projectsToUse.filter(projects =>
+    hasGlobalProjectAccess ? projects.hasAccess : projects.isMember
+  );
 
   const defaultProjectIds = getProjectIds(defaultProjects);
-
-  const hasGlobalProjectAccess =
-    ConfigStore.get('user').isSuperuser || organization.access.includes('org:admin');
 
   const projectsToFetchTags = getProjectIds(
     hasGlobalProjectAccess ? projectsToUse : defaultProjects

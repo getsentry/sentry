@@ -10,8 +10,11 @@ type Props = React.ComponentProps<typeof SvgIcon> & {
   isCircled?: boolean;
 };
 
-const IconChevron = React.forwardRef<SVGSVGElement, Props>(
-  ({isCircled = false, direction = 'up', ...props}: Props, ref) => (
+const IconChevron = React.forwardRef(function IconChevron(
+  {isCircled = false, direction = 'up', ...props}: Props,
+  ref: React.Ref<SVGSVGElement>
+) {
+  return (
     <SvgIcon
       {...props}
       ref={ref}
@@ -32,7 +35,9 @@ const IconChevron = React.forwardRef<SVGSVGElement, Props>(
         <path d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z" />
       )}
     </SvgIcon>
-  )
-);
+  );
+});
+
+IconChevron.displayName = 'IconChevron';
 
 export {IconChevron};

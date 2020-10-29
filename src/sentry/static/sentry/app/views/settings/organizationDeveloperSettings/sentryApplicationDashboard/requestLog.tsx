@@ -9,13 +9,13 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import DateTime from 'app/components/dateTime';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import DropdownButton from 'app/components/dropdownButton';
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tagDeprecated';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Checkbox from 'app/components/checkbox';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
+import {IconChevron, IconFlag, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import {SentryApp, SentryAppWebhookRequest, SentryAppSchemaIssueLink} from 'app/types';
 import {Theme} from 'app/utils/theme';
@@ -88,7 +88,7 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
   link ? (
     <ExternalLink href={link}>
       <DateTime date={date} />
-      <StyledInlineSvg src="icon-open" size="12px" />
+      <StyledIconOpen size="12px" />
     </ExternalLink>
   ) : (
     <DateTime date={date} />
@@ -259,7 +259,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
                   </PanelItem>
                 ))
               ) : (
-                <EmptyMessage icon="icon-circle-exclamation">
+                <EmptyMessage icon={<IconFlag size="xl" />}>
                   {t('No requests found in the last 30 days.')}
                 </EmptyMessage>
               )}
@@ -271,13 +271,13 @@ export default class RequestLog extends AsyncComponent<Props, State> {
 
         <PaginationButtons>
           <Button
-            icon="icon-chevron-left"
+            icon={<IconChevron direction="left" size="sm" />}
             onClick={this.handlePrevPage}
             disabled={!this.hasPrevPage}
             label={t('Previous page')}
           />
           <Button
-            icon="icon-chevron-right"
+            icon={<IconChevron direction="right" size="sm" />}
             onClick={this.handleNextPage}
             disabled={!this.hasNextPage}
             label={t('Next page')}
@@ -346,7 +346,7 @@ const StyledErrorsOnlyButton = styled(Button)`
   border-bottom-left-radius: 0;
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
+const StyledIconOpen = styled(IconOpen)`
   margin-left: 6px;
   color: ${p => p.theme.gray600};
 `;

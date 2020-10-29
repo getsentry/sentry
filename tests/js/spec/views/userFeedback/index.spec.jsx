@@ -6,13 +6,13 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectsStore from 'app/stores/projectsStore';
 import UserFeedback from 'app/views/userFeedback';
 
-describe('UserFeedback', function() {
+describe('UserFeedback', function () {
   const {organization, routerContext} = initializeOrg();
   const pageLinks =
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [TestStubs.UserFeedback()],
@@ -25,11 +25,11 @@ describe('UserFeedback', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     ProjectsStore.reset();
   });
 
-  it('renders', async function() {
+  it('renders', async function () {
     const project = TestStubs.Project({isMember: true});
     const params = {
       organization: TestStubs.Organization({
@@ -39,7 +39,6 @@ describe('UserFeedback', function() {
       params: {
         orgId: organization.slug,
       },
-      finishProfile: jest.fn(),
     };
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -56,7 +55,7 @@ describe('UserFeedback', function() {
     expect(wrapper.find('CompactIssue')).toHaveLength(1);
   });
 
-  it('renders no project message', function() {
+  it('renders no project message', function () {
     const params = {
       organization: TestStubs.Organization({
         projects: [],
@@ -72,7 +71,7 @@ describe('UserFeedback', function() {
     expect(wrapper.find('UserFeedbackEmpty').exists()).toBe(false);
   });
 
-  it('renders empty state', function() {
+  it('renders empty state', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -92,7 +91,7 @@ describe('UserFeedback', function() {
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual([]);
   });
 
-  it('renders empty state with project query', function() {
+  it('renders empty state with project query', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -112,7 +111,7 @@ describe('UserFeedback', function() {
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112']);
   });
 
-  it('renders empty state with multi project query', function() {
+  it('renders empty state with multi project query', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],

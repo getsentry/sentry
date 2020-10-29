@@ -4,7 +4,7 @@ import flatten from 'lodash/flatten';
 import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
@@ -158,7 +158,11 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {orgId} = this.props.params;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['config', `/organizations/${orgId}/config/integrations/`],
-      ['integrations', `/organizations/${orgId}/integrations/`],
+      [
+        'integrations',
+        `/organizations/${orgId}/integrations/`,
+        {query: {includeConfig: 0}},
+      ],
       ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],

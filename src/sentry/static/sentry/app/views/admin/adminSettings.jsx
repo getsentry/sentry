@@ -3,8 +3,9 @@ import isUndefined from 'lodash/isUndefined';
 
 import AsyncView from 'app/views/asyncView';
 import {t} from 'app/locale';
-import {getOption, getOptionField} from 'app/options';
 import {ApiForm} from 'app/components/forms';
+
+import {getOption, getOptionField} from './options';
 
 const optionsAvailable = [
   'system.url-prefix',

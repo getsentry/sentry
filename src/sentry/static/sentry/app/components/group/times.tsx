@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import {IconClock} from 'app/icons';
 import space from 'app/styles/space';
-import InlineSvg from 'app/components/inlineSvg';
 import TimeSince from 'app/components/timeSince';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
@@ -23,7 +23,7 @@ const Times = ({lastSeen, firstSeen}: Props) => (
     <FlexWrapper>
       {lastSeen && (
         <React.Fragment>
-          <GroupTimeIcon src="icon-clock-sm" />
+          <StyledIconClock size="11px" />
           <TimeSince date={lastSeen} suffix={t('ago')} />
         </React.Fragment>
       )}
@@ -54,10 +54,9 @@ const FlexWrapper = styled('div')`
   align-items: center;
 `;
 
-const GroupTimeIcon = styled(InlineSvg)`
+const StyledIconClock = styled(IconClock)`
   /* this is solely for optics, since TimeSince always begins
   with a number, and numbers do not have descenders */
-  font-size: ${p => p.theme.fontSizeExtraSmall};
   margin-right: ${space(0.5)};
 `;
 

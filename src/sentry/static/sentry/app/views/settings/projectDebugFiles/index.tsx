@@ -17,6 +17,7 @@ import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import Checkbox from 'app/components/checkbox';
 import SearchBar from 'app/components/searchBar';
+import ProjectActions from 'app/actions/projectActions';
 
 import {DebugFile, BuiltinSymbolSource} from './types';
 import DebugFileRow from './debugFileRow';
@@ -115,7 +116,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 
   renderDebugFiles() {
     const {debugFiles, showDetails} = this.state;
-    const {orgId, projectId} = this.props.params;
+    const {organization, params} = this.props;
+    const {orgId, projectId} = params;
 
     if (!debugFiles?.length) {
       return null;
@@ -129,6 +131,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           debugFile={debugFile}
           showDetails={showDetails}
           downloadUrl={downloadUrl}
+          downloadRole={organization.debugFilesRole}
           onDelete={this.handleDelete}
           key={debugFile.id}
         />
@@ -175,6 +178,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               initialData={project}
               apiMethod="PUT"
               apiEndpoint={`/projects/${orgId}/${projectId}/`}
+              onSubmitSuccess={ProjectActions.updateSuccess}
+              key={project.builtinSymbolSources?.join() || project.id}
             >
               <JsonForm
                 features={new Set(features)}
@@ -213,7 +218,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           headers={[
             t('Debug ID'),
             t('Information'),
-            <TextRight key="actions">{t('Actions')}</TextRight>,
+            <Actions key="actions">{t('Actions')}</Actions>,
           ]}
           emptyMessage={this.getEmptyMessage()}
           isEmpty={debugFiles?.length === 0}
@@ -231,7 +236,7 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 37% 1fr auto;
 `;
 
-const TextRight = styled('div')`
+const Actions = styled('div')`
   text-align: right;
 `;
 

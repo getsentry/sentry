@@ -15,6 +15,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import eventstream, features
+from sentry.app import ratelimiter
 from sentry.api.base import audit_logger
 from sentry.api.fields import Actor, ActorField
 from sentry.api.serializers import serialize
@@ -28,6 +29,8 @@ from sentry.models import (
     Group,
     GroupAssignee,
     GroupHash,
+    GroupInbox,
+    GroupInboxReason,
     GroupLink,
     GroupStatus,
     GroupTombstone,
@@ -45,15 +48,19 @@ from sentry.models import (
     User,
     UserOption,
 )
+from sentry.models.groupinbox import add_group_to_inbox
 from sentry.models.group import looks_like_short_id
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
     issue_deleted,
     issue_ignored,
+    issue_unignored,
     issue_resolved,
+    issue_unresolved,
     advanced_search_feature_gated,
 )
 from sentry.tasks.deletion import delete_groups as delete_groups_task
+from sentry.utils.hashlib import md5_text
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
@@ -235,7 +242,14 @@ class StatusDetailsValidator(serializers.Serializer):
         return value
 
 
+class InboxDetailsValidator(serializers.Serializer):
+    # Support undo / snooze reasons
+    pass
+
+
 class GroupValidator(serializers.Serializer):
+    inbox = serializers.BooleanField()
+    inboxDetails = InboxDetailsValidator()
     status = serializers.ChoiceField(choices=zip(STATUS_CHOICES.keys(), STATUS_CHOICES.keys()))
     statusDetails = StatusDetailsValidator()
     hasSeen = serializers.BooleanField()
@@ -428,8 +442,13 @@ def self_subscribe_and_assign_issue(acting_user, group):
 
 def track_update_groups(function):
     def wrapper(request, projects, *args, **kwargs):
+        from sentry.utils import snuba
+
         try:
             response = function(request, projects, *args, **kwargs)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             # Continue raising the error now that we've incr the metric
@@ -448,6 +467,33 @@ def track_update_groups(function):
         return response
 
     return wrapper
+
+
+def rate_limit_endpoint(limit=1, window=1):
+    def inner(function):
+        def wrapper(*args, **kwargs):
+            try:
+                if ratelimiter.is_limited(
+                    u"rate_limit_endpoint:{}".format(md5_text(function).hexdigest()),
+                    limit=limit,
+                    window=window,
+                ):
+                    return Response(
+                        {
+                            "detail": "You are attempting to use this endpoint too quickly. Limit is {}/{}s".format(
+                                limit, window
+                            )
+                        },
+                        status=429,
+                    )
+                else:
+                    return function(*args, **kwargs)
+            except Exception:
+                raise
+
+        return wrapper
+
+    return inner
 
 
 @track_update_groups
@@ -738,6 +784,24 @@ def update_groups(request, projects, organization_id, search_fn):
             if new_status == GroupStatus.UNRESOLVED:
                 activity_type = Activity.SET_UNRESOLVED
                 activity_data = {}
+
+                for group in group_list:
+                    if group.status == GroupStatus.IGNORED:
+                        issue_unignored.send_robust(
+                            project=project,
+                            user=acting_user,
+                            group=group,
+                            transition_type="manual",
+                            sender=update_groups,
+                        )
+                    else:
+                        issue_unresolved.send_robust(
+                            project=project,
+                            user=acting_user,
+                            group=group,
+                            transition_type="manual",
+                            sender=update_groups,
+                        )
             elif new_status == GroupStatus.IGNORED:
                 activity_type = Activity.SET_IGNORED
                 activity_data = {
@@ -921,5 +985,15 @@ def update_groups(request, projects, organization_id, search_fn):
             "parent": six.text_type(primary_group.id),
             "children": [six.text_type(g.id) for g in groups_to_merge],
         }
+
+    # Support moving groups in or out of the inbox
+    inbox = result.get("inbox", None)
+    if inbox is not None:
+        if inbox:
+            for group in group_list:
+                add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        elif not inbox:
+            GroupInbox.objects.filter(group__in=group_ids).delete()
+        result["inbox"] = inbox
 
     return Response(result)

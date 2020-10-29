@@ -5,10 +5,3 @@ export interface Thread {
   stacktrace?: any;
   rawStacktrace?: any;
 }
-
-export interface Frame {
-  function?: string;
-  package?: string;
-  module?: string;
-  filename?: string;
-}

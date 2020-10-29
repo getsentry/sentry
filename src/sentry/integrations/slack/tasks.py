@@ -4,13 +4,19 @@ import six
 from uuid import uuid4
 
 from django.conf import settings
+from rest_framework import serializers
 
+from sentry.auth.access import SystemAccess
 from sentry.utils import json
 from sentry.tasks.base import instrumented_task
 from sentry.mediators import project_rules
-from sentry.models import Integration, Project, Rule
+from sentry.models import Integration, Project, Rule, Organization
+from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.models import AlertRule
+from sentry.incidents.logic import ChannelLookupTimeoutError
 from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.utils.redis import redis_clusters
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 
 class RedisRuleStatus(object):
@@ -57,9 +63,7 @@ class RedisRuleStatus(object):
 
 
 @instrumented_task(name="sentry.integrations.slack.search_channel_id", queue="integrations")
-def find_channel_id_for_rule(
-    name, environment, project, action_match, conditions, actions, frequency, uuid, rule_id=None
-):
+def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
     redis_rule_status = RedisRuleStatus(uuid)
 
     try:
@@ -72,6 +76,7 @@ def find_channel_id_for_rule(
     integration_id = None
     channel_name = None
 
+    # TODO: make work for multiple Slack actions
     for action in actions:
         if action.get("workspace") and action.get("channel"):
             integration_id = action["workspace"]
@@ -90,7 +95,15 @@ def find_channel_id_for_rule(
     # we dont' know exactly how long it will take to paginate through all of the slack
     # endpoints but need some time limit imposed. 3 minutes should be more than enough time,
     # we can always update later
-    (prefix, item_id, _timed_out) = get_channel_id_with_timeout(integration, channel_name, 3 * 60)
+    try:
+        (prefix, item_id, _timed_out) = get_channel_id_with_timeout(
+            integration, channel_name, 3 * 60
+        )
+    except DuplicateDisplayNameError:
+        # if we find a duplicate display name and nothing else, we
+        # want to set the status to failed. This just lets us skip
+        # over the next block and hit the failed status at the end.
+        item_id = None
 
     if item_id:
         for action in actions:
@@ -100,15 +113,8 @@ def find_channel_id_for_rule(
                 action["channel_id"] = item_id
                 break
 
-        kwargs = {
-            "name": name,
-            "environment": environment,
-            "project": project,
-            "action_match": action_match,
-            "conditions": conditions,
-            "actions": actions,
-            "frequency": frequency,
-        }
+        kwargs["actions"] = actions
+        kwargs["project"] = project
 
         if rule_id:
             rule = Rule.objects.get(id=rule_id)
@@ -120,3 +126,46 @@ def find_channel_id_for_rule(
         return
     # if we never find the channel name we failed :(
     redis_rule_status.set_value("failed")
+
+
+@instrumented_task(
+    name="sentry.integrations.slack.search_channel_id_metric_alerts", queue="integrations"
+)
+def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=None):
+    redis_rule_status = RedisRuleStatus(uuid)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        redis_rule_status.set_value("failed")
+        return
+
+    alert_rule = None
+    if alert_rule_id:
+        try:
+            alert_rule = AlertRule.objects.get(organization_id=organization_id, id=alert_rule_id)
+        except AlertRule.DoesNotExist:
+            redis_rule_status.set_value("failed")
+            return
+
+    # we use SystemAccess here because we can't pass the access instance from the request into the task
+    # this means at this point we won't raise any validation errors associated with permissions
+    # however, we should only be calling this task after we tried saving the alert rule first
+    # which will catch those kinds of validation errors
+    serializer = AlertRuleSerializer(
+        context={"organization": organization, "access": SystemAccess(), "use_async_lookup": True},
+        data=data,
+        instance=alert_rule,
+    )
+    if serializer.is_valid():
+        try:
+            alert_rule = serializer.save()
+            redis_rule_status.set_value("success", alert_rule.id)
+            return
+        # we can still get a validation error for the channel not existing
+        except (serializers.ValidationError, ChannelLookupTimeoutError):
+            # channel doesn't exist error or validation error
+            redis_rule_status.set_value("failed")
+            return
+    # some other error
+    redis_rule_status.set_value("failed")
+    return

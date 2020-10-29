@@ -4,33 +4,49 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
-import {ContentBox, HeaderBox, Main, Side} from 'app/utils/discover/styles';
+import {getAggregateAlias} from 'app/utils/discover/fields';
+import CreateAlertButton from 'app/components/createAlertButton';
+import * as Layout from 'app/components/layouts/thirds';
 import Tags from 'app/views/eventsV2/tags';
 import SearchBar from 'app/views/events/searchBar';
+import {decodeScalar} from 'app/utils/queryString';
+import withProjects from 'app/utils/withProjects';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  VITAL_GROUPS,
+} from 'app/views/performance/transactionVitals/constants';
 
+import TransactionHeader, {Tab} from './header';
 import TransactionList from './transactionList';
-import Breadcrumb from './breadcrumb';
 import UserStats from './userStats';
-import KeyTransactionButton from './keyTransactionButton';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
+import StatusBreakdown from './statusBreakdown';
 
 type Props = {
   location: Location;
   eventView: EventView;
   transactionName: string;
   organization: Organization;
-  totalValues: number | null;
+  totalValues: Record<string, number>;
+  projects: Project[];
 };
 
-class SummaryContent extends React.Component<Props> {
+type State = {
+  incompatibleAlertNotice: React.ReactNode;
+};
+
+class SummaryContent extends React.Component<Props, State> {
+  state: State = {
+    incompatibleAlertNotice: null,
+  };
+
   handleSearch = (query: string) => {
     const {location} = this.props;
 
@@ -58,40 +74,55 @@ class SummaryContent extends React.Component<Props> {
     };
   };
 
-  renderKeyTransactionButton() {
-    const {eventView, organization, transactionName} = this.props;
-
-    return (
-      <KeyTransactionButton
-        transactionName={transactionName}
-        eventView={eventView}
-        organization={organization}
-      />
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
+    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
+      this.setState({incompatibleAlertNotice: null})
     );
-  }
+    this.setState({incompatibleAlertNotice});
+  };
 
   render() {
-    const {transactionName, location, eventView, organization, totalValues} = this.props;
-    const query = location.query.query || '';
+    const {
+      transactionName,
+      location,
+      eventView,
+      organization,
+      projects,
+      totalValues,
+    } = this.props;
+    const {incompatibleAlertNotice} = this.state;
+    const query = decodeScalar(location.query.query) || '';
+    const totalCount = totalValues.count;
+    const slowDuration = totalValues?.p95;
+
+    // NOTE: This is not a robust check for whether or not a transaction is a front end
+    // transaction, however it will suffice for now.
+    const hasWebVitals = VITAL_GROUPS.some(group =>
+      group.vitals.some(vital => {
+        const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
+        return Number.isFinite(totalValues[alias]);
+      })
+    );
 
     return (
       <React.Fragment>
-        <HeaderBox>
-          <div>
-            <Breadcrumb
-              organization={organization}
-              location={location}
-              eventView={eventView}
-              transactionName={transactionName}
-            />
-          </div>
-          <KeyTransactionContainer>
-            {this.renderKeyTransactionButton()}
-          </KeyTransactionContainer>
-          <StyledTitleHeader>{transactionName}</StyledTitleHeader>
-        </HeaderBox>
-        <ContentBox>
-          <StyledMain>
+        <TransactionHeader
+          eventView={eventView}
+          location={location}
+          organization={organization}
+          projects={projects}
+          transactionName={transactionName}
+          currentTab={Tab.TransactionSummary}
+          hasWebVitals={hasWebVitals}
+          handleIncompatibleQuery={this.handleIncompatibleQuery}
+        />
+        <Layout.Body>
+          {incompatibleAlertNotice && (
+            <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+          )}
+          <Layout.Main>
             <StyledSearchBar
               organization={organization}
               projectIds={eventView.project}
@@ -103,12 +134,14 @@ class SummaryContent extends React.Component<Props> {
               organization={organization}
               location={location}
               eventView={eventView}
-              totalValues={totalValues}
+              totalValues={totalCount}
             />
             <TransactionList
               organization={organization}
+              transactionName={transactionName}
               location={location}
               eventView={eventView}
+              slowDuration={slowDuration}
             />
             <RelatedIssues
               organization={organization}
@@ -118,49 +151,36 @@ class SummaryContent extends React.Component<Props> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
             />
-          </StyledMain>
-          <Side>
+          </Layout.Main>
+          <Layout.Side>
             <UserStats
               organization={organization}
               location={location}
-              eventView={eventView}
+              totals={totalValues}
+              transactionName={transactionName}
             />
             <SidebarCharts organization={organization} eventView={eventView} />
-            <Tags
-              generateUrl={this.generateTagUrl}
-              totalValues={totalValues}
+            <StatusBreakdown
               eventView={eventView}
               organization={organization}
               location={location}
             />
-          </Side>
-        </ContentBox>
+            <Tags
+              generateUrl={this.generateTagUrl}
+              totalValues={totalCount}
+              eventView={eventView}
+              organization={organization}
+              location={location}
+            />
+          </Layout.Side>
+        </Layout.Body>
       </React.Fragment>
     );
   }
 }
 
-const StyledTitleHeader = styled('span')`
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray700};
-  grid-column: 1/2;
-  align-self: center;
-  min-height: 30px;
-  ${overflowEllipsis};
-`;
-
-// Allow overflow so chart tooltip and assignee dropdown display.
-const StyledMain = styled(Main)`
-  overflow: visible;
-`;
-
-const KeyTransactionContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};
 `;
 
-export default SummaryContent;
+export default withProjects(SummaryContent);

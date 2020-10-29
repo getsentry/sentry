@@ -4,7 +4,7 @@ import {User, Repository} from 'app/types';
 type Data = [number, {count: number}[]][];
 
 export type Incident = {
-  dateClosed: string;
+  dateClosed: string | null;
   dateStarted: string;
   dateDetected: string;
   dateCreated: string;
@@ -54,11 +54,6 @@ export type ActivityType = ActivityTypeDraft & {
   value: string | null;
 };
 
-export type NoteType = {
-  text: string;
-  mentions: [string, string][];
-};
-
 export enum IncidentType {
   DETECTED,
   CREATED,
@@ -66,10 +61,11 @@ export enum IncidentType {
 }
 
 export enum IncidentActivityType {
-  CREATED,
-  DETECTED,
-  STATUS_CHANGE,
-  COMMENT,
+  CREATED = 0,
+  DETECTED = 1,
+  STATUS_CHANGE = 2,
+  COMMENT = 3,
+  STARTED = 4,
 }
 
 export enum IncidentStatus {
@@ -88,4 +84,5 @@ export enum IncidentStatusMethod {
 export enum AlertRuleStatus {
   PENDING = 0,
   SNAPSHOT = 4,
+  DISABLED = 5,
 }

@@ -14,6 +14,7 @@ class EventError(object):
     VALUE_TOO_LONG = "value_too_long"
     FUTURE_TIMESTAMP = "future_timestamp"
     PAST_TIMESTAMP = "past_timestamp"
+    CLOCK_DRIFT = "clock_drift"
     INVALID_ENVIRONMENT = "invalid_environment"
 
     # Processing: Http
@@ -62,6 +63,7 @@ class EventError(object):
         VALUE_TOO_LONG: u"Discarded value due to exceeding maximum length",
         FUTURE_TIMESTAMP: u"Invalid timestamp (in future)",
         PAST_TIMESTAMP: u"Invalid timestamp (too old)",
+        CLOCK_DRIFT: u"Clock drift detected in SDK",
         INVALID_ENVIRONMENT: u'Environment cannot contain "/" or newlines',
         SECURITY_VIOLATION: u"Cannot fetch resource due to security violation",
         RESTRICTED_IP: u"Cannot fetch resource due to restricted IP address",

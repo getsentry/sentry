@@ -1,18 +1,18 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {TextField} from 'app/components/forms';
 
-describe('TextField', function() {
-  describe('render()', function() {
-    it('renders without form context', function() {
-      const wrapper = shallow(<TextField name="fieldName" />);
-      expect(wrapper).toMatchSnapshot();
+describe('TextField', function () {
+  describe('render()', function () {
+    it('renders without form context', function () {
+      const wrapper = mountWithTheme(<TextField name="fieldName" />);
+      expect(wrapper).toSnapshot();
     });
 
-    it('renders with form context', function() {
-      const wrapper = shallow(<TextField name="fieldName" />, {
+    it('renders with form context', function () {
+      const wrapper = mountWithTheme(<TextField name="fieldName" />, {
         context: {
           form: {
             data: {
@@ -22,7 +22,7 @@ describe('TextField', function() {
           },
         },
       });
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

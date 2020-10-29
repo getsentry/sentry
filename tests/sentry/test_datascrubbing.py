@@ -5,11 +5,10 @@ import copy
 import pytest
 
 from sentry.datascrubbing import scrub_data
-from sentry.relay.config import ProjectConfig
 
 
 def merge_pii_configs(prefixes_and_configs):
-    from sentry.datascrubbing import merge_pii_configs as f
+    from sentry.datascrubbing import _merge_pii_configs as f
 
     prefixes_and_configs_bak = copy.deepcopy(prefixes_and_configs)
     rv = f(prefixes_and_configs)
@@ -19,26 +18,27 @@ def merge_pii_configs(prefixes_and_configs):
     return rv
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize("field", [u"aaa", u"aää", u"a a", u"a\na", u"a'a"])
-def test_scrub_data(field):
-    project_config = ProjectConfig(
-        None,
-        config={
-            "datascrubbingSettings": {
-                "excludeFields": [],
-                "scrubData": True,
-                "scrubIpAddresses": False,
-                "sensitiveFields": ["a"],
-                "scrubDefaults": False,
-            },
-            "piiConfig": {
-                "applications": {
-                    "debug_meta.images.*.code_file": ["@userpath:replace"],
-                    "debug_meta.images.*.debug_file": ["@userpath:replace"],
-                }
-            },
-        },
+def test_scrub_data(field, default_project):
+    project = default_project
+    organization = project.organization
+
+    organization.update_option(
+        "sentry:relay_pii_config",
+        """
+    {
+        "applications": {
+            "debug_meta.images.*.code_file": ["@userpath:replace"],
+            "debug_meta.images.*.debug_file": ["@userpath:replace"]
+        }
+    }
+    """,
     )
+    organization.update_option("sentry:safe_fields", [])
+    organization.update_option("sentry:sensitive_fields", ["a"])
+    organization.update_option("sentry:scrub_ip_address", False)
+    organization.update_option("sentry:require_scrub_data", True)
 
     event = {
         "extra": {field: "pls remove"},
@@ -49,7 +49,7 @@ def test_scrub_data(field):
         },
     }
 
-    new_event = scrub_data(project_config, event)
+    new_event = scrub_data(project, event)
 
     assert new_event == (
         {

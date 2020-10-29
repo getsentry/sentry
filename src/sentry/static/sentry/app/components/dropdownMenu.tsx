@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
 
@@ -372,8 +372,14 @@ class DropdownMenu extends React.Component<Props, State> {
       },
 
       onClick: (e: React.MouseEvent<Element>) => {
-        // Note: clicking on an actor that has a nested menu will close the dropdown menus
-        // This is because we currently do not try to find the deepest non-nested dropdown menu
+        // If we are a nested dropdown, clicking the actor
+        // should be a no-op so that the menu doesn't close.
+        if (isNestedDropdown) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
         this.handleToggle(e);
 
         if (typeof onClick === 'function') {
@@ -414,8 +420,6 @@ class DropdownMenu extends React.Component<Props, State> {
         this.handleMouseLeave(e);
       },
       onClick: (e: React.MouseEvent<Element>) => {
-        // Note: clicking on an actor that has a nested menu will close the dropdown menus
-        // This is because we currently do not try to find the deepest non-nested dropdown menu
         this.handleDropdownMenuClick(e);
 
         if (typeof onClick === 'function') {

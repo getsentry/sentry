@@ -1,7 +1,7 @@
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import * as Sentry from '@sentry/react';
 
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
@@ -14,9 +14,10 @@ import {
 } from 'app/components/charts/styles';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import OptionSelector from 'app/components/charts/optionSelector';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 
-import {AXIS_OPTIONS} from '../constants';
+import {getAxisOptions} from '../data';
 
 type Props = {
   api: Client;
@@ -64,7 +65,13 @@ class ChartFooter extends React.Component<Props, State> {
   };
 
   handleSelectorChange(key: string, value: string) {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.overview.change_chart',
+      eventName: 'Performance Views: Change Overview Chart',
+      organization_id: parseInt(organization.id, 10),
+      metric: value,
+    });
 
     browserHistory.push({
       pathname: location.pathname,
@@ -96,15 +103,17 @@ class ChartFooter extends React.Component<Props, State> {
   }
 
   render() {
-    const {leftAxis, rightAxis} = this.props;
+    const {leftAxis, organization, rightAxis} = this.props;
     const {totalValues} = this.state;
 
     const value = typeof totalValues === 'number' ? totalValues.toLocaleString() : '-';
-    const leftOptions = AXIS_OPTIONS.map(opt => ({
+
+    const options = getAxisOptions(organization);
+    const leftOptions = options.map(opt => ({
       ...opt,
       disabled: opt.value === rightAxis,
     }));
-    const rightOptions = AXIS_OPTIONS.map(opt => ({
+    const rightOptions = options.map(opt => ({
       ...opt,
       disabled: opt.value === leftAxis,
     }));
@@ -117,14 +126,14 @@ class ChartFooter extends React.Component<Props, State> {
         </InlineContainer>
         <InlineContainer>
           <OptionSelector
-            title={t('Left')}
+            title={t('Display 1')}
             selected={leftAxis}
             options={leftOptions}
             onChange={(val: string) => this.handleSelectorChange('left', val)}
             menuWidth="200px"
           />
           <OptionSelector
-            title={t('Right')}
+            title={t('Display 2')}
             selected={rightAxis}
             options={rightOptions}
             onChange={(val: string) => this.handleSelectorChange('right', val)}

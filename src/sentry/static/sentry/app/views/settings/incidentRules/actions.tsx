@@ -12,13 +12,15 @@ function isSavedRule(rule: IncidentRule): rule is SavedIncidentRule {
  * @param api API Client
  * @param orgId Organization slug
  * @param rule Saved or Unsaved Metric Rule
+ * @param query Query parameters for the request eg - referrer
  */
 export async function addOrUpdateRule(
   api: Client,
   orgId: string,
   projectId: string,
-  rule: IncidentRule
-): Promise<unknown[]> {
+  rule: IncidentRule,
+  query?: object | any
+) {
   const isExisting = isSavedRule(rule);
   const endpoint = `/projects/${orgId}/${projectId}/alert-rules/${
     isSavedRule(rule) ? `${rule.id}/` : ''
@@ -28,6 +30,8 @@ export async function addOrUpdateRule(
   return api.requestPromise(endpoint, {
     method,
     data: rule,
+    query,
+    includeAllArgs: true,
   });
 }
 

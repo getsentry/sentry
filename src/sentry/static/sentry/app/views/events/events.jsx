@@ -2,8 +2,8 @@ import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Panel} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';

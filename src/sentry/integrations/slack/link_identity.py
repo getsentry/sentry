@@ -4,11 +4,10 @@ import six
 
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
-from django.http import Http404
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
-from sentry.models import Integration, Identity, IdentityProvider, IdentityStatus, Organization
+from sentry.models import Identity, IdentityStatus
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
@@ -17,7 +16,7 @@ from sentry.web.helpers import render_to_response
 from sentry.shared_integrations.exceptions import ApiError
 
 from .client import SlackClient
-from .utils import logger
+from .utils import logger, get_identity
 
 
 def build_linking_url(integration, organization, slack_id, channel_id, response_url):
@@ -38,26 +37,11 @@ class SlackLinkIdentityView(BaseView):
     @transaction_start("SlackLinkIdentityView")
     @never_cache
     def handle(self, request, signed_params):
-        params = unsign(signed_params.encode("ascii", errors="ignore"))
+        params = unsign(signed_params)
 
-        try:
-            organization = Organization.objects.get(
-                id__in=request.user.get_orgs(), id=params["organization_id"]
-            )
-        except Organization.DoesNotExist:
-            raise Http404
-
-        try:
-            integration = Integration.objects.get(
-                id=params["integration_id"], organizations=organization
-            )
-        except Integration.DoesNotExist:
-            raise Http404
-
-        try:
-            idp = IdentityProvider.objects.get(external_id=integration.external_id, type="slack")
-        except IdentityProvider.DoesNotExist:
-            raise Http404
+        organization, integration, idp = get_identity(
+            request.user, params["organization_id"], params["integration_id"]
+        )
 
         if request.method != "POST":
             return render_to_response(

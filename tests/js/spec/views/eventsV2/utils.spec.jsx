@@ -5,20 +5,19 @@ import {
   decodeColumnOrder,
   pushEventViewToLocation,
   getExpandedResults,
-  getDiscoverLandingUrl,
   downloadAsCsv,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
-describe('decodeColumnOrder', function() {
-  it('can decode 0 elements', function() {
+describe('decodeColumnOrder', function () {
+  it('can decode 0 elements', function () {
     const results = decodeColumnOrder([]);
 
     expect(Array.isArray(results)).toBeTruthy();
     expect(results).toHaveLength(0);
   });
 
-  it('can decode fields', function() {
+  it('can decode fields', function () {
     const results = decodeColumnOrder([{field: 'title', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -36,7 +35,25 @@ describe('decodeColumnOrder', function() {
     });
   });
 
-  it('can decode aggregate functions with no arguments', function() {
+  it('can decode measurement fields', function () {
+    const results = decodeColumnOrder([{field: 'measurements.foo', width: 123}]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'measurements.foo',
+      name: 'measurements.foo',
+      column: {
+        kind: 'field',
+        field: 'measurements.foo',
+      },
+      width: 123,
+      isSortable: false,
+      type: 'number',
+    });
+  });
+
+  it('can decode aggregate functions with no arguments', function () {
     let results = decodeColumnOrder([{field: 'count()', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -59,7 +76,7 @@ describe('decodeColumnOrder', function() {
     expect(results[0].type).toEqual('duration');
   });
 
-  it('can decode elements with aggregate functions with arguments', function() {
+  it('can decode elements with aggregate functions with arguments', function () {
     const results = decodeColumnOrder([{field: 'avg(transaction.duration)'}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -77,7 +94,7 @@ describe('decodeColumnOrder', function() {
     });
   });
 
-  it('can decode elements with aggregate functions with multiple arguments', function() {
+  it('can decode elements with aggregate functions with multiple arguments', function () {
     const results = decodeColumnOrder([
       {field: 'percentile(transaction.duration, 0.65)'},
     ]);
@@ -96,9 +113,45 @@ describe('decodeColumnOrder', function() {
       type: 'duration',
     });
   });
+
+  it('can decode elements with aggregate functions using measurements', function () {
+    const results = decodeColumnOrder([{field: 'avg(measurements.foo)'}]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'avg(measurements.foo)',
+      name: 'avg(measurements.foo)',
+      column: {
+        kind: 'function',
+        function: ['avg', 'measurements.foo', undefined],
+      },
+      width: COL_WIDTH_UNDEFINED,
+      isSortable: true,
+      type: 'number',
+    });
+  });
+
+  it('can decode elements with aggregate functions with multiple arguments using measurements', function () {
+    const results = decodeColumnOrder([{field: 'percentile(measurements.lcp, 0.65)'}]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'percentile(measurements.lcp, 0.65)',
+      name: 'percentile(measurements.lcp, 0.65)',
+      column: {
+        kind: 'function',
+        function: ['percentile', 'measurements.lcp', '0.65'],
+      },
+      width: COL_WIDTH_UNDEFINED,
+      isSortable: true,
+      type: 'duration',
+    });
+  });
 });
 
-describe('pushEventViewToLocation', function() {
+describe('pushEventViewToLocation', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -118,7 +171,7 @@ describe('pushEventViewToLocation', function() {
     },
   };
 
-  it('correct query string object pushed to history', function() {
+  it('correct query string object pushed to history', function () {
     const eventView = new EventView(state);
 
     pushEventViewToLocation({
@@ -143,7 +196,7 @@ describe('pushEventViewToLocation', function() {
     });
   });
 
-  it('extra query params', function() {
+  it('extra query params', function () {
     const eventView = new EventView(state);
 
     pushEventViewToLocation({
@@ -173,7 +226,7 @@ describe('pushEventViewToLocation', function() {
   });
 });
 
-describe('getExpandedResults()', function() {
+describe('getExpandedResults()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -196,8 +249,8 @@ describe('getExpandedResults()', function() {
     let view = new EventView(state);
 
     let result = getExpandedResults(view, {}, {});
+    // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
-      {field: 'id', width: -1}, // expect count() to be converted to id
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
@@ -217,8 +270,8 @@ describe('getExpandedResults()', function() {
     });
 
     result = getExpandedResults(view, {}, {});
+    // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
-      {field: 'id', width: -1}, // expect count() to be converted to id
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
@@ -242,15 +295,14 @@ describe('getExpandedResults()', function() {
         {field: 'custom_tag'},
         {field: 'title'}, // not expected to be dropped
         {field: 'unique_count(id)'},
-        {field: 'apdex()'}, // should be dropped
-        {field: 'impact()'}, // should be dropped
+        {field: 'apdex(300)'}, // should be dropped
+        {field: 'user_misery(300)'}, // should be dropped
       ],
     });
 
     result = getExpandedResults(view, {}, {});
     expect(result.fields).toEqual([
       {field: 'timestamp', width: -1},
-      {field: 'id', width: -1},
       {field: 'title'},
       {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
@@ -265,9 +317,9 @@ describe('getExpandedResults()', function() {
 
     // handles user tag values.
     result = getExpandedResults(view, {user: 'id:12735'}, {});
-    expect(result.query).toEqual('event.type:error user.id:12735');
+    expect(result.query).toEqual('event.type:error user:id:12735');
     result = getExpandedResults(view, {user: 'name:uhoh'}, {});
-    expect(result.query).toEqual('event.type:error user.name:uhoh');
+    expect(result.query).toEqual('event.type:error user:name:uhoh');
 
     // quotes value
     result = getExpandedResults(view, {extra: 'has space'}, {});
@@ -351,7 +403,7 @@ describe('getExpandedResults()', function() {
     expect(result.environment).toEqual(['staging']);
   });
 
-  it('applies the normalized user tag', function() {
+  it('applies the normalized user tag', function () {
     const view = new EventView({
       ...state,
       fields: [{field: 'user'}, {field: 'title'}],
@@ -366,7 +418,7 @@ describe('getExpandedResults()', function() {
       tags: [{key: 'user', value: 'id:1234'}],
     };
     let result = getExpandedResults(view, {}, event);
-    expect(result.query).toEqual('event.type:error user.id:1234 title:"something bad"');
+    expect(result.query).toEqual('event.type:error user:id:1234 title:"something bad"');
 
     event = {
       title: 'something bad',
@@ -376,7 +428,7 @@ describe('getExpandedResults()', function() {
     expect(result.query).toEqual('event.type:error user:1234 title:"something bad"');
   });
 
-  it('applies the user field in a table row', function() {
+  it('applies the user field in a table row', function () {
     const view = new EventView({
       ...state,
       fields: [{field: 'user'}, {field: 'title'}],
@@ -386,7 +438,7 @@ describe('getExpandedResults()', function() {
       user: 'id:1234',
     };
     const result = getExpandedResults(view, {}, event);
-    expect(result.query).toEqual('event.type:error user.id:1234 title:"something bad"');
+    expect(result.query).toEqual('event.type:error user:id:1234 title:"something bad"');
   });
 
   it('normalizes the timestamp field', () => {
@@ -412,28 +464,75 @@ describe('getExpandedResults()', function() {
       title: 'bogus',
     };
     const result = getExpandedResults(view, {trace: 'abc123'}, event);
-    expect(result.query).toEqual('event.type:error title:bogus trace:abc123');
+    expect(result.query).toEqual('event.type:error trace:abc123 title:bogus');
+  });
+
+  it('applies project as condition if present', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'project'}],
+    });
+    const event = {project: 'whoosh'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('project:whoosh');
+  });
+
+  it('applies project name as condition if present', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'project.name'}],
+    });
+    const event = {'project.name': 'whoosh'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('project.name:whoosh');
+  });
+
+  it('should not trim values that need to be quoted', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'title'}],
+    });
+    // needs to be quoted because of whitespace in middle
+    const event = {title: 'hello there '};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('title:"hello there "');
+  });
+
+  it('should add environment from the data row', () => {
+    const view = new EventView({
+      ...state,
+      environment: [],
+      query: '',
+      fields: [{field: 'environment'}],
+    });
+    expect(view.environment).toEqual([]);
+    const event = {environment: 'staging'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.environment).toEqual(['staging']);
+  });
+
+  it('should not add duplicate environment', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'environment'}],
+    });
+    expect(view.environment).toEqual(['staging']);
+    const event = {environment: 'staging'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.environment).toEqual(['staging']);
   });
 });
 
-describe('getDiscoverLandingUrl', function() {
-  it('is correct for with discover-query and discover-basic features', function() {
-    const org = TestStubs.Organization({features: ['discover-query', 'discover-basic']});
-    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/queries/');
-  });
-
-  it('is correct for with only discover-basic feature', function() {
-    const org = TestStubs.Organization({features: ['discover-basic']});
-    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/results/');
-  });
-});
-
-describe('downloadAsCsv', function() {
+describe('downloadAsCsv', function () {
   const messageColumn = {name: 'message'};
   const environmentColumn = {name: 'environment'};
   const countColumn = {name: 'count'};
   const userColumn = {name: 'user'};
-  it('handles raw data', function() {
+  it('handles raw data', function () {
     const result = {
       data: [
         {message: 'test 1', environment: 'prod'},
@@ -444,13 +543,13 @@ describe('downloadAsCsv', function() {
       encodeURIComponent('message,environment\r\ntest 1,prod\r\ntest 2,test')
     );
   });
-  it('handles aggregations', function() {
+  it('handles aggregations', function () {
     const result = {
       data: [{count: 3}],
     };
     expect(downloadAsCsv(result, [countColumn])).toContain(encodeURI('count\r\n3'));
   });
-  it('quotes unsafe strings', function() {
+  it('quotes unsafe strings', function () {
     const result = {
       data: [{message: '=HYPERLINK(http://some-bad-website#)'}],
     };
@@ -458,18 +557,18 @@ describe('downloadAsCsv', function() {
       encodeURIComponent("message\r\n'=HYPERLINK(http://some-bad-website#)")
     );
   });
-  it('handles the user column', function() {
+  it('handles the user column', function () {
     const result = {
       data: [
-        {message: 'test 1', 'user.name': 'foo'},
-        {message: 'test 2', 'user.name': 'bar', 'user.ip': '127.0.0.1'},
-        {message: 'test 3', 'user.email': 'foo@example.com', 'user.username': 'foo'},
-        {message: 'test 4', 'user.ip': '127.0.0.1'},
+        {message: 'test 0', user: 'name:baz'},
+        {message: 'test 1', user: 'id:123'},
+        {message: 'test 2', user: 'email:test@example.com'},
+        {message: 'test 3', user: 'ip:127.0.0.1'},
       ],
     };
     expect(downloadAsCsv(result, [messageColumn, userColumn])).toContain(
       encodeURIComponent(
-        'message,user\r\ntest 1,foo\r\ntest 2,bar\r\ntest 3,foo@example.com\r\ntest 4,127.0.0.1'
+        'message,user\r\ntest 0,name:baz\r\ntest 1,id:123\r\ntest 2,email:test@example.com\r\ntest 3,ip:127.0.0.1'
       )
     );
   });

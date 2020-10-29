@@ -1,17 +1,18 @@
 import React from 'react';
 
-import {shallow, mount} from 'sentry-test/enzyme';
+import {mountWithTheme, mount} from 'sentry-test/enzyme';
 
 import GlobalModal from 'app/components/globalModal';
 import {openModal, closeModal} from 'app/actionCreators/modal';
 
-describe('GlobalModal', function() {
-  it('renders', function() {
-    const wrapper = shallow(<GlobalModal />);
-    expect(wrapper).toMatchSnapshot();
+describe('GlobalModal', function () {
+  it('renders', function () {
+    const wrapper = mountWithTheme(<GlobalModal />);
+    expect(wrapper).toSnapshot();
+    wrapper.unmount();
   });
 
-  it('uses actionCreators to open and close Modal', function(done) {
+  it('uses actionCreators to open and close Modal', function (done) {
     const wrapper = mount(<GlobalModal />);
 
     openModal(() => <div id="modal-test">Hi</div>);
@@ -32,7 +33,7 @@ describe('GlobalModal', function() {
     }, 1);
   });
 
-  it('calls onClose handler when modal is clicked out of', async function() {
+  it('calls onClose handler when modal is clicked out of', async function () {
     const wrapper = mount(<GlobalModal />);
     const closeSpy = jest.fn();
 
@@ -48,9 +49,7 @@ describe('GlobalModal', function() {
     await tick();
 
     wrapper.update();
-    $(document.body)
-      .find('.modal .close')
-      .click();
+    $(document.body).find('.modal .close').click();
 
     await tick();
 
@@ -58,7 +57,7 @@ describe('GlobalModal', function() {
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('calls onClose handler when closeModal prop is called', async function() {
+  it('calls onClose handler when closeModal prop is called', async function () {
     const wrapper = mount(<GlobalModal />);
     const closeSpy = jest.fn();
 

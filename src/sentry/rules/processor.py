@@ -55,6 +55,14 @@ class RuleProcessor(object):
         condition_inst = condition_cls(self.project, data=condition, rule=rule)
         return safe_execute(condition_inst.passes, self.event, state, _with_transaction=False)
 
+    def get_rule_type(self, condition):
+        rule_cls = rules.get(condition["id"])
+        if rule_cls is None:
+            self.logger.warn("Unregistered condition or filter %r", condition["id"])
+            return
+
+        return rule_cls.rule_type
+
     def get_state(self):
         return EventState(
             is_new=self.is_new,
@@ -63,15 +71,20 @@ class RuleProcessor(object):
             has_reappeared=self.has_reappeared,
         )
 
-    def apply_rule(self, rule):
-        match = rule.data.get("action_match") or Rule.DEFAULT_ACTION_MATCH
-        condition_list = rule.data.get("conditions", ())
-        frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
+    def get_match_function(self, match_name):
+        if match_name == "all":
+            return all
+        elif match_name == "any":
+            return any
+        elif match_name == "none":
+            return lambda bool_iter: not any(bool_iter)
+        return None
 
-        # XXX(dcramer): if theres no condition should we really skip it,
-        # or should we just apply it blindly?
-        if not condition_list:
-            return
+    def apply_rule(self, rule):
+        condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
+        filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
+        rule_condition_list = rule.data.get("conditions", ())
+        frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
 
         if (
             rule.environment_id is not None
@@ -89,17 +102,41 @@ class RuleProcessor(object):
 
         state = self.get_state()
 
-        condition_iter = (self.condition_matches(c, state, rule) for c in condition_list)
+        condition_list = []
+        filter_list = []
+        for rule_cond in rule_condition_list:
+            if self.get_rule_type(rule_cond) == "condition/event":
+                condition_list.append(rule_cond)
+            else:
+                filter_list.append(rule_cond)
 
-        if match == "all":
-            passed = all(condition_iter)
-        elif match == "any":
-            passed = any(condition_iter)
-        elif match == "none":
-            passed = not any(condition_iter)
+        # if conditions exist evaluate them, otherwise move to the filters section
+        if condition_list:
+            condition_iter = (self.condition_matches(c, state, rule) for c in condition_list)
+
+            condition_func = self.get_match_function(condition_match)
+            if condition_func:
+                condition_passed = condition_func(condition_iter)
+            else:
+                self.logger.error(
+                    "Unsupported condition_match %r for rule %d", condition_match, rule.id
+                )
+                return
+
+            if not condition_passed:
+                return
+
+        # if filters exist evaluate them, otherwise pass
+        if filter_list:
+            filter_iter = (self.condition_matches(f, state, rule) for f in filter_list)
+            filter_func = self.get_match_function(filter_match)
+            if filter_func:
+                passed = filter_func(filter_iter)
+            else:
+                self.logger.error("Unsupported filter_match %r for rule %d", filter_match, rule.id)
+                return
         else:
-            self.logger.error("Unsupported action_match %r for rule %d", match, rule.id)
-            return
+            passed = True
 
         if passed:
             passed = (

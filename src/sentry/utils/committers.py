@@ -17,11 +17,11 @@ from collections import defaultdict
 from functools import reduce
 from sentry.utils.compat import zip
 
-PATH_SEPERATORS = frozenset(["/", "\\"])
+PATH_SEPARATORS = frozenset(["/", "\\"])
 
 
 def tokenize_path(path):
-    for sep in PATH_SEPERATORS:
+    for sep in PATH_SEPARATORS:
         if sep in path:
             # Exclude empty path segments as some repository integrations
             # start their paths with `/` which we want to ignore.
@@ -88,7 +88,7 @@ def _match_commits_path(commit_file_changes, path):
             #  we want a list of unique commits that tie for longest match
             matching_commits[file_change.commit.id] = (file_change.commit, score)
 
-    return matching_commits.values()
+    return list(matching_commits.values())
 
 
 def _get_commits_committer(commits, author_id):
@@ -247,7 +247,6 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
     for committer in committers:
         commit_ids = [commit.id for (commit, _) in committer["commits"]]
         commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
-        # Deduplicate commits
         committer["commits"] = dedupe_commits(commits_result)
 
     metrics.incr(
@@ -259,9 +258,4 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
 
 
 def dedupe_commits(commits):
-    result = {}
-    for obj in commits:
-        if obj["id"] not in result:
-            result[obj["id"]] = obj
-
-    return result.values()
+    return list({c["id"]: c for c in commits}.values())

@@ -2,6 +2,7 @@ import {t} from 'app/locale';
 import {Incident, IncidentStats} from 'app/views/alerts/types';
 import {Project} from 'app/types';
 import Link from 'app/components/links/link';
+import {DisplayModes} from 'app/utils/discover/types';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {getIncidentDiscoverUrl, getStartEndFromStats} from 'app/views/alerts/utils';
@@ -114,9 +115,9 @@ export const PRESET_AGGREGATES: Preset[] = [
   },
   {
     name: t('Failure rate'),
-    match: /^error_rate\(\)/,
+    match: /^failure_rate\(\)/,
     validDataset: [Dataset.TRANSACTIONS],
-    default: 'error_rate()',
+    default: 'failure_rate()',
     /**
      * See makeFailureRateCta
      */
@@ -149,7 +150,9 @@ function makeGenericTransactionCta(opts: {
   }
 
   const query = tokenizeSearch(incident.discoverQuery ?? '');
-  const transaction = query.transaction?.find(filter => !filter.includes('*'));
+  const transaction = query
+    .getTagValues('transaction')
+    ?.find(filter => !filter.includes('*'));
 
   // CASE 1
   if (transaction !== undefined) {
@@ -158,6 +161,9 @@ function makeGenericTransactionCta(opts: {
     const summaryUrl = transactionSummaryRouteWithQuery({
       orgSlug,
       transaction,
+      projectID: projects
+        .filter(({slug}) => incident.projects.includes(slug))
+        .map(({id}) => id),
       query: {...period},
     });
 
@@ -172,7 +178,7 @@ function makeGenericTransactionCta(opts: {
   const extraQueryParams = {
     fields: [...new Set(['transaction', 'count()', incident.alertRule.aggregate])],
     orderby: '-count',
-    display: 'top5',
+    display: DisplayModes.TOP5,
   };
 
   const discoverUrl = getIncidentDiscoverUrl({
@@ -206,7 +212,9 @@ function makeFailureRateCta({orgSlug, incident, projects, stats}: PresetCtaOpts)
   }
 
   const query = tokenizeSearch(incident.discoverQuery ?? '');
-  const transaction = query.transaction?.find(filter => !filter.includes('*'));
+  const transaction = query
+    .getTagValues('transaction')
+    ?.find(filter => !filter.includes('*'));
 
   const extraQueryParams =
     transaction !== undefined
@@ -214,13 +222,13 @@ function makeFailureRateCta({orgSlug, incident, projects, stats}: PresetCtaOpts)
         {
           fields: ['transaction.status', 'count()'],
           orderby: '-count',
-          display: 'top5',
+          display: DisplayModes.TOP5,
         }
       : // Case 2
         {
           fields: ['transaction', 'failure_rate()'],
           orderby: '-failure_rate',
-          display: 'top5',
+          display: DisplayModes.TOP5,
         };
 
   const discoverUrl = getIncidentDiscoverUrl({
@@ -247,8 +255,19 @@ export function makeDefaultCta({
   incident,
   stats,
 }: PresetCtaOpts): PresetCta {
+  if (!incident) {
+    return {
+      buttonText: t('Open in Discover'),
+      to: '',
+    };
+  }
+
+  const extraQueryParams = {
+    display: DisplayModes.TOP5,
+  };
+
   return {
     buttonText: t('Open in Discover'),
-    to: getIncidentDiscoverUrl({orgSlug, projects, incident, stats}),
+    to: getIncidentDiscoverUrl({orgSlug, projects, incident, stats, extraQueryParams}),
   };
 }

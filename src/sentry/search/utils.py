@@ -323,6 +323,9 @@ def tokenize_query(query):
     query_params = defaultdict(list)
     tokens = split_query_into_tokens(query)
     for token in tokens:
+        if token.upper() in ["OR", "AND"] or token.strip("()") == "":
+            continue
+
         state = "query"
         for idx, char in enumerate(token):
             next_char = token[idx + 1] if idx < len(token) - 1 else None
@@ -346,7 +349,7 @@ def tokenize_query(query):
 
 def format_tag(tag):
     """
-    Splits tags on ':' and removes enclosing quotes if present and returns
+    Splits tags on ':' and removes enclosing quotes and grouping parens if present and returns
     returns both sides of the split as strings
 
     Example:
@@ -356,20 +359,20 @@ def format_tag(tag):
     'user', 'foo bar'
     """
     idx = tag.index(":")
-    key = tag[:idx].strip('"')
-    value = tag[idx + 1 :].strip('"')
+    key = tag[:idx].lstrip("(").strip('"')
+    value = tag[idx + 1 :].rstrip(")").strip('"')
     return key, value
 
 
 def format_query(query):
     """
-    Strips enclosing quotes from queries if present.
+    Strips enclosing quotes and grouping parens from queries if present.
 
     Example:
     >>> format_query('"user:foo bar"')
     'user:foo bar'
     """
-    return query.strip('"')
+    return query.strip('"()')
 
 
 def split_query_into_tokens(query):

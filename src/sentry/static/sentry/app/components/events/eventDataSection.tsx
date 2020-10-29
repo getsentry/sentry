@@ -6,6 +6,7 @@ import {css} from '@emotion/core';
 import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {DataSection} from 'app/components/events/styles';
+import {IconAnchor} from 'app/icons/iconAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import space from 'app/styles/space';
@@ -14,6 +15,7 @@ const defaultProps = {
   wrapTitle: true,
   raw: false,
   isCentered: false,
+  showPermalink: true,
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
@@ -47,7 +49,7 @@ class EventDataSection extends React.Component<Props> {
         if (anchorElement) {
           anchorElement.scrollIntoView();
         }
-      } catch (e) {
+      } catch {
         // Since we're blindly taking the hash from the url and shoving
         // it into a querySelector, it's possible that this may
         // raise an exception if the input is invalid. So let's just ignore
@@ -69,6 +71,7 @@ class EventDataSection extends React.Component<Props> {
       wrapTitle,
       actions,
       isCentered,
+      showPermalink,
     } = this.props;
 
     const titleNode = wrapTitle ? <h3>{title}</h3> : title;
@@ -77,10 +80,16 @@ class EventDataSection extends React.Component<Props> {
       <DataSection className={className || ''}>
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
-            <Permalink href={'#' + type} className="permalink">
-              <em className="icon-anchor" />
-            </Permalink>
-            {titleNode}
+            <Title>
+              {showPermalink ? (
+                <Permalink href={'#' + type} className="permalink">
+                  <StyledIconAnchor />
+                  {titleNode}
+                </Permalink>
+              ) : (
+                <div>{titleNode}</div>
+              )}
+            </Title>
             {type === 'extra' && (
               <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
                 <Button
@@ -108,23 +117,33 @@ class EventDataSection extends React.Component<Props> {
   }
 }
 
-const Permalink = styled('a')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 27px;
+const Title = styled('div')`
+  display: flex;
+`;
+
+const StyledIconAnchor = styled(IconAnchor)`
   display: none;
   position: absolute;
-  top: -1.5px;
+  top: 4px;
   left: -22px;
-  color: ${p => p.theme.gray400};
-  padding: ${space(0.25)} 5px;
+`;
+
+const Permalink = styled('a')`
+  :hover ${StyledIconAnchor} {
+    display: block;
+    color: ${p => p.theme.gray500};
+  }
 `;
 
 const SectionHeader = styled('div')<{isCentered?: boolean}>`
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  position: relative;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
+
+  > * {
+    margin-bottom: ${space(0.5)};
+  }
 
   & h3,
   & h3 a {
@@ -151,14 +170,10 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
 
     text-transform: none;
   }
-  & small a {
+  & small > span {
     color: ${p => p.theme.gray700};
-    border-bottom: 1px dotted ${p => p.theme.gray400};
+    border-bottom: 1px dotted ${p => p.theme.borderDark};
     font-weight: normal;
-  }
-
-  &:hover ${Permalink} {
-    display: block;
   }
 
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
@@ -176,6 +191,11 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
         display: block;
       }
     `}
+
+  >*:first-child {
+    position: relative;
+    flex-grow: 1;
+  }
 `;
 
 const SectionContents = styled('div')`
@@ -184,6 +204,7 @@ const SectionContents = styled('div')`
 
 const ActionContainer = styled('div')`
   flex-shrink: 0;
+  max-width: 100%;
 `;
 
 export default EventDataSection;

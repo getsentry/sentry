@@ -1,5 +1,5 @@
 ---
-created: '2019-11-19T11:20:05.461583Z'
+created: '2020-07-23T19:33:42.975020Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -24,7 +24,7 @@ debug_meta:
     version_major: 10
     version_minor: 12
     version_patchlevel: 4
-errors: null
+errors: []
 exception:
   values:
   - raw_stacktrace:

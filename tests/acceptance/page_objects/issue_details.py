@@ -85,3 +85,5 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until_test_id("event-entries")
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
+        if self.browser.element_exists("#grouping-info"):
+            self.browser.wait_until_test_id("loaded-grouping-info")

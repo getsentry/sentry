@@ -1,7 +1,9 @@
 import React from 'react';
+import {createFilter} from 'react-select';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import Alert from 'app/components/alert';
+import {AvatarProject, Project} from 'app/types';
 
 export const FieldType = [
   'array',
@@ -20,6 +22,8 @@ export const FieldType = [
   'text',
   'url',
   'table',
+  'project_mapper',
+  'sentry_project_selector',
 ] as const;
 
 export type FieldValue = any;
@@ -33,8 +37,9 @@ type BaseField = {
   label?: React.ReactNode | (() => React.ReactNode);
   name: string;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
+  showHelpInTooltip?: boolean;
   required?: boolean;
-  placeholder?: string | (() => string);
+  placeholder?: string | ((props: any) => React.ReactNode);
   multiline?: boolean;
   monospace?: boolean;
   visible?: boolean | ((props: any) => boolean);
@@ -82,6 +87,9 @@ type BaseField = {
   meta?: string;
 
   selectionInfoFunction?: (props: any) => React.ReactNode;
+
+  stacked?: boolean;
+  flexibleControlStateSize?: boolean;
 };
 
 // TODO(ts): These are field specific props. May not be needed as we convert
@@ -97,6 +105,11 @@ type InputType = {type: 'string' | 'secret'} & {
 
 type SelectControlType = {type: 'choice' | 'select'} & {
   multiple?: boolean;
+
+  options?: Array<{label: string; value: any}>; //for new select
+  defaultOptions?: Array<{label: string; value: any}> | boolean;
+  filterOption?: ReturnType<typeof createFilter>;
+  noOptionsMessage?: () => string;
 };
 
 type TextareaType = {type: 'textarea'} & {
@@ -113,17 +126,40 @@ export type TableType = {
   /**
    * An object with of column labels (headers) for the table.
    */
-  columnLabels?: object;
+  columnLabels: object;
   /**
    * A list of column keys for the table, in the order that you want
    * the columns to appear - order doesn't matter in columnLabels
    */
-  columnKeys?: string[];
+  columnKeys: string[];
   /**
    * The confirmation message before a a row is deleted
    */
   confirmDeleteMessage?: string;
   //TODO(TS): Should we have addButtonText and allowEmpty here as well?
+};
+
+//maps a sentry project to another field
+export type ProjectMapperType = {
+  type: 'project_mapper';
+  mappedDropdown: {
+    items: Array<{value: string | number; label: string; url: string}>;
+    placeholder: string;
+  };
+  sentryProjects: Array<AvatarProject & {id: number; name: string}>;
+  nextButton: {
+    text: string; //url comes from the `next` parameter in the QS
+    allowedDomain: string;
+  };
+  iconType: string;
+  manageUrl?: string;
+};
+
+//selects a sentry project with avatars
+export type SentryProjectSelectorType = {
+  type: 'sentry_project_selector';
+  projects: Project[];
+  avatarSize?: number;
 };
 
 export type Field = (
@@ -134,6 +170,8 @@ export type Field = (
   | RangeType
   | {type: typeof FieldType[number]}
   | TableType
+  | ProjectMapperType
+  | SentryProjectSelectorType
 ) &
   BaseField;
 

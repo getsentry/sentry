@@ -1,5 +1,4 @@
 import React from 'react';
-import classNames from 'classnames';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -20,7 +19,7 @@ type Props = {
 class SearchDropdown extends React.PureComponent<Props> {
   static defaultProps = {
     searchSubstring: '',
-    onClick: function() {},
+    onClick: function () {},
   };
 
   renderDescription = (item: SearchItem) => {
@@ -53,7 +52,7 @@ class SearchDropdown extends React.PureComponent<Props> {
   renderHeaderItem = (item: SearchGroup) => (
     <SearchDropdownGroup key={item.title}>
       <SearchDropdownGroupTitle>
-        <GroupTitleIcon className={classNames('icon', item.icon)} />
+        {item.icon}
         {item.title && item.title}
         {item.desc && <span>{item.desc}</span>}
       </SearchDropdownGroupTitle>
@@ -147,10 +146,6 @@ const ListItem = styled('li')`
 
 const SearchDropdownGroup = styled(ListItem)``;
 
-const GroupTitleIcon = styled('span')`
-  margin-right: ${space(1)};
-`;
-
 const SearchDropdownGroupTitle = styled('header')`
   display: flex;
   align-items: center;
@@ -162,6 +157,10 @@ const SearchDropdownGroupTitle = styled('header')`
 
   margin: 0;
   padding: ${space(1)} ${space(2)};
+
+  & > svg {
+    margin-right: ${space(1)};
+  }
 `;
 
 const SearchItemsList = styled('ul')`

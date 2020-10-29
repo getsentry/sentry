@@ -59,6 +59,8 @@ class MailAdapter(object):
             "event_id": event.event_id,
             "group_id": event.group_id,
             "is_from_mail_action_adapter": True,
+            "target_type": target_type.value,
+            "target_identifier": target_identifier,
         }
         log_event = "dispatched"
         for future in futures:
@@ -149,10 +151,11 @@ class MailAdapter(object):
         """
         return project.get_notification_recipients(self.alert_option_key)
 
-    def should_notify(self, group):
+    def should_notify(self, target_type, group):
         metrics.incr("mail_adapter.should_notify")
-        # only notify if we have users to notify
-        return self.get_sendable_users(group.project)
+        # only notify if we have users to notify. We always want to notify if targeting
+        # a member directly.
+        return target_type == ActionTargetType.MEMBER or self.get_sendable_users(group.project)
 
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
@@ -276,12 +279,19 @@ class MailAdapter(object):
     def notify(self, notification, target_type, target_identifier=None, **kwargs):
         metrics.incr("mail_adapter.notify")
         event = notification.event
-
         environment = event.get_tag("environment")
-
         group = event.group
         project = group.project
         org = group.organization
+        logger.info(
+            "mail.adapter.notify",
+            extra={
+                "target_type": target_type.value,
+                "target_identifier": target_identifier,
+                "group": group.id,
+                "project_id": project.id,
+            },
+        )
 
         subject = event.get_email_subject()
 
@@ -295,11 +305,7 @@ class MailAdapter(object):
 
         rules = []
         for rule in notification.rules:
-            rule_link = "/settings/%s/projects/%s/alerts/rules/%s/" % (
-                org.slug,
-                project.slug,
-                rule.id,
-            )
+            rule_link = "/organizations/%s/alerts/rules/%s/%s/" % (org.slug, project.slug, rule.id)
 
             rules.append((rule.label, rule_link))
 
@@ -357,6 +363,7 @@ class MailAdapter(object):
             "X-Sentry-Logger-Level": group.get_level_display(),
             "X-Sentry-Project": project.slug,
             "X-Sentry-Reply-To": group_id_to_email(group.id),
+            "category": "issue_alert_email",
         }
 
         for user_id in self.get_send_to(
@@ -365,6 +372,17 @@ class MailAdapter(object):
             target_identifier=target_identifier,
             event=event,
         ):
+            logger.info(
+                "mail.adapter.notify.mail_user",
+                extra={
+                    "target_type": target_type,
+                    "target_identifier": target_identifier,
+                    "group": group.id,
+                    "project_id": project.id,
+                    "user_id": user_id,
+                },
+            )
+
             self.add_unsubscribe_link(context, user_id, project, "alert_email")
             self._send_mail(
                 subject=subject,
@@ -389,7 +407,16 @@ class MailAdapter(object):
     def notify_digest(self, project, digest, target_type, target_identifier=None):
         metrics.incr("mail_adapter.notify_digest")
         user_ids = self.get_send_to(project, target_type, target_identifier)
-        for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
+        logger.info(
+            "mail.adapter.notify_digest",
+            extra={
+                "project_id": project.id,
+                "target_type": target_type.value,
+                "target_identifier": target_identifier,
+                "user_ids": user_ids,
+            },
+        )
+        for user_id, digest in get_personalized_digests(target_type, project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
 
             # If there is only one group in this digest (regardless of how many
@@ -415,7 +442,10 @@ class MailAdapter(object):
                 "counts": counts,
             }
 
-            headers = {"X-Sentry-Project": project.slug}
+            headers = {
+                "X-Sentry-Project": project.slug,
+                "category": "digest_email",
+            }
 
             group = six.next(iter(counts))
             subject = self.get_digest_subject(group, counts, start)
@@ -488,7 +518,10 @@ class MailAdapter(object):
             )
         )
 
-        headers = {"X-Sentry-Project": project.slug}
+        headers = {
+            "X-Sentry-Project": project.slug,
+            "category": "user_report_email",
+        }
 
         # TODO(dcramer): this is copypasta'd from activity notifications
         # and while it'd be nice to re-use all of that, they are currently

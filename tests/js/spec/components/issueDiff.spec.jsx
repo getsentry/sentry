@@ -1,25 +1,39 @@
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {IssueDiff} from 'app/components/issueDiff';
 
 jest.mock('app/api');
 
-describe('IssueDiff', function() {
+describe('IssueDiff', function () {
   const entries = TestStubs.Entries();
   const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
+  const project = TestStubs.ProjectDetails();
 
-  beforeEach(function() {
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: '/issues/base/events/latest/',
+      body: {
+        eventID: '123base',
+      },
+    });
     MockApiClient.addMockResponse({
       url: '/issues/target/events/latest/',
+      body: {
+        eventID: '123target',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/events/123target/`,
       body: {
         entries: entries[0],
       },
     });
+
     MockApiClient.addMockResponse({
-      url: '/issues/base/events/latest/',
+      url: `/projects/org-slug/${project.slug}/events/123base/`,
       body: {
         platform: 'javascript',
         entries: entries[1],
@@ -27,25 +41,25 @@ describe('IssueDiff', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('is loading when initially rendering', function() {
-    const wrapper = shallow(
+  it('is loading when initially rendering', function () {
+    const wrapper = mountWithTheme(
       <IssueDiff
         api={api}
         baseIssueId="base"
         targetIssueId="target"
         orgId="org-slug"
-        projectId="project-slug"
+        project={project}
       />
     );
     expect(wrapper.find('SplitDiff')).toHaveLength(0);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('can dynamically import SplitDiff', async function() {
+  it('can dynamically import SplitDiff', async function () {
     // Need `mount` because of componentDidMount in <IssueDiff>
     const wrapper = mountWithTheme(
       <IssueDiff
@@ -53,7 +67,7 @@ describe('IssueDiff', function() {
         baseIssueId="base"
         targetIssueId="target"
         orgId="org-slug"
-        projectId="project-slug"
+        project={project}
       />,
       routerContext
     );
@@ -62,18 +76,18 @@ describe('IssueDiff', function() {
     wrapper.update();
 
     expect(wrapper.find('SplitDiff')).toHaveLength(1);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('can diff message', async function() {
+  it('can diff message', async function () {
     MockApiClient.addMockResponse({
-      url: '/issues/target/events/latest/',
+      url: `/projects/org-slug/${project.slug}/events/123target/`,
       body: {
         entries: [{type: 'message', data: {formatted: 'Hello World'}}],
       },
     });
     MockApiClient.addMockResponse({
-      url: '/issues/base/events/latest/',
+      url: `/projects/org-slug/${project.slug}/events/123base/`,
       body: {
         platform: 'javascript',
         entries: [{type: 'message', data: {formatted: 'Foo World'}}],
@@ -87,7 +101,7 @@ describe('IssueDiff', function() {
         baseIssueId="base"
         targetIssueId="target"
         orgId="org-slug"
-        projectId="project-slug"
+        project={project}
       />,
       routerContext
     );
@@ -96,6 +110,6 @@ describe('IssueDiff', function() {
     wrapper.update();
 
     expect(wrapper.find('SplitDiff')).toHaveLength(1);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

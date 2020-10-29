@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 
 import {
   ThresholdControlValue,
-  AlertRuleThreshold,
   AlertRuleThresholdType,
 } from 'app/views/settings/incidentRules/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
+import NumberDragControl from 'app/components/numberDragControl';
+import Tooltip from 'app/components/tooltip';
 
 type Props = ThresholdControlValue & {
-  type: AlertRuleThreshold;
+  type: string;
   disabled: boolean;
-  onChange: (
-    type: AlertRuleThreshold,
-    value: ThresholdControlValue,
-    e: React.FormEvent
-  ) => void;
+  disableThresholdType: boolean;
+  placeholder: string;
+  onChange: (value: ThresholdControlValue, e: React.FormEvent) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
 };
 
 type State = {
@@ -38,18 +38,18 @@ class ThresholdControl extends React.Component<Props, State> {
       return;
     }
 
-    const {onChange, type, thresholdType} = this.props;
+    const {onChange, thresholdType} = this.props;
 
     // Empty input
     if (value === '') {
       this.setState({currentValue: null});
-      onChange(type, {thresholdType, threshold: ''}, e);
+      onChange({thresholdType, threshold: ''}, e);
       return;
     }
 
-    // Only call onChnage if the new number is valid, and not partially typed
+    // Only call onChange if the new number is valid, and not partially typed
     // (eg writing out the decimal '5.')
-    if (/(\.|0)$/.test(value)) {
+    if (/\.+0*$/.test(value)) {
       this.setState({currentValue: value});
       return;
     }
@@ -57,7 +57,7 @@ class ThresholdControl extends React.Component<Props, State> {
     const numberValue = Number(value);
 
     this.setState({currentValue: null});
-    onChange(type, {thresholdType, threshold: numberValue}, e);
+    onChange({thresholdType, threshold: numberValue}, e);
   };
 
   /**
@@ -68,32 +68,42 @@ class ThresholdControl extends React.Component<Props, State> {
       return;
     }
 
-    const {onChange, type, thresholdType} = this.props;
-    onChange(type, {thresholdType, threshold: Number(this.state.currentValue)}, e);
+    const {onChange, thresholdType} = this.props;
+    onChange({thresholdType, threshold: Number(this.state.currentValue)}, e);
     this.setState({currentValue: null});
   };
 
-  handleTypeChange = ({value}, e) => {
-    const {onChange, type, threshold} = this.props;
+  handleTypeChange = ({value}, _) => {
+    const {onThresholdTypeChange} = this.props;
+    onThresholdTypeChange(value);
+  };
 
-    onChange(
-      type,
-      {thresholdType: getThresholdTypeForThreshold(type, value), threshold},
-      e
-    );
+  handleDragChange = (delta: number, e: React.MouseEvent) => {
+    const {onChange, thresholdType, threshold} = this.props;
+    const currentValue = threshold || 0;
+    onChange({thresholdType, threshold: currentValue + delta}, e);
   };
 
   render() {
     const {currentValue} = this.state;
-    const {thresholdType, threshold, type, onChange: _, disabled, ...props} = this.props;
-    const thresholdName = AlertRuleThreshold.INCIDENT === type ? 'alert' : 'resolve';
+    const {
+      thresholdType,
+      threshold,
+      placeholder,
+      type,
+      onChange: _,
+      onThresholdTypeChange: __,
+      disabled,
+      disableThresholdType,
+      ...props
+    } = this.props;
 
     return (
       <div {...props}>
         <SelectControl
-          isDisabled={disabled}
-          name={`${thresholdName}ThresholdType`}
-          value={getThresholdTypeForThreshold(type, thresholdType)}
+          isDisabled={disabled || disableThresholdType}
+          name={`${type}ThresholdType`}
+          value={thresholdType}
           options={[
             {value: AlertRuleThresholdType.BELOW, label: t('Below')},
             {value: AlertRuleThresholdType.ABOVE, label: t('Above')},
@@ -102,30 +112,38 @@ class ThresholdControl extends React.Component<Props, State> {
         />
         <Input
           disabled={disabled}
-          name={`${thresholdName}Threshold`}
-          placeholder="300"
+          name={`${type}Threshold`}
+          placeholder={placeholder}
           value={currentValue ?? threshold ?? ''}
           onChange={this.handleThresholdChange}
           onBlur={this.handleThresholdBlur}
+          // Disable lastpass autocomplete
+          data-lpignore="true"
         />
+        <DragContainer>
+          <Tooltip
+            title={tct('Drag to adjust threshold[break]You can hold shift to fine tune', {
+              break: <br />,
+            })}
+          >
+            <NumberDragControl step={5} axis="y" onChange={this.handleDragChange} />
+          </Tooltip>
+        </DragContainer>
       </div>
     );
   }
 }
 
+const DragContainer = styled('div')`
+  position: absolute;
+  top: 6px;
+  right: 12px;
+`;
+
 export default styled(ThresholdControl)`
+  position: relative;
   display: grid;
   align-items: center;
   grid-template-columns: 1fr 3fr;
   grid-gap: ${space(1)};
 `;
-
-function getThresholdTypeForThreshold(
-  type: AlertRuleThreshold,
-  thresholdType: AlertRuleThresholdType
-): AlertRuleThresholdType {
-  return (type === AlertRuleThreshold.INCIDENT) !==
-    (thresholdType === AlertRuleThresholdType.ABOVE)
-    ? AlertRuleThresholdType.BELOW
-    : AlertRuleThresholdType.ABOVE;
-}

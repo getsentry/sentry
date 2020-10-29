@@ -20,7 +20,6 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         self.project = self.create_project(organization=self.organization, name="Back end")
         self.create_project(organization=self.organization, name="Front End")
         self.login_as(self.user)
-        self.dismiss_assistant("discover_sidebar")
 
     def load_page(self, slug, configuration_tab=False):
         url = u"/settings/{}/plugins/{}/".format(self.organization.slug, slug)
@@ -39,7 +38,8 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         self.browser.click('[id="react-select-2-option-0"]')
         # check if we got to the configuration page with the form
         self.browser.wait_until_not(".loading-indicator")
-        assert self.browser.element_exists('[id="id-api_key"]')
+        self.browser.wait_until_test_id("plugin-config")
+        self.browser.snapshot("integrations - plugin config form")
 
     def test_uninstallation(self):
         self.plugin.set_option("api_key", "7c8951d1", self.project)

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 from copy import deepcopy
 from datetime import timedelta
 from uuid import uuid4
@@ -11,8 +10,8 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.test.utils import override_settings
 from exam import fixture
-from sentry.utils.compat.mock import call, Mock
 
+from sentry.utils.compat.mock import call, Mock
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.query_subscription_consumer import (
     QuerySubscriptionConsumer,
@@ -21,6 +20,7 @@ from sentry.snuba.query_subscription_consumer import (
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.utils import json
 
 
 class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):

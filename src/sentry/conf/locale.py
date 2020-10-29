@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import os
-import json
 import sentry
+
+from sentry.utils import json
 
 
 # change locale file dir name to locale code

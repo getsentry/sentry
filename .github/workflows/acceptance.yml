@@ -1,227 +1,187 @@
+# TODO(billy): this workflow has not been re-named from `acceptance` because
+# Visual Snapshots compares against artifacts from the same workflow name (on main branch)
+# We should rename this when we have a more finalized naming scheme.
+#
+# Also note that this name *MUST* match the filename because GHA
+# only provides the workflow name (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
+# and GH APIs only support querying by workflow *FILENAME* (https://developer.github.com/v3/actions/workflows/#get-a-workflow)
 name: acceptance
-on: pull_request
+on:
+  push:
+    branches:
+      - master
+      - releases/**
+  # XXX: We are using `pull_request_target` instead of `pull_request` because we want
+  # Visual Snapshots to run on forks.  It allows forks to access secrets safely by
+  # only running workflows from the main branch. Prefer to use `pull_request` when possible.
+  #
+  # See https://github.com/getsentry/sentry/pull/21600 for more details
+  pull_request_target:
 
 jobs:
-    percynonce:
-      name: Generate Percy ID
-      runs-on: ubuntu-latest
-      steps:
-        - name: Generate Percy nonce
-          if: always()
-          run: |
-            echo ${{ github.run_id }}.$(($(date +%s))) > nonce.txt
+  frontend:
+    name: frontend tests
+    runs-on: ubuntu-16.04
+    timeout-minutes: 20
 
-        - name: Upload nonce as artifact
-          if: always()
-          uses: actions/upload-artifact@v1
-          with:
-            name: percy
-            path: nonce.txt
+    env:
+      VISUAL_HTML_ENABLE: 1
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout sentry (pull_request_target)
+        if: github.event.pull_request.head.ref != ''
+        with:
+          # Note this is required because of `pull_request_target`, which allows
+          # forks to access secrets safely by only running workflows from the main branch.
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
-    acceptance:
-      needs: [percynonce]
-      runs-on: ubuntu-16.04
-      strategy:
-        matrix:
-          instance: [0, 1, 2]
+      - uses: actions/checkout@v2
+        name: Checkout sentry (push)
+        if: github.event.pull_request.head.ref == ''
 
-      env:
-        PIP_DISABLE_PIP_VERSION_CHECK: on
-        # PIP_QUIET: 1
+      - uses: volta-cli/action@v1
 
-        SENTRY_LIGHT_BUILD: 1
-        SENTRY_SKIP_BACKEND_VALIDATION: 1
-        MIGRATIONS_TEST_MIGRATE: 0
+      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
 
-        # Use this to override the django version in the requirements file.
-        DJANGO_VERSION: ">=1.11,<1.12"
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
-        # Node configuration
-        NODE_OPTIONS: --max-old-space-size=4096
-        NODE_ENV: development
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
-        PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-        PYTEST_ADDOPTS: "--reruns 5"
+      - name: jest
+        run: |
+          NODE_ENV=production yarn build-css
+          yarn test-ci --forceExit
 
-        # services configuration
-        SENTRY_KAFKA_HOSTS: kafka:9093
-        SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
-        SENTRY_REDIS_HOST: redis
-        # The hostname used to communicate with the PostgreSQL from sentry
-        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+      - name: Save HTML artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: jest-html
+          path: .artifacts/visual-snapshots/jest
 
-        # Percy config
-        PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
-        PERCY_PROJECT: ${{ secrets.PERCY_PROJECT }}
+      - name: Create Images from HTML
+        uses: getsentry/action-html-to-image@main
+        with:
+          base-path: .artifacts/visual-snapshots/jest
+          css-path: src/sentry/static/sentry/dist/sentry.css
 
-        # Number of matrix instances
-        TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
+      - name: Save snapshots
+        if: always()
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          save-only: true
+          snapshot-path: .artifacts/visual-snapshots
 
-      services:
-        clickhouse:
-          image: yandex/clickhouse-server:19.11
-          options: --ulimit nofile=262144:262144
-          ports:
-            - 9000:9000
+  acceptance:
+    # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
+    name: python2.7 acceptance
+    runs-on: ubuntu-16.04
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        instance: [0, 1, 2]
 
-        snuba:
-          image: getsentry/snuba
-          env:
-            SNUBA_SETTINGS: test
-            REDIS_HOST: redis
-            CLICKHOUSE_HOST: clickhouse
-            CLICKHOUSE_PORT: 9000
-          ports:
-            - 1218:1218
+    env:
+      VISUAL_SNAPSHOT_ENABLE: 1
 
-        redis:
-          image: redis:5.0-alpine
-          ports:
-            - 6379:6379
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout sentry (pull_request_target)
+        if: github.event.pull_request.head.ref != ''
+        with:
+          # Note this is required because of `pull_request_target`, which allows
+          # forks to access secrets safely by only running workflows from the main branch.
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
-        memcached:
-          image: memcached:1.5-alpine
-          ports:
-            - 11211:11211
+      - uses: actions/checkout@v2
+        name: Checkout sentry (push)
+        if: github.event.pull_request.head.ref == ''
 
-        postgres:
-          image: postgres:9.6
-          env:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-          ports:
-            # Maps tcp port 5432 on service container to the host
-            - 5432:5432
-          # needed because the postgres container does not provide a healthcheck
-          options: >-
-            --health-cmd pg_isready
-            --health-interval 10s
-            --health-timeout 5s
-            --health-retries 5
+      - uses: volta-cli/action@v1
 
-        zookeeper:
-          image: confluentinc/cp-zookeeper:4.1.0
-          env:
-            ZOOKEEPER_CLIENT_PORT: 2181
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 2.7.17
 
-        kafka:
-          image: confluentinc/cp-kafka:5.1.2
-          env:
-            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-            KAFKA_LISTENERS: INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
-            KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9093,EXTERNAL://kafka:9092
-            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
-            KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
 
-      steps:
-        # Checkout codebase
-        - uses: actions/checkout@v2
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-        # Install node
-        - uses: volta-cli/action@v1
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python: 2
+          snuba: true
 
-        - name: Download percy nonce
-          uses: actions/download-artifact@v1
-          with:
-            name: percy
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.setup.outputs.yarn-cache-dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
-        # Yarn
-        #   - See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-        # Python
-        #   Use `.python-version` to avoid duplication
-        #   XXX: can't actually read from .python-version because GitHub Actions
-        #   does not support our version (2.7.16)
-        #
-        #   XXX: Using `2.7` as GHA image only seems to keep one minor version around and will break
-        #   CI if we pin it to a specific patch version.
-        - name: Set up outputs
-          id: config
-          env:
-            MATRIX_INSTANCE: ${{ matrix.instance }}
-          run: |
-            echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
-            echo "::set-output name=python-version::2.7"
-            echo "::set-output name=percy-nonce::$(<percy/nonce.txt)"
-            echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
+      - name: Install Javascript Dependencies
+        run: |
+          yarn install --frozen-lockfile
 
-        # yarn cache
-        - uses: actions/cache@v1
-          id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-          with:
-            path: ${{ steps.config.outputs.yarn-cache-dir }}
-            key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-            restore-keys: |
-              ${{ runner.os }}-yarn-
+      - name: webpack
+        run: |
+          yarn webpack --display errors-only
 
-        # setup python
-        - name: Set up Python ${{ steps.config.outputs.python-version }}
-          uses: actions/setup-python@v1
-          with:
-            python-version: ${{ steps.config.outputs.python-version}}
+      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+        if: always()
+        run: |
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-tooltips
+          make run-acceptance
+        env:
+          PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
+          USE_SNUBA: 1
 
-        # setup pip
-        - name: Install pip
-          run: |
-            pip install --no-cache-dir --upgrade "pip>=20.0.2"
+      - name: Save snapshots
+        if: always()
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          save-only: true
+          snapshot-path: .artifacts/visual-snapshots
 
-        # pip cache
-        - name: Get pip cache dir
-          id: pip-cache
-          run: |
-            echo "::set-output name=dir::$(pip cache dir)"
+  visual-diff:
+    # Note: `github.ref` is always `master` for `pull_request_target` event
+    # `github.head/base_ref` == '' for `push` event, we want to skip it on pushes
+    if: github.head_ref != ''
+    needs: [acceptance, frontend]
+    runs-on: ubuntu-16.04
+    timeout-minutes: 20
 
-        - name: pip cache
-          uses: actions/cache@v1
-          with:
-            path: ${{ steps.pip-cache.outputs.dir }}
-            key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
-            restore-keys: |
-              ${{ runner.os }}-pip-
-
-        - name: Install System Dependencies
-          run: |
-            sudo apt-get update
-            sudo apt-get install libxmlsec1-dev libmaxminddb-dev
-
-        - name: Install Javascript Dependencies
-          run: |
-            yarn install --frozen-lockfile
-
-        - name: Install Python Dependencies
-          env:
-            PGPASSWORD: postgres
-          run: |
-            python setup.py install_egg_info
-            pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
-            pip install -U -e ".[dev]"
-            psql -c 'create database sentry;' -h localhost -U postgres
-
-        - name: Build platform assets
-          run: |
-            sentry init
-            make build-platform-assets
-
-        - name: webpack
-          run: |
-            yarn webpack --display errors-only
-
-        # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
-        - name: Add pytest log matcher
-          if: always()
-          run: |
-            echo "::remove-matcher owner=pytest::"
-            echo "::add-matcher::.github/pytest.json"
-
-        - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-          if: always()
-          uses: percy/exec-action@v0.3.0
-          with:
-            command: "make run-acceptance"
-          env:
-            USE_SNUBA: 1
-            TEST_GROUP: ${{ matrix.instance }}
-            PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
-            PERCY_PROJECT: ${{ secrets.PERCY_PROJECT }}
-            PERCY_PARALLEL_TOTAL: ${{ env.TOTAL_TEST_GROUPS }}
-            PERCY_PARALLEL_NONCE: ${{ steps.config.outputs.percy-nonce }}
+    steps:
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

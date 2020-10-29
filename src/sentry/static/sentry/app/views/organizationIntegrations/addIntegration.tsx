@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 
-import {IntegrationProvider, Integration, Organization} from 'app/types';
+import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -13,7 +13,7 @@ type Props = {
     openDialog: (urlParams?: {[key: string]: string}) => void
   ) => React.ReactNode;
   provider: IntegrationProvider;
-  onInstall: (data: Integration) => void;
+  onInstall: (data: IntegrationWithConfig) => void;
   integrationId?: string;
   account?: string;
   organization?: Organization; //for analytics

@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
 from exam import fixture
+from mock import patch
 
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
+from sentry.models import Integration
 from sentry.testutils import APITestCase
 
 
@@ -18,7 +19,7 @@ class AlertRuleDetailsBase(object):
             "time_window": 10,
             "query": "level:error",
             "threshold_type": 0,
-            "resolve_threshold": 1,
+            "resolve_threshold": 100,
             "alert_threshold": 0,
             "aggregate": "count_unique(user)",
             "threshold_period": 1,
@@ -27,8 +28,6 @@ class AlertRuleDetailsBase(object):
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -36,8 +35,6 @@ class AlertRuleDetailsBase(object):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
@@ -74,9 +71,7 @@ class AlertRuleDetailsBase(object):
 
     @fixture
     def alert_rule(self):
-        return create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
-        )
+        return self.create_alert_rule(name="hello")
 
     def test_invalid_rule_id(self):
         self.create_member(
@@ -121,15 +116,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            "count_unique(tags[sentry:user])",
-            10,
-            1,
-        )
+        alert_rule = self.create_alert_rule(aggregate="count_unique(tags[sentry:user])")
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug, self.project.slug, alert_rule.id)
             assert resp.data["aggregate"] == "count_unique(user)"
@@ -145,6 +132,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         )
 
         test_params = self.valid_params.copy()
+        test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params.update({"name": "what"})
 
         self.login_as(self.user)
@@ -159,6 +147,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
     def test_not_updated_fields(self):
         test_params = self.valid_params.copy()
+        test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params["aggregate"] = self.alert_rule.snuba_query.aggregate
 
         self.create_member(
@@ -201,6 +190,60 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 status_code=404,
                 **serialized_alert_rule
             )
+
+    @patch(
+        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        return_value=("#", None, True),
+    )
+    @patch("sentry.integrations.slack.tasks.find_channel_id_for_alert_rule.apply_async")
+    @patch("sentry.integrations.slack.tasks.uuid4")
+    def test_kicks_off_slack_async_job(
+        self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
+    ):
+        class uuid(object):
+            hex = "abc123"
+
+        mock_uuid4.return_value = uuid
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        self.integration = Integration.objects.create(
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        self.integration.add_organization(self.organization, self.user)
+        test_params = self.valid_params.copy()
+        test_params["triggers"] = [
+            {
+                "label": "critical",
+                "alertThreshold": 200,
+                "actions": [
+                    {
+                        "type": "slack",
+                        "targetIdentifier": "my-channel",
+                        "targetType": "specific",
+                        "integration": self.integration.id,
+                    }
+                ],
+            },
+        ]
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
+            )
+
+        resp.data["uuid"] = "abc123"
+        kwargs = {
+            "organization_id": self.organization.id,
+            "uuid": "abc123",
+            "alert_rule_id": self.alert_rule.id,
+            "data": test_params,
+        }
+        mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):

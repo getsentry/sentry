@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-import logging
 from datetime import datetime
 from django.utils import timezone
 
@@ -158,20 +157,7 @@ class SAML2ACSView(AuthView):
 
         # Not all providers send a session expiration value, but if they do,
         # we should respect it and set session cookies to expire at the given time.
-        # XXX(slohmes): 5/28/2020 Temporarily adding logging here to check if any IdPs send a SessionNotOnOrAfter
-        # value in their SAML response.
         if auth.get_session_expiration() is not None:
-            try:
-                providerString = helper.auth_provider.provider
-            except AttributeError:
-                providerString = ""
-            logging.warning(
-                "Received SessionNotOnOrAfter value in SAML response",
-                extra={
-                    "session_expiration": auth.get_session_expiration(),
-                    "provider": providerString,
-                },
-            )
             session_expiration = datetime.fromtimestamp(auth.get_session_expiration()).replace(
                 tzinfo=timezone.utc
             )

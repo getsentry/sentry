@@ -2,9 +2,9 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';
@@ -24,7 +24,6 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
-import withProfiler from 'app/utils/withProfiler';
 
 const OrganizationContext = createReactClass({
   displayName: 'OrganizationContext',
@@ -36,7 +35,6 @@ const OrganizationContext = createReactClass({
     useLastOrganization: PropTypes.bool,
     organizationsLoading: PropTypes.bool,
     organizations: PropTypes.arrayOf(SentryTypes.Organization),
-    finishProfile: PropTypes.func,
     detailed: PropTypes.bool,
   },
 
@@ -104,10 +102,6 @@ const OrganizationContext = createReactClass({
     ) {
       this.remountComponent();
     }
-
-    if (this.state.organization && this.props.finishProfile) {
-      this.props.finishProfile();
-    }
   },
 
   remountComponent() {
@@ -118,7 +112,7 @@ const OrganizationContext = createReactClass({
     // If a new project was created, we need to re-fetch the
     // org details endpoint, which will propagate re-rendering
     // for the entire component tree
-    fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true);
+    fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true, true);
   },
 
   getOrganizationSlug() {
@@ -299,7 +293,7 @@ const OrganizationContext = createReactClass({
   },
 });
 
-export default withApi(withOrganizations(withProfiler(OrganizationContext)));
+export default withApi(withOrganizations(Sentry.withProfiler(OrganizationContext)));
 export {OrganizationContext};
 
 const ErrorWrapper = styled('div')`

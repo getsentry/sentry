@@ -3,7 +3,7 @@ import React from 'react';
 
 import Button from 'app/components/button';
 import {t} from 'app/locale';
-import {IconBell} from 'app/icons/iconBell';
+import {IconBell} from 'app/icons';
 
 type Props = {
   onClick: (e: React.MouseEvent) => void;
@@ -23,7 +23,7 @@ export default class SubscribeButton extends React.Component<Props> {
 
   render() {
     const {size, isSubscribed, onClick, disabled} = this.props;
-    const icon = <IconBell color={isSubscribed ? 'blue' : undefined} />;
+    const icon = <IconBell color={isSubscribed ? 'blue400' : undefined} />;
 
     return (
       <Button size={size} icon={icon} onClick={onClick} disabled={disabled}>

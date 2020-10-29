@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Organization, Member, MemberRole} from 'app/types';
+import {IconSliders} from 'app/icons';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -30,7 +31,7 @@ type Props = {
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
-  member: Member & {roles: MemberRole[]};
+  member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
 };
@@ -169,12 +170,16 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         <DropdownMenu closeOnEscape>
           {({getActorProps, isOpen}) => (
             <FilterWrapper>
-              <Button size="small" icon="icon-sliders" {...getActorProps({})}>
+              <Button
+                size="small"
+                icon={<IconSliders size="xs" />}
+                {...getActorProps({})}
+              >
                 {t('Search Filters')}
               </Button>
               {isOpen && (
                 <StyledMembersFilter
-                  roles={currentMember.roles || MEMBER_ROLES}
+                  roles={currentMember?.roles ?? MEMBER_ROLES}
                   query={value}
                   onChange={(query: string) => handleChange(query)}
                 />

@@ -4,7 +4,7 @@ import GuideStore from 'app/stores/guideStore';
 
 jest.mock('app/utils/analytics');
 
-describe('GuideStore', function() {
+describe('GuideStore', function () {
   let data;
   const user = {
     id: '5',
@@ -12,7 +12,7 @@ describe('GuideStore', function() {
     dateJoined: new Date(2020, 0, 1),
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     trackAnalyticsEvent.mockClear();
     ConfigStore.config = {
       user,
@@ -31,7 +31,7 @@ describe('GuideStore', function() {
     GuideStore.onRegisterAnchor('issue_stream');
   });
 
-  it('should move through the steps in the guide', function() {
+  it('should move through the steps in the guide', function () {
     GuideStore.onFetchSucceeded(data);
     // Should pick the first non-seen guide in alphabetic order.
     expect(GuideStore.state.currentStep).toEqual(0);
@@ -47,7 +47,7 @@ describe('GuideStore', function() {
     expect(GuideStore.state.currentGuide).toEqual(null);
   });
 
-  it('should force show a guide with #assistant', function() {
+  it('should force show a guide with #assistant', function () {
     data = [
       {
         guide: 'issue',
@@ -65,7 +65,7 @@ describe('GuideStore', function() {
     window.location.hash = '';
   });
 
-  it('should record analytics events when guide is cued', function() {
+  it('should record analytics events when guide is cued', function () {
     const spy = jest.spyOn(GuideStore, 'recordCue');
     GuideStore.onFetchSucceeded(data);
     expect(spy).toHaveBeenCalledWith('issue');
@@ -88,7 +88,7 @@ describe('GuideStore', function() {
     spy.mockRestore();
   });
 
-  it('only shows guides with server data and content', function() {
+  it('only shows guides with server data and content', function () {
     data = [
       {
         guide: 'issue',
@@ -103,84 +103,5 @@ describe('GuideStore', function() {
     GuideStore.onFetchSucceeded(data);
     expect(GuideStore.state.guides.length).toBe(1);
     expect(GuideStore.state.guides[0].guide).toBe(data[0].guide);
-  });
-
-  describe('discover sidebar guide', function() {
-    beforeEach(function() {
-      data = [
-        {
-          guide: 'discover_sidebar',
-          seen: false,
-        },
-      ];
-
-      GuideStore.onRegisterAnchor('discover_sidebar');
-    });
-
-    it('does not render without user', function() {
-      ConfigStore.config = {};
-      GuideStore.onFetchSucceeded(data);
-      expect(GuideStore.state.currentGuide).toBe(null);
-    });
-
-    it('shows discover sidebar guide to superusers', function() {
-      ConfigStore.config = {
-        user: {
-          isSuperuser: true,
-        },
-      };
-      GuideStore.onFetchSucceeded(data);
-      expect(GuideStore.state.currentGuide.guide).toBe('discover_sidebar');
-    });
-
-    it('shows discover sidebar guide to previously existing users', function() {
-      ConfigStore.config = {
-        user: {
-          isSuperuser: false,
-          dateJoined: new Date(2020, 0, 1),
-        },
-      };
-      GuideStore.onFetchSucceeded(data);
-      expect(GuideStore.state.currentGuide.guide).toBe('discover_sidebar');
-    });
-
-    it('does not show discover sidebar guide to new users', function() {
-      ConfigStore.config = {
-        user: {
-          isSuperuser: false,
-          dateJoined: new Date(2020, 1, 22),
-        },
-      };
-      GuideStore.onFetchSucceeded(data);
-      expect(GuideStore.state.currentGuide).toBe(null);
-    });
-
-    it('hides discover sidebar guide once seen', function() {
-      data[0].seen = true;
-      // previous user
-      ConfigStore.config = {
-        user: {
-          isSuperuser: false,
-          dateJoined: new Date(2020, 0, 1),
-        },
-      };
-      GuideStore.onFetchSucceeded(data);
-      expect(GuideStore.state.currentGuide).toBe(null);
-    });
-
-    it('does not force show the discover sidebar guide once seen', function() {
-      data[0].seen = true;
-      // previous user
-      ConfigStore.config = {
-        user: {
-          isSuperuser: false,
-          dateJoined: new Date(2020, 0, 1),
-        },
-      };
-      GuideStore.onFetchSucceeded(data);
-      window.location.hash = '#assistant';
-      GuideStore.onURLChange();
-      expect(GuideStore.state.currentGuide).toBe(null);
-    });
   });
 });

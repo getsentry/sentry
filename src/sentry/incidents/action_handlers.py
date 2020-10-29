@@ -11,6 +11,7 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     TriggerStatus,
     IncidentStatus,
+    IncidentTrigger,
     INCIDENT_STATUS,
 )
 from sentry.utils.email import MessageBuilder
@@ -27,11 +28,11 @@ class ActionHandler(object):
         self.project = project
 
     @abc.abstractmethod
-    def fire(self):
+    def fire(self, metric_value):
         pass
 
     @abc.abstractmethod
-    def resolve(self):
+    def resolve(self, metric_value):
         pass
 
 
@@ -41,11 +42,6 @@ class ActionHandler(object):
     [AlertRuleTriggerAction.TargetType.USER, AlertRuleTriggerAction.TargetType.TEAM],
 )
 class EmailActionHandler(ActionHandler):
-    query_aggregates_display = {
-        "count()": "Total Events",
-        "count_unique(tags[sentry:user])": "Total Unique Users",
-    }
-
     def get_targets(self):
         target = self.action.target
         if not target:
@@ -68,14 +64,16 @@ class EmailActionHandler(ActionHandler):
         #     emails = [target]
         return targets
 
-    def fire(self):
+    def fire(self, metric_value):
         self.email_users(TriggerStatus.ACTIVE)
 
-    def resolve(self):
+    def resolve(self, metric_value):
         self.email_users(TriggerStatus.RESOLVED)
 
     def email_users(self, status):
-        email_context = self.generate_email_context(status)
+        email_context = generate_incident_trigger_email_context(
+            self.project, self.incident, self.action.alert_rule_trigger, status
+        )
         for user_id, email in self.get_targets():
             self.build_message(email_context, status, user_id).send_async(to=[email])
 
@@ -89,56 +87,8 @@ class EmailActionHandler(ActionHandler):
             html_template=u"sentry/emails/incidents/trigger.html",
             type="incident.alert_rule_{}".format(display.lower()),
             context=context,
+            headers={"category": "metric_alert_email"},
         )
-
-    def generate_email_context(self, status):
-        trigger = self.action.alert_rule_trigger
-        alert_rule = trigger.alert_rule
-        snuba_query = alert_rule.snuba_query
-        is_active = status == TriggerStatus.ACTIVE
-        is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE.value
-
-        # if alert threshold and threshold type is above then show '>'
-        # if resolve threshold and threshold type is *BELOW* then show '>'
-        # we can simplify this to be the below statement
-        show_greater_than_string = is_active == is_threshold_type_above
-        environment_string = snuba_query.environment.name if snuba_query.environment else "All"
-        aggregate = alert_rule.snuba_query.aggregate
-        return {
-            "link": absolute_uri(
-                reverse(
-                    "sentry-metric-alert",
-                    kwargs={
-                        "organization_slug": self.incident.organization.slug,
-                        "incident_id": self.incident.identifier,
-                    },
-                )
-            ),
-            "rule_link": absolute_uri(
-                reverse(
-                    "sentry-alert-rule",
-                    kwargs={
-                        "organization_slug": self.incident.organization.slug,
-                        "project_slug": self.project.slug,
-                        "alert_rule_id": self.action.alert_rule_trigger.alert_rule_id,
-                    },
-                )
-            ),
-            "incident_name": self.incident.title,
-            "environment": environment_string,
-            "time_window": format_duration(snuba_query.time_window / 60),
-            "triggered_at": trigger.date_added,
-            "aggregate": self.query_aggregates_display.get(aggregate, aggregate),
-            "query": snuba_query.query,
-            "threshold": trigger.alert_threshold if is_active else trigger.resolve_threshold,
-            # if alert threshold and threshold type is above then show '>'
-            # if resolve threshold and threshold type is *BELOW* then show '>'
-            "threshold_direction_string": ">" if show_greater_than_string else "<",
-            "status": INCIDENT_STATUS[IncidentStatus(self.incident.status)],
-            "is_critical": self.incident.status == IncidentStatus.CRITICAL,
-            "is_warning": self.incident.status == IncidentStatus.WARNING,
-            "unsubscribe_link": None,
-        }
 
 
 @AlertRuleTriggerAction.register_type(
@@ -148,17 +98,73 @@ class EmailActionHandler(ActionHandler):
     integration_provider="slack",
 )
 class SlackActionHandler(ActionHandler):
-    def fire(self):
-        self.send_alert()
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
 
-    def resolve(self):
-        self.send_alert()
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
 
-    def send_alert(self):
+    def send_alert(self, metric_value):
         from sentry.integrations.slack.utils import send_incident_alert_notification
 
         # TODO: We should include more information about the trigger/severity etc.
-        send_incident_alert_notification(self.action, self.incident)
+        send_incident_alert_notification(self.action, self.incident, metric_value)
+
+
+@AlertRuleTriggerAction.register_type(
+    "msteams",
+    AlertRuleTriggerAction.Type.MSTEAMS,
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
+    integration_provider="msteams",
+)
+class MsTeamsActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
+
+    def send_alert(self, metric_value):
+        from sentry.integrations.msteams.utils import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value)
+
+
+@AlertRuleTriggerAction.register_type(
+    "pagerduty",
+    AlertRuleTriggerAction.Type.PAGERDUTY,
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
+    integration_provider="pagerduty",
+)
+class PagerDutyActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
+
+    def send_alert(self, metric_value):
+        from sentry.integrations.pagerduty.utils import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value)
+
+
+@AlertRuleTriggerAction.register_type(
+    "sentry_app",
+    AlertRuleTriggerAction.Type.SENTRY_APP,
+    [AlertRuleTriggerAction.TargetType.SENTRY_APP],
+)
+class SentryAppActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
+
+    def send_alert(self, metric_value):
+        from sentry.rules.actions.notify_event_service import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value)
 
 
 def format_duration(minutes):
@@ -167,15 +173,70 @@ def format_duration(minutes):
     """
 
     if minutes >= 1440:
-        days = minutes / 1440
-        return "{} day{}".format(days, pluralize(days))
+        days = int(minutes // 1440)
+        return "{:d} day{}".format(days, pluralize(days))
 
     if minutes >= 60:
-        hours = minutes / 60
-        return "{} hour{}".format(hours, pluralize(hours))
+        hours = int(minutes // 60)
+        return "{:d} hour{}".format(hours, pluralize(hours))
 
     if minutes >= 1:
-        return "{} minute{}".format(minutes, pluralize(minutes))
+        minutes = int(minutes)
+        return "{:d} minute{}".format(minutes, pluralize(minutes))
 
-    seconds = minutes / 60
-    return "{} second{}".format(seconds, pluralize(seconds))
+    seconds = int(minutes // 60)
+    return "{:d} second{}".format(seconds, pluralize(seconds))
+
+
+def generate_incident_trigger_email_context(project, incident, alert_rule_trigger, status):
+    trigger = alert_rule_trigger
+    incident_trigger = IncidentTrigger.objects.get(incident=incident, alert_rule_trigger=trigger)
+
+    alert_rule = trigger.alert_rule
+    snuba_query = alert_rule.snuba_query
+    is_active = status == TriggerStatus.ACTIVE
+    is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+
+    # if alert threshold and threshold type is above then show '>'
+    # if resolve threshold and threshold type is *BELOW* then show '>'
+    # we can simplify this to be the below statement
+    show_greater_than_string = is_active == is_threshold_type_above
+    environment_string = snuba_query.environment.name if snuba_query.environment else "All"
+    aggregate = alert_rule.snuba_query.aggregate
+    return {
+        "link": absolute_uri(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            )
+        ),
+        "rule_link": absolute_uri(
+            reverse(
+                "sentry-alert-rule",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "project_slug": project.slug,
+                    "alert_rule_id": trigger.alert_rule_id,
+                },
+            )
+        ),
+        "project_slug": project.slug,
+        "incident_name": incident.title,
+        "environment": environment_string,
+        "time_window": format_duration(snuba_query.time_window / 60),
+        "triggered_at": incident_trigger.date_added,
+        "aggregate": aggregate,
+        "query": snuba_query.query,
+        "threshold": trigger.alert_threshold if is_active else alert_rule.resolve_threshold,
+        # if alert threshold and threshold type is above then show '>'
+        # if resolve threshold and threshold type is *BELOW* then show '>'
+        "threshold_direction_string": ">" if show_greater_than_string else "<",
+        "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
+        "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+        "is_critical": incident.status == IncidentStatus.CRITICAL,
+        "is_warning": incident.status == IncidentStatus.WARNING,
+        "unsubscribe_link": None,
+    }

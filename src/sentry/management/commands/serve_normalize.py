@@ -7,13 +7,14 @@ import stat
 import sys
 import time
 import traceback
-import json
 import resource
 from optparse import make_option
 
 import six
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.encoding import force_str
+
+from sentry.utils import json
 
 
 class ForkingUnixStreamServer(SocketServer.ForkingMixIn, SocketServer.UnixStreamServer):

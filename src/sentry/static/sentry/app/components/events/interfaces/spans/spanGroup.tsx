@@ -1,8 +1,7 @@
 import React from 'react';
 
 import {Organization, SentryTransactionEvent} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {TableData, TableDataRow} from 'app/views/eventsV2/table/types';
+import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 
 import {SpanBoundsType, SpanGeneratedBoundsType, isGapSpan, getSpanID} from './utils';
 import {ProcessedSpanType, ParsedTraceType, TreeDepthType} from './types';
@@ -12,7 +11,6 @@ type PropType = {
   orgId: string;
   organization: Organization;
   event: Readonly<SentryTransactionEvent>;
-  eventView: EventView;
   span: Readonly<ProcessedSpanType>;
   trace: Readonly<ParsedTraceType>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
@@ -94,14 +92,12 @@ class SpanGroup extends React.Component<PropType, State> {
       isCurrentSpanFilteredOut,
       orgId,
       organization,
-      eventView,
       event,
     } = this.props;
 
     return (
       <React.Fragment>
         <SpanBar
-          eventView={eventView}
           organization={organization}
           event={event}
           orgId={orgId}

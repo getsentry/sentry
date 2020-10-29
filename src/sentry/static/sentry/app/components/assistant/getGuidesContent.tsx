@@ -101,18 +101,15 @@ export default function getGuidesContent(): GuidesContent {
       ],
     },
     {
-      guide: 'discover_sidebar',
-      requiredTargets: ['discover_sidebar'],
+      guide: 'dynamic_counts',
+      requiredTargets: ['dynamic_counts'],
       steps: [
         {
-          title: t('Event Pages have moved'),
-          target: 'discover_sidebar',
-          description: tct(
-            `These are now in our powerful new query builder, Discover.
-            [link:Learn more about its advanced features].`,
-            {
-              link: <ExternalLink href="https://docs.sentry.io/performance/discover/" />,
-            }
+          title: t('These counts have changed'),
+          target: 'dynamic_counts',
+          description: t(
+            `These numbers and the bar chart now respect the time selected and any search
+            filters you've applied. You can hover to see the totals.`
           ),
         },
       ],

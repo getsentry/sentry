@@ -10,11 +10,12 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import HeaderItem from 'app/components/organizations/headerItem';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
+import PlatformList from 'app/components/platformList';
+import {IconProject} from 'app/icons';
 
 import ProjectSelector from './projectSelector';
 
@@ -202,7 +203,14 @@ export default class MultipleProjectSelector extends React.PureComponent {
     return shouldForceProject ? (
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
-        icon={<StyledInlineSvg src="icon-project" />}
+        icon={
+          forceProject && (
+            <PlatformList
+              platforms={forceProject.platform ? [forceProject.platform] : []}
+              max={1}
+            />
+          )
+        }
         locked
         lockedMessage={this.getLockedMessage()}
         settingsLink={
@@ -215,8 +223,8 @@ export default class MultipleProjectSelector extends React.PureComponent {
       </StyledHeaderItem>
     ) : !isGlobalSelectionReady ? (
       <StyledHeaderItem
-        data-test-id="global-header-project-selector"
-        icon={<StyledInlineSvg src="icon-project" />}
+        data-test-id="global-header-project-selector-loading"
+        icon={<IconProject />}
         loading
       >
         {t('Loading\u2026')}
@@ -261,12 +269,20 @@ export default class MultipleProjectSelector extends React.PureComponent {
                 : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
                 ? t('All Projects')
                 : t('My Projects');
+              const icon = hasSelected ? (
+                <PlatformList
+                  platforms={selectedProjects.map(p => p.platform ?? 'other').reverse()}
+                  max={5}
+                />
+              ) : (
+                <IconProject />
+              );
 
               return (
                 <StyledHeaderItem
                   data-test-id="global-header-project-selector"
                   active={hasSelected || isOpen}
-                  icon={<StyledInlineSvg src="icon-project" />}
+                  icon={icon}
                   hasSelected={hasSelected}
                   hasChanges={this.state.hasChanges}
                   isOpen={isOpen}
@@ -380,12 +396,6 @@ const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
   width: 100%;
   ${p => p.locked && 'cursor: default'};
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  height: 18px;
-  width: 18px;
-  transform: translateY(-2px);
 `;
 
 const StyledLink = styled(Link)`

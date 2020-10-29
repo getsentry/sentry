@@ -5,19 +5,23 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {User} from 'app/types';
+import {NoteType} from 'app/types/alerts';
 import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingError from 'app/components/loadingError';
 import Note from 'app/components/activity/note';
+import {CreateError} from 'app/components/activity/note/types';
 import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 
-import {Incident, IncidentActivityType, ActivityType, NoteType} from '../../types';
+import {Incident, IncidentActivityType, ActivityType} from '../../types';
 import ActivityPlaceholder from './activityPlaceholder';
 import DateDivider from './dateDivider';
 import StatusItem from './statusItem';
+
+type NoteProps = React.ComponentProps<typeof Note>;
 
 type Props = {
   api: Client;
@@ -32,7 +36,7 @@ type Props = {
 
   createError: boolean;
   createBusy: boolean;
-  createErrorJSON: null | object;
+  createErrorJSON: null | CreateError;
   onCreateNote: (note: NoteType) => void;
   onUpdateNote: (note: NoteType, activity: ActivityType) => void;
   onDeleteNote: (activity: ActivityType) => void;
@@ -44,14 +48,14 @@ type Props = {
  * fetch and render existing activity items.
  */
 class Activity extends React.Component<Props> {
-  handleUpdateNote = (note: Note, {activity}) => {
+  handleUpdateNote = (note: NoteType, {activity}: NoteProps) => {
     const {onUpdateNote} = this.props;
-    onUpdateNote(note, activity);
+    onUpdateNote(note, activity as ActivityType);
   };
 
-  handleDeleteNote = ({activity}) => {
+  handleDeleteNote = ({activity}: NoteProps) => {
     const {onDeleteNote} = this.props;
-    onDeleteNote(activity);
+    onDeleteNote(activity as ActivityType);
   };
 
   render() {
@@ -132,9 +136,10 @@ class Activity extends React.Component<Props> {
                         <ErrorBoundary mini key={`note-${activity.id}`}>
                           <Note
                             showTime
-                            user={activity.user}
+                            user={activity.user as User}
                             modelId={activity.id}
-                            text={activity.comment}
+                            text={activity.comment || ''}
+                            dateCreated={activity.dateCreated}
                             activity={activity}
                             authorName={authorName}
                             onDelete={this.handleDeleteNote}

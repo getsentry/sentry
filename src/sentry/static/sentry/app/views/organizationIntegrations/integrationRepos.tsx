@@ -4,12 +4,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {migrateRepository, addRepository} from 'app/actionCreators/integrations';
+import RepositoryActions from 'app/actions/repositoryActions';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import {IconCommit} from 'app/icons';
+import {IconCommit, IconFlag} from 'app/icons';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Pagination from 'app/components/pagination';
@@ -77,6 +78,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
       }
     });
     this.setState({itemList});
+    RepositoryActions.resetRepositories();
   };
 
   debouncedSearchRepositoriesRequest = debounce(
@@ -128,6 +130,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     promise.then(
       (repo: Repository) => {
         this.setState({adding: false, itemList: itemList.concat(repo)});
+        RepositoryActions.resetRepositories();
       },
       () => this.setState({adding: false})
     );
@@ -168,7 +171,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     const menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
     const onChange = this.state.integrationRepos.searchable
       ? this.handleSearchRepositories
-      : null;
+      : undefined;
 
     return (
       <DropdownAutoComplete
@@ -179,6 +182,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
         emptyMessage={t('No repositories available')}
         noResultsMessage={t('No repositories found')}
         busy={this.state.dropdownBusy}
+        alignMenu="right"
       >
         {({isOpen}) => (
           <DropdownButton isOpen={isOpen} size="xsmall" busy={this.state.adding}>
@@ -195,7 +199,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     );
     if (badRequest) {
       return (
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           {t(
             'We were unable to fetch repositories for this integration. Try again later, or reconnect this integration.'
           )}

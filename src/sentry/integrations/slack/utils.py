@@ -3,15 +3,12 @@ from __future__ import absolute_import
 import logging
 import time
 import six
-from datetime import timedelta
 
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
+from django.http import Http404
 
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
-from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -23,12 +20,15 @@ from sentry.models import (
     Project,
     User,
     Identity,
+    IdentityProvider,
     Integration,
+    Organization,
     Team,
     ReleaseProject,
 )
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.integrations.metric_alerts import incident_attachment_info
 
-from sentry.shared_integrations.exceptions import ApiError
 from .client import SlackClient
 
 logger = logging.getLogger("sentry.integrations.slack")
@@ -47,10 +47,13 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
-QUERY_AGGREGATION_DISPLAY = {
-    "count()": "events",
-    "count_unique(tags[sentry:user])": "users affected",
-}
+
+
+def get_integration_type(integration):
+    metadata = integration.metadata
+    # classic bots had a user_access_token in the metadata
+    default_installation = "classic_bot" if "user_access_token" in metadata else "workspace_app"
+    return metadata.get("installation_type", default_installation)
 
 
 def format_actor_option(actor):
@@ -165,8 +168,25 @@ def build_action_text(group, identity, action):
 def build_rule_url(rule, group, project):
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = u"/settings/{}/projects/{}/alerts/rules/{}/".format(org_slug, project_slug, rule.id)
+    rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
     return absolute_uri(rule_url)
+
+
+def build_upgrade_notice_attachment(group):
+    org_slug = group.organization.slug
+    url = absolute_uri(
+        u"/settings/{}/integrations/slack/?tab=configurations&referrer=slack".format(org_slug)
+    )
+
+    return {
+        "title": "Deprecation Notice",
+        "text": (
+            u"This alert is coming from a deprecated version of the Sentry-Slack integration. "
+            u"Your Slack integration, along with any data associated with it, will be *permanently deleted on January 14, 2021* "
+            u"if you do not transition to the new supported Slack integration. "
+            u"Click <{}|here> to complete the process.".format(url)
+        ),
+    }
 
 
 def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
@@ -295,108 +315,86 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     }
 
 
-def build_incident_attachment(incident):
-    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-    alert_rule = incident.alert_rule
+def build_incident_attachment(incident, metric_value=None):
+    """
+    Builds an incident attachment for slack unfurling
+    :param incident: The `Incident` to build the attachment for
+    :param metric_value: The value of the metric that triggered this alert to fire. If
+    not provided we'll attempt to calculate this ourselves.
+    :return:
+    """
 
-    incident_trigger = (
-        IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
-    )
-    if incident_trigger:
-        alert_rule_trigger = incident_trigger.alert_rule_trigger
-        # TODO: If we're relying on this and expecting possible delays between a trigger fired and this function running,
-        # then this could actually be incorrect if they changed the trigger's time window in this time period. Should we store it?
-        start = incident_trigger.date_modified - timedelta(
-            seconds=alert_rule_trigger.alert_rule.snuba_query.time_window
-        )
-        end = incident_trigger.date_modified
-    else:
-        start, end = None, None
+    data = incident_attachment_info(incident, metric_value)
 
-    if incident.status == IncidentStatus.CLOSED.value:
-        status = "Resolved"
-        color = RESOLVED_COLOR
-    elif incident.status == IncidentStatus.WARNING.value:
-        status = "Warning"
-        color = LEVEL_TO_COLOR["warning"]
-    elif incident.status == IncidentStatus.CRITICAL.value:
-        status = "Critical"
-        color = LEVEL_TO_COLOR["fatal"]
-
-    agg_text = QUERY_AGGREGATION_DISPLAY.get(
-        alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
-    )
-    agg_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)["count"]
-    time_window = alert_rule.snuba_query.time_window / 60
-
-    text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
-
-    if alert_rule.snuba_query.query != "":
-        text = text + "\nFilter: {}".format(alert_rule.snuba_query.query)
-
-    ts = incident.date_started
-
-    title = u"{}: {}".format(status, alert_rule.name)
+    colors = {
+        "Resolved": RESOLVED_COLOR,
+        "Warning": LEVEL_TO_COLOR["warning"],
+        "Critical": LEVEL_TO_COLOR["fatal"],
+    }
 
     return {
-        "fallback": title,
-        "title": title,
-        "title_link": absolute_uri(
-            reverse(
-                "sentry-metric-alert",
-                kwargs={
-                    "organization_slug": incident.organization.slug,
-                    "incident_id": incident.identifier,
-                },
-            )
-        ),
-        "text": text,
+        "fallback": data["title"],
+        "title": data["title"],
+        "title_link": data["title_link"],
+        "text": data["text"],
         "fields": [],
         "mrkdwn_in": ["text"],
-        "footer_icon": logo_url,
+        "footer_icon": data["logo_url"],
         "footer": "Sentry Incident",
-        "ts": to_timestamp(ts),
-        "color": color,
+        "ts": to_timestamp(data["ts"]),
+        "color": colors[data["status"]],
         "actions": [],
     }
 
 
 # Different list types in slack that we'll use to resolve a channel name. Format is
 # (<list_name>, <result_name>, <prefix>).
-LIST_TYPES = [
+LEGACY_LIST_TYPES = [
     ("channels", "channels", CHANNEL_PREFIX),
     ("groups", "groups", CHANNEL_PREFIX),
     ("users", "members", MEMBER_PREFIX),
 ]
+LIST_TYPES = [("conversations", "channels", CHANNEL_PREFIX), ("users", "members", MEMBER_PREFIX)]
 
 
 def strip_channel_name(name):
     return name.lstrip(strip_channel_chars)
 
 
-def get_channel_id(organization, integration_id, name):
+def get_channel_id(organization, integration, name, use_async_lookup=False):
+    """
+   Fetches the internal slack id of a channel.
+   :param organization: The organization that is using this integration
+   :param integration: The slack integration
+   :param name: The name of the channel
+   :return: a tuple of three values
+       1. prefix: string (`"#"` or `"@"`)
+       2. channel_id: string or `None`
+       3. timed_out: boolean (whether we hit our self-imposed time limit)
+   """
+
     name = strip_channel_name(name)
-    try:
-        integration = Integration.objects.get(
-            provider="slack", organizations=organization, id=integration_id
-        )
-    except Integration.DoesNotExist:
-        return None
+
+    # longer lookup for the async job
+    if use_async_lookup:
+        timeout = 3 * 60
+    else:
+        timeout = SLACK_DEFAULT_TIMEOUT
 
     # XXX(meredith): For large accounts that have many, many channels it's
     # possible for us to timeout while attempting to paginate through to find the channel id
     # This means some users are unable to create/update alert rules. To avoid this, we attempt
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
-    return get_channel_id_with_timeout(integration, name, SLACK_DEFAULT_TIMEOUT)
+    return get_channel_id_with_timeout(integration, name, timeout)
 
 
 def get_channel_id_with_timeout(integration, name, timeout):
     """
     Fetches the internal slack id of a channel.
-    :param organization: The organization that is using this integration
-    :param integration_id: The integration id of this slack integration
+    :param integration: The slack integration
     :param name: The name of the channel
+    :param timeout: Our self-imposed time limit.
     :return: a tuple of three values
         1. prefix: string (`"#"` or `"@"`)
         2. channel_id: string or `None`
@@ -408,10 +406,20 @@ def get_channel_id_with_timeout(integration, name, timeout):
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
+    # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
+    # once eveyone is migrated we can remove this check and usages of channels.list
+    if get_integration_type(integration) == "workspace_app":
+        list_types = LEGACY_LIST_TYPES
+    else:
+        list_types = LIST_TYPES
+        payload = dict(payload, **{"types": "public_channel,private_channel"})
+
     time_to_quit = time.time() + timeout
 
     client = SlackClient()
-    for list_type, result_name, prefix in LIST_TYPES:
+    id_data = None
+    found_duplicate = False
+    for list_type, result_name, prefix in list_types:
         cursor = ""
         while True:
             endpoint = "/%s.list" % list_type
@@ -424,9 +432,20 @@ def get_channel_id_with_timeout(integration, name, timeout):
                 )
                 return (prefix, None, False)
 
-            item_id = {c["name"]: c["id"] for c in items[result_name]}.get(name)
-            if item_id:
-                return (prefix, item_id, False)
+            for c in items[result_name]:
+                # The "name" field is unique (this is the username for users)
+                # so we return immediately if we find a match.
+                if c["name"] == name:
+                    return (prefix, c["id"], False)
+                # If we don't get a match on a unique identifier, we look through
+                # the users' display names, and error if there is a repeat.
+                if list_type == "users":
+                    profile = c.get("profile")
+                    if profile and profile.get("display_name") == name:
+                        if id_data:
+                            found_duplicate = True
+                        else:
+                            id_data = (prefix, c["id"], False)
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
             if time.time() > time_to_quit:
@@ -434,14 +453,18 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
             if not cursor:
                 break
+        if found_duplicate:
+            raise DuplicateDisplayNameError(name)
+        elif id_data:
+            return id_data
 
     return (prefix, None, False)
 
 
-def send_incident_alert_notification(action, incident):
+def send_incident_alert_notification(action, incident, metric_value):
     channel = action.target_identifier
     integration = action.integration
-    attachment = build_incident_attachment(incident)
+    attachment = build_incident_attachment(incident, metric_value)
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,
@@ -453,3 +476,22 @@ def send_incident_alert_notification(action, incident):
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
         logger.info("rule.fail.slack_post", extra={"error": six.text_type(e)})
+
+
+def get_identity(user, organization_id, integration_id):
+    try:
+        organization = Organization.objects.get(id__in=user.get_orgs(), id=organization_id)
+    except Organization.DoesNotExist:
+        raise Http404
+
+    try:
+        integration = Integration.objects.get(id=integration_id, organizations=organization)
+    except Integration.DoesNotExist:
+        raise Http404
+
+    try:
+        idp = IdentityProvider.objects.get(external_id=integration.external_id, type="slack")
+    except IdentityProvider.DoesNotExist:
+        raise Http404
+
+    return organization, integration, idp

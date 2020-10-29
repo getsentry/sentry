@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DeployBadge from 'app/components/deployBadge';
 
@@ -13,22 +13,29 @@ const deploy = {
   id: '6348842',
 };
 
-describe('DeployBadge', function() {
-  it('renders', function() {
-    const wrapper = shallow(<DeployBadge deploy={deploy} />);
+describe('DeployBadge', function () {
+  it('renders', function () {
+    const wrapper = mountWithTheme(<DeployBadge deploy={deploy} />);
 
     expect(wrapper.find('Badge').text()).toEqual('production');
     expect(wrapper.find('Icon').length).toEqual(0);
   });
 
-  it('renders with icon and link', function() {
-    const wrapper = shallow(
-      <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" />
+  it('renders with icon and link', function () {
+    const projectId = 1;
+
+    const wrapper = mountWithTheme(
+      <DeployBadge
+        deploy={deploy}
+        orgSlug="sentry"
+        version="1.2.3"
+        projectId={projectId}
+      />
     );
 
     expect(wrapper.find('Link').props('to').to).toEqual({
       pathname: '/organizations/sentry/issues/',
-      query: {project: null, environment: 'production', query: 'release:1.2.3'},
+      query: {project: projectId, environment: 'production', query: 'release:1.2.3'},
     });
     expect(wrapper.find('Badge').text()).toEqual('production');
     expect(wrapper.find('Icon').length).toEqual(1);

@@ -27,16 +27,15 @@ const defaultProps = {
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
-
-//Maybe not the best way of getting the props from TableType but it works
-type Props = DefaultProps & InputField['props'] & Omit<TableType, 'type'>;
+type Props = InputField['props'];
+type RenderProps = Props & DefaultProps & TableType;
 
 export default class TableField extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   hasValue = value => defined(value) && !objectIsEmpty(value);
 
-  renderField = (props: Props) => {
+  renderField = (props: RenderProps) => {
     const {
       onChange,
       onBlur,
@@ -142,7 +141,7 @@ export default class TableField extends React.Component<Props> {
               <Row key={fieldKey}>
                 <RowInput>
                   <Input
-                    onChange={v => setValue(rowIndex, fieldKey, v ? v : null)}
+                    onChange={v => setValue(rowIndex, fieldKey, v)}
                     value={!defined(row[fieldKey]) ? '' : row[fieldKey]}
                   />
                 </RowInput>

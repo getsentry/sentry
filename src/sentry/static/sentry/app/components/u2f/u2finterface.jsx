@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import u2f from 'u2f-api';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import ConfigStore from 'app/stores/configStore';
 import {t, tct} from 'app/locale';

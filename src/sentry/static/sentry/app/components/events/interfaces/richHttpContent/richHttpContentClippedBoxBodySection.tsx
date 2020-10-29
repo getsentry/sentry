@@ -68,7 +68,7 @@ const RichHttpContentClippedBoxBodySection = ({
   const content = getContent();
 
   return content ? (
-    <ClippedBox title={t('Body')} defaultCollapsed>
+    <ClippedBox title={t('Body')} defaultClipped>
       <ErrorBoundary mini>{content}</ErrorBoundary>
     </ClippedBox>
   ) : null;

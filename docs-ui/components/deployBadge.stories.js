@@ -1,5 +1,4 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import DeployBadge from 'app/components/deployBadge';
@@ -13,23 +12,28 @@ const deploy = {
   id: '6348842',
 };
 
-storiesOf('UI|DeployBadge', module).add(
-  'default',
-  withInfo('Used to display deploy in a "badge"')(() => (
+export default {
+  title: 'Core/Badges+Tags/DeployBadge',
+};
+
+export const Default = withInfo('Used to display deploy in a "badge"')(() => (
+  <div>
     <div>
-      <div>
-        <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" />
-      </div>
-      <div>
-        <DeployBadge
-          deploy={{...deploy, environment: 'verylongenvironment'}}
-          orgSlug="sentry"
-          version="1.2.3"
-        />
-      </div>
-      <div>
-        <DeployBadge deploy={deploy} />
-      </div>
+      <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" />
     </div>
-  ))
-);
+    <div>
+      <DeployBadge
+        deploy={{...deploy, environment: 'verylongenvironment'}}
+        orgSlug="sentry"
+        version="1.2.3"
+      />
+    </div>
+    <div>
+      <DeployBadge deploy={deploy} />
+    </div>
+  </div>
+));
+
+Default.story = {
+  name: 'default',
+};

@@ -5,9 +5,8 @@ import pytz
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.incidents.logic import create_alert_rule
 
-FEATURE_NAME = "organizations:incidents"
+FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
@@ -25,10 +24,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("incidents - empty state")
 
     def test_incidents_list(self):
-        alert_rule = create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
-        )
-
+        alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             self.organization,
             title="Incident #1",
@@ -41,6 +37,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.wait_until_test_id("incident-sparkline")
             self.browser.snapshot("incidents - list")
 
@@ -53,4 +50,5 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_test_id("incident-title")
 
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.browser.blur()
             self.browser.snapshot("incidents - details")

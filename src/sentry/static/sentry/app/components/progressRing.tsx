@@ -1,9 +1,9 @@
 import React from 'react';
 import styled, {SerializedStyles} from '@emotion/styled';
-import posed, {PoseGroup} from 'react-pose';
+import {motion, AnimatePresence} from 'framer-motion';
 
 import theme, {Theme} from 'app/utils/theme';
-import testablePose from 'app/utils/testablePose';
+import testableTransition from 'app/utils/testableTransition';
 
 type TextProps = {
   textCss?: Props['textCss'];
@@ -64,13 +64,14 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   ${p => p.textCss && p.textCss(p)}
 `;
 
-const PosedText = posed(Text)(
-  testablePose({
-    init: {opacity: 0, y: -10},
-    enter: {opacity: 1, y: 0},
-    exit: {opacity: 0, y: 10},
-  })
-);
+const AnimatedText = motion.custom(Text);
+
+AnimatedText.defaultProps = {
+  initial: {opacity: 0, y: -10},
+  animate: {opacity: 1, y: 0},
+  exit: {opacity: 0, y: 10},
+  transition: testableTransition(),
+};
 
 const ProgressRing = ({
   value,
@@ -94,16 +95,16 @@ const ProgressRing = ({
   const percent = progress * 100;
   const progressOffset = (1 - progress) * circumference;
 
-  const TextComponent = animateText ? PosedText : Text;
+  const TextComponent = animateText ? AnimatedText : Text;
 
   let textNode = (
-    <TextComponent key={text?.toString()} x="50%" y="50%" {...{textCss, percent}}>
+    <TextComponent key={text?.toString()} {...{textCss, percent}}>
       {text}
     </TextComponent>
   );
 
   textNode = animateText ? (
-    <PoseGroup preEnterPose="init">{textNode}</PoseGroup>
+    <AnimatePresence initial={false}>{textNode}</AnimatePresence>
   ) : (
     textNode
   );

@@ -76,12 +76,12 @@ class MonitorStatus(ObjectStatus):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ACTIVE, "active"),
-            (cls.DISABLED, "disabled"),
-            (cls.PENDING_DELETION, "pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
-            (cls.OK, "ok"),
-            (cls.ERROR, "error"),
+            (cls.ACTIVE, u"active"),
+            (cls.DISABLED, u"disabled"),
+            (cls.PENDING_DELETION, u"pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, u"deletion_in_progress"),
+            (cls.OK, u"ok"),
+            (cls.ERROR, u"error"),
         )
 
 
@@ -136,7 +136,8 @@ class Monitor(Model):
         default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
     )
     type = BoundedPositiveIntegerField(
-        default=MonitorType.UNKNOWN, choices=MonitorType.as_choices()
+        default=MonitorType.UNKNOWN,
+        choices=[(k, six.text_type(v)) for k, v in MonitorType.as_choices()],
     )
     config = EncryptedJsonField(default=dict)
     next_checkin = models.DateTimeField(null=True)
@@ -166,7 +167,7 @@ class Monitor(Model):
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        from sentry.coreapi import ClientApiHelper
+        from sentry.coreapi import insert_data_to_database_legacy
         from sentry.event_manager import EventManager
         from sentry.models import Project
         from sentry.signals import monitor_failed
@@ -201,7 +202,6 @@ class Monitor(Model):
         )
         event_manager.normalize()
         data = event_manager.get_data()
-        helper = ClientApiHelper(project_id=self.project_id)
-        helper.insert_data_to_database(data)
+        insert_data_to_database_legacy(data)
         monitor_failed.send(monitor=self, sender=type(self))
         return True

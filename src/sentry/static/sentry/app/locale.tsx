@@ -234,7 +234,7 @@ export function renderTemplate(template: ParsedTemplate, components: ComponentMa
       : React.cloneElement(element, {key: idx++}, children);
   }
 
-  return renderGroup('root');
+  return <React.Fragment>{renderGroup('root')}</React.Fragment>;
 }
 
 /**

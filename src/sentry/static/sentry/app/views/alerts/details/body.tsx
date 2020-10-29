@@ -13,22 +13,16 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
-import {IconTelescope, IconWarning, IconLink} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {SectionHeading} from 'app/components/charts/styles';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {Panel} from 'app/components/panels';
+import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Button from 'app/components/button';
-import {
-  AlertRuleThresholdType,
-  Trigger,
-  Dataset,
-} from 'app/views/settings/incidentRules/types';
-import {
-  PRESET_AGGREGATES,
-  makeDefaultCta,
-} from 'app/views/settings/incidentRules/presets';
+import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
+import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
+import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 
 import Activity from './activity';
 import Chart from './chart';
@@ -39,7 +33,7 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import {getIncidentDiscoverUrl} from '../utils';
+import {getIncidentMetricPreset, DATA_SOURCE_LABELS} from '../utils';
 
 type Props = {
   incident?: Incident;
@@ -48,31 +42,26 @@ type Props = {
 
 export default class DetailsBody extends React.Component<Props> {
   get metricPreset() {
-    const alertRule = this.props.incident?.alertRule;
-    const aggregate = alertRule?.aggregate;
-    const dataset = alertRule?.dataset ?? Dataset.ERRORS;
-
-    return PRESET_AGGREGATES.find(
-      p => p.validDataset.includes(dataset) && p.match.test(aggregate ?? '')
-    );
+    const {incident} = this.props;
+    return incident ? getIncidentMetricPreset(incident) : undefined;
   }
 
   /**
    * Return a string describing the threshold based on the threshold and the type
    */
   getThresholdText(
-    trigger: Trigger | undefined,
-    key: 'alertThreshold' | 'resolveThreshold'
+    value: number | '' | null | undefined,
+    thresholdType: AlertRuleThresholdType,
+    isAlert: boolean = false
   ) {
-    if (!trigger || typeof trigger[key] !== 'number') {
+    if (!defined(value)) {
       return '';
     }
 
-    const isAbove = trigger.thresholdType === AlertRuleThresholdType.ABOVE;
-    const isAlert = key === 'alertThreshold';
+    const isAbove = thresholdType === AlertRuleThresholdType.ABOVE;
     const direction = isAbove === isAlert ? '>' : '<';
 
-    return `${direction} ${trigger[key]}`;
+    return `${direction} ${value}`;
   }
 
   renderRuleDetails() {
@@ -91,43 +80,63 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <RuleDetails>
+        <span>{t('Data Source')}</span>
+        <span>{DATA_SOURCE_LABELS[incident.alertRule?.dataset]}</span>
+
         <span>{t('Metric')}</span>
         <span>{incident.alertRule?.aggregate}</span>
-
-        <span>{t('Critical Trigger')}</span>
-        <span>{this.getThresholdText(criticalTrigger, 'alertThreshold')}</span>
-
-        {defined(criticalTrigger?.resolveThreshold) && (
-          <React.Fragment>
-            <span>{t('Critical Resolution')}</span>
-            <span>{this.getThresholdText(criticalTrigger, 'resolveThreshold')}</span>
-          </React.Fragment>
-        )}
-
-        {defined(warningTrigger) && (
-          <React.Fragment>
-            <span>{t('Warning Trigger')}</span>
-            <span>{this.getThresholdText(warningTrigger, 'alertThreshold')}</span>
-
-            {defined(warningTrigger?.resolveThreshold) && (
-              <React.Fragment>
-                <span>{t('Warning Resolution')}</span>
-                <span>{this.getThresholdText(warningTrigger, 'resolveThreshold')}</span>
-              </React.Fragment>
-            )}
-          </React.Fragment>
-        )}
 
         <span>{t('Time Window')}</span>
         <span>
           {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
         </span>
+
+        {incident.alertRule?.query && (
+          <React.Fragment>
+            <span>{t('Filter')}</span>
+            <span title={incident.alertRule?.query}>{incident.alertRule?.query}</span>
+          </React.Fragment>
+        )}
+
+        <span>{t('Critical Trigger')}</span>
+        <span>
+          {this.getThresholdText(
+            criticalTrigger?.alertThreshold,
+            incident.alertRule?.thresholdType,
+            true
+          )}
+        </span>
+
+        {defined(warningTrigger) && (
+          <React.Fragment>
+            <span>{t('Warning Trigger')}</span>
+            <span>
+              {this.getThresholdText(
+                warningTrigger?.alertThreshold,
+                incident.alertRule?.thresholdType,
+                true
+              )}
+            </span>
+          </React.Fragment>
+        )}
+
+        {defined(incident.alertRule?.resolveThreshold) && (
+          <React.Fragment>
+            <span>{t('Resolution')}</span>
+            <span>
+              {this.getThresholdText(
+                incident.alertRule?.resolveThreshold,
+                incident.alertRule?.thresholdType
+              )}
+            </span>
+          </React.Fragment>
+        )}
       </RuleDetails>
     );
   }
 
   renderChartHeader() {
-    const {incident, stats, params} = this.props;
+    const {incident} = this.props;
     const alertRule = incident?.alertRule;
 
     return (
@@ -147,43 +156,54 @@ export default class DetailsBody extends React.Component<Props> {
                 </code>
               ),
             })}
-            {alertRule?.query &&
-              tct('Filter: [filter]', {
-                filter: <code>{alertRule.query}</code>,
+            {(alertRule?.query || incident?.alertRule?.dataset) &&
+              tct('Filter: [datasetType] [filter]', {
+                datasetType: incident?.alertRule?.dataset && (
+                  <code>{DATASET_EVENT_TYPE_FILTERS[incident.alertRule.dataset]}</code>
+                ),
+                filter: alertRule?.query && <code>{alertRule.query}</code>,
               })}
           </ChartParameters>
         </div>
-        <ChartActions>
-          <Feature features={['discover-basic']}>
-            <Projects slugs={incident?.projects} orgId={params.orgId}>
-              {({initiallyLoaded, fetching, projects}) => {
-                const preset = this.metricPreset;
-                const ctaOpts = {
-                  orgSlug: params.orgId,
-                  projects: (initiallyLoaded ? projects : []) as Project[],
-                  incident,
-                  stats,
-                };
-
-                const {buttonText, ...props} = preset
-                  ? preset.makeCtaParams(ctaOpts)
-                  : makeDefaultCta(ctaOpts);
-
-                return (
-                  <Button
-                    size="small"
-                    priority="primary"
-                    disabled={!incident || fetching || !initiallyLoaded}
-                    {...props}
-                  >
-                    {buttonText}
-                  </Button>
-                );
-              }}
-            </Projects>
-          </Feature>
-        </ChartActions>
       </ChartHeader>
+    );
+  }
+
+  renderChartActions() {
+    const {incident, params, stats} = this.props;
+
+    return (
+      // Currently only one button in pannel, hide panel if not available
+      <Feature features={['discover-basic']}>
+        <ChartActions>
+          <Projects slugs={incident?.projects} orgId={params.orgId}>
+            {({initiallyLoaded, fetching, projects}) => {
+              const preset = this.metricPreset;
+              const ctaOpts = {
+                orgSlug: params.orgId,
+                projects: (initiallyLoaded ? projects : []) as Project[],
+                incident,
+                stats,
+              };
+
+              const {buttonText, ...props} = preset
+                ? preset.makeCtaParams(ctaOpts)
+                : makeDefaultCta(ctaOpts);
+
+              return (
+                <Button
+                  size="small"
+                  priority="primary"
+                  disabled={!incident || fetching || !initiallyLoaded}
+                  {...props}
+                >
+                  {buttonText}
+                </Button>
+              );
+            }}
+          </Projects>
+        </ChartActions>
+      </Feature>
     );
   }
 
@@ -206,18 +226,22 @@ export default class DetailsBody extends React.Component<Props> {
             )}
           <PageContent>
             <ChartPanel>
-              {this.renderChartHeader()}
-              {incident && stats ? (
-                <Chart
-                  triggers={incident.alertRule.triggers}
-                  aggregate={incident.alertRule.aggregate}
-                  data={stats.eventStats.data}
-                  detected={incident.dateDetected}
-                  closed={incident.dateClosed}
-                />
-              ) : (
-                <Placeholder height="200px" />
-              )}
+              <PanelBody withPadding>
+                {this.renderChartHeader()}
+                {incident && stats ? (
+                  <Chart
+                    triggers={incident.alertRule.triggers}
+                    resolveThreshold={incident.alertRule.resolveThreshold}
+                    aggregate={incident.alertRule.aggregate}
+                    data={stats.eventStats.data}
+                    started={incident.dateStarted}
+                    closed={incident.dateClosed || undefined}
+                  />
+                ) : (
+                  <Placeholder height="200px" />
+                )}
+              </PanelBody>
+              {this.renderChartActions()}
             </ChartPanel>
           </PageContent>
           <DetailWrapper>
@@ -248,43 +272,20 @@ export default class DetailsBody extends React.Component<Props> {
                 <span>{t('Alert Rule')}</span>
                 {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
                   <SideHeaderLink
-                    to={{
-                      pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
-                    }}
+                    disabled={!!incident?.id}
+                    to={
+                      incident?.id
+                        ? {
+                            pathname: `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`,
+                          }
+                        : ''
+                    }
                   >
-                    {t('View Rule')}
-                    <IconLink size="xs" />
+                    {t('View Alert Rule')}
                   </SideHeaderLink>
                 )}
               </SidebarHeading>
               {this.renderRuleDetails()}
-
-              <Feature features={['discover-basic']}>
-                <SidebarHeading>
-                  <span>{t('Query')}</span>
-                  <Projects slugs={incident?.projects} orgId={params.orgId}>
-                    {({initiallyLoaded, fetching, projects}) => (
-                      <SideHeaderLink
-                        disabled={!incident || fetching || !initiallyLoaded}
-                        to={getIncidentDiscoverUrl({
-                          orgSlug: params.orgId,
-                          projects: (initiallyLoaded ? projects : []) as Project[],
-                          incident,
-                          stats,
-                        })}
-                      >
-                        {t('View in Discover')}
-                        <IconTelescope size="xs" />
-                      </SideHeaderLink>
-                    )}
-                  </Projects>
-                </SidebarHeading>
-              </Feature>
-              {incident ? (
-                <Query>{incident?.alertRule.query || '""'}</Query>
-              ) : (
-                <Placeholder height="30px" />
-              )}
             </Sidebar>
           </DetailWrapper>
         </Main>
@@ -334,10 +335,6 @@ const SidebarHeading = styled(SectionHeading)`
 `;
 
 const SideHeaderLink = styled(Link)`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  grid-gap: ${space(0.5)};
   font-weight: normal;
 `;
 
@@ -346,17 +343,17 @@ const StyledPageContent = styled(PageContent)`
   flex-direction: column;
 `;
 
-const ChartPanel = styled(Panel)`
-  padding: ${space(2)};
-`;
+const ChartPanel = styled(Panel)``;
 
 const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
-  display: grid;
-  grid-template-columns: 1fr max-content;
 `;
 
-const ChartActions = styled('div')``;
+const ChartActions = styled(PanelFooter)`
+  display: flex;
+  justify-content: flex-end;
+  padding: ${space(2)};
+`;
 
 const ChartParameters = styled('div')`
   color: ${p => p.theme.gray600};
@@ -366,6 +363,7 @@ const ChartParameters = styled('div')`
   grid-auto-columns: max-content;
   grid-gap: ${space(4)};
   align-items: center;
+  overflow-x: auto;
 
   > * {
     position: relative;
@@ -376,7 +374,7 @@ const ChartParameters = styled('div')`
     display: block;
     height: 70%;
     width: 1px;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     position: absolute;
     right: -${space(2)};
     top: 15%;
@@ -415,20 +413,20 @@ const RuleDetails = styled('div')`
     padding: ${space(0.5)} ${space(1)};
   }
 
+  & > span:nth-child(2n + 1) {
+    width: 125px;
+  }
+
   & > span:nth-child(2n + 2) {
     text-align: right;
+    width: 215px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   & > span:nth-child(4n + 1),
   & > span:nth-child(4n + 2) {
     background-color: ${p => p.theme.gray100};
   }
-`;
-
-const Query = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
-  background-color: ${p => p.theme.gray100};
-  padding: ${space(0.5)} ${space(1)};
-  color: ${p => p.theme.gray700};
 `;

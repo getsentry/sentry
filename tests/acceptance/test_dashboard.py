@@ -41,7 +41,6 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        self.dismiss_assistant("discover_sidebar")
         self.path = u"/organizations/{}/projects/".format(self.organization.slug)
 
     def create_sample_event(self):
@@ -70,14 +69,14 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading-indicator")
         self.browser.wait_until_test_id("resources")
-        self.browser.wait_until("[data-test-id] figure", timeout=10000)
+        self.browser.wait_until(".echarts-for-react path", timeout=10000)
         self.browser.snapshot("org dash no first event")
 
     def test_one_issue(self):
         self.create_sample_event()
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading-indicator")
-        self.browser.wait_until("[data-test-id] figure", timeout=100000)
+        self.browser.wait_until(".echarts-for-react path", timeout=100000)
         self.browser.snapshot("org dash one issue")
 
     def test_rename_team_and_navigate_back(self):
@@ -104,7 +103,6 @@ class EmptyDashboardTest(AcceptanceTestCase):
     def setUp(self):
         super(EmptyDashboardTest, self).setUp()
         self.login_as(self.user)
-        self.dismiss_assistant("discover_sidebar")
         self.path = u"/organizations/{}/projects/".format(self.organization.slug)
 
     def test_new_dashboard_empty(self):

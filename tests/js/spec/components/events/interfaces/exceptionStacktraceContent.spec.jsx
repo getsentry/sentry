@@ -1,6 +1,7 @@
 import React from 'react';
+import cloneDeep from 'lodash/cloneDeep';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ExceptionStacktraceContent from 'app/components/events/interfaces/exceptionStacktraceContent';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -53,6 +54,7 @@ describe('ExceptionStacktraceContent', () => {
     platform: 'node',
     expandFirstFrame: true,
     newestFirst: true,
+    chainedException: false,
     event: {
       entries: [],
       crashFile: {
@@ -85,27 +87,57 @@ describe('ExceptionStacktraceContent', () => {
   };
 
   it('default behaviour', () => {
-    const wrapper = mount(<ExceptionStacktraceContent {...props} />);
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(<ExceptionStacktraceContent {...props} />);
+    expect(wrapper).toSnapshot();
   });
 
   it('should return an emptyRender', () => {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ExceptionStacktraceContent {...props} stacktrace={undefined} />
     );
     expect(wrapper.isEmptyRender()).toBe(true);
   });
 
   it('should return the EmptyMessage component', () => {
-    const wrapper = mount(<ExceptionStacktraceContent {...props} />);
+    const wrapper = mountWithTheme(<ExceptionStacktraceContent {...props} />);
     const emptyMessageElement = wrapper.find(EmptyMessage).exists();
     expect(emptyMessageElement).toBe(true);
   });
 
   it('should not return the EmptyMessage component', () => {
-    props.stacktrace.frames[0].inApp = true;
-    const wrapper = mount(<ExceptionStacktraceContent {...props} />);
+    const modifiedProps = cloneDeep(props);
+    modifiedProps.stacktrace.frames[0].inApp = true;
+    const wrapper = mountWithTheme(<ExceptionStacktraceContent {...modifiedProps} />);
     const emptyMessageElement = wrapper.find(EmptyMessage).exists();
     expect(emptyMessageElement).toBe(false);
+  });
+
+  it('should render system frames if "stackView: app" and there are no inApp frames and is a chained exceptions', () => {
+    const wrapper = mountWithTheme(
+      <ExceptionStacktraceContent {...props} chainedException />
+    );
+    expect(wrapper.find('Line').length).toBe(2);
+  });
+
+  it('should not render system frames if "stackView: app" and there are inApp frames and is a chained exceptions', () => {
+    const modifiedProps = cloneDeep(props);
+    modifiedProps.stacktrace.frames[0].inApp = true;
+    const wrapper = mountWithTheme(
+      <ExceptionStacktraceContent {...modifiedProps} chainedException />
+    );
+
+    // There must be two elements, one being the inApp frame and the other
+    // the last frame which is non-app frame
+    expect(wrapper.find('Line').length).toBe(2);
+
+    // inApp === true
+    expect(wrapper.find('.filename').at(1).text()).toBe(
+      props.stacktrace.frames[0].filename
+    );
+
+    // inApp === false
+    expect(wrapper.find('.filename').at(0).text()).toBe(
+      props.stacktrace.frames[1].filename
+    );
   });
 });

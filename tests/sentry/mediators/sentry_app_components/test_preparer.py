@@ -39,7 +39,13 @@ class TestPreparerIssueLink(TestCase):
                     {"type": "select", "name": "bar", "label": "Bar", "uri": "/sentry/bar"}
                 ],
                 "optional_fields": [
-                    {"type": "select", "name": "baz", "label": "Baz", "uri": "/sentry/baz"}
+                    {
+                        "type": "select",
+                        "name": "baz",
+                        "label": "Baz",
+                        "uri": "/sentry/baz",
+                        "skip_load_on_open": True,
+                    }
                 ],
             },
         }
@@ -54,7 +60,10 @@ class TestPreparerIssueLink(TestCase):
 
         assert call(install=self.install, project=self.project, uri="/sentry/bar") in run.mock_calls
 
-        assert call(install=self.install, project=self.project, uri="/sentry/baz") in run.mock_calls
+        assert (
+            not call(install=self.install, project=self.project, uri="/sentry/baz")
+            in run.mock_calls
+        )
 
 
 class TestPreparerStacktraceLink(TestCase):
