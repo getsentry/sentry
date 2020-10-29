@@ -32,6 +32,27 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
   },
 ];
 
+export const WEB_VITALS_VIEWS: Readonly<Array<NewQuery>> = [
+  {
+    id: undefined,
+    name: t('Web Vitals'),
+    fields: [
+      'transaction',
+      'epm()',
+      'p75(measurements.fp)',
+      'p75(measurements.fcp)',
+      'p75(measurements.lcp)',
+      'p75(measurements.fid)',
+      'p75(measurements.cls)',
+    ],
+    orderby: '-epm',
+    query: 'event.type:transaction transaction.op:pageload',
+    projects: [],
+    version: 2,
+    range: '24h',
+  },
+];
+
 export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
   DEFAULT_EVENT_VIEW,
   {
