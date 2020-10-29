@@ -132,6 +132,7 @@ class ProjectEnvironments extends React.Component<Props, State> {
     }
     return (
       <EnvironmentRow
+        name={ALL_ENVIRONMENTS_KEY}
         environment={{
           id: ALL_ENVIRONMENTS_KEY,
           name: ALL_ENVIRONMENTS_KEY,
@@ -152,6 +153,7 @@ class ProjectEnvironments extends React.Component<Props, State> {
         {envs.map(env => (
           <EnvironmentRow
             key={env.id}
+            name={env.name}
             environment={env}
             isHidden={isHidden}
             onHide={this.toggleEnv}
@@ -213,6 +215,7 @@ class ProjectEnvironments extends React.Component<Props, State> {
 
 type RowProps = {
   environment: Environment;
+  name: string;
   onHide?: (env: Environment, isHidden: boolean) => void;
   isHidden?: boolean;
   actionText?: string;
@@ -222,6 +225,7 @@ type RowProps = {
 
 function EnvironmentRow({
   environment,
+  name,
   onHide,
   shouldShowAction = false,
   isSystemRow = false,
@@ -230,7 +234,7 @@ function EnvironmentRow({
 }: RowProps) {
   return (
     <EnvironmentItem>
-      <Name>{isSystemRow ? t('All Environments') : environment.name}</Name>
+      <Name>{isSystemRow ? t('All Environments') : name}</Name>
       <Access access={['project:write']}>
         {({hasAccess}) => (
           <React.Fragment>
