@@ -55,7 +55,7 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
 
 export {OpenInContextLine};
 
-const OpenInContainer = styled('div')<{columnQuantity: number}>`
+export const OpenInContainer = styled('div')<{columnQuantity: number}>`
   position: relative;
   z-index: 1;
   display: grid;
@@ -72,7 +72,7 @@ const OpenInContainer = styled('div')<{columnQuantity: number}>`
   white-space: nowrap;
 `;
 
-const OpenInLink = styled(ExternalLink)`
+export const OpenInLink = styled(ExternalLink)`
   display: inline-grid;
   align-items: center;
   grid-template-columns: max-content auto;
@@ -80,7 +80,7 @@ const OpenInLink = styled(ExternalLink)`
   color: ${p => p.theme.gray500};
 `;
 
-const OpenInName = styled('strong')`
+export const OpenInName = styled('strong')`
   color: ${p => p.theme.gray600};
   font-weight: 700;
 `;

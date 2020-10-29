@@ -78,9 +78,11 @@ class ProjectStacktraceLinkTest(APITestCase):
             "projectSlug": self.project.slug,
             "repoId": six.text_type(self.repo.id),
             "repoName": self.repo.name,
+            "provider": "example",
+            "providerName": "Example",
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "integrationId": six.text_type(self.integrationId),
+            "integrationId": six.text_type(self.integration.id),
             "defaultBranch": None,
         }
         assert not response.data["sourceUrl"]
@@ -100,9 +102,11 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "projectSlug": self.project.slug,
                 "repoId": six.text_type(self.repo.id),
                 "repoName": self.repo.name,
+                "provider": "example",
+                "providerName": "Example",
                 "sourceRoot": self.config.source_root,
                 "stackRoot": self.config.stack_root,
-                "integrationId": six.text_type(self.integrationId),
+                "integrationId": six.text_type(self.integration.id),
                 "defaultBranch": None,
             }
             assert response.data["sourceUrl"] == "https://sourceurl.com/"

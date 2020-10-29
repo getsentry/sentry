@@ -1,10 +1,7 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import ExternalLink from 'app/components/links/externalLink';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import {
@@ -15,6 +12,8 @@ import {
   Project,
 } from 'app/types';
 import {getIntegrationIcon} from 'app/utils/integrationUtil';
+
+import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
 
 type Props = AsyncComponent['props'] & {
   frame: Frame;
@@ -59,15 +58,21 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       ],
     ];
   }
-  renderNoMatch() {
+  renderLoading() {
+    //TODO: Add loading
     return null;
   }
-  renderMatchNoUrl(config: RepositoryProjectPathConfig) {
+  renderNoMatch() {
+    //TODO: Improve UI
     return null;
+  }
+  renderMatchNoUrl() {
+    //TODO: Improve UI
+    return <OpenInContainer columnQuantity={2}>No Match</OpenInContainer>;
   }
   renderMatchWithUrl(config: RepositoryProjectPathConfig, url: string) {
     return (
-      <OpenInContainer>
+      <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
         <OpenInLink href={url} openInNewTab>
           {getIntegrationIcon(config.provider)}
@@ -76,12 +81,12 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       </OpenInContainer>
     );
   }
-  render() {
+  renderBody() {
     const {config, sourceUrl} = this.match || {};
     if (config && sourceUrl) {
       return this.renderMatchWithUrl(config, sourceUrl);
     } else if (config) {
-      return this.renderMatchNoUrl(config);
+      return this.renderMatchNoUrl();
     } else {
       return this.renderNoMatch();
     }
@@ -89,30 +94,3 @@ class StacktraceLink extends AsyncComponent<Props, State> {
 }
 
 export default withProjects(withOrganization(StacktraceLink));
-
-const OpenInContainer = styled('div')`
-  position: relative;
-  z-index: 1;
-  display: flex;
-  color: ${p => p.theme.gray600};
-  background-color: ${p => p.theme.white};
-  font-family: ${p => p.theme.text.family};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  padding: ${space(0.25)} ${space(3)};
-  box-shadow: ${p => p.theme.dropShadowLightest};
-  text-indent: initial;
-  overflow: auto;
-  white-space: nowrap;
-`;
-
-const OpenInLink = styled(ExternalLink)`
-  align-items: center;
-  color: ${p => p.theme.gray500};
-  margin-left: ${space(1)};
-`;
-
-const OpenInName = styled('strong')`
-  color: ${p => p.theme.gray600};
-  font-weight: 700;
-  margin-left: ${space(0.75)};
-`;
