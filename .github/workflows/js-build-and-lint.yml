@@ -100,10 +100,11 @@ jobs:
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
         run: yarn install --frozen-lockfile
 
-      - uses: getsentry/size-limit-action@v1-dev
+      - uses: getsentry/size-limit-action@v3
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
         with:
           main_branch: master
+          workflow_name: 'js-build-and-lint'
           skip_step: install
           build_script: build
           windows_verbatim_arguments: false
