@@ -56,7 +56,7 @@ class IssueBasicMixin(object):
         These fields are used to render a form for the user,
         and are then passed in the format of:
 
-        >>>{'title': 'TypeError: Object [object Object] has no method "updateFrom"''}
+        >>>{'title': 'TypeError: Object [object Object] has no method "updateFrom"'}
 
         to `create_issue`, which handles creation of the issue
         in Jira, VSTS, GitHub, etc
@@ -223,7 +223,7 @@ class IssueBasicMixin(object):
         try:
             repos = self.get_repositories()
         except ApiError:
-            raise IntegrationError("Unable to retrive repositories. Please try again later.")
+            raise IntegrationError("Unable to retrieve repositories. Please try again later.")
         else:
             repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
 

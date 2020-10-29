@@ -418,7 +418,7 @@ def get_channel_id_with_timeout(integration, name, timeout):
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
     # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
-    # once eveyone is migrated we can remove this check and usages of channels.list
+    # once everyone is migrated we can remove this check and usages of channels.list
     if get_integration_type(integration) == "workspace_app":
         list_types = LEGACY_LIST_TYPES
     else:
