@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
 import {RepositoryProjectPathConfig, Project} from 'app/types';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -15,18 +14,13 @@ import IdBadge from 'app/components/idBadge';
 type Props = {
   pathConfig: RepositoryProjectPathConfig;
   project: Project;
+  onEdit: (pathConfig: RepositoryProjectPathConfig) => void;
+  onDelete: (pathConfig: RepositoryProjectPathConfig) => void;
 };
 
 export default class RepositoryProjectPathConfigRow extends React.Component<Props> {
-  api = new Client();
-
-  deleteProjectPathConfig = () => {
-    //TODO: Finish
-  };
-
   render() {
-    // TODO: Improve UI
-    const {pathConfig, project} = this.props;
+    const {pathConfig, project, onEdit, onDelete} = this.props;
 
     return (
       <Access access={['org:integrations']}>
@@ -60,10 +54,11 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
                   icon={<IconEdit size="sm" />}
                   label={t('edit')}
                   disabled={!hasAccess}
+                  onClick={() => onEdit(pathConfig)}
                 />
                 <Confirm
                   disabled={!hasAccess}
-                  onConfirm={this.deleteProjectPathConfig}
+                  onConfirm={() => onDelete(pathConfig)}
                   message={t('Are you sure you want to remove this code mapping?')}
                 >
                   <StyledButton

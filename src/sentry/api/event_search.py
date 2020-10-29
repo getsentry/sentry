@@ -2174,7 +2174,7 @@ FUNCTIONS = {
         ),
         # Calculate the Welch's t-test value, this is used to help identify which of our trends are significant or not
         Function(
-            "t_score",
+            "t_test",
             required_args=[
                 FunctionArg("avg_1"),
                 FunctionArg("avg_2"),
@@ -2186,7 +2186,7 @@ FUNCTIONS = {
             aggregate=[
                 u"divide(minus({avg_1},{avg_2}),sqrt(plus(divide({variance_1},{count_1}),divide({variance_2},{count_2}))))",
                 None,
-                "t_score",
+                "t_test",
             ],
             default_result_type="number",
         ),

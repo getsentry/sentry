@@ -31,15 +31,14 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
 
     def make_post(self, data=None):
         config_data = {
-            "repository_id": self.repo1.id,
-            "project_id": self.project1.id,
-            "stack_root": "/stack/root",
-            "source_root": "/source/root",
-            "default_branch": "master",
+            "repositoryId": self.repo1.id,
+            "projectId": self.project1.id,
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
         }
         if data:
             config_data.update(data)
-
         return self.client.post(self.url, data=config_data, format="json")
 
     def test_basic_get(self):
@@ -108,7 +107,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
     def test_project_does_not_exist(self):
         bad_org = self.create_organization()
         bad_project = self.create_project(organization=bad_org)
-        response = self.make_post({"project_id": bad_project.id})
+        response = self.make_post({"projectId": bad_project.id})
         assert response.status_code == 400
         assert response.data == {"projectId": ["Project does not exist"]}
 
@@ -118,7 +117,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         bad_repo = Repository.objects.create(
             name="another", organization_id=self.org.id, integration_id=bad_integration.id
         )
-        response = self.make_post({"repository_id": bad_repo.id})
+        response = self.make_post({"repositoryId": bad_repo.id})
 
         assert response.status_code == 400
         assert response.data == {"repositoryId": ["Repository does not exist"]}
@@ -128,5 +127,35 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 400
         assert response.data == {
-            "nonFieldErrors": ["Code path config already exists with this project and stack root"]
+            "nonFieldErrors": [u"Code path config already exists with this project and input path"]
+        }
+
+    def test_space_in_stack_root(self):
+        response = self.make_post({"stackRoot": "has space"})
+        assert response.status_code == 400
+        assert response.data == {
+            "stackRoot": ["Path may not contain spaces or quotations"],
+        }
+
+    def test_space_in_source_root(self):
+        response = self.make_post({"sourceRoot": "has space"})
+        assert response.status_code == 400
+        assert response.data == {
+            "sourceRoot": ["Path may not contain spaces or quotations"],
+        }
+
+    def test_quote_in_stack_root(self):
+        response = self.make_post({"stackRoot": "f'f"})
+        assert response.status_code == 400
+        assert response.data == {
+            "stackRoot": ["Path may not contain spaces or quotations"],
+        }
+
+    def test_quote_in_branch(self):
+        response = self.make_post({"defaultBranch": "f'f"})
+        assert response.status_code == 400
+        assert response.data == {
+            "defaultBranch": [
+                "Branch name may only have letters, numbers, underscores, and dashes"
+            ],
         }
