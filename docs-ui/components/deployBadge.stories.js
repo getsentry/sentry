@@ -13,7 +13,7 @@ const deploy = {
 };
 
 export default {
-  title: 'UI/DeployBadge',
+  title: 'Core/Badges+Tags/DeployBadge',
 };
 
 export const Default = withInfo('Used to display deploy in a "badge"')(() => (

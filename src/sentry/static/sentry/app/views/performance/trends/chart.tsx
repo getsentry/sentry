@@ -14,10 +14,16 @@ import EventView from 'app/utils/discover/eventView';
 import {OrganizationSummary, EventsStatsData} from 'app/types';
 import LineChart from 'app/components/charts/lineChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import {Series} from 'app/types/echarts';
+import {Series, SeriesDataUnit} from 'app/types/echarts';
 import theme from 'app/utils/theme';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 
-import {trendToColor, getIntervalRatio, getCurrentTrendFunction} from './utils';
+import {
+  getCurrentTrendFunction,
+  getIntervalRatio,
+  smoothTrend,
+  trendToColor,
+} from './utils';
 import {TrendChangeType, TrendsStats, NormalizedTrendsTransaction} from './types';
 
 const QUERY_KEYS = [
@@ -54,7 +60,41 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
   ];
 }
 
-function getLegend() {
+function transformEventStatsSmoothed(data: Series[], seriesName?: string) {
+  let minValue = Number.MAX_SAFE_INTEGER;
+  let maxValue = 0;
+  const currentData = data[0].data;
+  const resultData: SeriesDataUnit[] = [];
+
+  const smoothed = smoothTrend(currentData.map(({name, value}) => [Number(name), value]));
+
+  for (let i = 0; i < smoothed.length; i++) {
+    const point = smoothed[i] as any;
+    const value = point.y;
+    resultData.push({
+      name: point.x,
+      value,
+    });
+    if (!isNaN(value)) {
+      const rounded = Math.round(value);
+      minValue = Math.min(rounded, minValue);
+      maxValue = Math.max(rounded, maxValue);
+    }
+  }
+
+  return {
+    minValue,
+    maxValue,
+    smoothedResults: [
+      {
+        seriesName: seriesName || 'Current',
+        data: resultData,
+      },
+    ],
+  };
+}
+
+function getLegend(trendFunction: string) {
   const legend = {
     right: 10,
     top: 0,
@@ -67,54 +107,129 @@ function getLegend() {
     },
     data: [
       {
-        name: 'Previous Period / This Period',
+        name: 'Baseline',
         icon:
           'path://M180 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z, M810 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40zm, M1440 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z',
+      },
+      {
+        name: 'Releases',
+        icon: 'line',
+      },
+      {
+        name: trendFunction,
+        icon: 'line',
       },
     ],
   };
   return legend;
 }
 
-function getIntervalLine(series: Series[], intervalRatio: number) {
-  if (!series.length || !series[0].data || !series[0].data.length) {
+function getIntervalLine(
+  series: Series[],
+  intervalRatio: number,
+  transaction?: NormalizedTrendsTransaction
+) {
+  if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
     return [];
   }
-  const additionalLineSeries = [
-    {
-      color: theme.gray700,
-      data: [],
-      markLine: {
-        data: [] as any[],
-        label: {show: false},
-        lineStyle: {
-          normal: {
-            color: theme.gray700,
-            type: 'dashed',
-            width: 2,
-          },
-        },
-        symbol: ['none', 'none'],
-        tooltip: {
-          show: false,
-        },
-      },
-      seriesName: 'Previous Period / This Period',
-    },
-  ];
+
   const seriesStart = parseInt(series[0].data[0].name as string, 0);
   const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 0);
 
-  if (additionalLineSeries && seriesEnd > seriesStart) {
-    const seriesDiff = seriesEnd - seriesStart;
-    const seriesLine = seriesDiff * (intervalRatio || 0.5) + seriesStart;
-    additionalLineSeries[0].markLine.data = [
+  if (seriesEnd < seriesStart) {
+    return [];
+  }
+
+  const periodLine = {
+    data: [] as any[],
+    color: theme.gray700,
+    markLine: {
+      data: [] as any[],
+      label: {} as any,
+      lineStyle: {
+        normal: {
+          color: theme.gray700,
+          type: 'dashed',
+          width: 1,
+        },
+      },
+      symbol: ['none', 'none'],
+      tooltip: {
+        show: false,
+      },
+    },
+    seriesName: 'Baseline',
+  };
+
+  const periodLineLabel = {
+    fontSize: 11,
+    show: true,
+  };
+
+  const previousPeriod = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+    seriesName: 'Baseline',
+  };
+  const currentPeriod = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+    seriesName: 'Baseline',
+  };
+  const periodDividingLine = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+    seriesName: 'Period split',
+  };
+
+  const seriesDiff = seriesEnd - seriesStart;
+  const seriesLine = seriesDiff * (intervalRatio || 0.5) + seriesStart;
+
+  previousPeriod.markLine.data = [
+    [
+      {value: 'Past', coord: [seriesStart, transaction.aggregate_range_1]},
+      {coord: [seriesLine, transaction.aggregate_range_1]},
+    ],
+  ];
+  currentPeriod.markLine.data = [
+    [
+      {value: 'Present', coord: [seriesLine, transaction.aggregate_range_2]},
+      {coord: [seriesEnd, transaction.aggregate_range_2]},
+    ],
+  ];
+  periodDividingLine.markLine = {
+    data: [
       {
-        value: 'Comparison line',
+        value: 'Previous Period / This Period',
         xAxis: seriesLine,
       },
-    ];
-  }
+    ],
+    label: {show: false},
+    lineStyle: {
+      normal: {
+        color: theme.gray700,
+        type: 'solid',
+        width: 2,
+      },
+    },
+    symbol: ['none', 'none'],
+    tooltip: {
+      show: false,
+    },
+  };
+
+  previousPeriod.markLine.label = {
+    ...periodLineLabel,
+    formatter: 'Past',
+    position: 'insideStartBottom',
+  };
+  currentPeriod.markLine.label = {
+    ...periodLineLabel,
+    formatter: 'Present',
+    position: 'insideEndBottom',
+  };
+
+  const additionalLineSeries = [previousPeriod, currentPeriod, periodDividingLine];
   return additionalLineSeries;
 }
 
@@ -142,7 +257,11 @@ class Chart extends React.Component<Props> {
     const data = events?.data ?? [];
 
     const trendFunction = getCurrentTrendFunction(location);
-    const results = transformEventStats(data, trendFunction.label);
+    const results = transformEventStats(data, trendFunction.chartLabel);
+    const {smoothedResults, minValue, maxValue} = transformEventStatsSmoothed(
+      results,
+      trendFunction.chartLabel
+    );
 
     const start = props.start ? getUtcToLocalDateObject(props.start) : undefined;
 
@@ -150,10 +269,40 @@ class Chart extends React.Component<Props> {
     const utc = decodeScalar(router.location.query.utc);
 
     const intervalRatio = getIntervalRatio(router.location);
-    const legend = getLegend();
+    const legend = getLegend(trendFunction.chartLabel);
 
     const loading = isLoading;
     const reloading = isLoading;
+
+    const yMax = Math.max(
+      maxValue,
+      transaction?.aggregate_range_2 || 0,
+      transaction?.aggregate_range_1 || 0
+    );
+    const yMin = Math.min(
+      minValue,
+      transaction?.aggregate_range_1 || Number.MAX_SAFE_INTEGER,
+      transaction?.aggregate_range_2 || Number.MAX_SAFE_INTEGER
+    );
+    const yDiff = yMax - yMin;
+    const yMargin = yDiff * 0.1;
+
+    const chartOptions = {
+      tooltip: {
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(value, seriesName);
+        },
+      },
+      yAxis: {
+        min: Math.max(0, yMin - yMargin),
+        max: yMax + yMargin,
+        axisLabel: {
+          color: theme.gray400,
+          // p50() coerces the axis to be time based
+          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+        },
+      },
+    };
 
     return (
       <React.Fragment>
@@ -164,12 +313,12 @@ class Chart extends React.Component<Props> {
           environments={environment}
         >
           {zoomRenderProps => {
-            const series = results
-              ? results
+            const smoothedSeries = smoothedResults
+              ? smoothedResults
                   .map(values => {
                     return {
                       ...values,
-                      color: lineColor,
+                      color: lineColor.default,
                       lineStyle: {
                         opacity: 1,
                       },
@@ -178,7 +327,11 @@ class Chart extends React.Component<Props> {
                   .reverse()
               : [];
 
-            const intervalSeries = getIntervalLine(series, intervalRatio);
+            const intervalSeries = getIntervalLine(
+              smoothedResults,
+              intervalRatio,
+              transaction
+            );
 
             return (
               <ReleaseSeries
@@ -187,6 +340,7 @@ class Chart extends React.Component<Props> {
                 period={statsPeriod}
                 utc={utc}
                 projects={project}
+                environments={environment}
               >
                 {({releaseSeries}) => (
                   <TransitionChart loading={loading} reloading={reloading}>
@@ -195,7 +349,12 @@ class Chart extends React.Component<Props> {
                       value: (
                         <LineChart
                           {...zoomRenderProps}
-                          series={[...series, ...releaseSeries, ...intervalSeries]}
+                          {...chartOptions}
+                          series={[
+                            ...smoothedSeries,
+                            ...releaseSeries,
+                            ...intervalSeries,
+                          ]}
                           seriesOptions={{
                             showSymbol: false,
                           }}

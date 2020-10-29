@@ -77,6 +77,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             "next": "https://example.com",
         }
         self.pipeline.bind_state("user_id", self.user.id)
+        # TODO: Should use the setup path since we /configure instead
         resp = self.client.get(self.setup_path, params)
 
         mock_request = responses.calls[0].request

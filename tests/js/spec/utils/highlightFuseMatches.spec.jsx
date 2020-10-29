@@ -1,6 +1,6 @@
 import highlightFuseMatches, {getFuseMatches} from 'app/utils/highlightFuseMatches';
 
-describe('highlightFuseMatches', function() {
+describe('highlightFuseMatches', function () {
   const matchObj = {
     value: 'Authentication tokens allow you to perform actions',
     indices: [
@@ -10,13 +10,13 @@ describe('highlightFuseMatches', function() {
     ],
   };
 
-  it('handles no matches', function() {
+  it('handles no matches', function () {
     expect(getFuseMatches({value: 'My long string', indices: []})).toEqual([
       {highlight: false, text: 'My long string'},
     ]);
   });
 
-  it('gets the correct tokens', function() {
+  it('gets the correct tokens', function () {
     expect(getFuseMatches(matchObj)).toEqual([
       {
         highlight: false,
@@ -49,11 +49,13 @@ describe('highlightFuseMatches', function() {
     ]);
   });
 
-  it('renders a highlighted string', function() {
+  it('renders a highlighted string', function () {
+    // eslint-disable-next-line sentry/no-to-match-snapshot
     expect(highlightFuseMatches(matchObj)).toMatchSnapshot();
   });
 
-  it('matches whole word', function() {
+  it('matches whole word', function () {
+    // eslint-disable-next-line sentry/no-to-match-snapshot
     expect(highlightFuseMatches({value: 'foo', indices: [[0, 2]]})).toMatchSnapshot();
   });
 });

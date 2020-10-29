@@ -13,12 +13,13 @@ import {IconInfo} from 'app/icons';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import PluginList from 'app/components/pluginList';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import StackedBarChart from 'app/components/stackedBarChart';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {Organization, Plugin, Project} from 'app/types';
+import {Series} from 'app/types/echarts';
+import {Organization, Plugin, Project, TimeseriesValue} from 'app/types';
 
 type RouteParams = {projectId: string; orgId: string};
 
@@ -27,11 +28,11 @@ type StatProps = {
 };
 
 type StatState = AsyncComponent['state'] & {
-  stats: Array<{x: number; y: [number]}>;
+  stats: TimeseriesValue[];
 };
 
 class DataForwardingStats extends AsyncComponent<StatProps, StatState> {
-  getEndpoints(): [[string, string, object]] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 30;
@@ -50,25 +51,25 @@ class DataForwardingStats extends AsyncComponent<StatProps, StatState> {
 
   renderBody() {
     const {projectId} = this.props.params;
-    //y is an array of size one which denotes how many events were forwarded in that period
-    const stats = this.state.stats.map(p => ({x: p[0], y: [p[1]]}));
-    const fowardedAny = stats.some(({y}) => y[0]);
+    const {stats} = this.state;
+    const series: Series = {
+      seriesName: t('Forwarded'),
+      data: stats.map(([timestamp, value]) => ({name: timestamp * 1000, value})),
+    };
+    const forwardedAny = series.data.some(({value}) => value > 0);
 
     return (
       <Panel>
         <SentryDocumentTitle title={t('Data Forwarding')} objSlug={projectId} />
         <PanelHeader>{t('Forwarded events in the last 30 days (by day)')}</PanelHeader>
-        <PanelBody>
-          {fowardedAny ? (
-            <StackedBarChart
-              style={{
-                border: 'none',
-              }}
-              points={stats}
+        <PanelBody withPadding>
+          {forwardedAny ? (
+            <MiniBarChart
+              isGroupedByDate
+              showTimeInTooltip
+              labelYAxisExtents
+              series={[series]}
               height={150}
-              label="events"
-              barClasses={['accepted']}
-              className="standard-barchart"
             />
           ) : (
             <EmptyMessage

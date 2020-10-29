@@ -78,7 +78,7 @@ class VstsIssueSyncTest(VstsIssueBase):
     def test_create_issue(self):
         responses.add(
             responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Task?api-version=3.0",
+            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task?api-version=3.0",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
@@ -87,7 +87,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "title": "Hello",
             "description": "Fix this.",
             "project": "0987654321",
-            "work_item_type": "Task",
+            "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
         }
         assert self.integration.create_issue(form_data) == {
             "key": self.issue_id,
@@ -364,7 +364,8 @@ class VstsIssueFormTest(VstsIssueBase):
                 "value": [
                     {"id": "project-1-id", "name": "project_1"},
                     {"id": "project-2-id", "name": "project_2"},
-                ]
+                ],
+                "count": 2,
             },
         )
         min_ago = iso_format(before_now(minutes=1))
@@ -384,7 +385,7 @@ class VstsIssueFormTest(VstsIssueBase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Bug".format(
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
                                     project
                                 ),
                                 "name": "Bug",
@@ -394,13 +395,13 @@ class VstsIssueFormTest(VstsIssueBase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Bug".format(
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
                                     project
                                 ),
                                 "name": "Issue Bug",
                             },
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.GIssue".format(
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Some-Thing.GIssue".format(
                                     project
                                 ),
                                 "name": "G Issue",
@@ -410,7 +411,7 @@ class VstsIssueFormTest(VstsIssueBase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Task".format(
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task".format(
                                     project
                                 ),
                                 "name": "Task",
@@ -420,7 +421,7 @@ class VstsIssueFormTest(VstsIssueBase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.UserStory".format(
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory".format(
                                     project
                                 ),
                                 "name": "User Story",
@@ -473,7 +474,12 @@ class VstsIssueFormTest(VstsIssueBase):
         self.assert_work_item_type_field(
             fields,
             "Task",
-            [("Bug", "Bug"), ("GIssue", "G Issue"), ("Task", "Task"), ("UserStory", "User Story")],
+            [
+                ("Microsoft.VSTS.WorkItemTypes.Bug", "Bug"),
+                ("Some-Thing.GIssue", "G Issue"),
+                ("Microsoft.VSTS.WorkItemTypes.Task", "Task"),
+                ("Microsoft.VSTS.WorkItemTypes.UserStory", "User Story"),
+            ],
         )
 
     @responses.activate
@@ -527,7 +533,7 @@ class VstsIssueFormTest(VstsIssueBase):
         responses.add(
             responses.GET,
             "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",
-            json={"value": []},
+            json={"value": [], "count": 0},
         )
         fields = self.integration.get_create_issue_config(self.group)
 

@@ -1,4 +1,4 @@
-minVersion: "0.10.0"
+minVersion: "0.12.0"
 github:
   owner: getsentry
   repo: sentry
@@ -10,14 +10,30 @@ statusProvider:
   config:
     contexts:
       - 'onpremise-builder (sentryio)'
-      - 'continuous-integration/travis-ci/push'
-      - 'acceptance'
 targets:
   - name: github
   - name: pypi
-  - name: docker
+  - id: py2-release
+    name: docker
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry
+  - id: py2-latest
+    name: docker
+    source: us.gcr.io/sentryio/sentry
+    target: getsentry/sentry
+    targetFormat: '{{{target}}}:latest'
+  - id: py3-release
+    name: docker
+    source: us.gcr.io/sentryio/sentry
+    sourceFormat: '{{{source}}}:{{{revision}}}-py3'
+    target: getsentry/sentry
+    targetFormat: '{{{target}}}:{{{version}}}-py3'
+  - id: py3-latest
+    name: docker
+    source: us.gcr.io/sentryio/sentry
+    sourceFormat: '{{{source}}}:{{{revision}}}-py3'
+    target: getsentry/sentry
+    targetFormat: '{{{target}}}:latest-py3'
 
 requireNames:
-  - /^sentry-.+-py27-none-any.whl$/
+  - /^sentry-.+-py2.py3-none-any.whl$/

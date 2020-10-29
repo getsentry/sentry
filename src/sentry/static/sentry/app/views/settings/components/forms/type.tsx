@@ -3,7 +3,7 @@ import {createFilter} from 'react-select';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import Alert from 'app/components/alert';
-import {AvatarProject} from 'app/types';
+import {AvatarProject, Project} from 'app/types';
 
 export const FieldType = [
   'array',
@@ -23,6 +23,7 @@ export const FieldType = [
   'url',
   'table',
   'project_mapper',
+  'sentry_project_selector',
 ] as const;
 
 export type FieldValue = any;
@@ -36,8 +37,9 @@ type BaseField = {
   label?: React.ReactNode | (() => React.ReactNode);
   name: string;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
+  showHelpInTooltip?: boolean;
   required?: boolean;
-  placeholder?: string | (() => string);
+  placeholder?: string | ((props: any) => React.ReactNode);
   multiline?: boolean;
   monospace?: boolean;
   visible?: boolean | ((props: any) => boolean);
@@ -137,6 +139,7 @@ export type TableType = {
   //TODO(TS): Should we have addButtonText and allowEmpty here as well?
 };
 
+//maps a sentry project to another field
 export type ProjectMapperType = {
   type: 'project_mapper';
   mappedDropdown: {
@@ -145,10 +148,18 @@ export type ProjectMapperType = {
   };
   sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   nextButton: {
-    url: string | null;
-    text: string;
+    text: string; //url comes from the `next` parameter in the QS
+    allowedDomain: string;
   };
   iconType: string;
+  manageUrl?: string;
+};
+
+//selects a sentry project with avatars
+export type SentryProjectSelectorType = {
+  type: 'sentry_project_selector';
+  projects: Project[];
+  avatarSize?: number;
 };
 
 export type Field = (
@@ -160,6 +171,7 @@ export type Field = (
   | {type: typeof FieldType[number]}
   | TableType
   | ProjectMapperType
+  | SentryProjectSelectorType
 ) &
   BaseField;
 

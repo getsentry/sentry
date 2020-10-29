@@ -176,7 +176,7 @@ class CreateProjectRuleTest(APITestCase):
                         "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
                         "workspace": integration.id,
                         "channel": "#team-team-team",
-                        "channel_id": "CSVK0921",
+                        "input_channel_id": "CSVK0921",
                     }
                 ],
                 "conditions": [
@@ -370,5 +370,5 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 400
         assert json.loads(response.content) == {
-            "filterMatch": ["Must select a filter match (all, any, none) if filters are supplied"]
+            "filterMatch": ["Must select a filter match (all, any, none) if filters are supplied."]
         }

@@ -68,10 +68,7 @@ describe('ProjectMapperField', () => {
       ['24', '1'],
     ];
     wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />);
-    wrapper
-      .find('DeleteButton')
-      .first()
-      .simulate('click');
+    wrapper.find('DeleteButton').first().simulate('click');
 
     expect(onBlur).toHaveBeenCalledWith([['24', '1']], []);
     expect(onChange).toHaveBeenCalledWith([['24', '1']], []);

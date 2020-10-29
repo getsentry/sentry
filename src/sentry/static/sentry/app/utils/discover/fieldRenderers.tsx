@@ -16,11 +16,11 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import {getAggregateAlias, AGGREGATIONS} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
+import {getShortEventId} from 'app/utils/events';
 
 import {
   BarContainer,
   Container,
-  EventId,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
@@ -81,7 +81,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
     renderFunc: (field, data) => {
-      const value = data[field] ? t('yes') : t('no');
+      const value = data[field] ? t('true') : t('false');
       return <Container>{value}</Container>;
     },
   },
@@ -164,6 +164,7 @@ type SpecialFields = {
   user: SpecialField;
   'user.display': SpecialField;
   'issue.id': SpecialField;
+  'error.handled': SpecialField;
   issue: SpecialField;
   release: SpecialField;
 };
@@ -180,17 +181,17 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (typeof id !== 'string') {
         return null;
       }
-      return (
-        <Container>
-          <EventId value={id} />
-        </Container>
-      );
+
+      return <Container>{getShortEventId(id)}</Container>;
     },
   },
   'issue.id': {
     sortField: 'issue.id',
     renderFunc: (data, {organization}) => {
-      const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
+      const target = {
+        pathname: `/organizations/${organization.slug}/issues/${data['issue.id']}/`,
+      };
+
       return (
         <Container>
           <OverflowLink to={target} aria-label={data['issue.id']}>
@@ -213,7 +214,10 @@ const SPECIAL_FIELDS: SpecialFields = {
         );
       }
 
-      const target = `/organizations/${organization.slug}/issues/${issueID}/`;
+      const target = {
+        pathname: `/organizations/${organization.slug}/issues/${issueID}/`,
+      };
+
       return (
         <Container>
           <OverflowLink to={target} aria-label={issueID}>
@@ -293,6 +297,14 @@ const SPECIAL_FIELDS: SpecialFields = {
       ) : (
         <Container>{emptyValue}</Container>
       ),
+  },
+  'error.handled': {
+    sortField: 'error.handled',
+    renderFunc: data => {
+      const values = data['error.handled'];
+      const value = Array.isArray(values) ? values.slice(-1)[0] : values;
+      return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
+    },
   },
 };
 

@@ -1,0 +1,13 @@
+# Assigned
+
+foo@example.com assigned an issue to themselves
+
+
+## Issue Details
+
+buck oriented molly violently broadly glorious ample namely
+
+http://testserver/organizations/organization/issues/1/?referrer=AssignedActivityEmail
+
+
+Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

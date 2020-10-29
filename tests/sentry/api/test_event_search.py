@@ -14,6 +14,9 @@ from sentry import eventstore
 from sentry.api.event_search import (
     AggregateKey,
     event_search_grammar,
+    Function,
+    FunctionArg,
+    with_default,
     get_filter,
     resolve_field_list,
     parse_search_query,
@@ -55,6 +58,8 @@ def test_get_json_meta_type():
     assert get_json_meta_type("count_thing", "UInt64") == "integer"
     assert get_json_meta_type("count_thing", "String") == "string"
     assert get_json_meta_type("count_thing", "Nullable(String)") == "string"
+    assert get_json_meta_type("measurements.size", "Float64") == "number"
+    assert get_json_meta_type("measurements.fp", "Float64") == "duration"
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -294,7 +299,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_date_formats(self):
         invalid_queries = ["first_seen:hello", "first_seen:123", "first_seen:2018-01-01T00:01ZZ"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date search"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date field"):
                 parse_search_query(invalid_query)
 
     def test_specific_time_filter(self):
@@ -590,6 +595,38 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
+    def test_boolean_filter(self):
+        truthy = ("true", "TRUE", "1")
+        for val in truthy:
+            assert parse_search_query("stack.in_app:{}".format(val)) == [
+                SearchFilter(
+                    key=SearchKey(name="stack.in_app"),
+                    operator="=",
+                    value=SearchValue(raw_value=1),
+                )
+            ]
+        falsey = ("false", "FALSE", "0")
+        for val in falsey:
+            assert parse_search_query("stack.in_app:{}".format(val)) == [
+                SearchFilter(
+                    key=SearchKey(name="stack.in_app"),
+                    operator="=",
+                    value=SearchValue(raw_value=0),
+                )
+            ]
+
+        assert parse_search_query("!stack.in_app:false") == [
+            SearchFilter(
+                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=1),
+            )
+        ]
+
+    def test_invalid_boolean_filter(self):
+        invalid_queries = ["stack.in_app:lol", "stack.in_app:123", "stack.in_app:>true"]
+        for invalid_query in invalid_queries:
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for boolean field"):
+                parse_search_query(invalid_query)
+
     def test_numeric_filter(self):
         # Numeric format should still return a string if field isn't
         # allowed
@@ -604,8 +641,21 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric search"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
                 parse_search_query(invalid_query)
+
+    def test_negated_on_boolean_values_and_non_boolean_field(self):
+        assert parse_search_query("!user.id:true") == [
+            SearchFilter(
+                key=SearchKey(name="user.id"), operator="!=", value=SearchValue(raw_value="true")
+            )
+        ]
+
+        assert parse_search_query("!user.id:1") == [
+            SearchFilter(
+                key=SearchKey(name="user.id"), operator="!=", value=SearchValue(raw_value="1")
+            )
+        ]
 
     def test_duration_on_non_duration_field(self):
         assert parse_search_query("user.id:500s") == [
@@ -650,6 +700,107 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_aggregate_column_with_duration_filter(self):
         with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):
             parse_search_query("avg(stack.colno):>500s")
+
+    def test_numeric_measurements_filter(self):
+        # NOTE: can only filter on integers right now
+        assert parse_search_query("measurements.size:3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.size"),
+                operator="=",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("measurements.size:>3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.size"),
+                operator=">",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("measurements.size:<3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.size"),
+                operator="<",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+    def test_numeric_aggregate_measurements_filter(self):
+        assert parse_search_query("min(measurements.size):3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="=",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("min(measurements.size):>3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator=">",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("min(measurements.size):<3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="<",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+    def test_duration_measurements_filter(self):
+        assert parse_search_query("measurements.fp:1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.fp"),
+                operator="=",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+        assert parse_search_query("measurements.fp:>1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.fp"),
+                operator=">",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+        assert parse_search_query("measurements.fp:<1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.fp"),
+                operator="<",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+    def test_duration_aggregate_measurements_filter(self):
+        assert parse_search_query("percentile(measurements.fp, 0.5):3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(measurements.fp, 0.5)"),
+                operator="=",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
+
+        assert parse_search_query("percentile(measurements.fp, 0.5):>3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(measurements.fp, 0.5)"),
+                operator=">",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
+
+        assert parse_search_query("percentile(measurements.fp, 0.5):<3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(measurements.fp, 0.5)"),
+                operator="<",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
 
     def test_aggregate_rel_time_filter(self):
         now = timezone.now()
@@ -832,6 +983,19 @@ class ParseBooleanSearchQueryTest(TestCase):
         result = get_filter("user.email:foo@example.com")
         assert result.conditions == [self.ofoo]
 
+    def test_wildcard_array_field(self):
+        _filter = get_filter("error.value:Deadlock* OR !stack.filename:*.py")
+        assert _filter.conditions == [
+            [
+                _or(
+                    ["like", ["error.value", "Deadlock%"]], ["notLike", ["stack.filename", "%.py"]],
+                ),
+                "=",
+                1,
+            ]
+        ]
+        assert _filter.filter_keys == {}
+
     def test_order_of_operations(self):
         result = get_filter(
             "user.email:foo@example.com OR user.email:bar@example.com AND user.email:foobar@example.com"
@@ -889,6 +1053,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                 1,
             ]
         ]
+
+    def test_grouping_boolean_filter(self):
+        result = get_filter("(event.type:error) AND (stack.in_app:true)")
+        assert result.conditions == [["event.type", "=", "error"], ["stack.in_app", "=", 1]]
 
     def test_grouping_simple(self):
         result = get_filter("(user.email:foo@example.com OR user.email:bar@example.com)")
@@ -1650,6 +1818,62 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    def test_error_handled(self):
+        result = get_filter("error.handled:true")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("error.handled:false")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("has:error.handled")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!has:error.handled")
+        assert result.conditions == [[["isHandled", []], "=", 0]]
+
+        result = get_filter("!error.handled:true")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("!error.handled:false")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.handled:0")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.handled:99")
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.handled:nope")
+
+    def test_error_unhandled(self):
+        result = get_filter("error.unhandled:true")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("error.unhandled:false")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("has:error.unhandled")
+        assert result.conditions == [[["isHandled", []], "=", 0]]
+
+        result = get_filter("!has:error.unhandled")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:true")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:false")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:0")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.unhandled:99")
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.unhandled:nope")
+
     def test_function_negation(self):
         result = get_filter("!p95():5s")
         assert result.having == [["p95", "!=", 5000.0]]
@@ -1705,6 +1929,17 @@ class GetSnubaQueryArgsTest(TestCase):
 
         result = get_filter("!last_seen():<=2020-04-01T19:34:52+00:00")
         assert result.having == [["last_seen", ">", 1585769692]]
+
+    def test_release_latest(self):
+        result = get_filter(
+            "release:latest",
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+
+        # When organization id isn't included, project_id should unfortunately be an object
+        result = get_filter("release:latest", params={"project_id": [self.project]})
+        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
@@ -1853,7 +2088,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "uniq",
-                ["coalesce", ["user.email", "user.username", "user.ip"]],
+                [["coalesce", ["user.email", "user.username", "user.ip"]]],
                 "count_unique_user_display",
             ],
         ]
@@ -1925,12 +2160,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75): expected 2 arguments" in six.text_type(err)
+        assert "percentile(0.75): expected 2 argument(s)" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75,)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75,): expected 2 arguments" in six.text_type(err)
+        assert "percentile(0.75,): expected 2 argument(s)" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(sanchez, 0.75)"]
@@ -1944,7 +2179,7 @@ class ResolveFieldListTest(unittest.TestCase):
             fields = ["percentile(id, 0.75)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "percentile(id, 0.75): column argument invalid: id is not a duration column"
+            "percentile(id, 0.75): column argument invalid: id is not a numeric column"
             in six.text_type(err)
         )
 
@@ -1996,12 +2231,23 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_absolute_delta_function(self):
-        fields = ["absolute_delta(transaction.duration,100)"]
+        fields = ["absolute_delta(transaction.duration,100)", "id"]
         result = resolve_field_list(fields, eventstore.Filter())
-        assert result["selected_columns"] == []
-        assert result["aggregations"] == [
-            ["abs(minus(duration, 100))", None, "absolute_delta_transaction_duration_100"],
+        assert result["selected_columns"] == [
+            [
+                "abs",
+                [["minus", ["transaction.duration", 100.0]]],
+                "absolute_delta_transaction_duration_100",
+            ],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
         ]
+        assert result["aggregations"] == []
         assert result["groupby"] == []
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2038,6 +2284,87 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_array_join_function(self):
+        fields = [
+            "array_join(tags.key)",
+            "array_join(tags.value)",
+            "array_join(measurements_key)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter(), functions_acl=["array_join"])
+        assert result["selected_columns"] == [
+            ["arrayJoin", ["tags.key"], "array_join_tags_key"],
+            ["arrayJoin", ["tags.value"], "array_join_tags_value"],
+            ["arrayJoin", ["measurements_key"], "array_join_measurements_key"],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
+
+    def test_array_join_function_no_access(self):
+        fields = ["array_join(tags.key)"]
+        with pytest.raises(InvalidSearchQuery) as err:
+            resolve_field_list(fields, eventstore.Filter())
+        assert "no access to private function" in six.text_type(err)
+
+    def test_measurements_histogram_function(self):
+        fields = ["measurements_histogram(10, 5, 1)"]
+        result = resolve_field_list(
+            fields, eventstore.Filter(), functions_acl=["measurements_histogram"]
+        )
+        assert result["selected_columns"] == [
+            [
+                "plus",
+                [
+                    [
+                        "multiply",
+                        [
+                            [
+                                "floor",
+                                [
+                                    [
+                                        "divide",
+                                        [
+                                            [
+                                                "minus",
+                                                [
+                                                    [
+                                                        "multiply",
+                                                        [["arrayJoin", ["measurements_value"]], 1],
+                                                    ],
+                                                    5,
+                                                ],
+                                            ],
+                                            10,
+                                        ],
+                                    ]
+                                ],
+                            ],
+                            10,
+                        ],
+                    ],
+                    5,
+                ],
+                "measurements_histogram_10_5_1",
+            ],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
+
+    def test_measurements_histogram_function_no_access(self):
+        fields = ["measurements_histogram(10, 5, 1)"]
+        with pytest.raises(InvalidSearchQuery) as err:
+            resolve_field_list(fields, eventstore.Filter())
+        assert "no access to private function" in six.text_type(err)
+
     def test_histogram_function(self):
         fields = ["histogram(transaction.duration, 10, 1000, 0)", "count()"]
         result = resolve_field_list(fields, eventstore.Filter())
@@ -2064,7 +2391,7 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["histogram(transaction.duration, 10)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "histogram(transaction.duration, 10): expected 4 arguments" in six.text_type(err)
+        assert "histogram(transaction.duration, 10): expected 4 argument(s)" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["histogram(transaction.duration, 1000, 1000, 0)"]
@@ -2074,6 +2401,17 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_count_at_least_function(self):
+        fields = ["count_at_least(measurements.baz, 1000)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["greaterOrEquals", ["measurements.baz", 1000]]],
+                "count_at_least_measurements_baz_1000",
+            ]
+        ]
+
     def test_percentile_range(self):
         fields = [
             "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)"
@@ -2081,8 +2419,20 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                u"quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57'))))",
-                None,
+                "quantileIf(0.50)",
+                [
+                    "transaction.duration",
+                    [
+                        "and",
+                        [
+                            [
+                                "lessOrEquals",
+                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
+                            ],
+                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                        ],
+                    ],
+                ],
                 "percentile_range_1",
             ]
         ]
@@ -2104,8 +2454,20 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                u"avgIf(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57'))))",
-                None,
+                "avgIf",
+                [
+                    "transaction.duration",
+                    [
+                        "and",
+                        [
+                            [
+                                "lessOrEquals",
+                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
+                            ],
+                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                        ],
+                    ],
+                ],
                 "avg_range_1",
             ]
         ]
@@ -2125,8 +2487,29 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57')))))",
-                None,
+                "uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            ["greater", ["duration", 1200]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
+                                    ],
+                                    [
+                                        "greater",
+                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 u"user_misery_range_1",
             ]
         ]
@@ -2141,6 +2524,17 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "start argument invalid: today is in the wrong format" in six.text_type(err)
 
+    def test_absolute_correlation(self):
+        fields = ["absolute_correlation()"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "abs",
+                [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
+                u"absolute_correlation",
+            ]
+        ]
+
     def test_percentage(self):
         fields = [
             "user_misery_range(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)",
@@ -2150,13 +2544,55 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57')))))",
-                None,
+                "uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            ["greater", ["duration", 1200]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
+                                    ],
+                                    [
+                                        "greater",
+                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 "user_misery_range_1",
             ],
             [
-                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-03T06:48:57')),less(timestamp,toDateTime('2020-05-05T01:12:34')))))",
-                None,
+                "uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            ["greater", ["duration", 1200]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
+                                    ],
+                                    [
+                                        "greater",
+                                        [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 "user_misery_range_2",
             ],
             [
@@ -2175,13 +2611,55 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57')))))",
-                None,
+                "uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            ["greater", ["duration", 1200]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
+                                    ],
+                                    [
+                                        "greater",
+                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 "user_misery_range_1",
             ],
             [
-                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-03T06:48:57')),less(timestamp,toDateTime('2020-05-05T01:12:34')))))",
-                None,
+                "uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            ["greater", ["duration", 1200]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
+                                    ],
+                                    [
+                                        "greater",
+                                        [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 "user_misery_range_2",
             ],
             [
@@ -2190,6 +2668,36 @@ class ResolveFieldListTest(unittest.TestCase):
                 "minus_user_misery_range_1_user_misery_range_2",
             ],
         ]
+
+    def test_percentile_shortcuts(self):
+        columns = [
+            "",  # test default value
+            "transaction.duration",
+            "measurements.fp",
+            "measurements.fcp",
+            "measurements.lcp",
+            "measurements.fid",
+            "measurements.bar",
+        ]
+
+        for column in columns:
+            # if no column then use transaction.duration
+            snuba_column = column if column else "transaction.duration"
+            column_alias = column.replace(".", "_")
+
+            fields = [
+                field.format(column)
+                for field in ["p50({})", "p75({})", "p95({})", "p99({})", "p100({})"]
+            ]
+            result = resolve_field_list(fields, eventstore.Filter())
+
+            assert result["aggregations"] == [
+                ["quantile(0.5)", snuba_column, "p50_{}".format(column_alias).strip("_")],
+                ["quantile(0.75)", snuba_column, "p75_{}".format(column_alias).strip("_")],
+                ["quantile(0.95)", snuba_column, "p95_{}".format(column_alias).strip("_")],
+                ["quantile(0.99)", snuba_column, "p99_{}".format(column_alias).strip("_")],
+                ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
+            ]
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2299,3 +2807,156 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["orderby"] == ["-user.display"]
         assert result["aggregations"] == []
         assert result["groupby"] == []
+
+    def test_resolves_functions_with_arguments(self):
+        fields = [
+            "count()",
+            "p50()",
+            "p50(transaction.duration)",
+            "avg(measurements.foo)",
+            "percentile(measurements.fcp, 0.5)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        functions = result["functions"]
+
+        assert functions["count"].instance.name == "count"
+        assert functions["count"].arguments == {"column": None}
+
+        assert functions["p50"].instance.name == "p50"
+        assert functions["p50"].arguments == {"column": "transaction.duration"}
+
+        assert functions["p50_transaction_duration"].instance.name == "p50"
+        assert functions["p50_transaction_duration"].arguments == {"column": "transaction.duration"}
+
+        assert functions["avg_measurements_foo"].instance.name == "avg"
+        assert functions["avg_measurements_foo"].arguments == {"column": "measurements.foo"}
+
+        assert functions["avg_measurements_foo"].instance.name == "avg"
+        assert functions["avg_measurements_foo"].arguments == {"column": "measurements.foo"}
+
+        assert functions["percentile_measurements_fcp_0_5"].instance.name == "percentile"
+        assert functions["percentile_measurements_fcp_0_5"].arguments == {
+            "column": "measurements.fcp",
+            "percentile": 0.5,
+        }
+
+
+def with_type(type, argument):
+    argument.get_type = lambda *_: type
+    return argument
+
+
+class FunctionTest(unittest.TestCase):
+    def setUp(self):
+        self.fn_wo_optionals = Function(
+            "wo_optionals", required_args=[FunctionArg("arg1"), FunctionArg("arg2")], transform="",
+        )
+        self.fn_w_optionals = Function(
+            "w_optionals",
+            required_args=[FunctionArg("arg1")],
+            optional_args=[with_default("default", FunctionArg("arg2"))],
+            transform="",
+        )
+
+    def test_no_optional_valid(self):
+        self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1", "arg2"])
+
+    def test_no_optional_not_enough_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+        ):
+            self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
+
+    def test_no_optional_too_may_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+        ):
+            self.fn_wo_optionals.validate_argument_count(
+                "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
+            )
+
+    def test_optional_valid(self):
+        self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1", "arg2"])
+        # because the last argument is optional, we dont need to provide it
+        self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
+
+    def test_optional_not_enough_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, u"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+        ):
+            self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
+
+    def test_optional_too_many_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, u"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+        ):
+            self.fn_w_optionals.validate_argument_count(
+                "fn_w_optionals()", ["arg1", "arg2", "arg3"]
+            )
+
+    def test_optional_args_have_default(self):
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: optional argument at index 0 does not have default"
+        ):
+            Function("test", optional_args=[FunctionArg("arg1")])
+
+    def test_defining_duplicate_args(self):
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                required_args=[FunctionArg("arg1")],
+                optional_args=[with_default("default", FunctionArg("arg1"))],
+                transform="",
+            )
+
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                required_args=[FunctionArg("arg1")],
+                calculated_args=[{"name": "arg1", "fn": lambda x: x}],
+                transform="",
+            )
+
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                optional_args=[with_default("default", FunctionArg("arg1"))],
+                calculated_args=[{"name": "arg1", "fn": lambda x: x}],
+                transform="",
+            )
+
+    def test_default_result_type(self):
+        fn = Function("fn", transform="")
+        assert fn.get_result_type() is None
+
+        fn = Function("fn", transform="", default_result_type="number")
+        assert fn.get_result_type() == "number"
+
+    def test_result_type_fn(self):
+        fn = Function("fn", transform="", result_type_fn=lambda *_: None)
+        assert fn.get_result_type("fn()", []) is None
+
+        fn = Function("fn", transform="", result_type_fn=lambda *_: "number")
+        assert fn.get_result_type("fn()", []) == "number"
+
+        fn = Function(
+            "fn",
+            required_args=[with_type("number", FunctionArg("arg1"))],
+            transform="",
+            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+        )
+        assert fn.get_result_type("fn()", ["arg1"]) == "number"
+
+    def test_private_function(self):
+        fn = Function("fn", transform="", result_type_fn=lambda *_: None, private=True)
+        assert fn.is_accessible() is False
+        assert fn.is_accessible(None) is False
+        assert fn.is_accessible([]) is False
+        assert fn.is_accessible(["other_fn"]) is False
+        assert fn.is_accessible(["fn"]) is True

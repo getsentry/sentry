@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {GenericField, FormState} from 'app/components/forms';
 
-describe('GenericField', function() {
-  it('renders text as TextInput', function() {
-    const wrapper = shallow(
+describe('GenericField', function () {
+  it('renders text as TextInput', function () {
+    const wrapper = mountWithTheme(
       <GenericField
         formState={FormState.READY}
         config={{
@@ -16,12 +16,11 @@ describe('GenericField', function() {
         }}
       />
     );
-    expect(wrapper).toMatchSnapshot();
-    expect(wrapper.name()).toEqual('TextField');
+    expect(wrapper.find('TextField')).toHaveLength(1);
   });
 
-  it('renders text with choices as SelectCreatableField', function() {
-    const wrapper = shallow(
+  it('renders text with choices as SelectCreatableField', function () {
+    const wrapper = mountWithTheme(
       <GenericField
         formState={FormState.READY}
         config={{
@@ -32,7 +31,6 @@ describe('GenericField', function() {
         }}
       />
     );
-    expect(wrapper).toMatchSnapshot();
-    expect(wrapper.name()).toEqual('SelectCreatableField');
+    expect(wrapper.find('SelectCreatableField')).toHaveLength(1);
   });
 });

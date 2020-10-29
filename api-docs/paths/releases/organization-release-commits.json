@@ -1,0 +1,60 @@
+{
+  "get": {
+    "tags": ["Releases"],
+    "description": "List an organization release's commits.",
+    "operationId": "List an Organization Release's Commits",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the release belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/releases/commit.json#/MinimalCommit"
+              }
+            },
+            "example": [
+              {
+                "dateCreated": "2018-11-06T21:19:58.536Z",
+                "id": "acbafc639127fd89d10f474520104517ff1d709e",
+                "message": "Initial commit from Create Next App"
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  }
+}

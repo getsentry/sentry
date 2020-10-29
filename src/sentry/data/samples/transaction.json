@@ -115,6 +115,10 @@
             "countries:8010"
          ],
          [
+            "Referer",
+            "fixtures.transaction"
+         ],
+         [
             "Sentry-Trace",
             "a7d67cf796774551a95be6543cacd459-8988cec7cc0779c1-1"
          ],
@@ -166,5 +170,22 @@
    "type": "transaction",
    "user": {
       "ip_address": "127.0.0.1"
+   },
+   "measurements": {
+      "fp": {
+         "value": 2258.060000000114
+      },
+      "fcp": {
+         "value": 2258.060000000114
+      },
+      "lcp": {
+         "value": 2807.335
+      },
+      "fid": {
+         "value": 3.4900000027846545
+      },
+      "cls": {
+         "value": 0.0382
+      }
    }
 }

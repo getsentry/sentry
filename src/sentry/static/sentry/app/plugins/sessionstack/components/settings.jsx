@@ -2,10 +2,10 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Form, FormState} from 'app/components/forms';
+import DefaultSettings from 'app/plugins/components/settings';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import BasePlugin from 'app/plugins/basePlugin';
 
-class Settings extends BasePlugin.DefaultSettings {
+class Settings extends DefaultSettings {
   constructor(props) {
     super(props);
 

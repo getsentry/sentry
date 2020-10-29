@@ -61,6 +61,7 @@ function getSentryIntegrations(hasReplays: boolean = false) {
         Router.createRoutes(routes()),
         Router.match as any
       ),
+      idleTimeout: 5000,
     }),
   ];
   if (hasReplays) {
@@ -94,6 +95,7 @@ Sentry.init({
     : window.__SENTRY__OPTIONS.whitelistUrls,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
+  autoSessionTracking: true,
 });
 
 if (window.__SENTRY__USER) {

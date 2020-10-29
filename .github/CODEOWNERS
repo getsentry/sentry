@@ -125,6 +125,7 @@ Makefile                    @getsentry/owners-sentry-dev
 /tests/js/spec/views/performance/                               @getsentry/visibility
 /src/sentry/static/sentry/app/utils/discover/                   @getsentry/visibility
 /tests/js/spec/utils/discover/                                  @getsentry/visibility
+/src/sentry/static/sentry/app/components/events/interfaces/spans/               @getsentry/visibility
 ### Endof Perfomance/Discover ###
 
 
@@ -160,4 +161,28 @@ Makefile                    @getsentry/owners-sentry-dev
 *sentry_app*.py                               @getsentry/ecosystem
 *sentryapp*.py                                @getsentry/ecosystem
 
+/api-docs/                                    @getsentry/ecosystem
+/tests/apidocs/                               @getsentry/ecosystem
+
 ### End of Ecosystem ###
+
+
+### Data ###
+
+/src/sentry/models/featureadoption.py         @getsentry/data
+/src/sentry/models/group.py                   @getsentry/data
+/src/sentry/models/grouphash.py               @getsentry/data
+/src/sentry/models/grouprelease.py            @getsentry/data
+/src/sentry/models/groupresolution.py         @getsentry/data
+/src/sentry/models/integration.py             @getsentry/data
+/src/sentry/models/organization.py            @getsentry/data
+/src/sentry/models/organizationmember.py      @getsentry/data
+/src/sentry/models/organizationoption.py      @getsentry/data
+/src/sentry/models/project.py                 @getsentry/data
+/src/sentry/models/projectoption.py           @getsentry/data
+/src/sentry/models/release.py                 @getsentry/data
+/src/sentry/models/sentryapp.py               @getsentry/data
+/src/sentry/models/sentryappinstallation.py   @getsentry/data
+/src/sentry/models/user.py                    @getsentry/data
+
+### End of Data ###

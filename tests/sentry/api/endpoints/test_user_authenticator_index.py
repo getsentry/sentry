@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import TotpInterface
+from sentry.auth.authenticators import TotpInterface
 from sentry.testutils import APITestCase
 
 

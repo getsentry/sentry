@@ -3,25 +3,25 @@ from __future__ import absolute_import
 from contextlib import contextmanager
 import sentry_sdk
 import six
-from rest_framework.exceptions import PermissionDenied
+from django.utils.http import urlquote
 from rest_framework.exceptions import ParseError
 
 
 from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry.api.base import LINK_HEADER
 from sentry.api.bases import OrganizationEndpoint, NoProjects
 from sentry.api.event_search import (
     get_filter,
     InvalidSearchQuery,
-    get_json_meta_type,
     get_function_alias,
 )
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.models.project import Project
 from sentry.models.group import Group
 from sentry.snuba import discover
-from sentry.utils.compat import map
+from sentry.utils.snuba import MAX_FIELDS
 from sentry.utils.dates import get_rollup_from_request
+from sentry.utils.http import absolute_uri
 from sentry.utils import snuba
 
 
@@ -33,12 +33,34 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:
-            params = self.get_filter_params(request, organization)
+            params = self.get_snuba_params(request, organization)
         query = request.GET.get("query")
         try:
             return get_filter(query, params)
         except InvalidSearchQuery as e:
             raise ParseError(detail=six.text_type(e))
+
+    def get_snuba_params(self, request, organization, check_global_views=True):
+        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
+            if len(request.GET.getlist("field")) > MAX_FIELDS:
+                raise ParseError(
+                    detail="You can view up to {0} fields at a time. Please delete some and try again.".format(
+                        MAX_FIELDS
+                    )
+                )
+
+            params = self.get_filter_params(request, organization)
+            params = self.quantize_date_params(request, params)
+            params["user_id"] = request.user.id
+
+            if check_global_views:
+                has_global_views = features.has(
+                    "organizations:global-views", organization, actor=request.user
+                )
+                if not has_global_views and len(params.get("project_id", [])) > 1:
+                    raise ParseError(detail="You cannot view events from multiple projects.")
+
+            return params
 
     def get_orderby(self, request):
         sort = request.GET.getlist("sort")
@@ -50,33 +72,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if orderby:
             return orderby
 
-    def reference_event(self, request, organization, start, end):
-        fields = request.GET.getlist("field")[:]
-        reference_event_id = request.GET.get("referenceEvent")
-        if reference_event_id:
-            return discover.ReferenceEvent(organization, reference_event_id, fields, start, end)
-
     def get_snuba_query_args_legacy(self, request, organization):
         params = self.get_filter_params(request, organization)
-
-        group_ids = request.GET.getlist("group")
-        if group_ids:
-            # TODO(mark) This parameter should be removed in the long term.
-            # Instead of using this parameter clients should use `issue.id`
-            # in their query string.
-            try:
-                group_ids = set(map(int, [_f for _f in group_ids if _f]))
-            except ValueError:
-                raise ParseError(detail="Invalid group parameter. Values must be numbers")
-
-            projects = Project.objects.filter(
-                organization=organization, group__id__in=group_ids
-            ).distinct()
-            if any(p for p in projects if not request.access.has_project_access(p)):
-                raise PermissionDenied
-            params["group_ids"] = list(group_ids)
-            params["project_id"] = list(set([p.id for p in projects] + params["project_id"]))
-
         query = request.GET.get("query")
         try:
             _filter = get_filter(query, params)
@@ -123,6 +120,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 (
                     snuba.RateLimitExceeded,
                     snuba.QueryMemoryLimitExceeded,
+                    snuba.QueryExecutionTimeMaximum,
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
@@ -130,9 +128,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             elif isinstance(
                 error,
                 (
-                    snuba.UnqualifiedQueryError,
+                    snuba.DatasetSelectionError,
+                    snuba.QueryConnectionFailed,
                     snuba.QueryExecutionError,
+                    snuba.QuerySizeExceeded,
                     snuba.SchemaValidationError,
+                    snuba.UnqualifiedQueryError,
                 ),
             ):
                 sentry_sdk.capture_exception(error)
@@ -142,21 +143,35 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
+    def build_cursor_link(self, request, name, cursor):
+        # The base API function only uses the last query parameter, but this endpoint
+        # needs all the parameters, particularly for the "field" query param.
+        querystring = u"&".join(
+            u"{0}={1}".format(urlquote(query[0]), urlquote(value))
+            for query in request.GET.lists()
+            if query[0] != "cursor"
+            for value in query[1]
+        )
+
+        base_url = absolute_uri(urlquote(request.path))
+        if querystring:
+            base_url = u"{0}?{1}".format(base_url, querystring)
+        else:
+            base_url = base_url + "?"
+
+        return LINK_HEADER.format(
+            uri=base_url,
+            cursor=six.text_type(cursor),
+            name=name,
+            has_results="true" if bool(cursor) else "false",
+        )
+
     def handle_results_with_meta(self, request, organization, project_ids, results):
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             if not data:
                 return {"data": [], "meta": {}}
-
-            meta = {
-                value["name"]: get_json_meta_type(value["name"], value["type"])
-                for value in results["meta"]
-            }
-            # Ensure all columns in the result have types.
-            for key in data[0]:
-                if key not in meta:
-                    meta[key] = "string"
-            return {"meta": meta, "data": data}
+            return {"data": data, "meta": results.get("meta", {})}
 
     def handle_data(self, request, organization, project_ids, results):
         if not results:
@@ -192,19 +207,31 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return results
 
     def get_event_stats_data(
-        self, request, organization, get_event_stats, top_events=False, query_column="count()"
+        self,
+        request,
+        organization,
+        get_event_stats,
+        top_events=False,
+        query_column="count()",
+        params=None,
+        query=None,
     ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):
                 columns = request.GET.getlist("yAxis", [query_column])
-                query = request.GET.get("query")
-                try:
-                    params = self.get_filter_params(request, organization)
-                except NoProjects:
-                    return {"data": []}
-                params = self.quantize_date_params(request, params)
+                if query is None:
+                    query = request.GET.get("query")
+                if params is None:
+                    try:
+                        # events-stats is still used by events v1 which doesn't require global views
+                        params = self.get_snuba_params(
+                            request, organization, check_global_views=False
+                        )
+                    except NoProjects:
+                        return {"data": []}
+
                 rollup = get_rollup_from_request(
                     request,
                     params,
@@ -225,12 +252,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "eps()": "eps(%d)" % rollup,
                 }
                 query_columns = [column_map.get(column, column) for column in columns]
-                reference_event = self.reference_event(
-                    request, organization, params.get("start"), params.get("end")
-                )
-
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
-                result = get_event_stats(query_columns, query, params, rollup, reference_event)
+                result = get_event_stats(query_columns, query, params, rollup)
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 

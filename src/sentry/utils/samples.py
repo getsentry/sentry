@@ -4,6 +4,7 @@ import os.path
 import random
 import pytz
 import six
+from uuid import uuid4
 
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -101,7 +102,15 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
     ).to_json()
 
 
-def load_data(platform, default=None, sample_name=None, timestamp=None, start_timestamp=None):
+def load_data(
+    platform,
+    default=None,
+    sample_name=None,
+    timestamp=None,
+    start_timestamp=None,
+    trace=None,
+    span=None,
+):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
     # has production consequences.
@@ -160,10 +169,25 @@ def load_data(platform, default=None, sample_name=None, timestamp=None, start_ti
 
     if data.get("type") == "transaction":
         if start_timestamp is None:
-            start_timestamp = timestamp - timedelta(seconds=2)
+            start_timestamp = timestamp - timedelta(seconds=3)
         else:
             start_timestamp = start_timestamp.replace(tzinfo=pytz.utc)
         data["start_timestamp"] = to_timestamp(start_timestamp)
+
+        if trace is None:
+            trace = uuid4().hex
+        if span is None:
+            span = uuid4().hex[:16]
+
+        for tag in data["tags"]:
+            if tag[0] == "trace":
+                tag[1] = trace
+            elif tag[0] == "trace.ctx":
+                tag[1] = trace + "-" + span
+            elif tag[0] == "trace.span":
+                tag[1] = span
+        data["contexts"]["trace"]["trace_id"] = trace
+        data["contexts"]["trace"]["span_id"] = span
 
         for span in data.get("spans", []):
             # Use data to generate span timestamps consistently and based
@@ -172,8 +196,20 @@ def load_data(platform, default=None, sample_name=None, timestamp=None, start_ti
             offset = span.get("data", {}).get("offset", 0)
 
             span_start = data["start_timestamp"] + offset
+            span["trace_id"] = trace
             span.setdefault("start_timestamp", span_start)
             span.setdefault("timestamp", span_start + duration)
+
+        measurements = data.get("measurements")
+
+        if measurements:
+            measurement_markers = {}
+            for key, entry in measurements.items():
+                if key in ["fp", "fcp", "lcp", "fid"]:
+                    measurement_markers["mark.{}".format(key)] = {
+                        "value": round(data["start_timestamp"] + entry["value"] / 1000, 3)
+                    }
+            measurements.update(measurement_markers)
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
@@ -216,11 +252,21 @@ def load_data(platform, default=None, sample_name=None, timestamp=None, start_ti
     return data
 
 
-def create_sample_event(project, platform=None, default=None, raw=True, sample_name=None, **kwargs):
+def create_sample_event(
+    project,
+    platform=None,
+    default=None,
+    raw=True,
+    sample_name=None,
+    timestamp=None,
+    start_timestamp=None,
+    trace=None,
+    **kwargs
+):
     if not platform and not default:
         return
 
-    data = load_data(platform, default, sample_name)
+    data = load_data(platform, default, sample_name, timestamp, start_timestamp, trace)
 
     if not data:
         return

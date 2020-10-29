@@ -9,7 +9,7 @@ from django.db.models import Sum
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
-from sentry.snuba.sessions import get_release_health_data_overview
+from sentry.snuba.sessions import get_release_health_data_overview, check_has_health_data
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -78,17 +78,19 @@ def get_users_for_authors(organization_id, authors, user=None):
     # Figure out which email address matches to a user
     users_by_email = {}
     for email in user_emails:
-        if email.email not in users_by_email:
+        # force emails to lower case so we can do case insensitive matching
+        lower_email = email.email.lower()
+        if lower_email not in users_by_email:
             user = users_by_id.get(six.text_type(email.user_id), None)
             # user can be None if there's a user associated
             # with user_email in separate organization
             if user:
-                users_by_email[email.email] = user
+                users_by_email[lower_email] = user
 
     results = {}
     for author in authors:
         results[six.text_type(author.id)] = users_by_email.get(
-            author.email, {"name": author.name, "email": author.email}
+            author.email.lower(), {"name": author.name, "email": author.email}
         )
 
     return results
@@ -231,17 +233,25 @@ class ReleaseSerializer(Serializer):
                 group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
         return first_seen, last_seen, group_counts_by_release
 
-    def __get_release_data_with_environment(self, project, item_list, environment):
+    def __get_release_data_with_environments(self, project, item_list, environments):
         release_project_envs = ReleaseProjectEnvironment.objects.filter(
-            release__in=item_list, environment=environment
+            release__in=item_list, environment__name__in=environments
         ).select_related("release")
         if project is not None:
             release_project_envs = release_project_envs.filter(project=project)
         first_seen = {}
         last_seen = {}
         for release_project_env in release_project_envs:
-            first_seen[release_project_env.release.version] = release_project_env.first_seen
-            last_seen[release_project_env.release.version] = release_project_env.last_seen
+            if (
+                release_project_env.release.version not in first_seen
+                or first_seen[release_project_env.release.version] > release_project_env.first_seen
+            ):
+                first_seen[release_project_env.release.version] = release_project_env.first_seen
+            if (
+                release_project_env.release.version not in last_seen
+                or last_seen[release_project_env.release.version] < release_project_env.last_seen
+            ):
+                last_seen[release_project_env.release.version] = release_project_env.last_seen
 
         group_counts_by_release = {}
         for project_id, release_id, new_groups in release_project_envs.annotate(
@@ -253,13 +263,23 @@ class ReleaseSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         project = kwargs.get("project")
+
+        # Some code paths pass an environment object, other pass a list of
+        # environment names.
         environment = kwargs.get("environment")
+        environments = kwargs.get("environments")
+        if not environments:
+            if environment:
+                environments = [environment.name]
+            else:
+                environments = None
+
         with_health_data = kwargs.get("with_health_data", False)
         health_stat = kwargs.get("health_stat", None)
         health_stats_period = kwargs.get("health_stats_period")
         summary_stats_period = kwargs.get("summary_stats_period")
 
-        if environment is None:
+        if environments is None:
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
                 project, item_list
             )
@@ -268,7 +288,7 @@ class ReleaseSerializer(Serializer):
                 first_seen,
                 last_seen,
                 issue_counts_by_release,
-            ) = self.__get_release_data_with_environment(project, item_list, environment)
+            ) = self.__get_release_data_with_environments(project, item_list, environments)
 
         owners = {
             d["id"]: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
@@ -300,10 +320,15 @@ class ReleaseSerializer(Serializer):
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
+                environments=environments,
                 stat=health_stat,
             )
+            has_health_data = None
         else:
             health_data = None
+            has_health_data = check_has_health_data(
+                [(pr["project__id"], pr["release__version"]) for pr in project_releases]
+            )
 
         for pr in project_releases:
             pr_rv = {
@@ -316,6 +341,14 @@ class ReleaseSerializer(Serializer):
             }
             if health_data is not None:
                 pr_rv["health_data"] = health_data.get((pr["project__id"], pr["release__version"]))
+                pr_rv["has_health_data"] = (pr_rv["health_data"] or {}).get(
+                    "has_health_data", False
+                )
+            else:
+                pr_rv["has_health_data"] = (
+                    pr["project__id"],
+                    pr["release__version"],
+                ) in has_health_data
             release_projects[pr["release_id"]].append(pr_rv)
 
         result = {}
@@ -363,6 +396,7 @@ class ReleaseSerializer(Serializer):
                 "totalSessions24h": data["total_sessions_24h"],
                 "adoption": data["adoption"],
                 "stats": data.get("stats"),
+                # XXX: legacy key, should be removed later.
                 "hasHealthData": data["has_health_data"],
             }
 
@@ -374,6 +408,7 @@ class ReleaseSerializer(Serializer):
                 "newGroups": project["new_groups"],
                 "platform": project["platform"],
                 "platforms": project["platforms"],
+                "hasHealthData": project["has_health_data"],
             }
             if "health_data" in project:
                 rv["healthData"] = expose_health_data(project["health_data"])

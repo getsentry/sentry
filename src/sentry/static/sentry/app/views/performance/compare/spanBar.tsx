@@ -6,7 +6,12 @@ import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
-import {SPAN_ROW_HEIGHT, SpanRow} from 'app/components/events/interfaces/spans/styles';
+import {
+  SPAN_ROW_HEIGHT,
+  SPAN_ROW_PADDING,
+  SpanRow,
+  getHatchPattern,
+} from 'app/components/events/interfaces/spans/styles';
 import {
   TOGGLE_BORDER_BOX,
   SpanRowCellContainer,
@@ -268,9 +273,7 @@ class SpanBar extends React.Component<Props, State> {
       if (!width) {
         return undefined;
       }
-
-      // there is a "padding" of 1px on either side of the span rectangle
-      return `max(1px, calc(${width} - 2px))`;
+      return `max(1px, ${width})`;
     }
 
     switch (span.comparisonResult) {
@@ -354,10 +357,10 @@ class SpanBar extends React.Component<Props, State> {
         const baselineDuration = getSpanDuration(span.baselineSpan);
         const regressionDuration = getSpanDuration(span.regressionSpan);
 
-        let label: string = '';
+        let label;
 
         if (baselineDuration === regressionDuration) {
-          label = 'no change';
+          label = <ComparisonLabel>{t('No change')}</ComparisonLabel>;
         }
 
         if (baselineDuration > regressionDuration) {
@@ -365,7 +368,9 @@ class SpanBar extends React.Component<Props, State> {
             Math.abs(baselineDuration - regressionDuration)
           );
 
-          label = t('- %s faster', duration);
+          label = (
+            <NotableComparisonLabel>{t('- %s faster', duration)}</NotableComparisonLabel>
+          );
         }
 
         if (baselineDuration < regressionDuration) {
@@ -373,24 +378,18 @@ class SpanBar extends React.Component<Props, State> {
             Math.abs(baselineDuration - regressionDuration)
           );
 
-          label = t('+ %s slower', duration);
+          label = (
+            <NotableComparisonLabel>{t('+ %s slower', duration)}</NotableComparisonLabel>
+          );
         }
 
-        return <ComparisonReportLabelContainer>{label}</ComparisonReportLabelContainer>;
+        return label;
       }
       case 'baseline': {
-        return (
-          <ComparisonReportLabelContainer>
-            {t('removed from baseline')}
-          </ComparisonReportLabelContainer>
-        );
+        return <ComparisonLabel>{t('Only in baseline')}</ComparisonLabel>;
       }
       case 'regression': {
-        return (
-          <ComparisonReportLabelContainer>
-            {t('missing from regression')}
-          </ComparisonReportLabelContainer>
-        );
+        return <ComparisonLabel>{t('Only in this event')}</ComparisonLabel>;
       }
       default: {
         const _exhaustiveCheck: never = span;
@@ -446,15 +445,17 @@ class SpanBar extends React.Component<Props, State> {
             this.toggleDisplayDetail();
           }}
         >
-          <ComparisonSpanBarRectangle
-            spanBarHatch={spanBarStyles.background.hatch ?? false}
-            style={{
-              backgroundColor: spanBarStyles.background.color,
-              width: spanBarStyles.background.width,
-              display: hideSpanBarColumn ? 'none' : 'block',
-            }}
-          />
-          {foregroundSpanBar}
+          <SpanContainer>
+            <ComparisonSpanBarRectangle
+              spanBarHatch={spanBarStyles.background.hatch ?? false}
+              style={{
+                backgroundColor: spanBarStyles.background.color,
+                width: spanBarStyles.background.width,
+                display: hideSpanBarColumn ? 'none' : 'block',
+              }}
+            />
+            {foregroundSpanBar}
+          </SpanContainer>
           {this.renderComparisonReportLabel()}
         </SpanRowCell>
         {!this.state.showDetail && (
@@ -513,37 +514,29 @@ class SpanBar extends React.Component<Props, State> {
   }
 }
 
-const getHatchPattern = ({spanBarHatch}) => {
-  if (spanBarHatch === true) {
-    return `
-        background-image: linear-gradient(135deg, #9f92fa 33.33%, #302839 33.33%, #302839 50%, #9f92fa 50%, #9f92fa 83.33%, #302839 83.33%, #302839 100%);
-        background-size: 4.24px 4.24px;
-    `;
-  }
-
-  return null;
-};
-
-const ComparisonSpanBarRectangle = styled(SpanBarRectangle)`
+const ComparisonSpanBarRectangle = styled(SpanBarRectangle)<{spanBarHatch: boolean}>`
   position: absolute;
-  top: 4px;
-  left: 1px;
-
+  left: 0;
   height: 16px;
-
-  ${getHatchPattern};
+  ${p => getHatchPattern(p, theme.purple300, theme.gray700)}
 `;
 
-const ComparisonReportLabelContainer = styled('div')`
+const ComparisonLabel = styled('div')`
   position: absolute;
   user-select: none;
   right: ${space(1)};
-
-  line-height: 16px;
-  top: 4px;
-  height: 16px;
-
+  line-height: ${SPAN_ROW_HEIGHT - 2 * SPAN_ROW_PADDING}px;
+  top: ${SPAN_ROW_PADDING}px;
   font-size: ${p => p.theme.fontSizeExtraSmall};
+`;
+
+const SpanContainer = styled('div')`
+  position: relative;
+  margin-right: 120px;
+`;
+
+const NotableComparisonLabel = styled(ComparisonLabel)`
+  font-weight: bold;
 `;
 
 export default SpanBar;

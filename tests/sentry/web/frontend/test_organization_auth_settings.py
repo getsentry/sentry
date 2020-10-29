@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from sentry.utils.compat.mock import patch
 
+from sentry.auth.authenticators import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
     AuditLogEntry,
@@ -12,7 +13,6 @@ from sentry.models import (
     AuthProvider,
     Organization,
     OrganizationMember,
-    TotpInterface,
 )
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
 
@@ -277,13 +277,14 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         organization = Organization.objects.get(id=organization.id)
         assert organization.default_role == "owner"
 
-        assert AuditLogEntry.objects.filter(
+        result = AuditLogEntry.objects.filter(
             organization=organization,
             target_object=auth_provider.id,
             event=AuditLogEntryEvent.SSO_EDIT,
             actor=self.user,
-            data={"require_link": u"to False", "default_role": u"to owner"},
-        ).exists()
+        )[0]
+
+        assert result.data == {"require_link": u"to False", "default_role": u"to owner"}
 
     def test_edit_sso_settings__sso_required(self):
         organization, auth_provider = self.create_org_and_auth_provider()
@@ -306,13 +307,14 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         organization = Organization.objects.get(id=organization.id)
         assert organization.default_role == "member"
 
-        assert AuditLogEntry.objects.filter(
+        result = AuditLogEntry.objects.filter(
             organization=organization,
             target_object=auth_provider.id,
             event=AuditLogEntryEvent.SSO_EDIT,
             actor=self.user,
-            data={"require_link": u"to False"},
-        ).exists()
+        )[0]
+
+        assert result.data == {"require_link": u"to False"}
 
     def test_edit_sso_settings__default_role(self):
         organization, auth_provider = self.create_org_and_auth_provider()
@@ -335,13 +337,14 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         organization = Organization.objects.get(id=organization.id)
         assert organization.default_role == "owner"
 
-        assert AuditLogEntry.objects.filter(
+        result = AuditLogEntry.objects.filter(
             organization=organization,
             target_object=auth_provider.id,
             event=AuditLogEntryEvent.SSO_EDIT,
             actor=self.user,
-            data={"default_role": u"to owner"},
-        ).exists()
+        )[0]
+
+        assert result.data == {"default_role": u"to owner"}
 
     def test_edit_sso_settings__no_change(self):
         organization, auth_provider = self.create_org_and_auth_provider()

@@ -115,7 +115,9 @@ class IssueBasicMixin(object):
 
         defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
 
-        self.org_integration.config.update({"project_issue_defaults": {project_id: defaults}})
+        self.org_integration.config.setdefault("project_issue_defaults", {}).setdefault(
+            six.text_type(project_id), {}
+        ).update(defaults)
         self.org_integration.save()
 
     def get_project_defaults(self, project_id):

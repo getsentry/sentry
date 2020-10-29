@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import random
 import logging
 import six
 
@@ -23,8 +22,6 @@ from .utils import (
     get_integration_type,
 )
 
-# 30% of messages for workspace apps will get the upgrade CTA
-UPGRADE_MESSAGE_FREQUENCY = 0.30
 logger = logging.getLogger("sentry.rules")
 
 
@@ -54,7 +51,7 @@ class SlackNotifyServiceForm(forms.Form):
 
     def clean(self):
         channel_id = None
-        if self.data.get("channel_id"):
+        if self.data.get("input_channel_id"):
             logger.info(
                 "rule.slack.provide_channel_id",
                 extra={
@@ -64,11 +61,18 @@ class SlackNotifyServiceForm(forms.Form):
             )
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
-            channel_id = self.data["channel_id"]
+            channel_id = self.data["input_channel_id"]
 
         cleaned_data = super(SlackNotifyServiceForm, self).clean()
 
         workspace = cleaned_data.get("workspace")
+        try:
+            integration = Integration.objects.get(id=workspace)
+        except Integration.DoesNotExist:
+            raise forms.ValidationError(
+                _("Slack workspace is a required field.",), code="invalid",
+            )
+
         channel = cleaned_data.get("channel", "")
 
         # XXX(meredith): If the user is creating/updating a rule via the API and provides
@@ -76,9 +80,10 @@ class SlackNotifyServiceForm(forms.Form):
         # are assuming that they passed in the correct channel_id for the channel
         if not channel_id:
             try:
-                channel_prefix, channel_id, timed_out = self.channel_transformer(workspace, channel)
+                channel_prefix, channel_id, timed_out = self.channel_transformer(
+                    integration, channel
+                )
             except DuplicateDisplayNameError as e:
-                integration = Integration.objects.get(id=workspace)
                 domain = integration.metadata["domain_name"]
 
                 params = {"channel": e.message, "domain": domain}
@@ -161,9 +166,8 @@ class SlackNotifyServiceAction(EventAction):
                 # check if we should have the upgrade notice attachment
                 integration_type = get_integration_type(integration)
                 if integration_type == "workspace_app":
-                    if random.uniform(0, 1) < UPGRADE_MESSAGE_FREQUENCY:
-                        # stick the upgrade attachment first
-                        attachments.insert(0, build_upgrade_notice_attachment(event.group))
+                    # stick the upgrade attachment first
+                    attachments.insert(0, build_upgrade_notice_attachment(event.group))
 
                 span.set_tag("integration_type", integration_type)
                 span.set_tag("has_slack_upgrade_cta", len(attachments) > 1)
@@ -222,5 +226,5 @@ class SlackNotifyServiceAction(EventAction):
             self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
         )
 
-    def get_channel_id(self, integration_id, name):
-        return get_channel_id(self.project.organization, integration_id, name)
+    def get_channel_id(self, integration, name):
+        return get_channel_id(self.project.organization, integration, name)

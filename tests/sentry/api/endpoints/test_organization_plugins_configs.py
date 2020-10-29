@@ -101,7 +101,7 @@ class OrganizationPluginsTest(APITestCase):
         self.projectA.status = 1
         self.projectA.save()
         response = self.client.get(self.url)
-        assert filter(lambda x: x["slug"] == "trello", response.data)[0]["projectList"] == []
+        assert list(filter(lambda x: x["slug"] == "trello", response.data))[0]["projectList"] == []
 
     def test_configured_multiple_projects(self):
         plugins.get("trello").set_option("key", "some_value", self.projectA)

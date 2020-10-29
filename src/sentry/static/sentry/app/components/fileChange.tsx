@@ -4,24 +4,25 @@ import styled from '@emotion/styled';
 
 import {ListGroupItem} from 'app/components/listGroup';
 import space from 'app/styles/space';
-import {AvatarUser} from 'app/types';
+import {CommitAuthor, AvatarUser} from 'app/types';
 import AvatarList from 'app/components/avatar/avatarList';
 import FileIcon from 'app/components/fileIcon';
 import TextOverflow from 'app/components/textOverflow';
 
 type Props = {
   filename: string;
-  authors: AvatarUser[];
+  authors: CommitAuthor[];
+  className?: string;
 };
 
-const FileChange = ({filename, authors}: Props) => (
-  <FileItem>
+const FileChange = ({filename, authors, className}: Props) => (
+  <FileItem className={className}>
     <Filename>
       <StyledFileIcon fileName={filename} />
       <TextOverflow>{filename}</TextOverflow>
     </Filename>
     <div>
-      <AvatarList users={authors} avatarSize={25} typeMembers="authors" />
+      <AvatarList users={authors as AvatarUser[]} avatarSize={25} typeMembers="authors" />
     </div>
   </FileItem>
 );

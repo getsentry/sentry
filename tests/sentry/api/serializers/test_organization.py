@@ -24,6 +24,7 @@ class OrganizationSerializerTest(TestCase):
                 "advanced-search",
                 "shared-issues",
                 "open-membership",
+                "event-attachments",
                 "integrations-issue-basic",
                 "integrations-issue-sync",
                 "integrations-alert-rule",
@@ -37,10 +38,9 @@ class OrganizationSerializerTest(TestCase):
                 "sso-basic",
                 "symbol-sources",
                 "custom-symbol-sources",
-                "releases-v2",
                 "discover-basic",
                 "discover-query",
-                "artifacts-in-settings",
+                "dynamic-issue-counts",
             ]
         )
 

@@ -4,12 +4,12 @@ export function ProjectAlertRuleConfiguration(params = {}) {
       {
         enabled: true,
         id: 'sentry.rules.conditions.every_event.EveryEventCondition',
-        label: 'An event is seen',
+        label: 'An event occurs',
       },
       {
         enabled: true,
         id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-        label: 'The issue is first seen',
+        label: 'A new issue is created',
       },
       {
         enabled: true,

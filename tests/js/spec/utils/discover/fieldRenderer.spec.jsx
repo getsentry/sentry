@@ -3,9 +3,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
-describe('getFieldRenderer', function() {
+describe('getFieldRenderer', function () {
   let location, context, project, organization, data, user;
-  beforeEach(function() {
+  beforeEach(function () {
     context = initializeOrg({
       project: TestStubs.Project(),
     });
@@ -36,21 +36,21 @@ describe('getFieldRenderer', function() {
     });
   });
 
-  it('can render string fields', function() {
+  it('can render string fields', function () {
     const renderer = getFieldRenderer('url', {url: 'string'});
     const wrapper = mount(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
     expect(text.text()).toEqual(data.url);
   });
 
-  it('can render boolean fields', function() {
+  it('can render boolean fields', function () {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
     const wrapper = mount(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
-    expect(text.text()).toEqual('yes');
+    expect(text.text()).toEqual('true');
   });
 
-  it('can render integer fields', function() {
+  it('can render integer fields', function () {
     const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
     const wrapper = mount(renderer(data, {location, organization}));
 
@@ -59,7 +59,7 @@ describe('getFieldRenderer', function() {
     expect(value.props().value).toEqual(data.numeric);
   });
 
-  it('can render date fields', function() {
+  it('can render date fields', function () {
     const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
     expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
@@ -69,7 +69,7 @@ describe('getFieldRenderer', function() {
     expect(value.props().date).toEqual(data.createdAt);
   });
 
-  it('can render null date fields', function() {
+  it('can render null date fields', function () {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
     const wrapper = mount(renderer(data, {location, organization}));
 
@@ -78,7 +78,7 @@ describe('getFieldRenderer', function() {
     expect(wrapper.text()).toEqual('n/a');
   });
 
-  it('can render user fields with aliased user', function() {
+  it('can render user fields with aliased user', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
     const wrapper = mount(renderer(data, {location, organization}));
@@ -91,7 +91,7 @@ describe('getFieldRenderer', function() {
     expect(value.text()).toEqual('text@example.com');
   });
 
-  it('can render null user fields', function() {
+  it('can render null user fields', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
     delete data.user;
@@ -105,7 +105,7 @@ describe('getFieldRenderer', function() {
     expect(value.text()).toEqual('n/a');
   });
 
-  it('can render null release fields', function() {
+  it('can render null release fields', function () {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     delete data.release;
@@ -116,7 +116,7 @@ describe('getFieldRenderer', function() {
     expect(value.text()).toEqual('n/a');
   });
 
-  it('can render project as an avatar', function() {
+  it('can render project as an avatar', function () {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
     const wrapper = mountWithTheme(

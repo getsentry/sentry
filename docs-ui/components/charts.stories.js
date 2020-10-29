@@ -6,7 +6,7 @@ import LineChart from 'app/components/charts/lineChart';
 import BarChart from 'app/components/charts/barChart';
 
 export default {
-  title: 'Charts/Playground',
+  title: 'DataVisualization/Charts/Playground',
 };
 
 export const _LineChart = withInfo('Description')(() => (

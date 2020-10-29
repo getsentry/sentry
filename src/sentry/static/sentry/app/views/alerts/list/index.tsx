@@ -171,10 +171,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           !hasAlertRule
             ? t('No metric alert rules exist for these projects.')
             : status === 'open'
-            ? t(
-                'Everything’s a-okay. There are no unresolved metric alerts in these projects.'
-              )
-            : t('There are no resolved metric alerts in these projects.')
+            ? t('No unresolved metric alerts in these projects.')
+            : t('No resolved metric alerts in these projects.')
         }
         description={tct('Learn more about [link:Metric Alerts]', {
           link: <ExternalLink href={DOCS_URL} />,
@@ -271,7 +269,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                     barId="open"
                     size="small"
                   >
-                    {t('Active')}
+                    {t('Unresolved')}
                   </Button>
                   <Button
                     to={{pathname, query: closedIncidentsQuery}}

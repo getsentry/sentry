@@ -6,8 +6,8 @@ import GlobalSelectionLink from 'app/components/globalSelectionLink';
 
 const path = 'http://some.url/';
 
-describe('GlobalSelectionLink', function() {
-  it('has global selection values in query', function() {
+describe('GlobalSelectionLink', function () {
+  it('has global selection values in query', function () {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',
@@ -31,7 +31,7 @@ describe('GlobalSelectionLink', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('does not have global selection values in query', function() {
+  it('does not have global selection values in query', function () {
     const wrapper = mountWithTheme(
       <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
       {
@@ -50,7 +50,7 @@ describe('GlobalSelectionLink', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('combines query parameters with custom query', function() {
+  it('combines query parameters with custom query', function () {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',
@@ -77,7 +77,7 @@ describe('GlobalSelectionLink', function() {
     });
   });
 
-  it('combines query parameters with no query', function() {
+  it('combines query parameters with no query', function () {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',

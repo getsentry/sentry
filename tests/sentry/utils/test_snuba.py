@@ -147,6 +147,7 @@ class SnubaUtilsTest(TestCase):
         ]
 
     def test_get_json_type(self):
+        assert get_json_type(None) == "string"
         assert get_json_type("UInt8") == "boolean"
         assert get_json_type("UInt16") == "integer"
         assert get_json_type("UInt32") == "integer"
@@ -168,6 +169,22 @@ class SnubaUtilsTest(TestCase):
         assert get_snuba_column_name("tags[sentry:user]") == "tags[sentry:user]"
         assert get_snuba_column_name("organization") == "tags[organization]"
         assert get_snuba_column_name("unknown-key") == "tags[unknown-key]"
+
+        # measurements are not available on the Events dataset, so it's seen as a tag
+        assert get_snuba_column_name("measurements_key", Dataset.Events) == "tags[measurements_key]"
+        assert get_snuba_column_name("measurements.key", Dataset.Events) == "tags[measurements.key]"
+
+        # measurements are available on the Discover and Transactions dataset, so its parsed as such
+        assert get_snuba_column_name("measurements_key", Dataset.Discover) == "measurements.key"
+        assert get_snuba_column_name("measurements_key", Dataset.Transactions) == "measurements.key"
+        assert get_snuba_column_name("measurements.key", Dataset.Discover) == "measurements[key]"
+        assert (
+            get_snuba_column_name("measurements.key", Dataset.Transactions) == "measurements[key]"
+        )
+        assert get_snuba_column_name("measurements.KEY", Dataset.Discover) == "measurements[key]"
+        assert (
+            get_snuba_column_name("measurements.KEY", Dataset.Transactions) == "measurements[key]"
+        )
 
 
 class PrepareQueryParamsTest(TestCase):

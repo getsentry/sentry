@@ -108,7 +108,7 @@ class RuleProcessorTestFilters(TestCase):
         "tests.sentry.rules.test_processor.MockFilterFalse",
     )
 
-    @patch("sentry.constants.SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
+    @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
         # setup a simple alert rule with 1 condition and 1 filter that always pass
         self.event = self.store_event(data={}, project_id=self.project.id)
@@ -139,7 +139,7 @@ class RuleProcessorTestFilters(TestCase):
             assert futures[0].rule == self.rule
             assert futures[0].kwargs == {}
 
-    @patch("sentry.constants.SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
+    @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_fails(self):
         # setup a simple alert rule with 1 condition and 1 filter that doesn't pass
         self.event = self.store_event(data={}, project_id=self.project.id)
@@ -165,3 +165,55 @@ class RuleProcessorTestFilters(TestCase):
             )
             results = list(rp.apply())
             assert len(results) == 0
+
+    def test_no_filters(self):
+        # setup an alert rule with 1 conditions and no filters that passes
+        self.event = self.store_event(data={}, project_id=self.project.id)
+
+        Rule.objects.filter(project=self.event.project).delete()
+        self.rule = Rule.objects.create(
+            project=self.event.project,
+            data={
+                "conditions": [EVERY_EVENT_COND_DATA],
+                "actions": [EMAIL_ACTION_DATA],
+                "filter_match": "any",
+            },
+        )
+
+        rp = RuleProcessor(
+            self.event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 1
+        callback, futures = results[0]
+        assert len(futures) == 1
+        assert futures[0].rule == self.rule
+        assert futures[0].kwargs == {}
+
+    def test_no_conditions(self):
+        # if a rule has no conditions/triggers it should still pass
+        self.event = self.store_event(data={}, project_id=self.project.id)
+
+        Rule.objects.filter(project=self.event.project).delete()
+        self.rule = Rule.objects.create(
+            project=self.event.project,
+            data={"actions": [EMAIL_ACTION_DATA], "action_match": "any"},
+        )
+
+        rp = RuleProcessor(
+            self.event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 1
+        callback, futures = results[0]
+        assert len(futures) == 1
+        assert futures[0].rule == self.rule
+        assert futures[0].kwargs == {}

@@ -54,6 +54,8 @@ SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 # doesn't include new lines,
 QUOTED_LITERAL_RE = re.compile(r"^'[\s\S]*'$")
 
+MEASUREMENTS_KEY_RE = re.compile(r"^measurements\.([a-zA-Z0-9-_.]+)$")
+
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
 # NOT THREAD SAFE!
@@ -106,6 +108,8 @@ DATASET_FIELDS = {
 SNUBA_OR = "or"
 SNUBA_AND = "and"
 OPERATOR_TO_FUNCTION = {
+    "LIKE": "like",
+    "NOT LIKE": "notLike",
     "=": "equals",
     "!=": "notEquals",
     ">": "greater",
@@ -176,10 +180,41 @@ class QueryTooManySimultaneous(QueryExecutionError):
     """
 
 
+class QuerySizeExceeded(QueryExecutionError):
+    """
+    The generated query has exceeded the maximum length allowed by clickhouse
+    """
+
+
+class QueryExecutionTimeMaximum(QueryExecutionError):
+    """
+    The query has or will take over 30 seconds to run, exceeding the limit
+    that has been set
+    """
+
+
+class DatasetSelectionError(QueryExecutionError):
+    """
+    This query has resulted in needing to check multiple datasets in a way
+    that is not currently handled, clickhouse errors with data being compressed
+    by different methods when this happens
+    """
+
+
+class QueryConnectionFailed(QueryExecutionError):
+    """
+    The connection to clickhouse has failed, and so the query cannot be run
+    """
+
+
 clickhouse_error_codes_map = {
     43: QueryIllegalTypeOfArgument,
-    241: QueryMemoryLimitExceeded,
+    62: QuerySizeExceeded,
+    160: QueryExecutionTimeMaximum,
     202: QueryTooManySimultaneous,
+    241: QueryMemoryLimitExceeded,
+    271: DatasetSelectionError,
+    279: QueryConnectionFailed,
 }
 
 
@@ -302,7 +337,13 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
 
-    return DATASETS[dataset].get(name, u"tags[{}]".format(name))
+    match = MEASUREMENTS_KEY_RE.match(name)
+    if "measurements_key" in DATASETS[dataset] and match:
+        default = u"measurements[{}]".format(match.group(1).lower())
+    else:
+        default = u"tags[{}]".format(name)
+
+    return DATASETS[dataset].get(name, default)
 
 
 def get_function_index(column_expr, depth=0):
@@ -763,6 +804,8 @@ def resolve_column(dataset):
     def _resolve_column(col):
         if col is None:
             return col
+        if isinstance(col, six.integer_types) or isinstance(col, float):
+            return col
         if isinstance(col, six.string_types) and (
             col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
         ):
@@ -780,6 +823,11 @@ def resolve_column(dataset):
 
         if col in DATASETS[dataset]:
             return DATASETS[dataset][col]
+
+        match = MEASUREMENTS_KEY_RE.match(col)
+        if "measurements_key" in DATASETS[dataset] and match:
+            return u"measurements[{}]".format(match.group(1).lower())
+
         return u"tags[{}]".format(col)
 
     return _resolve_column
@@ -814,7 +862,12 @@ def resolve_condition(cond, column_resolver):
                     else:
                         func_args[i] = column_resolver(arg)
                 else:
-                    func_args[i] = u"'{}'".format(arg) if isinstance(arg, six.string_types) else arg
+                    if isinstance(arg, six.string_types):
+                        func_args[i] = u"'{}'".format(arg)
+                    elif isinstance(arg, datetime):
+                        func_args[i] = u"'{}'".format(arg.isoformat())
+                    else:
+                        func_args[i] = arg
 
             cond[index + 1] = func_args
             return cond
@@ -956,8 +1009,8 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
-                if len(col) == 3 and col[0] == "transform":
-                    # Add the name from the project transform, and remove the backticks so its not treated as a new col
+                if len(col) == 3:
+                    # Add the name from columns, and remove project backticks so its not treated as a new col
                     derived_columns.add(col[2].strip("`"))
                 resolve_complex_column(col, resolve_func)
             else:
@@ -987,20 +1040,23 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
         if isinstance(aggregation[1], six.string_types):
             aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
-            # The aggregation has another function call as its parameter
-            func_index = get_function_index(aggregation[1])
-            if func_index is not None:
-                # Resolve the columns on the nested function, and add a wrapping
-                # list to become a valid query expression.
-                aggregation[1] = [
-                    [aggregation[1][0], [resolve_func(col) for col in aggregation[1][1]]]
-                ]
-            else:
-                # Parameter is a list of fields.
-                aggregation[1] = [
-                    resolve_func(col) if col not in derived_columns else col
-                    for col in aggregation[1]
-                ]
+            formatted = []
+            for argument in aggregation[1]:
+                # The aggregation has another function call as its parameter
+                func_index = get_function_index(argument)
+                if func_index is not None:
+                    # Resolve the columns on the nested function, and add a wrapping
+                    # list to become a valid query expression.
+                    formatted.append([argument[0], [resolve_func(col) for col in argument[1]]])
+                else:
+                    # Parameter is a list of fields.
+                    formatted.append(
+                        resolve_func(argument)
+                        if not isinstance(argument, (set, tuple, list))
+                        and argument not in derived_columns
+                        else argument
+                    )
+            aggregation[1] = formatted
     resolved.aggregations = aggregations
 
     conditions = resolved.conditions
@@ -1043,6 +1099,9 @@ def get_json_type(snuba_type):
     Convert Snuba/Clickhouse type to JSON type
     Default is string
     """
+    if snuba_type is None:
+        return "string"
+
     # Ignore Nullable part
     nullable_match = re.search(r"^Nullable\((.+)\)$", snuba_type)
 
@@ -1250,3 +1309,18 @@ def quantize_time(time, key_hash, duration=300):
         # Use timedelta here so keys are consistent around hour boundaries
         timedelta(seconds=seconds_past_hour)
     )
+
+
+def is_measurement(key):
+    return isinstance(key, six.string_types) and MEASUREMENTS_KEY_RE.match(key)
+
+
+def is_duration_measurement(key):
+    return key in [
+        "measurements.fp",
+        "measurements.fcp",
+        "measurements.lcp",
+        "measurements.fid",
+        "measurements.ttfb",
+        "measurements.ttfb.requesttime",
+    ]

@@ -179,11 +179,12 @@ def build_upgrade_notice_attachment(group):
     )
 
     return {
-        "title": "Reminder",
+        "title": "Deprecation Notice",
         "text": (
-            u"It looks like you are still using the Legacy Sentry-Slack integration. "
-            u"You will need to upgrade by October 1st to continue receiving alerts. "
-            u"Click <{}|here> to upgrade.".format(url)
+            u"This alert is coming from a deprecated version of the Sentry-Slack integration. "
+            u"Your Slack integration, along with any data associated with it, will be *permanently deleted on January 14, 2021* "
+            u"if you do not transition to the new supported Slack integration. "
+            u"Click <{}|here> to complete the process.".format(url)
         ),
     }
 
@@ -360,11 +361,11 @@ def strip_channel_name(name):
     return name.lstrip(strip_channel_chars)
 
 
-def get_channel_id(organization, integration_id, name):
+def get_channel_id(organization, integration, name, use_async_lookup=False):
     """
    Fetches the internal slack id of a channel.
    :param organization: The organization that is using this integration
-   :param integration_id: The integration id of this slack integration
+   :param integration: The slack integration
    :param name: The name of the channel
    :return: a tuple of three values
        1. prefix: string (`"#"` or `"@"`)
@@ -373,19 +374,19 @@ def get_channel_id(organization, integration_id, name):
    """
 
     name = strip_channel_name(name)
-    try:
-        integration = Integration.objects.get(
-            provider="slack", organizations=organization, id=integration_id
-        )
-    except Integration.DoesNotExist:
-        return None, None, False
+
+    # longer lookup for the async job
+    if use_async_lookup:
+        timeout = 3 * 60
+    else:
+        timeout = SLACK_DEFAULT_TIMEOUT
 
     # XXX(meredith): For large accounts that have many, many channels it's
     # possible for us to timeout while attempting to paginate through to find the channel id
     # This means some users are unable to create/update alert rules. To avoid this, we attempt
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
-    return get_channel_id_with_timeout(integration, name, SLACK_DEFAULT_TIMEOUT)
+    return get_channel_id_with_timeout(integration, name, timeout)
 
 
 def get_channel_id_with_timeout(integration, name, timeout):

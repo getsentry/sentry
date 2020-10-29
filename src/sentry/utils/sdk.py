@@ -95,7 +95,7 @@ def get_project_key():
     except Exception as exc:
         # if the relation fails to query or is missing completely, lets handle
         # it gracefully
-        sdk_logger.warn(
+        sdk_logger.warning(
             "internal-error.unable-to-fetch-project",
             extra={
                 "project_id": settings.SENTRY_PROJECT,
@@ -104,7 +104,7 @@ def get_project_key():
             },
         )
     if key is None:
-        sdk_logger.warn(
+        sdk_logger.warning(
             "internal-error.no-project-available",
             extra={
                 "project_id": settings.SENTRY_PROJECT,
@@ -186,7 +186,6 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
         ],
-        traceparent_v2=True,
         **sdk_options
     )
 

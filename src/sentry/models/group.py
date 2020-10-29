@@ -125,6 +125,10 @@ class GroupStatus(object):
     DELETION_IN_PROGRESS = 4
     PENDING_MERGE = 5
 
+    # The group's events are being re-processed and after that the group will
+    # be deleted. In this state no new events shall be added to the group.
+    REPROCESSING = 6
+
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
 
@@ -248,13 +252,18 @@ class Group(Model):
     __core__ = False
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
+    logger = models.CharField(
+        max_length=64, blank=True, default=six.text_type(DEFAULT_LOGGER_NAME), db_index=True
+    )
     level = BoundedPositiveIntegerField(
-        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
+        choices=[(key, six.text_type(val)) for key, val in sorted(LOG_LEVELS.items())],
+        default=logging.ERROR,
+        blank=True,
+        db_index=True,
     )
     message = models.TextField()
     culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column="view"
+        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column=u"view"
     )
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)

@@ -5,34 +5,13 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ProjectKeySerializer
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario("ListClientKeys")
-def list_keys_scenario(runner):
-    runner.request(
-        method="GET", path="/projects/%s/%s/keys/" % (runner.org.slug, runner.default_project.slug)
-    )
-
-
-@scenario("CreateClientKey")
-def create_key_scenario(runner):
-    runner.request(
-        method="POST",
-        path="/projects/%s/%s/keys/" % (runner.org.slug, runner.default_project.slug),
-        data={"name": "Fabulous Key"},
-    )
 
 
 class ProjectKeysEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
-
-    @attach_scenarios([list_keys_scenario])
     def get(self, request, project):
         """
         List a Project's Client Keys
@@ -63,7 +42,6 @@ class ProjectKeysEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    @attach_scenarios([create_key_scenario])
     def post(self, request, project):
         """
         Create a new Client Key

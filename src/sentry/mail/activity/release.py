@@ -238,3 +238,6 @@ class ReleaseActivityEmail(ActivityEmail):
 
     def get_html_template(self):
         return "sentry/emails/activity/release.html"
+
+    def get_category(self):
+        return "release_activity_email"

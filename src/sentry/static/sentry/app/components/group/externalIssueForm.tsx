@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import * as queryString from 'query-string';
+import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
@@ -49,6 +50,12 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
   };
 
   shouldRenderBadRequests = true;
+  loadTransasaction?: ReturnType<typeof Sentry.startTransaction>;
+  submitTransaction?: ReturnType<typeof Sentry.startTransaction>;
+
+  componentDidMount() {
+    this.loadTransasaction = this.startTransaction('load');
+  }
 
   getEndpoints(): [string, string][] {
     const {group, integration, action} = this.props;
@@ -60,9 +67,29 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
     ];
   }
 
+  startTransaction = (type: 'load' | 'submit') => {
+    const {action, group, integration} = this.props;
+    const transaction = Sentry.startTransaction({name: `externalIssueForm.${type}`});
+    transaction.setTag('issueAction', action);
+    transaction.setTag('groupID', group.id);
+    transaction.setTag('projectID', group.project.id);
+    transaction.setTag('integrationSlug', integration.provider.slug);
+    transaction.setTag('integrationType', 'firstParty');
+    return transaction;
+  };
+
+  handlePreSubmit = () => {
+    this.submitTransaction = this.startTransaction('submit');
+  };
+
   onSubmitSuccess = (data: PlatformExternalIssue) => {
     addSuccessMessage(MESSAGES_BY_ACTION[this.props.action]);
     this.props.onSubmitSuccess(data);
+    this.submitTransaction?.finish();
+  };
+
+  handleSubmitError = () => {
+    this.submitTransaction?.finish();
   };
 
   onRequestSuccess({stateKey, data}) {
@@ -72,6 +99,14 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
       });
     }
   }
+
+  onLoadAllEndpointsSuccess() {
+    this.loadTransasaction?.finish();
+  }
+
+  onRequestError = () => {
+    this.loadTransasaction?.finish();
+  };
 
   refetchConfig = () => {
     const {dynamicFieldValues} = this.state;
@@ -200,10 +235,12 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
         submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
         submitDisabled={this.state.reloading}
         footerClass="modal-footer"
+        onPreSubmit={this.handlePreSubmit}
+        onSubmitError={this.handleSubmitError}
       >
         {config.map(field => (
           <FieldFromConfig
-            key={`${field.name}-${field.default}`}
+            key={`${field.name}-${field.default}-${field.required}`}
             field={field}
             inline={false}
             stacked

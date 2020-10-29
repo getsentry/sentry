@@ -98,7 +98,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
 
         <ChartControls>
           <InlineContainer>
-            <SectionHeading key="total-heading">{t('Total Events')}</SectionHeading>
+            <SectionHeading key="total-heading">{t('Total Transactions')}</SectionHeading>
             <SectionValue key="total-value">{calculateTotal(totalValues)}</SectionValue>
           </InlineContainer>
           <InlineContainer>
