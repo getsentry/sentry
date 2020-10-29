@@ -29,6 +29,11 @@ type Props = DefaultProps & {
    */
   date: RelaxedDateType;
 
+  /**
+   * By default we show tooltip with absolute date on hover, this prop disables that
+   */
+  disabledAbsoluteTooltip?: boolean;
+
   className?: string;
 } & TimeProps;
 
@@ -81,14 +86,23 @@ class TimeSince extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {date, suffix: _suffix, className, ...props} = this.props;
+    const {
+      date,
+      suffix: _suffix,
+      disabledAbsoluteTooltip,
+      className,
+      ...props
+    } = this.props;
     const dateObj = getDateObj(date);
     const user = ConfigStore.get('user');
     const options = user ? user.options : null;
     const format = options?.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
 
     return (
-      <Tooltip title={moment.tz(dateObj, options?.timezone ?? '').format(format)}>
+      <Tooltip
+        title={moment.tz(dateObj, options?.timezone ?? '').format(format)}
+        disabled={disabledAbsoluteTooltip}
+      >
         <time dateTime={dateObj.toISOString()} className={className} {...props}>
           {this.state.relative}
         </time>
