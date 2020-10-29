@@ -435,7 +435,8 @@ def get_channel_id_with_timeout(integration, name, timeout):
             for c in items[result_name]:
                 # The "name" field is unique (this is the username for users)
                 # so we return immediately if we find a match.
-                if c["name"] == name:
+                # convert to lower case since all names in Slack are lowercase
+                if c["name"].lower() == name.lower():
                     return (prefix, c["id"], False)
                 # If we don't get a match on a unique identifier, we look through
                 # the users' display names, and error if there is a repeat.
