@@ -291,6 +291,7 @@ function ChangedTransactions(props: Props) {
                           statsData={statsData}
                           query={trendView.query}
                           project={trendView.project}
+                          projects={projects}
                           environment={trendView.environment}
                           start={trendView.start}
                           end={trendView.end}
