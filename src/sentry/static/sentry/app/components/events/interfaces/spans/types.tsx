@@ -57,6 +57,7 @@ export type ParsedTraceType = {
   childSpans: SpanChildrenLookupType;
   traceID: string;
   rootSpanID: string;
+  rootSpanStatus: string | undefined;
   parentSpanID?: string;
   traceStartTimestamp: number;
   traceEndTimestamp: number;
@@ -78,6 +79,7 @@ export type TraceContextType = {
   trace_id?: string;
   parent_span_id?: string;
   description?: string;
+  status?: string;
 };
 
 type SpanTreeDepth = number;

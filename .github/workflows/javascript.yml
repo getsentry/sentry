@@ -1,52 +1,113 @@
 name: javascript
+
 on:
+  push:
+    branches:
+      - master
   pull_request:
     paths:
       - '**.[tj]sx?'
+      - package.json
+      - yarn.lock
 
 jobs:
-    build:
-      runs-on: ubuntu-latest
-      steps:
-        # Checkout codebase
-        - uses: actions/checkout@v1
+  getsentry:
+    if: ${{ github.ref != 'refs/heads/master' }}
+    runs-on: ubuntu-16.04
+    steps:
+      - name: getsentry token
+        id: getsentry
+        uses: getsentry/action-github-app-token@v1
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-        # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-        - name: Get yarn cache directory path
-          id: yarn-cache-dir-path
-          run: echo "::set-output name=dir::$(yarn cache dir)"
+      # Notify getsentry
+      - name: Dispatch getsentry tests
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ steps.getsentry.outputs.token }}
+          script: |
+            github.actions.createWorkflowDispatch({
+              owner: 'getsentry',
+              repo: 'getsentry',
+              workflow_id: 'javascript.yml',
+              ref: 'master',
+              inputs: {
+                'sentry-sha': '${{ github.event.pull_request.head.sha }}',
+              }
+            })
 
-        # Use nvmrc so we don't have yet another place node version is defined
-        - name: Get node version from .nvmrc
-          id: nvmrc
-          run: echo "::set-output name=version::$(cat .nvmrc)"
+  build:
+    name: lint and typescript
+    if: ${{ github.ref != 'refs/heads/master' }}
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
 
-        # yarn cache
-        - uses: actions/cache@v1
-          id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-          with:
-            path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-            key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-            restore-keys: |
-              ${{ runner.os }}-yarn-
+      - uses: volta-cli/action@v1
 
-        # Setup node
-        - uses: actions/setup-node@v1
-          with:
-            node-version: ${{ steps.nvmrc.outputs.version }}
+      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
 
-        - name: Install dependencies
-          run: yarn install --frozen-lockfile
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
-        - name: eslint + fix
-          uses: getsentry/action-eslint-fix@master
-          with:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
-        # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
-        - name: tsc
-          if: always()
-          run: |
-            echo "::remove-matcher owner=tsc::"
-            echo "::add-matcher::.github/tsc.json"
-            yarn tsc -p config/tsconfig.build.json
+      # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
+      - name: setup matchers
+        id: matchers
+        run: |
+          echo "::remove-matcher owner=masters::"
+          echo "::add-matcher::.github/tsc.json"
+          echo "::add-matcher::.github/eslint-stylish.json"
+
+      - name: eslint + fix
+        uses: getsentry/action-eslint-fix@v2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: tsc
+        if: always()
+        run: |
+          yarn tsc -p config/tsconfig.build.json
+
+  webpack:
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: volta-cli/action@v1
+
+      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - uses: getsentry/size-limit-action@v1-dev
+        with:
+          main_branch: master
+          skip_step: install
+          build_script: build
+          windows_verbatim_arguments: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}

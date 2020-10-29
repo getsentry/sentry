@@ -32,6 +32,7 @@ import {
   DISPLAY_MODE_OPTIONS,
   DISPLAY_MODE_FALLBACK_OPTIONS,
 } from './types';
+import {statsPeriodToDays} from '../dates';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType>;
@@ -39,7 +40,7 @@ export type MetaType = Record<string, ColumnType>;
 // Data in discover results.
 export type EventData = Record<string, any>;
 
-type LocationQuery = {
+export type LocationQuery = {
   start?: string | string[];
   end?: string | string[];
   utc?: string | string[];
@@ -550,6 +551,10 @@ class EventView {
     return this.fields.some(field => isAggregateField(field.field));
   }
 
+  hasIdField() {
+    return this.fields.some(field => field.field === 'id');
+  }
+
   numOfColumns(): number {
     return this.fields.length;
   }
@@ -560,18 +565,7 @@ class EventView {
 
   getDays(): number {
     const statsPeriod = decodeScalar(this.statsPeriod);
-
-    if (statsPeriod && statsPeriod.endsWith('d')) {
-      return parseInt(statsPeriod.slice(0, -1), 10);
-    } else if (statsPeriod && statsPeriod.endsWith('h')) {
-      return parseInt(statsPeriod.slice(0, -1), 10) / 24;
-    } else if (this.start && this.end) {
-      return (
-        (new Date(this.end).getTime() - new Date(this.start).getTime()) /
-        (24 * 60 * 60 * 1000)
-      );
-    }
-    return 0;
+    return statsPeriodToDays(statsPeriod, this.start, this.end);
   }
 
   clone(): EventView {
@@ -924,7 +918,7 @@ class EventView {
     const environment = this.environment as string[];
 
     // generate event query
-    const eventQuery: EventQuery & LocationQuery = Object.assign(
+    const eventQuery = Object.assign(
       omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
@@ -935,7 +929,7 @@ class EventView {
         per_page: DEFAULT_PER_PAGE,
         query: this.query,
       }
-    );
+    ) as EventQuery & LocationQuery;
 
     if (!eventQuery.sort) {
       delete eventQuery.sort;

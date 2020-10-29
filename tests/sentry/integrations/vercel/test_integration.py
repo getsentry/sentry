@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-import json
 import responses
-import six
 
 from rest_framework.serializers import ValidationError
 
@@ -19,6 +17,7 @@ from sentry.models import (
     SentryAppInstallation,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.utils import json
 from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
 
@@ -26,7 +25,7 @@ from sentry.utils.http import absolute_uri
 class VercelIntegrationTest(IntegrationTestCase):
     provider = VercelIntegrationProvider
 
-    def assert_setup_flow(self, is_team=False, multi_config_org=None):
+    def assert_setup_flow(self, is_team=False, multi_config_org=None, no_name=False):
         class MockUuid4:
             hex = "1234567"
 
@@ -49,10 +48,11 @@ class VercelIntegrationTest(IntegrationTestCase):
             )
         else:
             team_query = ""
+            name = None if no_name else "My Name"
             responses.add(
                 responses.GET,
                 "https://api.vercel.com/www/user",
-                json={"user": {"name": "My Name", "username": "my_user_name"}},
+                json={"user": {"name": name, "username": "my_user_name"}},
             )
 
         responses.add(
@@ -77,6 +77,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             "next": "https://example.com",
         }
         self.pipeline.bind_state("user_id", self.user.id)
+        # TODO: Should use the setup path since we /configure instead
         resp = self.client.get(self.setup_path, params)
 
         mock_request = responses.calls[0].request
@@ -93,7 +94,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
 
         external_id = "my_team_id" if is_team else "my_user_id"
-        name = "My Team Name" if is_team else "My Name"
+        name = "My Team Name" if is_team else "my_user_name" if no_name else "My Name"
         installation_type = "team" if is_team else "user"
 
         assert integration.external_id == external_id
@@ -132,6 +133,10 @@ class VercelIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_user_flow(self):
         self.assert_setup_flow(is_team=False)
+
+    @responses.activate
+    def test_no_name(self):
+        self.assert_setup_flow(no_name=True)
 
     @responses.activate
     def test_use_existing_installation(self):
@@ -462,16 +467,13 @@ class VercelIntegrationTest(IntegrationTestCase):
             },
         )
 
-        data = b"""{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}"""
+        data = b'{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}'
 
         resp = self.client.post(path=uihook_url, data=data, content_type="application/json")
         assert resp.status_code == 200
         assert (
-            six.binary_type(
-                absolute_uri(
-                    "/settings/%s/integrations/vercel/%s/"
-                    % (self.organization.slug, integration.id)
-                )
-            )
+            absolute_uri(
+                "/settings/%s/integrations/vercel/%s/" % (self.organization.slug, integration.id)
+            ).encode("utf-8")
             in resp.content
         )

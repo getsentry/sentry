@@ -25,7 +25,7 @@ import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
-import {LightWeightOrganization, SavedSearch, Tag} from 'app/types';
+import {LightWeightOrganization, SavedSearch, Tag, SavedSearchType} from 'app/types';
 import {
   fetchRecentSearches,
   pinSearch,
@@ -39,7 +39,7 @@ import {
 } from 'app/constants';
 
 import SearchDropdown from './searchDropdown';
-import {SearchItem, SearchType, SearchGroup, ItemType} from './types';
+import {SearchItem, SearchGroup, ItemType} from './types';
 import {
   addSpace,
   removeSpace,
@@ -75,8 +75,10 @@ const getInputButtonStyles = (p: {
     color: ${theme.gray600};
   }
 
-  ${p.collapseIntoEllipsisMenu &&
-    getMediaQuery(theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')};
+  ${
+    p.collapseIntoEllipsisMenu &&
+    getMediaQuery(theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')
+  };
 `;
 
 const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolean}) => `
@@ -104,8 +106,10 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
     margin-right: ${space(1)};
   }
 
-  ${p.showBelowMediaQuery &&
-    getMediaQuery(theme.breakpoints[p.showBelowMediaQuery], 'flex')}
+  ${
+    p.showBelowMediaQuery &&
+    getMediaQuery(theme.breakpoints[p.showBelowMediaQuery], 'flex')
+  }
 `;
 
 type Props = {
@@ -166,7 +170,7 @@ type Props = {
    * If this is defined, attempt to save search term scoped to the user and
    * the current org
    */
-  savedSearchType?: SearchType;
+  savedSearchType?: SavedSearchType;
   /**
    * Has pinned search feature
    */
@@ -274,13 +278,14 @@ class SmartSearchBar extends React.Component<Props, State> {
   static defaultProps = {
     defaultQuery: '',
     query: null,
-    onSearch: function() {},
+    onSearch: function () {},
     excludeEnvironment: false,
     placeholder: t('Search for events, users, tags, and everything else.'),
     supportedTags: {},
     defaultSearchItems: [[], []],
     hasPinnedSearch: false,
     useFormWrapper: true,
+    savedSearchType: SavedSearchType.ISSUE,
   };
 
   state: State = {
@@ -628,6 +633,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       .map(value => ({
         value,
         desc: value,
+        type: 'tag-value',
       }));
 
   /**
@@ -651,6 +657,9 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   fetchRecentSearches = async (fullQuery: string): Promise<SearchItem[]> => {
     const {api, organization, savedSearchType} = this.props;
+    if (savedSearchType === undefined) {
+      return [];
+    }
 
     try {
       const recentSearches: any[] = await fetchRecentSearches(
@@ -905,7 +914,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     evt.preventDefault();
     evt.stopPropagation();
 
-    if (!defined(savedSearchType) || !hasPinnedSearch) {
+    if (savedSearchType === undefined || !hasPinnedSearch) {
       return;
     }
 
@@ -999,15 +1008,11 @@ class SmartSearchBar extends React.Component<Props, State> {
       if (last.indexOf(':') > -1) {
         let replacement = `:${replaceText}`;
 
-        // NOTE: The user tag is a special case here as it store values like
-        // `id:1` or `ip:127.0.0.1`. To handle autocompletion for it correctly,
-        // and efficiently, we convert the tag to be `user.id` or `user.ip` etc.
+        // The user tag often contains : within its value and we need to quote it.
         if (last.startsWith('user:')) {
           const colonIndex = replaceText.indexOf(':');
           if (colonIndex > -1) {
-            const tagEnding = replaceText.substring(0, colonIndex);
-            const tagValue = replaceText.substring(colonIndex + 1);
-            replacement = `.${tagEnding}:${tagValue}`;
+            replacement = `:"${replaceText.trim()}"`;
           }
         }
 
@@ -1139,7 +1144,6 @@ class SmartSearchBar extends React.Component<Props, State> {
                 <CreateSavedSearchButton
                   query={this.state.query}
                   organization={organization}
-                  disabled={!hasQuery}
                   withTooltip
                   iconOnly
                   buttonClassName={css`
@@ -1199,7 +1203,6 @@ class SmartSearchBar extends React.Component<Props, State> {
                     <CreateSavedSearchButton
                       query={this.state.query}
                       organization={organization}
-                      disabled={!hasQuery}
                       buttonClassName={css`
                         ${getDropdownElementStyles({
                           showBelowMediaQuery: 2,
@@ -1246,7 +1249,7 @@ const SmartSearchBarContainer = createReactClass<Props>({
 });
 
 export default withApi(withOrganization(SmartSearchBarContainer));
-export {SmartSearchBar, SearchType};
+export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`
   border: 1px solid ${p => (p.isOpen ? p.theme.borderDark : p.theme.borderLight)};

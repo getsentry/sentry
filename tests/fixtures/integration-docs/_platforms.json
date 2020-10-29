@@ -3,61 +3,49 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+          "link": "https://docs.getsentry.com/platforms/dotnet/",
           "type": "language",
-          "id": "csharp",
-          "name": "C#"
-        }
-      ],
-      "id": "csharp",
-      "name": "C#"
-    },
-    {
-      "integrations": [
-        {
-          "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
-          "type": "language",
-          "id": "cocoa-swift",
-          "name": "Swift"
+          "id": "dotnet",
+          "name": ".NET"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
+          "link": "https://docs.getsentry.com/platforms/dotnet/guides/aspnetcore/",
           "type": "language",
-          "id": "cocoa-objc",
-          "name": "Objective-C"
+          "id": "dotnet-aspnetcore",
+          "name": "ASP .NET Core"
         }
       ],
-      "id": "cocoa",
-      "name": "Objective-C"
+      "id": "dotnet",
+      "name": ".NET"
     },
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/cordova/",
+          "link": "https://docs.getsentry.com/platforms/apple/",
           "type": "language",
-          "id": "cordova",
-          "name": "Cordova"
+          "id": "apple",
+          "name": "Apple"
+        },
+        {
+          "link": "https://docs.getsentry.com/platforms/apple/guides/ios/",
+          "type": "language",
+          "id": "apple-ios",
+          "name": "iOS"
+        },
+        {
+          "link": "https://docs.getsentry.com/platforms/apple/guides/macos/",
+          "type": "language",
+          "id": "apple-macos",
+          "name": "macOS"
         }
       ],
-      "id": "cordova",
-      "name": "Cordova"
+      "id": "apple",
+      "name": "Apple"
     },
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/electron/",
-          "type": "language",
-          "id": "electron",
-          "name": "Electron"
-        }
-      ],
-      "id": "electron",
-      "name": "Electron"
-    },
-    {
-      "integrations": [
-        {
-          "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+          "link": "https://docs.getsentry.com/clients/elixir/",
           "type": "language",
           "id": "elixir",
           "name": "Elixir"
@@ -69,7 +57,7 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/go/",
+          "link": "https://docs.getsentry.com/clients/go/",
           "type": "language",
           "id": "go",
           "name": "Go"
@@ -87,43 +75,43 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/java/modules/android/",
+          "link": "https://docs.getsentry.com/clients/java/modules/android/",
           "type": "framework",
           "id": "java-android",
           "name": "Android"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/java/modules/appengine/",
+          "link": "https://docs.getsentry.com/clients/java/modules/appengine/",
           "type": "framework",
           "id": "java-appengine",
           "name": "Google App Engine"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/java/",
+          "link": "https://docs.getsentry.com/clients/java/",
           "type": "language",
           "id": "java",
           "name": "Java"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/java/modules/log4j/",
+          "link": "https://docs.getsentry.com/clients/java/modules/log4j/",
           "type": "framework",
           "id": "java-log4j",
           "name": "Log4j 1.x"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/java/modules/log4j2/",
+          "link": "https://docs.getsentry.com/clients/java/modules/log4j2/",
           "type": "framework",
           "id": "java-log4j2",
           "name": "Log4j 2.x"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/java/modules/logback/",
+          "link": "https://docs.getsentry.com/clients/java/modules/logback/",
           "type": "framework",
           "id": "java-logback",
           "name": "Logback"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/java/modules/jul/",
+          "link": "https://docs.getsentry.com/clients/java/modules/jul/",
           "type": "framework",
           "id": "java-logging",
           "name": "java.util.logging"
@@ -135,43 +123,55 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+          "link": "https://docs.getsentry.com/clients/javascript/integrations/angular/",
           "type": "framework",
           "id": "javascript-angular",
           "name": "Angular"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angularjs/",
+          "link": "https://docs.getsentry.com/clients/javascript/integrations/angularjs/",
           "type": "framework",
           "id": "javascript-angularjs",
           "name": "AngularJS"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/backbone/",
+          "link": "https://docs.getsentry.com/clients/javascript/integrations/backbone/",
           "type": "framework",
           "id": "javascript-backbone",
           "name": "Backbone"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/ember/",
+          "link": "https://docs.getsentry.com/platforms/javascript/guides/cordova/",
+          "type": "language",
+          "id": "cordova",
+          "name": "Cordova"
+        },
+        {
+          "link": "https://docs.getsentry.com/platforms/javascript/guides/electron/",
+          "type": "language",
+          "id": "electron",
+          "name": "Electron"
+        },
+        {
+          "link": "https://docs.getsentry.com/clients/javascript/integrations/ember/",
           "type": "framework",
           "id": "javascript-ember",
           "name": "Ember"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+          "link": "https://docs.getsentry.com/clients/javascript/install/",
           "type": "language",
           "id": "javascript",
           "name": "JavaScript"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+          "link": "https://docs.getsentry.com/clients/javascript/integrations/react/",
           "type": "framework",
           "id": "javascript-react",
           "name": "React"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/vue/",
+          "link": "https://docs.getsentry.com/clients/javascript/integrations/vue/",
           "type": "framework",
           "id": "javascript-vue",
           "name": "Vue"
@@ -183,7 +183,7 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/minidump/",
+          "link": "https://docs.getsentry.com/clients/minidump/",
           "type": "language",
           "id": "minidump",
           "name": "Minidump"
@@ -207,25 +207,25 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/node/integrations/connect/",
+          "link": "https://docs.getsentry.com/clients/node/integrations/connect/",
           "type": "framework",
           "id": "node-connect",
           "name": "Connect"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+          "link": "https://docs.getsentry.com/clients/node/integrations/express/",
           "type": "framework",
           "id": "node-express",
           "name": "Express"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/node/integrations/koa/",
+          "link": "https://docs.getsentry.com/clients/node/integrations/koa/",
           "type": "framework",
           "id": "node-koa",
           "name": "Koa"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/node/",
+          "link": "https://docs.getsentry.com/clients/node/",
           "type": "language",
           "id": "node",
           "name": "Node.js"
@@ -237,25 +237,25 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+          "link": "https://docs.getsentry.com/clients/php/integrations/laravel/",
           "type": "framework",
           "id": "php-laravel",
           "name": "Laravel"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/php/integrations/monolog/",
+          "link": "https://docs.getsentry.com/clients/php/integrations/monolog/",
           "type": "framework",
           "id": "php-monolog",
           "name": "Monolog"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/php/",
+          "link": "https://docs.getsentry.com/clients/php/",
           "type": "language",
           "id": "php",
           "name": "PHP"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+          "link": "https://docs.getsentry.com/clients/php/integrations/symfony2/",
           "type": "framework",
           "id": "php-symfony2",
           "name": "Symfony2"
@@ -267,55 +267,55 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/bottle/",
+          "link": "https://docs.getsentry.com/clients/python/integrations/bottle/",
           "type": "framework",
           "id": "python-bottle",
           "name": "Bottle"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/celery/",
+          "link": "https://docs.getsentry.com/clients/python/integrations/celery/",
           "type": "library",
           "id": "python-celery",
           "name": "Celery"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+          "link": "https://docs.getsentry.com/clients/python/integrations/django/",
           "type": "framework",
           "id": "python-django",
           "name": "Django"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+          "link": "https://docs.getsentry.com/clients/python/integrations/flask/",
           "type": "framework",
           "id": "python-flask",
           "name": "Flask"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/pylons/",
+          "link": "https://docs.getsentry.com/clients/python/integrations/pylons/",
           "type": "framework",
           "id": "python-pylons",
           "name": "Pylons"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/pyramid/",
+          "link": "https://docs.getsentry.com/clients/python/integrations/pyramid/",
           "type": "framework",
           "id": "python-pyramid",
           "name": "Pyramid"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/python/",
+          "link": "https://docs.getsentry.com/clients/python/",
           "type": "language",
           "id": "python",
           "name": "Python"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/rq/",
+          "link": "https://docs.getsentry.com/clients/python/integrations/rq/",
           "type": "framework",
           "id": "python-rq",
           "name": "RQ"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/python/integrations/tornado/",
+          "link": "https://docs.getsentry.com/clients/python/integrations/tornado/",
           "type": "framework",
           "id": "python-tornado",
           "name": "Tornado"
@@ -327,7 +327,7 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+          "link": "https://docs.getsentry.com/clients/react-native/",
           "type": "language",
           "id": "react-native",
           "name": "React-Native"
@@ -339,19 +339,19 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rack/",
+          "link": "https://docs.getsentry.com/clients/ruby/integrations/rack/",
           "type": "framework",
           "id": "ruby-rack",
           "name": "Rack"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+          "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
           "type": "framework",
           "id": "ruby-rails",
           "name": "Rails"
         },
         {
-          "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+          "link": "https://docs.getsentry.com/clients/ruby/",
           "type": "language",
           "id": "ruby",
           "name": "Ruby"
@@ -363,7 +363,7 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/rust/",
+          "link": "https://docs.getsentry.com/clients/rust/",
           "type": "language",
           "id": "rust",
           "name": "Rust"

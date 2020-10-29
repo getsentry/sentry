@@ -4,13 +4,14 @@ import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
-import {Event, LightWeightOrganization, SelectValue} from 'app/types';
+import {Event, LightWeightOrganization, SelectValue, Organization} from 'app/types';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import EventView from 'app/utils/discover/eventView';
+import localStorage from 'app/utils/localStorage';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {
   Field,
@@ -22,6 +23,8 @@ import {
   getAggregateAlias,
   TRACING_FIELDS,
   Aggregation,
+  isMeasurement,
+  measurementType,
 } from 'app/utils/discover/fields';
 
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
@@ -45,15 +48,6 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   width: COL_WIDTH_UNDEFINED,
 };
 
-function normalizeUserTag(key: string, value: string) {
-  const parts = value.split(':', 2);
-  if (parts.length !== 2) {
-    return [key, parts[0]];
-  }
-  const normalizedKey = [key, parts[0]].join('.');
-  return [normalizedKey, parts[1]];
-}
-
 // TODO(mark) these types are coupled to the gridEditable component types and
 // I'd prefer the types to be more general purpose but that will require a second pass.
 export function decodeColumnOrder(
@@ -75,10 +69,16 @@ export function decodeColumnOrder(
         column.type = aggregate.outputType;
       } else if (FIELDS.hasOwnProperty(col.function[1])) {
         column.type = FIELDS[col.function[1]];
+      } else if (isMeasurement(col.function[1])) {
+        column.type = measurementType(col.function[1]);
       }
       column.isSortable = aggregate && aggregate.isSortable;
     } else if (col.kind === 'field') {
-      column.type = FIELDS[col.field];
+      if (FIELDS.hasOwnProperty(col.field)) {
+        column.type = FIELDS[col.field];
+      } else if (isMeasurement(col.field)) {
+        column.type = measurementType(col.field);
+      }
     }
     column.column = col;
 
@@ -104,7 +104,15 @@ export function pushEventViewToLocation(props: {
   });
 }
 
-export function generateTitle({eventView, event}: {eventView: EventView; event?: Event}) {
+export function generateTitle({
+  eventView,
+  event,
+  organization,
+}: {
+  eventView: EventView;
+  event?: Event;
+  organization?: Organization;
+}) {
   const titles = [t('Discover')];
 
   const eventViewName = eventView.name;
@@ -112,7 +120,7 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
     titles.push(String(eventViewName).trim());
   }
 
-  const eventTitle = event ? getTitle(event).title : undefined;
+  const eventTitle = event ? getTitle(event, organization).title : undefined;
   if (eventTitle) {
     titles.push(eventTitle);
   }
@@ -142,16 +150,6 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
     data: data.map(row =>
       headings.map(col => {
         col = getAggregateAlias(col);
-        // This needs to match the order done in the userBadge component
-        if (col === 'user') {
-          return disableMacros(
-            row.user ||
-              row['user.name'] ||
-              row['user.email'] ||
-              row['user.username'] ||
-              row['user.ip']
-          );
-        }
         return disableMacros(row[col]);
       })
     ),
@@ -177,7 +175,6 @@ const TRANSFORM_AGGREGATES = {
   last_seen: 'timestamp',
   latest_event: '',
   apdex: '',
-  impact: '',
   user_misery: '',
   failure_rate: '',
 } as const;
@@ -350,10 +347,6 @@ function generateAdditionalConditions(
           // normalize the "timestamp" field to ensure the payload works
           conditions[column.field] = getUtcDateString(nextValue);
           break;
-        case 'user':
-          const normalized = normalizeUserTag(dataKey, nextValue);
-          conditions[normalized[0]] = normalized[1];
-          break;
         default:
           conditions[column.field] = nextValue;
       }
@@ -368,14 +361,6 @@ function generateAdditionalConditions(
           : column.field;
 
         const tagValue = dataRow.tags[tagIndex].value;
-        if (key === 'user') {
-          // Remove the user condition that might have been added
-          // from the user context.
-          delete conditions[key];
-          const normalized = normalizeUserTag(key, tagValue);
-          conditions[normalized[0]] = normalized[1];
-          return;
-        }
         conditions[key] = tagValue;
       }
     }
@@ -418,18 +403,13 @@ function generateExpandedConditions(
       }
       continue;
     }
-    if (key === 'user' && typeof value === 'string') {
-      const normalized = normalizeUserTag(key, value);
-      parsedQuery.setTag(normalized[0], [normalized[1]]);
-      continue;
-    }
     const column = explodeFieldString(key);
     // Skip aggregates as they will be invalid.
     if (column.kind === 'function') {
       continue;
     }
 
-    parsedQuery.setTag(key, [conditions[key]]);
+    parsedQuery.setTagValues(key, [conditions[key]]);
   }
 
   return stringifyQueryObject(parsedQuery);
@@ -438,6 +418,7 @@ function generateExpandedConditions(
 type FieldGeneratorOpts = {
   organization: LightWeightOrganization;
   tagKeys?: string[] | null;
+  measurementKeys?: string[] | null;
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
 };
@@ -445,6 +426,7 @@ type FieldGeneratorOpts = {
 export function generateFieldOptions({
   organization,
   tagKeys,
+  measurementKeys,
   aggregations = AGGREGATIONS,
   fields = FIELDS,
 }: FieldGeneratorOpts) {
@@ -515,5 +497,26 @@ export function generateFieldOptions({
     });
   }
 
+  if (measurementKeys !== undefined && measurementKeys !== null) {
+    measurementKeys.forEach(measurement => {
+      fieldOptions[`measurement:${measurement}`] = {
+        label: measurement,
+        value: {
+          kind: FieldValueKind.MEASUREMENT,
+          meta: {name: measurement, dataType: measurementType(measurement)},
+        },
+      };
+    });
+  }
+
   return fieldOptions;
+}
+
+const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
+
+export function isBannerHidden(): boolean {
+  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
+}
+export function setBannerHidden(value: boolean) {
+  localStorage.setItem(BANNER_DISMISSED_KEY, value ? 'true' : 'false');
 }

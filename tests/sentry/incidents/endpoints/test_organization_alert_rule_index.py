@@ -1,24 +1,24 @@
 from __future__ import absolute_import
 
-import json
 import pytz
 import requests
 import six
 
+from copy import deepcopy
 from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
-from sentry.snuba.models import QueryDatasets
-from sentry.testutils.helpers.datetime import before_now
+from sentry.models.organizationmember import OrganizationMember
+from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
-class AlertRuleListEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-alert-rules"
-
+class AlertRuleBase(object):
     @fixture
     def organization(self):
         return self.create_organization()
@@ -31,49 +31,14 @@ class AlertRuleListEndpointTest(APITestCase):
     def user(self):
         return self.create_user()
 
-    def test_simple(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        alert_rule = self.create_alert_rule()
-
-        self.login_as(self.user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
-
-        assert resp.data == serialize([alert_rule])
-
-    def test_no_feature(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        self.login_as(self.user)
-        resp = self.get_response(self.organization.slug)
-        assert resp.status_code == 404
-
-
-@freeze_time()
-class AlertRuleCreateEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-alert-rules"
-    method = "post"
-
     @fixture
-    def organization(self):
-        return self.create_organization()
-
-    @fixture
-    def project(self):
-        return self.create_project(organization=self.organization)
-
-    @fixture
-    def user(self):
-        return self.create_user()
-
-    def test_simple(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        valid_alert_rule = {
+    def alert_rule_dict(self):
+        return {
             "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "JustAValidTestRule",
             "resolveThreshold": 100,
             "thresholdType": 0,
             "triggers": [
@@ -93,9 +58,70 @@ class AlertRuleCreateEndpointTest(APITestCase):
                     ],
                 },
             ],
-            "projects": [self.project.slug],
-            "name": "JustAValidTestRule",
+            "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
         }
+
+
+class AlertRuleIndexBase(AlertRuleBase):
+    endpoint = "sentry-api-0-organization-alert-rules"
+
+
+class AlertRuleListEndpointTest(AlertRuleIndexBase, APITestCase):
+    def test_simple(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule()
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug)
+
+        assert resp.data == serialize([alert_rule])
+
+    def test_no_feature(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        resp = self.get_response(self.organization.slug)
+        assert resp.status_code == 404
+
+
+@freeze_time()
+class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
+    method = "post"
+
+    def setUp(self):
+        super(AlertRuleBase, self).setUp()
+
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+    def test_simple(self):
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, status_code=201, **deepcopy(self.alert_rule_dict)
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+    def test_sentry_app(self):
+        sentry_app = self.create_sentry_app(
+            name="foo", organization=self.organization, is_alertable=True, verify_install=False
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        valid_alert_rule = deepcopy(self.alert_rule_dict)
+        valid_alert_rule["name"] = "ValidSentryAppTestRule"
+        valid_alert_rule["triggers"][0]["actions"][0] = {
+            "type": "sentry_app",
+            "targetType": "sentry_app",
+            "targetIdentifier": sentry_app.id,
+            "sentryAppId": sentry_app.id,
+        }
+
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=201, **valid_alert_rule
@@ -104,11 +130,33 @@ class AlertRuleCreateEndpointTest(APITestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
 
+    def test_missing_sentry_app(self):
+        valid_alert_rule = deepcopy(self.alert_rule_dict)
+        valid_alert_rule["name"] = "InvalidSentryAppTestRule"
+        valid_alert_rule["triggers"][0]["actions"][0] = {
+            "type": "sentry_app",
+            "targetType": "sentry_app",
+            "targetIdentifier": 1,
+            "sentryAppId": 1,
+        }
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(self.organization.slug, status_code=400, **valid_alert_rule)
+
+    def test_invalid_sentry_app(self):
+        valid_alert_rule = deepcopy(self.alert_rule_dict)
+        valid_alert_rule["name"] = "InvalidSentryAppTestRule"
+        valid_alert_rule["triggers"][0]["actions"][0] = {
+            "type": "sentry_app",
+            "targetType": "sentry_app",
+            "targetIdentifier": "invalid",
+            "sentryAppId": "invalid",
+        }
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(self.organization.slug, status_code=400, **valid_alert_rule)
+
     def test_no_label(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
         rule_one_trigger_no_label = {
             "aggregate": "count()",
             "query": "",
@@ -133,10 +181,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
             )
 
     def test_only_critical_trigger(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
         rule_one_trigger_only_critical = {
             "aggregate": "count()",
             "query": "",
@@ -164,11 +208,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
     def test_no_triggers(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-
         rule_no_triggers = {
             "aggregate": "count()",
             "query": "",
@@ -185,11 +224,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
             assert resp.data == {"triggers": [u"This field is required."]}
 
     def test_no_critical_trigger(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-
         rule_one_trigger_only_warning = {
             "aggregate": "count()",
             "query": "",
@@ -216,11 +250,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
             assert resp.data == {"nonFieldErrors": [u'Trigger 1 must be labeled "critical"']}
 
     def test_critical_trigger_no_action(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-
         rule_one_trigger_only_critical_no_action = {
             "aggregate": "count()",
             "query": "",
@@ -241,10 +270,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
     def test_invalid_projects(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug,
@@ -277,18 +302,13 @@ class AlertRuleCreateEndpointTest(APITestCase):
             assert resp.data == {"projects": [u"Invalid project"]}
 
     def test_no_feature(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
 
     def test_no_perms(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="member", teams=[self.team]
-        )
-        self.login_as(self.user)
+        # Downgrade user from "owner" to "member".
+        OrganizationMember.objects.filter(user=self.user).update(role="member")
+
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 403
 

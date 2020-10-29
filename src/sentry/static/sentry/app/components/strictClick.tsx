@@ -5,7 +5,7 @@ type ClickProps<T> = {
 };
 
 type Props<T extends HTMLElement> = ClickProps<T> & {
-  children: React.ReactHTMLElement<T>;
+  children: React.ReactElement<T>;
 };
 
 type State = {

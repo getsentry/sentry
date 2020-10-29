@@ -407,9 +407,7 @@ class Event(object):
             template = EventSubjectTemplate(template)
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
-        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128).encode(
-            "utf-8"
-        )
+        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
 
     def as_dict(self):
         """Returns the data in normalized form for external consumers."""

@@ -18,13 +18,16 @@ type Options = {
     id: string;
     undo: () => void;
   };
+  disableDismiss?: boolean;
+  undo?: () => void;
 };
 
-type Indicator = {
+export type Indicator = {
   type: IndicatorType;
   id: string | number;
   message: React.ReactNode;
   options: Options;
+  clearId?: null | number;
 };
 
 // Removes a single indicator
@@ -47,11 +50,11 @@ export function addMessage(
 
   // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
   if (
-    // @ts-ignore
+    // @ts-expect-error
     typeof msg?.message !== 'undefined' &&
-    // @ts-ignore
+    // @ts-expect-error
     typeof msg?.code !== 'undefined' &&
-    // @ts-ignore
+    // @ts-expect-error
     typeof msg?.extra !== 'undefined'
   ) {
     Sentry.captureException(new Error('Attempt to XHR response to Indicators'));

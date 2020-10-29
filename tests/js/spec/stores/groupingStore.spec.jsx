@@ -1,18 +1,18 @@
 import GroupingStore from 'app/stores/groupingStore';
 import {Client, mergeMock} from 'app/api';
 
-describe('Grouping Store', function() {
+describe('Grouping Store', function () {
   let trigger;
 
-  beforeAll(function() {
+  beforeAll(function () {
     Client.mockAsync = true;
   });
 
-  afterAll(function() {
+  afterAll(function () {
     Client.mockAsync = false;
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     trigger = jest.spyOn(GroupingStore, 'trigger');
     Client.clearMockResponses();
     Client.addMockResponse({
@@ -98,12 +98,12 @@ describe('Grouping Store', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     trigger.mockReset();
   });
 
-  describe('onFetch()', function() {
-    it('initially gets called with correct state values', function() {
+  describe('onFetch()', function () {
+    it('initially gets called with correct state values', function () {
       GroupingStore.onFetch([]);
 
       expect(trigger).toHaveBeenCalled();
@@ -122,7 +122,7 @@ describe('Grouping Store', function() {
       );
     });
 
-    it('fetches list of similar items', async function() {
+    it('fetches list of similar items', async function () {
       await GroupingStore.onFetch([
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
@@ -168,11 +168,9 @@ describe('Grouping Store', function() {
         ],
         unmergeState: new Map(),
       });
-
-      expect(arg).toMatchSnapshot();
     });
 
-    it('unsuccessfully fetches list of similar items', function() {
+    it('unsuccessfully fetches list of similar items', function () {
       Client.clearMockResponses();
       Client.addMockResponse({
         url: '/issues/groupId/similar/',
@@ -198,7 +196,7 @@ describe('Grouping Store', function() {
       });
     });
 
-    it('ignores null scores in aggregate', async function() {
+    it('ignores null scores in aggregate', async function () {
       await GroupingStore.onFetch([
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
@@ -212,7 +210,7 @@ describe('Grouping Store', function() {
       expect(item.aggregate.message).toBe(0.7);
     });
 
-    it('fetches list of hashes', function() {
+    it('fetches list of hashes', function () {
       const promise = GroupingStore.onFetch([
         {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
       ]);
@@ -239,7 +237,7 @@ describe('Grouping Store', function() {
       });
     });
 
-    it('unsuccessfully fetches list of hashes items', function() {
+    it('unsuccessfully fetches list of hashes items', function () {
       Client.clearMockResponses();
       Client.addMockResponse({
         url: '/issues/groupId/hashes/',
@@ -266,31 +264,31 @@ describe('Grouping Store', function() {
     });
   });
 
-  describe('Similar Issues list (to be merged)', function() {
+  describe('Similar Issues list (to be merged)', function () {
     let mergeList;
     let mergeState;
 
-    beforeEach(function() {
-      mergeList = new Set();
+    beforeEach(function () {
+      mergeList = [];
       mergeState = new Map();
       return GroupingStore.onFetch([
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
     });
 
-    describe('onToggleMerge (checkbox state)', function() {
+    describe('onToggleMerge (checkbox state)', function () {
       // Attempt to check first item but its "locked" so should not be able to do anything
-      it('can check and uncheck item', function() {
+      it('can check and uncheck item', function () {
         GroupingStore.onToggleMerge('1');
 
-        mergeList.add('1');
+        mergeList = ['1'];
         mergeState.set('1', {checked: true});
         expect(GroupingStore.mergeList).toEqual(mergeList);
         expect(GroupingStore.mergeState).toEqual(mergeState);
 
         // Uncheck
         GroupingStore.onToggleMerge('1');
-        mergeList.delete('1');
+        mergeList = mergeList.filter(item => item !== '1');
         mergeState.set('1', {checked: false});
 
         // Check all
@@ -298,9 +296,7 @@ describe('Grouping Store', function() {
         GroupingStore.onToggleMerge('2');
         GroupingStore.onToggleMerge('3');
 
-        mergeList.add('1');
-        mergeList.add('2');
-        mergeList.add('3');
+        mergeList = ['1', '2', '3'];
         mergeState.set('1', {checked: true});
         mergeState.set('2', {checked: true});
         mergeState.set('3', {checked: true});
@@ -316,20 +312,20 @@ describe('Grouping Store', function() {
       });
     });
 
-    describe('onMerge', function() {
-      beforeEach(function() {
+    describe('onMerge', function () {
+      beforeEach(function () {
         Client.clearMockResponses();
         Client.addMockResponse({
           method: 'PUT',
           url: '/projects/orgId/projectId/issues/',
         });
       });
-      afterEach(function() {});
+      afterEach(function () {});
 
-      it('disables rows to be merged', async function() {
+      it('disables rows to be merged', async function () {
         trigger.mockReset();
         GroupingStore.onToggleMerge('1');
-        mergeList.add('1');
+        mergeList = ['1'];
         mergeState.set('1', {checked: true});
 
         expect(trigger).toHaveBeenLastCalledWith({
@@ -374,7 +370,7 @@ describe('Grouping Store', function() {
         );
 
         // Should be removed from mergeList after merged
-        mergeList.delete('1');
+        mergeList = mergeList.filter(item => item !== '1');
         mergeState.set('1', {checked: false, busy: true});
         expect(trigger).toHaveBeenLastCalledWith({
           mergeDisabled: false,
@@ -383,9 +379,9 @@ describe('Grouping Store', function() {
         });
       });
 
-      it('keeps rows in "busy" state and unchecks after successfully adding to merge queue', async function() {
+      it('keeps rows in "busy" state and unchecks after successfully adding to merge queue', async function () {
         GroupingStore.onToggleMerge('1');
-        mergeList.add('1');
+        mergeList = ['1'];
         mergeState.set('1', {checked: true});
 
         // Expect checked
@@ -422,12 +418,12 @@ describe('Grouping Store', function() {
         // After promise, reset checked to false, but keep busy
         expect(trigger).toHaveBeenLastCalledWith({
           mergeDisabled: false,
-          mergeList: new Set(),
+          mergeList: [],
           mergeState,
         });
       });
 
-      it('resets busy state and has same items checked after error when trying to merge', async function() {
+      it('resets busy state and has same items checked after error when trying to merge', async function () {
         Client.clearMockResponses();
         Client.addMockResponse({
           method: 'PUT',
@@ -437,7 +433,7 @@ describe('Grouping Store', function() {
         });
 
         GroupingStore.onToggleMerge('1');
-        mergeList.add('1');
+        mergeList = ['1'];
         mergeState.set('1', {checked: true});
 
         const promise = GroupingStore.onMerge({
@@ -468,11 +464,11 @@ describe('Grouping Store', function() {
     });
   });
 
-  describe('Hashes list (to be unmerged)', function() {
+  describe('Hashes list (to be unmerged)', function () {
     let unmergeList;
     let unmergeState;
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       unmergeList = new Map();
       unmergeState = new Map();
       await GroupingStore.onFetch([
@@ -483,9 +479,9 @@ describe('Grouping Store', function() {
       unmergeState = new Map([...GroupingStore.unmergeState]);
     });
 
-    describe('onToggleUnmerge (checkbox state for hashes)', function() {
+    describe('onToggleUnmerge (checkbox state for hashes)', function () {
       // Attempt to check first item but its "locked" so should not be able to do anything
-      it('can not check locked item', function() {
+      it('can not check locked item', function () {
         GroupingStore.onToggleUnmerge('1');
 
         expect(GroupingStore.unmergeList).toEqual(unmergeList);
@@ -493,7 +489,7 @@ describe('Grouping Store', function() {
         expect(trigger).not.toHaveBeenCalled();
       });
 
-      it('can check and uncheck unlocked items', function() {
+      it('can check and uncheck unlocked items', function () {
         // Check
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.set('2', 'event-2');
@@ -527,7 +523,7 @@ describe('Grouping Store', function() {
         });
       });
 
-      it('should have Compare button enabled only when two fingerprints are checked', function() {
+      it('should have Compare button enabled only when two fingerprints are checked', function () {
         expect(GroupingStore.enableFingerprintCompare).toBe(false);
 
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
@@ -538,7 +534,7 @@ describe('Grouping Store', function() {
         expect(GroupingStore.enableFingerprintCompare).toBe(false);
       });
 
-      it('selecting all available checkboxes should disable the unmerge button and re-enable when unchecking', function() {
+      it('selecting all available checkboxes should disable the unmerge button and re-enable when unchecking', function () {
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         GroupingStore.onToggleUnmerge(['3', 'event-3']);
         GroupingStore.onToggleUnmerge(['4', 'event-4']);
@@ -572,21 +568,21 @@ describe('Grouping Store', function() {
       });
     });
 
-    describe('onUnmerge', function() {
-      beforeAll(function() {
+    describe('onUnmerge', function () {
+      beforeAll(function () {
         GroupingStore.init();
       });
 
-      beforeEach(function() {
+      beforeEach(function () {
         Client.clearMockResponses();
         Client.addMockResponse({
           method: 'DELETE',
           url: '/issues/groupId/hashes/',
         });
       });
-      afterEach(function() {});
+      afterEach(function () {});
 
-      it('can not toggle unmerge for a locked item', function() {
+      it('can not toggle unmerge for a locked item', function () {
         // Event 1 is locked
         GroupingStore.onToggleUnmerge(['1', 'event-1']);
         unmergeState.set('1', {busy: true});
@@ -607,7 +603,7 @@ describe('Grouping Store', function() {
         });
       });
 
-      it('disables rows to be merged', async function() {
+      it('disables rows to be merged', async function () {
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.set('2', 'event-2');
         unmergeState.set('2', {checked: true, busy: false});
@@ -648,7 +644,7 @@ describe('Grouping Store', function() {
         });
       });
 
-      it('keeps rows in "busy" state and unchecks after successfully adding to unmerge queue', async function() {
+      it('keeps rows in "busy" state and unchecks after successfully adding to unmerge queue', async function () {
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.set('2', 'event-2');
         unmergeState.set('2', {checked: true, busy: false});
@@ -677,7 +673,7 @@ describe('Grouping Store', function() {
         });
       });
 
-      it('resets busy state and has same items checked after error when trying to merge', async function() {
+      it('resets busy state and has same items checked after error when trying to merge', async function () {
         Client.clearMockResponses();
         Client.addMockResponse({
           method: 'DELETE',

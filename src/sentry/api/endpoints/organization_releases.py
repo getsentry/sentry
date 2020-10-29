@@ -4,13 +4,14 @@ import re
 import six
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.db.models.functions import Coalesce
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
 from sentry import analytics
 
 from sentry.api.bases import NoProjects
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
@@ -29,7 +30,6 @@ from sentry.snuba.sessions import (
     get_oldest_health_data_for_releases,
     STATS_PERIODS,
 )
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 
@@ -44,49 +44,20 @@ def get_stats_period_detail(key, choices):
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
 
-@scenario("CreateNewOrganizationReleaseWithRef")
-def create_new_org_release_ref_scenario(runner):
-    runner.request(
-        method="POST",
-        path="/organizations/%s/releases/" % (runner.org.slug,),
-        data={
-            "version": "2.0rc2",
-            "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
-            "projects": [runner.default_project.slug],
-        },
-    )
+def add_environment_to_queryset(queryset, filter_params):
+    if "environment" in filter_params:
+        return queryset.filter(
+            releaseprojectenvironment__environment__name__in=filter_params["environment"],
+            releaseprojectenvironment__project_id__in=filter_params["project_id"],
+        )
+    return queryset
 
 
-@scenario("CreateNewOrganizationReleaseWithCommits")
-def create_new_org_release_commit_scenario(runner):
-    runner.request(
-        method="POST",
-        path="/organizations/%s/releases/" % (runner.org.slug,),
-        data={
-            "version": "2.0rc3",
-            "projects": [runner.default_project.slug],
-            "commits": [
-                {
-                    "patch_set": [
-                        {"path": "path/to/added-file.html", "type": "A"},
-                        {"path": "path/to/modified-file.html", "type": "M"},
-                        {"path": "path/to/deleted-file.html", "type": "D"},
-                    ],
-                    "repository": "owner-name/repo-name",
-                    "author_name": "Author Name",
-                    "author_email": "author_email@example.com",
-                    "timestamp": "2018-09-20T11:50:22+03:00",
-                    "message": "This is the commit message.",
-                    "id": "8371445ab8a9facd271df17038ff295a48accae7",
-                }
-            ],
-        },
-    )
-
-
-@scenario("ListOrganizationReleases")
-def list_org_releases_scenario(runner):
-    runner.request(method="GET", path="/organizations/%s/releases/" % (runner.org.slug,))
+def add_date_filter_to_queryset(queryset, filter_params):
+    """ Once date has been coalesced over released and added, use it to filter releases """
+    if filter_params["start"] and filter_params["end"]:
+        return queryset.filter(date__gte=filter_params["start"], date__lte=filter_params["end"])
+    return queryset
 
 
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
@@ -158,9 +129,6 @@ def debounce_update_release_health_data(organization, project_ids):
 
 
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    doc_section = DocSection.RELEASES
-
-    @attach_scenarios([list_org_releases_scenario])
     def get(self, request, organization):
         """
         List an Organization's Releases
@@ -199,13 +167,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         if with_health:
             debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        queryset = Release.objects.filter(organization=organization).select_related("owner")
+        queryset = (
+            Release.objects.filter(organization=organization)
+            .select_related("owner")
+            .annotate(date=Coalesce("date_released", "date_added"),)
+        )
 
-        if "environment" in filter_params:
-            queryset = queryset.filter(
-                releaseprojectenvironment__environment__name__in=filter_params["environment"],
-                releaseprojectenvironment__project_id__in=filter_params["project_id"],
-            )
+        queryset = add_environment_to_queryset(queryset, filter_params)
 
         if query:
             query_q = Q(version__icontains=query)
@@ -217,14 +185,16 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             queryset = queryset.filter(query_q)
 
         select_extra = {}
-        sort_query = None
 
         queryset = queryset.distinct()
         if flatten:
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
 
         if sort == "date":
-            sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
+            queryset = queryset.filter(projects__id__in=filter_params["project_id"]).order_by(
+                "-date"
+            )
+            paginator_kwargs["order_by"] = "-date"
         elif sort in (
             "crash_free_sessions",
             "crash_free_users",
@@ -256,19 +226,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         else:
             return Response({"detail": "invalid sort"}, status=400)
 
-        if sort_query is not None:
-            queryset = queryset.filter(projects__id__in=filter_params["project_id"])
-            select_extra["sort"] = sort_query
-            paginator_kwargs["order_by"] = "-sort"
-
         queryset = queryset.extra(select=select_extra)
-        if filter_params["start"] and filter_params["end"]:
-            queryset = queryset.extra(
-                where=[
-                    "COALESCE(sentry_release.date_released, sentry_release.date_added) BETWEEN %s and %s"
-                ],
-                params=[filter_params["start"], filter_params["end"]],
-            )
+        queryset = add_date_filter_to_queryset(queryset, filter_params)
 
         return self.paginate(
             request=request,
@@ -281,11 +240,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 health_stat=health_stat,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
+                environments=filter_params.get("environment") or None,
             ),
             **paginator_kwargs
         )
 
-    @attach_scenarios([create_new_org_release_ref_scenario, create_new_org_release_commit_scenario])
     def post(self, request, organization):
         """
         Create a New Release for an Organization
@@ -423,3 +382,44 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             )
             return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)
+
+
+class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+    def get(self, request, organization):
+        """
+        List an Organization's Releases specifically for building timeseries
+        ```````````````````````````````
+        Return a list of releases for a given organization, sorted for most recent releases.
+
+        :pparam string organization_slug: the organization short name
+        """
+        try:
+            filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
+        except NoProjects:
+            return Response([])
+
+        queryset = (
+            Release.objects.filter(
+                organization=organization, projects__id__in=filter_params["project_id"]
+            )
+            .annotate(date=Coalesce("date_released", "date_added"),)
+            .values("version", "date")
+            .order_by("-date")
+            .distinct()
+        )
+
+        queryset = add_date_filter_to_queryset(queryset, filter_params)
+        queryset = add_environment_to_queryset(queryset, filter_params)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: [
+                {"version": release["version"], "date": serialize(release["date"])} for release in x
+            ],
+            default_per_page=1000,
+            max_per_page=1000,
+            max_limit=1000,
+            order_by="-date",
+        )

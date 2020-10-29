@@ -9,7 +9,7 @@ import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder
 
 jest.mock('jquery');
 
-describe('RuleBuilder', function() {
+describe('RuleBuilder', function () {
   const organization = TestStubs.Organization();
   let project;
   let handleAdd;
@@ -47,7 +47,7 @@ describe('RuleBuilder', function() {
     slug: 'team-not-in-project',
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     // User in project
     MemberListStore.loadInitialData([USER_1]);
     // All teams
@@ -68,9 +68,9 @@ describe('RuleBuilder', function() {
     });
   });
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  it('renders', async function() {
+  it('renders', async function () {
     const wrapper = mountWithTheme(
       <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />,
       TestStubs.routerContext()
@@ -101,10 +101,10 @@ describe('RuleBuilder', function() {
     // This is because after selecting, react-select (async) reloads
     await tick();
     wrapper.update();
-    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+    expect(wrapper.find(RuleBuilder)).toSnapshot();
   });
 
-  it('renders with suggestions', async function() {
+  it('renders with suggestions', async function () {
     const wrapper = mountWithTheme(
       <RuleBuilder
         project={project}
@@ -131,20 +131,10 @@ describe('RuleBuilder', function() {
     expect(wrapper.find('DisabledLabel IdBadge')).toHaveLength(2);
 
     // Team not in project should not be selectable
-    expect(
-      wrapper
-        .find('DisabledLabel IdBadge')
-        .at(0)
-        .prop('team').id
-    ).toBe('4');
+    expect(wrapper.find('DisabledLabel IdBadge').at(0).prop('team').id).toBe('4');
 
     // John Smith should not be selectable
-    expect(
-      wrapper
-        .find('DisabledLabel IdBadge')
-        .at(1)
-        .prop('user').id
-    ).toBe('2');
+    expect(wrapper.find('DisabledLabel IdBadge').at(1).prop('user').id).toBe('2');
 
     // Enter to select Jane Bloggs
     wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
@@ -155,7 +145,7 @@ describe('RuleBuilder', function() {
     // This is because after selecting, react-select (async) reloads
     await tick();
     wrapper.update();
-    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+    expect(wrapper.find(RuleBuilder)).toSnapshot();
 
     wrapper.find('Button').simulate('click');
     expect(handleAdd).toHaveBeenCalled();

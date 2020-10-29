@@ -141,7 +141,7 @@ def get_path(data, *path, **kwargs):
     for p in path:
         if isinstance(data, collections.Mapping) and p in data:
             data = data[p]
-        elif isinstance(data, (list, tuple)) and -len(data) <= p < len(data):
+        elif isinstance(data, (list, tuple)) and isinstance(p, int) and -len(data) <= p < len(data):
             data = data[p]
         else:
             return default

@@ -2,9 +2,10 @@ import React from 'react';
 
 import {assignToUser, assignToActor} from 'app/actionCreators/group';
 import withApi from 'app/utils/withApi';
+import withCommitters from 'app/utils/withCommitters';
 import withOrganization from 'app/utils/withOrganization';
 import Access from 'app/components/acl/access';
-import {Organization, Group, Event, Actor, Commit, Project, User} from 'app/types';
+import {Organization, Group, Event, Actor, Committer, Project} from 'app/types';
 import {Client} from 'app/api';
 
 import {findMatchedRules, Rules} from './findMatchedRules';
@@ -13,30 +14,24 @@ import {OwnershipRules} from './ownershipRules';
 
 type OwnerList = React.ComponentProps<typeof SuggestedAssignees>['owners'];
 
-type Committer = {
-  author: User;
-  commits: Array<Commit>;
-};
-
 type Props = {
   api: Client;
   organization: Organization;
   project: Project;
   group: Group;
   event: Event;
+  committers: Array<Committer>;
 };
 
 type State = {
   rules: Rules;
   owners: Array<Actor>;
-  committers: Array<Committer>;
 };
 
 class SuggestedOwners extends React.Component<Props, State> {
   state: State = {
     rules: null,
     owners: [],
-    committers: [],
   };
 
   componentDidMount() {
@@ -59,30 +54,8 @@ class SuggestedOwners extends React.Component<Props, State> {
   }
 
   async fetchData(event: Event) {
-    // No committers if you don't have any releases
-    if (!!this.props.group.firstRelease) {
-      this.fetchCommitters(event.id);
-    }
-
     this.fetchOwners(event.id);
   }
-
-  fetchCommitters = async (eventId: Event['id']) => {
-    const {api, project, organization} = this.props;
-    // TODO: move this into a store since `EventCause` makes this exact request as well
-    try {
-      const data = await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/events/${eventId}/committers/`
-      );
-      this.setState({
-        committers: data.committers,
-      });
-    } catch {
-      this.setState({
-        committers: [],
-      });
-    }
-  };
 
   fetchOwners = async (eventId: Event['id']) => {
     const {api, project, organization} = this.props;
@@ -93,12 +66,13 @@ class SuggestedOwners extends React.Component<Props, State> {
       );
 
       this.setState({
-        owners: data.owners,
         rules: data.rules,
+        owners: data.owners,
       });
     } catch {
       this.setState({
-        committers: [],
+        rules: null,
+        owners: [],
       });
     }
   };
@@ -126,7 +100,7 @@ class SuggestedOwners extends React.Component<Props, State> {
    * }
    */
   getOwnerList() {
-    const owners = this.state.committers.map(commiter => ({
+    const owners = this.props.committers.map(commiter => ({
       actor: {...commiter.author, type: 'user' as Actor['type']},
       commits: commiter.commits,
     })) as OwnerList;
@@ -156,11 +130,14 @@ class SuggestedOwners extends React.Component<Props, State> {
     const {event} = this.props;
 
     if (actor.type === 'user') {
-      assignToUser({id: event.groupID, user: actor});
+      // TODO(ts): `event` here may not be 100% correct
+      // in this case groupID should always exist on event
+      // since this is only used in Issue Details
+      assignToUser({id: event.groupID as string, user: actor});
     }
 
     if (actor.type === 'team') {
-      assignToActor({id: event.groupID, actor});
+      assignToActor({id: event.groupID as string, actor});
     }
   };
 
@@ -184,4 +161,4 @@ class SuggestedOwners extends React.Component<Props, State> {
     );
   }
 }
-export default withApi(withOrganization(SuggestedOwners));
+export default withApi(withOrganization(withCommitters(SuggestedOwners)));

@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import responses
 import time
-import json
 
+from sentry.utils import json
 from sentry.utils.compat.mock import patch
 
 from sentry.models import (

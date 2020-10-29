@@ -5,40 +5,15 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ProjectKeySerializer
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
 
 
-@scenario("DeleteClientKey")
-def delete_key_scenario(runner):
-    key = runner.utils.create_client_key(runner.default_project)
-    runner.request(
-        method="DELETE",
-        path="/projects/%s/%s/keys/%s/"
-        % (runner.org.slug, runner.default_project.slug, key.public_key),
-    )
-
-
-@scenario("UpdateClientKey")
-def update_key_scenario(runner):
-    key = runner.utils.create_client_key(runner.default_project)
-    runner.request(
-        method="PUT",
-        path="/projects/%s/%s/keys/%s/"
-        % (runner.org.slug, runner.default_project.slug, key.public_key),
-        data={"name": "Quite Positive Key"},
-    )
-
-
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
-
     def get(self, request, project, key_id):
         try:
             key = ProjectKey.objects.get(
@@ -117,7 +92,6 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             return Response(serialize(key, request.user), status=200)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @attach_scenarios([delete_key_scenario])
     def delete(self, request, project, key_id):
         """
         Delete a Client Key

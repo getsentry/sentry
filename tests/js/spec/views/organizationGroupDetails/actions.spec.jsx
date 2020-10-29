@@ -1,20 +1,20 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GroupActions from 'app/views/organizationGroupDetails/actions';
 import ConfigStore from 'app/stores/configStore';
 
-describe('GroupActions', function() {
-  beforeEach(function() {
+describe('GroupActions', function () {
+  beforeEach(function () {
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
   });
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  describe('render()', function() {
-    it('renders correctly', function() {
-      const wrapper = shallow(
+  describe('render()', function () {
+    it('renders correctly', function () {
+      const wrapper = mountWithTheme(
         <GroupActions
           group={TestStubs.Group({
             id: '1337',
@@ -32,13 +32,13 @@ describe('GroupActions', function() {
           })}
         />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 
-  describe('subscribing', function() {
+  describe('subscribing', function () {
     let issuesApi;
-    beforeEach(function() {
+    beforeEach(function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
@@ -46,7 +46,7 @@ describe('GroupActions', function() {
       });
     });
 
-    it('can subscribe', function() {
+    it('can subscribe', function () {
       const wrapper = mountWithTheme(
         <GroupActions
           group={TestStubs.Group({
@@ -77,9 +77,9 @@ describe('GroupActions', function() {
     });
   });
 
-  describe('bookmarking', function() {
+  describe('bookmarking', function () {
     let issuesApi;
-    beforeEach(function() {
+    beforeEach(function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
@@ -87,7 +87,7 @@ describe('GroupActions', function() {
       });
     });
 
-    it('can bookmark', function() {
+    it('can bookmark', function () {
       const wrapper = mountWithTheme(
         <GroupActions
           group={TestStubs.Group({

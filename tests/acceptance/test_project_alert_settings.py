@@ -27,11 +27,11 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         condition_data = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "name": "An issue is first seen",
+                "name": "A new issue is created",
             },
             {
                 "id": "sentry.rules.conditions.every_event.EveryEventCondition",
-                "name": "An event is seen",
+                "name": "The event occurs",
             },
         ]
 
@@ -42,12 +42,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path1 = u"/settings/{}/projects/{}/alerts/settings/".format(
-            self.org.slug, self.project.slug
-        )
-        self.path2 = u"/settings/{}/projects/{}/alerts/rules/".format(
-            self.org.slug, self.project.slug
-        )
+        self.path1 = u"/settings/{}/projects/{}/alerts/".format(self.org.slug, self.project.slug)
 
     def test_settings_load(self):
         self.browser.get(self.path1)
@@ -63,8 +58,3 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.browser.click_when_visible('[data-test-id="toast-success"]')
         self.browser.wait_until_not('[data-test-id="toast-success"]')
         self.browser.snapshot("project alert settings webhooks enabled")
-
-    def test_rules_load(self):
-        self.browser.get(self.path2)
-        self.browser.wait_until_not(".loading-indicator")
-        self.browser.snapshot("project alert rules")

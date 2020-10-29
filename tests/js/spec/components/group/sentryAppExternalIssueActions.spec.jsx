@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select';
 
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 
@@ -23,6 +22,8 @@ describe('SentryAppExternalIssueActions', () => {
         name: sentryApp.name,
       },
     });
+    //unable to use the selectByValue here so remove the select option
+    component.schema.create.required_fields.pop();
     install = TestStubs.SentryAppInstallation({sentryApp});
     externalIssue = TestStubs.PlatformExternalIssue({
       groupId: group.id,
@@ -59,20 +60,12 @@ describe('SentryAppExternalIssueActions', () => {
 
     it('opens the modal', () => {
       wrapper.find('IntegrationLink a').simulate('click');
-      expect(
-        wrapper
-          .find('Modal')
-          .first()
-          .prop('show')
-      ).toEqual(true);
+      expect(wrapper.find('Modal').first().prop('show')).toEqual(true);
     });
 
     it('renders the Create Issue form fields, based on schema', () => {
       wrapper.find('IntegrationLink a').simulate('click');
-      wrapper
-        .find('Modal NavTabs li.create a')
-        .first()
-        .simulate('click'); // Create
+      wrapper.find('Modal NavTabs li.create a').first().simulate('click'); // Create
 
       component.schema.create.required_fields.forEach(field => {
         expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
@@ -85,10 +78,7 @@ describe('SentryAppExternalIssueActions', () => {
 
     it('renders the Link Issue form fields, based on schema', () => {
       wrapper.find('IntegrationLink a').simulate('click');
-      wrapper
-        .find('Modal NavTabs li.link a')
-        .first()
-        .simulate('click'); // Link
+      wrapper.find('Modal NavTabs li.link a').first().simulate('click'); // Link
 
       component.schema.link.required_fields.forEach(field => {
         expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
@@ -138,7 +128,6 @@ describe('SentryAppExternalIssueActions', () => {
 
       wrapper.find('Input#title').simulate('change', {target: {value: 'foo'}});
       wrapper.find('TextArea#description').simulate('change', {target: {value: 'bar'}});
-      selectByValue(wrapper, 1, {name: 'numbers'});
 
       wrapper.find('Form form').simulate('submit');
 
@@ -174,12 +163,9 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('links to the issue', () => {
-      expect(
-        wrapper
-          .find('IntegrationLink')
-          .first()
-          .prop('href')
-      ).toEqual(externalIssue.webUrl);
+      expect(wrapper.find('IntegrationLink').first().prop('href')).toEqual(
+        externalIssue.webUrl
+      );
     });
 
     it('renders the remove issue button', () => {

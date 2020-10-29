@@ -49,7 +49,7 @@ class PagerDutyNotifyActionTest(RuleTestCase):
         responses.add(
             method=responses.POST,
             url="https://events.pagerduty.com/v2/enqueue/",
-            body={},
+            json={},
             status=202,
             content_type="application/json",
         )
@@ -139,7 +139,7 @@ class PagerDutyNotifyActionTest(RuleTestCase):
         responses.add(
             method=responses.POST,
             url="https://events.pagerduty.com/v2/enqueue/",
-            body={},
+            json={},
             status=202,
             content_type="application/json",
         )

@@ -6,6 +6,7 @@ import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
 import {ALL_VIEWS} from 'app/views/eventsV2/data';
 import EventView from 'app/utils/discover/eventView';
 import * as utils from 'app/views/eventsV2/savedQuery/utils';
+import {setBannerHidden, isBannerHidden} from 'app/views/eventsV2/utils';
 
 const SELECTOR_BUTTON_SAVE_AS = 'ButtonSaveAs';
 const SELECTOR_BUTTON_SAVED = '[data-test-id="discover2-savedquery-button-saved"]';
@@ -33,9 +34,9 @@ function generateWrappedComponent(
   );
 }
 
-describe('EventsV2 > SaveQueryButtonGroup', function() {
+describe('EventsV2 > SaveQueryButtonGroup', function () {
   // Organization + Location does not affect state in this component
-  const organization = TestStubs.Organization();
+  const organization = TestStubs.Organization({features: ['discover-query']});
   const location = {
     pathname: '/organization/eventsv2/',
     query: {},
@@ -92,6 +93,31 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       expect(buttonSaved.exists()).toBe(false);
       expect(buttonUpdate.exists()).toBe(false);
       expect(buttonDelete.exists()).toBe(false);
+    });
+
+    it('hides the banner when save is complete.', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        undefined
+      );
+      setBannerHidden(false);
+
+      // Click on ButtonSaveAs to open dropdown
+      const buttonSaveAs = wrapper.find('DropdownControl').first();
+      buttonSaveAs.simulate('click');
+
+      // Fill in the Input
+      buttonSaveAs
+        .find('ButtonSaveInput')
+        .simulate('change', {target: {value: 'My New Query Name'}}); // currentTarget.value does not work
+      await tick();
+
+      // Click on Save in the Dropdown
+      await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      // Banner should be hidden.
+      expect(isBannerHidden()).toEqual(true);
     });
 
     it('saves a well-formed query', async () => {
@@ -302,16 +328,31 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
     });
   });
   describe('create alert from discover', () => {
-    it('renders create alert when org has create-from-discover', () => {
+    it('renders create alert button when metrics alerts is enabled', () => {
+      const metricAlertOrg = {
+        ...organization,
+        features: ['incidents'],
+      };
       const wrapper = generateWrappedComponent(
         location,
-        {...organization, features: ['create-from-discover']},
+        metricAlertOrg,
         errorsViewModified,
         savedQuery
       );
       const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
 
       expect(buttonCreateAlert.exists()).toBe(true);
+    });
+    it('does not render create alert button without metric alerts', () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery
+      );
+      const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
+
+      expect(buttonCreateAlert.exists()).toBe(false);
     });
   });
 });

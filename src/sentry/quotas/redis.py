@@ -5,7 +5,6 @@ import six
 
 from time import time
 
-from sentry import features
 from sentry.constants import DataCategory
 from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
 from sentry.utils.redis import (
@@ -67,16 +66,6 @@ class RedisQuota(Quota):
 
         results = []
 
-        if not features.has("organizations:releases-v2", project.organization):
-            results.append(
-                QuotaConfig(
-                    limit=0,
-                    scope=QuotaScope.ORGANIZATION,
-                    categories=[DataCategory.SESSION],
-                    reason_code="sessions_unavailable",
-                )
-            )
-
         pquota = self.get_project_quota(project)
         if pquota[0] is not None:
             results.append(
@@ -84,7 +73,7 @@ class RedisQuota(Quota):
                     id="p",
                     scope=QuotaScope.PROJECT,
                     scope_id=project.id,
-                    categories=DataCategory.event_categories(),
+                    categories=DataCategory.error_categories(),
                     limit=pquota[0],
                     window=pquota[1],
                     reason_code="project_quota",
@@ -98,7 +87,7 @@ class RedisQuota(Quota):
                     id="o",
                     scope=QuotaScope.ORGANIZATION,
                     scope_id=project.organization.id,
-                    categories=DataCategory.event_categories(),
+                    categories=DataCategory.error_categories(),
                     limit=oquota[0],
                     window=oquota[1],
                     reason_code="org_quota",
@@ -118,7 +107,7 @@ class RedisQuota(Quota):
                         id="k",
                         scope=QuotaScope.KEY,
                         scope_id=key.id,
-                        categories=DataCategory.event_categories(),
+                        categories=DataCategory.error_categories(),
                         limit=kquota[0],
                         window=kquota[1],
                         reason_code="key_quota",

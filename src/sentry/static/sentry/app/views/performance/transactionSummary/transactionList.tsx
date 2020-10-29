@@ -1,5 +1,5 @@
 import React from 'react';
-import {Location} from 'history';
+import {Location, Query} from 'history';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
@@ -11,6 +11,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
@@ -18,35 +19,81 @@ import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import SortLink from 'app/components/gridEditable/sortLink';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {getAggregateAlias, Sort} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {getDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {
-  TOP_TRANSACTION_LIMIT,
-  TOP_TRANSACTION_FILTERS,
-} from 'app/views/performance/constants';
 
 import {GridCell, GridCellNumber} from '../styles';
-import {getTransactionDetailsUrl} from '../utils';
+import {getTransactionDetailsUrl, getTransactionComparisonUrl} from '../utils';
+import BaselineQuery, {BaselineQueryResults} from './baselineQuery';
+
+const TOP_TRANSACTION_LIMIT = 5;
+
+type FilterOption = {
+  query: [string, string][] | null;
+  sort: Sort;
+  value: string;
+  label: string;
+};
+
+function getFilterOptions({p95}: {p95: number}): FilterOption[] {
+  return [
+    {
+      query: null,
+      sort: {kind: 'asc', field: 'transaction.duration'},
+      value: 'fastest',
+      label: t('Fastest Transactions'),
+    },
+    {
+      query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+      sort: {kind: 'desc', field: 'transaction.duration'},
+      value: 'slow',
+      label: t('Slow Transactions (p95)'),
+    },
+    {
+      query: null,
+      sort: {kind: 'desc', field: 'transaction.duration'},
+      value: 'outlier',
+      label: t('Outlier Transactions (p100)'),
+    },
+    {
+      query: null,
+      sort: {kind: 'desc', field: 'timestamp'},
+      value: 'recent',
+      label: t('Recent Transactions'),
+    },
+  ];
+}
+
+function getTransactionSort(
+  location: Location,
+  p95: number
+): {selected: FilterOption; options: FilterOption[]} {
+  const options = getFilterOptions({p95});
+  const urlParam = decodeScalar(location.query.showTransactions) || 'slow';
+  const selected = options.find(opt => opt.value === urlParam) || options[0];
+  return {selected, options};
+}
 
 type WrapperProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
   transactionName: string;
+  slowDuration: number | undefined;
 };
 
 class TransactionList extends React.Component<WrapperProps> {
-  getTransactionSort(location: Location) {
-    const urlParam = decodeScalar(location.query.showTransactions) || 'slowest';
-    const option =
-      TOP_TRANSACTION_FILTERS.find(opt => opt.value === urlParam) ||
-      TOP_TRANSACTION_FILTERS[0];
-    return option;
-  }
+  handleCursor = (cursor: string, pathname: string, query: Query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, transactionCursor: cursor},
+    });
+  };
 
   handleTransactionFilterChange = (value: string) => {
     const {location, organization} = this.props;
@@ -58,7 +105,7 @@ class TransactionList extends React.Component<WrapperProps> {
     });
     const target = {
       pathname: location.pathname,
-      query: {...location.query, showTransactions: value},
+      query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
     browserHistory.push(target);
   };
@@ -72,25 +119,101 @@ class TransactionList extends React.Component<WrapperProps> {
     });
   };
 
+  renderTable(eventView: EventView) {
+    const {location, organization, transactionName} = this.props;
+    const cursor = decodeScalar(location.query?.transactionCursor);
+
+    if (!organization.features.includes('transaction-comparison')) {
+      return (
+        <DiscoverQuery
+          location={location}
+          eventView={eventView}
+          orgSlug={organization.slug}
+          limit={TOP_TRANSACTION_LIMIT}
+          cursor={cursor}
+        >
+          {({isLoading, tableData, pageLinks}) => (
+            <React.Fragment>
+              <TransactionTable
+                organization={organization}
+                location={location}
+                transactionName={transactionName}
+                eventView={eventView}
+                tableData={tableData}
+                isLoading={isLoading}
+                baselineTransaction={null}
+              />
+              <StyledPagination
+                pageLinks={pageLinks}
+                onCursor={this.handleCursor}
+                size="small"
+              />
+            </React.Fragment>
+          )}
+        </DiscoverQuery>
+      );
+    }
+
+    return (
+      <DiscoverQuery
+        location={location}
+        eventView={eventView}
+        orgSlug={organization.slug}
+        limit={TOP_TRANSACTION_LIMIT}
+        cursor={cursor}
+      >
+        {({isLoading, tableData, pageLinks}) => (
+          <BaselineQuery eventView={eventView} orgSlug={organization.slug}>
+            {baselineQueryProps => {
+              return (
+                <React.Fragment>
+                  <TransactionTable
+                    organization={organization}
+                    location={location}
+                    transactionName={transactionName}
+                    eventView={eventView}
+                    tableData={tableData}
+                    isLoading={isLoading || baselineQueryProps.isLoading}
+                    baselineTransaction={baselineQueryProps.results}
+                  />
+                  <StyledPagination
+                    pageLinks={pageLinks}
+                    onCursor={this.handleCursor}
+                    size="small"
+                  />
+                </React.Fragment>
+              );
+            }}
+          </BaselineQuery>
+        )}
+      </DiscoverQuery>
+    );
+  }
+
   render() {
-    const {eventView, location, organization, transactionName} = this.props;
-    const activeFilter = this.getTransactionSort(location);
-    const sortedEventView = eventView.withSorts([activeFilter.sort]);
+    const {eventView, location, organization, slowDuration} = this.props;
+    const {selected, options} = getTransactionSort(location, slowDuration || 0);
+    const sortedEventView = eventView.withSorts([selected.sort]);
+    if (selected.query) {
+      const query = tokenizeSearch(sortedEventView.query);
+      selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      sortedEventView.query = stringifyQueryObject(query);
+    }
 
     return (
       <React.Fragment>
         <Header>
           <DropdownControl
             data-test-id="filter-transactions"
-            label={activeFilter.label}
+            label={selected.label}
             buttonProps={{prefix: t('Filter'), size: 'small'}}
           >
-            {TOP_TRANSACTION_FILTERS.map(({value, label}) => (
+            {options.map(({value, label}) => (
               <DropdownItem
                 key={value}
                 onSelect={this.handleTransactionFilterChange}
                 eventKey={value}
-                isActive={value === activeFilter.value}
+                isActive={value === selected.value}
               >
                 {label}
               </DropdownItem>
@@ -107,23 +230,7 @@ class TransactionList extends React.Component<WrapperProps> {
             </DiscoverButton>
           </HeaderButtonContainer>
         </Header>
-        <DiscoverQuery
-          location={location}
-          eventView={sortedEventView}
-          orgSlug={organization.slug}
-          limit={TOP_TRANSACTION_LIMIT}
-        >
-          {({isLoading, tableData}) => (
-            <TransactionTable
-              organization={organization}
-              location={location}
-              transactionName={transactionName}
-              eventView={eventView}
-              tableData={tableData}
-              isLoading={isLoading}
-            />
-          )}
-        </DiscoverQuery>
+        {this.renderTable(sortedEventView)}
       </React.Fragment>
     );
   }
@@ -134,6 +241,7 @@ type Props = {
   location: Location;
   organization: Organization;
   transactionName: string;
+  baselineTransaction: BaselineQueryResults | null;
 
   isLoading: boolean;
   tableData: TableData | null | undefined;
@@ -175,20 +283,21 @@ class TransactionTable extends React.PureComponent<Props> {
   };
 
   renderHeader() {
-    const {eventView, tableData} = this.props;
+    const {eventView, tableData, organization} = this.props;
 
     const tableMeta = tableData?.meta;
     const columnOrder = eventView.getColumns();
     const generateSortLink = () => undefined;
+    const titles = [t('id'), t('user'), t('duration'), t('timestamp')];
 
-    return columnOrder.map((column, index) => (
-      <HeaderCell column={column} tableMeta={tableMeta} key={index}>
+    const headerColumns = titles.map((title, index) => (
+      <HeaderCell column={columnOrder[index]} tableMeta={tableMeta} key={index}>
         {({align}) => {
           return (
             <HeadCellContainer>
               <SortLink
                 align={align}
-                title={column.name}
+                title={title}
                 direction={undefined}
                 canSort={false}
                 generateSortLink={generateSortLink}
@@ -198,6 +307,24 @@ class TransactionTable extends React.PureComponent<Props> {
         }}
       </HeaderCell>
     ));
+
+    // add baseline transaction column
+
+    if (organization.features.includes('transaction-comparison')) {
+      headerColumns.push(
+        <HeadCellContainer key="baseline">
+          <SortLink
+            align="right"
+            title={t('Compared to Baseline')}
+            direction={undefined}
+            canSort={false}
+            generateSortLink={generateSortLink}
+          />
+        </HeadCellContainer>
+      );
+    }
+
+    return headerColumns;
   }
 
   renderResults() {
@@ -229,9 +356,9 @@ class TransactionTable extends React.PureComponent<Props> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ) {
-    const {organization, location, transactionName} = this.props;
+    const {organization, location, transactionName, baselineTransaction} = this.props;
 
-    return columnOrder.map((column, index) => {
+    const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
       // TODO add a better abstraction for this in fieldRenderers.
       const fieldName = getAggregateAlias(field);
@@ -282,6 +409,50 @@ class TransactionTable extends React.PureComponent<Props> {
         </BodyCellContainer>
       );
     });
+
+    // add baseline transaction column
+
+    if (organization.features.includes('transaction-comparison')) {
+      if (baselineTransaction) {
+        const currentTransactionDuration: number =
+          Number(row['transaction.duration']) || 0;
+
+        const delta = Math.abs(
+          currentTransactionDuration - baselineTransaction['transaction.duration']
+        );
+
+        const relativeSpeed =
+          currentTransactionDuration < baselineTransaction['transaction.duration']
+            ? t('faster')
+            : currentTransactionDuration > baselineTransaction['transaction.duration']
+            ? t('slower')
+            : '';
+
+        const target = getTransactionComparisonUrl({
+          organization,
+          baselineEventSlug: generateEventSlug(baselineTransaction),
+          regressionEventSlug: generateEventSlug(row),
+          transaction: transactionName,
+          query: location.query,
+        });
+
+        resultsRow.push(
+          <BodyCellContainer key={`${rowIndex}-baseline`} style={{textAlign: 'right'}}>
+            <GridCell>
+              <Link to={target} onClick={this.handleViewDetailsClick}>
+                {`${getDuration(delta / 1000, delta < 1000 ? 0 : 2)} ${relativeSpeed}`}
+              </Link>
+            </GridCell>
+          </BodyCellContainer>
+        );
+      } else {
+        resultsRow.push(
+          <BodyCellContainer key={`${rowIndex}-baseline`}>-</BodyCellContainer>
+        );
+      }
+    }
+
+    return resultsRow;
   }
 
   render() {
@@ -294,21 +465,23 @@ class TransactionTable extends React.PureComponent<Props> {
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
     return (
-      <React.Fragment>
-        <PanelTable
-          isEmpty={!hasResults}
-          emptyMessage={t('No transactions found')}
-          headers={this.renderHeader()}
-          isLoading={isLoading}
-          disablePadding
-          loader={loader}
-        >
-          {this.renderResults()}
-        </PanelTable>
-      </React.Fragment>
+      <StyledPanelTable
+        isEmpty={!hasResults}
+        emptyMessage={t('No transactions found')}
+        headers={this.renderHeader()}
+        isLoading={isLoading}
+        disablePadding
+        loader={loader}
+      >
+        {this.renderResults()}
+      </StyledPanelTable>
     );
   }
 }
+
+const StyledPanelTable = styled(PanelTable)`
+  margin-bottom: ${space(1)};
+`;
 
 const Header = styled('div')`
   display: flex;
@@ -329,6 +502,10 @@ const HeadCellContainer = styled('div')`
 const BodyCellContainer = styled('div')`
   padding: ${space(1)} ${space(2)};
   ${overflowEllipsis};
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0 0 ${space(3)} 0;
 `;
 
 export default TransactionList;

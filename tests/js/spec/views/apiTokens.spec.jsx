@@ -1,43 +1,49 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import {ApiTokens} from 'app/views/settings/account/apiTokens';
 
 const organization = TestStubs.Organization();
 
-describe('ApiTokens', function() {
+describe('ApiTokens', function () {
   const routerContext = TestStubs.routerContext();
 
-  beforeEach(function() {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
-  it('renders empty result', function() {
+  it('renders empty result', function () {
     Client.addMockResponse({
       url: '/api-tokens/',
     });
 
-    const wrapper = shallow(<ApiTokens organization={organization} />, routerContext);
+    const wrapper = mountWithTheme(
+      <ApiTokens organization={organization} />,
+      routerContext
+    );
 
     // Should be loading
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders with result', function() {
+  it('renders with result', function () {
     Client.addMockResponse({
       url: '/api-tokens/',
       body: [TestStubs.ApiToken()],
     });
 
-    const wrapper = shallow(<ApiTokens organization={organization} />, routerContext);
+    const wrapper = mountWithTheme(
+      <ApiTokens organization={organization} />,
+      routerContext
+    );
 
     // Should be loading
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('can delete token', function() {
+  it('can delete token', function () {
     Client.addMockResponse({
       url: '/api-tokens/',
       body: [TestStubs.ApiToken()],

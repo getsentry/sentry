@@ -1,15 +1,17 @@
 from __future__ import absolute_import
 
 import six
-import json
 import requests
 import pytz
 
 from exam import fixture
 from freezegun import freeze_time
+from mock import patch
 
+from sentry.utils import json
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
+from sentry.models import Integration
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils import APITestCase
 from sentry.snuba.models import QueryDatasets
@@ -135,6 +137,66 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.project.slug)
         assert resp.status_code == 403
+
+    @patch(
+        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        return_value=("#", None, True),
+    )
+    @patch("sentry.integrations.slack.tasks.find_channel_id_for_alert_rule.apply_async")
+    @patch("sentry.integrations.slack.tasks.uuid4")
+    def test_kicks_off_slack_async_job(
+        self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
+    ):
+        class uuid(object):
+            hex = "abc123"
+
+        mock_uuid4.return_value = uuid
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        self.integration = Integration.objects.create(
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        self.integration.add_organization(self.organization, self.user)
+        valid_alert_rule = {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "resolveThreshold": 100,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "actions": [
+                        {
+                            "type": "slack",
+                            "targetIdentifier": "my-channel",
+                            "targetType": "specific",
+                            "integration": self.integration.id,
+                        }
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "name": "JustAValidTestRule",
+        }
+        with self.feature(["organizations:incidents"]):
+            resp = self.get_valid_response(
+                self.organization.slug, self.project.slug, status_code=202, **valid_alert_rule
+            )
+        resp.data["uuid"] = "abc123"
+        assert not AlertRule.objects.filter(name="JustAValidTestRule").exists()
+        kwargs = {
+            "organization_id": self.organization.id,
+            "uuid": "abc123",
+            "data": valid_alert_rule,
+        }
+        mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):

@@ -10,7 +10,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('app/utils/withLatestContext');
 
-describe('OverviewDashboard', function() {
+describe('OverviewDashboard', function () {
   let wrapper;
   let discoverMock;
   let releasesMock;
@@ -43,7 +43,7 @@ describe('OverviewDashboard', function() {
     mockRouterPush(wrapper, router);
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     ProjectsStore.loadInitialData(projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -68,7 +68,7 @@ describe('OverviewDashboard', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     router.push.mockRestore();
     MockApiClient.clearMockResponses();
     if (wrapper) {
@@ -78,7 +78,7 @@ describe('OverviewDashboard', function() {
     releasesMock.mockRestore();
   });
 
-  it('renders and updates "recentReleases" constraint ', async function() {
+  it('renders and updates "recentReleases" constraint ', async function () {
     const eventsByReleaseWidget = TestStubs.Widget({
       discover: [
         {
@@ -163,10 +163,7 @@ describe('OverviewDashboard', function() {
             [
               'if',
               [
-                [
-                  'in',
-                  ['release', 'tuple', ["'92eccef279d966b2319f0802fa4b22b430a5f72b'"]],
-                ],
+                ['in', ['release', 'tuple', ["'sentry-android-shop@1.2.0'"]]],
                 'release',
                 "'other'",
               ],
@@ -221,10 +218,7 @@ describe('OverviewDashboard', function() {
             [
               'if',
               [
-                [
-                  'in',
-                  ['release', 'tuple', ["'92eccef279d966b2319f0802fa4b22b430a5f72b'"]],
-                ],
+                ['in', ['release', 'tuple', ["'sentry-android-shop@1.2.0'"]]],
                 'release',
                 "'other'",
               ],

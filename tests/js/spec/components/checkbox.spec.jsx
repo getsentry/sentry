@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Checkbox from 'app/components/checkbox';
 
-describe('Checkbox', function() {
-  it('renders', function() {
-    const component = shallow(<Checkbox />);
+describe('Checkbox', function () {
+  it('renders', function () {
+    const component = mountWithTheme(<Checkbox onChange={() => {}} />);
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 });

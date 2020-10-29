@@ -4,14 +4,14 @@ import {withInfo} from '@storybook/addon-info';
 import getDynamicText from 'app/utils/getDynamicText';
 
 export default {
-  title: 'Utility/getDynamicText',
+  title: 'Utilities/getDynamicText',
 };
 
 export const GetDynamicText = withInfo(
   `
   Use this to wrap dynamic content (i.e. dates) for acceptance/snapshot tests.
-  Currently checks for IS_CI env var.
-  (webpack config has webpack.DefinePlugin for "process.env.IS_CI")
+  Currently checks for IS_ACCEPTANCE_TEST env var.
+  (webpack config has webpack.DefinePlugin for "process.env.IS_ACCEPTANCE_TEST")
   `
 )(() => {
   return (

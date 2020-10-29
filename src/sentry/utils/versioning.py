@@ -1,15 +1,16 @@
 from __future__ import absolute_import
 
-import six
+from django.utils.encoding import force_text, python_2_unicode_compatible
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 from sentry.utils.compat import map
 
 
+@python_2_unicode_compatible
 class Version(tuple):
     def __str__(self):
-        return ".".join(map(six.binary_type, self))
+        return u".".join(map(force_text, self))
 
 
 def summarize(sequence, max=3):
@@ -24,7 +25,7 @@ def summarize(sequence, max=3):
 
 def make_upgrade_message(service, modality, version, hosts):
     return u"{service} {modality} be upgraded to {version} on {hosts}.".format(
-        hosts=",".join(map(six.binary_type, summarize(hosts.keys(), 2))),
+        hosts=u",".join(map(force_text, summarize(list(hosts.keys()), 2))),
         modality=modality,
         service=service,
         version=version,

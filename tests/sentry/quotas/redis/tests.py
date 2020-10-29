@@ -50,10 +50,10 @@ def test_is_rate_limited_script():
         )
     ) == [True, False]
 
-    assert client.get("foo") == "1"
+    assert client.get("foo") == b"1"
     assert 59 <= client.ttl("foo") <= 60
 
-    assert client.get("bar") == "1"
+    assert client.get("bar") == b"1"
     assert 119 <= client.ttl("bar") <= 120
 
     # make sure "refund/negative" keys haven't been incremented
@@ -88,8 +88,7 @@ class RedisQuotaTest(TestCase):
     def test_uses_defined_quotas(self):
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
-        with self.feature("organizations:releases-v2"):
-            quotas = self.quota.get_quotas(self.project)
+        quotas = self.quota.get_quotas(self.project)
 
         assert quotas[0].id == u"p"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -101,17 +100,6 @@ class RedisQuotaTest(TestCase):
         assert quotas[1].scope_id == six.text_type(self.organization.id)
         assert quotas[1].limit == 300
         assert quotas[1].window == 60
-
-    def test_sessions_quota(self):
-        self.get_project_quota.return_value = (200, 60)
-        self.get_organization_quota.return_value = (300, 60)
-        with self.feature({"organizations:releases-v2": False}):
-            quotas = self.quota.get_quotas(self.project)
-
-        assert quotas[0].id is None  # should not be counted
-        assert quotas[0].categories == set([DataCategory.SESSION])
-        assert quotas[0].scope == QuotaScope.ORGANIZATION
-        assert quotas[0].limit == 0
 
     @mock.patch("sentry.quotas.redis.is_rate_limited")
     @mock.patch.object(RedisQuota, "get_quotas", return_value=[])
@@ -246,7 +234,7 @@ class RedisQuotaTest(TestCase):
         assert len(error_keys) == 2
 
         for key in error_keys:
-            assert client.get(key) == "1"
+            assert client.get(key) == b"1"
 
         attachment_keys = client.keys("r:quota:a:*")
         assert len(attachment_keys) == 0
@@ -300,7 +288,7 @@ class RedisQuotaTest(TestCase):
         assert len(attachment_keys) == 1
 
         for key in attachment_keys:
-            assert client.get(key) == "100"
+            assert client.get(key) == b"100"
 
     def test_get_usage_uses_refund(self):
         timestamp = time.time()

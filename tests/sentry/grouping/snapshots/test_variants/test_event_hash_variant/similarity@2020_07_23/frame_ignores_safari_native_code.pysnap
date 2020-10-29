@@ -1,0 +1,26 @@
+---
+created: '2020-07-23T17:38:22.021146Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          filename (native code indicated by filename)
+            "[native code]"
+          function*
+            "forEach"
+--------------------------------------------------------------------------
+system:
+  hash: "30eb5001914d29dd8461898b5b8094fe"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename (native code indicated by filename)
+            "[native code]"
+          function*
+            "forEach"

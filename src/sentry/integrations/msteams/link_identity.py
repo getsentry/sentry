@@ -12,7 +12,8 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from .utils import get_identity, build_linked_card
+from .card_builder import build_linked_card
+from .utils import get_identity
 from .client import MsTeamsClient
 
 
@@ -34,7 +35,7 @@ class MsTeamsLinkIdentityView(BaseView):
     @transaction_start("MsTeamsLinkIdentityView")
     @never_cache
     def handle(self, request, signed_params):
-        params = unsign(signed_params.encode("ascii", errors="ignore"))
+        params = unsign(signed_params)
 
         organization, integration, idp = get_identity(
             request.user, params["organization_id"], params["integration_id"]

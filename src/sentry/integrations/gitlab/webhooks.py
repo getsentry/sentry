@@ -11,7 +11,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
-from simplejson import JSONDecodeError
 
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -241,7 +240,7 @@ class GitlabWebhookEndpoint(View):
 
         try:
             event = json.loads(request.body.decode("utf-8"))
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             logger.info(
                 "gitlab.webhook.invalid-json", extra={"external_id": integration.external_id}
             )

@@ -13,6 +13,7 @@ import {
   errorFieldConfig,
   transactionFieldConfig,
 } from 'app/views/settings/incidentRules/constants';
+import Link from 'app/components/links/link';
 
 /**
  * Discover query supports more features than alert rules
@@ -37,6 +38,7 @@ type IncompatibleQueryProperties = {
 type AlertProps = {
   incompatibleQuery: IncompatibleQueryProperties;
   eventView: EventView;
+  orgId: string;
   /**
    * Dismiss alert
    */
@@ -46,7 +48,12 @@ type AlertProps = {
 /**
  * Displays messages to the user on what needs to change in their query
  */
-function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertProps) {
+function IncompatibleQueryAlert({
+  incompatibleQuery,
+  eventView,
+  orgId,
+  onClose,
+}: AlertProps) {
   const {
     hasProjectError,
     hasEnvironmentError,
@@ -55,6 +62,12 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
   } = incompatibleQuery;
 
   const totalErrors = Object.values(incompatibleQuery).filter(val => val === true).length;
+
+  const eventTypeError = eventView.clone();
+  eventTypeError.query += ' event.type:error';
+  const eventTypeTransaction = eventView.clone();
+  eventTypeTransaction.query += ' event.type:transaction';
+  const pathname = `/organizations/${orgId}/discover/results/`;
 
   return (
     <StyledAlert type="warning" icon={<IconInfo color="yellow400" size="sm" />}>
@@ -70,8 +83,22 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
             tct(
               'An alert needs a filter of [error:event.type:error] or [transaction:event.type:transaction]. Use one of these and try again.',
               {
-                error: <StyledCode />,
-                transaction: <StyledCode />,
+                error: (
+                  <Link
+                    to={{
+                      pathname,
+                      query: eventTypeError.generateQueryStringObject(),
+                    }}
+                  />
+                ),
+                transaction: (
+                  <Link
+                    to={{
+                      pathname,
+                      query: eventTypeTransaction.generateQueryStringObject(),
+                    }}
+                  />
+                ),
               }
             )}
           {hasYAxisError &&
@@ -96,8 +123,22 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
                 {tct(
                   'Use the filter [error:event.type:error] or [transaction:event.type:transaction].',
                   {
-                    error: <StyledCode />,
-                    transaction: <StyledCode />,
+                    error: (
+                      <Link
+                        to={{
+                          pathname,
+                          query: eventTypeError.generateQueryStringObject(),
+                        }}
+                      />
+                    ),
+                    transaction: (
+                      <Link
+                        to={{
+                          pathname,
+                          query: eventTypeTransaction.generateQueryStringObject(),
+                        }}
+                      />
+                    ),
                   }
                 )}
               </li>
@@ -165,7 +206,11 @@ function incompatibleYAxis(eventView: EventView): boolean {
 
   const invalidFunction = !yAxisConfig.aggregations.includes(column.function[0]);
   // Allow empty parameters, allow all numeric parameters - eg. apdex(300)
-  const aggregation: Aggregation = AGGREGATIONS[column.function[0]];
+  const aggregation: Aggregation | undefined = AGGREGATIONS[column.function[0]];
+  if (!aggregation) {
+    return false;
+  }
+
   const isNumericParameter = aggregation.parameters.some(
     param => param.kind === 'value' && param.dataType === 'number'
   );
@@ -209,7 +254,7 @@ function CreateAlertButton({
   const to = hasErrors
     ? undefined
     : {
-        pathname: `/settings/${organization.slug}/projects/${project?.slug}/alerts/new/`,
+        pathname: `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
         query: {
           ...eventView.generateQueryStringObject(),
           createFromDiscover: true,
@@ -225,6 +270,7 @@ function CreateAlertButton({
           <IncompatibleQueryAlert
             incompatibleQuery={errors}
             eventView={eventView}
+            orgId={organization.slug}
             onClose={onAlertClose}
           />
         ),

@@ -48,12 +48,14 @@ ATTR_CHOICES = [
     "stacktrace.code",
     "stacktrace.module",
     "stacktrace.filename",
+    "stacktrace.abs_path",
+    "stacktrace.package",
 ]
 
 
 class EventAttributeForm(forms.Form):
     attribute = forms.ChoiceField((a, a) for a in ATTR_CHOICES)
-    match = forms.ChoiceField(MATCH_CHOICES.items())
+    match = forms.ChoiceField(list(MATCH_CHOICES.items()))
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
 
@@ -68,14 +70,14 @@ class EventAttributeCondition(EventCondition):
     - exception.{type,value}
     - user.{id,ip_address,email,FIELD}
     - http.{method,url}
-    - stacktrace.{code,module,filename}
+    - stacktrace.{code,module,filename,abs_path,package}
     - extra.{FIELD}
     """
 
     # TODO(dcramer): add support for stacktrace.vars.[name]
 
     form_cls = EventAttributeForm
-    label = u"An event's {attribute} value {match} {value}"
+    label = u"The event's {attribute} value {match} {value}"
 
     form_fields = {
         "attribute": {
@@ -83,7 +85,7 @@ class EventAttributeCondition(EventCondition):
             "placeholder": "i.e. exception.type",
             "choices": [[a, a] for a in ATTR_CHOICES],
         },
-        "match": {"type": "choice", "choices": MATCH_CHOICES.items()},
+        "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
         "value": {"type": "string", "placeholder": "value"},
     }
 
@@ -150,11 +152,10 @@ class EventAttributeCondition(EventCondition):
                 stacks = [
                     e.stacktrace for e in event.interfaces["exception"].values if e.stacktrace
                 ]
-
             result = []
             for st in stacks:
                 for frame in st.frames:
-                    if path[1] in ("filename", "module"):
+                    if path[1] in ("filename", "module", "abs_path", "package"):
                         result.append(getattr(frame, path[1]))
                     elif path[1] == "code":
                         if frame.pre_context:

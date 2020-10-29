@@ -140,7 +140,7 @@ export function DetailedEvents() {
         },
       },
       type: 'error',
-      id: '904',
+      id: '905',
       size: 21896,
     },
   ];

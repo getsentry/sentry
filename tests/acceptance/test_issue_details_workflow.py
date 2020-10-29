@@ -72,7 +72,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
     def test_create_comment(self):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.page.go_to_subtab("Comments")
+        self.page.go_to_subtab("Activity")
 
         form = self.page.find_comment_form()
         form.find_element_by_tag_name("textarea").send_keys("this looks bad")

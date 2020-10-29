@@ -4,23 +4,14 @@ from rest_framework.response import Response
 
 import sentry_sdk
 
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import OrganizationMemberWithProjectsSerializer
 from sentry.models import OrganizationMember
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario("ListOrganizationUsers")
-def list_organization_users_scenario(runner):
-    runner.request(method="GET", path="/organizations/%s/users/" % runner.org.slug)
 
 
 class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    doc_section = DocSection.ORGANIZATIONS
-
-    @attach_scenarios([list_organization_users_scenario])
     def get(self, request, organization):
         """
         List an Organization's Users

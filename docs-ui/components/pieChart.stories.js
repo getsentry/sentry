@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import PieChart from 'app/components/charts/pieChart';
 
 export default {
-  title: 'Charts/PieChart',
+  title: 'DataVisualization/Charts/PieChart',
 };
 
 export const _PieChart = withInfo('PieChart')(() => (

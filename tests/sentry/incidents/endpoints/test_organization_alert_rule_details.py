@@ -13,51 +13,11 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
 from sentry.testutils import APITestCase
+from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 
-class AlertRuleDetailsBase(object):
+class AlertRuleDetailsBase(AlertRuleBase):
     endpoint = "sentry-api-0-organization-alert-rule-details"
-
-    @fixture
-    def organization(self):
-        return self.create_organization()
-
-    @fixture
-    def project(self):
-        return self.create_project(organization=self.organization)
-
-    @fixture
-    def user(self):
-        return self.create_user()
-
-    @fixture
-    def alert_rule_dict(self):
-        return {
-            "aggregate": "count()",
-            "query": "",
-            "timeWindow": "300",
-            "projects": [self.project.slug],
-            "name": "JustAValidTestRule",
-            "resolveThreshold": 100,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 200,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
-                    ],
-                },
-                {
-                    "label": "warning",
-                    "alertThreshold": 150,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
-                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
-                    ],
-                },
-            ],
-        }
 
     def new_alert_rule(self, data=None):
         if data is None:
@@ -156,6 +116,37 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         alert_rule.name = "what"
         assert resp.data == serialize(alert_rule)
         assert resp.data["name"] == "what"
+
+    def test_sentry_app(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        sentry_app = self.create_sentry_app(
+            name="foo", organization=self.organization, is_alertable=True, verify_install=False
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["name"] = "ValidSentryAppTestRule"
+        serialized_alert_rule["triggers"][0]["actions"][0] = {
+            "type": "sentry_app",
+            "targetType": "sentry_app",
+            "targetIdentifier": sentry_app.id,
+            "sentryAppId": sentry_app.id,
+        }
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        alert_rule.name = "ValidSentryAppTestRule"
+        assert resp.data == serialize(alert_rule)
+        assert resp.data["triggers"][0]["actions"][0]["sentryAppId"] == sentry_app.id
 
     def test_not_updated_fields(self):
         self.create_member(
@@ -341,7 +332,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         # And it comes back successfully changed:
         assert resp.data["triggers"][0]["actions"][0]["targetType"] == "user"
-        assert resp.data["triggers"][0]["actions"][0]["targetIdentifier"] == six.binary_type(
+        assert resp.data["triggers"][0]["actions"][0]["targetIdentifier"] == six.text_type(
             self.user.id
         )
 

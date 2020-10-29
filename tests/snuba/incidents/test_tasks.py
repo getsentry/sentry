@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 from copy import deepcopy
 from uuid import uuid4
 
@@ -26,6 +25,7 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
+from sentry.utils import json
 
 from sentry.testutils import TestCase
 
@@ -125,7 +125,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             with self.assertChanges(
                 lambda: active_incident().exists(), before=False, after=True
-            ), self.tasks():
+            ), self.tasks(), self.capture_on_commit_callbacks(execute=True):
                 consumer.run()
 
         assert len(mail.outbox) == 1

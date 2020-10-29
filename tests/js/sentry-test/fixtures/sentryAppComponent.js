@@ -22,10 +22,9 @@ export function SentryAppComponent(params = {}) {
             name: 'numbers',
             label: 'Numbers',
             choices: [
-              [1, 'one'],
-              [2, 'two'],
+              ['number_1', 'one'],
+              ['number_2', 'two'],
             ],
-            default: 1,
           },
         ],
       },

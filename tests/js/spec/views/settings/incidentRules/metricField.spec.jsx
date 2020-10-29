@@ -8,12 +8,12 @@ import Form from 'app/views/settings/components/forms/form';
 import MetricField from 'app/views/settings/incidentRules/metricField';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 
-describe('MetricField', function() {
+describe('MetricField', function () {
   const {organization} = initializeOrg({
     organization: {features: ['performance-view']},
   });
 
-  it('renders', function() {
+  it('renders', function () {
     mountWithTheme(
       <Form initialData={{dataset: Dataset.ERRORS}}>
         <MetricField name="metric" organization={organization} />
@@ -21,7 +21,7 @@ describe('MetricField', function() {
     );
   });
 
-  it('has a select subset of error fields', function() {
+  it('has a select subset of error fields', function () {
     const wrapper = mountWithTheme(
       <Form initialData={{dataset: Dataset.ERRORS}}>
         <MetricField name="metric" organization={organization} />
@@ -36,15 +36,10 @@ describe('MetricField', function() {
     selectByLabel(wrapper, 'count_unique(…)', {selector: 'QueryField'});
     openMenu(wrapper, {selector: 'QueryField', at: 1});
 
-    expect(
-      wrapper
-        .find('SelectControl')
-        .at(1)
-        .find('Option')
-    ).toHaveLength(1);
+    expect(wrapper.find('SelectControl').at(1).find('Option')).toHaveLength(1);
   });
 
-  it('has a select subset of transaction fields', function() {
+  it('has a select subset of transaction fields', function () {
     const wrapper = mountWithTheme(
       <Form initialData={{dataset: Dataset.TRANSACTIONS}}>
         <MetricField name="metric" organization={organization} />
@@ -58,15 +53,10 @@ describe('MetricField', function() {
     selectByLabel(wrapper, 'avg(…)', {selector: 'QueryField'});
     openMenu(wrapper, {selector: 'QueryField', at: 1});
 
-    expect(
-      wrapper
-        .find('SelectControl')
-        .at(1)
-        .find('Option')
-    ).toHaveLength(1);
+    expect(wrapper.find('SelectControl').at(1).find('Option')).toHaveLength(1);
   });
 
-  it('maps field value to selected presets', function() {
+  it('maps field value to selected presets', function () {
     const wrapper = mountWithTheme(
       <Form initialData={{dataset: Dataset.TRANSACTIONS}}>
         <MetricField name="metric" organization={organization} />
@@ -78,12 +68,12 @@ describe('MetricField', function() {
       'Failure rate'
     );
 
-    selectByLabel(wrapper, 'p95()', {selector: 'QueryField'});
+    selectByLabel(wrapper, 'p95(…)', {selector: 'QueryField'});
 
     expect(wrapper.find('FieldHelp Button[disabled=true]').text()).toEqual('Latency');
   });
 
-  it('changes field values when selecting presets', function() {
+  it('changes field values when selecting presets', function () {
     const wrapper = mountWithTheme(
       <Form initialData={{dataset: Dataset.TRANSACTIONS}}>
         <MetricField name="metric" organization={organization} />

@@ -152,4 +152,4 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(
             u"{}".format(self.path), HTTP_AUTHORIZATION=u"Bearer {}".format(token.api_token.token)
         )
-        assert project.name in response.content
+        assert project.name.encode("utf-8") in response.content

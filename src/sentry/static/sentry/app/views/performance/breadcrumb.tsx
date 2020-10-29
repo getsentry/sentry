@@ -8,18 +8,28 @@ import {decodeScalar} from 'app/utils/queryString';
 
 import {getPerformanceLandingUrl} from './utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
+import {vitalsRouteWithQuery} from './transactionVitals/utils';
 
 type Props = {
   organization: Organization;
   location: Location;
   transactionName?: string;
   eventSlug?: string;
+  transactionComparison?: boolean;
+  realUserMonitoring?: boolean;
 };
 
 class Breadcrumb extends React.Component<Props> {
   getCrumbs() {
     const crumbs: Crumb[] = [];
-    const {organization, location, transactionName, eventSlug} = this.props;
+    const {
+      organization,
+      location,
+      transactionName,
+      eventSlug,
+      transactionComparison,
+      realUserMonitoring,
+    } = this.props;
 
     const performanceTarget: LocationDescriptor = {
       pathname: getPerformanceLandingUrl(organization),
@@ -37,24 +47,44 @@ class Breadcrumb extends React.Component<Props> {
     });
 
     if (transactionName) {
-      const summaryTarget = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
-        transaction: transactionName,
-        projectID: decodeScalar(location.query.project),
-        query: location.query,
-      });
+      if (realUserMonitoring) {
+        const rumTarget = vitalsRouteWithQuery({
+          orgSlug: organization.slug,
+          transaction: transactionName,
+          projectID: decodeScalar(location.query.project),
+          query: location.query,
+        });
 
-      crumbs.push({
-        to: summaryTarget,
-        label: t('Transaction Summary'),
-        preserveGlobalSelection: true,
-      });
+        crumbs.push({
+          to: rumTarget,
+          label: t('Web Vitals'),
+          preserveGlobalSelection: true,
+        });
+      } else {
+        const summaryTarget = transactionSummaryRouteWithQuery({
+          orgSlug: organization.slug,
+          transaction: transactionName,
+          projectID: decodeScalar(location.query.project),
+          query: location.query,
+        });
+
+        crumbs.push({
+          to: summaryTarget,
+          label: t('Transaction Summary'),
+          preserveGlobalSelection: true,
+        });
+      }
     }
 
     if (transactionName && eventSlug) {
       crumbs.push({
         to: '',
         label: t('Event Details'),
+      });
+    } else if (transactionComparison) {
+      crumbs.push({
+        to: '',
+        label: t('Compare to Baseline'),
       });
     }
 
