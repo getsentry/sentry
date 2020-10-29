@@ -77,14 +77,9 @@ export const CONFIDENCE_LEVELS: ConfidenceLevel[] = [
     min: 6,
   },
   {
-    label: 'Medium',
-    min: 3,
-    max: 6,
-  },
-  {
     label: 'Low',
     min: 0,
-    max: 3,
+    max: 6,
   },
 ];
 
@@ -423,11 +418,11 @@ function getLimitTransactionItems(
   trendChangeType: TrendChangeType,
   confidenceLevel: ConfidenceLevel
 ) {
-  let limitQuery = `trend_percentage():<1 t_score():>${confidenceLevel.min}`;
-  limitQuery += confidenceLevel.max ? ` t_score():<=${confidenceLevel.max}` : '';
+  let limitQuery = `trend_percentage():<1 t_test():>${confidenceLevel.min}`;
+  limitQuery += confidenceLevel.max ? ` t_test():<=${confidenceLevel.max}` : '';
   if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery = `trend_percentage():>1 t_score():<-${confidenceLevel.min}`;
-    limitQuery += confidenceLevel.max ? ` t_score():>=-${confidenceLevel.max}` : '';
+    limitQuery = `trend_percentage():>1 t_test():<-${confidenceLevel.min}`;
+    limitQuery += confidenceLevel.max ? ` t_test():>=-${confidenceLevel.max}` : '';
   }
   limitQuery +=
     ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';

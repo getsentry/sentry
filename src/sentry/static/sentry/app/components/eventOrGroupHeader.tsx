@@ -5,7 +5,7 @@ import {css} from '@emotion/core';
 import capitalize from 'lodash/capitalize';
 
 import {tct} from 'app/locale';
-import {Event, Group, Level} from 'app/types';
+import {Event, Group, GroupTombstone, Level} from 'app/types';
 import {IconMute, IconStar} from 'app/icons';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
@@ -21,12 +21,12 @@ type DefaultProps = {
 };
 
 type Props = WithRouterProps<{orgId: string}> & {
-  data: Event | Group;
+  data: Event | Group | GroupTombstone;
   hideIcons?: boolean;
   hideLevel?: boolean;
   query?: string;
   className?: string;
-} & Partial<DefaultProps>;
+} & DefaultProps;
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)

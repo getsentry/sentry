@@ -161,3 +161,14 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert len(resp.data) == 2
         assert build_action_response(self.email) in resp.data
         assert build_action_response(self.sentry_app, sentry_app=internal_sentry_app) in resp.data
+
+    def test_no_ticket_actions(self):
+        integration = Integration.objects.create(external_id="1", provider="jira")
+        integration.add_organization(self.organization)
+
+        with self.feature(["organizations:incidents", "organizations:integrations-ticket-rules"]):
+            resp = self.get_valid_response(self.organization.slug)
+
+        # There should be no ticket actions for Metric Alerts.
+        assert len(resp.data) == 1
+        assert build_action_response(self.email) in resp.data

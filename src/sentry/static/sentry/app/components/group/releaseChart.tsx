@@ -6,14 +6,14 @@ import {t} from 'app/locale';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {Series} from 'app/types/echarts';
-import {Group, GroupStats, Release} from 'app/types';
+import {Group, TimeseriesValue, Release} from 'app/types';
 
 type Markers = React.ComponentProps<typeof MiniBarChart>['markers'];
 
 /**
  * Stats are provided indexed by statsPeriod strings.
  */
-type StatsGroup = Record<string, GroupStats[]>;
+type StatsGroup = Record<string, TimeseriesValue[]>;
 
 type Props = {
   group: Group;

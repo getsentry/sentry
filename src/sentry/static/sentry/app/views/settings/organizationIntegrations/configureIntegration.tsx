@@ -138,8 +138,8 @@ class ConfigureIntegration extends AsyncView<Props, State> {
         )}
 
         {integration.dynamicDisplayInformation?.configure_integration?.instructions.map(
-          instruction => (
-            <Alert type="info">
+          (instruction, i) => (
+            <Alert type="info" key={i}>
               <span dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}} />
             </Alert>
           )
