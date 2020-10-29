@@ -268,7 +268,6 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
     for key, value in list(options["environment"].items()):
         options["environment"][key] = value.format(containers=containers)
 
-    pull = options.pop("pull", False)
     if not fast:
         repo, tag = options["image"].split(":")
 
@@ -276,26 +275,22 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
         try:
             local_image_digest = get_local_image_digest(repo=repo, tag=tag)
         except NotFound:
-            click.secho("> Image '%s' not found locally, pulling." % options["image"], fg="yellow")
-            client.images.pull(options["image"])
-            local_image_digest = get_local_image_digest(repo=repo, tag=tag)
+            pass
 
         remote_image_digest = get_remote_image_digest(repo=repo, tag=tag)
-
-        print("local", options["image"], local_image_digest)
-        print("remote", options["image"], remote_image_digest)
-
-        # if pull:
-        #    click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-        #    client.images.pull(options["image"])
-        # else:
-        #    # We want make sure to pull everything on the first time,
-        #    # (the image doesn't exist), regardless of pull=True.
-        #    try:
-        #        client.images.get(options["image"])
-        #    except NotFound:
-        #        click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-        #        client.images.pull(options["image"])
+        if local_image_digest != remote_image_digest:
+            click.secho(
+                "> Pulling '%s' %s -> %s"
+                % (options["image"], local_image_digest, remote_image_digest),
+                fg="yellow",
+            )
+            client.images.pull(options["image"])
+            local_image_digest = get_local_image_digest(repo=repo, tag=tag)
+            assert local_image_digest == remote_image_digest
+        else:
+            click.secho(
+                "> '%s' %s is up-to-date." % (options["image"], local_image_digest), fg="yellow"
+            )
 
     return
 
