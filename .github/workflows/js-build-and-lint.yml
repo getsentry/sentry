@@ -104,6 +104,7 @@ jobs:
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
         with:
           main_branch: master
+          workflow_name: 'js-build-and-lint'
           skip_step: install
           build_script: build
           windows_verbatim_arguments: false
