@@ -75,7 +75,7 @@ function transformEventStatsSmoothed(data: Series[], seriesName?: string) {
       name: point.x,
       value,
     });
-    if (isNaN(value)) {
+    if (!isNaN(value)) {
       const rounded = Math.round(value);
       minValue = Math.min(rounded, minValue);
       maxValue = Math.max(rounded, maxValue);
