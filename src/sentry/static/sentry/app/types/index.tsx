@@ -187,7 +187,7 @@ export type AvatarProject = {
 /**
  * Simple timeseries data used in groups, projects and release health.
  */
-export type TimeseriesValue = [number, number];
+export type TimeseriesValue = [timestamp: number, value: number];
 
 export type Project = {
   id: string;
