@@ -11,7 +11,12 @@ on:
     branches:
       - master
       - releases/**
-  pull_request:
+  # XXX: We are using `pull_request_target` instead of `pull_request` because we want
+  # Visual Snapshots to run on forks.  It allows forks to access secrets safely by
+  # only running workflows from the main branch. Prefer to use `pull_request` when possible.
+  #
+  # See https://github.com/getsentry/sentry/pull/21600 for more details
+  pull_request_target:
 
 jobs:
   frontend:
@@ -23,6 +28,17 @@ jobs:
       VISUAL_HTML_ENABLE: 1
     steps:
       - uses: actions/checkout@v2
+        name: Checkout sentry (pull_request_target)
+        if: github.event.pull_request.head.ref != ''
+        with:
+          # Note this is required because of `pull_request_target`, which allows
+          # forks to access secrets safely by only running workflows from the main branch.
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - uses: actions/checkout@v2
+        name: Checkout sentry (push)
+        if: github.event.pull_request.head.ref == ''
 
       - uses: volta-cli/action@v1
 
@@ -80,6 +96,17 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        name: Checkout sentry (pull_request_target)
+        if: github.event.pull_request.head.ref != ''
+        with:
+          # Note this is required because of `pull_request_target`, which allows
+          # forks to access secrets safely by only running workflows from the main branch.
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - uses: actions/checkout@v2
+        name: Checkout sentry (push)
+        if: github.event.pull_request.head.ref == ''
 
       - uses: volta-cli/action@v1
 
@@ -142,7 +169,9 @@ jobs:
           snapshot-path: .artifacts/visual-snapshots
 
   visual-diff:
-    if: ${{ github.ref != 'refs/heads/master' }}
+    # Note: `github.ref` is always `master` for `pull_request_target` event
+    # `github.head/base_ref` == '' for `push` event, we want to skip it on pushes
+    if: github.head_ref != ''
     needs: [acceptance, frontend]
     runs-on: ubuntu-16.04
     timeout-minutes: 20

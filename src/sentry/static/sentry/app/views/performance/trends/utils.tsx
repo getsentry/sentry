@@ -137,8 +137,8 @@ export function transformDeltaSpread(
 ) {
   const fromSeconds = from / 1000;
   const toSeconds = to / 1000;
-  const fromSubSecond = fromSeconds < 1;
-  const toSubSecond = toSeconds < 1;
+
+  const showDigits = from > 1000 || to > 1000 || from < 10 || to < 10; // Show digits consistently if either has them
 
   if (trendFunctionField === TrendFunctionField.USER_MISERY) {
     return (
@@ -152,9 +152,9 @@ export function transformDeltaSpread(
 
   return (
     <span>
-      <Duration seconds={fromSeconds} fixedDigits={fromSubSecond ? 0 : 1} abbreviation />
+      <Duration seconds={fromSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
       <StyledIconArrow direction="right" size="xs" />
-      <Duration seconds={toSeconds} fixedDigits={toSubSecond ? 0 : 1} abbreviation />
+      <Duration seconds={toSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
     </span>
   );
 }
@@ -323,11 +323,10 @@ export function transformValueDelta(
 
   const seconds = absoluteValue / 1000;
 
-  const isSubSecond = seconds < 1;
+  const fixedDigits = absoluteValue > 1000 || absoluteValue < 10 ? 1 : 0;
   return (
     <span>
-      <Duration seconds={seconds} fixedDigits={isSubSecond ? 0 : 1} abbreviation />{' '}
-      {changeLabel}
+      <Duration seconds={seconds} fixedDigits={fixedDigits} abbreviation /> {changeLabel}
     </span>
   );
 }

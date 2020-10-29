@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import status, serializers
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
@@ -10,12 +11,27 @@ from sentry.models import RepositoryProjectPathConfig, Project, Repository
 from sentry.utils.compat import map
 
 
+def gen_path_regex_field():
+    return serializers.RegexField(
+        r"^[^\s'\"]+$",  # may need to add more characters to prevent in the future
+        required=True,
+        allow_blank=True,
+        error_messages={"invalid": _("Path may not contain spaces or quotations")},
+    )
+
+
 class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     repository_id = serializers.IntegerField(required=True)
     project_id = serializers.IntegerField(required=True)
-    stack_root = serializers.CharField(required=True, allow_blank=True)
-    source_root = serializers.CharField(required=True, allow_blank=True)
-    default_branch = serializers.CharField(required=True)
+    stack_root = gen_path_regex_field()
+    source_root = gen_path_regex_field()
+    default_branch = serializers.RegexField(
+        r"^\w+$",
+        required=True,
+        error_messages={
+            "invalid": _("Branch name may only have letters, numbers, underscores, and dashes")
+        },
+    )
 
     class Meta:
         model = RepositoryProjectPathConfig
@@ -31,13 +47,14 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return self.org_integration.organization_id
 
     def validate(self, attrs):
-        # TODO: Needs to be updated for update since the row already exists
         query = RepositoryProjectPathConfig.objects.filter(
             project_id=attrs.get("project_id"), stack_root=attrs.get("stack_root")
         )
+        if self.instance:
+            query = query.exclude(id=self.instance.id)
         if query.exists():
             raise serializers.ValidationError(
-                "Code path config already exists with this project and stack root"
+                "Code path config already exists with this project and input path"
             )
         return attrs
 
@@ -63,6 +80,14 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return RepositoryProjectPathConfig.objects.create(
             organization_integration=self.org_integration, **validated_data
         )
+
+    def update(self, instance, validated_data):
+        if "id" in validated_data:
+            validated_data.pop("id")
+        for key, value in validated_data.items():
+            setattr(self.instance, key, value)
+        self.instance.save()
+        return self.instance
 
 
 class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
