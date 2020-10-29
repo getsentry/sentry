@@ -813,7 +813,9 @@ export type RepositoryProjectPathConfig = {
   projectSlug: string;
   repoId: string;
   repoName: string;
-  organizationIntegrationId: string;
+  integrationId: string;
+  provider: string;
+  providerName: string;
   stackRoot: string;
   sourceRoot: string;
   defaultBranch?: string;

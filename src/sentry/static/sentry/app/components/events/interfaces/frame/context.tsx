@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import {Frame, SentryAppComponent} from 'app/types';
+import {Frame, SentryAppComponent, Event} from 'app/types';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 import ClippedBox from 'app/components/clippedBox';
@@ -14,10 +14,12 @@ import {IconFlag} from 'app/icons';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import {parseAssembly} from 'app/components/events/interfaces/utils';
 import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
+import StacktraceLink from 'app/components/events/interfaces/stacktraceLink';
 import space from 'app/styles/space';
 
 type Props = {
   frame: Frame;
+  event: Event;
   registers: {[key: string]: string};
   components: Array<SentryAppComponent>;
   isExpanded?: boolean;
@@ -40,6 +42,7 @@ const Context = ({
   registers,
   components,
   frame,
+  event,
 }: Props) => {
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
@@ -99,6 +102,16 @@ const Context = ({
                     lineNo={line[0]}
                     filename={frame.filename || ''}
                     components={components}
+                  />
+                </ErrorBoundary>
+              )}
+              {isActive && isExpanded && (
+                <ErrorBoundary mini>
+                  <StacktraceLink
+                    key={index}
+                    lineNo={line[0]}
+                    frame={frame}
+                    event={event}
                   />
                 </ErrorBoundary>
               )}

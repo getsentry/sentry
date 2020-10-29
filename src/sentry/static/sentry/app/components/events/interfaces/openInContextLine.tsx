@@ -30,7 +30,7 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
 
   return (
     <OpenInContainer columnQuantity={components.length + 1}>
-      <div>{t('Open this line in:')}</div>
+      <div>{t('Open this line in')}</div>
       {components.map(component => {
         const url = getUrl(component.schema.url);
         const {slug} = component.sentryApp;

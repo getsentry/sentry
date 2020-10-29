@@ -80,10 +80,10 @@ class ProjectStacktraceLinkTest(APITestCase):
             "repoName": self.repo.name,
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "organizationIntegrationId": six.text_type(self.oi.id),
+            "integrationId": six.text_type(self.integrationId),
             "defaultBranch": None,
         }
-        assert not response.data["source_url"]
+        assert not response.data["sourceUrl"]
 
     def test_config_and_source_url(self):
         self.login_as(user=self.user)
@@ -102,7 +102,7 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "repoName": self.repo.name,
                 "sourceRoot": self.config.source_root,
                 "stackRoot": self.config.stack_root,
-                "organizationIntegrationId": six.text_type(self.oi.id),
+                "integrationId": six.text_type(self.integrationId),
                 "defaultBranch": None,
             }
-            assert response.data["source_url"] == "https://sourceurl.com/"
+            assert response.data["sourceUrl"] == "https://sourceurl.com/"
