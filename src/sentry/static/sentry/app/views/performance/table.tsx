@@ -2,6 +2,7 @@ import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
 import * as ReactRouter from 'react-router';
 
+import {IconStar} from 'app/icons';
 import {Organization, Project} from 'app/types';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
@@ -87,59 +88,40 @@ class Table extends React.Component<Props, State> {
     };
   };
 
-  renderBodyCell = (tableData: TableData | null) => {
+  renderBodyCell(
+    tableData: TableData | null,
+    column: TableColumn<keyof TableDataRow>,
+    dataRow: TableDataRow
+  ): React.ReactNode {
     const {eventView, organization, projects, location, summaryConditions} = this.props;
 
-    return (
-      column: TableColumn<keyof TableDataRow>,
-      dataRow: TableDataRow
-    ): React.ReactNode => {
-      if (!tableData || !tableData.meta) {
-        return dataRow[column.key];
-      }
-      const tableMeta = tableData.meta;
+    if (!tableData || !tableData.meta) {
+      return dataRow[column.key];
+    }
+    const tableMeta = tableData.meta;
 
-      const field = String(column.key);
-      const fieldRenderer = getFieldRenderer(field, tableMeta);
-      const rendered = fieldRenderer(dataRow, {organization, location});
+    const field = String(column.key);
+    const fieldRenderer = getFieldRenderer(field, tableMeta);
+    const rendered = fieldRenderer(dataRow, {organization, location});
 
-      const allowActions = [
-        Actions.ADD,
-        Actions.EXCLUDE,
-        Actions.SHOW_GREATER_THAN,
-        Actions.SHOW_LESS_THAN,
-      ];
+    const allowActions = [
+      Actions.ADD,
+      Actions.EXCLUDE,
+      Actions.SHOW_GREATER_THAN,
+      Actions.SHOW_LESS_THAN,
+    ];
 
-      if (field === 'transaction') {
-        const projectID = getProjectID(dataRow, projects);
-        const summaryView = eventView.clone();
-        summaryView.query = summaryConditions;
+    if (field === 'transaction') {
+      const projectID = getProjectID(dataRow, projects);
+      const summaryView = eventView.clone();
+      summaryView.query = summaryConditions;
 
-        const target = transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
-          transaction: String(dataRow.transaction) || '',
-          query: summaryView.generateQueryStringObject(),
-          projectID,
-        });
-
-        return (
-          <CellAction
-            column={column}
-            dataRow={dataRow}
-            handleCellAction={this.handleCellAction(column)}
-            allowActions={allowActions}
-          >
-            <Link to={target} onClick={this.handleSummaryClick}>
-              {rendered}
-            </Link>
-          </CellAction>
-        );
-      }
-
-      if (field.startsWith('user_misery')) {
-        // don't display per cell actions for user_misery
-        return rendered;
-      }
+      const target = transactionSummaryRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: String(dataRow.transaction) || '',
+        query: summaryView.generateQueryStringObject(),
+        projectID,
+      });
 
       return (
         <CellAction
@@ -148,53 +130,107 @@ class Table extends React.Component<Props, State> {
           handleCellAction={this.handleCellAction(column)}
           allowActions={allowActions}
         >
-          {rendered}
+          <Link to={target} onClick={this.handleSummaryClick}>
+            {rendered}
+          </Link>
         </CellAction>
       );
-    };
+    }
+
+    if (field.startsWith('key_transaction') || field.startsWith('user_misery')) {
+      // don't display per cell actions for key_transaction or user_misery
+      return rendered;
+    }
+
+    return (
+      <CellAction
+        column={column}
+        dataRow={dataRow}
+        handleCellAction={this.handleCellAction(column)}
+        allowActions={allowActions}
+      >
+        {rendered}
+      </CellAction>
+    );
+  }
+
+  renderBodyCellWithData = (tableData: TableData | null) => {
+    return (
+      column: TableColumn<keyof TableDataRow>,
+      dataRow: TableDataRow
+    ): React.ReactNode => this.renderBodyCell(tableData, column, dataRow);
   };
 
-  renderHeadCell = (tableMeta: TableData['meta']) => {
-    const {eventView, organization, location} = this.props;
+  renderHeadCell(
+    tableMeta: TableData['meta'],
+    column: TableColumn<keyof TableDataRow>,
+    title: React.ReactNode
+  ): React.ReactNode {
+    const {eventView, location} = this.props;
 
-    return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode => {
-      return (
-        <HeaderCell column={column} tableMeta={tableMeta}>
-          {({align}) => {
-            const field = {field: column.name, width: column.width};
+    return (
+      <HeaderCell column={column} tableMeta={tableMeta}>
+        {({align}) => {
+          const field = {field: column.name, width: column.width};
 
-            function generateSortLink(): LocationDescriptorObject | undefined {
-              if (!tableMeta) {
-                return undefined;
-              }
-
-              const nextEventView = eventView.sortOnField(field, tableMeta);
-              const queryStringObject = nextEventView.generateQueryStringObject();
-
-              return {
-                ...location,
-                query: {...location.query, sort: queryStringObject.sort},
-              };
+          function generateSortLink(): LocationDescriptorObject | undefined {
+            if (!tableMeta) {
+              return undefined;
             }
-            const currentSort = eventView.sortForField(field, tableMeta);
-            const canSort = isFieldSortable(field, tableMeta);
 
-            // key transactions adds an additional column, so we shift the index over by 1
-            // when the feature is not available
-            index += organization.features.includes('key-transactions') ? 0 : 1;
+            const nextEventView = eventView.sortOnField(field, tableMeta);
+            const queryStringObject = nextEventView.generateQueryStringObject();
 
-            return (
-              <SortLink
-                align={align}
-                title={COLUMN_TITLES[index] || field.field}
-                direction={currentSort ? currentSort.kind : undefined}
-                canSort={canSort}
-                generateSortLink={generateSortLink}
-              />
-            );
-          }}
-        </HeaderCell>
-      );
+            return {
+              ...location,
+              query: {...location.query, sort: queryStringObject.sort},
+            };
+          }
+          const currentSort = eventView.sortForField(field, tableMeta);
+          const canSort = isFieldSortable(field, tableMeta);
+
+          return (
+            <SortLink
+              align={align}
+              title={title || field.field}
+              direction={currentSort ? currentSort.kind : undefined}
+              canSort={canSort}
+              generateSortLink={generateSortLink}
+            />
+          );
+        }}
+      </HeaderCell>
+    );
+  }
+
+  renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
+    return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
+      this.renderHeadCell(tableMeta, column, COLUMN_TITLES[index]);
+  };
+
+  renderPrependCellWithData = (tableData: TableData | null) => {
+    const {eventView} = this.props;
+    const keyTransactionColumn = eventView
+      .getColumns()
+      .find((col: TableColumn<React.ReactText>) => col.name === 'key_transaction');
+    return (isHeader: boolean, dataRow?: any) => {
+      if (!keyTransactionColumn) {
+        return [];
+      }
+
+      if (isHeader) {
+        const star = (
+          <IconStar
+            key="keyTransaction"
+            color="yellow500"
+            isSolid
+            data-test-id="key-transaction-header"
+          />
+        );
+        return [this.renderHeadCell(tableData?.meta, keyTransactionColumn, star)];
+      } else {
+        return [this.renderBodyCell(tableData, keyTransactionColumn, dataRow)];
+      }
     };
   };
 
@@ -242,6 +278,9 @@ class Table extends React.Component<Props, State> {
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
+      // remove key_transactions from the column order as we'll be rendering it
+      // via a prepended column
+      .filter((col: TableColumn<React.ReactText>) => col.name !== 'key_transaction')
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
@@ -269,8 +308,10 @@ class Table extends React.Component<Props, State> {
                 columnSortBy={columnSortBy}
                 grid={{
                   onResizeColumn: this.handleResizeColumn,
-                  renderHeadCell: this.renderHeadCell(tableData?.meta) as any,
-                  renderBodyCell: this.renderBodyCell(tableData) as any,
+                  renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
+                  renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                  renderPrependColumns: this.renderPrependCellWithData(tableData) as any,
+                  prependColumnWidths: ['max-content'],
                 }}
                 location={location}
               />

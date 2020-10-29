@@ -315,7 +315,6 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <Container>
           <IconStar
-            size="xs"
             color={isKeyTransaction ? 'yellow500' : 'gray500'}
             isSolid={isKeyTransaction}
             data-test-id="key-transaction-column"

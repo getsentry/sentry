@@ -1,8 +1,5 @@
-import React from 'react';
 import {Location} from 'history';
 
-import {IconStar} from 'app/icons';
-import {COL_WIDTH_MAX_CONTENT} from 'app/components/gridEditable';
 import {t} from 'app/locale';
 import {NewQuery, LightWeightOrganization, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -12,12 +9,6 @@ import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 export const DEFAULT_STATS_PERIOD = '24h';
 
 export const COLUMN_TITLES = [
-  <IconStar
-    key="keyTransaction"
-    color="yellow500"
-    isSolid
-    data-test-id="key-transaction-header"
-  />,
   'transaction',
   'project',
   'tpm',
@@ -112,7 +103,6 @@ export function generatePerformanceEventView(
 
   const keyTransactionsFeature = organization.features.includes('key-transactions');
   const keyTransactionFields = keyTransactionsFeature ? ['key_transaction'] : [];
-  const widths = keyTransactionsFeature ? [COL_WIDTH_MAX_CONTENT.toString()] : undefined;
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -133,7 +123,6 @@ export function generatePerformanceEventView(
       `user_misery(${organization.apdexThreshold})`,
     ],
     version: 2,
-    widths,
   };
 
   if (!query.statsPeriod && !hasStartAndEnd) {

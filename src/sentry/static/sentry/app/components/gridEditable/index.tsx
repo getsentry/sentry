@@ -28,12 +28,7 @@ import {
   GridBodyCellStatus,
   GridResizer,
 } from './styles';
-import {
-  COL_WIDTH_MINIMUM,
-  COL_WIDTH_UNDEFINED,
-  COL_WIDTH_MAX_CONTENT,
-  ColResizeMetadata,
-} from './utils';
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED, ColResizeMetadata} from './utils';
 
 type GridEditableProps<DataRow, ColumnKey> = {
   location: Location;
@@ -256,8 +251,6 @@ class GridEditable<
     const widths = columnOrder.map(item => {
       if (item.width === COL_WIDTH_UNDEFINED) {
         return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
-      } else if (item.width === COL_WIDTH_MAX_CONTENT) {
-        return 'max-content';
       } else if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
         return `${item.width}px`;
       }
@@ -410,7 +403,6 @@ export default GridEditable;
 export {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
-  COL_WIDTH_MAX_CONTENT,
   GridColumn,
   GridColumnHeader,
   GridColumnOrder,
