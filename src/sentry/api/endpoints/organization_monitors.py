@@ -70,9 +70,6 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                         )
                     except ValueError:
                         queryset = queryset.none()
-
-                elif key == "id":
-                    queryset = queryset.filter(id__in=value)
                 else:
                     queryset = queryset.none()
 
