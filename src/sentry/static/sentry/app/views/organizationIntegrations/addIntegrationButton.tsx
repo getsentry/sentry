@@ -1,16 +1,18 @@
 import React from 'react';
 
-import {t} from 'app/locale';
-import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
-import {IntegrationProvider, Integration, Organization} from 'app/types';
+import {t} from 'app/locale';
+import {IntegrationWithConfig, IntegrationProvider, Organization} from 'app/types';
+
+import AddIntegration from './addIntegration';
 
 type Props = {
   provider: IntegrationProvider;
-  onAddIntegration: (data: Integration) => void;
+  onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
   reinstall?: boolean;
+  integrationId?: string;
   organization?: Organization; //for analytics
   analyticsParams?: {
     view: 'integrations_directory_integration_detail';
@@ -26,6 +28,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
       onAddIntegration,
       organization,
       reinstall,
+      integrationId,
       analyticsParams,
       ...buttonProps
     } = this.props;
@@ -43,6 +46,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
           onInstall={onAddIntegration}
           organization={organization}
           analyticsParams={analyticsParams}
+          integrationId={integrationId}
         >
           {onClick => (
             <Button

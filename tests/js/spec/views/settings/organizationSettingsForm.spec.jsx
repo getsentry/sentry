@@ -1,18 +1,19 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
 import OrganizationSettingsForm from 'app/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
 jest.mock('jquery');
 jest.mock('app/actionCreators/indicator');
 
-describe('OrganizationSettingsForm', function() {
+describe('OrganizationSettingsForm', function () {
   const organization = TestStubs.Organization();
   let putMock;
   const onSave = jest.fn();
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
@@ -21,7 +22,7 @@ describe('OrganizationSettingsForm', function() {
     onSave.mockReset();
   });
 
-  it('can change a form field', function(done) {
+  it('can change a form field', function (done) {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -57,7 +58,7 @@ describe('OrganizationSettingsForm', function() {
       })
     );
 
-    saveOnBlurUndoMessage.mockImplementationOnce(async function(
+    saveOnBlurUndoMessage.mockImplementationOnce(async function (
       change,
       model,
       fieldName
@@ -89,7 +90,7 @@ describe('OrganizationSettingsForm', function() {
     });
   });
 
-  it('can change slug', function() {
+  it('can change slug', function () {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',

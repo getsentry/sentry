@@ -1,32 +1,90 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
-import {browserHistory} from 'react-router';
 import * as PopperJS from 'popper.js';
 import {Manager, Reference, Popper} from 'react-popper';
 
 import {t} from 'app/locale';
 import {IconEllipsis} from 'app/icons';
-import EventView from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {OrganizationSummary} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {getAggregateAlias} from 'app/utils/discover/fields';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 
-import {TableColumn, TableDataRow} from './types';
+import {TableColumn} from './types';
 
-enum Actions {
+export enum Actions {
   ADD = 'add',
   EXCLUDE = 'exclude',
+  SHOW_GREATER_THAN = 'show_greater_than',
+  SHOW_LESS_THAN = 'show_less_than',
+  TRANSACTION = 'transaction',
+  RELEASE = 'release',
+  DRILLDOWN = 'drilldown',
+}
+
+export function updateQuery(
+  results: QueryResults,
+  action: Actions,
+  key: string,
+  value: React.ReactText
+) {
+  switch (action) {
+    case Actions.ADD:
+      // If the value is null/undefined create a has !has condition.
+      if (value === null || value === undefined) {
+        // Adding a null value is the same as excluding truthy values.
+        // Remove inclusion if it exists.
+        results.removeTagValue('has', key);
+        results.addTagValues('!has', [key]);
+      } else {
+        // Remove exclusion if it exists.
+        results.removeTag(`!${key}`).setTagValues(key, [`${value}`]);
+      }
+      break;
+    case Actions.EXCLUDE:
+      if (value === null || value === undefined) {
+        // Excluding a null value is the same as including truthy values.
+        // Remove exclusion if it exists.
+        results.removeTagValue('!has', key);
+        results.addTagValues('has', [key]);
+      } else {
+        // Remove positive if it exists.
+        results.removeTag(key);
+        // Negations should stack up.
+        const negation = `!${key}`;
+        results.addTagValues(negation, [`${value}`]);
+      }
+      break;
+    case Actions.SHOW_GREATER_THAN: {
+      // Remove query token if it already exists
+      results.setTagValues(key, [`>${value}`]);
+      break;
+    }
+    case Actions.SHOW_LESS_THAN: {
+      // Remove query token if it already exists
+      results.setTagValues(key, [`<${value}`]);
+      break;
+    }
+    // these actions do not modify the query in any way,
+    // instead they have side effects
+    case Actions.TRANSACTION:
+    case Actions.RELEASE:
+    case Actions.DRILLDOWN:
+      break;
+    default:
+      throw new Error(`Unknown action type. ${action}`);
+  }
 }
 
 type Props = {
-  eventView: EventView;
-  organization: OrganizationSummary;
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
   children: React.ReactNode;
+  handleCellAction: (action: Actions, value: React.ReactText) => void;
+
+  // allow list of actions to display on the context menu
+  allowActions?: Actions[];
 };
 
 type State = {
@@ -34,7 +92,7 @@ type State = {
   isOpen: boolean;
 };
 
-export default class CellAction extends React.Component<Props, State> {
+class CellAction extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     let portal = document.getElementById('cell-action-portal');
@@ -95,49 +153,166 @@ export default class CellAction extends React.Component<Props, State> {
     });
   };
 
-  handleUpdateSearch = (action: Actions, value: React.ReactText) => {
-    const {eventView, column, organization} = this.props;
-    const query = tokenizeSearch(eventView.query);
-    switch (action) {
-      case Actions.ADD:
-        // Remove exclusion if it exists.
-        delete query[`!${column.name}`];
-        query[column.name] = [`${value}`];
-        break;
-      case Actions.EXCLUDE:
-        // Remove positive if it exists.
-        delete query[`${column.name}`];
-        // Negations should stack up.
-        const negation = `!${column.name}`;
-        if (!query.hasOwnProperty(negation)) {
-          query[negation] = [];
-        }
-        query[negation].push(`${value}`);
-        break;
-      default:
-        throw new Error(`Unknown action type. ${action}`);
-    }
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.results.cellaction',
-      eventName: 'Discoverv2: Cell Action Clicked',
-      action,
-    });
-    const nextView = eventView.clone();
-    nextView.query = stringifyQueryObject(query);
-
-    browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
-  };
-
   handleMenuToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     this.setState({isOpen: !this.state.isOpen});
   };
 
+  renderMenuButtons() {
+    const {dataRow, column, handleCellAction, allowActions} = this.props;
+    const fieldAlias = getAggregateAlias(column.name);
+
+    // Slice out the last element from array values as that is the value
+    // we show. See utils/discover/fieldRenderers.tsx and how
+    // strings and error.handled are rendered.
+    let value = dataRow[fieldAlias];
+    if (Array.isArray(value)) {
+      value = value.slice(-1)[0];
+    }
+
+    // error.handled is a strange field where null = true.
+    if (
+      value === null &&
+      column.column.kind === 'field' &&
+      column.column.field === 'error.handled'
+    ) {
+      value = 1;
+    }
+    const actions: React.ReactNode[] = [];
+
+    function addMenuItem(action: Actions, menuItem: React.ReactNode) {
+      if (
+        (Array.isArray(allowActions) && allowActions.includes(action)) ||
+        !allowActions
+      ) {
+        actions.push(menuItem);
+      }
+    }
+
+    if (
+      !['duration', 'number', 'percentage'].includes(column.type) ||
+      (value === null && column.column.kind === 'field')
+    ) {
+      addMenuItem(
+        Actions.ADD,
+        <ActionItem
+          key="add-to-filter"
+          data-test-id="add-to-filter"
+          onClick={() => handleCellAction(Actions.ADD, value)}
+        >
+          {t('Add to filter')}
+        </ActionItem>
+      );
+
+      if (column.type !== 'date') {
+        addMenuItem(
+          Actions.EXCLUDE,
+          <ActionItem
+            key="exclude-from-filter"
+            data-test-id="exclude-from-filter"
+            onClick={() => handleCellAction(Actions.EXCLUDE, value)}
+          >
+            {t('Exclude from filter')}
+          </ActionItem>
+        );
+      }
+    }
+
+    if (
+      ['date', 'duration', 'integer', 'number', 'percentage'].includes(column.type) &&
+      value !== null
+    ) {
+      addMenuItem(
+        Actions.SHOW_GREATER_THAN,
+        <ActionItem
+          key="show-values-greater-than"
+          data-test-id="show-values-greater-than"
+          onClick={() => handleCellAction(Actions.SHOW_GREATER_THAN, value)}
+        >
+          {t('Show values greater than')}
+        </ActionItem>
+      );
+
+      addMenuItem(
+        Actions.SHOW_LESS_THAN,
+        <ActionItem
+          key="show-values-less-than"
+          data-test-id="show-values-less-than"
+          onClick={() => handleCellAction(Actions.SHOW_LESS_THAN, value)}
+        >
+          {t('Show values less than')}
+        </ActionItem>
+      );
+    }
+
+    if (column.column.kind === 'field' && column.column.field === 'transaction') {
+      addMenuItem(
+        Actions.TRANSACTION,
+        <ActionItem
+          key="transaction-summary"
+          data-test-id="transaction-summary"
+          onClick={() => handleCellAction(Actions.TRANSACTION, value)}
+        >
+          {t('Go to summary')}
+        </ActionItem>
+      );
+    }
+
+    if (column.column.kind === 'field' && column.column.field === 'release' && value) {
+      addMenuItem(
+        Actions.RELEASE,
+        <ActionItem
+          key="release"
+          data-test-id="release"
+          onClick={() => handleCellAction(Actions.RELEASE, value)}
+        >
+          {t('Go to release')}
+        </ActionItem>
+      );
+    }
+
+    if (
+      column.column.kind === 'function' &&
+      column.column.function[0] === 'count_unique'
+    ) {
+      addMenuItem(
+        Actions.DRILLDOWN,
+        <ActionItem
+          key="drilldown"
+          data-test-id="per-cell-drilldown"
+          onClick={() => handleCellAction(Actions.DRILLDOWN, value)}
+        >
+          {t('View Stacks')}
+        </ActionItem>
+      );
+    }
+
+    if (actions.length === 0) {
+      return null;
+    }
+
+    return (
+      <MenuButtons
+        onClick={event => {
+          // prevent clicks from propagating further
+          event.stopPropagation();
+        }}
+      >
+        {actions}
+      </MenuButtons>
+    );
+  }
+
   renderMenu() {
-    const {dataRow, column} = this.props;
     const {isOpen} = this.state;
 
-    const value = dataRow[column.name];
+    const menuButtons = this.renderMenuButtons();
+
+    if (menuButtons === null) {
+      // do not render the menu if there are no per cell actions
+      return null;
+    }
+
     const modifiers: PopperJS.Modifiers = {
       hide: {
         enabled: false,
@@ -166,20 +341,7 @@ export default class CellAction extends React.Component<Props, State> {
                 data-placement={placement}
                 style={arrowProps.style}
               />
-              <MenuButtons>
-                <ActionItem
-                  data-test-id="add-to-filter"
-                  onClick={() => this.handleUpdateSearch(Actions.ADD, value)}
-                >
-                  {t('Add to filter')}
-                </ActionItem>
-                <ActionItem
-                  data-test-id="exclude-from-filter"
-                  onClick={() => this.handleUpdateSearch(Actions.EXCLUDE, value)}
-                >
-                  {t('Exclude from filter')}
-                </ActionItem>
-              </MenuButtons>
+              {menuButtons}
             </Menu>
           )}
         </Popper>,
@@ -193,7 +355,7 @@ export default class CellAction extends React.Component<Props, State> {
           <Reference>
             {({ref}) => (
               <MenuButton ref={ref} onClick={this.handleMenuToggle}>
-                <IconEllipsis size="sm" data-test-id="cell-action" color={theme.blue} />
+                <IconEllipsis size="sm" data-test-id="cell-action" color="blue400" />
               </MenuButton>
             )}
           </Reference>
@@ -218,6 +380,8 @@ export default class CellAction extends React.Component<Props, State> {
     );
   }
 }
+
+export default CellAction;
 
 const Container = styled('div')`
   position: relative;
@@ -305,7 +469,7 @@ const ActionItem = styled('button')`
   line-height: 1.2;
 
   &:hover {
-    background: ${p => p.theme.offWhite};
+    background: ${p => p.theme.gray100};
   }
 
   &:last-child {

@@ -9,11 +9,13 @@ python stdlib to prevent the need to install the world just to run eslint.
 """
 from __future__ import absolute_import
 
-
 import os
 import sys
 import subprocess
-import json
+
+# Import the stdlib json instead of sentry.utils.json, since this command is
+# run in setup.py
+import json  # NOQA
 
 from subprocess import check_output, Popen
 
@@ -52,7 +54,7 @@ def get_files(path):
 def get_modified_files(path):
     return [
         s
-        for s in check_output(["git", "diff-index", "--cached", "--name-only", "HEAD"]).split("\n")
+        for s in check_output(["git", "diff-index", "--cached", "--name-only", "HEAD"]).split(b"\n")
         if s
     ]
 
@@ -190,7 +192,7 @@ def is_prettier_valid(project_root, prettier_path):
             sys.stderr.write("!! Prettier missing from package.json\n")
             return False
 
-    prettier_version = subprocess.check_output([prettier_path, "--version"]).rstrip()
+    prettier_version = subprocess.check_output([prettier_path, "--version"]).decode("utf8").rstrip()
     if prettier_version != package_version:
         sys.stderr.write(
             u"[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.\n".format(
@@ -253,7 +255,7 @@ def js_test(file_list=None):
 
     has_errors = False
     if js_file_list:
-        status = Popen(["./bin/yarn", "test-precommit"] + js_file_list).wait()
+        status = Popen(["yarn", "test-precommit"] + js_file_list).wait()
         has_errors = status != 0
 
     return has_errors

@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
-import {Location} from 'history';
-import * as Sentry from '@sentry/browser';
+import {Location, LocationDescriptor} from 'history';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -12,12 +12,10 @@ import SentryTypes from 'app/sentryTypes';
 import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
-import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 
@@ -27,6 +25,8 @@ type Props = {
   eventView: EventView;
   location: Location;
   totalValues: null | number;
+  confirmedQuery?: boolean;
+  generateUrl: (key: string, value: string) => LocationDescriptor;
 };
 
 type State = {
@@ -42,6 +42,7 @@ class Tags extends React.Component<Props, State> {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
     eventView: PropTypes.object.isRequired,
+    confirmedQuery: PropTypes.bool,
   };
 
   state: State = {
@@ -52,11 +53,14 @@ class Tags extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    this.fetchData();
+    this.fetchData(true);
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.shouldRefetchData(prevProps)) {
+    if (
+      this.shouldRefetchData(prevProps) ||
+      prevProps.confirmedQuery !== this.props.confirmedQuery
+    ) {
       this.fetchData();
     }
   }
@@ -68,9 +72,16 @@ class Tags extends React.Component<Props, State> {
     return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
 
-  fetchData = async () => {
-    const {api, organization, eventView, location} = this.props;
+  fetchData = async (forceFetchData = false) => {
+    const {api, organization, eventView, location, confirmedQuery} = this.props;
     this.setState({loading: true, error: '', tags: []});
+
+    // Fetch should be forced after mounting as confirmedQuery isn't guaranteed
+    // since this component can mount/unmount via show/hide tags separate from
+    // data being loaded for the rest of the page.
+    if (!forceFetchData && confirmedQuery === false) {
+      return;
+    }
 
     try {
       const tags = await fetchTagFacets(
@@ -85,7 +96,7 @@ class Tags extends React.Component<Props, State> {
     }
   };
 
-  onTagClick = (tag: string) => {
+  handleTagClick = (tag: string) => {
     const {organization} = this.props;
     // metrics
     trackAnalyticsEvent({
@@ -97,15 +108,10 @@ class Tags extends React.Component<Props, State> {
   };
 
   renderTag(tag: Tag) {
-    const {organization, eventView, totalValues} = this.props;
+    const {generateUrl, totalValues} = this.props;
 
     const segments: TagSegment[] = tag.topValues.map(segment => {
-      const url = eventView.getResultsViewUrlTarget(organization.slug);
-      url.query = generateQueryWithTag(url.query, {
-        key: tag.key,
-        value: segment.value,
-      });
-      segment.url = url;
+      segment.url = generateUrl(tag.key, segment.value);
 
       return segment;
     });
@@ -122,7 +128,7 @@ class Tags extends React.Component<Props, State> {
         segments={segments}
         totalValues={Number(maxTotalValues)}
         renderLoading={() => <StyledPlaceholder height="16px" />}
-        onTagClick={this.onTagClick}
+        onTagClick={this.handleTagClick}
         showReleasePackage
       />
     );
@@ -154,7 +160,7 @@ class Tags extends React.Component<Props, State> {
     } else {
       return (
         <StyledError>
-          <StyledIconWarning color={theme.gray2} size="lg" />
+          <StyledIconWarning color="gray500" size="lg" />
           {t('No tags found')}
         </StyledError>
       );
@@ -163,25 +169,16 @@ class Tags extends React.Component<Props, State> {
 
   render() {
     return (
-      <TagSection>
-        <StyledHeading>{t('Event Tag Summary')}</StyledHeading>
+      <React.Fragment>
+        <SectionHeading>{t('Tag Summary')}</SectionHeading>
         {this.renderBody()}
-      </TagSection>
+      </React.Fragment>
     );
   }
 }
 
-// These styled components are used in getsentry for a paywall.
-export const StyledHeading = styled(SectionHeading)`
-  margin: 0 0 ${space(1.5)} 0;
-`;
-
-export const TagSection = styled('div')`
-  margin: ${space(0.5)} 0;
-`;
-
 const StyledError = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   display: flex;
   align-items: center;
 `;

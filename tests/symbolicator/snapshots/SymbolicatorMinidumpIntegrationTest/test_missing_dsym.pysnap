@@ -1,5 +1,5 @@
 ---
-created: '2019-11-19T11:22:56.297739Z'
+created: '2020-07-23T19:54:04.468992Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -252,9 +252,6 @@ debug_meta:
     type: pe
     unwind_status: missing
 errors:
-- name: timestamp
-  type: past_timestamp
-  value: 1521713273
 - image_path: C:\projects\breakpad-tools\windows\Release\crash.exe
   image_uuid: 3249d99d-0c40-4931-8610-f4e4fb0b6936-1
   message: None

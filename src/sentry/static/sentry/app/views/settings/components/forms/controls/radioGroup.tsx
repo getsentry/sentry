@@ -1,19 +1,24 @@
-import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
 
-import {growIn} from 'app/styles/animations';
+import Radio from 'app/components/radio';
+import space from 'app/styles/space';
 
 type RadioGroupProps<C extends string> = {
-  value: string | number | null;
-
-  // An array of [id, name, description]
-  choices: [C, React.ReactNode, React.ReactNode?][];
-  disabled?: boolean;
   label: string;
-  onChange: (id: C, e: React.MouseEvent) => void;
+  disabled?: boolean;
+  /**
+   * An array of [id, name, description]
+   */
+  choices: [C, React.ReactNode, React.ReactNode?][];
+  value: string | number | null;
+  onChange: (id: C, e: React.FormEvent) => void;
+  /**
+   * Switch the radio items to flow left to right, instead of vertically.
+   */
+  orientInline?: boolean;
 };
 
 type Props<C extends string> = RadioGroupProps<C> &
@@ -25,38 +30,40 @@ const RadioGroup = <C extends string>({
   choices,
   label,
   onChange,
+  orientInline,
   ...props
 }: Props<C>) => (
-  <div {...props} role="radiogroup" aria-labelledby={label}>
-    {(choices || []).map(([id, name, description], index) => {
-      const isSelected = value === id;
-
-      return (
-        <RadioLineItem
-          key={index}
-          onClick={e => !disabled && onChange(id, e)}
-          role="radio"
-          index={index}
-          aria-checked={isSelected}
+  <Container
+    orientInline={orientInline}
+    {...props}
+    role="radiogroup"
+    aria-labelledby={label}
+  >
+    {(choices || []).map(([id, name, description], index) => (
+      <RadioLineItem
+        key={index}
+        role="radio"
+        index={index}
+        aria-checked={value === id}
+        disabled={disabled}
+      >
+        <Radio
+          aria-label={id}
           disabled={disabled}
-        >
-          <RadioLineButton aria-label={id} type="button" disabled={disabled}>
-            {isSelected && (
-              <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
-            )}
-          </RadioLineButton>
-          <RadioLineText disabled={disabled}>{name}</RadioLineText>
-          {description && (
-            <React.Fragment>
-              {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
-              <div />
-              <Description>{description}</Description>
-            </React.Fragment>
-          )}
-        </RadioLineItem>
-      );
-    })}
-  </div>
+          checked={value === id}
+          onChange={(e: React.FormEvent) => !disabled && onChange(id, e)}
+        />
+        <RadioLineText disabled={disabled}>{name}</RadioLineText>
+        {description && (
+          <React.Fragment>
+            {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
+            <div />
+            <Description>{description}</Description>
+          </React.Fragment>
+        )}
+      </RadioLineItem>
+    ))}
+  </Container>
 );
 
 RadioGroup.propTypes = {
@@ -68,30 +75,9 @@ RadioGroup.propTypes = {
   onChange: PropTypes.func.isRequired,
 };
 
-const RadioLineButton = styled('button')`
-  display: flex;
-  padding: 0;
-  width: 1.5em;
-  height: 1.5em;
-  position: relative;
-  border-radius: 50%;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid ${p => p.theme.borderLight};
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
-  background: none;
-
-  &:focus,
-  &.focus-visible {
-    outline: none;
-    border: 1px solid ${p => p.theme.borderDark};
-    box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
-  }
-`;
-
 const shouldForwardProp = p => !['disabled', 'animate'].includes(p) && isPropValid(p);
 
-const RadioLineItem = styled('div', {shouldForwardProp})<{
+export const RadioLineItem = styled('label', {shouldForwardProp})<{
   disabled?: boolean;
   index: number;
 }>`
@@ -100,25 +86,17 @@ const RadioLineItem = styled('div', {shouldForwardProp})<{
   grid-template-columns: max-content auto;
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
-  margin-top: ${p => (p.index > 0 ? '0.5em' : '0')};
   outline: none;
+  font-weight: normal;
+  margin: 0;
 `;
 
-const RadioLineButtonFill = styled('div', {shouldForwardProp})<{
-  animate: boolean;
-  disabled?: boolean;
-}>`
-  width: 1rem;
-  height: 1rem;
-  border-radius: 50%;
-  background-color: ${p => p.theme.green};
-  ${p =>
-    p.animate
-      ? css`
-          animation: 0.2s ${growIn} ease;
-        `
-      : 'animation: none'};
-  opacity: ${p => (p.disabled ? 0.4 : null)};
+const Container = styled('div')<{orientInline?: boolean}>`
+  display: grid;
+  grid-gap: ${p => space(p.orientInline ? 3 : 1)};
+  grid-auto-flow: ${p => (p.orientInline ? 'column' : 'row')};
+  grid-auto-rows: max-content;
+  grid-auto-columns: max-content;
 `;
 
 const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
@@ -126,7 +104,7 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
 `;
 
 const Description = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   line-height: 1.4em;
 `;

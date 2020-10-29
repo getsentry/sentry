@@ -8,7 +8,7 @@ import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba, outcomes
-from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
 from sentry.utils.compat import map
 from sentry.utils.compat import zip
@@ -39,7 +39,9 @@ class SnubaTSDB(BaseTSDB):
     # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
     # other models.
     non_outcomes_query_settings = {
-        TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, None),
+        TSDBModel.project: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "project_id", None, [["type", "!=", "transaction"]]
+        ),
         TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, None),
         TSDBModel.release: SnubaModelQuerySettings(
             snuba.Dataset.Events, "tags[sentry:release]", None, None
@@ -211,6 +213,7 @@ class SnubaTSDB(BaseTSDB):
         aggregation="count()",
         group_on_model=True,
         group_on_time=False,
+        conditions=None,
     ):
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
@@ -227,7 +230,7 @@ class SnubaTSDB(BaseTSDB):
             keys = list(set(map(lambda x: int(x), keys)))
 
         # 10s is the only rollup under an hour that we support
-        if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
+        if rollup and rollup == 10 and model in self.lower_rollup_query_settings:
             model_query_settings = self.lower_rollup_query_settings.get(model)
         else:
             model_query_settings = self.model_query_settings.get(model)
@@ -265,15 +268,18 @@ class SnubaTSDB(BaseTSDB):
         end = to_datetime(series[-1] + rollup)
         limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
+        conditions = conditions if conditions is not None else []
+        if model_query_settings.conditions is not None:
+            conditions += deepcopy(model_query_settings.conditions)
+            # copy because we modify the conditions in snuba.query
+
         if keys:
             result = snuba.query(
                 dataset=model_query_settings.dataset,
                 start=start,
                 end=end,
                 groupby=groupby,
-                conditions=deepcopy(
-                    model_query_settings.conditions
-                ),  # copy because we modify the conditions in snuba.query
+                conditions=conditions,
                 filter_keys=keys_map,
                 aggregations=aggregations,
                 rollup=rollup,
@@ -320,7 +326,7 @@ class SnubaTSDB(BaseTSDB):
         if len(groups) > 0:
             group, subgroups = groups[0], groups[1:]
             if isinstance(result, dict):
-                for rk in result.keys():
+                for rk in list(result.keys()):
                     if group == "time":  # Skip over time group
                         self.trim(result[rk], subgroups, keys)
                     elif rk in keys:
@@ -329,9 +335,11 @@ class SnubaTSDB(BaseTSDB):
                     else:
                         del result[rk]
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+    def get_range(
+        self, model, keys, start, end, rollup=None, environment_ids=None, conditions=None
+    ):
         # 10s is the only rollup under an hour that we support
-        if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
+        if rollup and rollup == 10 and model in self.lower_rollup_query_settings:
             model_query_settings = self.lower_rollup_query_settings.get(model)
         else:
             model_query_settings = self.model_query_settings.get(model)
@@ -352,6 +360,7 @@ class SnubaTSDB(BaseTSDB):
             environment_ids,
             aggregation=aggregate_function,
             group_on_time=True,
+            conditions=conditions,
         )
         # convert
         #    {group:{timestamp:count, ...}}
@@ -446,15 +455,13 @@ class SnubaTSDB(BaseTSDB):
         #    {group:{timestamp:[top1, ...]}}
         # into
         #    {group: [(timestamp, {top1: score, ...}), ...]}
-        for k in result:
-            result[k] = sorted(
-                [
-                    (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
-                    for (timestamp, topk) in result[k].items()
-                ]
+        return {
+            k: sorted(
+                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
+                for (timestamp, topk) in result[k].items()
             )
-
-        return result
+            for k in result.keys()
+        }
 
     def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
         result = self.get_data(
@@ -493,7 +500,7 @@ class SnubaTSDB(BaseTSDB):
         """
         if isinstance(items, collections.Mapping):
             return (
-                items.keys(),
+                list(items.keys()),
                 list(set.union(*(set(v) for v in items.values())) if items else []),
             )
         elif isinstance(items, (collections.Sequence, collections.Set)):

@@ -2,12 +2,19 @@ import React from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import {IconWarning} from 'app/icons';
+import Button from 'app/components/button';
+import Alert from 'app/components/alert';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import {Organization, SentryApp, IntegrationInstallationStatus} from 'app/types';
 import {t} from 'app/locale';
+import {
+  trackIntegrationEvent,
+  convertIntegrationTypeToSnakeCase,
+} from 'app/utils/integrationUtil';
 
 import IntegrationStatus from './integrationStatus';
 
@@ -20,6 +27,7 @@ type Props = {
   publishStatus: 'unpublished' | 'published' | 'internal';
   configurations: number;
   categories: string[];
+  alertText?: string;
 };
 
 const urlMap = {
@@ -39,6 +47,7 @@ const IntegrationRow = (props: Props) => {
     publishStatus,
     configurations,
     categories,
+    alertText,
   } = props;
 
   const baseUrl =
@@ -87,6 +96,30 @@ const IntegrationRow = (props: Props) => {
           ))}
         </InternalContainer>
       </FlexContainer>
+      {alertText && (
+        <AlertContainer>
+          <Alert type="warning" icon={<IconWarning size="sm" />}>
+            <span>{alertText}</span>
+            <ResolveNowButton
+              href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
+              size="xsmall"
+              onClick={() =>
+                trackIntegrationEvent(
+                  {
+                    eventKey: 'integrations.resolve_now_clicked',
+                    eventName: 'Integrations: Resolve Now Clicked',
+                    integration_type: convertIntegrationTypeToSnakeCase(type),
+                    integration: slug,
+                  },
+                  organization
+                )
+              }
+            >
+              {t('Resolve Now')}
+            </ResolveNowButton>
+          </Alert>
+        </AlertContainer>
+      )}
     </PanelItem>
   );
 };
@@ -108,7 +141,7 @@ const Container = styled('div')`
 
 const IntegrationName = styled(Link)`
   font-weight: bold;
-  color: ${p => p.theme.blue};
+  color: ${p => p.theme.blue400};
 `;
 
 const IntegrationDetails = styled('div')`
@@ -119,17 +152,17 @@ const IntegrationDetails = styled('div')`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   &:before {
     content: '|';
-    color: ${p => p.theme.gray1};
+    color: ${p => p.theme.gray400};
     margin-right: ${space(0.75)};
     font-weight: normal;
   }
 `;
 
 const LearnMore = styled(Link)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};
@@ -138,13 +171,13 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   <div {...props}>{t(`${status}`)}</div>
 ))`
   color: ${(props: PublishStatusProps) =>
-    props.status === 'published' ? props.theme.success : props.theme.gray2};
+    props.status === 'published' ? props.theme.success : props.theme.gray500};
   font-weight: light;
   margin-right: ${space(0.75)};
   text-transform: capitalize;
   &:before {
     content: '|';
-    color: ${p => p.theme.gray1};
+    color: ${p => p.theme.gray400};
     margin-right: ${space(0.75)};
     font-weight: normal;
   }
@@ -164,13 +197,23 @@ const CategoryTag = styled(
   display: flex;
   flex-direction: row;
   padding: 1px 10px;
-  background: ${p => (p.priority ? p.theme.purpleLightest : p.theme.offWhite2)};
+  background: ${p => (p.priority ? p.theme.purple300 : p.theme.gray300)};
   border-radius: 20px;
   font-size: ${space(1.5)};
   margin-right: ${space(1)};
   line-height: ${space(3)};
   text-align: center;
-  color: ${p => (p.priority ? p.theme.white : p.theme.gray4)};
+  color: ${p => (p.priority ? p.theme.white : p.theme.gray700)};
+`;
+
+const ResolveNowButton = styled(Button)`
+  color: ${p => p.theme.gray500};
+  background: #ffffff;
+  float: right;
+`;
+
+const AlertContainer = styled('div')`
+  padding: 0px ${space(3)} 0px 68px;
 `;
 
 export default IntegrationRow;

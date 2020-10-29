@@ -1,28 +1,20 @@
 from __future__ import absolute_import
 
 import logging
-import six
-import sentry_sdk
 
 from functools import partial
-from django.utils.http import urlquote
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
 
-from sentry.api.base import LINK_HEADER
 from sentry.api.bases import (
     OrganizationEventsEndpointBase,
     OrganizationEventsV2EndpointBase,
-    OrganizationEventsError,
     NoProjects,
 )
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.snuba import discover
-from sentry.utils import snuba
-from sentry.utils.http import absolute_uri
 from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
@@ -40,7 +32,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 self.get_filter_params(request, organization),
                 "api.organization-events-direct-hit",
             )
-        except (OrganizationEventsError, NoProjects):
+        except NoProjects:
             pass
         else:
             if direct_hit_resp:
@@ -49,8 +41,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         full = request.GET.get("full", False)
         try:
             snuba_args = self.get_snuba_query_args_legacy(request, organization)
-        except OrganizationEventsError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             # return empty result if org doesn't have projects
             # or user doesn't have access to projects in org
@@ -76,16 +66,15 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         )
 
     def handle_results(self, request, organization, project_ids, results):
-        projects = {
-            p["id"]: p["slug"]
-            for p in Project.objects.filter(organization=organization, id__in=project_ids).values(
-                "id", "slug"
-            )
-        }
-
         fields = request.GET.getlist("field")
 
         if "project.name" in fields:
+            projects = {
+                p["id"]: p["slug"]
+                for p in Project.objects.filter(
+                    organization=organization, id__in=project_ids
+                ).values("id", "slug")
+            }
             for result in results:
                 result["project.name"] = projects[result["project.id"]]
                 if "project.id" not in fields:
@@ -95,65 +84,30 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
-    def build_cursor_link(self, request, name, cursor):
-        # The base API function only uses the last query parameter, but this endpoint
-        # needs all the parameters, particularly for the "field" query param.
-        querystring = u"&".join(
-            u"{0}={1}".format(urlquote(query[0]), urlquote(value))
-            for query in request.GET.lists()
-            if query[0] != "cursor"
-            for value in query[1]
-        )
-
-        base_url = absolute_uri(urlquote(request.path))
-        if querystring:
-            base_url = u"{0}?{1}".format(base_url, querystring)
-        else:
-            base_url = base_url + "?"
-
-        return LINK_HEADER.format(
-            uri=base_url,
-            cursor=six.text_type(cursor),
-            name=name,
-            has_results="true" if bool(cursor) else "false",
-        )
-
     def get(self, request, organization):
-        if not features.has("organizations:discover-basic", organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         try:
-            params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as exc:
-            raise ParseError(detail=six.text_type(exc))
+            params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
-
-        params["organization_id"] = organization.id
-
-        has_global_views = features.has(
-            "organizations:global-views", organization, actor=request.user
-        )
-        if not has_global_views and len(params.get("project_id", [])) > 1:
-            raise ParseError(detail="You cannot view events from multiple projects.")
 
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=request.GET.getlist("field")[:],
                 query=request.GET.get("query"),
                 params=params,
-                reference_event=self.reference_event(
-                    request, organization, params.get("start"), params.get("end")
-                ),
                 orderby=self.get_orderby(request),
                 offset=offset,
                 limit=limit,
                 referrer=request.GET.get("referrer", "api.organization-events-v2"),
                 auto_fields=True,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
 
-        try:
+        with self.handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -161,32 +115,3 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                     request, organization, params["project_id"], results
                 ),
             )
-        except discover.InvalidSearchQuery as error:
-            raise ParseError(detail=six.text_type(error))
-        except snuba.QueryOutsideRetentionError:
-            raise ParseError(detail="Invalid date range. Please try a more recent date range.")
-        except snuba.QueryIllegalTypeOfArgument:
-            raise ParseError(detail="Invalid query. Argument to function is wrong type.")
-        except snuba.SnubaError as error:
-            message = "Internal error. Please try again."
-            if isinstance(
-                error,
-                (
-                    snuba.RateLimitExceeded,
-                    snuba.QueryMemoryLimitExceeded,
-                    snuba.QueryTooManySimultaneous,
-                ),
-            ):
-                message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
-            elif isinstance(
-                error,
-                (
-                    snuba.UnqualifiedQueryError,
-                    snuba.QueryExecutionError,
-                    snuba.SchemaValidationError,
-                ),
-            ):
-                sentry_sdk.capture_exception(error)
-                message = "Internal error. Your query failed to run."
-
-            raise ParseError(detail=message)

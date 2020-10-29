@@ -14,12 +14,12 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Alert from 'app/components/alert';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import Version from 'app/components/version';
 
 class GroupTags extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
+    baseUrl: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
     api: PropTypes.object.isRequired,
     environments: PropTypes.arrayOf(PropTypes.string).isRequired,
@@ -50,6 +50,7 @@ class GroupTags extends React.Component {
       loading: true,
       error: false,
     });
+
     api.request(`/issues/${group.id}/tags/`, {
       query: {environment: environments},
       success: data => {
@@ -69,15 +70,13 @@ class GroupTags extends React.Component {
   };
 
   getTagsDocsUrl() {
-    return 'https://docs.sentry.io/hosted/learn/context/';
+    return 'https://docs.sentry.io/enriching-error-data/additional-data/';
   }
 
   render() {
-    const {group, organization} = this.props;
+    const {baseUrl} = this.props;
 
     let children = [];
-
-    const baseUrl = `/organizations/${organization.slug}/issues/`;
 
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -88,21 +87,29 @@ class GroupTags extends React.Component {
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
         const valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
+          let label;
           const pct = percent(tagValue.count, tag.totalValues);
           const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
+
+          switch (tag.key) {
+            case 'release':
+              label = <Version version={tagValue.name} anchor={false} />;
+              break;
+            default:
+              label = <DeviceName value={tagValue.name} />;
+          }
+
           return (
             <li key={tagValueIdx} data-test-id={tag.key}>
               <GlobalSelectionLink
                 className="tag-bar"
                 to={{
-                  pathname: `${baseUrl}${group.id}/events/`,
+                  pathname: `${baseUrl}events/`,
                   query: {query},
                 }}
               >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
-                <span className="tag-bar-label">
-                  <DeviceName value={tagValue.name} />
-                </span>
+                <span className="tag-bar-label">{label}</span>
                 <span className="tag-bar-count">
                   <Count value={tagValue.count} />
                 </span>
@@ -119,7 +126,7 @@ class GroupTags extends React.Component {
                 <DetailsLinkWrapper>
                   <GlobalSelectionLink
                     className="btn btn-default btn-sm"
-                    to={`${baseUrl}${group.id}/tags/${tag.key}/`}
+                    to={`${baseUrl}tags/${tag.key}/`}
                   >
                     {t('More Details')}
                   </GlobalSelectionLink>
@@ -166,4 +173,4 @@ const TagItem = styled('div')`
   width: 50%;
 `;
 
-export default withApi(withOrganization(GroupTags));
+export default withApi(GroupTags);

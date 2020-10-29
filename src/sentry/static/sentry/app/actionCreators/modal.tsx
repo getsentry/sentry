@@ -3,7 +3,7 @@ import {css} from '@emotion/core';
 import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import ModalActions from 'app/actions/modalActions';
-import {Organization, SentryApp, Project} from 'app/types';
+import {Organization, SentryApp, Project, Team, Group, Event} from 'app/types';
 
 export type ModalRenderProps = {
   closeModal: () => void;
@@ -53,7 +53,16 @@ export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
 }
 
-export async function openDiffModal(options: ModalOptions) {
+type OpenDiffModalOptions = {
+  targetIssueId: string;
+  targetEventId?: string;
+  project: Project;
+  baseIssueId: Group['id'];
+  orgId: Organization['id'];
+  baseEventId?: Event['id'];
+};
+
+export async function openDiffModal(options: OpenDiffModalOptions) {
   const mod = await import(
     /* webpackChunkName: "DiffModal" */ 'app/components/modals/diffModal'
   );
@@ -71,6 +80,7 @@ type CreateTeamModalOptions = {
    * An initial project to add the team to. This may be deprecated soon as we may add a project selection inside of the modal flow
    */
   project?: Project;
+  onClose?: (team: Team) => void;
 };
 
 export async function openCreateTeamModal(options: CreateTeamModalOptions) {
@@ -91,6 +101,7 @@ type CreateOwnershipRuleModalOptions = {
    * The project to create a rules for
    */
   project: Project;
+  issueId: string;
 };
 
 export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
@@ -108,7 +119,7 @@ export async function openCommandPalette(options: ModalOptions = {}) {
   );
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal Body={deps.Body} {...options} />, {modalCss});
 }
 
 export async function openRecoveryOptions(options: ModalOptions = {}) {
@@ -148,13 +159,18 @@ export async function redirectToProject(newProjectSlug: string) {
   openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
 }
 
-export async function openHelpSearchModal() {
+type HelpSearchModalOptipons = {
+  organization: Organization;
+  placeholder?: string;
+};
+
+export async function openHelpSearchModal(options: HelpSearchModalOptipons) {
   const mod = await import(
     /* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal'
   );
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export type SentryAppDetailsModalOptions = {

@@ -29,21 +29,6 @@ const RichHttpContentClippedBoxBodySection = ({
       return null;
     }
 
-    if (meta && typeof value === 'string') {
-      return (
-        // <pre> is wrapping AnnotatedText to avoid breaking certain tooltips (untested, yolo)
-        <pre>
-          <AnnotatedText
-            value={value}
-            chunks={meta.chunks}
-            remarks={meta.rem}
-            errors={meta.err}
-            data-test-id="rich-http-content-body-context-data"
-          />
-        </pre>
-      );
-    }
-
     switch (inferredContentType) {
       case 'application/json':
         return (
@@ -70,7 +55,11 @@ const RichHttpContentClippedBoxBodySection = ({
       default:
         return (
           <pre data-test-id="rich-http-content-body-section-pre">
-            {JSON.stringify(value, null, 2)}
+            <AnnotatedText
+              value={value && JSON.stringify(value, null, 2)}
+              meta={meta}
+              data-test-id="rich-http-content-body-context-data"
+            />
           </pre>
         );
     }
@@ -79,7 +68,7 @@ const RichHttpContentClippedBoxBodySection = ({
   const content = getContent();
 
   return content ? (
-    <ClippedBox title={t('Body')} defaultCollapsed>
+    <ClippedBox title={t('Body')} defaultClipped>
       <ErrorBoundary mini>{content}</ErrorBoundary>
     </ClippedBox>
   ) : null;

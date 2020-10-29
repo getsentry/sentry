@@ -1,33 +1,32 @@
 import React from 'react';
 
-import {IconProps} from 'app/types/iconProps';
-import theme from 'app/utils/theme';
+import SvgIcon from './svgIcon';
 
-export const IconPin = React.forwardRef(function IconPin(
-  {
-    color: providedColor = 'currentColor',
-    size: providedSize = 'sm',
-    solid: providedSolid = false,
-    ...props
-  }: IconProps,
+type Props = React.ComponentProps<typeof SvgIcon> & {
+  isSolid?: boolean;
+};
+
+const IconPin = React.forwardRef(function IconPin(
+  {isSolid = false, ...props}: Props,
   ref: React.Ref<SVGSVGElement>
 ) {
-  const color = providedColor;
-  const size = theme.iconSizes[providedSize] ?? providedSize;
-
   return (
-    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props} ref={ref}>
-      {providedSolid === true ? (
-        <g>
+    <SvgIcon {...props} ref={ref}>
+      {isSolid ? (
+        <React.Fragment>
           <path d="M9.48,14.24A.71.71,0,0,1,9,14L5.49,10.55,2.36,7.45,2,7.13a.74.74,0,0,1,0-1l.29-.33c1-1.09,2.49-1.5,4.55-1.22L9.64.79a.76.76,0,0,1,.55-.31.78.78,0,0,1,.58.22l4.52,4.54a.7.7,0,0,1,.22.58.72.72,0,0,1-.3.55L11.46,9.15c.3,2.14-.08,3.65-1.15,4.61l-.34.29A.72.72,0,0,1,9.48,14.24Z" />
           <path d="M.9,15.89a.79.79,0,0,1-.53-.22.75.75,0,0,1,0-1.06l4.89-4.9a.77.77,0,0,1,1.07,0,.75.75,0,0,1,0,1.06l-4.9,4.9A.79.79,0,0,1,.9,15.89Z" />
-        </g>
+        </React.Fragment>
       ) : (
-        <g>
+        <React.Fragment>
           <path d="M9.48,14.24A.71.71,0,0,1,9,14L5.49,10.55,2.36,7.45,2,7.13a.74.74,0,0,1,0-1l.29-.33c1-1.09,2.49-1.5,4.55-1.22L9.64.79a.76.76,0,0,1,.55-.31.78.78,0,0,1,.58.22l4.52,4.54a.7.7,0,0,1,.22.58.72.72,0,0,1-.3.55L11.46,9.15c.3,2.14-.08,3.65-1.15,4.61l-.34.29A.72.72,0,0,1,9.48,14.24ZM3.62,6.59C4,7,5,8,6.54,9.49l3,3c.59-.68.72-1.81.42-3.5a.74.74,0,0,1,.29-.73l3.42-2.53-3.3-3.31L7.8,5.81a.78.78,0,0,1-.73.3C5.47,5.82,4.31,6,3.62,6.59Z" />
           <path d="M.9,15.89a.79.79,0,0,1-.53-.22.75.75,0,0,1,0-1.06l4.89-4.9a.77.77,0,0,1,1.07,0,.75.75,0,0,1,0,1.06l-4.9,4.9A.79.79,0,0,1,.9,15.89Z" />
-        </g>
+        </React.Fragment>
       )}
-    </svg>
+    </SvgIcon>
   );
 });
+
+IconPin.displayName = 'IconPin';
+
+export {IconPin};

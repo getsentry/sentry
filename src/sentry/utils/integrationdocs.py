@@ -3,11 +3,16 @@
 from __future__ import absolute_import
 
 import io
+import multiprocessing
+import multiprocessing.dummy
 import os
 import sys
-import json
 import logging
 import time
+
+# Import the stdlib json instead of sentry.utils.json, since this command is
+# run at build time
+import json  # NOQA
 
 import sentry
 
@@ -50,8 +55,7 @@ logger = logging.getLogger("sentry")
 
 
 def echo(what):
-    sys.stdout.write(what)
-    sys.stdout.write("\n")
+    sys.stdout.write(what + "\n")
     sys.stdout.flush()
 
 
@@ -122,9 +126,19 @@ def sync_docs(quiet=False):
 
     dump_doc("_platforms", {"platforms": platform_list})
 
+    # This value is derived from https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor
+    MAX_THREADS = 32
+    # TODO(python3): Migrate this to concurrent.futures.ThreadPoolExecutor context manager
+    executor = multiprocessing.dummy.Pool(
+        min(len(data["platforms"]), multiprocessing.cpu_count() * 5, MAX_THREADS)
+    )
     for platform_id, platform_data in iteritems(data["platforms"]):
         for integration_id, integration in iteritems(platform_data):
-            sync_integration_docs(platform_id, integration_id, integration["details"], quiet)
+            executor.apply_async(
+                sync_integration_docs, (platform_id, integration_id, integration["details"], quiet)
+            )
+    executor.close()
+    executor.join()
 
 
 def sync_integration_docs(platform_id, integration_id, path, quiet=False):

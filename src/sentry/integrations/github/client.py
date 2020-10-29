@@ -4,6 +4,7 @@ from datetime import datetime
 
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.client import ApiClient
+from sentry.web.decorators import transaction_start
 
 
 class GitHubClientMixin(ApiClient):
@@ -40,7 +41,8 @@ class GitHubClientMixin(ApiClient):
 
     def get_repositories(self):
         repositories = self.get("/installation/repositories", params={"per_page": 100})
-        return repositories["repositories"]
+        repos = repositories["repositories"]
+        return [repo for repo in repos if not repo.get("archived")]
 
     def search_repositories(self, query):
         return self.get("/search/repositories", params={"q": query})
@@ -80,8 +82,8 @@ class GitHubClientMixin(ApiClient):
     def get_token(self, force_refresh=False):
         """
         Get token retrieves the active access token from the integration model.
-        Should the token have expried, a new token will be generated and
-        automatically presisted into the integration.
+        Should the token have expired, a new token will be generated and
+        automatically persisted into the integration.
         """
         token = self.integration.metadata.get("access_token")
         expires_at = self.integration.metadata.get("expires_at")
@@ -103,12 +105,18 @@ class GitHubClientMixin(ApiClient):
 
     def create_token(self):
         return self.post(
-            u"/installations/{}/access_tokens".format(self.integration.external_id),
+            u"/app/installations/{}/access_tokens".format(self.integration.external_id),
             headers={
-                "Authorization": "Bearer %s" % self.get_jwt(),
+                "Authorization": b"Bearer %s" % self.get_jwt(),
                 # TODO(jess): remove this whenever it's out of preview
                 "Accept": "application/vnd.github.machine-man-preview+json",
             },
+        )
+
+    @transaction_start("GitHubClientMixin.check_file")
+    def check_file(self, repo, path, version):
+        return self.head_cached(
+            path="/repos/{}/contents/{}".format(repo, path), params={"ref": version}
         )
 
 

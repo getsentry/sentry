@@ -2,12 +2,13 @@ import React from 'react';
 import $ from 'jquery';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectTags from 'app/views/settings/projectTags';
 
-describe('ProjectTags', function() {
+describe('ProjectTags', function () {
   let org, project, wrapper;
 
-  beforeEach(function() {
+  beforeEach(function () {
     org = TestStubs.Organization();
     project = TestStubs.Project();
 
@@ -28,7 +29,7 @@ describe('ProjectTags', function() {
     );
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
@@ -44,7 +45,7 @@ describe('ProjectTags', function() {
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
   });
 
-  it('disables delete button for users without access', function() {
+  it('disables delete button for users without access', function () {
     const context = {
       organization: TestStubs.Organization({access: []}),
     };
@@ -57,22 +58,19 @@ describe('ProjectTags', function() {
     expect(wrapper.find('Button[disabled=false]')).toHaveLength(0);
   });
 
-  it('renders', function() {
-    expect(wrapper).toMatchSnapshot();
+  it('renders', function () {
+    expect(wrapper).toSnapshot();
   });
 
-  it('deletes tag', function() {
+  it('deletes tag', async function () {
     const tags = wrapper.state('tags').length;
 
-    wrapper
-      .find('Button')
-      .first()
-      .simulate('click');
+    wrapper.find('Button').first().simulate('click');
 
     // Press confirm in modal
-    $(document.body)
-      .find('.modal button:contains("Confirm")')
-      .click();
+    $(document.body).find('.modal button:contains("Confirm")').click();
+
+    await tick(); // Wait for the handleDelete function
 
     wrapper.update();
 

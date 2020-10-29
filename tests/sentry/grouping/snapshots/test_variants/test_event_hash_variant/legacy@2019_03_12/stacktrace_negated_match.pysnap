@@ -1,0 +1,68 @@
+---
+created: '2020-09-02T13:34:55.474769Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "_main"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start_internal"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "___rust_maybe_catch_panic"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::panicking::try::do_call"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start::{{closure}}"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "log_demo::main"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "log::__private_api_log"
+        type*
+          "log_demo"
+        value*
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+system:
+  hash: "3e0ae2ce25cce2fca3390f3416e6a82a"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame
+            function (function name is not used if module or filename are available)
+              "_main"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start_internal"
+          frame
+            function (function name is not used if module or filename are available)
+              "___rust_maybe_catch_panic"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::panicking::try::do_call"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function (function name is not used if module or filename are available)
+              "std::rt::lang_start::{{closure}}"
+          frame
+            function (function name is not used if module or filename are available)
+              "log_demo::main"
+          frame
+            function (function name is not used if module or filename are available)
+              "log::__private_api_log"
+        type*
+          "log_demo"
+        value*
+          "Holy shit everything is on fire!"

@@ -11,15 +11,14 @@ type Props = {
   /**
    * Panel title
    */
-  title?: string;
+  title?: React.ReactNode;
 
   /**
    * List of fields to render
    */
   fields: FieldObject[];
 
-  // TODO(ts): See if this is still in use
-  access?: Scope[];
+  access?: Set<Scope>;
   features?: Record<string, any>;
 
   additionalFieldProps: {[key: string]: any};
@@ -59,7 +58,7 @@ export default class FormPanel extends React.Component<Props> {
     } = this.props;
 
     return (
-      <Panel key={title} id={sanitizeQuerySelector(title ?? '')}>
+      <Panel id={typeof title === 'string' ? sanitizeQuerySelector(title) : undefined}>
         {title && <PanelHeader>{title}</PanelHeader>}
         <PanelBody>
           {typeof renderHeader === 'function' && renderHeader({title, fields})}

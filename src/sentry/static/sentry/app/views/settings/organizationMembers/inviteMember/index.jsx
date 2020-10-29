@@ -2,7 +2,7 @@ import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {MEMBER_ROLES} from 'app/constants';

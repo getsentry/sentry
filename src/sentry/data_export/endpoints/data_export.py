@@ -4,13 +4,16 @@ import six
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_date_range_from_params
 from sentry.models import Environment
 from sentry.utils import metrics
 from sentry.utils.compat import map
+from sentry.utils.snuba import MAX_FIELDS
 
 from ..base import ExportQueryType
 from ..models import ExportedData
@@ -30,8 +33,9 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         Create a new asynchronous file export task, and
         email user upon completion,
         """
-        # Ensure new data-export features are enabled
-        if not features.has("organizations:data-export", organization):
+        # The data export feature is only available alongside `discover-query`.
+        # So to export issue tags, they must have have `discover-query`
+        if not features.has("organizations:discover-query", organization):
             return Response(status=404)
 
         # Get environment_id and limit if available
@@ -60,11 +64,35 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 projects = self._get_projects_by_id({int(project_query)}, request, organization)
             data["query_info"]["project"] = [project.id for project in projects]
 
-        # Ensure discover features are enabled if necessary
-        if data["query_type"] == ExportQueryType.DISCOVER_STR and not features.has(
-            "organizations:discover-basic", organization, actor=request.user
-        ):
-            return Response({"detail": "You do not have access to discover features"}, status=403)
+        # Discover Pre-processing
+        if data["query_type"] == ExportQueryType.DISCOVER_STR:
+            query_info = data["query_info"]
+
+            fields = query_info.get("field", [])
+            if not isinstance(fields, list):
+                fields = [fields]
+
+            if len(fields) > MAX_FIELDS:
+                detail = "You can export up to {0} fields at a time. Please delete some and try again.".format(
+                    MAX_FIELDS
+                )
+                raise ParseError(detail=detail)
+
+            query_info["field"] = fields
+
+            if "project" not in query_info:
+                projects = self.get_projects(request, organization)
+                query_info["project"] = [project.id for project in projects]
+
+            start, end = get_date_range_from_params(query_info)
+            if "statsPeriod" in query_info:
+                del query_info["statsPeriod"]
+            if "statsPeriodStart" in query_info:
+                del query_info["statsPeriodStart"]
+            if "statsPeriodEnd" in query_info:
+                del query_info["statsPeriodEnd"]
+            query_info["start"] = start.isoformat()
+            query_info["end"] = end.isoformat()
 
         try:
             # If this user has sent a sent a request with the same payload and organization,
@@ -83,7 +111,7 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     "dataexport.enqueue", tags={"query_type": data["query_type"]}, sample_rate=1.0
                 )
                 assemble_download.delay(
-                    data_export_id=data_export.id, limit=limit, environment_id=environment_id
+                    data_export_id=data_export.id, export_limit=limit, environment_id=environment_id
                 )
                 status = 201
         except ValidationError as e:

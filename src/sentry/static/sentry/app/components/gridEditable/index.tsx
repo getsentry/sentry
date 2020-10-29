@@ -1,14 +1,10 @@
 import React from 'react';
+import {Location} from 'history';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Hovercard from 'app/components/hovercard';
-import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconEdit, IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
+import {IconWarning} from 'app/icons';
 
 import {
   GridColumn,
@@ -20,7 +16,6 @@ import {
 import {
   Header,
   HeaderTitle,
-  HeaderButton,
   HeaderButtonContainer,
   Body,
   Grid,
@@ -36,14 +31,7 @@ import {
 import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED, ColResizeMetadata} from './utils';
 
 type GridEditableProps<DataRow, ColumnKey> = {
-  /**
-   * This is currently required as we only have one usage of
-   * this component in the future. If we have more this could be
-   * made optional. You will need to update renderHeaderButtons() though.
-   */
-  editFeatures: string[];
-  noEditMessage?: string;
-
+  location: Location;
   isLoading?: boolean;
   error?: React.ReactNode | null;
 
@@ -57,6 +45,12 @@ type GridEditableProps<DataRow, ColumnKey> = {
    *   move sorting into Grid for performance
    */
   title?: string;
+  /**
+   * Inject a set of buttons into the top of the grid table.
+   * The controlling component is responsible for handling any actions
+   * in these buttons and updating props to the GridEditable instance.
+   */
+  headerButtons?: () => React.ReactNode;
   columnOrder: GridColumnOrder<ColumnKey>[];
   columnSortBy: GridColumnSortBy<ColumnKey>[];
   data: DataRow[];
@@ -72,7 +66,9 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode;
     renderBodyCell?: (
       column: GridColumnOrder<ColumnKey>,
-      dataRow: DataRow
+      dataRow: DataRow,
+      rowIndex: number,
+      columnIndex: number
     ) => React.ReactNode;
     onResizeColumn?: (
       columnIndex: number,
@@ -84,16 +80,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
       rowIndex?: number
     ) => React.ReactNode[];
     prependColumnWidths?: string[];
-  };
-
-  /**
-   * As there is no internal state being maintained, the parent component will
-   * have to provide functions to update the state of the columns, especially
-   * after moving/resizing
-   */
-  actions: {
-    editColumns: () => void;
-    downloadAsCsv: () => void;
   };
 };
 
@@ -127,7 +113,7 @@ class GridEditable<
   }
 
   componentDidUpdate() {
-    // Redraw columns whenever new props are recieved
+    // Redraw columns whenever new props are received
     this.setGridTemplateColumns(this.props.columnOrder);
   }
 
@@ -227,10 +213,6 @@ class GridEditable<
     window.requestAnimationFrame(() => this.resizeGridColumn(e, resizeMetadata));
   };
 
-  handleToggleEdit = () => {
-    this.props.actions.editColumns();
-  };
-
   resizeGridColumn(e: MouseEvent, metadata: ColResizeMetadata) {
     const grid = this.refGrid.current;
     if (!grid) {
@@ -285,65 +267,6 @@ class GridEditable<
     grid.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
   }
 
-  renderHeaderButtons() {
-    const {noEditMessage, editFeatures} = this.props;
-    const renderDisabled = p => (
-      <Hovercard
-        body={
-          <FeatureDisabled
-            features={p.features}
-            hideHelpToggle
-            message={noEditMessage}
-            featureName={noEditMessage}
-          />
-        }
-      >
-        {p.children(p)}
-      </Hovercard>
-    );
-
-    return (
-      <Feature
-        hookName="feature-disabled:grid-editable-actions"
-        renderDisabled={renderDisabled}
-        features={editFeatures}
-      >
-        {({hasFeature}) => (
-          <React.Fragment>
-            {this.renderDownloadCsvButton(hasFeature)}
-            {this.renderEditButton(hasFeature)}
-          </React.Fragment>
-        )}
-      </Feature>
-    );
-  }
-
-  renderDownloadCsvButton(canEdit: boolean) {
-    const disabled = this.props.isLoading || canEdit === false;
-    const onClick = disabled ? undefined : this.props.actions.downloadAsCsv;
-
-    return (
-      <HeaderButton
-        disabled={disabled}
-        onClick={onClick}
-        data-test-id="grid-download-csv"
-      >
-        <InlineSvg src="icon-download" />
-        {t('Download CSV')}
-      </HeaderButton>
-    );
-  }
-
-  renderEditButton(canEdit: boolean) {
-    const onClick = canEdit ? this.handleToggleEdit : undefined;
-    return (
-      <HeaderButton disabled={!canEdit} onClick={onClick} data-test-id="grid-edit-enable">
-        <IconEdit size="xs" />
-        {t('Edit Columns')}
-      </HeaderButton>
-    );
-  }
-
   renderGridHead() {
     const {error, isLoading, columnOrder, grid, data} = this.props;
 
@@ -359,21 +282,23 @@ class GridEditable<
           prependColumns.map((item, i) => (
             <GridHeadCellStatic key={`prepend-${i}`}>{item}</GridHeadCellStatic>
           ))}
-        {/* Note that this.onResizeMouseDown assumes GridResizer is nested
+        {
+          /* Note that this.onResizeMouseDown assumes GridResizer is nested
             1 levels under GridHeadCell */
-        columnOrder.map((column, i) => (
-          <GridHeadCell key={`${i}.${column.key}`} isFirst={i === 0}>
-            {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-            {i !== numColumn - 1 && (
-              <GridResizer
-                dataRows={!error && !isLoading && data ? data.length : 0}
-                onMouseDown={e => this.onResizeMouseDown(e, i)}
-                onDoubleClick={e => this.onResetColumnSize(e, i)}
-                onContextMenu={this.onResizeMouseDown}
-              />
-            )}
-          </GridHeadCell>
-        ))}
+          columnOrder.map((column, i) => (
+            <GridHeadCell key={`${i}.${column.key}`} isFirst={i === 0}>
+              {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
+              {i !== numColumn - 1 && (
+                <GridResizer
+                  dataRows={!error && !isLoading && data ? data.length : 0}
+                  onMouseDown={e => this.onResizeMouseDown(e, i)}
+                  onDoubleClick={e => this.onResetColumnSize(e, i)}
+                  onContextMenu={this.onResizeMouseDown}
+                />
+              )}
+            </GridHeadCell>
+          ))
+        }
       </GridRow>
     );
   }
@@ -410,7 +335,9 @@ class GridEditable<
           ))}
         {columnOrder.map((col, i) => (
           <GridBodyCell key={`${col.key}${i}`}>
-            {grid.renderBodyCell ? grid.renderBodyCell(col, dataRow) : dataRow[col.key]}
+            {grid.renderBodyCell
+              ? grid.renderBodyCell(col, dataRow, row, i)
+              : dataRow[col.key]}
           </GridBodyCell>
         ))}
       </GridRow>
@@ -421,7 +348,7 @@ class GridEditable<
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <IconWarning color={theme.gray2} size="lg" />
+          <IconWarning color="gray500" size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );
@@ -450,15 +377,20 @@ class GridEditable<
   }
 
   render() {
+    const {title, headerButtons} = this.props;
+    const showHeader = title || headerButtons;
     return (
       <React.Fragment>
-        <Header>
-          <HeaderTitle>{t('Results')}</HeaderTitle>
-          <HeaderButtonContainer>{this.renderHeaderButtons()}</HeaderButtonContainer>
-        </Header>
-
+        {showHeader && (
+          <Header>
+            {title && <HeaderTitle>{title}</HeaderTitle>}
+            {headerButtons && (
+              <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
+            )}
+          </Header>
+        )}
         <Body>
-          <Grid ref={this.refGrid}>
+          <Grid data-test-id="grid-editable" ref={this.refGrid}>
             <GridHead>{this.renderGridHead()}</GridHead>
             <GridBody>{this.renderGridBody()}</GridBody>
           </Grid>
@@ -470,6 +402,7 @@ class GridEditable<
 
 export default GridEditable;
 export {
+  COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   GridColumn,
   GridColumnHeader,

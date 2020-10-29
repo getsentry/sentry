@@ -1,25 +1,26 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import LazyLoad from 'app/components/lazyLoad';
 
-describe('LazyLoad', function() {
-  it('renders with a loading indicator when promise is not resolved yet', function() {
+describe('LazyLoad', function () {
+  it('renders with a loading indicator when promise is not resolved yet', function () {
     const promise = new Promise(() => {});
     const getComponent = () => promise;
-    const wrapper = mount(<LazyLoad component={getComponent} />);
+    const wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
 
     // Should be loading
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('renders when given a promise of a "button" component', async function() {
+  it('renders when given a promise of a "button" component', async function () {
     let res;
     const promise = new Promise(resolve => {
       res = resolve;
     });
     const getComponent = () => promise;
-    const wrapper = mount(<LazyLoad component={getComponent} />);
+    const wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
 
     // Should be loading
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
@@ -37,7 +38,7 @@ describe('LazyLoad', function() {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
   });
 
-  it('renders with error message when promise is rejected', async function() {
+  it('renders with error message when promise is rejected', async function () {
     // eslint-disable-next-line no-console
     console.error = jest.fn();
     const getComponent = jest.fn(
@@ -47,7 +48,7 @@ describe('LazyLoad', function() {
     let wrapper;
 
     try {
-      wrapper = mount(<LazyLoad component={getComponent} />);
+      wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
     } catch (err) {
       // ignore
     }
@@ -63,9 +64,9 @@ describe('LazyLoad', function() {
     console.error.mockRestore();
   });
 
-  it('refetches when component changes', async function() {
+  it('refetches when component changes', async function () {
     const getComponent = jest.fn(() => new Promise());
-    const wrapper = mount(<LazyLoad component={getComponent} />);
+    const wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
 
     // Should be loading
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);

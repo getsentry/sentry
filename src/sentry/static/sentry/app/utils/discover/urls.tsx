@@ -1,3 +1,5 @@
+import {OrganizationSummary} from 'app/types';
+
 import EventView, {EventData} from './eventView';
 
 /**
@@ -45,4 +47,15 @@ export function eventDetailsRouteWithEventView({
     pathname,
     query: eventView.generateQueryStringObject(),
   };
+}
+
+/**
+ * Get the URL for the discover entry page which changes based on organization
+ * feature flags.
+ */
+export function getDiscoverLandingUrl(organization: OrganizationSummary): string {
+  if (organization.features.includes('discover-query')) {
+    return `/organizations/${organization.slug}/discover/queries/`;
+  }
+  return `/organizations/${organization.slug}/discover/results/`;
 }

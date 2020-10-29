@@ -12,7 +12,7 @@ WEBHOOK_EVENTS = ["push", "pull_request"]
 
 class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = "GitHub"
-    logger = logging.getLogger("sentry.plugins.github")
+    logger = logging.getLogger("sentry.integrations.github")
     repo_provider = "github"
 
     def _validate_repo(self, client, installation, repo):

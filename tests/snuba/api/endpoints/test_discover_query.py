@@ -74,6 +74,24 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["environment"] == "production"
         assert response.data["data"][0]["platform.name"] == "python"
 
+    def test_with_discover_basic(self):
+        # Dashboards requires access to the discover1 endpoints for now.
+        # But newer saas plans don't include discover1, only discover2 (discover-basic).
+        with self.feature("organizations:discover-basic"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["environment", "platform.name"],
+                    "start": iso_format(datetime.now() - timedelta(seconds=10)),
+                    "end": iso_format(datetime.now()),
+                    "orderby": "-timestamp",
+                    "range": None,
+                },
+            )
+        assert response.status_code == 200, response.content
+
     def test_relative_dates(self):
         with self.feature("organizations:discover"):
             url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
@@ -465,18 +483,18 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_no_feature_access(self):
         url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
-        response = self.client.post(
-            url,
-            {
-                "projects": [self.project.id],
-                "fields": ["message", "platform"],
-                "range": "14d",
-                "orderby": "-timestamp",
-                "start": None,
-                "end": None,
-            },
-        )
-
+        with self.feature({"organizations:discover": False, "organizations:discover-basic": False}):
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["message", "platform"],
+                    "range": "14d",
+                    "orderby": "-timestamp",
+                    "start": None,
+                    "end": None,
+                },
+            )
         assert response.status_code == 404, response.content
 
     def test_invalid_project(self):

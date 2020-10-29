@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import pytz
 from datetime import datetime, timedelta
 
-from sentry.utils.snuba import raw_query, parse_snuba_datetime
+from sentry.utils.snuba import raw_query, parse_snuba_datetime, QueryOutsideRetentionError
 from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.snuba.dataset import Dataset
 
@@ -36,7 +36,8 @@ def get_changed_project_release_model_adoptions(project_ids):
         selected_columns=["project_id", "release", "users"],
         groupby=["release", "project_id"],
         start=start,
-        filter_keys={"project_id": project_ids},
+        referrer="sessions.get-adoption",
+        filter_keys={"project_id": list(project_ids)},
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
@@ -55,6 +56,7 @@ def get_oldest_health_data_for_releases(project_releases):
         groupby=["release", "project_id"],
         start=datetime.utcnow() - timedelta(days=90),
         conditions=conditions,
+        referrer="sessions.oldest-data-backfill",
         filter_keys=filter_keys,
     )["data"]
     rv = {}
@@ -74,6 +76,7 @@ def check_has_health_data(project_releases):
             groupby=["release", "project_id"],
             start=datetime.utcnow() - timedelta(days=90),
             conditions=conditions,
+            referrer="sessions.health-data-check",
             filter_keys=filter_keys,
         )["data"]
     )
@@ -88,13 +91,18 @@ def get_project_releases_by_stability(
     if stats_period is None:
         stats_period = "24h"
 
+    # Special rule that we support sorting by the last 24h only.
+    if scope.endswith("_24h"):
+        scope = scope[:-4]
+        stats_period = "24h"
+
     _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
 
     orderby = {
         "crash_free_sessions": [["divide", ["sessions_crashed", "sessions"]]],
         "crash_free_users": [["divide", ["users_crashed", "users"]]],
-        "sessions": ["sessions"],
-        "users": ["users"],
+        "sessions": ["-sessions"],
+        "users": ["-users"],
     }[scope]
 
     conditions = []
@@ -113,6 +121,7 @@ def get_project_releases_by_stability(
         limit=limit,
         conditions=conditions,
         filter_keys=filter_keys,
+        referrer="sessions.stability-sort",
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
@@ -158,14 +167,19 @@ def get_release_adoption(project_releases, environments=None, now=None):
         now = datetime.now(pytz.utc)
     start = now - timedelta(days=1)
 
+    total_conditions = []
+    if environments is not None:
+        total_conditions.append(["environment", "IN", environments])
+
     total_users = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["release", "users"],
-        groupby=["release", "project_id"],
+        selected_columns=["project_id", "users"],
+        groupby=["project_id"],
         start=start,
-        conditions=conditions,
+        conditions=total_conditions,
         filter_keys=filter_keys,
+        referrer="sessions.release-adoption-total-users",
     )["data"]:
         total_users[x["project_id"]] = x["users"]
 
@@ -177,12 +191,13 @@ def get_release_adoption(project_releases, environments=None, now=None):
         start=start,
         conditions=conditions,
         filter_keys=filter_keys,
+        referrer="sessions.release-adoption-list",
     )["data"]:
         total = total_users.get(x["project_id"])
         if not total:
             adoption = None
         else:
-            adoption = x["users"] / total * 100
+            adoption = float(x["users"]) / total * 100
         rv[x["project_id"], x["release"]] = {
             "adoption": adoption,
             "users_24h": x["users"],
@@ -225,12 +240,14 @@ def get_release_health_data_overview(
             "sessions",
             "sessions_errored",
             "sessions_crashed",
+            "sessions_abnormal",
             "users_crashed",
         ],
         groupby=["release", "project_id"],
         start=summary_start,
         conditions=conditions,
         filter_keys=filter_keys,
+        referrer="sessions.release-overview",
     )["data"]:
         rp = {
             "duration_p50": _convert_duration(x["duration_quantiles"][0]),
@@ -244,7 +261,9 @@ def get_release_health_data_overview(
             "total_users": x["users"],
             "total_sessions": x["sessions"],
             "sessions_crashed": x["sessions_crashed"],
-            "sessions_errored": x["sessions_errored"],
+            "sessions_errored": max(
+                0, x["sessions_errored"] - x["sessions_crashed"] - x["sessions_abnormal"]
+            ),
             "has_health_data": True,
         }
         if health_stats_period:
@@ -296,14 +315,18 @@ def get_release_health_data_overview(
             start=stats_start,
             conditions=conditions,
             filter_keys=filter_keys,
+            referrer="sessions.release-stats",
         )["data"]:
             time_bucket = int(
                 (parse_snuba_datetime(x["bucketed_started"]) - stats_start).total_seconds()
                 / stats_rollup
             )
-            rv[x["project_id"], x["release"]]["stats"][health_stats_period][time_bucket][1] = x[
-                stat
-            ]
+            key = (x["project_id"], x["release"])
+            # Sometimes this might return a release we haven't seen yet or it might
+            # return a time bucket that did not exist yet at the time of the initial
+            # query.  In that case, just skip it.
+            if key in rv and time_bucket < len(rv[key]["stats"][health_stats_period]):
+                rv[key]["stats"][health_stats_period][time_bucket][1] = x[stat]
 
     return rv
 
@@ -324,6 +347,7 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
             start=start,
             conditions=conditions,
             filter_keys=filter_keys,
+            referrer="sessions.crash-free-breakdown",
         )["data"][0]
         return {
             "date": end,
@@ -346,13 +370,17 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
         timedelta(days=14),
         timedelta(days=30),
     ):
-        item_start = start + offset
-        if item_start > now:
-            if last is None or (item_start - last).days > 1:
-                rv.append(_query_stats(now))
-            break
-        rv.append(_query_stats(item_start))
-        last = item_start
+        try:
+            item_start = start + offset
+            if item_start > now:
+                if last is None or (item_start - last).days > 1:
+                    rv.append(_query_stats(now))
+                break
+            rv.append(_query_stats(item_start))
+            last = item_start
+        except QueryOutsideRetentionError:
+            # cannot query for these
+            pass
 
     return rv
 
@@ -373,7 +401,17 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
     buckets = int((end - start).total_seconds() / rollup)
     stats = _make_stats(start, rollup, buckets, default=None)
 
-    totals = {stat: 0, stat + "_crashed": 0, stat + "_abnormal": 0, stat + "_errored": 0}
+    # Due to the nature of the probabilistic data structures some
+    # subtractions can become negative.  As such we're making sure a number
+    # never goes below zero to avoid confusion.
+
+    totals = {
+        stat: 0,
+        stat + "_healthy": 0,
+        stat + "_crashed": 0,
+        stat + "_abnormal": 0,
+        stat + "_errored": 0,
+    }
 
     for rv in raw_query(
         dataset=Dataset.Sessions,
@@ -391,14 +429,19 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         rollup=rollup,
         conditions=conditions,
         filter_keys=filter_keys,
+        referrer="sessions.release-stats-details",
     )["data"]:
         ts = parse_snuba_datetime(rv["bucketed_started"])
         bucket = int((ts - start).total_seconds() / rollup)
         stats[bucket][1] = {
             stat: rv[stat],
+            stat + "_healthy": max(0, rv[stat] - rv[stat + "_errored"]),
             stat + "_crashed": rv[stat + "_crashed"],
             stat + "_abnormal": rv[stat + "_abnormal"],
-            stat + "_errored": rv[stat + "_errored"] - rv[stat + "_crashed"],
+            stat
+            + "_errored": max(
+                0, rv[stat + "_errored"] - rv[stat + "_crashed"] - rv[stat + "_abnormal"]
+            ),
             "duration_p50": _convert_duration(rv["duration_quantiles"][0]),
             "duration_p90": _convert_duration(rv["duration_quantiles"][1]),
         }
@@ -407,12 +450,13 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         # as the data becomes available.
         if stat == "sessions":
             for k in totals:
-                totals[k] += rv[k]
+                totals[k] += stats[bucket][1][k]
 
     for idx, bucket in enumerate(stats):
         if bucket[1] is None:
             stats[idx][1] = {
                 stat: 0,
+                stat + "_healthy": 0,
                 stat + "_crashed": 0,
                 stat + "_abnormal": 0,
                 stat + "_errored": 0,
@@ -429,14 +473,18 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             end=end,
             conditions=conditions,
             filter_keys=filter_keys,
+            referrer="sessions.crash-free-breakdown-users",
         )["data"]
         if rows:
             rv = rows[0]
             totals = {
                 "users": rv["users"],
+                "users_healthy": max(0, rv["users"] - rv["users_errored"]),
                 "users_crashed": rv["users_crashed"],
                 "users_abnormal": rv["users_abnormal"],
-                "users_errored": rv["users_errored"] - rv["users_crashed"],
+                "users_errored": max(
+                    0, rv["users_errored"] - rv["users_crashed"] - rv["users_abnormal"]
+                ),
             }
 
     return stats, totals

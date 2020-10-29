@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {shallow, mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ContextSummary from 'app/components/events/contextSummary/contextSummary';
 import {FILTER_MASK} from 'app/constants';
 import ContextSummaryUser from 'app/components/events/contextSummary/contextSummaryUser';
@@ -46,16 +47,16 @@ const CONTEXT_BROWSER = {
   name: 'Chrome',
 };
 
-describe('ContextSummary', function() {
-  describe('render()', function() {
+describe('ContextSummary', function () {
+  describe('render()', function () {
     it('renders nothing without contexts', () => {
       const event = {
         id: '',
         contexts: {},
       };
 
-      const wrapper = shallow(<ContextSummary event={event} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('renders nothing with a single user context', () => {
@@ -65,8 +66,8 @@ describe('ContextSummary', function() {
         contexts: {},
       };
 
-      const wrapper = shallow(<ContextSummary event={event} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('should bail out with empty contexts', () => {
@@ -79,8 +80,8 @@ describe('ContextSummary', function() {
         },
       };
 
-      const wrapper = shallow(<ContextSummary event={event} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('renders at least three contexts', () => {
@@ -92,8 +93,8 @@ describe('ContextSummary', function() {
         },
       };
 
-      const wrapper = shallow(<ContextSummary event={event} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('renders up to four contexts', () => {
@@ -108,8 +109,8 @@ describe('ContextSummary', function() {
         },
       };
 
-      const wrapper = shallow(<ContextSummary event={event} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('should prefer client_os over os', () => {
@@ -124,8 +125,8 @@ describe('ContextSummary', function() {
         },
       };
 
-      const wrapper = shallow(<ContextSummary event={event} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('renders client_os too', () => {
@@ -139,8 +140,8 @@ describe('ContextSummary', function() {
         },
       };
 
-      const wrapper = shallow(<ContextSummary event={event} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('should skip non-default named contexts', () => {
@@ -155,8 +156,8 @@ describe('ContextSummary', function() {
         },
       };
 
-      const wrapper = shallow(<ContextSummary event={event} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('should skip a missing user context', () => {
@@ -170,14 +171,14 @@ describe('ContextSummary', function() {
         },
       };
 
-      const wrapper = shallow(<ContextSummary event={event} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      expect(wrapper).toSnapshot();
     });
   });
 });
 
-describe('OsSummary', function() {
-  describe('render()', function() {
+describe('OsSummary', function () {
+  describe('render()', function () {
     it('renders the version string', () => {
       const os = {
         kernel_version: '17.5.0',
@@ -187,8 +188,8 @@ describe('OsSummary', function() {
         name: 'Mac OS X',
       };
 
-      const wrapper = shallow(<ContextSummaryOS data={os} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummaryOS data={os} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('renders the kernel version when no version', () => {
@@ -199,8 +200,8 @@ describe('OsSummary', function() {
         name: 'Mac OS X',
       };
 
-      const wrapper = shallow(<ContextSummaryOS data={os} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummaryOS data={os} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('renders unknown when no version', () => {
@@ -210,14 +211,14 @@ describe('OsSummary', function() {
         name: 'Mac OS X',
       };
 
-      const wrapper = shallow(<ContextSummaryOS data={os} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummaryOS data={os} />);
+      expect(wrapper).toSnapshot();
     });
   });
 });
 
-describe('GpuSummary', function() {
-  describe('render()', function() {
+describe('GpuSummary', function () {
+  describe('render()', function () {
     it('renders name and vendor', () => {
       const gpu = {
         name: 'Mali-T880',
@@ -225,8 +226,8 @@ describe('GpuSummary', function() {
         version: 'OpenGL ES 3.2 v1.r22p0-01rel0.f294e54ceb2cb2d81039204fa4b0402e',
       };
 
-      const wrapper = shallow(<ContextSummaryGPU data={gpu} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummaryGPU data={gpu} />);
+      expect(wrapper).toSnapshot();
     });
 
     it('renders unknown when no vendor', () => {
@@ -235,15 +236,15 @@ describe('GpuSummary', function() {
         name: 'Apple A8 GPU',
       };
 
-      const wrapper = shallow(<ContextSummaryGPU data={gpu} />);
-      expect(wrapper).toMatchSnapshot();
+      const wrapper = mountWithTheme(<ContextSummaryGPU data={gpu} />);
+      expect(wrapper).toSnapshot();
     });
   });
 });
 
-describe('UserSummary', function() {
-  describe('render', function() {
-    it('prefers email, then IP, then id, then username for title', function() {
+describe('UserSummary', function () {
+  describe('render', function () {
+    it('prefers email, then IP, then id, then username for title', function () {
       const user1 = {
         email: 'maisey@dogsrule.com',
         ip_address: '12.31.20.12',
@@ -253,8 +254,10 @@ describe('UserSummary', function() {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper1 = shallow(<ContextSummaryUser data={user1} />);
-      expect(wrapper1.find('[data-test-id="user-title"]').text()).toEqual(user1.email);
+      const wrapper1 = mountWithTheme(<ContextSummaryUser data={user1} />);
+      expect(wrapper1.find('[data-test-id="user-title"]').render().text()).toEqual(
+        user1.email
+      );
 
       const user2 = {
         ip_address: '12.31.20.12',
@@ -264,8 +267,8 @@ describe('UserSummary', function() {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper2 = shallow(<ContextSummaryUser data={user2} />);
-      expect(wrapper2.find('[data-test-id="user-title"]').text()).toEqual(
+      const wrapper2 = mountWithTheme(<ContextSummaryUser data={user2} />);
+      expect(wrapper2.find('[data-test-id="user-title"]').render().text()).toEqual(
         user2.ip_address
       );
 
@@ -276,8 +279,10 @@ describe('UserSummary', function() {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper3 = shallow(<ContextSummaryUser data={user3} />);
-      expect(wrapper3.find('[data-test-id="user-title"]').text()).toEqual(user3.id);
+      const wrapper3 = mountWithTheme(<ContextSummaryUser data={user3} />);
+      expect(wrapper3.find('[data-test-id="user-title"]').render().text()).toEqual(
+        user3.id
+      );
 
       const user4 = {
         username: 'maiseythedog',
@@ -285,29 +290,31 @@ describe('UserSummary', function() {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper4 = shallow(<ContextSummaryUser data={user4} />);
-      expect(wrapper4.find('[data-test-id="user-title"]').text()).toEqual(user4.username);
+      const wrapper4 = mountWithTheme(<ContextSummaryUser data={user4} />);
+      expect(wrapper4.find('[data-test-id="user-title"]').render().text()).toEqual(
+        user4.username
+      );
     });
 
-    it('renders NoSummary if no email, IP, id, or username', function() {
+    it('renders NoSummary if no email, IP, id, or username', function () {
       const user = {
         name: 'Maisey Dog',
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper = mount(<ContextSummaryUser data={user} />);
+      const wrapper = mountWithTheme(<ContextSummaryUser data={user} />);
       expect(wrapper.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
       );
     });
 
-    it('does not use filtered values for title', function() {
+    it('does not use filtered values for title', function () {
       const user1 = {
         email: FILTER_MASK,
       };
 
-      const wrapper1 = mount(<ContextSummaryUser data={user1} />);
+      const wrapper1 = mountWithTheme(<ContextSummaryUser data={user1} />);
       expect(wrapper1.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper1.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
@@ -322,7 +329,7 @@ describe('UserSummary', function() {
         id: FILTER_MASK,
       };
 
-      const wrapper2 = mount(<ContextSummaryUser data={user2} />);
+      const wrapper2 = mountWithTheme(<ContextSummaryUser data={user2} />);
       expect(wrapper2.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper2.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
@@ -332,14 +339,14 @@ describe('UserSummary', function() {
         username: FILTER_MASK,
       };
 
-      const wrapper3 = mount(<ContextSummaryUser data={user3} />);
+      const wrapper3 = mountWithTheme(<ContextSummaryUser data={user3} />);
       expect(wrapper3.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper3.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
       );
     });
 
-    it('does not use filtered values for avatar', function() {
+    it('does not use filtered values for avatar', function () {
       // id is never used for avatar purposes, but is enough to keep us from
       // ending up with a NoSummary component where the UserSummary component
       // should be
@@ -348,7 +355,7 @@ describe('UserSummary', function() {
         name: FILTER_MASK,
       };
 
-      const wrapper1 = mount(<ContextSummaryUser data={user1} />);
+      const wrapper1 = mountWithTheme(<ContextSummaryUser data={user1} />);
       expect(wrapper1.find('LetterAvatar').text()).toEqual('?');
 
       const user2 = {
@@ -356,7 +363,7 @@ describe('UserSummary', function() {
         email: FILTER_MASK,
       };
 
-      const wrapper2 = mount(<ContextSummaryUser data={user2} />);
+      const wrapper2 = mountWithTheme(<ContextSummaryUser data={user2} />);
       expect(wrapper2.find('LetterAvatar').text()).toEqual('?');
 
       const user3 = {
@@ -364,7 +371,7 @@ describe('UserSummary', function() {
         username: FILTER_MASK,
       };
 
-      const wrapper3 = mount(<ContextSummaryUser data={user3} />);
+      const wrapper3 = mountWithTheme(<ContextSummaryUser data={user3} />);
       expect(wrapper3.find('LetterAvatar').text()).toEqual('?');
     });
   });

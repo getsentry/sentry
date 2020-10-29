@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   MOCK_RESP_VERBOSE,
@@ -10,7 +9,9 @@ import {
   MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,
 } from 'sentry-test/fixtures/ruleConditions';
 
-describe('IssueAlertOptions', function() {
+import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
+
+describe('IssueAlertOptions', function () {
   const {organization, routerContext} = initializeOrg();
   const URL = `/projects/${organization.slug}/rule-conditions/`;
   let props;

@@ -2,15 +2,21 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import integrations
+from sentry import integrations, features
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize, IntegrationProviderSerializer
+from sentry.utils.compat import filter
 
 
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
+        def is_provider_enabled(provider):
+            if not provider.requires_feature_flag:
+                return True
+            feature_flag_name = "organizations:integrations-%s" % provider.key
+            return features.has(feature_flag_name, organization, actor=request.user)
 
-        providers = list(integrations.all())
+        providers = filter(is_provider_enabled, list(integrations.all()))
 
         providers.sort(key=lambda i: i.key)
 

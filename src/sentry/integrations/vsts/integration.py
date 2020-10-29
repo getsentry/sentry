@@ -30,7 +30,7 @@ from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.vsts import VSTSIdentityProvider, get_user_info
+from sentry.identity.vsts import get_user_info, use_limited_scopes
 from sentry.pipeline import PipelineView
 from sentry.web.helpers import render_to_response
 from sentry.tasks.integrations import migrate_repo
@@ -73,7 +73,7 @@ FEATURES = [
     FeatureDescription(
         """
         Never forget to close a resolved workitem! Resolving an issue in Sentry
-        will resolve your linked workitems and viceversa.
+        will resolve your linked workitems and vice versa.
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
@@ -163,7 +163,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         project_selector = []
 
         try:
-            projects = client.get_projects(instance)["value"]
+            projects = client.get_projects(instance)
             all_states = set()
 
             for idx, project in enumerate(projects):
@@ -324,7 +324,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     VSTS_ACCOUNT_LOOKUP_URL = "https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1"
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["visualstudio", "integrations:vsts"],
@@ -340,8 +340,17 @@ class VstsIntegrationProvider(IntegrationProvider):
                 }
             )
 
+    def get_scopes(self):
+        if use_limited_scopes(self.pipeline):
+            return ("vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
+
+        return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
+
     def get_pipeline_views(self):
-        identity_pipeline_config = {"redirect_url": absolute_uri(self.oauth_redirect_url)}
+        identity_pipeline_config = {
+            "redirect_url": absolute_uri(self.oauth_redirect_url),
+            "oauth_scopes": self.get_scopes(),
+        }
 
         identity_pipeline_view = NestedPipelineView(
             bind_key="identity",
@@ -357,7 +366,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         oauth_data = self.get_oauth_data(data)
         account = state["account"]
         user = get_user_info(data["access_token"])
-        scopes = sorted(VSTSIdentityProvider.oauth_scopes)
+        scopes = sorted(self.get_scopes())
         base_url = self.get_base_url(data["access_token"], account["accountId"])
 
         integration = {

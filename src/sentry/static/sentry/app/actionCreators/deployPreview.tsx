@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {DEPLOY_PREVIEW_CONFIG} from 'app/constants';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
 import {t, tct} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
 import ExternalLink from 'app/components/links/externalLink';
@@ -24,11 +24,29 @@ export function displayDeployPreviewAlert() {
   );
 
   AlertActions.addAlert({
+    id: 'deploy-preview',
     message: tct(
       'You are viewing a frontend deploy preview of [commitLink] ([branchLink])',
       {commitLink, branchLink}
     ),
     type: 'warning',
     neverExpire: true,
+    noDuplicates: true,
+  });
+}
+
+export function displayExperimentalSpaAlert() {
+  if (!EXPERIMENTAL_SPA) {
+    return;
+  }
+
+  AlertActions.addAlert({
+    id: 'develop-proxy',
+    message: t(
+      'You are developing against production Sentry API, please BE CAREFUL, as your changes will affect production data.'
+    ),
+    type: 'warning',
+    neverExpire: true,
+    noDuplicates: true,
   });
 }

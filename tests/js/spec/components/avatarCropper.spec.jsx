@@ -1,9 +1,10 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import AvatarCropper from 'app/components/avatarCropper';
 
-describe('AvatarCropper', function() {
+describe('AvatarCropper', function () {
   const USER = {
     email: 'a@example.com',
     avatar: {
@@ -12,13 +13,13 @@ describe('AvatarCropper', function() {
     },
   };
 
-  describe('getDiffNW', function() {
+  describe('getDiffNW', function () {
     it(
       'should return a negative diff when yDiff and xDiff ' +
         'are positive (cropper is getting smaller)',
-      function() {
-        const cropper = shallow(
-          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
+      function () {
+        const cropper = mountWithTheme(
+          <AvatarCropper model={USER} updateDataUrlState={function () {}} />
         ).instance();
         const diff = cropper.getDiffNW(4, 5);
         expect(diff).toEqual(-4.5);
@@ -28,9 +29,9 @@ describe('AvatarCropper', function() {
     it(
       'should return a positive diff when yDiff and xDiff ' +
         'are negative (cropper is getting bigger)',
-      function() {
-        const cropper = shallow(
-          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
+      function () {
+        const cropper = mountWithTheme(
+          <AvatarCropper model={USER} updateDataUrlState={function () {}} />
         ).instance();
         const diff = cropper.getDiffNW(-4, -5);
         expect(diff).toEqual(4.5);
@@ -38,13 +39,13 @@ describe('AvatarCropper', function() {
     );
   });
 
-  describe('getDiffNE', function() {
+  describe('getDiffNE', function () {
     it(
       'should return a positive diff when yDiff is negative and ' +
         'xDiff is positive (cropper is getting bigger)',
-      function() {
-        const cropper = shallow(
-          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
+      function () {
+        const cropper = mountWithTheme(
+          <AvatarCropper model={USER} updateDataUrlState={function () {}} />
         ).instance();
         const diff = cropper.getDiffNE(-4, 5);
         expect(diff).toEqual(4.5);
@@ -54,9 +55,9 @@ describe('AvatarCropper', function() {
     it(
       'should return a negative diff when yDiff is positive and ' +
         'xDiff is negative (cropper is getting smaller)',
-      function() {
-        const cropper = shallow(
-          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
+      function () {
+        const cropper = mountWithTheme(
+          <AvatarCropper model={USER} updateDataUrlState={function () {}} />
         ).instance();
         const diff = cropper.getDiffNE(4, -5);
         expect(diff).toEqual(-4.5);
@@ -64,13 +65,13 @@ describe('AvatarCropper', function() {
     );
   });
 
-  describe('getDiffSE', function() {
+  describe('getDiffSE', function () {
     it(
       'should return a positive diff when yDiff and ' +
         'xDiff are positive (cropper is getting bigger)',
-      function() {
-        const cropper = shallow(
-          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
+      function () {
+        const cropper = mountWithTheme(
+          <AvatarCropper model={USER} updateDataUrlState={function () {}} />
         ).instance();
         const diff = cropper.getDiffSE(4, 5);
         expect(diff).toEqual(4.5);
@@ -80,9 +81,9 @@ describe('AvatarCropper', function() {
     it(
       'should return a negative diff when yDiff and ' +
         'xDiff are negative (cropper is getting smaller)',
-      function() {
-        const cropper = shallow(
-          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
+      function () {
+        const cropper = mountWithTheme(
+          <AvatarCropper model={USER} updateDataUrlState={function () {}} />
         ).instance();
         const diff = cropper.getDiffSE(-4, -5);
         expect(diff).toEqual(-4.5);
@@ -90,13 +91,13 @@ describe('AvatarCropper', function() {
     );
   });
 
-  describe('getDiffSW', function() {
+  describe('getDiffSW', function () {
     it(
       'should return a positive diff when yDiff is positive and ' +
         'xDiff is negative (cropper is getting bigger)',
-      function() {
-        const cropper = shallow(
-          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
+      function () {
+        const cropper = mountWithTheme(
+          <AvatarCropper model={USER} updateDataUrlState={function () {}} />
         ).instance();
         const diff = cropper.getDiffSW(4, -5);
         expect(diff).toEqual(4.5);
@@ -106,9 +107,9 @@ describe('AvatarCropper', function() {
     it(
       'should return a negative diff when yDiff is negative and' +
         'xDiff is positive (cropper is getting smaller)',
-      function() {
-        const cropper = shallow(
-          <AvatarCropper model={USER} updateDataUrlState={function() {}} />
+      function () {
+        const cropper = mountWithTheme(
+          <AvatarCropper model={USER} updateDataUrlState={function () {}} />
         ).instance();
         const diff = cropper.getDiffSW(-4, 5);
         expect(diff).toEqual(-4.5);

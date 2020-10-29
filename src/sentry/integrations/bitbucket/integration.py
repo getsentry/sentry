@@ -70,7 +70,7 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 # see https://developer.atlassian.com/bitbucket/api/2/reference/meta/authentication#scopes-bbc
-scopes = ("issue:write", "pullrequest", "webhook")
+scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
 class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, RepositoryMixin):
@@ -153,7 +153,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         )
         return [identity_pipeline_view, VerifyInstallation()]
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["bitbucket", "integrations:bitbucket"],

@@ -1,70 +1,81 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
-import ProjectAlerts from 'app/views/settings/projectAlerts';
+import {mockRouterPush} from 'sentry-test/mockRouterPush';
+
+import * as memberActionCreators from 'app/actionCreators/members';
 import ProjectAlertsCreate from 'app/views/settings/projectAlerts/create';
+import AlertsContainer from 'app/views/alerts';
+import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvider';
+import ProjectsStore from 'app/stores/projectsStore';
 
 jest.unmock('app/utils/recreateRoute');
 
-describe('ProjectAlertsCreate', function() {
+describe('ProjectAlertsCreate', function () {
   const projectAlertRuleDetailsRoutes = [
     {
-      path: '/',
-    },
-    {
-      path: '/settings/',
-      name: 'Settings',
-      indexRoute: {},
-    },
-    {
-      name: 'Organization',
-      path: ':orgId/',
-    },
-    {
-      name: 'Project',
-      path: 'projects/:projectId/',
-    },
-    {},
-    {
-      indexRoute: {name: 'General'},
-    },
-    {
-      name: 'Alerts',
-      path: 'alerts/',
+      path: '/organizations/:orgId/alerts/',
+      name: 'Organization Alerts',
       indexRoute: {},
       childRoutes: [
-        {path: 'settings/', name: 'Settings'},
-        {path: 'new/', name: 'New Alert Rule'},
         {
           path: 'rules/',
-          indexRoute: {to: '/settings/:orgId/projects/:projectId/alerts/'},
+          name: 'Rules',
           childRoutes: [
-            {path: 'new/', name: 'New Alert Rule'},
-            {path: ':ruleId/', name: 'Edit Alert Rule'},
+            {
+              name: 'Project',
+              path: ':projectId/',
+              childRoutes: [
+                {
+                  name: 'New Alert Rule',
+                  path: 'new/',
+                },
+                {
+                  name: 'Edit Alert Rule',
+                  path: ':ruleId/',
+                },
+              ],
+            },
           ],
         },
         {
-          path: 'metric-rules/',
-          component: null,
-          indexRoute: {to: '/settings/:orgId/projects/:projectId/alerts/'},
+          path: 'metric-rules',
+          name: 'Metric Rules',
           childRoutes: [
-            {name: 'New Alert Rule', path: 'new/'},
-            {name: 'Edit Alert Rule', path: ':ruleId/'},
+            {
+              name: 'Project',
+              path: ':projectId/',
+              childRoutes: [
+                {
+                  name: 'New Alert Rule',
+                  path: 'new/',
+                },
+                {
+                  name: 'Edit Alert Rule',
+                  path: ':ruleId/',
+                },
+              ],
+            },
           ],
         },
       ],
     },
-    {path: 'new/', name: 'New Alert Rule'},
+    {
+      name: 'Project',
+      path: ':projectId/',
+    },
+    {
+      name: 'New Alert Rule',
+      path: 'new/',
+    },
   ];
 
-  beforeEach(async function() {
-    browserHistory.replace = jest.fn();
+  beforeEach(async function () {
+    memberActionCreators.fetchOrgMembers = jest.fn();
     MockApiClient.addMockResponse({
-      url:
-        '/projects/org-slug/project-slug/rules/configuration/?issue_alerts_targeting=0',
+      url: '/projects/org-slug/project-slug/rules/configuration/',
       body: TestStubs.ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({
@@ -75,36 +86,48 @@ describe('ProjectAlertsCreate', function() {
       url: '/projects/org-slug/project-slug/environments/',
       body: TestStubs.Environments(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [TestStubs.User()],
+    });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
   const createWrapper = (props = {}) => {
-    const {organization, project, routerContext} = initializeOrg(props);
+    const {organization, project, routerContext, router} = initializeOrg(props);
+    ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = mountWithTheme(
-      <ProjectAlerts organization={organization} params={params}>
-        <ProjectAlertsCreate
-          params={params}
-          location={{pathname: ''}}
-          routes={projectAlertRuleDetailsRoutes}
-        />
-      </ProjectAlerts>,
+      <AlertsContainer organization={organization} params={params}>
+        <AlertBuilderProjectProvider params={params}>
+          <ProjectAlertsCreate
+            params={params}
+            location={{
+              pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
+            }}
+            routes={projectAlertRuleDetailsRoutes}
+            router={router}
+          />
+        </AlertBuilderProjectProvider>
+      </AlertsContainer>,
       routerContext
     );
+    mockRouterPush(wrapper, router);
 
     return {
       wrapper,
       organization,
       project,
+      router,
     };
   };
 
-  describe('Issue Alert', function() {
-    describe('With Metric Alerts', function() {
-      beforeEach(function() {
+  describe('Issue Alert', function () {
+    describe('With Metric Alerts', function () {
+      beforeEach(function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/tags/',
           body: [],
@@ -121,26 +144,23 @@ describe('ProjectAlertsCreate', function() {
           ],
         });
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/users/',
-          body: [TestStubs.User()],
-        });
-        MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           body: TestStubs.EventsStats(),
         });
       });
-      it('forces user to select Metric or Issue alert', async function() {
+      it('forces user to select Metric or Issue alert', async function () {
         const {wrapper} = createWrapper({
           organization: {features: ['incidents']},
         });
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         expect(wrapper.find('IssueEditor')).toHaveLength(0);
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(0);
 
-        wrapper.find('button[aria-label="metric"]').simulate('click');
+        wrapper.find('Radio[aria-label="metric"]').simulate('change');
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(1);
         await tick();
 
-        wrapper.find('button[aria-label="issue"]').simulate('click');
+        wrapper.find('Radio[aria-label="issue"]').simulate('change');
         await tick();
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(0);
         expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(
@@ -153,9 +173,10 @@ describe('ProjectAlertsCreate', function() {
       });
     });
 
-    describe('Without Metric Alerts', function() {
-      it('loads default values', function() {
+    describe('Without Metric Alerts', function () {
+      it('loads default values', function () {
         const {wrapper} = createWrapper();
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(
           '__all_environments__'
         );
@@ -165,22 +186,35 @@ describe('ProjectAlertsCreate', function() {
         expect(wrapper.find('SelectControl[name="frequency"]').prop('value')).toBe('30');
       });
 
-      it('updates values and saves', async function() {
-        const {wrapper} = createWrapper();
+      it('updates values and saves', async function () {
+        const {wrapper, router} = createWrapper({
+          organization: {
+            features: ['alert-filters'],
+          },
+        });
         const mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',
           method: 'POST',
           body: TestStubs.ProjectAlertRule(),
         });
 
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
+        // Change target environment
         selectByValue(wrapper, 'production', {control: true, name: 'environment'});
+        // Change actionMatch and filterMatch dropdown
         selectByValue(wrapper, 'any', {name: 'actionMatch'});
+        selectByValue(wrapper, 'any', {name: 'filterMatch'});
+
+        // Change name of alert rule
+        wrapper
+          .find('input[name="name"]')
+          .simulate('change', {target: {value: 'My Rule Name'}});
 
         // Add a condition and remove it
         selectByValue(
           wrapper,
           'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-          {selector: 'Select[placeholder="Add a condition..."]'}
+          {selector: 'Select[placeholder="Add optional condition..."]'}
         );
 
         wrapper
@@ -189,12 +223,14 @@ describe('ProjectAlertsCreate', function() {
           .find('button[aria-label="Delete Node"]')
           .simulate('click');
 
+        // Add another condition
         selectByValue(
           wrapper,
           'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-          {selector: 'Select[placeholder="Add a condition..."]'}
+          {selector: 'Select[placeholder="Add optional condition..."]'}
         );
 
+        // Edit new Condition
         const ruleNode = wrapper.find('RuleNode').at(0);
 
         ruleNode
@@ -207,32 +243,55 @@ describe('ProjectAlertsCreate', function() {
 
         selectByValue(wrapper, 'ne', {name: 'match', control: true});
 
-        // Add an action and remove it
-        selectByValue(wrapper, 'sentry.rules.actions.notify_event.NotifyEventAction', {
-          selector: 'Select[placeholder="Add an action..."]',
-        });
+        // Add a filter and remove it
+        selectByValue(
+          wrapper,
+          'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+          {selector: 'Select[placeholder="Add optional filter..."]'}
+        );
 
         wrapper
-          .find('PanelRuleItem')
+          .find('RuleNode')
           .at(1)
           .find('button[aria-label="Delete Node"]')
           .simulate('click');
 
+        // Add a new filter
+        selectByValue(
+          wrapper,
+          'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+          {selector: 'Select[placeholder="Add optional filter..."]'}
+        );
+
+        const filterRuleNode = wrapper.find('RuleNode').at(1);
+
+        filterRuleNode
+          .find('input[type="number"]')
+          .simulate('change', {target: {value: '12'}});
+
+        // Add an action and remove it
+        selectByValue(wrapper, 'sentry.rules.actions.notify_event.NotifyEventAction', {
+          selector: 'Select[placeholder="Add action..."]',
+        });
+
+        wrapper
+          .find('RuleNodeList')
+          .at(2)
+          .find('button[aria-label="Delete Node"]')
+          .simulate('click');
+
+        // Add a new action
         selectByValue(
           wrapper,
           'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
           {
-            selector: 'Select[placeholder="Add an action..."]',
+            selector: 'Select[placeholder="Add action..."]',
           }
         );
 
         selectByValue(wrapper, '60', {
           name: 'frequency',
         });
-
-        wrapper
-          .find('input[name="name"]')
-          .simulate('change', {target: {value: 'My Rule Name'}});
 
         wrapper.find('form').simulate('submit');
 
@@ -241,6 +300,7 @@ describe('ProjectAlertsCreate', function() {
           expect.objectContaining({
             data: {
               actionMatch: 'any',
+              filterMatch: 'any',
               actions: [
                 {
                   id:
@@ -256,6 +316,14 @@ describe('ProjectAlertsCreate', function() {
                   value: 'conditionValue',
                 },
               ],
+              filters: [
+                {
+                  id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+                  comparison_type: 'older',
+                  time: 'minute',
+                  value: '12',
+                },
+              ],
               environment: 'production',
               frequency: '60',
               name: 'My Rule Name',
@@ -264,9 +332,7 @@ describe('ProjectAlertsCreate', function() {
         );
 
         await tick();
-        expect(browserHistory.replace).toHaveBeenCalledWith(
-          '/settings/org-slug/projects/project-slug/alerts/'
-        );
+        expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/alerts/rules/');
       });
     });
   });

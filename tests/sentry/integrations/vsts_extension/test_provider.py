@@ -11,12 +11,17 @@ from sentry.integrations.vsts_extension import (
 )
 from sentry.models import Integration
 from tests.sentry.integrations.vsts.testutils import VstsIntegrationTestCase
+from tests.sentry.integrations.vsts.test_integration import FULL_SCOPES
 
 
 class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
     provider = VstsExtensionIntegrationProvider()
 
-    def test_get_pipeline_views(self):
+    @patch(
+        "sentry.integrations.vsts.integration.VstsIntegrationProvider.get_scopes",
+        return_value=FULL_SCOPES,
+    )
+    def test_get_pipeline_views(self, mock_get_scopes):
         # Should be same as the VSTS integration, but with a different last
         # step.
         views = self.provider.get_pipeline_views()
@@ -27,7 +32,11 @@ class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
 
     @patch("sentry.integrations.vsts.integration.get_user_info")
     @patch("sentry.integrations.vsts.integration.VstsIntegrationProvider.create_subscription")
-    def test_build_integration(self, create_sub, get_user_info):
+    @patch(
+        "sentry.integrations.vsts.integration.VstsIntegrationProvider.get_scopes",
+        return_value=FULL_SCOPES,
+    )
+    def test_build_integration(self, mock_get_scopes, create_sub, get_user_info):
         get_user_info.return_value = {"id": "987"}
         create_sub.return_value = (1, "sharedsecret")
 

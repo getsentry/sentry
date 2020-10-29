@@ -1,28 +1,29 @@
 import React from 'react';
 
 import {mount, shallow} from 'sentry-test/enzyme';
+
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
-describe('RangeSlider', function() {
+describe('RangeSlider', function () {
   const creator = props => (
     <RangeSlider name="test" value={5} min={0} max={10} onChange={() => {}} {...props} />
   );
 
-  it('changes value', function() {
+  it('changes value', function () {
     const wrapper = shallow(creator());
     expect(wrapper.state('sliderValue')).toBe(5);
     wrapper.find('Slider').simulate('input', {target: {value: 7}});
     expect(wrapper.state('sliderValue')).toBe(7);
   });
 
-  it('has right label', function() {
+  it('has right label', function () {
     const wrapper = mount(creator());
     expect(wrapper.find('Label').text()).toBe('5');
     wrapper.find('Slider').simulate('input', {target: {value: 7}});
     expect(wrapper.find('Label').text()).toBe('7');
   });
 
-  it('can use formatLabel', function() {
+  it('can use formatLabel', function () {
     const wrapper = mount(
       creator({
         formatLabel: value => (
@@ -36,7 +37,7 @@ describe('RangeSlider', function() {
     expect(wrapper.find('.test').text()).toBe('SEVEN!');
   });
 
-  it('calls onChange', function() {
+  it('calls onChange', function () {
     const onChange = jest.fn();
     const wrapper = shallow(
       creator({
@@ -48,7 +49,7 @@ describe('RangeSlider', function() {
     expect(onChange).toHaveBeenCalledWith(7, expect.anything());
   });
 
-  it('can provide a list of allowedValues', function() {
+  it('can provide a list of allowedValues', function () {
     const onChange = jest.fn();
     const wrapper = mount(
       creator({
@@ -71,7 +72,7 @@ describe('RangeSlider', function() {
     expect(onChange).toHaveBeenCalledWith(0, expect.anything());
   });
 
-  it('handles invalid values', function() {
+  it('handles invalid values', function () {
     const onChange = jest.fn();
     const wrapper = mount(
       creator({

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {slideInUp} from 'app/styles/animations';
 
 const FieldErrorReason = styled('div')`
-  color: ${p => p.theme.redDark};
+  color: ${p => p.theme.red500};
   position: absolute;
   right: 2px;
   margin-top: 6px;

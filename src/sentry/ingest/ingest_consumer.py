@@ -1,29 +1,31 @@
 from __future__ import absolute_import
 
-import atexit
+import random
+import functools
 import logging
 import msgpack
-from six import BytesIO
 
-import multiprocessing.dummy
-import multiprocessing as _multiprocessing
-
+from django.conf import settings
 from django.core.cache import cache
 
-from sentry import eventstore, features, options
-from sentry.cache import default_cache
-from sentry.models import Project, File, EventAttachment
+import sentry_sdk
+
+from sentry import eventstore, features
+
+from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json, metrics
+from sentry.utils.sdk import mark_scope_as_unsafe
 from sentry.utils.dates import to_datetime
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
-from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
+from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
-from sentry.event_manager import save_transaction_events
+from sentry.event_manager import save_attachment
+from sentry.eventstore.processing import event_processing_store
 
 logger = logging.getLogger(__name__)
 
@@ -32,18 +34,18 @@ CACHE_TIMEOUT = 3600
 
 
 class IngestConsumerWorker(AbstractBatchWorker):
-    def __init__(self, concurrency):
-        self.pool = _multiprocessing.dummy.Pool(concurrency)
-        atexit.register(self.pool.close)
-
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
         return message
 
     def flush_batch(self, batch):
+        mark_scope_as_unsafe()
+        with metrics.timer("ingest_consumer.flush_batch"):
+            return self._flush_batch(batch)
+
+    def _flush_batch(self, batch):
         attachment_chunks = []
         other_messages = []
-        transactions = []
 
         projects_to_fetch = set()
 
@@ -54,8 +56,6 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
                 if message_type == "event":
                     other_messages.append((process_event, message))
-                elif message_type == "transaction":
-                    transactions.append(message)
                 elif message_type == "attachment_chunk":
                     attachment_chunks.append(message)
                 elif message_type == "attachment":
@@ -64,6 +64,9 @@ class IngestConsumerWorker(AbstractBatchWorker):
                     other_messages.append((process_userreport, message))
                 else:
                     raise ValueError("Unknown message type: {}".format(message_type))
+                metrics.incr(
+                    "ingest_consumer.flush.messages_seen", tags={"message_type": message_type}
+                )
 
         with metrics.timer("ingest_consumer.fetch_projects"):
             projects = {p.id: p for p in Project.objects.get_many_from_cache(projects_to_fetch)}
@@ -71,52 +74,35 @@ class IngestConsumerWorker(AbstractBatchWorker):
         if attachment_chunks:
             # attachment_chunk messages need to be processed before attachment/event messages.
             with metrics.timer("ingest_consumer.process_attachment_chunk_batch"):
-                for _ in self.pool.imap_unordered(
-                    lambda msg: process_attachment_chunk(msg, projects=projects),
-                    attachment_chunks,
-                    chunksize=100,
-                ):
-                    pass
+                for attachment_chunk in attachment_chunks:
+                    process_attachment_chunk(attachment_chunk, projects=projects)
 
         if other_messages:
             with metrics.timer("ingest_consumer.process_other_messages_batch"):
-                for _ in self.pool.imap_unordered(
-                    lambda args: args[0](args[1], projects=projects), other_messages, chunksize=100
-                ):
-                    pass
-
-        if transactions:
-            process_transactions_batch(transactions, projects)
+                for processing_func, message in other_messages:
+                    processing_func(message, projects=projects)
 
     def shutdown(self):
         pass
 
 
-@metrics.wraps("ingest_consumer.process_transactions_batch")
-def process_transactions_batch(messages, projects):
-    if options.get("store.transactions-celery") is True:
-        for message in messages:
-            process_event(message, projects)
-        return
+def trace_func(**span_kwargs):
+    def wrapper(f):
+        @functools.wraps(f)
+        def inner(*args, **kwargs):
+            span_kwargs["sampled"] = random.random() < getattr(
+                settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0
+            )
+            with sentry_sdk.start_transaction(**span_kwargs):
+                return f(*args, **kwargs)
 
-    jobs = []
-    for message in messages:
-        payload = message["payload"]
-        project_id = int(message["project_id"])
-        start_time = float(message["start_time"])
+        return inner
 
-        if project_id not in projects:
-            continue
-
-        with metrics.timer("ingest_consumer.decode_transaction_json"):
-            data = json.loads(payload)
-        jobs.append({"data": data, "start_time": start_time})
-
-    save_transaction_events(jobs, projects)
+    return wrapper
 
 
 @metrics.wraps("ingest_consumer.process_event")
-def process_event(message, projects):
+def _do_process_event(message, projects):
     payload = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
@@ -126,6 +112,18 @@ def process_event(message, projects):
 
     # check that we haven't already processed this event (a previous instance of the forwarder
     # died before it could commit the event queue offset)
+    #
+    # XXX(markus): I believe this code is extremely broken:
+    #
+    # * it practically uses memcached in prod which has no consistency
+    #   guarantees (no idea how we don't run into issues there)
+    #
+    # * a TTL of 1h basically doesn't guarantee any deduplication at all. It
+    #   just guarantees a good error message... for one hour.
+    #
+    # This code has been ripped from the old python store endpoint. We're
+    # keeping it around because it does provide some protection against
+    # reprocessing good events if a single consumer is in a restart loop.
     deduplication_key = "ev:{}:{}".format(project_id, event_id)
     if cache.get(deduplication_key) is not None:
         logger.warning(
@@ -148,8 +146,7 @@ def process_event(message, projects):
     # which assumes that data passed in is a raw dictionary.
     data = json.loads(payload)
 
-    cache_key = cache_key_for_event(data)
-    default_cache.set(cache_key, data, CACHE_TIMEOUT)
+    cache_key = event_processing_store.store(data)
 
     if attachments:
         attachment_objects = [
@@ -162,9 +159,14 @@ def process_event(message, projects):
     # Preprocess this event, which spawns either process_event or
     # save_event. Pass data explicitly to avoid fetching it again from the
     # cache.
-    preprocess_event(
-        cache_key=cache_key, data=data, start_time=start_time, event_id=event_id, project=project
-    )
+    with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
+        preprocess_event(
+            cache_key=cache_key,
+            data=data,
+            start_time=start_time,
+            event_id=event_id,
+            project=project,
+        )
 
     # remember for an 1 hour that we saved this event (deduplication protection)
     cache.set(deduplication_key, "", CACHE_TIMEOUT)
@@ -173,6 +175,12 @@ def process_event(message, projects):
     event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
 
 
+@trace_func(name="ingest_consumer.process_event")
+def process_event(message, projects):
+    return _do_process_event(message, projects)
+
+
+@trace_func(name="ingest_consumer.process_attachment_chunk")
 @metrics.wraps("ingest_consumer.process_attachment_chunk")
 def process_attachment_chunk(message, projects):
     payload = message["payload"]
@@ -186,6 +194,7 @@ def process_attachment_chunk(message, projects):
     )
 
 
+@trace_func(name="ingest_consumer.process_individual_attachment")
 @metrics.wraps("ingest_consumer.process_individual_attachment")
 def process_individual_attachment(message, projects):
     event_id = message["event_id"]
@@ -221,26 +230,20 @@ def process_individual_attachment(message, projects):
         logger.exception("invalid individual attachment type: %s", attachment.type)
         return
 
-    file = File.objects.create(
-        name=attachment.name,
-        type=attachment.type,
-        headers={"Content-Type": attachment.content_type},
-    )
-
-    try:
-        data = attachment.data
-    except MissingAttachmentChunks:
-        logger.exception("Missing chunks for cache_key=%s", cache_key)
-        return
-
-    file.putfile(BytesIO(data))
-    EventAttachment.objects.create(
-        project_id=project.id, group_id=group_id, event_id=event_id, name=attachment.name, file=file
+    save_attachment(
+        cache_key,
+        attachment,
+        project,
+        event_id,
+        key_id=None,  # TODO: Inject this from Relay
+        group_id=group_id,
+        start_time=None,  # TODO: Inject this from Relay
     )
 
     attachment.delete()
 
 
+@trace_func(name="ingest_consumer.process_userreport")
 @metrics.wraps("ingest_consumer.process_userreport")
 def process_userreport(message, projects):
     project_id = int(message["project_id"])
@@ -256,12 +259,16 @@ def process_userreport(message, projects):
     try:
         save_userreport(project, feedback, start_time=start_time)
         return True
+    except KeyError as e:
+        # XXX(markus): Hotfix because we have broken data in kafka
+        logger.error("Missing user report key: %s", e)
+        return False
     except Conflict as e:
         logger.info("Invalid userreport: %s", e)
         return False
 
 
-def get_ingest_consumer(consumer_types, once=False, concurrency=None, **options):
+def get_ingest_consumer(consumer_types, once=False, **options):
     """
     Handles events coming via a kafka queue.
 
@@ -271,5 +278,5 @@ def get_ingest_consumer(consumer_types, once=False, concurrency=None, **options)
         ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types
     )
     return create_batching_kafka_consumer(
-        topic_names=topic_names, worker=IngestConsumerWorker(concurrency=concurrency), **options
+        topic_names=topic_names, worker=IngestConsumerWorker(), **options
     )

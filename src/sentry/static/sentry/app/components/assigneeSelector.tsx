@@ -18,25 +18,24 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
 import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd, IconClose, IconChevron, IconUser} from 'app/icons';
 
 type Props = {
   id: string | null;
-  size: number;
+  size?: number;
   memberList?: User[];
 };
 
 type State = {
   loading: boolean;
-  assignedTo: User;
-  memberList: User[];
+  assignedTo?: User;
+  memberList?: User[];
 };
 
 const AssigneeSelectorComponent = createReactClass<Props, State>({
@@ -71,7 +70,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
 
   getInitialState() {
     const group = GroupStore.get(this.props.id);
-    const memberList = MemberListStore.loaded ? MemberListStore.getAll() : null;
+    const memberList = MemberListStore.loaded ? MemberListStore.getAll() : undefined;
     const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
 
     return {
@@ -81,8 +80,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     };
   },
 
-  componentWillReceiveProps(nextProps) {
-    const loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
+  componentWillReceiveProps(nextProps: Props) {
+    const loading = nextProps.id && GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       const group = GroupStore.get(this.props.id);
       this.setState({
@@ -110,21 +109,27 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     // XXX(billyvg): this means that once `memberList` is not-null, this component will never update due to `memberList` changes
     // Note: this allows us to show a "loading" state for memberList, but only before `MemberListStore.loadInitialData`
     // is called
-    if (currentMembers === null && nextState.memberList !== currentMembers) {
+    if (currentMembers === undefined && nextState.memberList !== currentMembers) {
       return true;
     }
     return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
   },
 
-  memberList() {
+  memberList(): User[] | undefined {
     return this.props.memberList ? this.props.memberList : this.state.memberList;
   },
 
   assignableTeams() {
+    if (!this.props.id) {
+      return [];
+    }
     const group = GroupStore.get(this.props.id);
+    if (!group) {
+      return [];
+    }
 
     return (
-      ProjectsStore.getBySlug(group.project.slug) || {
+      (group && ProjectsStore.getBySlug(group.project.slug)) || {
         teams: [],
       }
     ).teams
@@ -144,7 +149,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group && group.assignedTo,
-      loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
+      loading: this.props.id && GroupStore.hasStatus(this.props.id, 'assignTo'),
     });
   },
 
@@ -247,7 +252,6 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
         {!loading && (
           <DropdownAutoComplete
             maxHeight={400}
-            zIndex={2}
             onOpen={e => {
               // This can be called multiple times and does not always have `event`
               if (!e) {
@@ -255,14 +259,12 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               }
               e.stopPropagation();
             }}
-            busy={memberList === null}
-            items={memberList !== null ? this.renderNewDropdownItems() : null}
+            busy={memberList === undefined}
+            items={memberList !== undefined ? this.renderNewDropdownItems() : null}
             alignMenu="right"
             onSelect={this.handleAssign}
             itemSize="small"
             searchPlaceholder={t('Filter teams and people')}
-            menuWithArrow
-            emptyHidesInput
             menuHeader={
               assignedTo && (
                 <MenuItemWrapper
@@ -271,7 +273,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                   py={0}
                 >
                   <IconContainer>
-                    <ClearAssigneeIcon />
+                    <ClearAssigneeIcon isCircled size="14px" />
                   </IconContainer>
                   <Label>{t('Clear Assignee')}</Label>
                 </MenuItemWrapper>
@@ -286,21 +288,23 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               >
                 <MenuItemWrapper>
                   <IconContainer>
-                    <InviteMemberIcon />
+                    <InviteMemberIcon isCircled size="14px" />
                   </IconContainer>
                   <Label>{t('Invite Member')}</Label>
                 </MenuItemWrapper>
               </InviteMemberLink>
             }
+            menuWithArrow
+            emptyHidesInput
           >
             {({getActorProps}) => (
               <DropdownButton {...getActorProps({})}>
                 {assignedTo ? (
                   <ActorAvatar actor={assignedTo} className="avatar" size={24} />
                 ) : (
-                  <IconUser src="icon-user" />
+                  <StyledIconUser size="20px" color="gray600" />
                 )}
-                <StyledChevron src="icon-chevron-down" />
+                <StyledChevron direction="down" size="xs" />
               </DropdownButton>
             )}
           </DropdownAutoComplete>
@@ -310,7 +314,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 });
 
-export function putSessionUserFirst(members: User[]): User[] {
+export function putSessionUserFirst(members: User[] | undefined): User[] {
   // If session user is in the filtered list of members, put them at the top
   if (!members) {
     return [];
@@ -345,16 +349,7 @@ const AssigneeSelector = styled(AssigneeSelectorComponent)`
 export default AssigneeSelector;
 export {AssigneeSelectorComponent};
 
-const getSvgStyle = () => `
-  font-size: 16px;
-  opacity: 0.3;
-`;
-
-const IconUser = styled(InlineSvg)`
-  color: ${p => p.theme.gray3};
-  height: 20px;
-  width: 20px;
-
+const StyledIconUser = styled(IconUser)`
   /* We need this to center with Avatar */
   margin-right: 2px;
 `;
@@ -392,20 +387,16 @@ const Label = styled(TextOverflow)`
   margin-left: 6px;
 `;
 
-const ClearAssigneeIcon = styled(props => (
-  <InlineSvg {...props} src="icon-circle-close" />
-))`
-  ${getSvgStyle};
+const ClearAssigneeIcon = styled(IconClose)`
+  opacity: 0.3;
 `;
 
-const InviteMemberIcon = styled(props => <IconAdd {...props} size="xs" circle />)`
-  ${getSvgStyle};
+const InviteMemberIcon = styled(IconAdd)`
+  opacity: 0.3;
 `;
 
-const StyledChevron = styled(InlineSvg)`
+const StyledChevron = styled(IconChevron)`
   margin-left: ${space(1)};
-  width: 12px;
-  height: 12px;
 `;
 
 const DropdownButton = styled('div')`

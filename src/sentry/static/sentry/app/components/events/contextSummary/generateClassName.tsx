@@ -5,6 +5,11 @@ function generateClassname(name?: string): string {
     return '';
   }
 
+  // amazon fire tv device id changes with version: AFTT, AFTN, AFTS, AFTA, AFTVA (alexa), ...
+  if (name.toLowerCase().startsWith('aft')) {
+    return 'amazon';
+  }
+
   return name
     .split(/\d/)[0]
     .toLowerCase()

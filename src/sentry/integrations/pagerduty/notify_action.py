@@ -65,6 +65,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
 class PagerDutyNotifyServiceAction(EventAction):
     form_cls = PagerDutyNotifyServiceForm
     label = "Send a notification to PagerDuty account {account} and service {service}"
+    prompt = "Send a PagerDuty notification"
 
     def __init__(self, *args, **kwargs):
         super(PagerDutyNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -80,9 +81,6 @@ class PagerDutyNotifyServiceAction(EventAction):
         return self.get_integrations().exists()
 
     def after(self, event, state):
-        if not event.group.is_unresolved():
-            return
-
         integration_id = self.get_option("account")
         service_id = self.get_option("service")
 
@@ -115,6 +113,7 @@ class PagerDutyNotifyServiceAction(EventAction):
                         "service_id": service.id,
                     },
                 )
+                raise e
 
             # TODO(meredith): Maybe have a generic success log statements for
             # first-party integrations similar to plugin `notification.dispatched`

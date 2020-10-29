@@ -1,17 +1,17 @@
 beautifulsoup4>=4.7.1,<4.8
 boto3>=1.4.1,<1.4.6
 botocore<1.5.71
-celery>=3.1.8,<3.1.19
+celery==4.4.7
 click>=5.0,<7.0
-confluent-kafka==0.11.5
-croniter>=0.3.26,<0.4.0
+confluent-kafka==1.5.0
+croniter>=0.3.34,<0.4.0
 datadog>=0.15.0,<0.31.0
 django-crispy-forms==1.7.2
 django-picklefield>=0.3.0,<1.1.0
 django-sudo>=3.0.0,<4.0.0
 Django>=1.11,<1.12
 djangorestframework==3.6.4
-email-reply-parser>=0.2.0,<0.3.0
+email-reply-parser>=0.5.0,<0.6.0
 enum34>=1.1.6,<1.2.0 ; python_version < "3.4"
 functools32>=3.2.3,<3.3 ; python_version < "3.2"
 futures>=3.2.0,<4.0.0 ; python_version < "3.2"
@@ -23,13 +23,11 @@ google-cloud-pubsub==0.35.4
 google-cloud-storage==1.13.3
 googleapis-common-protos==1.6.0
 ipaddress>=1.0.16,<1.1.0 ; python_version < "3.3"
-jsonschema==2.6.0
-kombu==3.0.35
+jsonschema==3.2.0
 lxml>=4.3.3,<4.4.0
-maxminddb==1.4.1
+maxminddb==1.5.4
 mistune>0.7,<0.9
 mmh3>=2.3.1,<2.4
-msgpack>=0.6.1,<0.7.0
 parsimonious==0.8.0
 petname>=2.6,<2.7
 phonenumberslite>=8.11.0,<8.12.0
@@ -37,34 +35,64 @@ Pillow>=6.2.2,<7.0.0
 progressbar2>=3.32,<3.33
 psycopg2-binary>=2.7.0,<2.9.0
 PyJWT>=1.5.0,<1.6.0
+pyrsistent==0.16.0 # TODO(py3): 0.17.0 requires python3, see https://github.com/tobgu/pyrsistent/issues/205
 python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
 python3-saml>=1.4.0,<1.5
 python-u2flib-server>=5.0.0,<6.0.0
 PyYAML>=5.3,<5.4
 qrcode>=6.1.0,<6.2.0
-querystring_parser>=1.2.3,<2.0.0
-rb>=1.7.0,<2.0.0
-redis-py-cluster==1.3.4
-redis>=2.10.3,<2.10.6
+rb>=1.8.0,<2.0.0
+redis-py-cluster==2.1.0
+redis==3.3.11
 requests-oauthlib==1.2.0
 requests[security]>=2.20.0,<2.21.0
-sentry-relay>=0.5.7,<0.6.0
-sentry-sdk>=0.13.5
-simplejson>=3.2.0,<3.9.0
-six>=1.10.0,<1.11.0
+# [start] jsonschema format validators
+rfc3339-validator==0.1.2
+rfc3986-validator==0.1.1
+# [end] jsonschema format validators
+sentry-relay>=0.8.1,<0.9.0
+sentry-sdk>=0.17.7,<0.18.0
+simplejson>=3.11.0,<3.12.0
+six>=1.11.0,<1.12.0
 sqlparse>=0.2.0,<0.3.0
 statsd>=3.1.0,<3.2.0
-structlog==16.1.0
-symbolic>=7.1.0,<8.0.0
+structlog==17.1.0
+symbolic>=7.3.5,<8.0.0
 toronado>=0.0.11,<0.1.0
 ua-parser>=0.10.0,<0.11.0
 unidiff>=0.5.4
 urllib3==1.24.2
 uwsgi>2.0.0,<2.1.0
 
+# msgpack>=1.0.0 correctly encodes / decodes byte types in python3 as the
+# msgpack bin type. It could NOT do this in python 2. However, 1.0 also drops
+# support for python 2, so we must use a conditional here.
+#
+# XXX: compatibility note
+#
+# If we were serializing byte data in python 2 (which would encode it as the
+# msgpack str type) using msgpack<1.0 and deserializing in python 3 using
+# msgpack>=1.0, we would result in our byte data being decoded as strings.
+#
+# We DO NOT have to deal with this, as we currently do not encode byte data in
+# python.
+#
+# We DO encode byte data in relay, but it will be correctly encoded as the
+# msgpack bin type. Both versions of msgpack will decode this to the native
+# 'byte' type (bytes in python3, str in python2).
+msgpack>=0.6.1,<0.7.0; python_version < '3.0'
+msgpack>=1.0.0,<1.1.0; python_version >= '3.0'
+
+# celery
+# We specifically pin to 3.5.0.4 to avoid the issue in
+# https://github.com/celery/billiard/issues/260. Once we upgrade to Celery 4.3+ we can
+# use a newer version of billiard that has a proper fix.
+billiard==3.6.3
+kombu==4.6.11
+
 # not directly used, but provides a speedup for redis
-hiredis>=0.1.0,<0.2.0
+hiredis==0.3.1
 
 # not directly used, but pinned for at least semaphore/symbolic
 cffi>=1.11.5,<2.0
@@ -81,5 +109,4 @@ phabricator>=0.6.0,<1.0
 
 # test dependencies, but unable to move to requirements-test until sentry.utils.pytest and similar are moved to tests/
 mock==3.0.5 ; python_version < "3.3"
-percy>=1.1.2
 selenium==3.141.0

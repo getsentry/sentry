@@ -56,7 +56,7 @@ setup_alert = {
     "text": "Your Bitbucket Server instance must be able to communicate with Sentry."
     " Sentry makes outbound requests from a [static set of IP"
     " addresses](https://docs.sentry.io/ip-ranges/) that you may wish"
-    " to whitelist to support this integration.",
+    " to explicitly allow in your firewall to support this integration.",
 }
 
 metadata = IntegrationMetadata(
@@ -91,15 +91,13 @@ class InstallationForm(forms.Form):
     )
     consumer_key = forms.CharField(
         label=_("Bitbucket Consumer Key"),
-        widget=forms.TextInput(attrs={"placeholder": _("sentry-consumer-key")}),
+        widget=forms.TextInput(attrs={"placeholder": "sentry-consumer-key"}),
     )
     private_key = forms.CharField(
         label=_("Bitbucket Consumer Private Key"),
         widget=forms.Textarea(
             attrs={
-                "placeholder": _(
-                    "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
-                )
+                "placeholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
             }
         ),
     )
@@ -299,7 +297,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["bitbucket_server", "integrations:bitbucket_server"],

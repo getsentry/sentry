@@ -3,12 +3,14 @@ import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import * as Sentry from '@sentry/react';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
+import {metric} from 'app/utils/analytics';
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 import EventEntries from 'app/components/events/eventEntries';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
 import GroupSidebar from 'app/components/group/sidebar';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -30,6 +32,7 @@ type Props = RouteComponentProps<
   project: Project;
   organization: Organization;
   environments: Environment[];
+  className?: string;
 };
 
 type State = {
@@ -94,33 +97,36 @@ class GroupEventDetails extends React.Component<Props, State> {
     if (eventHasChanged || environmentsHaveChanged) {
       this.fetchData();
     }
+
+    // First Meaningful Paint for /organizations/:orgId/issues/:groupId/
+    if (prevState.loading && !this.state.loading && prevState.event === null) {
+      metric.measure({
+        name: 'app.page.perf.issue-details',
+        start: 'page-issue-details-start',
+        data: {
+          // start_type is set on 'page-issue-details-start'
+          org_id: parseInt(this.props.organization.id, 10),
+          group: this.props.organization.features.includes('enterprise-perf')
+            ? 'enterprise-perf'
+            : 'control',
+          milestone: 'first-meaningful-paint',
+          is_enterprise: this.props.organization.features
+            .includes('enterprise-orgs')
+            .toString(),
+          is_outlier: this.props.organization.features
+            .includes('enterprise-orgs-outliers')
+            .toString(),
+        },
+      });
+    }
   }
 
   componentWillUnmount() {
-    const {api, organization} = this.props;
-
-    // Note: We do not load global selection store with any data when this component is used
-    // This is handled in `<OrganizationContext>` by examining the routes.
-    //
-    // When this view gets unmounted, attempt to load initial data so that projects/envs
-    // gets loaded with the last used one (via local storage). `forceUrlSync` will make
-    // `<GlobalSelectionHeader>` sync values from store to the URL (if they are different),
-    // otherwise they can out of sync because the component only syncs in `DidMount`, and
-    // the timing for that is not guaranteed.
-    //
-    // TBD: if this behavior is actually desired
-    if (organization.projects) {
-      GlobalSelectionStore.loadInitialData(organization, this.props.location.query, {
-        api: this.props.api,
-        onlyIfNeverLoaded: true,
-        forceUrlSync: true,
-      });
-    }
-
+    const {api} = this.props;
     api.clear();
   }
 
-  fetchData = () => {
+  fetchData = async () => {
     const {api, group, project, organization, params, environments} = this.props;
     const eventId = params.eventId || 'latest';
     const groupId = group.id;
@@ -135,32 +141,45 @@ class GroupEventDetails extends React.Component<Props, State> {
 
     const envNames = environments.map(e => e.name);
 
-    api
-      .requestPromise(`/projects/${orgSlug}/${projSlug}/releases/completion/`)
-      .then(data => {
-        this.setState({
-          releasesCompletion: data,
-        });
-      });
-
-    fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)
-      .then(data => {
-        this.setState({
-          event: data,
-          error: false,
-          loading: false,
-        });
-      })
-      .catch(() => {
-        this.setState({
-          event: null,
-          error: true,
-          loading: false,
-        });
-      });
+    /**
+     * Perform below requests in parallel
+     */
+    const releasesCompletionPromise = api.requestPromise(
+      `/projects/${orgSlug}/${projSlug}/releases/completion/`
+    );
+    const fetchGroupEventPromise = fetchGroupEventAndMarkSeen(
+      api,
+      orgSlug,
+      projSlug,
+      groupId,
+      eventId,
+      envNames
+    );
 
     fetchSentryAppInstallations(api, orgSlug);
     fetchSentryAppComponents(api, orgSlug, projectId);
+
+    const releasesCompletion = await releasesCompletionPromise;
+    this.setState({
+      releasesCompletion,
+    });
+
+    try {
+      const event = await fetchGroupEventPromise;
+      this.setState({
+        event,
+        error: false,
+        loading: false,
+      });
+    } catch (err) {
+      // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
+      Sentry.captureException(err);
+      this.setState({
+        event: null,
+        error: true,
+        loading: false,
+      });
+    }
   };
 
   get showExampleCommit() {
@@ -174,11 +193,11 @@ class GroupEventDetails extends React.Component<Props, State> {
   }
 
   render() {
-    const {group, project, organization, environments, location} = this.props;
+    const {className, group, project, organization, environments, location} = this.props;
     const evt = withMeta(this.state.event);
 
     return (
-      <div>
+      <div className={className}>
         <div className="event-details-container">
           <div className="primary">
             {evt && (
@@ -195,7 +214,7 @@ class GroupEventDetails extends React.Component<Props, State> {
               <MutedBox statusDetails={group.statusDetails} />
             )}
             {group.status === 'resolved' && (
-              <ResolutionBox statusDetails={group.statusDetails} />
+              <ResolutionBox statusDetails={group.statusDetails} projectId={project.id} />
             )}
             {this.state.loading ? (
               <LoadingIndicator />
@@ -230,4 +249,8 @@ class GroupEventDetails extends React.Component<Props, State> {
   }
 }
 
-export default GroupEventDetails;
+export default styled(GroupEventDetails)`
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+`;

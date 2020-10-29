@@ -11,21 +11,28 @@ class AreaChart extends React.Component {
   };
 
   render() {
-    const {series, stacked, ...props} = this.props;
+    const {series, stacked, colors, ...props} = this.props;
 
     return (
       <BaseChart
         {...props}
-        series={series.map(({seriesName, data, ...otherSeriesProps}) =>
+        series={series.map(({seriesName, data, ...otherSeriesProps}, i) =>
           AreaSeries({
             stack: stacked ? 'area' : false,
             name: seriesName,
             data: data.map(({name, value}) => [name, value]),
-            color: '#948BCF',
+            color: colors && colors[i],
+            lineStyle: {
+              opacity: 1,
+              width: 0.4,
+            },
             areaStyle: {
-              color: '#C4BFE9',
+              color: colors && colors[i],
               opacity: 1.0,
             },
+            animation: false,
+            animationThreshold: 1,
+            animationDuration: 0,
             ...otherSeriesProps,
           })
         )}

@@ -2,8 +2,8 @@ import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Panel} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -17,8 +17,8 @@ import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withOrganization from 'app/utils/withOrganization';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
-import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
+import Chart from './chart';
 
 const parseRowFromLinks = (links, numRows) => {
   links = parseLinkHeader(links);
@@ -193,7 +193,7 @@ class Events extends AsyncView {
             true
           )}
         <Panel>
-          <EventsChart
+          <Chart
             router={router}
             query={location.query.query}
             organization={organization}
@@ -247,7 +247,7 @@ const PaginationWrapper = styled('div')`
 `;
 
 const RowDisplay = styled('div')`
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
 `;
 
 export default withOrganization(Events);

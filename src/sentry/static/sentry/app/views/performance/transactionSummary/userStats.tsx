@@ -2,118 +2,137 @@ import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
+import Link from 'app/components/links/link';
+import QuestionTooltip from 'app/components/questionTooltip';
+import {SectionHeading} from 'app/components/charts/styles';
+import UserMisery from 'app/components/userMisery';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
-import EventView from 'app/utils/discover/eventView';
-import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {assert} from 'app/types/utils';
-import EventsV2 from 'app/utils/discover/eventsv2';
+import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
+import {decodeScalar} from 'app/utils/queryString';
+import {getTermHelp} from 'app/views/performance/data';
+import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  WEB_VITAL_DETAILS,
+} from 'app/views/performance/transactionVitals/constants';
 
 type Props = {
+  totals: Record<string, number>;
   location: Location;
-  eventView: EventView;
   organization: Organization;
+  transactionName: string;
 };
 
-class UserStats extends React.Component<Props> {
-  generateUserStatsEventView(eventView: EventView): EventView {
-    // narrow the search conditions of the Performance Summary event view
-    // by modifying the columns to only show user impact and apdex scores
+function UserStats({totals, location, organization, transactionName}: Props) {
+  let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
+  const threshold = organization.apdexThreshold;
+  let apdex: React.ReactNode = <StatNumber>{'\u2014'}</StatNumber>;
+  let vitalsPassRate: React.ReactNode = null;
 
-    eventView = eventView.withColumns([
-      {
-        kind: 'function',
-        function: ['apdex', '', undefined],
-      },
-      {
-        kind: 'function',
-        function: ['impact', '', undefined],
-      },
-    ]);
+  if (totals) {
+    const miserableUsers = Number(totals[`user_misery_${threshold}`]);
+    const totalUsers = Number(totals.count_unique_user);
+    if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
+      userMisery = (
+        <UserMisery
+          bars={40}
+          barHeight={30}
+          miseryLimit={threshold}
+          totalUsers={totalUsers}
+          miserableUsers={miserableUsers}
+        />
+      );
+    }
 
-    eventView.sorts = [];
+    const apdexKey = `apdex_${threshold}`;
+    const formatter = getFieldRenderer(apdexKey, {[apdexKey]: 'number'});
+    apdex = formatter(totals, {organization, location});
 
-    return eventView;
-  }
-
-  render() {
-    const {organization, location} = this.props;
-    const eventView = this.generateUserStatsEventView(this.props.eventView);
-
-    return (
-      <EventsV2
-        eventView={eventView}
-        organization={organization}
-        location={location}
-        extraQuery={{per_page: 1}}
-      >
-        {({tableData, isLoading}) => {
-          const hasResults =
-            tableData && tableData.data && tableData.meta && tableData.data.length > 0;
-
-          if (isLoading || !tableData || !hasResults || !eventView.isValid()) {
-            return null;
+    const [vitalsPassed, vitalsTotal] = Object.values(WebVital)
+      .filter(vital => WEB_VITAL_DETAILS[vital].includeInSummary)
+      .reduce(
+        ([passed, total], vital) => {
+          const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
+          if (Number.isFinite(totals[alias])) {
+            total += 1;
+            if (totals[alias] < WEB_VITAL_DETAILS[vital].failureThreshold) {
+              passed += 1;
+            }
           }
-
-          const columnOrder = eventView.getColumns();
-
-          assert(tableData.meta);
-          const tableMeta = tableData.meta;
-          const row = tableData.data[0];
-
-          const stats: {[key: string]: React.ReactNode} = columnOrder.reduce(
-            (acc, column) => {
-              const field = String(column.key);
-
-              const fieldRenderer = getFieldRenderer(field, tableMeta);
-
-              acc[field] = fieldRenderer(row, {organization, location});
-
-              return acc;
-            },
-            {}
-          );
-
-          return (
-            <Container>
-              <div>
-                <StatTitle>{t('User Impact')}</StatTitle>
-                <StatNumber>{stats['impact()']}</StatNumber>
-              </div>
-              <div>
-                <StatTitle>{t('Apdex Score')}</StatTitle>
-                <StatNumber>{stats['apdex()']}</StatNumber>
-              </div>
-            </Container>
-          );
-        }}
-      </EventsV2>
-    );
+          return [passed, total];
+        },
+        [0, 0]
+      );
+    if (vitalsTotal > 0) {
+      vitalsPassRate = <StatNumber>{`${vitalsPassed} / ${vitalsTotal}`}</StatNumber>;
+    }
   }
+
+  const webVitalsTarget = vitalsRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction: transactionName,
+    projectID: decodeScalar(location.query.project),
+    query: location.query,
+  });
+
+  return (
+    <Container>
+      <div>
+        <SectionHeading>{t('Apdex Score')}</SectionHeading>
+        <StatNumber>{apdex}</StatNumber>
+      </div>
+      <Feature features={['measurements']} organization={organization}>
+        {vitalsPassRate !== null && (
+          <div>
+            <SectionHeading>{t('Web Vitals')}</SectionHeading>
+            <StatNumber>{vitalsPassRate}</StatNumber>
+            <Link to={webVitalsTarget}>
+              <SectionValue>{t('Passed')}</SectionValue>
+            </Link>
+          </div>
+        )}
+      </Feature>
+      <UserMiseryContainer>
+        <SectionHeading>
+          {t('User Misery')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, 'userMisery')}
+            size="sm"
+          />
+        </SectionHeading>
+        {userMisery}
+      </UserMiseryContainer>
+    </Container>
+  );
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(3)};
-  display: flex;
-
-  color: ${p => p.theme.gray3};
-
-  > * + * {
-    margin-left: ${space(4)};
-  }
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-row-gap: ${space(4)};
+  margin-bottom: 40px;
 `;
 
-const StatTitle = styled('h4')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(0.5)};
+const UserMiseryContainer = styled('div')`
+  grid-column: 1/3;
 `;
 
 const StatNumber = styled('div')`
   font-size: 32px;
-  line-height: 40px;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
+
+  > div {
+    text-align: left;
+  }
+`;
+
+const SectionValue = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export default UserStats;

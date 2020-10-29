@@ -1,7 +1,7 @@
 import isUndefined from 'lodash/isUndefined';
 import isNil from 'lodash/isNil';
 import $ from 'jquery';
-import {Severity} from '@sentry/browser';
+import {Severity} from '@sentry/react';
 
 import {
   PROJECT_MOVED,
@@ -151,7 +151,7 @@ export class Client {
       if (req && req.alive) {
         // Check if API response is a 302 -- means project slug was renamed and user
         // needs to be redirected
-        // @ts-ignore
+        // @ts-expect-error
         if (this.hasProjectBeenRenamed(...args)) {
           return;
         }
@@ -252,7 +252,7 @@ export class Client {
     }
 
     const id: string = uniqueId();
-    metric.mark(`api-request-start-${id}`);
+    metric.mark({name: `api-request-start-${id}`});
 
     let fullUrl: string;
     if (path.indexOf(this.baseUrl) === -1) {

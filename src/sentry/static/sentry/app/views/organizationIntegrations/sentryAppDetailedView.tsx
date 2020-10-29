@@ -2,24 +2,26 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {openModal} from 'app/actionCreators/modal';
 import {
   installSentryApp,
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
-import {toPermissions} from 'app/utils/consolidatedScopes';
+import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
+import Confirm from 'app/components/confirm';
+import {IconSubtract} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
-import {openModal} from 'app/actionCreators/modal';
+import {toPermissions} from 'app/utils/consolidatedScopes';
 import {getSentryAppInstallStatus} from 'app/utils/integrationUtil';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
+import withOrganization from 'app/utils/withOrganization';
 
-import {UninstallAppButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
+import SplitInstallationIdModal from './SplitInstallationIdModal';
 
 type State = {
   sentryApp: SentryApp;
@@ -64,6 +66,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     }
 
     super.onLoadAllEndpointsSuccess();
+    recordInteraction(integrationSlug, 'sentry_app_viewed');
   }
 
   get integrationType() {
@@ -83,8 +86,16 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get resourceLinks() {
-    //sentry apps don't have resources (yet)
-    return [];
+    //only show links for published sentry apps
+    if (this.sentryApp.status !== 'published') {
+      return [];
+    }
+    return [
+      {
+        title: 'Documentation',
+        url: `https://docs.sentry.io/product/integrations/${this.integrationSlug}/`,
+      },
+    ];
   }
 
   get permissions() {
@@ -213,7 +224,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
               {tct('[read] and [write] access to [resources] resources', {
                 read: <strong>Read</strong>,
                 write: <strong>Write</strong>,
-                resources: permissions.read.join(', '),
+                resources: permissions.write.join(', '),
               })}
             </Text>
           </Permission>
@@ -224,7 +235,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
             <Text key="admin">
               {tct('[admin] access to [resources] resources', {
                 admin: <strong>Admin</strong>,
-                resources: permissions.read.join(', '),
+                resources: permissions.admin.join(', '),
               })}
             </Text>
           </Permission>
@@ -234,29 +245,45 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
-    return !this.install ? (
-      <InstallButton
-        size="small"
-        priority="primary"
-        disabled={disabledFromFeatures || !userHasAccess}
-        onClick={() => this.handleInstall()}
-        style={{marginLeft: space(1)}}
-        data-test-id="install-button"
-      >
-        {t('Accept & Install')}
-      </InstallButton>
-    ) : (
-      <UninstallAppButton
-        install={this.install}
-        app={this.sentryApp}
-        onClickUninstall={this.handleUninstall}
-        onUninstallModalOpen={this.recordUninstallClicked}
-        disabled={!userHasAccess}
-      />
-    );
+    const install = this.install;
+    if (install) {
+      return (
+        <Confirm
+          disabled={!userHasAccess}
+          message={tct('Are you sure you want to remove the [slug] installation?', {
+            slug: this.integrationSlug,
+          })}
+          onConfirm={() => this.handleUninstall(install)} //called when the user confirms the action
+          onConfirming={this.recordUninstallClicked} //called when the confirm modal opens
+          priority="danger"
+        >
+          <StyledUninstallButton size="small" data-test-id="sentry-app-uninstall">
+            <IconSubtract isCircled style={{marginRight: space(0.75)}} />
+            {t('Uninstall')}
+          </StyledUninstallButton>
+        </Confirm>
+      );
+    }
+
+    if (userHasAccess) {
+      return (
+        <InstallButton
+          data-test-id="install-button"
+          disabled={disabledFromFeatures}
+          onClick={() => this.handleInstall()}
+          priority="primary"
+          size="small"
+          style={{marginLeft: space(1)}}
+        >
+          {t('Accept & Install')}
+        </InstallButton>
+      );
+    }
+
+    return this.renderRequestIntegrationButton();
   }
 
-  //no configuraitons for sentry apps
+  //no configurations for sentry apps
   renderConfigurations() {
     return null;
   }
@@ -280,12 +307,22 @@ const Title = styled('p')`
 `;
 
 const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
-  margin-top: 7px;
+  margin-top: 3px;
   color: ${p => p.theme.success};
 `;
 
 const InstallButton = styled(Button)`
   margin-left: ${space(1)};
+`;
+
+const StyledUninstallButton = styled(Button)`
+  color: ${p => p.theme.gray500};
+  background: #ffffff;
+
+  border: ${p => `1px solid ${p.theme.gray500}`};
+  box-sizing: border-box;
+  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
 `;
 
 export default withOrganization(SentryAppDetailedView);

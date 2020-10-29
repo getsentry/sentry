@@ -3,7 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {AvatarUser, Member} from 'app/types';
+import {Member, AvatarUser} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -11,17 +11,17 @@ import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
 
 type Props = {
-  avatarSize: UserAvatar['props']['size'];
   member: Member;
-  className?: string;
-  displayName?: string;
+  avatarSize?: UserAvatar['props']['size'];
+  displayName?: React.ReactNode;
   displayEmail?: string;
   orgId?: string;
   useLink?: boolean;
   hideEmail?: boolean;
+  className?: string;
 };
 
-function getUser(member: Member): AvatarUser {
+function getMemberUser(member: Member): AvatarUser {
   if (member.user) {
     return member.user;
   }
@@ -36,16 +36,16 @@ function getUser(member: Member): AvatarUser {
 }
 
 const MemberBadge = ({
-  className,
+  avatarSize = 24,
+  useLink = true,
+  hideEmail = false,
   displayName,
   displayEmail,
   member,
   orgId,
-  avatarSize,
-  useLink = true,
-  hideEmail = false,
+  className,
 }: Props) => {
-  const user = getUser(member);
+  const user = getMemberUser(member);
   const title =
     displayName ||
     user.name ||
@@ -100,7 +100,7 @@ const StyledNameAndEmail = styled('div')`
 const StyledEmail = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   ${overflowEllipsis};
 `;
 

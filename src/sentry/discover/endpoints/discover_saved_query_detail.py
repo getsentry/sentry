@@ -45,14 +45,17 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         serializer = DiscoverSavedQuerySerializer(
-            data=request.data, context={"organization": organization}
+            data=request.data,
+            context={
+                "params": self.get_filter_params(
+                    request, organization, project_ids=request.data.get("projects")
+                )
+            },
         )
-
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-
         model.update(
             organization=organization,
             name=data["name"],

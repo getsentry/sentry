@@ -8,6 +8,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import QuestionTooltip from 'app/components/questionTooltip';
 import ControlState from 'app/views/settings/components/forms/field/controlState';
 import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
 import FieldDescription from 'app/views/settings/components/forms/field/fieldDescription';
@@ -18,6 +19,8 @@ import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldR
 import FieldWrapper, {
   Props as FieldWrapperProps,
 } from 'app/views/settings/components/forms/field/fieldWrapper';
+
+import FieldQuestion from './fieldQuestion';
 
 type ChildrenFunction = (props) => React.ReactNode;
 
@@ -30,6 +33,7 @@ type Props = {
   flexibleControlStateSize?: boolean;
   label?: React.ReactNode;
   help?: React.ReactNode | React.ReactElement | Function;
+  showHelpInTooltip?: boolean;
   id?: string;
   children?: React.ReactNode | ChildrenFunction;
   controlClassName?: string;
@@ -75,6 +79,11 @@ class Field extends React.Component<Props> {
      * Reason why field is disabled (displays in tooltip)
      */
     disabledReason: PropTypes.string,
+
+    /**
+     * Displays the help element in the tooltip
+     */
+    showHelpInTooltip: PropTypes.bool,
 
     /**
      * Error message
@@ -141,6 +150,7 @@ class Field extends React.Component<Props> {
     disabled: false,
     required: false,
     visible: true,
+    showHelpInTooltip: false,
   };
 
   render() {
@@ -164,6 +174,7 @@ class Field extends React.Component<Props> {
       stacked,
       children,
       style,
+      showHelpInTooltip,
     } = otherProps;
     const isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
     const isVisible = typeof visible === 'function' ? visible(this.props) : visible;
@@ -189,7 +200,7 @@ class Field extends React.Component<Props> {
 
     // See comments in prop types
     if (typeof children === 'function') {
-      //need to cast b/c TS claims childen is not otherwise callable
+      //need to cast b/c TS claims children is not otherwise callable
       Control = (children as ChildrenFunction)({
         ...otherProps,
         ...controlProps,
@@ -211,10 +222,18 @@ class Field extends React.Component<Props> {
           <FieldDescription inline={inline} htmlFor={id}>
             {label && (
               <FieldLabel disabled={isDisabled}>
-                {label} {required && <FieldRequiredBadge />}
+                <span>
+                  {label}
+                  {required && <FieldRequiredBadge />}
+                </span>
+                {helpElement && showHelpInTooltip && (
+                  <FieldQuestion>
+                    <QuestionTooltip position="top" size="sm" title={helpElement} />
+                  </FieldQuestion>
+                )}
               </FieldLabel>
             )}
-            {helpElement && (
+            {helpElement && !showHelpInTooltip && (
               <FieldHelp stacked={stacked} inline={inline}>
                 {helpElement}
               </FieldHelp>
@@ -227,4 +246,5 @@ class Field extends React.Component<Props> {
     );
   }
 }
+
 export default Field;

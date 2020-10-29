@@ -10,6 +10,7 @@ controls are enabled. For more details about this alert alert, view on Sentry:
 Alert: {{ link }}
 Rule: {{ rule_link }}
 Status: {{ status }}
+Project: {{ project_slug }}
 
 Metric: {{ aggregate }}
 Environment: {{ environment }}

@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -9,12 +8,9 @@ import {t, tct} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import ConfigStore from 'app/stores/configStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Feature from 'app/components/acl/feature';
 import PageHeading from 'app/components/pageHeading';
 import {Organization} from 'app/types';
-import space from 'app/styles/space';
 import localStorage from 'app/utils/localStorage';
-import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
 
 import {
   DiscoverContainer,
@@ -47,7 +43,7 @@ import createResultManager from './resultManager';
 import {SavedQuery} from './types';
 
 type DefaultProps = {
-  utc: boolean;
+  utc: boolean | null;
 };
 
 type Props = DefaultProps & {
@@ -405,22 +401,7 @@ export default class Discover extends React.Component<Props, State> {
       utc,
     } = this.props;
 
-    const currentQuery = queryBuilder.getInternal();
-
     const shouldDisplayResult = resultManager.shouldDisplayResult();
-
-    const start =
-      (currentQuery.start &&
-        moment(currentQuery.start)
-          .local()
-          .toDate()) ||
-      currentQuery.start;
-    const end =
-      (currentQuery.end &&
-        moment(currentQuery.end)
-          .local()
-          .toDate()) ||
-      currentQuery.end;
 
     return (
       <DiscoverContainer>
@@ -456,34 +437,17 @@ export default class Discover extends React.Component<Props, State> {
               />
             </QueryPanel>
           )}
-          <Feature
-            features={['organizations:discover-basic']}
-            organization={organization}
-          >
-            <SwitchLink
-              href={getDiscoverLandingUrl(organization)}
-              onClick={this.onGoLegacyDiscover}
-            >
-              {t('Go to New Discover')}
-            </SwitchLink>
-          </Feature>
         </Sidebar>
 
         <DiscoverGlobalSelectionHeader
           organization={organization}
-          projects={currentQuery.projects}
           hasCustomRouting
-          relative={currentQuery.range}
-          start={start}
-          end={end}
-          utc={utc}
           showEnvironmentSelector={false}
           onChangeProjects={this.updateProjects}
           onUpdateProjects={this.runQuery}
           onChangeTime={this.changeTime}
           onUpdateTime={this.updateDateTimeAndRun}
         />
-
         <Body>
           <BodyContent>
             {shouldDisplayResult && (
@@ -513,9 +477,3 @@ export default class Discover extends React.Component<Props, State> {
     );
   }
 }
-
-const SwitchLink = styled('a')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-left: ${space(3)};
-  margin-bottom: ${space(1)};
-`;

@@ -86,7 +86,7 @@ class ContextPickerModal extends React.Component<Props> {
   componentDidUpdate(prevProps: Props) {
     // Component may be mounted before projects is fetched, check if we can finish when
     // component is updated with projects
-    if (prevProps.projects !== this.props.projects) {
+    if (JSON.stringify(prevProps.projects) !== JSON.stringify(this.props.projects)) {
       this.navigateIfFinish(this.props.organizations, this.props.projects);
     }
   }
@@ -334,17 +334,17 @@ type ContainerProps = Omit<
 };
 
 type ContainerState = {
-  organizations?: Organization[];
   selectedOrganization?: string;
+  organizations?: Organization[];
 };
 
 const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerState>({
   displayName: 'ContextPickerModalContainer',
   mixins: [Reflux.connect(OrganizationsStore, 'organizations') as any],
   getInitialState() {
+    const storeState = OrganizationStore.get();
     return {
-      selectedOrganization:
-        OrganizationStore.organization && OrganizationStore.organization.slug,
+      selectedOrganization: storeState.organization?.slug,
     };
   },
 

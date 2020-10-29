@@ -1,13 +1,10 @@
-import {
-  AlertRuleAggregations,
-  IncidentRule,
-} from 'app/views/settings/incidentRules/types';
+import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {User, Repository} from 'app/types';
 
 type Data = [number, {count: number}[]][];
 
 export type Incident = {
-  dateClosed: string;
+  dateClosed: string | null;
   dateStarted: string;
   dateDetected: string;
   dateCreated: string;
@@ -15,16 +12,15 @@ export type Incident = {
   identifier: string;
   isSubscribed: boolean;
   groups: string[]; // Array of group ids
-  query: string;
   discoverQuery: string;
   organizationId: string;
   projects: string[]; // Array of slugs
   seenBy: User[];
   status: IncidentStatus;
+  statusMethod: IncidentStatusMethod;
   title: string;
   hasSeen: boolean;
   alertRule: IncidentRule;
-  aggregation: AlertRuleAggregations;
 };
 
 export type IncidentStats = {
@@ -58,11 +54,6 @@ export type ActivityType = ActivityTypeDraft & {
   value: string | null;
 };
 
-export type NoteType = {
-  text: string;
-  mentions: [string, string][];
-};
-
 export enum IncidentType {
   DETECTED,
   CREATED,
@@ -70,10 +61,11 @@ export enum IncidentType {
 }
 
 export enum IncidentActivityType {
-  CREATED,
-  DETECTED,
-  STATUS_CHANGE,
-  COMMENT,
+  CREATED = 0,
+  DETECTED = 1,
+  STATUS_CHANGE = 2,
+  COMMENT = 3,
+  STARTED = 4,
 }
 
 export enum IncidentStatus {
@@ -81,4 +73,16 @@ export enum IncidentStatus {
   CLOSED = 2,
   WARNING = 10,
   CRITICAL = 20,
+}
+
+export enum IncidentStatusMethod {
+  MANUAL = 1,
+  RULE_UPDATED = 2,
+  RULE_TRIGGERED = 3,
+}
+
+export enum AlertRuleStatus {
+  PENDING = 0,
+  SNAPSHOT = 4,
+  DISABLED = 5,
 }

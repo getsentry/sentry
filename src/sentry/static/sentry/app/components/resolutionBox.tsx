@@ -11,13 +11,13 @@ import {IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {ResolutionStatusDetails} from 'app/types';
-import theme from 'app/utils/theme';
 
 type Props = {
   statusDetails: ResolutionStatusDetails;
+  projectId: string;
 };
 
-function renderReason(statusDetails: ResolutionStatusDetails) {
+function renderReason(statusDetails: ResolutionStatusDetails, projectId: string) {
   const actor = statusDetails.actor ? (
     <strong>
       <UserAvatar user={statusDetails.actor} size={20} className="avatar" />
@@ -34,11 +34,23 @@ function renderReason(statusDetails: ResolutionStatusDetails) {
   } else if (statusDetails.inRelease && statusDetails.actor) {
     return tct('[actor] marked this issue as resolved in version [version].', {
       actor,
-      version: <Version version={statusDetails.inRelease} tooltipRawVersion />,
+      version: (
+        <Version
+          version={statusDetails.inRelease}
+          projectId={projectId}
+          tooltipRawVersion
+        />
+      ),
     });
   } else if (statusDetails.inRelease) {
     return tct('This issue has been marked as resolved in version [version].', {
-      version: <Version version={statusDetails.inRelease} tooltipRawVersion />,
+      version: (
+        <Version
+          version={statusDetails.inRelease}
+          projectId={projectId}
+          tooltipRawVersion
+        />
+      ),
     });
   } else if (!!statusDetails.inCommit) {
     return tct('This issue has been marked as resolved by [commit]', {
@@ -56,12 +68,12 @@ function renderReason(statusDetails: ResolutionStatusDetails) {
   return t('This issue has been marked as resolved.');
 }
 
-function ResolutionBox({statusDetails}: Props) {
+function ResolutionBox({statusDetails, projectId}: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <IconCheckmark color={theme.green} />
-        <span>{renderReason(statusDetails)}</span>
+        <StyledIconCheckmark color="green400" />
+        <span>{renderReason(statusDetails, projectId)}</span>
       </BannerSummary>
     </BannerContainer>
   );
@@ -69,12 +81,24 @@ function ResolutionBox({statusDetails}: Props) {
 
 ResolutionBox.propTypes = {
   statusDetails: PropTypes.object.isRequired,
+  projectId: PropTypes.string.isRequired,
 };
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StyledIconCheckmark = styled(IconCheckmark)`
+  /* override margin defined in BannerSummary */
+  margin-top: 0 !important;
+  align-self: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: ${space(0.5)} !important;
+    align-self: flex-start;
+  }
 `;
 
 export default ResolutionBox;

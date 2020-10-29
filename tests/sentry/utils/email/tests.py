@@ -32,7 +32,7 @@ class ListResolverTestCase(TestCase):
             self.resolver(object())
 
     def test_generates_list_ids(self):
-        expected = u"{0.project.slug}.{0.organization.slug}.namespace".format(self.event)
+        expected = u"<{0.project.slug}.{0.organization.slug}.namespace>".format(self.event)
         assert self.resolver(self.event.group) == expected
         assert self.resolver(self.event.project) == expected
 
@@ -297,7 +297,7 @@ class MessageBuilderTest(TestCase):
             MessageBuilder, subject="Test", body="hello world", html_body="<b>hello world</b>"
         )
 
-        expected = u"{event.project.slug}.{event.organization.slug}.{namespace}".format(
+        expected = u"<{event.project.slug}.{event.organization.slug}.{namespace}>".format(
             event=self.event, namespace=options.get("mail.list-namespace")
         )
 

@@ -32,9 +32,7 @@ import {IconCalendar} from 'app/icons';
 const getDateWithTimezoneInUtc = (date, utc) =>
   moment
     .tz(
-      moment(date)
-        .local()
-        .format('YYYY-MM-DD HH:mm:ss'),
+      moment(date).local().format('YYYY-MM-DD HH:mm:ss'),
       utc ? 'UTC' : getUserTimezone()
     )
     .utc()
@@ -62,6 +60,12 @@ const SelectorItemsHook = HookOrDefault({
 
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
+    /**
+     * When the default period is selected, it is visually dimmed and
+     * makes the selector unclearable.
+     */
+    defaultPeriod: PropTypes.string,
+
     /**
      * Show absolute date selectors
      */
@@ -113,11 +117,6 @@ class TimeRangeSelector extends React.PureComponent {
     organization: SentryTypes.Organization,
 
     /**
-     * Allow user to clear the time range selection
-     */
-    allowClearTimeRange: PropTypes.bool,
-
-    /**
      * Small info icon with tooltip hint text
      */
     hint: PropTypes.string,
@@ -149,6 +148,7 @@ class TimeRangeSelector extends React.PureComponent {
       utc: defined(props.utc) ? props.utc : getUserTimezone() === 'UTC',
       isOpen: false,
       hasChanges: false,
+      hasDateRangeErrors: false,
       start,
       end,
       relative: props.relative,
@@ -251,7 +251,12 @@ class TimeRangeSelector extends React.PureComponent {
     this.handleUpdate(newDateTime);
   };
 
-  handleSelectDateRange = ({start, end}) => {
+  handleSelectDateRange = ({start, end, hasDateRangeErrors = false}) => {
+    if (hasDateRangeErrors) {
+      this.setState({hasDateRangeErrors});
+      return;
+    }
+
     const {onChange} = this.props;
 
     const newDateTime = {
@@ -264,7 +269,7 @@ class TimeRangeSelector extends React.PureComponent {
       newDateTime.utc = this.state.utc;
     }
 
-    this.setState({hasChanges: true, ...newDateTime});
+    this.setState({hasChanges: true, hasDateRangeErrors, ...newDateTime});
     this.callCallback(onChange, newDateTime);
   };
 
@@ -305,13 +310,7 @@ class TimeRangeSelector extends React.PureComponent {
   };
 
   render() {
-    const {
-      showAbsolute,
-      showRelative,
-      organization,
-      allowClearTimeRange,
-      hint,
-    } = this.props;
+    const {defaultPeriod, showAbsolute, showRelative, organization, hint} = this.props;
     const {start, end, relative} = this.state;
 
     const shouldShowAbsolute = showAbsolute;
@@ -321,13 +320,10 @@ class TimeRangeSelector extends React.PureComponent {
     const summary = isAbsoluteSelected ? (
       <DateSummary utc={this.state.utc} start={start} end={end} />
     ) : (
-      getRelativeSummary(relative || DEFAULT_STATS_PERIOD)
+      getRelativeSummary(relative || defaultPeriod)
     );
 
-    const relativeSelected = isAbsoluteSelected ? null : relative || DEFAULT_STATS_PERIOD;
-
-    const allowClear =
-      typeof allowClearTimeRange === 'boolean' ? allowClearTimeRange : true;
+    const relativeSelected = isAbsoluteSelected ? null : relative || defaultPeriod;
 
     return (
       <DropdownMenu
@@ -343,12 +339,12 @@ class TimeRangeSelector extends React.PureComponent {
               icon={<IconCalendar />}
               isOpen={isOpen}
               hasSelected={
-                (!!this.props.relative && this.props.relative !== DEFAULT_STATS_PERIOD) ||
+                (!!this.props.relative && this.props.relative !== defaultPeriod) ||
                 isAbsoluteSelected
               }
               hasChanges={this.state.hasChanges}
               onClear={this.handleClear}
-              allowClear={allowClear}
+              allowClear
               hint={hint}
               {...getActorProps()}
             >
@@ -382,13 +378,12 @@ class TimeRangeSelector extends React.PureComponent {
                       onChange={this.handleSelectDateRange}
                       onChangeUtc={this.handleUseUtc}
                     />
-                    {this.state.hasChanges && (
-                      <SubmitRow>
-                        <MultipleSelectorSubmitRow
-                          onSubmit={() => this.handleCloseMenu()}
-                        />
-                      </SubmitRow>
-                    )}
+                    <SubmitRow>
+                      <MultipleSelectorSubmitRow
+                        onSubmit={this.handleCloseMenu}
+                        disabled={!this.state.hasChanges || this.state.hasDateRangeErrors}
+                      />
+                    </SubmitRow>
                   </div>
                 )}
               </Menu>

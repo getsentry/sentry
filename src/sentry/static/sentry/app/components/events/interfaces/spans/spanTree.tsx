@@ -1,8 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import EventView from 'app/utils/discover/eventView';
+import {SentryTransactionEvent, Organization} from 'app/types';
+import {t, tct} from 'app/locale';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
 import {
   ProcessedSpanType,
@@ -10,7 +11,8 @@ import {
   SpanChildrenLookupType,
   ParsedTraceType,
   GapSpanType,
-  SentryTransactionEvent,
+  TreeDepthType,
+  OrphanTreeDepth,
 } from './types';
 import {
   boundsGenerator,
@@ -22,12 +24,18 @@ import {
   getSpanOperation,
   getSpanTraceID,
   isGapSpan,
+  isOrphanSpan,
+  isEventFromBrowserJavaScriptSDK,
+  toPercent,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanGroup from './spanGroup';
 import {SpanRowMessage} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {FilterSpans} from './traceView';
+import {ActiveOperationFilter} from './filter';
+import MeasurementsPanel from './measurementsPanel';
+import * as MeasurementsManager from './measurementsManager';
 
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;
@@ -38,11 +46,13 @@ type RenderedSpanTree = {
 
 type PropType = {
   orgId: string;
-  eventView: EventView;
+  organization: Organization;
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
   event: SentryTransactionEvent;
+  spansWithErrors: TableData | null | undefined;
+  operationNameFilters: ActiveOperationFilter;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -86,11 +96,23 @@ class SpanTree extends React.Component<PropType> {
 
     if (showFilteredSpansMessage) {
       if (!isCurrentSpanHidden) {
-        messages.push(
-          <span key="spans-filtered">
-            <strong>{numOfFilteredSpansAbove}</strong> {t('spans filtered out')}
-          </span>
-        );
+        if (numOfFilteredSpansAbove === 1) {
+          messages.push(
+            <span key="spans-filtered">
+              {tct('[numOfSpans] hidden span', {
+                numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
+              })}
+            </span>
+          );
+        } else {
+          messages.push(
+            <span key="spans-filtered">
+              {tct('[numOfSpans] hidden spans', {
+                numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
+              })}
+            </span>
+          );
+        }
       }
     }
 
@@ -102,7 +124,18 @@ class SpanTree extends React.Component<PropType> {
   }
 
   isSpanFilteredOut(span: Readonly<RawSpanType>): boolean {
-    const {filterSpans} = this.props;
+    const {filterSpans, operationNameFilters} = this.props;
+
+    if (operationNameFilters.type === 'active_filter') {
+      const operationName = getSpanOperation(span);
+
+      if (
+        typeof operationName === 'string' &&
+        !operationNameFilters.operationNames.has(operationName)
+      ) {
+        return true;
+      }
+    }
 
     if (!filterSpans) {
       return false;
@@ -126,20 +159,27 @@ class SpanTree extends React.Component<PropType> {
   }: {
     spanNumber: number;
     treeDepth: number;
-    continuingTreeDepths: Array<number>;
+    continuingTreeDepths: Array<TreeDepthType>;
     isLast: boolean;
     isRoot?: boolean;
     numOfSpansOutOfViewAbove: number;
     numOfFilteredSpansAbove: number;
     span: Readonly<ProcessedSpanType>;
-    childSpans: Readonly<SpanChildrenLookupType>;
+    childSpans: SpanChildrenLookupType;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
-    const {orgId, eventView, event} = this.props;
+    const {orgId, event, spansWithErrors, organization} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
+
+    // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
+    // For example if a span has a span_id that's identical to its parent_span_id.
+    childSpans = {
+      ...childSpans,
+    };
+    delete childSpans[getSpanID(span)];
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
@@ -155,7 +195,7 @@ class SpanTree extends React.Component<PropType> {
 
     // hide gap spans (i.e. "missing instrumentation" spans) for browser js transactions,
     // since they're not useful to indicate
-    const shouldIncludeGap = !isJavaScriptSDK(event.sdk?.name);
+    const shouldIncludeGap = !isEventFromBrowserJavaScriptSDK(event);
 
     const isValidGap =
       typeof previousSiblingEndTimestamp === 'number' &&
@@ -174,7 +214,13 @@ class SpanTree extends React.Component<PropType> {
       previousSiblingEndTimestamp: undefined | number;
     };
 
-    const treeArr = isLast ? continuingTreeDepths : [...continuingTreeDepths, treeDepth];
+    const treeDepthEntry = isOrphanSpan(span)
+      ? ({type: 'orphan', depth: treeDepth} as OrphanTreeDepth)
+      : treeDepth;
+
+    const treeArr = isLast
+      ? continuingTreeDepths
+      : [...continuingTreeDepths, treeDepthEntry];
 
     const reduced: AccType = spanChildren.reduce(
       (acc: AccType, spanChild, index) => {
@@ -231,13 +277,15 @@ class SpanTree extends React.Component<PropType> {
       start_timestamp: previousSiblingEndTimestamp || span.start_timestamp,
       timestamp: span.start_timestamp, // this is essentially end_timestamp
       description: t('Missing instrumentation'),
+      isOrphan: isOrphanSpan(span),
     };
 
     const spanGapComponent =
       isValidGap && isSpanDisplayed ? (
         <SpanGroup
-          eventView={eventView}
           orgId={orgId}
+          organization={organization}
+          event={event}
           spanNumber={spanNumber}
           isLast={false}
           continuingTreeDepths={continuingTreeDepths}
@@ -249,6 +297,7 @@ class SpanTree extends React.Component<PropType> {
           numOfSpanChildren={0}
           renderedSpanChildren={[]}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+          spansWithErrors={spansWithErrors}
           spanBarHatch
         />
       ) : null;
@@ -262,8 +311,9 @@ class SpanTree extends React.Component<PropType> {
           {infoMessage}
           {spanGapComponent}
           <SpanGroup
-            eventView={eventView}
             orgId={orgId}
+            organization={organization}
+            event={event}
             spanNumber={spanGroupNumber}
             isLast={isLast}
             continuingTreeDepths={continuingTreeDepths}
@@ -277,23 +327,30 @@ class SpanTree extends React.Component<PropType> {
             spanBarColour={spanBarColour}
             isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
             spanBarHatch={false}
+            spansWithErrors={spansWithErrors}
           />
         </React.Fragment>
       ),
     };
   };
 
-  renderRootSpan = (): RenderedSpanTree => {
+  generateBounds() {
     const {dragProps, trace} = this.props;
 
-    const rootSpan: RawSpanType = generateRootSpan(trace);
-
-    const generateBounds = boundsGenerator({
+    return boundsGenerator({
       traceStartTimestamp: trace.traceStartTimestamp,
       traceEndTimestamp: trace.traceEndTimestamp,
       viewStart: dragProps.viewWindowStart,
       viewEnd: dragProps.viewWindowEnd,
     });
+  }
+
+  renderRootSpan = (): RenderedSpanTree => {
+    const {trace} = this.props;
+
+    const rootSpan: RawSpanType = generateRootSpan(trace);
+
+    const generateBounds = this.generateBounds();
 
     return this.renderSpan({
       isRoot: true,
@@ -309,6 +366,48 @@ class SpanTree extends React.Component<PropType> {
       previousSiblingEndTimestamp: undefined,
     });
   };
+
+  renderSecondaryPanel() {
+    const {organization, event} = this.props;
+
+    if (!organization.features.includes('measurements')) {
+      return null;
+    }
+
+    const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
+
+    // only display the secondary header if there are any measurements
+    if (!hasMeasurements) {
+      return null;
+    }
+
+    return (
+      <DividerHandlerManager.Consumer>
+        {(
+          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+        ) => {
+          const {dividerPosition} = dividerHandlerChildrenProps;
+
+          return (
+            <SecondaryHeader>
+              <div
+                style={{
+                  // the width of this component is shrunk to compensate for half of the width of the divider line
+                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                }}
+              />
+              <DividerSpacer />
+              <MeasurementsPanel
+                event={event}
+                generateBounds={this.generateBounds()}
+                dividerPosition={dividerPosition}
+              />
+            </SecondaryHeader>
+          );
+        }}
+      </DividerHandlerManager.Consumer>
+    );
+  }
 
   render() {
     const {
@@ -326,10 +425,13 @@ class SpanTree extends React.Component<PropType> {
 
     return (
       <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-        <TraceViewContainer ref={this.traceViewRef}>
-          {spanTree}
-          {infoMessage}
-        </TraceViewContainer>
+        <MeasurementsManager.Provider>
+          {this.renderSecondaryPanel()}
+          <TraceViewContainer ref={this.traceViewRef}>
+            {spanTree}
+            {infoMessage}
+          </TraceViewContainer>
+        </MeasurementsManager.Provider>
       </DividerHandlerManager.Provider>
     );
   }
@@ -341,12 +443,15 @@ const TraceViewContainer = styled('div')`
   border-bottom-right-radius: 3px;
 `;
 
-function isJavaScriptSDK(sdkName?: string): boolean {
-  if (!sdkName) {
-    return false;
-  }
-  // based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
-  return sdkName.toLowerCase() === 'sentry.javascript.browser';
-}
+const SecondaryHeader = styled('div')`
+  background-color: ${p => p.theme.gray100};
+  display: flex;
+
+  border-bottom: 1px solid ${p => p.theme.gray400};
+`;
+
+const DividerSpacer = styled('div')`
+  width: 1px;
+`;
 
 export default SpanTree;

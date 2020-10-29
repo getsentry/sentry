@@ -8,11 +8,7 @@ const PluginsStore = Reflux.createStore({
   },
 
   getState() {
-    const {
-      //eslint-disable-next-line no-unused-vars
-      plugins,
-      ...state
-    } = this.state;
+    const {plugins: _plugins, ...state} = this.state;
 
     return {
       ...state,

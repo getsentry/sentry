@@ -1,35 +1,37 @@
-import React from 'react';
-import styled from '@emotion/styled';
-import {RouteComponentProps} from 'react-router/lib/Router';
 import startCase from 'lodash/startCase';
+import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
-import space from 'app/styles/space';
-import Tag from 'app/views/settings/components/tag';
-import PluginIcon from 'app/plugins/components/pluginIcon';
 import Access from 'app/components/acl/access';
-import Tooltip from 'app/components/tooltip';
 import Alert, {Props as AlertProps} from 'app/components/alert';
+import AsyncComponent from 'app/components/asyncComponent';
 import ExternalLink from 'app/components/links/externalLink';
-import marked, {singleLineRenderer} from 'app/utils/marked';
-import {IconClose, IconGithub, IconGeneric, IconDocs, IconProject} from 'app/icons';
+import {Panel} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
+import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'app/icons';
+import {t} from 'app/locale';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import space from 'app/styles/space';
 import {
-  Organization,
   IntegrationFeature,
   IntegrationInstallationStatus,
+  IntegrationType,
+  Organization,
   SentryAppStatus,
 } from 'app/types';
 import {
-  getIntegrationFeatureGate,
-  trackIntegrationEvent,
-  SingleIntegrationEvent,
   getCategories,
+  getIntegrationFeatureGate,
+  SingleIntegrationEvent,
+  trackIntegrationEvent,
 } from 'app/utils/integrationUtil';
-import {Panel} from 'app/components/panels';
+import marked, {singleLineRenderer} from 'app/utils/marked';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Tag from 'app/components/tagDeprecated';
 
 import IntegrationStatus from './integrationStatus';
+import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 
 type Tab = 'overview' | 'configurations';
 
@@ -72,7 +74,7 @@ class AbstractIntegrationDetailedView<
    */
 
   //The analytics type used in analytics which is snake case
-  get integrationType(): 'sentry_app' | 'first_party' | 'plugin' | 'document' {
+  get integrationType(): IntegrationType {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
@@ -109,7 +111,7 @@ class AbstractIntegrationDetailedView<
   }
 
   // Returns an array of RawIntegrationFeatures which is used in feature gating
-  // and displaying what the integraiton does
+  // and displaying what the integration does
   get featureData(): IntegrationFeature[] {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -140,7 +142,7 @@ class AbstractIntegrationDetailedView<
   };
 
   //Returns the string that is shown as the title of a tab
-  getTabDiplay(tab: Tab): string {
+  getTabDisplay(tab: Tab): string {
     //default is return the tab
     return tab;
   }
@@ -181,7 +183,7 @@ class AbstractIntegrationDetailedView<
   }
 
   /***
-   * Actually implmeented methods below*
+   * Actually implemented methods below
    */
 
   get integrationSlug() {
@@ -234,6 +236,17 @@ class AbstractIntegrationDetailedView<
 
   cleanTags() {
     return getCategories(this.featureData);
+  }
+
+  renderRequestIntegrationButton() {
+    return (
+      <RequestIntegrationButton
+        organization={this.props.organization}
+        name={this.integrationName}
+        slug={this.integrationSlug}
+        type={this.integrationType}
+      />
+    );
   }
 
   renderAddInstallButton(hideButtonIfDisabled = false) {
@@ -305,7 +318,7 @@ class AbstractIntegrationDetailedView<
             className={this.state.tab === tabName ? 'active' : ''}
             onClick={() => this.onTabChange(tabName)}
           >
-            <CapitalizedLink>{t(this.getTabDiplay(tabName))}</CapitalizedLink>
+            <CapitalizedLink>{t(this.getTabDisplay(tabName))}</CapitalizedLink>
           </li>
         ))}
       </ul>
@@ -400,7 +413,7 @@ const Name = styled('div')`
 `;
 
 const IconCloseCircle = styled(IconClose)`
-  color: ${p => p.theme.red};
+  color: ${p => p.theme.red400};
   margin-right: ${space(1)};
 `;
 
@@ -412,7 +425,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
     }}
     {...p}
   >
-    <IconCloseCircle circle />
+    <IconCloseCircle isCircled />
     <span>{reason}</span>
   </div>
 ))`
@@ -472,7 +485,7 @@ const DisableWrapper = styled('div')`
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-weight: 600;
   font-size: 12px;
 `;

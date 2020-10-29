@@ -4,41 +4,40 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import {BorderlessEventEntries} from 'app/components/events/eventEntries';
+import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
 import {getMessage, getTitle} from 'app/utils/events';
-import {Organization, Event} from 'app/types';
+import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
-import getDynamicText from 'app/utils/getDynamicText';
-import {SectionHeading} from 'app/components/charts/styles';
-import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import FileSize from 'app/components/fileSize';
+import Feature from 'app/components/acl/feature';
+import RootSpanStatus from 'app/components/events/rootSpanStatus';
+import OpsBreakdown from 'app/components/events/opsBreakdown';
+import RealUserMonitoring from 'app/components/events/realUserMonitoring';
+import EventMetadata from 'app/components/events/eventMetadata';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
+import TagsTable from 'app/components/tagsTable';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import EventEntries from 'app/components/events/eventEntries';
-import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import {eventDetailsRoute} from 'app/utils/discover/urls';
+import * as Layout from 'app/components/layouts/thirds';
+import ButtonBar from 'app/components/buttonBar';
+import {FIELD_TAGS} from 'app/utils/discover/fields';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
-import {generateTitle} from '../utils';
-import Pagination from './pagination';
-import LineGraph from './lineGraph';
-import TagsTable from '../tagsTable';
+import {generateTitle, getExpandedResults} from '../utils';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
-import {ContentBox, HeaderBox} from '../styles';
-import OpsBreakdown from './transaction/opsBreakdown';
 
-const slugValidator = function(
+const slugValidator = function (
   props: {[key: string]: any},
   propName: string,
   componentName: string
@@ -56,7 +55,6 @@ type Props = {
   organization: Organization;
   location: Location;
   params: Params;
-  api: Client;
   eventSlug: string;
   eventView: EventView;
 };
@@ -95,6 +93,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const query = eventView.getEventsAPIPayload(location);
 
+    // Fields aren't used, reduce complexity by omitting from query entirely
+    query.field = [];
+
     const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
 
     // Get a specific event. This could be coming from
@@ -106,18 +107,44 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return this.props.eventSlug.split(':')[0];
   }
 
+  generateTagKey = (tag: EventTag) => {
+    // Some tags may be normalized from context, but not all of them are.
+    // This supports a user making a custom tag with the same name as one
+    // that comes from context as all of these are also tags.
+    if (tag.key in FIELD_TAGS) {
+      return `tags[${tag.key}]`;
+    }
+    return tag.key;
+  };
+
+  generateTagUrl = (tag: EventTag) => {
+    const {eventView, organization} = this.props;
+    const {event} = this.state;
+    if (!event) {
+      return '';
+    }
+    const eventReference = {...event};
+    if (eventReference.id) {
+      delete (eventReference as any).id;
+    }
+    const tagKey = this.generateTagKey(tag);
+    const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
+    return nextView.getResultsViewUrlTarget(organization.slug);
+  };
+
   renderBody() {
     const {event} = this.state;
 
     if (!event) {
-      return this.renderWrapper(<NotFound />);
+      return <NotFound />;
     }
 
-    return this.renderWrapper(this.renderContent(event));
+    return this.renderContent(event);
   }
 
   renderContent(event: Event) {
     const {organization, location, eventView} = this.props;
+    const {isSidebarVisible} = this.state;
 
     // metrics
     trackAnalyticsEvent({
@@ -127,79 +154,111 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       organization_id: parseInt(organization.id, 10),
     });
 
-    // Having an aggregate field means we want to show pagination/graphs
-    const isGroupedView = eventView.hasAggregateField();
-    const {isSidebarVisible} = this.state;
+    const transactionName = event.tags.find(tag => tag.key === 'transaction')?.value;
+    const transactionSummaryTarget =
+      event.type === 'transaction' && transactionName
+        ? transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionName,
+            projectID: event.projectID,
+            query: location.query,
+          })
+        : null;
 
     return (
       <React.Fragment>
-        <HeaderBox>
-          <DiscoverBreadcrumb
-            eventView={eventView}
-            event={event}
-            organization={organization}
-            location={location}
-          />
-          <EventHeader event={event} />
-          <Controller>
-            <StyledButton size="small" onClick={this.toggleSidebar}>
-              {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-            </StyledButton>
-            {isGroupedView && (
-              <Pagination
-                event={event}
-                organization={organization}
-                eventView={eventView}
-              />
-            )}
-          </Controller>
-        </HeaderBox>
-        <ContentBox>
-          <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
-            {isGroupedView &&
-              getDynamicText({
-                value: (
-                  <LineGraph
-                    organization={organization}
-                    currentEvent={event}
-                    location={location}
-                    eventView={eventView}
-                  />
-                ),
-                fixed: 'events chart',
-              })}
-            <Projects orgId={organization.slug} slugs={[this.projectId]}>
-              {({projects}) => (
-                <StyledEventEntries
-                  organization={organization}
-                  event={event}
-                  project={projects[0]}
-                  location={location}
-                  showExampleCommit={false}
-                  showTagSummary={false}
-                  eventView={eventView}
-                />
-              )}
-            </Projects>
-          </div>
-          <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
-            <EventMetadata
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <DiscoverBreadcrumb
+              eventView={eventView}
               event={event}
               organization={organization}
-              projectId={this.projectId}
+              location={location}
             />
-            <OpsBreakdown event={event} />
-            {event.groupID && (
-              <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
-            )}
-            <TagsTable eventView={eventView} event={event} organization={organization} />
-          </div>
-        </ContentBox>
+            <EventHeader event={event} organization={organization} />
+          </Layout.HeaderContent>
+          <StyledHeaderActions>
+            <ButtonBar gap={1}>
+              <Button onClick={this.toggleSidebar}>
+                {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+              </Button>
+              {transactionSummaryTarget && (
+                <Feature organization={organization} features={['performance-view']}>
+                  {({hasFeature}) => (
+                    <Button
+                      disabled={!hasFeature}
+                      priority="primary"
+                      to={transactionSummaryTarget}
+                    >
+                      {t('Go to Summary')}
+                    </Button>
+                  )}
+                </Feature>
+              )}
+            </ButtonBar>
+          </StyledHeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth={!isSidebarVisible}>
+            <Projects orgId={organization.slug} slugs={[this.projectId]}>
+              {({projects, initiallyLoaded}) =>
+                initiallyLoaded ? (
+                  <SpanEntryContext.Provider
+                    value={{
+                      getViewChildTransactionTarget: childTransactionProps => {
+                        const childTransactionLink = eventDetailsRoute({
+                          eventSlug: childTransactionProps.eventSlug,
+                          orgSlug: organization.slug,
+                        });
+
+                        return {
+                          pathname: childTransactionLink,
+                          query: eventView.generateQueryStringObject(),
+                        };
+                      },
+                    }}
+                  >
+                    <BorderlessEventEntries
+                      organization={organization}
+                      event={event}
+                      project={projects[0]}
+                      location={location}
+                      showExampleCommit={false}
+                      showTagSummary={false}
+                    />
+                  </SpanEntryContext.Provider>
+                ) : (
+                  <LoadingIndicator />
+                )
+              }
+            </Projects>
+          </Layout.Main>
+          {isSidebarVisible && (
+            <Layout.Side>
+              <EventMetadata
+                event={event}
+                organization={organization}
+                projectId={this.projectId}
+              />
+              <RootSpanStatus event={event} />
+              <OpsBreakdown event={event} />
+              <RealUserMonitoring organization={organization} event={event} />
+              {event.groupID && (
+                <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
+              )}
+              <TagsTable
+                generateUrl={this.generateTagUrl}
+                event={event}
+                query={eventView.query}
+              />
+            </Layout.Side>
+          )}
+        </Layout.Body>
       </React.Fragment>
     );
   }
 
-  renderError(error) {
+  renderError(error: Error) {
     const notFound = Object.values(this.state.errors).find(
       resp => resp && resp.status === 404
     );
@@ -208,166 +267,62 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
 
     if (notFound) {
-      return this.renderWrapper(<NotFound />);
+      return <NotFound />;
     }
     if (permissionDenied) {
-      return this.renderWrapper(
+      return (
         <LoadingError message={t('You do not have permission to view that event.')} />
       );
     }
 
-    return this.renderWrapper(super.renderError(error, true, true));
+    return super.renderError(error, true, true);
   }
 
-  renderLoading() {
-    return this.renderWrapper(super.renderLoading());
-  }
-
-  renderWrapper(children: React.ReactNode) {
-    const {organization, location, eventView} = this.props;
+  renderComponent() {
+    const {eventView, organization} = this.props;
     const {event} = this.state;
 
-    return (
-      <EventDetailsWrapper
-        organization={organization}
-        location={location}
-        eventView={eventView}
-        event={event}
-      >
-        {children}
-      </EventDetailsWrapper>
-    );
-  }
-}
-
-type EventDetailsWrapperProps = {
-  organization: Organization;
-  location: Location;
-  eventView: EventView;
-  event: Event | undefined;
-  children: React.ReactNode;
-};
-
-class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
-  getDocumentTitle = (): string => {
-    const {event, eventView} = this.props;
-
-    return generateTitle({
-      eventView,
-      event,
-    });
-  };
-
-  render() {
-    const {organization, children} = this.props;
+    const title = generateTitle({eventView, event, organization});
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
-        <React.Fragment>{children}</React.Fragment>
+      <SentryDocumentTitle title={title} objSlug={organization.slug}>
+        {super.renderComponent()}
       </SentryDocumentTitle>
     );
   }
 }
 
-const EventHeader = (props: {event: Event}) => {
-  const {title} = getTitle(props.event);
-
-  const message = getMessage(props.event);
-
-  return (
-    <StyledEventHeader data-test-id="event-header">
-      <StyledTitle>
-        {title}
-        {message && message.length > 0 ? ':' : null}
-      </StyledTitle>
-      <span>{getMessage(props.event)}</span>
-    </StyledEventHeader>
-  );
-};
-
-/**
- * Render metadata about the event and provide a link to the JSON blob
- */
-const EventMetadata = (props: {
+const EventHeader = ({
+  event,
+  organization,
+}: {
   event: Event;
   organization: Organization;
-  projectId: string;
 }) => {
-  const {event, organization, projectId} = props;
+  const {title} = getTitle(event, organization);
 
-  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${event.eventID}/json/`;
+  const message = getMessage(event);
 
   return (
-    <MetaDataID>
-      <SectionHeading>{t('Event ID')}</SectionHeading>
-      <MetadataContainer data-test-id="event-id">{event.eventID}</MetadataContainer>
-      <MetadataContainer>
-        <DateTime
-          date={getDynamicText({
-            value: event.dateCreated || (event.endTimestamp || 0) * 1000,
-            fixed: 'Dummy timestamp',
-          })}
-        />
-      </MetadataContainer>
-      <MetadataJSON href={eventJsonUrl} className="json-link">
-        {t('Preview JSON')} (<FileSize bytes={event.size} />)
-      </MetadataJSON>
-    </MetaDataID>
+    <Layout.Title data-test-id="event-header">
+      <span>
+        {title}
+        {message && message.length > 0 ? ':' : null}
+      </span>
+      <EventSubheading>{getMessage(event)}</EventSubheading>
+    </Layout.Title>
   );
 };
 
-const Controller = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  grid-row: 2/3;
-  grid-column: 2/3;
-`;
-
-const StyledButton = styled(Button)`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: block;
-    width: 110px;
+const StyledHeaderActions = styled(Layout.HeaderActions)`
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    display: none;
   }
 `;
 
-const StyledEventHeader = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray2};
-  grid-column: 1/2;
-  align-self: center;
-  ${overflowEllipsis};
+const EventSubheading = styled('span')`
+  color: ${p => p.theme.gray500};
+  margin-left: ${space(1)};
 `;
 
-const StyledTitle = styled('span')`
-  color: ${p => p.theme.gray4};
-  margin-right: ${space(1)};
-`;
-
-const MetaDataID = styled('div')`
-  margin-bottom: ${space(4)};
-`;
-
-const MetadataContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const MetadataJSON = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const StyledEventEntries = styled(EventEntries)`
-  & ${DataSection} {
-    padding: ${space(3)} 0 0 0;
-  }
-  & ${DataSection}:first-child {
-    padding-top: 0;
-    border-top: none;
-  }
-`;
-
-export default withApi(EventDetailsContent);
+export default EventDetailsContent;

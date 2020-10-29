@@ -1,9 +1,10 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import ProjectPluginRow from 'app/views/settings/projectPlugins/projectPluginRow';
 
-describe('ProjectPluginRow', function() {
+describe('ProjectPluginRow', function () {
   let wrapper;
   const plugin = TestStubs.Plugin();
   const org = TestStubs.Organization({access: ['project:write']});
@@ -11,13 +12,13 @@ describe('ProjectPluginRow', function() {
   const params = {orgId: org.slug, projectId: project.slug};
   const routerContext = TestStubs.routerContext([{organization: org, project}]);
 
-  it('renders', function() {
+  it('renders', function () {
     wrapper = mount(<ProjectPluginRow {...params} {...plugin} />, routerContext);
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('calls `onChange` when clicked', function() {
+  it('calls `onChange` when clicked', function () {
     const onChange = jest.fn();
     wrapper = mount(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} />,
@@ -29,7 +30,7 @@ describe('ProjectPluginRow', function() {
     expect(onChange).toHaveBeenCalledWith('amazon-sqs', true);
   });
 
-  it('can not enable/disable or configure plugin without `project:write`', function() {
+  it('can not enable/disable or configure plugin without `project:write`', function () {
     const onChange = jest.fn();
     wrapper = mount(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} />,

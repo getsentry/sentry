@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
 
@@ -51,20 +52,6 @@ FEATURES = [
     ),
 ]
 
-disable_dialog = {
-    "actionText": "Visit GitHub",
-    "body": "Before deleting this integration, you must uninstall this"
-    " integration from GitHub. After uninstalling, your integration will"
-    " be disabled at which point you can choose to delete this"
-    " integration.",
-}
-
-removal_dialog = {
-    "actionText": "Delete",
-    "body": "Deleting this integration will delete all associated repositories"
-    " and commit data. This action cannot be undone. Are you sure you"
-    " want to delete your integration?",
-}
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -73,7 +60,7 @@ metadata = IntegrationMetadata(
     noun=_("Installation"),
     issue_url="https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github",
-    aspects={"disable_dialog": disable_dialog, "removal_dialog": removal_dialog},
+    aspects={},
 )
 
 API_ERRORS = {
@@ -111,6 +98,20 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
+    def get_stacktrace_link(self, repo, filepath, version):
+        try:
+            self.get_client().check_file(repo.name, filepath, version)
+        except ApiError as e:
+            if e.code != 404:
+                raise
+            return None
+
+        # Must format the url ourselves since `check_file` is a head request
+        # "https://github.com/octokit/octokit.rb/blob/master/README.md"
+        web_url = u"https://github.com/{}/blob/{}/{}".format(repo.name, version, filepath)
+
+        return web_url
+
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
@@ -127,6 +128,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
             message = API_ERRORS.get(exc.code)
+            if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
+                message += (
+                    " Please also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
+                    % exc.url
+                )
+
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
             return "Error Communicating with GitHub (HTTP %s): %s" % (exc.code, message)
@@ -153,11 +160,10 @@ class GitHubIntegrationProvider(IntegrationProvider):
     integration_cls = GitHubIntegration
     features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
 
-    can_disable = True
-
     setup_dialog_config = {"width": 1030, "height": 1000}
+    has_stacktrace_linking = True
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["github", "integrations:github"],
@@ -181,7 +187,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         resp = session.get(
             "https://api.github.com/app/installations/%s" % installation_id,
             headers={
-                "Authorization": "Bearer %s" % get_jwt(),
+                "Authorization": b"Bearer %s" % get_jwt(),
                 "Accept": "application/vnd.github.machine-man-preview+json",
             },
         )

@@ -2,139 +2,158 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import minified from 'sentry-dreamy-components/dist/minified.svg';
-import emails from 'sentry-dreamy-components/dist/emails.svg';
-import issues from 'sentry-dreamy-components/dist/issues.svg';
-import suggestedAssignees from 'sentry-dreamy-components/dist/suggested-assignees.svg';
-import contributors from 'sentry-dreamy-components/dist/contributors.svg';
 import {Project, Organization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
-import withOrganization from 'app/utils/withOrganization';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import OnboardingPanel from 'app/components/onboardingPanel';
 import withProject from 'app/utils/withProject';
+import FeatureTourModal, {
+  TourStep,
+  TourImage,
+  TourText,
+} from 'app/components/modals/featureTourModal';
+import AsyncView from 'app/views/asyncView';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
-import ReleaseLandingCard from './releaseLandingCard';
+import emptyStateImg from '../../../../images/spot/releases-empty-state.svg';
+import commitImage from '../../../../images/spot/releases-tour-commits.svg';
+import statsImage from '../../../../images/spot/releases-tour-stats.svg';
+import resolutionImage from '../../../../images/spot/releases-tour-resolution.svg';
+import emailImage from '../../../../images/spot/releases-tour-email.svg';
 
-type IllustrationProps = {
-  data: string;
-  className?: string;
-};
-
-// Currently, we need a fallback because <object> doesn't work in msedge,
-// and <img> doesn't work in safari. Hopefully we can choose one soon.
-const Illustration = styled(({data, className}: IllustrationProps) => (
-  <object data={data} className={className}>
-    <img src={data} className={className} />
-  </object>
-))`
-  width: 100%;
-  height: 100%;
-`;
-
-const cards = [
-  {
-    title: t("You Haven't Set Up Releases!"),
-    message: t(
-      'Releases provide additional context, with rich commits, so you know which errors were addressed and which were introduced in a release'
-    ),
-    svg: <Illustration data={contributors} />,
-  },
+const TOUR_STEPS: TourStep[] = [
   {
     title: t('Suspect Commits'),
-    message: t(
-      'Sentry suggests which commit caused an issue and who is likely responsible so you can triage'
+    image: <TourImage src={commitImage} />,
+    body: (
+      <TourText>
+        {t(
+          'Sentry suggests which commit caused an issue and who is likely responsible so you can triage.'
+        )}
+      </TourText>
     ),
-    svg: <Illustration data={suggestedAssignees} />,
   },
   {
     title: t('Release Stats'),
-    message: t(
-      'See the commits in each release, and which issues were introduced or fixed in the release'
+    image: <TourImage src={statsImage} />,
+    body: (
+      <TourText>
+        {t(
+          'Get an overview of the commits in each release, and which issues were introduced or fixed.'
+        )}
+      </TourText>
     ),
-    svg: <Illustration data={issues} />,
   },
   {
-    title: t('Easy Resolution'),
-    message: t(
-      'Automatically resolve issues by including the issue number in your commit message'
+    title: t('Easily Resolve'),
+    image: <TourImage src={resolutionImage} />,
+    body: (
+      <TourText>
+        {t(
+          'Automatically resolve issues by including the issue number in your commit message.'
+        )}
+      </TourText>
     ),
-    svg: <Illustration data={minified} />,
   },
   {
     title: t('Deploy Emails'),
-    message: t('Receive email notifications when your code gets deployed'),
-    svg: <Illustration data={emails} />,
+    image: <TourImage src={emailImage} />,
+    body: (
+      <TourText>
+        {t(
+          'Receive email notifications about when your code gets deployed. This can be customized in settings.'
+        )}
+      </TourText>
+    ),
   },
 ];
 
-type ReleaseLandingProps = {
+const setupDocs = 'https://docs.sentry.io/product/releases/';
+
+type Props = {
+  organization: Organization;
+  project: Project;
+} & AsyncView['props'];
+
+class ReleaseLanding extends AsyncView<Props> {
+  // if there are no releases in the last 30 days, we want to show releases promo, otherwise empty message
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {slug} = this.props.organization;
+
+    const query = {
+      per_page: 1,
+      summaryStatsPeriod: '30d',
+    };
+
+    return [['releases', `/organizations/${slug}/releases/`, {query}]];
+  }
+
+  renderBody() {
+    const {organization, project} = this.props;
+
+    if (this.state.releases.length === 0) {
+      return <Promo organization={organization} project={project} />;
+    }
+
+    return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
+  }
+}
+
+type PromoProps = {
   organization: Organization;
   project: Project;
 };
 
-type State = {
-  stepId: number;
-};
+class Promo extends React.Component<PromoProps> {
+  componentDidMount() {
+    const {organization, project} = this.props;
 
-const ReleaseLanding = withOrganization(
-  withProject(
-    class ReleaseLanding extends React.Component<ReleaseLandingProps, State> {
-      constructor(props) {
-        super(props);
-        this.state = {
-          stepId: 0,
-        };
-      }
+    analytics('releases.landing_card_viewed', {
+      org_id: parseInt(organization.id, 10),
+      project_id: project && parseInt(project.id, 10),
+    });
+  }
 
-      componentDidMount() {
-        const {organization, project} = this.props;
+  handleAdvance = (index: number) => {
+    const {organization, project} = this.props;
 
-        analytics('releases.landing_card_viewed', {
-          org_id: parseInt(organization.id, 10),
-          project_id: project && parseInt(project.id, 10),
-        });
-      }
+    analytics('releases.landing_card_clicked', {
+      org_id: parseInt(organization.id, 10),
+      project_id: project && parseInt(project.id, 10),
+      step_id: index,
+      step_title: TOUR_STEPS[index].title,
+    });
+  };
 
-      handleClick = () => {
-        const {stepId} = this.state;
-        const {organization, project} = this.props;
+  render() {
+    return (
+      <OnboardingPanel image={<img src={emptyStateImg} />}>
+        <h3>{t('Demystify Releases')}</h3>
+        <p>
+          {t(
+            'Did you know how many errors your latest release triggered? We do. And more, too.'
+          )}
+        </p>
+        <ButtonList gap={1}>
+          <FeatureTourModal steps={TOUR_STEPS} onAdvance={this.handleAdvance}>
+            {({showModal}) => (
+              <Button priority="default" onClick={showModal}>
+                {t('Take a Tour')}
+              </Button>
+            )}
+          </FeatureTourModal>
+          <Button priority="primary" href={setupDocs} external>
+            {t('Start Setup')}
+          </Button>
+        </ButtonList>
+      </OnboardingPanel>
+    );
+  }
+}
 
-        const title = cards[stepId].title;
-        if (stepId >= cards.length - 1) {
-          return;
-        }
-        this.setState(state => ({
-          stepId: state.stepId + 1,
-        }));
+const ButtonList = styled(ButtonBar)`
+  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+`;
 
-        analytics('releases.landing_card_clicked', {
-          org_id: parseInt(organization.id, 10),
-          project_id: project && parseInt(project.id, 10),
-          step_id: stepId,
-          step_title: title,
-        });
-      };
-
-      getCard = stepId => cards[stepId];
-
-      render() {
-        const {stepId} = this.state;
-        const card = this.getCard(stepId);
-
-        return (
-          <div className="container">
-            <div className="row">
-              <ReleaseLandingCard
-                onClick={this.handleClick}
-                card={card}
-                step={stepId}
-                cardsLength={cards.length}
-              />
-            </div>
-          </div>
-        );
-      }
-    }
-  )
-);
-
-export default ReleaseLanding;
+export default withProject(ReleaseLanding);

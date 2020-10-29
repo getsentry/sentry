@@ -25,9 +25,7 @@ const DUMMY_COMMIT = {
     fixed: '5ca1ed',
   }),
   author: {name: 'codesworth'},
-  dateCreated: moment()
-    .subtract(3, 'day')
-    .format(),
+  dateCreated: moment().subtract(3, 'day').format(),
   repository: {
     provider: {id: 'integrations:github', name: 'GitHub', status: 'active'},
   },
@@ -196,13 +194,13 @@ const Description = styled('div')`
     font-size: 14px;
     text-transform: uppercase;
     margin-bottom: ${space(0.25)};
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
   }
 
   p {
     font-size: 13px;
     font-weight: bold;
-    color: ${p => p.theme.gray4};
+    color: ${p => p.theme.gray700};
     margin-bottom: ${space(1.5)};
   }
 `;

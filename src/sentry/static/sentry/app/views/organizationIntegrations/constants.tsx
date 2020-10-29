@@ -7,9 +7,9 @@ export const LEARN_MORE = 'Learn More' as const;
 
 export const COLORS = {
   [INSTALLED]: 'success',
-  [NOT_INSTALLED]: 'gray2',
-  [PENDING]: 'yellowOrange',
-  [LEARN_MORE]: 'gray2',
+  [NOT_INSTALLED]: 'gray500',
+  [PENDING]: 'orange300',
+  [LEARN_MORE]: 'gray500',
 } as const;
 
 /**
@@ -30,6 +30,8 @@ export const POPULARITY_WEIGHT: {
   jira_server: 10,
   bitbucket_server: 10,
   github_enterprise: 10,
+  vercel: 10,
+  msteams: 10,
 
   // Sentry-apps
   clubhouse: 9,
@@ -37,6 +39,8 @@ export const POPULARITY_WEIGHT: {
   clickup: 9,
   amixr: 9,
   split: 9,
+  linear: 9,
+  teamwork: 9,
 
   // Plugins
   webhooks: 10,
@@ -49,7 +53,6 @@ export const POPULARITY_WEIGHT: {
   redmine: 5,
   phabricator: 5,
   opsgenie: 5,
-  teamwork: 5,
   victorops: 5,
   sessionstack: 5,
   segment: 2,
@@ -59,18 +62,18 @@ export const POPULARITY_WEIGHT: {
   //doc integrations
   fullstory: 8,
   datadog: 8,
-  msteams: 8,
+  netlify: 8,
   asayer: 8,
   rocketchat: 8,
+  bitbucket_pipelines: 8,
+  github_actions: 8,
 } as const;
 
-export const documentIntegrations: {
-  [key: string]: DocumentIntegration;
-} = {
-  fullstory: {
+export const documentIntegrationList: DocumentIntegration[] = [
+  {
     slug: 'fullstory',
     name: 'FullStory',
-    author: 'Sentry',
+    author: 'The Sentry Team',
     docUrl: 'https://www.npmjs.com/package/@sentry/fullstory',
     description:
       'The Sentry-FullStory integration seamlessly integrates the Sentry and FullStory platforms. When you look at a browser error in Sentry, you will see a link to the FullStory session replay at that exact moment in time. When you are watching a FullStory replay and your user experiences an error, you will see a link that will take you to that error in Sentry.',
@@ -93,7 +96,7 @@ export const documentIntegrations: {
       },
     ],
   },
-  datadog: {
+  {
     slug: 'datadog',
     name: 'Datadog',
     author: 'Datadog',
@@ -116,37 +119,10 @@ export const documentIntegrations: {
       {title: 'Documentation', url: 'https://docs.datadoghq.com/integrations/sentry/'},
     ],
   },
-  msteams: {
-    slug: 'msteams',
-    name: 'Microsoft Teams',
-    author: 'Microsoft',
-    docUrl:
-      'https://appsource.microsoft.com/en-us/product/office/WA104381566?src=office&tab=Overview',
-    description:
-      "Microsoft Teams is a hub for teamwork in Office 365. Keep all your team's chats, meetings, files, and apps together in one place.",
-    features: [
-      {
-        featureGate: 'chat',
-        description: 'Get Sentry notifications in Microsoft Teams.',
-      },
-      {
-        featureGate: 'alert-rule',
-        description:
-          'Configure Sentry rules to trigger notifications based on conditions you set through the Sentry webhook integration.',
-      },
-    ],
-    resourceLinks: [
-      {
-        title: 'Documentation',
-        url:
-          'https://appsource.microsoft.com/en-us/product/office/WA104381566?src=office&tab=Overview',
-      },
-    ],
-  },
-  asayer: {
+  {
     slug: 'asayer',
     name: 'Asayer',
-    author: 'Sentry',
+    author: 'The Sentry Team',
     docUrl: 'https://docs.asayer.io/integrations/sentry',
     description:
       'Asayer is a session replay tool for developers. Replay each user session alongside your front/backend logs and other data spread across your stack so you can immediately find, reproduce and fix bugs faster.',
@@ -161,7 +137,7 @@ export const documentIntegrations: {
       {title: 'Documentation', url: 'https://docs.asayer.io/integrations/sentry'},
     ],
   },
-  rocketchat: {
+  {
     slug: 'rocketchat',
     name: 'Rocket.Chat',
     author: 'Rocket.Chat',
@@ -186,4 +162,87 @@ export const documentIntegrations: {
       },
     ],
   },
-};
+  {
+    slug: 'netlify',
+    name: 'Netlify',
+    author: 'The Sentry Team',
+    docUrl: 'https://www.npmjs.com/package/@sentry/netlify-build-plugin',
+    description:
+      'The Sentry Netlify build plugin automatically uploads source maps and notifies Sentry of new releases being deployed to your site after it finishes building in Netlify.',
+    features: [
+      {
+        featureGate: 'release-management',
+        description: 'Notify Sentry of new releases being deployed.',
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'Documentation',
+        url: 'https://www.npmjs.com/package/@sentry/netlify-build-plugin',
+      },
+      {
+        title: 'View Source',
+        url: 'https://github.com/getsentry/sentry-netlify-build-plugin',
+      },
+      {
+        title: 'Report Issue',
+        url: 'https://github.com/getsentry/sentry-netlify-build-plugin/issues',
+      },
+    ],
+  },
+  {
+    slug: 'bitbucket_pipelines',
+    name: 'Bitbucket Pipelines',
+    author: 'The Sentry Team',
+    docUrl:
+      'https://bitbucket.org/product/features/pipelines/integrations?p=sentryio/sentry-new-release',
+    description:
+      'Notify Sentry of any Bitbucket Pipelines builds to automatically manage releases and quickly surface any errors associated with a given build.\n\n**Requirement:** Bitbucket source code integration must be installed for the release pipe to work.',
+    features: [
+      {
+        featureGate: 'release-management',
+        description: 'Notify Sentry of new releases being deployed.',
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'View Source',
+        url: 'https://bitbucket.org/sentryio/sentry-new-release/src/master/',
+      },
+      {
+        title: 'Report Issue',
+        url: 'https://bitbucket.org/sentryio/sentry-new-release/issues',
+      },
+    ],
+  },
+  {
+    slug: 'github_actions',
+    name: 'GitHub Actions',
+    author: 'The Sentry Team',
+    docUrl: 'https://github.com/marketplace/actions/sentry-release',
+    description:
+      "The Sentry Release GitHub Action automatically notifies Sentry of new releases being deployed. After sending Sentry release information, you'll be able to identify suspect commits that are likely the culprit for new errors. You'll also be able to apply source maps to see the original code in Sentry.\n\n**Requirement:** GitHub source code integration must be installed and configured for the Sentry Release GitHub Action to work.",
+    features: [
+      {
+        featureGate: 'release-management',
+        description: 'Notify Sentry of new releases being deployed.',
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'View Source',
+        url: 'https://github.com/getsentry/action-release',
+      },
+      {
+        title: 'Report Issue',
+        url: 'https://github.com/getsentry/action-release/issues',
+      },
+    ],
+  },
+];
+
+export const documentIntegrations: {
+  [key: string]: DocumentIntegration;
+} = Object.fromEntries(
+  documentIntegrationList.map(integration => [integration.slug, integration])
+);

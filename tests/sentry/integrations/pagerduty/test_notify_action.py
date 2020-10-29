@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import responses
 
 from sentry.utils import json
-from sentry.models import Integration, PagerDutyService, GroupStatus, OrganizationIntegration
+from sentry.models import Integration, PagerDutyService, OrganizationIntegration
 from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.pagerduty.notify_action import PagerDutyNotifyServiceAction
 
@@ -49,7 +49,7 @@ class PagerDutyNotifyActionTest(RuleTestCase):
         responses.add(
             method=responses.POST,
             url="https://events.pagerduty.com/v2/enqueue/",
-            body={},
+            json={},
             status=202,
             content_type="application/json",
         )
@@ -139,7 +139,7 @@ class PagerDutyNotifyActionTest(RuleTestCase):
         responses.add(
             method=responses.POST,
             url="https://events.pagerduty.com/v2/enqueue/",
-            body={},
+            json={},
             status=202,
             content_type="application/json",
         )
@@ -178,24 +178,3 @@ class PagerDutyNotifyActionTest(RuleTestCase):
         form = rule.get_form_instance()
         assert not form.is_valid()
         assert len(form.errors) == 1
-
-    def test_dont_notify_ignored(self):
-        event = self.get_event()
-        event.group.status = GroupStatus.IGNORED
-        event.group.save()
-
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
-
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 0
-
-    # this happens if an issue is marked as resolved in the next release
-    def test_dont_notify_resolved(self):
-        event = self.get_event()
-        event.group.status = GroupStatus.RESOLVED
-        event.group.save()
-
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
-
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 0

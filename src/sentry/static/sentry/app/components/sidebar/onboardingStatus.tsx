@@ -104,15 +104,15 @@ class OnboardingStatus extends React.Component<Props> {
 
 const Heading = styled('div')`
   transition: color 100ms;
-  font-size: ${p => p.theme.offWhite};
-  color: ${p => p.theme.gray1};
+  font-size: ${p => p.theme.gray100};
+  color: ${p => p.theme.gray400};
   margin-bottom: ${space(0.25)};
 `;
 
 const Remaining = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   display: grid;
   grid-template-columns: max-content max-content;
   grid-gap: ${space(0.75)};
@@ -120,7 +120,7 @@ const Remaining = styled('div')`
 `;
 
 const PendingSeenIndicator = styled('div')`
-  background: ${p => p.theme.red};
+  background: ${p => p.theme.red400};
   border-radius: 50%;
   height: 7px;
   width: 7px;
@@ -133,7 +133,7 @@ const hoverCss = (p: {theme: Theme}) => css`
     stroke: rgba(255, 255, 255, 0.3);
   }
   ${RingBar} {
-    stroke: ${p.theme.greenLight};
+    stroke: ${p.theme.green300};
   }
   ${RingText} {
     color: ${p.theme.white};
@@ -143,7 +143,7 @@ const hoverCss = (p: {theme: Theme}) => css`
     color: ${p.theme.white};
   }
   ${Remaining} {
-    color: ${p.theme.gray1};
+    color: ${p.theme.gray400};
   }
 `;
 

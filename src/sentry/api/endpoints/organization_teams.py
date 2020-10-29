@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import sentry_sdk
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -8,7 +9,6 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -22,23 +22,8 @@ from sentry.models import (
 )
 from sentry.search.utils import tokenize_query
 from sentry.signals import team_created
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
-
-
-@scenario("CreateNewTeam")
-def create_new_team_scenario(runner):
-    runner.request(
-        method="POST",
-        path="/organizations/%s/teams/" % runner.org.slug,
-        data={"name": "Ancient Gabelers"},
-    )
-
-
-@scenario("ListOrganizationTeams")
-def list_organization_teams_scenario(runner):
-    runner.request(method="GET", path="/organizations/%s/teams/" % runner.org.slug)
 
 
 # OrganizationPermission + team:write
@@ -74,9 +59,7 @@ class TeamSerializer(serializers.Serializer):
 
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationTeamsPermission,)
-    doc_section = DocSection.TEAMS
 
-    @attach_scenarios([list_organization_teams_scenario])
     def get(self, request, organization):
         """
         List an Organization's Teams
@@ -95,9 +78,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if request.auth and hasattr(request.auth, "project"):
             return Response(status=403)
 
-        queryset = Team.objects.filter(
-            organization=organization, status=TeamStatus.VISIBLE
-        ).order_by("slug")
+        with sentry_sdk.start_span(op="PERF: OrgTeam.get - filter"):
+            queryset = Team.objects.filter(
+                organization=organization, status=TeamStatus.VISIBLE
+            ).order_by("slug")
 
         if request.GET.get("is_not_member", "0") == "1":
             user_teams = Team.objects.get_for_user(organization=organization, user=request.user)
@@ -105,22 +89,26 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         query = request.GET.get("query")
 
-        if query:
-            tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
-                if key == "query":
-                    value = " ".join(value)
-                    queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
-                else:
-                    queryset = queryset.none()
+        with sentry_sdk.start_span(op="PERF: OrgTeam.get - tokenize"):
+            if query:
+                tokens = tokenize_query(query)
+                for key, value in six.iteritems(tokens):
+                    if key == "query":
+                        value = " ".join(value)
+                        queryset = queryset.filter(
+                            Q(name__icontains=value) | Q(slug__icontains=value)
+                        )
+                    else:
+                        queryset = queryset.none()
 
         is_detailed = request.GET.get("detailed", "1") != "0"
 
-        serializer = (
-            team_serializers.TeamWithProjectsSerializer
-            if is_detailed
-            else team_serializers.TeamSerializer
-        )
+        with sentry_sdk.start_span(op="PERF: OrgTeam.get - serialize"):
+            serializer = (
+                team_serializers.TeamWithProjectsSerializer
+                if is_detailed
+                else team_serializers.TeamSerializer
+            )
 
         return self.paginate(
             request=request,
@@ -130,7 +118,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    @attach_scenarios([create_new_team_scenario])
     def post(self, request, organization):
         """
         Create a new Team

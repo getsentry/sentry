@@ -5,8 +5,7 @@ import {t} from 'app/locale';
 import {Event, Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
-
-import {getDiscoverLandingUrl} from './utils';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 
 type DefaultProps = {
   event: Event | undefined;
@@ -32,7 +31,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
           query: {
             ...location.query,
             ...eventView.generateBlankQueryStringObject(),
-            ...eventView.getGlobalSelection(),
+            ...eventView.getGlobalSelectionQuery(),
           },
         }
       : null;

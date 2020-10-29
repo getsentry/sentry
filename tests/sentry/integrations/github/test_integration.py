@@ -6,8 +6,9 @@ import sentry
 from sentry.utils.compat.mock import MagicMock
 from six.moves.urllib.parse import urlencode, urlparse
 
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.constants import ObjectStatus
-from sentry.integrations.github import GitHubIntegrationProvider
+from sentry.integrations.github import GitHubIntegrationProvider, API_ERRORS
 from sentry.models import Integration, OrganizationIntegration, Repository, Project
 from sentry.plugins.base import plugins
 from sentry.testutils import IntegrationTestCase
@@ -37,12 +38,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def _stub_github(self):
         responses.reset()
 
-        sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
-        sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
+        sentry.integrations.github.integration.get_jwt = MagicMock(return_value=b"jwt_token_1")
+        sentry.integrations.github.client.get_jwt = MagicMock(return_value=b"jwt_token_1")
 
         responses.add(
             responses.POST,
-            self.base_url + "/installations/{}/access_tokens".format(self.installation_id),
+            self.base_url + "/app/installations/{}/access_tokens".format(self.installation_id),
             json={"token": self.access_token, "expires_at": self.expires_at},
         )
 
@@ -88,7 +89,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         auth_header = responses.calls[0].request.headers["Authorization"]
-        assert auth_header == "Bearer jwt_token_1"
+        assert auth_header == b"Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
         return resp
@@ -178,7 +179,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
 
         auth_header = responses.calls[0].request.headers["Authorization"]
-        assert auth_header == "Bearer jwt_token_1"
+        assert auth_header == b"Bearer jwt_token_1"
 
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.status == ObjectStatus.VISIBLE
@@ -234,3 +235,74 @@ class GitHubIntegrationTest(IntegrationTestCase):
             {"identifier": "test/example", "name": "example"},
             {"identifier": "test/exhaust", "name": "exhaust"},
         ]
+
+    @responses.activate
+    def test_get_stacktrace_link_file_exists(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
+        )
+
+        path = "README.md"
+        version = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+        )
+        installation = integration.get_installation(self.organization)
+        result = installation.get_stacktrace_link(repo, path, version)
+
+        assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
+
+    @responses.activate
+    def test_get_stacktrace_link_file_doesnt_exists(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
+        )
+        path = "README.md"
+        version = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+            status=404,
+        )
+        installation = integration.get_installation(self.organization)
+        result = installation.get_stacktrace_link(repo, path, version)
+
+        assert not result
+
+    @responses.activate
+    def test_get_message_from_error(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+        base_error = "Error Communicating with GitHub (HTTP 404): %s" % (API_ERRORS[404])
+        assert (
+            installation.message_from_error(
+                ApiError("Not Found", code=404, url="https://api.github.com/repos/scefali")
+            )
+            == base_error
+        )
+        url = "https://api.github.com/repos/scefali/sentry-integration-example/compare/2adcab794f6f57efa8aa84de68a724e728395792...e208ee2d71e8426522f95efbdae8630fa66499ab"
+        assert (
+            installation.message_from_error(ApiError("Not Found", code=404, url=url))
+            == base_error
+            + " Please also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
+            % url
+        )

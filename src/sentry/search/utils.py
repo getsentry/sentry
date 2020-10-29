@@ -107,6 +107,8 @@ def parse_datetime_string(value):
     # timezones are not supported and are assumed UTC
     if value[-1:] == "Z":
         value = value[:-1]
+    if len(value) >= 6 and value[-6] == "+":
+        value = value[:-6]
 
     for format in [DATETIME_FORMAT_MICROSECONDS, DATETIME_FORMAT, DATE_FORMAT]:
         try:
@@ -119,7 +121,7 @@ def parse_datetime_string(value):
     except ValueError:
         pass
 
-    raise InvalidQuery(u"{} is not a valid datetime query".format(value))
+    raise InvalidQuery(u"{} is not a valid ISO8601 date query".format(value))
 
 
 def parse_datetime_comparison(value):
@@ -139,6 +141,8 @@ def parse_datetime_value(value):
     # timezones are not supported and are assumed UTC
     if value[-1:] == "Z":
         value = value[:-1]
+    if len(value) >= 6 and value[-6] == "+":
+        value = value[:-6]
 
     result = None
 
@@ -220,12 +224,17 @@ def parse_user_value(value, user):
         return User(id=0)
 
 
-def get_latest_release(projects, environments):
-    release_qs = Release.objects.filter(
-        organization_id=projects[0].organization_id, projects__in=projects
-    )
+def get_latest_release(projects, environments, organization_id=None):
+    if organization_id is None:
+        project = projects[0]
+        if hasattr(project, "organization_id"):
+            organization_id = project.organization_id
+        else:
+            return ""
 
-    if environments is not None:
+    release_qs = Release.objects.filter(organization_id=organization_id, projects__in=projects)
+
+    if environments:
         release_qs = release_qs.filter(
             releaseprojectenvironment__environment__id__in=[
                 environment.id for environment in environments
@@ -240,10 +249,10 @@ def get_latest_release(projects, environments):
     )
 
 
-def parse_release(value, projects, environments):
+def parse_release(value, projects, environments, organization_id=None):
     if value == "latest":
         try:
-            return get_latest_release(projects, environments)
+            return get_latest_release(projects, environments, organization_id)
         except Release.DoesNotExist:
             # Should just get no results here, so return an empty release name.
             return ""
@@ -314,6 +323,9 @@ def tokenize_query(query):
     query_params = defaultdict(list)
     tokens = split_query_into_tokens(query)
     for token in tokens:
+        if token.upper() in ["OR", "AND"] or token.strip("()") == "":
+            continue
+
         state = "query"
         for idx, char in enumerate(token):
             next_char = token[idx + 1] if idx < len(token) - 1 else None
@@ -327,7 +339,8 @@ def tokenize_query(query):
                 break
         query_params[state].append(token)
 
-    result["query"] = map(format_query, query_params["query"])
+    if "query" in query_params:
+        result["query"] = map(format_query, query_params["query"])
     for tag in query_params["tags"]:
         key, value = format_tag(tag)
         result[key].append(value)
@@ -336,7 +349,7 @@ def tokenize_query(query):
 
 def format_tag(tag):
     """
-    Splits tags on ':' and removes enclosing quotes if present and returns
+    Splits tags on ':' and removes enclosing quotes and grouping parens if present and returns
     returns both sides of the split as strings
 
     Example:
@@ -346,20 +359,20 @@ def format_tag(tag):
     'user', 'foo bar'
     """
     idx = tag.index(":")
-    key = tag[:idx].strip('"')
-    value = tag[idx + 1 :].strip('"')
+    key = tag[:idx].lstrip("(").strip('"')
+    value = tag[idx + 1 :].rstrip(")").strip('"')
     return key, value
 
 
 def format_query(query):
     """
-    Strips enclosing quotes from queries if present.
+    Strips enclosing quotes and grouping parens from queries if present.
 
     Example:
     >>> format_query('"user:foo bar"')
     'user:foo bar'
     """
-    return query.strip('"')
+    return query.strip('"()')
 
 
 def split_query_into_tokens(query):

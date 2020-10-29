@@ -7,6 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.web.frontend.base import BaseView
+from sentry.web.decorators import transaction_start
 
 
 # The request doesn't contain the pipeline type (pipeline information is stored
@@ -28,6 +29,7 @@ class PipelineAdvancerView(BaseView):
 
     csrf_protect = False
 
+    @transaction_start("PipelineAdvancerView")
     def handle(self, request, provider_id):
         pipeline = None
 

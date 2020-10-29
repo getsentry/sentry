@@ -8,7 +8,7 @@ type Params = {
   /**
    * If this is true, will make corners blend with its opener (so no border radius)
    */
-  blendWithActor: boolean;
+  blendWithActor?: boolean;
   /**
    * If this is true, will make a single corner blended with actor (depends on anchor orientation)
    */
@@ -24,9 +24,7 @@ type Params = {
   /**
    * enable the arrow on the menu
    */
-  menuWithArrow: boolean;
-
-  theme: Theme;
+  menuWithArrow?: boolean;
 };
 
 /**
@@ -40,7 +38,7 @@ const getMenuBorderRadius = ({
   alignMenu,
   width,
   theme,
-}: Params) => {
+}: Params & {theme: Theme}) => {
   const radius = theme.borderRadius;
   if (!blendCorner) {
     return css`
@@ -105,7 +103,7 @@ const getMenuArrow = ({menuWithArrow, alignMenu}: Params) => {
 };
 
 const DropdownBubble = styled('div')<Params>`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.white};
   border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: calc(100% - 1px);
@@ -123,7 +121,7 @@ const DropdownBubble = styled('div')<Params>`
    * below dropdown actor button's zindex */
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
 
-  ${SettingsHeader} & {
+  ${/* sc-selector */ SettingsHeader} & {
     z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
   }
 `;

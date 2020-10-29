@@ -6,7 +6,7 @@ import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Alert from 'app/components/alert';
-import {IconDelete} from 'app/icons/iconDelete';
+import {IconDelete, IconFlag, IconSettings} from 'app/icons';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
@@ -40,7 +40,7 @@ export class InstalledPlugin extends React.Component<Props> {
   getConfirmMessage() {
     return (
       <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           {t(
             'Deleting this installation will disable the integration for this project and remove any configurations.'
           )}
@@ -138,7 +138,7 @@ export class InstalledPlugin extends React.Component<Props> {
                 {
                   <StyledButton
                     borderless
-                    icon="icon-settings"
+                    icon={<IconSettings />}
                     disabled={!hasAccess}
                     to={`/settings/${organization.slug}/projects/${projectItem.projectSlug}/plugins/${plugin.id}/`}
                     data-test-id="integration-configure-button"
@@ -195,7 +195,7 @@ const Container = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const IntegrationFlex = styled('div')`

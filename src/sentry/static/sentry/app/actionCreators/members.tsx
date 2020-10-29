@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {Member} from 'app/types';
@@ -55,9 +55,7 @@ export async function fetchOrgMembers(
   return [];
 }
 
-type IndexedMembersByProject = {
-  [key: string]: Member['user'][];
-};
+type IndexedMembersByProject = Record<string, Member['user'][]>;
 
 /**
  * Convert a list of members with user & project data

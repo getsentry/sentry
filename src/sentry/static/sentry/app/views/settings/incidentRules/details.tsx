@@ -5,7 +5,6 @@ import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Organization} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import RuleForm from 'app/views/settings/incidentRules/ruleForm';
-import recreateRoute from 'app/utils/recreateRoute';
 
 type RouteParams = {
   orgId: string;
@@ -30,21 +29,17 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {orgId, projectId, ruleId} = this.props.params;
 
-    return [
-      ['rule', `/projects/${orgId}/${projectId}/alert-rules/${ruleId}/`] as [
-        string,
-        string
-      ],
-    ];
+    return [['rule', `/projects/${orgId}/${projectId}/alert-rules/${ruleId}/`]];
   }
 
   handleSubmitSuccess = () => {
-    const {params, routes, router, location} = this.props;
+    const {router} = this.props;
+    const {orgId} = this.props.params;
 
-    router.push(recreateRoute('', {params, routes, location, stepBack: -2}));
+    router.push(`/organizations/${orgId}/alerts/rules/`);
   };
 
   renderBody() {

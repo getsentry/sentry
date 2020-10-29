@@ -3,14 +3,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import Tag from 'app/views/settings/components/tag';
+import FeatureBadge from 'app/components/featureBadge';
 import HookOrDefault from 'app/components/hookOrDefault';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
 import TextOverflow from 'app/components/textOverflow';
 import {Theme} from 'app/utils/theme';
 import Link from 'app/components/links/link';
+import localStorage from 'app/utils/localStorage';
 
 import {SidebarOrientation} from './types';
 
@@ -97,15 +96,20 @@ const SidebarItem = ({
   const isTop = orientation === 'top';
   const placement = isTop ? 'bottom' : 'right';
 
+  const isNewSeenKey = `sidebar-new-seen:${id}`;
+  const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
+
   return (
     <Tooltip disabled={!collapsed} title={label} position={placement}>
       <StyledSidebarItem
         data-test-id={props['data-test-id']}
         active={isActive ? 'true' : undefined}
-        to={(to ? to : href) || ''}
+        to={(to ? to : href) || '#'}
         className={className}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
+          !(to || href) && event.preventDefault();
           typeof onClick === 'function' && onClick(id, event);
+          showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}
       >
         <SidebarItemWrapper>
@@ -114,19 +118,13 @@ const SidebarItem = ({
             <SidebarItemLabel>
               <LabelHook id={id}>
                 <TextOverflow>{label}</TextOverflow>
-                {isNew && (
-                  <StyledTag priority="beta" size="small">
-                    {t('New')}
-                  </StyledTag>
-                )}
-                {isBeta && (
-                  <StyledTag priority="beta" size="small">
-                    {t('Beta')}
-                  </StyledTag>
-                )}
+                {showIsNew && <FeatureBadge type="new" noTooltip />}
+                {isBeta && <FeatureBadge type="beta" noTooltip />}
               </LabelHook>
             </SidebarItemLabel>
           )}
+          {collapsed && showIsNew && <CollapsedFeatureBadge type="new" />}
+          {collapsed && isBeta && <CollapsedFeatureBadge type="beta" />}
           {badge !== undefined && badge > 0 && (
             <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
           )}
@@ -152,7 +150,7 @@ const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
     }
 
     &:before {
-      background-color: ${theme?.purple};
+      background-color: ${theme?.purple400};
     }
   `;
 };
@@ -198,7 +196,7 @@ const StyledSidebarItem = styled(Link)`
 
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray1};
+    color: ${p => p.theme.gray400};
   }
 
   &.focus-visible {
@@ -255,7 +253,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
     position: absolute;
     right: 0;
     top: 1px;
-    background: ${theme.red};
+    background: ${theme.red400};
     width: ${theme.sidebar.smallBadgeSize};
     height: ${theme.sidebar.smallBadgeSize};
     border-radius: ${theme.sidebar.smallBadgeSize};
@@ -269,7 +267,7 @@ const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} /
   text-align: center;
   color: ${p => p.theme.white};
   font-size: 12px;
-  background: ${p => p.theme.red};
+  background: ${p => p.theme.red400};
   width: ${p => p.theme.sidebar.badgeSize};
   height: ${p => p.theme.sidebar.badgeSize};
   border-radius: ${p => p.theme.sidebar.badgeSize};
@@ -278,9 +276,13 @@ const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} /
   ${getCollapsedBadgeStyle};
 `;
 
-const StyledTag = styled(Tag)`
-  font-weight: normal;
-  padding: 3px ${space(0.75)};
-  margin-left: ${space(0.5)};
-  border-radius: 20px;
+const CollapsedFeatureBadge = styled(FeatureBadge)`
+  position: absolute;
+  top: 0;
+  right: 0;
 `;
+
+CollapsedFeatureBadge.defaultProps = {
+  variant: 'indicator',
+  noTooltip: true,
+};

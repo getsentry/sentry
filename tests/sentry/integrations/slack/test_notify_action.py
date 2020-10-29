@@ -5,7 +5,7 @@ import responses
 from six.moves.urllib.parse import parse_qs
 
 from sentry.utils import json
-from sentry.models import Integration, GroupStatus
+from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.slack import SlackNotifyServiceAction
 
@@ -30,7 +30,42 @@ class SlackNotifyActionTest(RuleTestCase):
         assert form.cleaned_data["channel"] == expected_channel
 
     @responses.activate
-    def test_applies_correctly(self):
+    def test_upgrade_notice_workspace_app(self):
+        event = self.get_event()
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        results[0].callback(event, futures=[])
+        data = parse_qs(responses.calls[0].request.body)
+
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+
+        # all workspaces apps should have the upgrade notice
+        assert len(attachments) == 2
+        assert attachments[1]["title"] == event.title
+
+    @responses.activate
+    def test_no_upgrade_notice_bot_app(self):
+        self.integration.metadata.update(
+            {
+                "installation_type": "born_as_bot",
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+            }
+        )
+        self.integration.save()
+
         event = self.get_event()
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
@@ -232,23 +267,24 @@ class SlackNotifyActionTest(RuleTestCase):
         assert not form.is_valid()
         assert len(form.errors) == 1
 
-    def test_dont_notify_ignored(self):
-        event = self.get_event()
-        event.group.status = GroupStatus.IGNORED
-        event.group.save()
+    def test_channel_id_provided(self):
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "input_channel_id": "C2349874",
+                "tags": "",
+            }
+        )
 
-        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+        form = rule.get_form_instance()
+        assert form.is_valid()
 
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 0
+    def test_invalid_workspace(self):
+        # the workspace _should_ be the integration id
 
-    # this happens if an issue is marked as resolved in the next release
-    def test_dont_notify_resolved(self):
-        event = self.get_event()
-        event.group.status = GroupStatus.RESOLVED
-        event.group.save()
+        rule = self.get_rule(data={"workspace": "unknown", "channel": "#my-channel", "tags": ""})
 
-        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
-
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 0
+        form = rule.get_form_instance()
+        assert not form.is_valid()
+        assert [u"Slack workspace is a required field."] in form.errors.values()

@@ -1,116 +1,186 @@
 import React from 'react';
 import {Location} from 'history';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
-import {Organization} from 'app/types';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {Organization, Project} from 'app/types';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import space from 'app/styles/space';
+import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
-import {ContentBox, HeaderBox} from 'app/views/eventsV2/styles';
+import {getAggregateAlias} from 'app/utils/discover/fields';
+import CreateAlertButton from 'app/components/createAlertButton';
+import * as Layout from 'app/components/layouts/thirds';
 import Tags from 'app/views/eventsV2/tags';
-import EventsV2 from 'app/utils/discover/eventsv2';
+import SearchBar from 'app/views/events/searchBar';
+import {decodeScalar} from 'app/utils/queryString';
+import withProjects from 'app/utils/withProjects';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  VITAL_GROUPS,
+} from 'app/views/performance/transactionVitals/constants';
 
-import SummaryContentTable from './table';
-import Breadcrumb from './breadcrumb';
+import TransactionHeader, {Tab} from './header';
+import TransactionList from './transactionList';
 import UserStats from './userStats';
-import KeyTransactionButton from './keyTransactionButton';
-
-const TOP_SLOWEST_TRANSACTIONS = 5;
+import TransactionSummaryCharts from './charts';
+import RelatedIssues from './relatedIssues';
+import SidebarCharts from './sidebarCharts';
+import StatusBreakdown from './statusBreakdown';
 
 type Props = {
   location: Location;
   eventView: EventView;
   transactionName: string;
   organization: Organization;
-  totalValues: number | null;
+  totalValues: Record<string, number>;
+  projects: Project[];
 };
 
-class SummaryContent extends React.Component<Props> {
-  renderKeyTransactionButton() {
-    const {eventView, organization, transactionName} = this.props;
+type State = {
+  incompatibleAlertNotice: React.ReactNode;
+};
 
-    return (
-      <KeyTransactionButton
-        transactionName={transactionName}
-        eventView={eventView}
-        organization={organization}
-      />
+class SummaryContent extends React.Component<Props, State> {
+  state: State = {
+    incompatibleAlertNotice: null,
+  };
+
+  handleSearch = (query: string) => {
+    const {location} = this.props;
+
+    const queryParams = getParams({
+      ...(location.query || {}),
+      query,
+    });
+
+    // do not propagate pagination when making a new search
+    const searchQueryParams = omit(queryParams, 'cursor');
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: searchQueryParams,
+    });
+  };
+
+  generateTagUrl = (key: string, value: string) => {
+    const {location} = this.props;
+    const query = generateQueryWithTag(location.query, {key, value});
+
+    return {
+      ...location,
+      query,
+    };
+  };
+
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
+    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
+      this.setState({incompatibleAlertNotice: null})
     );
-  }
+    this.setState({incompatibleAlertNotice});
+  };
 
   render() {
-    const {transactionName, location, eventView, organization, totalValues} = this.props;
+    const {
+      transactionName,
+      location,
+      eventView,
+      organization,
+      projects,
+      totalValues,
+    } = this.props;
+    const {incompatibleAlertNotice} = this.state;
+    const query = decodeScalar(location.query.query) || '';
+    const totalCount = totalValues.count;
+    const slowDuration = totalValues?.p95;
+
+    // NOTE: This is not a robust check for whether or not a transaction is a front end
+    // transaction, however it will suffice for now.
+    const hasWebVitals = VITAL_GROUPS.some(group =>
+      group.vitals.some(vital => {
+        const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
+        return Number.isFinite(totalValues[alias]);
+      })
+    );
 
     return (
       <React.Fragment>
-        <HeaderBox>
-          <div>
-            <Breadcrumb
+        <TransactionHeader
+          eventView={eventView}
+          location={location}
+          organization={organization}
+          projects={projects}
+          transactionName={transactionName}
+          currentTab={Tab.TransactionSummary}
+          hasWebVitals={hasWebVitals}
+          handleIncompatibleQuery={this.handleIncompatibleQuery}
+        />
+        <Layout.Body>
+          {incompatibleAlertNotice && (
+            <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+          )}
+          <Layout.Main>
+            <StyledSearchBar
+              organization={organization}
+              projectIds={eventView.project}
+              query={query}
+              fields={eventView.fields}
+              onSearch={this.handleSearch}
+            />
+            <TransactionSummaryCharts
               organization={organization}
               location={location}
               eventView={eventView}
-              transactionName={transactionName}
+              totalValues={totalCount}
             />
-          </div>
-          <KeyTransactionContainer>
-            {this.renderKeyTransactionButton()}
-          </KeyTransactionContainer>
-          <StyledTitleHeader>{transactionName}</StyledTitleHeader>
-        </HeaderBox>
-        <ContentBox>
-          <EventsV2
-            location={location}
-            eventView={eventView}
-            organization={organization}
-            extraQuery={{
-              per_page: TOP_SLOWEST_TRANSACTIONS,
-            }}
-          >
-            {({isLoading, tableData}) => (
-              <SummaryContentTable
-                organization={organization}
-                location={location}
-                eventView={eventView}
-                tableData={tableData}
-                isLoading={isLoading}
-                totalValues={totalValues}
-              />
-            )}
-          </EventsV2>
-          <Side>
+            <TransactionList
+              organization={organization}
+              transactionName={transactionName}
+              location={location}
+              eventView={eventView}
+              slowDuration={slowDuration}
+            />
+            <RelatedIssues
+              organization={organization}
+              location={location}
+              transaction={transactionName}
+              start={eventView.start}
+              end={eventView.end}
+              statsPeriod={eventView.statsPeriod}
+            />
+          </Layout.Main>
+          <Layout.Side>
             <UserStats
               organization={organization}
               location={location}
-              eventView={eventView}
+              totals={totalValues}
+              transactionName={transactionName}
             />
-            <Tags
-              totalValues={totalValues}
+            <SidebarCharts organization={organization} eventView={eventView} />
+            <StatusBreakdown
               eventView={eventView}
               organization={organization}
               location={location}
             />
-          </Side>
-        </ContentBox>
+            <Tags
+              generateUrl={this.generateTagUrl}
+              totalValues={totalCount}
+              eventView={eventView}
+              organization={organization}
+              location={location}
+            />
+          </Layout.Side>
+        </Layout.Body>
       </React.Fragment>
     );
   }
 }
 
-const StyledTitleHeader = styled('span')`
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
-  grid-column: 1/2;
-  align-self: center;
-  min-height: 30px;
-  ${overflowEllipsis};
+const StyledSearchBar = styled(SearchBar)`
+  margin-bottom: ${space(1)};
 `;
 
-const Side = styled('div')`
-  grid-column: 2/3;
-`;
-
-const KeyTransactionContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
-export default SummaryContent;
+export default withProjects(SummaryContent);

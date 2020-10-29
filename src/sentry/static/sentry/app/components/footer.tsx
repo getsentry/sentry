@@ -4,11 +4,12 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconSentry} from 'app/icons';
 import Hook from 'app/components/hook';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
-const Footer = () => {
+function Footer() {
   const config = ConfigStore.getConfig();
   return (
     <footer>
@@ -42,23 +43,34 @@ const Footer = () => {
             </Build>
           </div>
         )}
-        <a href="/" tabIndex={-1} className="icon-sentry-logo" />
+        <LogoLink />
         <Hook name="footer" />
       </div>
     </footer>
   );
-};
+}
 
 const FooterLink = styled(ExternalLink)`
   &.focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue} 0 2px 0;
+    box-shadow: ${p => p.theme.blue400} 0 2px 0;
   }
+`;
+
+const LogoLink = styled(props => (
+  <a href="/" tabIndex={-1} {...props}>
+    <IconSentry size="xl" />
+  </a>
+))`
+  display: block;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
 `;
 
 const Build = styled('span')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   font-weight: bold;
   margin-left: ${space(1)};
 `;

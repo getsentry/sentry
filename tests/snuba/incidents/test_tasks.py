@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 from copy import deepcopy
 from uuid import uuid4
 
@@ -12,14 +11,12 @@ from django.test.utils import override_settings
 from exam import fixture
 from freezegun import freeze_time
 
-from sentry.incidents.action_handlers import EmailActionHandler
-from sentry.incidents.logic import (
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
+from sentry.incidents.action_handlers import (
+    EmailActionHandler,
+    generate_incident_trigger_email_context,
 )
+from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
@@ -27,8 +24,8 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
+from sentry.utils import json
 
 from sentry.testutils import TestCase
 
@@ -51,23 +48,20 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     @fixture
     def subscription(self):
-        return self.rule.query_subscriptions.get()
+        return self.rule.snuba_query.subscriptions.get()
 
     @fixture
     def rule(self):
         with self.tasks():
-            rule = create_alert_rule(
-                self.organization,
-                [self.project],
-                "some rule",
+            rule = self.create_alert_rule(
+                name="some rule",
                 query="",
-                aggregation=QueryAggregations.TOTAL,
+                aggregate="count()",
                 time_window=1,
                 threshold_period=1,
+                resolve_threshold=10,
             )
-            trigger = create_alert_rule_trigger(
-                rule, "hi", AlertRuleThresholdType.ABOVE, 100, resolve_threshold=10
-            )
+            trigger = create_alert_rule_trigger(rule, "hi", 100)
             create_alert_rule_trigger_action(
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,
@@ -101,7 +95,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
         # Full integration test to ensure that when a subscription receives an update
         # the `QuerySubscriptionConsumer` successfully retries the subscription and
         # calls the correct callback, which should result in an incident being created.
-
         callback = subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE]
 
         def exception_callback(*args, **kwargs):
@@ -111,14 +104,12 @@ class HandleSnubaQueryUpdateTest(TestCase):
             callback(*args, **kwargs)
             raise KeyboardInterrupt()
 
-        value_name = query_aggregation_to_snuba[QueryAggregations(self.subscription.aggregation)][2]
-
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = exception_callback
         message = {
             "version": 1,
             "payload": {
                 "subscription_id": self.subscription.subscription_id,
-                "values": {"data": [{value_name: self.trigger.alert_threshold + 1}]},
+                "values": {"data": [{"some_col": self.trigger.alert_threshold + 1}]},
                 "timestamp": "2020-01-01T01:23:45.1234",
             },
         }
@@ -131,15 +122,23 @@ class HandleSnubaQueryUpdateTest(TestCase):
             ).exclude(status=IncidentStatus.CLOSED.value)
 
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
-        with self.assertChanges(
-            lambda: active_incident().exists(), before=False, after=True
-        ), self.tasks():
-            consumer.run()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            with self.assertChanges(
+                lambda: active_incident().exists(), before=False, after=True
+            ), self.tasks(), self.capture_on_commit_callbacks(execute=True):
+                consumer.run()
 
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
         message = handler.build_message(
-            handler.generate_email_context(TriggerStatus.ACTIVE), TriggerStatus.ACTIVE, self.user.id
+            generate_incident_trigger_email_context(
+                handler.project,
+                handler.incident,
+                handler.action.alert_rule_trigger,
+                TriggerStatus.ACTIVE,
+            ),
+            TriggerStatus.ACTIVE,
+            self.user.id,
         )
 
         out = mail.outbox[0]

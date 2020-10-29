@@ -68,7 +68,7 @@
       "trace": {
          "parent_span_id": "8988cec7cc0779c1",
          "type": "trace",
-         "op": "foobar",
+         "op": "http.server",
          "trace_id": "a7d67cf796774551a95be6543cacd459",
          "span_id": "babaae0d4b7512d9",
          "status": "ok"
@@ -115,6 +115,10 @@
             "countries:8010"
          ],
          [
+            "Referer",
+            "fixtures.transaction"
+         ],
+         [
             "Sentry-Trace",
             "a7d67cf796774551a95be6543cacd459-8988cec7cc0779c1-1"
          ],
@@ -139,20 +143,49 @@
    "spans": [
       {
          "same_process_as_parent":true,
-         "description": "Django: SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'",
+         "description": "django.contrib.messages.middleware.MessageMiddleware.process_request",
          "tags": {
             "error":false
          },
          "parent_span_id": "babaae0d4b7512d9",
          "trace_id": "a7d67cf796774551a95be6543cacd459",
+         "op": "django.middleware",
+         "data": {"duration": 0.02, "offset": 0.02},
+         "span_id": "c048b4fffdc4279d"
+      },
+      {
+         "same_process_as_parent":true,
+         "description": "Django: SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'",
+         "tags": {
+            "error":false
+         },
+         "parent_span_id": "c048b4fffdc4279d",
+         "trace_id": "a7d67cf796774551a95be6543cacd459",
          "op": "db",
-         "data": {},
-         "span_id": "b048b4c8fdc5168c"
+         "data": {"duration": 0.100, "offset": 1.0},
+         "span_id": "d047a3a8edc3276a"
       }
    ],
    "transaction": "/country_by_code/",
    "type": "transaction",
    "user": {
       "ip_address": "127.0.0.1"
+   },
+   "measurements": {
+      "fp": {
+         "value": 2258.060000000114
+      },
+      "fcp": {
+         "value": 2258.060000000114
+      },
+      "lcp": {
+         "value": 2807.335
+      },
+      "fid": {
+         "value": 3.4900000027846545
+      },
+      "cls": {
+         "value": 0.0382
+      }
    }
 }

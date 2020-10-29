@@ -2,12 +2,12 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+
 import GlobalModal from 'app/components/globalModal';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 
-describe('Incident Rules Details', function() {
-  beforeAll(function() {
+describe('Incident Rules Details', function () {
+  beforeAll(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
@@ -37,7 +37,7 @@ describe('Incident Rules Details', function() {
     });
   });
 
-  it('renders and adds and edits trigger', async function() {
+  it('renders and edits trigger', async function () {
     const {organization, project, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const req = MockApiClient.addMockResponse({
@@ -75,38 +75,26 @@ describe('Incident Rules Details', function() {
     wrapper.update();
 
     // has existing trigger
-    expect(
-      wrapper
-        .find('input[name="alertThreshold"]')
-        .first()
-        .prop('value')
-    ).toEqual(70);
-    expect(
-      wrapper
-        .find('input[name="resolveThreshold"]')
-        .first()
-        .prop('value')
-    ).toEqual(36);
+    expect(wrapper.find('input[name="criticalThreshold"]').first().prop('value')).toEqual(
+      70
+    );
+    expect(wrapper.find('input[name="resolveThreshold"]').first().prop('value')).toEqual(
+      36
+    );
 
     expect(req).toHaveBeenCalled();
 
-    // Create a new Trigger
-    wrapper.find('button[aria-label="Add Warning Trigger"]').simulate('click');
-
     wrapper
-      .find('input[name="alertThreshold"]')
-      .at(1)
+      .find('input[name="warningThreshold"]')
+      .first(1)
       .simulate('change', {target: {value: 13}});
     wrapper
       .find('input[name="resolveThreshold"]')
-      .at(1)
+      .first()
       .simulate('change', {target: {value: 12}});
 
-    // Add an action
-    selectByValue(wrapper, 'email-null', {
-      control: true,
-      name: 'add-action',
-    });
+    // Create a new action
+    wrapper.find('button[aria-label="Add New Action"]').simulate('click');
 
     // Save Trigger
     wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
@@ -123,6 +111,8 @@ describe('Incident Rules Details', function() {
           query: '',
           status: 0,
           timeWindow: 60,
+          thresholdType: 0,
+          resolveThreshold: 12,
           triggers: [
             expect.objectContaining({
               actions: [
@@ -131,19 +121,16 @@ describe('Incident Rules Details', function() {
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',
+                  options: null,
                 },
               ],
               alertRuleId: '4',
               alertThreshold: 70,
               id: '1',
-              resolveThreshold: 36,
-              thresholdType: 0,
             }),
             expect.objectContaining({
               actions: [],
               alertThreshold: 13,
-              resolveThreshold: 12,
-              thresholdType: 0,
             }),
           ],
         }),
@@ -156,26 +143,19 @@ describe('Incident Rules Details', function() {
     wrapper.update();
 
     // Has correct values
-    expect(
-      wrapper
-        .find('input[name="alertThreshold"]')
-        .at(1)
-        .prop('value')
-    ).toBe(13);
-    expect(
-      wrapper
-        .find('input[name="resolveThreshold"]')
-        .at(1)
-        .prop('value')
-    ).toBe(12);
+    expect(wrapper.find('input[name="criticalThreshold"]').first().prop('value')).toBe(
+      70
+    );
+    expect(wrapper.find('input[name="warningThreshold"]').first().prop('value')).toBe(13);
+    expect(wrapper.find('input[name="resolveThreshold"]').first().prop('value')).toBe(12);
 
     editRule.mockReset();
 
-    // Delete Trigger
+    // Clear warning Trigger
     wrapper
-      .find('button[aria-label="Delete Trigger"]')
+      .find('input[name="warningThreshold"]')
       .first()
-      .simulate('click');
+      .simulate('change', {target: {value: ''}});
 
     // Save Trigger
     wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
@@ -192,6 +172,8 @@ describe('Incident Rules Details', function() {
           query: '',
           status: 0,
           timeWindow: 60,
+          resolveThreshold: 12,
+          thresholdType: 0,
           triggers: [
             expect.objectContaining({
               actions: [
@@ -200,13 +182,12 @@ describe('Incident Rules Details', function() {
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',
+                  options: null,
                 },
               ],
               alertRuleId: '4',
               alertThreshold: 70,
               id: '1',
-              resolveThreshold: 36,
-              thresholdType: 0,
             }),
           ],
         }),

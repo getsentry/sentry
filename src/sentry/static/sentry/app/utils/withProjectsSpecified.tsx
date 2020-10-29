@@ -1,17 +1,20 @@
+/* eslint-disable react/prop-types */
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
 
 import getDisplayName from 'app/utils/getDisplayName';
 import ProjectsStore from 'app/stores/projectsStore';
-import SentryTypes from 'app/sentryTypes';
 import {Project} from 'app/types';
 
-type InjectedProjectsProps = {
-  projects: Project[];
-  loadingProjects?: boolean;
+type Props = {
+  projects?: Project[];
+  specificProjectSlugs?: string[];
 };
+
+type InjectedProjectsProps = {
+  loadingProjects: boolean;
+} & Props;
 
 type State = {
   projects: Project[];
@@ -24,16 +27,8 @@ type State = {
 const withProjectsSpecified = <P extends InjectedProjectsProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  createReactClass<
-    Omit<P, keyof InjectedProjectsProps> & Partial<InjectedProjectsProps>,
-    State
-  >({
+  createReactClass<Props & Omit<P, keyof InjectedProjectsProps>, State>({
     displayName: `withProjectsSpecified(${getDisplayName(WrappedComponent)})`,
-    propTypes: {
-      organization: SentryTypes.Organization,
-      project: SentryTypes.Project,
-      specificProjectSlugs: PropTypes.arrayOf(PropTypes.string),
-    },
     mixins: [Reflux.listenTo(ProjectsStore, 'onProjectUpdate') as any],
     getInitialState() {
       return ProjectsStore.getState(this.props.specificProjectSlugs);
@@ -45,8 +40,8 @@ const withProjectsSpecified = <P extends InjectedProjectsProps>(
     render() {
       return (
         <WrappedComponent
-          {...this.props}
-          projects={this.state.projects}
+          {...(this.props as P)}
+          projects={this.state.projects as Project[]}
           loadingProjects={this.state.loading}
         />
       );

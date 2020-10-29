@@ -10,19 +10,21 @@ import {
 } from 'app/components/events/interfaces/spans/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
-import {SelectValue, OrganizationSummary} from 'app/types';
+import {SelectValue, LightWeightOrganization} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {Column, AGGREGATIONS, FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
+import {Column} from 'app/utils/discover/fields';
 
-import {FieldValue, FieldValueKind} from './types';
-import {ColumnEditRow} from './columnEditRow';
+import {FieldValue} from './types';
+import {QueryField} from './queryField';
+import {generateFieldOptions} from '../utils';
 
 type Props = {
   // Input columns
   columns: Column[];
-  organization: OrganizationSummary;
+  organization: LightWeightOrganization;
   tagKeys: null | string[];
+  measurementKeys: null | string[];
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
 };
@@ -39,6 +41,7 @@ type State = {
 
 const DRAG_CLASS = 'draggable-item';
 const GRAB_HANDLE_FUDGE = 25;
+const MAX_COL_COUNT = 20;
 
 enum PlaceholderPosition {
   TOP,
@@ -52,7 +55,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     draggingTargetIndex: void 0,
     left: void 0,
     top: void 0,
-    fieldOptions: this.generateFieldOptions(),
+    fieldOptions: this.fieldOptions,
   };
 
   componentDidMount() {
@@ -71,7 +74,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.props.tagKeys !== prevProps.tagKeys) {
+    if (
+      this.props.tagKeys !== prevProps.tagKeys ||
+      this.props.measurementKeys !== prevProps.measurementKeys
+    ) {
       this.syncFields();
     }
   }
@@ -87,71 +93,19 @@ class ColumnEditCollection extends React.Component<Props, State> {
   portal: HTMLElement | null = null;
   dragGhostRef = React.createRef<HTMLDivElement>();
 
-  generateFieldOptions() {
-    const {organization, tagKeys} = this.props;
-
-    let fields = Object.keys(FIELDS);
-    let functions = Object.keys(AGGREGATIONS);
-
-    // Strip tracing features if the org doesn't have access.
-    if (!organization.features.includes('transaction-events')) {
-      fields = fields.filter(item => !TRACING_FIELDS.includes(item));
-      functions = functions.filter(item => !TRACING_FIELDS.includes(item));
-    }
-    const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
-
-    // Index items by prefixed keys as custom tags
-    // can overlap both fields and function names.
-    // Having a mapping makes finding the value objects easier
-    // later as well.
-    functions.forEach(func => {
-      const ellipsis = AGGREGATIONS[func].parameters.length ? '\u2026' : '';
-      fieldOptions[`function:${func}`] = {
-        label: `${func}(${ellipsis})`,
-        value: {
-          kind: FieldValueKind.FUNCTION,
-          meta: {
-            name: func,
-            parameters: AGGREGATIONS[func].parameters,
-          },
-        },
-      };
+  get fieldOptions() {
+    const {organization, measurementKeys} = this.props;
+    return generateFieldOptions({
+      organization: this.props.organization,
+      tagKeys: this.props.tagKeys,
+      measurementKeys: organization.features.includes('measurements')
+        ? measurementKeys
+        : undefined,
     });
-
-    fields.forEach(field => {
-      fieldOptions[`field:${field}`] = {
-        label: field,
-        value: {
-          kind: FieldValueKind.FIELD,
-          meta: {
-            name: field,
-            dataType: FIELDS[field],
-          },
-        },
-      };
-    });
-
-    if (tagKeys !== null) {
-      tagKeys.forEach(tag => {
-        const tagValue =
-          FIELDS.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
-            ? `tags[${tag}]`
-            : tag;
-        fieldOptions[`tag:${tag}`] = {
-          label: tag,
-          value: {
-            kind: FieldValueKind.TAG,
-            meta: {name: tagValue, dataType: 'string'},
-          },
-        };
-      });
-    }
-
-    return fieldOptions;
   }
 
   syncFields() {
-    this.setState({fieldOptions: this.generateFieldOptions()});
+    this.setState({fieldOptions: this.fieldOptions});
   }
 
   keyForColumn(column: Column, isGhost: boolean): string {
@@ -197,6 +151,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       userSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
+      webkitUserSelect: 'none',
     });
 
     // attach event listeners so that the mouse cursor can drag anywhere
@@ -340,25 +295,25 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
-              icon={<IconGrabbable color={theme.gray4} />}
+              icon={<IconGrabbable size="xs" color="gray700" />}
+              size="zero"
               borderless
             />
           ) : (
             <span />
           )}
-          <ColumnEditRow
+          <QueryField
             fieldOptions={fieldOptions}
             gridColumns={gridColumns}
-            column={col}
-            parentIndex={i}
-            onChange={this.handleUpdateColumn}
+            fieldValue={col}
+            onChange={value => this.handleUpdateColumn(i, value)}
             takeFocus={i === this.props.columns.length - 1}
           />
           {canDelete ? (
             <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
-              icon={<IconDelete color={theme.gray2} />}
+              icon={<IconDelete color="gray500" />}
               borderless
             />
           ) : (
@@ -373,6 +328,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   render() {
     const {columns} = this.props;
     const canDelete = columns.length > 1;
+    const canAdd = columns.length < MAX_COL_COUNT;
+    const title = canAdd
+      ? undefined
+      : `Sorry, you reached the maximum number of columns. Delete columns to add more.`;
 
     // Get the longest number of columns so we can layout the rows.
     // We always want at least 2 columns.
@@ -400,7 +359,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
               size="small"
               label={t('Add a Column')}
               onClick={this.handleAddColumn}
-              icon={<IconAdd circle size="xs" />}
+              title={title}
+              disabled={!canAdd}
+              icon={<IconAdd isCircled size="xs" />}
             >
               {t('Add a Column')}
             </Button>
@@ -413,7 +374,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
 const RowContainer = styled('div')`
   display: grid;
-  grid-template-columns: 30px auto 30px;
+  grid-template-columns: 24px auto 24px;
   align-items: center;
   width: 100%;
   padding-bottom: ${space(1)};
@@ -423,10 +384,10 @@ const Ghost = styled('div')`
   background: ${p => p.theme.white};
   display: block;
   position: absolute;
-  padding: 4px;
-  border: 4px solid ${p => p.theme.borderLight};
-  border-radius: 4px;
-  width: 450px;
+  padding: ${space(0.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.borderLight};
+  width: 600px;
   opacity: 0.8;
   cursor: grabbing;
 
@@ -440,10 +401,10 @@ const Ghost = styled('div')`
 `;
 
 const DragPlaceholder = styled('div')`
-  margin: 0 ${space(1)} ${space(1)} ${space(1)};
+  margin: 0 ${space(4)} ${space(1)} ${space(4)};
   border: 2px dashed ${p => p.theme.borderLight};
-  width: 100%;
-  height: 38px;
+  border-radius: ${p => p.theme.borderRadius};
+  height: 40px;
 `;
 
 const Actions = styled('div')`
@@ -460,7 +421,7 @@ const Heading = styled('div')<{gridColumns: number}>`
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  margin-bottom: 0;
+  margin: 0;
 `;
 
 export default ColumnEditCollection;

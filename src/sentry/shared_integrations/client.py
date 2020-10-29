@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import json
 import requests
 import sentry_sdk
 import six
@@ -13,7 +12,7 @@ from bs4 import BeautifulSoup
 from django.utils.functional import cached_property
 from requests.exceptions import ConnectionError, Timeout, HTTPError
 from sentry.http import build_session
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 from sentry.utils.hashlib import md5_text
 from sentry.utils.decorators import classproperty
 
@@ -45,6 +44,8 @@ class BaseApiResponse(object):
 
     @classmethod
     def from_response(self, response, allow_text=False):
+        if response.request.method == "HEAD":
+            return BaseApiResponse(response.headers, response.status_code)
         # XXX(dcramer): this doesnt handle leading spaces, but they're not common
         # paths so its ok
         if response.text.startswith(u"<?xml"):
@@ -62,14 +63,14 @@ class BaseApiResponse(object):
 
         # Some APIs will return JSON with an invalid content-type, so we try
         # to decode it anyways
-        if "application/json" not in response.headers["Content-Type"]:
+        if "application/json" not in response.headers.get("Content-Type", ""):
             try:
                 data = json.loads(response.text, object_pairs_hook=OrderedDict)
             except (TypeError, ValueError):
                 if allow_text:
                     return TextApiResponse(response.text, response.headers, response.status_code)
                 raise UnsupportedResponseType(
-                    response.headers["Content-Type"], response.status_code
+                    response.headers.get("Content-Type", ""), response.status_code
                 )
         else:
             data = json.loads(response.text, object_pairs_hook=OrderedDict)
@@ -148,14 +149,18 @@ class BaseApiClient(object):
     def get_cache_prefix(self):
         return u"%s.%s.client:" % (self.integration_type, self.name)
 
-    def track_response_data(self, code, span, error=None):
+    def track_response_data(self, code, span, error=None, resp=None):
         metrics.incr(
             u"%s.http_response" % (self.datadog_prefix),
             sample_rate=1.0,
             tags={self.integration_type: self.name, "status": code},
         )
 
-        span.set_http_status(code)
+        try:
+            span.set_http_status(int(code))
+        except ValueError:
+            span.set_status(code)
+
         span.set_tag(self.integration_type, self.name)
 
         extra = {
@@ -208,9 +213,20 @@ class BaseApiClient(object):
             tags={self.integration_type: self.name},
         )
 
-        with sentry_sdk.start_span(
+        try:
+            with sentry_sdk.configure_scope() as scope:
+                parent_span_id = scope.span.span_id
+                trace_id = scope.span.trace_id
+        except AttributeError:
+            parent_span_id = None
+            trace_id = None
+
+        with sentry_sdk.start_transaction(
             op=u"{}.http".format(self.integration_type),
-            transaction=u"{}.http_response.{}".format(self.integration_type, self.name),
+            name=u"{}.http_response.{}".format(self.integration_type, self.name),
+            parent_span_id=parent_span_id,
+            trace_id=trace_id,
+            sampled=True,
         ) as span:
             try:
                 resp = getattr(session, method.lower())(
@@ -238,11 +254,11 @@ class BaseApiClient(object):
                     self.logger.exception(
                         "request.error", extra={self.integration_type: self.name, "url": full_url}
                     )
-                    raise ApiError("Internal Error")
+                    raise ApiError("Internal Error", url=full_url)
                 self.track_response_data(resp.status_code, span, e)
-                raise ApiError.from_response(resp)
+                raise ApiError.from_response(resp, url=full_url)
 
-            self.track_response_data(resp.status_code, span)
+            self.track_response_data(resp.status_code, span, None, resp)
 
             if resp.status_code == 204:
                 return {}
@@ -279,3 +295,15 @@ class BaseApiClient(object):
 
     def put(self, *args, **kwargs):
         return self.request("PUT", *args, **kwargs)
+
+    def head(self, *args, **kwargs):
+        return self.request("HEAD", *args, **kwargs)
+
+    def head_cached(self, path, *args, **kwargs):
+        key = self.get_cache_prefix() + md5_text(self.build_url(path)).hexdigest()
+
+        result = cache.get(key)
+        if result is None:
+            result = self.head(path, *args, **kwargs)
+            cache.set(key, result, self.cache_time)
+        return result

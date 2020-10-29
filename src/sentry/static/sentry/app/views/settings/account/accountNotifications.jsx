@@ -6,8 +6,7 @@ import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
-import InlineSvg from 'app/components/inlineSvg';
-import {IconMail} from 'app/icons/iconMail';
+import {IconChevron, IconMail} from 'app/icons';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Link from 'app/components/links/link';
 import {PanelFooter} from 'app/components/panels';
@@ -15,24 +14,24 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import accountNotificationFields from 'app/data/forms/accountNotificationSettings';
 
 const FINE_TUNE_FOOTERS = {
-  Alerts: {
-    text: 'Fine tune alerts by project',
+  [t('Alerts')]: {
+    text: t('Fine tune alerts by project'),
     path: 'alerts/',
   },
-  'Workflow Notifications': {
-    text: 'Fine tune workflow notifications by project',
+  [t('Workflow Notifications')]: {
+    text: t('Fine tune workflow notifications by project'),
     path: 'workflow/',
   },
-  'Email Routing': {
-    text: 'Fine tune email routing by project',
+  [t('Email Routing')]: {
+    text: t('Fine tune email routing by project'),
     path: 'email/',
   },
-  'Weekly Reports': {
-    text: 'Fine tune weekly reports by organization',
+  [t('Weekly Reports')]: {
+    text: t('Fine tune weekly reports by organization'),
     path: 'reports/',
   },
-  'Deploy Notifications': {
-    text: 'Fine tune deploy notifications by organization',
+  [t('Deploy Notifications')]: {
+    text: t('Fine tune deploy notifications by organization'),
     path: 'deploy/',
   },
 };
@@ -95,7 +94,7 @@ class FineTuningFooter extends React.Component {
       <PanelFooter css={{borderTop: 'none'}}>
         <FineTuneLink to={`${baseUrl}${path}`}>
           <span>{text}</span>
-          <InlineSvg src="icon-chevron-right" size="15px" />
+          <IconChevron direction="right" size="15px" />
         </FineTuneLink>
       </PanelFooter>
     );

@@ -1,11 +1,10 @@
-import {css} from '@emotion/core';
 import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import {IconClock} from 'app/icons';
 import space from 'app/styles/space';
-import InlineSvg from 'app/components/inlineSvg';
 import TimeSince from 'app/components/timeSince';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
@@ -21,14 +20,10 @@ type Props = {
 
 const Times = ({lastSeen, firstSeen}: Props) => (
   <Container>
-    <div
-      css={css`
-        ${overflowEllipsis}
-      `}
-    >
+    <FlexWrapper>
       {lastSeen && (
         <React.Fragment>
-          <GroupTimeIcon src="icon-clock-sm" />
+          <StyledIconClock size="11px" />
           <TimeSince date={lastSeen} suffix={t('ago')} />
         </React.Fragment>
       )}
@@ -38,7 +33,7 @@ const Times = ({lastSeen, firstSeen}: Props) => (
       {firstSeen && (
         <TimeSince date={firstSeen} suffix={t('old')} className="hidden-xs hidden-sm" />
       )}
-    </div>
+    </FlexWrapper>
   </Container>
 );
 Times.propTypes = {
@@ -51,10 +46,17 @@ const Container = styled('div')`
   min-width: 0; /* flex-hack for overflow-ellipsised children */
 `;
 
-const GroupTimeIcon = styled(InlineSvg)`
+const FlexWrapper = styled('div')`
+  ${overflowEllipsis}
+
+  /* The following aligns the icon with the text, fixes bug in Firefox */
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconClock = styled(IconClock)`
   /* this is solely for optics, since TimeSince always begins
   with a number, and numbers do not have descenders */
-  font-size: ${p => p.theme.fontSizeExtraSmall};
   margin-right: ${space(0.5)};
 `;
 

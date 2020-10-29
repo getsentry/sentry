@@ -1,28 +1,21 @@
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
-import {metric} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
+import {metric} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-type AsyncComponentProps = {
-  /**
-   * Optional sentry APM profiling.
-   *
-   * NOTE: we don't decorate `AsyncComponent` but rather the subclass so we can
-   *       get its component name
-   */
-  finishProfile?: () => void;
-} & Partial<RouteComponentProps<{}, {}>>;
+type AsyncComponentProps = Partial<RouteComponentProps<{}, {}>>;
 
 type AsyncComponentState = {
   loading: boolean;
@@ -37,7 +30,7 @@ type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
 
 type RenderSearchInputArgs = Omit<
   SearchInputProps,
-  'api' | 'onSuccess' | 'onError' | 'url'
+  'api' | 'onSuccess' | 'onError' | 'url' | keyof WithRouterProps
 > & {
   stateKey?: string;
   url?: SearchInputProps['url'];
@@ -114,7 +107,7 @@ export default class AsyncComponent<
       hasMeasured: false,
     };
     if (props.routes && props.routes) {
-      metric.mark(`async-component-${getRouteStringFromRoutes(props.routes)}`);
+      metric.mark({name: `async-component-${getRouteStringFromRoutes(props.routes)}`});
     }
   }
 
@@ -127,7 +120,7 @@ export default class AsyncComponent<
     }
   }
 
-  // Compatiblity shim for child classes that call super on this hook.
+  // Compatibility shim for child classes that call super on this hook.
   UNSAFE_componentWillReceiveProps(_newProps: P, _newContext: any) {}
 
   componentDidUpdate(prevProps: P, prevContext: any) {
@@ -166,11 +159,6 @@ export default class AsyncComponent<
         },
       });
       this._measurement.hasMeasured = true;
-
-      // sentry apm profiling
-      if (typeof this.props.finishProfile === 'function') {
-        this.props.finishProfile();
-      }
     }
 
     // Re-fetch data when router params change.
@@ -408,7 +396,7 @@ export default class AsyncComponent<
     );
   }
 
-  renderLoading() {
+  renderLoading(): React.ReactNode {
     return <LoadingIndicator />;
   }
 
@@ -456,10 +444,8 @@ export default class AsyncComponent<
     return (
       <RouteError
         error={error}
-        component={this}
         disableLogSentry={!shouldLogSentry}
         disableReport={disableReport}
-        onRetry={this.remountComponent}
       />
     );
   }

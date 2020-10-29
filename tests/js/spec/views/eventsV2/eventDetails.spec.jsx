@@ -2,17 +2,18 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import EventDetails from 'app/views/eventsV2/eventDetails';
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
 import EventView from 'app/utils/discover/eventView';
 
-describe('EventsV2 > EventDetails', function() {
+describe('EventsV2 > EventDetails', function () {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
   const errorsView = EventView.fromSavedQuery(
     ALL_VIEWS.find(view => view.name === 'Errors by Title')
   );
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -57,7 +58,10 @@ describe('EventsV2 > EventDetails', function() {
             data: {},
           },
         ],
-        tags: [{key: 'browser', value: 'Firefox'}],
+        tags: [
+          {key: 'browser', value: 'Firefox'},
+          {key: 'device.uuid', value: 'test-uuid'},
+        ],
       },
     });
     MockApiClient.addMockResponse({
@@ -81,6 +85,10 @@ describe('EventsV2 > EventDetails', function() {
       statusCode: 404,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1234/grouping-info/',
+      body: {},
+    });
 
     // Missing event
     MockApiClient.addMockResponse({
@@ -91,7 +99,7 @@ describe('EventsV2 > EventDetails', function() {
     });
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
@@ -102,12 +110,9 @@ describe('EventsV2 > EventDetails', function() {
     );
     const content = wrapper.find('EventHeader');
     expect(content.text()).toContain('Oh no something bad');
-
-    const graph = wrapper.find('LineGraph');
-    expect(graph).toHaveLength(0);
   });
 
-  it('renders a 404', function() {
+  it('renders a 404', function () {
     const wrapper = mountWithTheme(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
@@ -120,7 +125,7 @@ describe('EventsV2 > EventDetails', function() {
     expect(content).toHaveLength(1);
   });
 
-  it('renders a chart in grouped view', async function() {
+  it('renders a chart in grouped view', async function () {
     const wrapper = mountWithTheme(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
@@ -136,12 +141,29 @@ describe('EventsV2 > EventDetails', function() {
 
     const content = wrapper.find('EventHeader');
     expect(content.text()).toContain('Oh no something bad');
-
-    const graph = wrapper.find('LineGraph');
-    expect(graph).toHaveLength(1);
   });
 
-  it('navigates when tag values are clicked', async function() {
+  it('renders an alert when linked issues are missing', function () {
+    MockApiClient.addMockResponse({
+      url: '/issues/123/',
+      statusCode: 404,
+      method: 'GET',
+      body: {},
+    });
+    const wrapper = mountWithTheme(
+      <EventDetails
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        params={{eventSlug: 'project-slug:deadbeef'}}
+        location={{query: allEventsView.generateQueryStringObject()}}
+      />,
+      TestStubs.routerContext()
+    );
+    const alert = wrapper.find('Alert');
+    expect(alert).toHaveLength(1);
+    expect(alert.text()).toContain('linked issue cannot be found');
+  });
+
+  it('navigates when tag values are clicked', async function () {
     const {organization, routerContext} = initializeOrg({
       organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
       router: {
@@ -163,15 +185,31 @@ describe('EventsV2 > EventDetails', function() {
     await wrapper.update();
 
     // Get the first link as we wrap react-router's link
-    const tagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
+    const browserTagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
 
     // Should append tag value and other event attributes to results view query.
-    const target = tagLink.props().to;
-    expect(target.pathname).toEqual('/organizations/org-slug/discover/results/');
-    expect(target.query.query).toEqual('browser:Firefox title:"Oh no something bad"');
+    const browserTagTarget = browserTagLink.props().to;
+    expect(browserTagTarget.pathname).toEqual(
+      '/organizations/org-slug/discover/results/'
+    );
+    expect(browserTagTarget.query.query).toEqual(
+      'browser:Firefox title:"Oh no something bad"'
+    );
+
+    // Get the second link
+    const deviceUUIDTagLink = wrapper.find('EventDetails TagsTable TagValue Link').at(2);
+
+    // Should append tag value wrapped with tags[] as device.uuid is part of our fields
+    const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
+    expect(deviceUUIDTagTarget.pathname).toEqual(
+      '/organizations/org-slug/discover/results/'
+    );
+    expect(deviceUUIDTagTarget.query.query).toEqual(
+      'tags[device.uuid]:test-uuid title:"Oh no something bad"'
+    );
   });
 
-  it('appends tag value to existing query when clicked', async function() {
+  it('appends tag value to existing query when clicked', async function () {
     const {organization, routerContext} = initializeOrg({
       organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
       router: {
@@ -195,13 +233,27 @@ describe('EventsV2 > EventDetails', function() {
     await wrapper.update();
 
     // Get the first link as we wrap react-router's link
-    const tagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
+    const browserTagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
 
     // Should append tag value and other event attributes to results view query.
-    const target = tagLink.props().to;
-    expect(target.pathname).toEqual('/organizations/org-slug/discover/results/');
-    expect(target.query.query).toEqual(
+    const browserTagTarget = browserTagLink.props().to;
+    expect(browserTagTarget.pathname).toEqual(
+      '/organizations/org-slug/discover/results/'
+    );
+    expect(browserTagTarget.query.query).toEqual(
       'Dumpster browser:Firefox title:"Oh no something bad"'
+    );
+
+    // Get the second link
+    const deviceUUIDTagLink = wrapper.find('EventDetails TagsTable TagValue Link').at(2);
+
+    // Should append tag value wrapped with tags[] as device.uuid is part of our fields
+    const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
+    expect(deviceUUIDTagTarget.pathname).toEqual(
+      '/organizations/org-slug/discover/results/'
+    );
+    expect(deviceUUIDTagTarget.query.query).toEqual(
+      'Dumpster tags[device.uuid]:test-uuid title:"Oh no something bad"'
     );
   });
 });

@@ -1,9 +1,10 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+
+import {Client} from 'app/api';
 import SentryAppDetailedView from 'app/views/organizationIntegrations/sentryAppDetailedView';
 
 const mockResponse = mocks => {
@@ -16,7 +17,7 @@ const mockResponse = mocks => {
   );
 };
 
-describe('SentryAppDetailedView', function() {
+describe('SentryAppDetailedView', function () {
   const org = TestStubs.Organization();
   const routerContext = TestStubs.routerContext();
   let wrapper;
@@ -36,12 +37,20 @@ describe('SentryAppDetailedView', function() {
     },
   });
 
-  describe('Published Sentry App', function() {
+  describe('Published Sentry App', function () {
     let createRequest;
     let deleteRequest;
+    let sentryAppInteractionRequest;
 
     beforeEach(() => {
       Client.clearMockResponses();
+
+      sentryAppInteractionRequest = MockApiClient.addMockResponse({
+        url: `/sentry-apps/clickup/interaction/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {},
+      });
 
       mockResponse([
         [
@@ -106,19 +115,31 @@ describe('SentryAppDetailedView', function() {
       );
     });
 
-    it('shows the Integration name and install status', async function() {
+    it('records interaction request', () => {
+      expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
+        `/sentry-apps/clickup/interaction/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            tsdbField: 'sentry_app_viewed',
+          },
+        })
+      );
+    });
+
+    it('shows the Integration name and install status', async function () {
       expect(wrapper.find('Name').props().children).toEqual('ClickUp');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
     });
-    it('shows the Accept & Install button', async function() {
+    it('shows the Accept & Install button', async function () {
       expect(wrapper.find('InstallButton').props().disabled).toEqual(false);
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });
 
-    describe('onClick: ', function() {
+    describe('onClick: ', function () {
       let wrapperState;
 
-      it('installs app', async function() {
+      it('installs app', async function () {
         wrapper.find('InstallButton').simulate('click');
         await tick();
         await tick();
@@ -126,29 +147,31 @@ describe('SentryAppDetailedView', function() {
         wrapper.update();
         wrapperState = wrapper;
         expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
-        expect(wrapper.find('UninstallAppButton').exists()).toEqual(true);
+        expect(wrapper.find('StyledUninstallButton').exists()).toEqual(true);
       });
 
-      it('uninstalls app', async function() {
-        expect(wrapperState.find('UninstallAppButton')).toHaveLength(1);
-        wrapperState
-          .find('UninstallAppButton')
-          .props()
-          .onClickUninstall();
+      it('uninstalls app', async function () {
+        expect(wrapperState.find('StyledUninstallButton')).toHaveLength(1);
+        wrapperState.find('StyledUninstallButton').simulate('click');
+
         await tick();
-        wrapperState
-          .find('Confirm')
-          .props()
-          .onConfirm();
+        wrapperState.find('Confirm').props().onConfirm();
         await tick();
         expect(deleteRequest).toHaveBeenCalled();
       });
     });
   });
 
-  describe('Internal Sentry App', function() {
+  describe('Internal Sentry App', function () {
     beforeEach(() => {
       Client.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/my-headband-washer-289499/interaction/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {},
+      });
 
       mockResponse([
         [
@@ -214,11 +237,18 @@ describe('SentryAppDetailedView', function() {
     });
   });
 
-  describe('Unpublished Sentry App without Redirect Url', function() {
+  describe('Unpublished Sentry App without Redirect Url', function () {
     let createRequest;
 
     beforeEach(() => {
       Client.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/la-croix-monitor/interaction/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {},
+      });
 
       mockResponse([
         [
@@ -284,29 +314,36 @@ describe('SentryAppDetailedView', function() {
         routerContext
       );
     });
-    it('shows the Integration name and install status', async function() {
+    it('shows the Integration name and install status', async function () {
       expect(wrapper.find('Name').props().children).toEqual('La Croix Monitor');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
     });
-    it('shows the Accept & Install button', async function() {
+    it('shows the Accept & Install button', async function () {
       expect(wrapper.find('InstallButton').props().disabled).toEqual(false);
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });
 
-    it('onClick: installs app', async function() {
+    it('onClick: installs app', async function () {
       wrapper.find('InstallButton').simulate('click');
       await tick();
       expect(createRequest).toHaveBeenCalled();
       wrapper.update();
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
-      expect(wrapper.find('UninstallAppButton').exists()).toEqual(true);
+      expect(wrapper.find('StyledUninstallButton').exists()).toEqual(true);
     });
   });
 
-  describe('Unpublished Sentry App with Redirect Url', function() {
+  describe('Unpublished Sentry App with Redirect Url', function () {
     let createRequest;
     beforeEach(() => {
       Client.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/go-to-google/interaction/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {},
+      });
 
       mockResponse([
         [
@@ -367,16 +404,16 @@ describe('SentryAppDetailedView', function() {
       );
       mockRouterPush(wrapper, router);
     });
-    it('shows the Integration name and install status', async function() {
+    it('shows the Integration name and install status', async function () {
       expect(wrapper.find('Name').props().children).toEqual('Go to Google');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
     });
-    it('shows the Accept & Install button', async function() {
+    it('shows the Accept & Install button', async function () {
       expect(wrapper.find('InstallButton').props().disabled).toEqual(false);
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });
 
-    it('onClick: redirects url', async function() {
+    it('onClick: redirects url', async function () {
       window.location.assign = jest.fn();
 
       wrapper.find('InstallButton').simulate('click');

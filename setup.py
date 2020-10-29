@@ -4,7 +4,10 @@ from __future__ import absolute_import
 import os
 import sys
 
-if not os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (2, 7):
+if os.environ.get("SENTRY_PYTHON3") == "1" and sys.version_info[:2] != (3, 6):
+    sys.exit("Error: Sentry [In EXPERIMENTAL python 3 mode] requires Python 3.6.")
+
+if os.environ.get("SENTRY_PYTHON3") != "1" and sys.version_info[:2] != (2, 7):
     sys.exit("Error: Sentry requires Python 2.7.")
 
 from distutils.command.build import build as BuildCommand
@@ -25,25 +28,8 @@ from sentry.utils.distutils import (
 )
 
 
-VERSION = "10.1.0.dev0"
+VERSION = "20.10.1"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
-
-
-def get_requirements(env):
-    with open(u"requirements-{}.txt".format(env)) as fp:
-        return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
-
-
-install_requires = get_requirements("base")
-dev_requires = get_requirements("dev")
-
-# override django version in requirements file if DJANGO_VERSION is set
-DJANGO_VERSION = os.environ.get("DJANGO_VERSION")
-if DJANGO_VERSION:
-    install_requires = [
-        u"Django{}".format(DJANGO_VERSION) if r.startswith("Django>=") else r
-        for r in install_requires
-    ]
 
 
 class SentrySDistCommand(SDistCommand):
@@ -89,11 +75,24 @@ cmdclass = {
 }
 
 
+def get_requirements(env):
+    with open(u"requirements-{}.txt".format(env)) as fp:
+        return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
+
+
+# Only include dev requirements in non-binary distributions as we don't want these
+# to be listed in the wheels. Main reason for this is being able to use git/URL dependencies
+# for development, which will be rejected by PyPI when trying to upload the wheel.
+extras_require = {"rabbitmq": ["amqp==2.6.1"]}
+if not sys.argv[1:][0].startswith("bdist"):
+    extras_require["dev"] = get_requirements("dev")
+
+
 setup(
     name="sentry",
     version=VERSION,
     author="Sentry",
-    author_email="hello@sentry.io",
+    author_email="oss@sentry.io",
     url="https://sentry.io",
     description="A realtime logging and aggregation server.",
     long_description=open(os.path.join(ROOT, "README.md")).read(),
@@ -101,11 +100,17 @@ setup(
     package_dir={"": "src"},
     packages=find_packages("src"),
     zip_safe=False,
-    install_requires=install_requires,
-    extras_require={"dev": dev_requires},
+    install_requires=get_requirements("base"),
+    extras_require=extras_require,
     cmdclass=cmdclass,
     license="BSL-1.1",
     include_package_data=True,
+    package_data={
+        "sentry": ["static/sentry/{}/**".format(d) for d in ("dist", "js", "images", "vendor")]
+    },
+    exclude_package_data={
+        "sentry": ["static/sentry/{}/**".format(d) for d in ("app", "fonts", "less")]
+    },
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
         "sentry.apps": [
@@ -162,7 +167,8 @@ setup(
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 2 :: Only",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
         "Topic :: Software Development",
         "License :: Other/Proprietary License",
     ],

@@ -61,7 +61,7 @@ const ImageBox = styled('div')`
 const Title = styled('div')<Pick<Props, 'hasSeen'>>`
   font-size: 15px;
   margin-bottom: 5px;
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   ${p => !p.hasSeen && 'font-weight: 600;'};
 
   .culprit {
@@ -78,5 +78,5 @@ const Text = styled('div')`
 `;
 
 const Message = styled(Text)`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;

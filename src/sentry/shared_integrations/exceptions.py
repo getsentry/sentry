@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from bs4 import BeautifulSoup
 from collections import OrderedDict
+from requests.exceptions import RequestException
+
 from simplejson.decoder import JSONDecodeError
 from six.moves.urllib.parse import urlparse
 from sentry.utils import json
@@ -12,10 +14,11 @@ class ApiError(Exception):
     json = None
     xml = None
 
-    def __init__(self, text, code=None):
+    def __init__(self, text, code=None, url=None):
         if code is not None:
             self.code = code
         self.text = text
+        self.url = url
         self.xml = None
         # TODO(dcramer): pull in XML support from Jira
         if text:
@@ -32,10 +35,10 @@ class ApiError(Exception):
         super(ApiError, self).__init__(text[:1024])
 
     @classmethod
-    def from_response(cls, response):
+    def from_response(cls, response, url=None):
         if response.status_code == 401:
             return ApiUnauthorized(response.text)
-        return cls(response.text, response.status_code)
+        return cls(response.text, response.status_code, url=url)
 
 
 class ApiHostError(ApiError):
@@ -82,7 +85,15 @@ class IntegrationError(Exception):
     pass
 
 
+class DuplicateDisplayNameError(IntegrationError):
+    pass
+
+
 class IntegrationFormError(IntegrationError):
     def __init__(self, field_errors):
         super(IntegrationFormError, self).__init__("Invalid integration action")
         self.field_errors = field_errors
+
+
+class IgnorableSentryAppError(RequestException):
+    pass

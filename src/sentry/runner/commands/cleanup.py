@@ -71,7 +71,7 @@ def multiprocess_worker(task_queue):
                 models.GroupEmailThread,
                 models.GroupRuleStatus,
                 # Handled by TTL
-                similarity.features,
+                similarity,
             ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
 
             configured = True
@@ -175,7 +175,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
     # (model, datetime_field, order_by)
     BULK_QUERY_DELETES = [
-        (models.EventAttachment, "date_added", None),
         (models.UserReport, "date_added", None),
         (models.GroupEmailThread, "date", None),
         (models.GroupRuleStatus, "date_added", None),
@@ -183,7 +182,10 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
-    DELETES = ((models.Group, "last_seen", "last_seen"),)
+    DELETES = [
+        (models.EventAttachment, "date_added", "date_added"),
+        (models.Group, "last_seen", "last_seen"),
+    ]
 
     if not silent:
         click.echo("Removing expired values for LostPasswordHash")

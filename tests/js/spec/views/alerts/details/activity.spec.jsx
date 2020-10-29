@@ -2,23 +2,24 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import IncidentActivity from 'app/views/alerts/details/activity';
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
 
-describe('IncidentDetails -> Activity', function() {
+import IncidentActivity from 'app/views/alerts/details/activity';
+
+describe('IncidentDetails -> Activity', function () {
   const incident = TestStubs.Incident();
   const {organization, routerContext} = initializeOrg();
   const activity = TestStubs.IncidentActivity();
   let activitiesList;
 
-  beforeAll(function() {
+  beforeAll(function () {
     activitiesList = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${incident.identifier}/activity/`,
       body: [activity],
     });
   });
 
-  afterAll(function() {
+  afterAll(function () {
     MockApiClient.clearMockResponses();
   });
 
@@ -32,7 +33,7 @@ describe('IncidentDetails -> Activity', function() {
       routerContext
     );
 
-  it('fetches and renders activities', async function() {
+  it('fetches and renders activities', async function () {
     const wrapper = createWrapper();
 
     expect(activitiesList).toHaveBeenCalled();
@@ -44,15 +45,10 @@ describe('IncidentDetails -> Activity', function() {
     wrapper.update();
 
     expect(wrapper.find('Placeholder')).toHaveLength(0);
-    expect(
-      wrapper
-        .find('NoteBody')
-        .text()
-        .trim()
-    ).toEqual('incident activity comment');
+    expect(wrapper.find('NoteBody').text().trim()).toEqual('incident activity comment');
   });
 
-  it('creates a new note', async function() {
+  it('creates a new note', async function () {
     const createComment = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/`,
       method: 'POST',
@@ -76,7 +72,7 @@ describe('IncidentDetails -> Activity', function() {
 
   it.todo('fails to create a new note');
 
-  it('updates an existing note', async function() {
+  it('updates an existing note', async function () {
     const newComment = 'edited comment';
     const updateComment = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/${activity.id}/`,
@@ -113,15 +109,10 @@ describe('IncidentDetails -> Activity', function() {
     await tick();
     wrapper.update();
 
-    expect(
-      wrapper
-        .find('NoteBody')
-        .text()
-        .trim()
-    ).toEqual(newComment);
+    expect(wrapper.find('NoteBody').text().trim()).toEqual(newComment);
   });
 
-  it('fails to update an existing note', async function() {
+  it('fails to update an existing note', async function () {
     const newComment = 'edited comment';
     const updateComment = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/${activity.id}/`,
@@ -148,15 +139,10 @@ describe('IncidentDetails -> Activity', function() {
     await tick();
     wrapper.update();
 
-    expect(
-      wrapper
-        .find('NoteBody')
-        .text()
-        .trim()
-    ).toEqual('incident activity comment');
+    expect(wrapper.find('NoteBody').text().trim()).toEqual('incident activity comment');
   });
 
-  it('deletes a note', async function() {
+  it('deletes a note', async function () {
     const deleteComment = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/${activity.id}/`,
       method: 'DELETE',
@@ -180,7 +166,7 @@ describe('IncidentDetails -> Activity', function() {
     expect(wrapper.find('NoteBody')).toHaveLength(0);
   });
 
-  it('fails to delete a note', async function() {
+  it('fails to delete a note', async function () {
     const deleteComment = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/${activity.id}/`,
       method: 'DELETE',
@@ -202,11 +188,6 @@ describe('IncidentDetails -> Activity', function() {
     wrapper.update();
 
     // old note is displayed
-    expect(
-      wrapper
-        .find('NoteBody')
-        .text()
-        .trim()
-    ).toEqual('incident activity comment');
+    expect(wrapper.find('NoteBody').text().trim()).toEqual('incident activity comment');
   });
 });

@@ -3,6 +3,7 @@ import six
 
 import responses
 from django.core.urlresolvers import reverse
+import pytest
 
 from sentry.integrations.slack.utils import (
     build_group_attachment,
@@ -18,9 +19,10 @@ from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 
-class GetChannelIdTest(TestCase):
+class GetChannelIdWorkspaceTest(TestCase):
     def setUp(self):
         self.resp = responses.mock
         self.resp.__enter__()
@@ -29,7 +31,7 @@ class GetChannelIdTest(TestCase):
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            metadata={"access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
         self.integration.add_organization(self.event.project.organization, self.user)
         self.add_list_response(
@@ -42,7 +44,11 @@ class GetChannelIdTest(TestCase):
         )
         self.add_list_response(
             "users",
-            [{"name": "morty", "id": "m"}, {"name": "other-user", "id": "o-u"}],
+            [
+                {"name": "morty", "id": "m", "profile": {"display_name": "Morty"}},
+                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
+                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
+            ],
             result_name="members",
         )
 
@@ -60,7 +66,7 @@ class GetChannelIdTest(TestCase):
 
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
         assert (expected_prefix, expected_id, timed_out) == get_channel_id(
-            self.organization, self.integration.id, channel
+            self.organization, self.integration, channel
         )
 
     def test_valid_channel_selected(self):
@@ -72,9 +78,51 @@ class GetChannelIdTest(TestCase):
     def test_valid_member_selected(self):
         self.run_valid_test("@morty", MEMBER_PREFIX, "m", False)
 
+    def test_valid_member_selected_display_name(self):
+        self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
+
+    def test_invalid_member_selected_display_name(self):
+        with pytest.raises(DuplicateDisplayNameError):
+            get_channel_id(self.organization, self.integration, "@Morty")
+
     def test_invalid_channel_selected(self):
-        assert get_channel_id(self.organization, self.integration.id, "#fake-channel")[1] is None
-        assert get_channel_id(self.organization, self.integration.id, "@fake-user")[1] is None
+        assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
+        assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
+
+
+class GetChannelIdBotTest(GetChannelIdWorkspaceTest):
+    def setUp(self):
+        self.resp = responses.mock
+        self.resp.__enter__()
+
+        self.integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        self.integration.add_organization(self.event.project.organization, self.user)
+        self.add_list_response(
+            "conversations",
+            [
+                {"name": "my-channel", "id": "m-c"},
+                {"name": "other-chann", "id": "o-c"},
+                {"name": "my-private-channel", "id": "m-p-c", "is_private": True},
+            ],
+            result_name="channels",
+        )
+        self.add_list_response(
+            "users",
+            [
+                {"name": "morty", "id": "m", "profile": {"display_name": "Morty"}},
+                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
+                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
+            ],
+            result_name="members",
+        )
 
 
 class BuildIncidentAttachmentTest(TestCase):
@@ -96,6 +144,34 @@ class BuildIncidentAttachmentTest(TestCase):
                 )
             ),
             "text": "0 events in the last 10 minutes\nFilter: level:error",
+            "fields": [],
+            "mrkdwn_in": ["text"],
+            "footer_icon": logo_url,
+            "footer": "Sentry Incident",
+            "ts": to_timestamp(incident.date_started),
+            "color": RESOLVED_COLOR,
+            "actions": [],
+        }
+
+    def test_metric_value(self):
+        logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=2)
+        title = u"{}: {}".format("Resolved", alert_rule.name)
+        metric_value = 5000
+        assert build_incident_attachment(incident, metric_value=metric_value) == {
+            "fallback": title,
+            "title": title,
+            "title_link": absolute_uri(
+                reverse(
+                    "sentry-metric-alert",
+                    kwargs={
+                        "organization_slug": incident.organization.slug,
+                        "incident_id": incident.identifier,
+                    },
+                )
+            ),
+            "text": "{} events in the last 10 minutes\nFilter: level:error".format(metric_value),
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,

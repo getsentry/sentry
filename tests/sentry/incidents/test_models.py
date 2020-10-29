@@ -14,6 +14,8 @@ from sentry.utils.compat.mock import Mock, patch
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleActivity,
+    AlertRuleActivityType,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -23,7 +25,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.incidents.logic import delete_alert_rule
+from sentry.incidents.logic import delete_alert_rule, update_alert_rule
 from sentry.testutils import TestCase
 
 
@@ -69,7 +71,7 @@ class FetchForOrganizationTest(TestCase):
 class IncidentGetForSubscriptionTest(TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
-        subscription = alert_rule.query_subscriptions.get()
+        subscription = alert_rule.snuba_query.subscriptions.get()
         # First test fetching from database
         assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % subscription.id) is None
         assert AlertRule.objects.get_for_subscription(subscription) == alert_rule
@@ -82,7 +84,7 @@ class IncidentGetForSubscriptionTest(TestCase):
 class IncidentClearSubscriptionCacheTest(TestCase):
     def setUp(self):
         self.alert_rule = self.create_alert_rule()
-        self.subscription = self.alert_rule.query_subscriptions.get()
+        self.subscription = self.alert_rule.snuba_query.subscriptions.get()
 
     def test_updated_subscription(self):
         AlertRule.objects.get_for_subscription(self.subscription)
@@ -280,23 +282,29 @@ class IncidentTriggerClearCacheTest(TestCase):
 class IncidentCreationTest(TestCase):
     def test_simple(self):
         title = "hello"
-        query = "goodbye"
+        alert_rule = self.create_alert_rule()
         incident = Incident.objects.create(
-            self.organization, title=title, query=query, type=IncidentType.ALERT_TRIGGERED.value
+            self.organization,
+            title=title,
+            type=IncidentType.ALERT_TRIGGERED.value,
+            alert_rule=alert_rule,
         )
         assert incident.identifier == 1
         assert incident.title == title
-        assert incident.query == query
 
         # Check identifier correctly increments
         incident = Incident.objects.create(
-            self.organization, title=title, query=query, type=IncidentType.ALERT_TRIGGERED.value
+            self.organization,
+            title=title,
+            type=IncidentType.ALERT_TRIGGERED.value,
+            alert_rule=alert_rule,
         )
         assert incident.identifier == 2
 
     def test_identifier_conflict(self):
         create_method = BaseManager.create
         call_count = [0]
+        alert_rule = self.create_alert_rule()
 
         def mock_base_create(*args, **kwargs):
             if not call_count[0]:
@@ -309,8 +317,8 @@ class IncidentCreationTest(TestCase):
                         self.organization,
                         status=IncidentStatus.OPEN.value,
                         title="Conflicting Incident",
-                        query="Uh oh",
                         type=IncidentType.ALERT_TRIGGERED.value,
+                        alert_rule=alert_rule,
                     )
                 assert incident.identifier == kwargs["identifier"]
                 try:
@@ -328,9 +336,9 @@ class IncidentCreationTest(TestCase):
         with patch.object(BaseManager, "create", new=mock_base_create):
             incident = Incident.objects.create(
                 self.organization,
+                alert_rule=alert_rule,
                 status=IncidentStatus.OPEN.value,
                 title="hi",
-                query="bye",
                 type=IncidentType.ALERT_TRIGGERED.value,
             )
             # We should have 3 calls - one for initial create, one for conflict,
@@ -376,6 +384,40 @@ class IncidentCurrentEndDateTest(unittest.TestCase):
         assert incident.current_end_date == timezone.now()
         incident.date_closed = timezone.now() - timedelta(minutes=10)
         assert incident.current_end_date == timezone.now() - timedelta(minutes=10)
+
+
+class AlertRuleFetchForOrganizationTest(TestCase):
+    def test_empty(self):
+        alert_rule = AlertRule.objects.fetch_for_organization(self.organization)
+        assert [] == list(alert_rule)
+
+    def test_simple(self):
+        alert_rule = self.create_alert_rule()
+
+        assert [alert_rule] == list(AlertRule.objects.fetch_for_organization(self.organization))
+
+    def test_with_projects(self):
+        project = self.create_project()
+        alert_rule = self.create_alert_rule(projects=[project])
+
+        assert [] == list(
+            AlertRule.objects.fetch_for_organization(self.organization, [self.project])
+        )
+        assert [alert_rule] == list(
+            AlertRule.objects.fetch_for_organization(self.organization, [project])
+        )
+
+    def test_multi_project(self):
+        project = self.create_project()
+        alert_rule1 = self.create_alert_rule(projects=[project, self.project])
+        alert_rule2 = self.create_alert_rule(projects=[project])
+
+        assert [alert_rule1] == list(
+            AlertRule.objects.fetch_for_organization(self.organization, [self.project])
+        )
+        assert set([alert_rule1, alert_rule2]) == set(
+            AlertRule.objects.fetch_for_organization(self.organization, [project])
+        )
 
 
 class AlertRuleTriggerActionTargetTest(TestCase):
@@ -425,7 +467,7 @@ class AlertRuleTriggerActionActivateTest(object):
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        assert trigger.fire(Mock(), Mock()) is None
+        assert trigger.fire(Mock(), Mock(), 123) is None
 
     def test_handler(self):
         mock_handler = Mock()
@@ -434,7 +476,7 @@ class AlertRuleTriggerActionActivateTest(object):
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
-        assert getattr(trigger, self.method)(Mock(), Mock()) == mock_method.return_value
+        assert getattr(trigger, self.method)(Mock(), Mock(), 123) == mock_method.return_value
 
 
 class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateTest, unittest.TestCase):
@@ -471,3 +513,33 @@ class AlertRuleTriggerActionActivateTest(TestCase):
         trigger.build_handler(incident, project)
         mock_handler.assert_called_once_with(trigger, incident, project)
         assert not self.metrics.incr.called
+
+
+class AlertRuleActivityTest(TestCase):
+    def test_simple(self):
+        assert AlertRuleActivity.objects.all().count() == 0
+        self.alert_rule = self.create_alert_rule()
+        assert AlertRuleActivity.objects.filter(
+            alert_rule=self.alert_rule, type=AlertRuleActivityType.CREATED.value
+        ).exists()
+
+    def test_delete(self):
+        assert AlertRuleActivity.objects.all().count() == 0
+        self.alert_rule = self.create_alert_rule()
+        self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        delete_alert_rule(self.alert_rule)
+        assert AlertRuleActivity.objects.filter(
+            alert_rule=self.alert_rule, type=AlertRuleActivityType.DELETED.value
+        ).exists()
+
+    def test_update(self):
+        assert AlertRuleActivity.objects.all().count() == 0
+        self.alert_rule = self.create_alert_rule()
+        self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        update_alert_rule(self.alert_rule, name="updated_name")
+        assert AlertRuleActivity.objects.filter(
+            previous_alert_rule=self.alert_rule, type=AlertRuleActivityType.SNAPSHOT.value
+        ).exists()
+        assert AlertRuleActivity.objects.filter(
+            alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
+        ).exists()

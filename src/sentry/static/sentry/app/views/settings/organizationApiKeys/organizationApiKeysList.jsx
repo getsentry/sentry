@@ -8,12 +8,12 @@ import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconDelete, IconAdd} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
-import {IconAdd} from 'app/icons/iconAdd';
 
 class OrganizationApiKeysList extends React.Component {
   static propTypes = {
@@ -32,7 +32,7 @@ class OrganizationApiKeysList extends React.Component {
       <Button
         priority="primary"
         size="small"
-        icon={<IconAdd size="xs" circle />}
+        icon={<IconAdd size="xs" isCircled />}
         busy={busy}
         disabled={busy}
         onClick={onAddApiKey}
@@ -50,7 +50,7 @@ class OrganizationApiKeysList extends React.Component {
           If you're looking to configure a Sentry client, you'll need a
           client key which is available in your project settings.`,
             {
-              api: <ExternalLink href="https://docs.sentry.io/hosted/api/" />,
+              api: <ExternalLink href="https://docs.sentry.io/api/" />,
             }
           )}
         </TextBlock>
@@ -112,7 +112,7 @@ class OrganizationApiKeysList extends React.Component {
                         message={t('Are you sure you want to remove this API key?')}
                         title={t('Remove API Key?')}
                       >
-                        <span className="icon-trash" />
+                        <IconDelete size="xs" css={{position: 'relative', top: '2px'}} />
                       </LinkWithConfirmation>
                     </Box>
                   </PanelItem>

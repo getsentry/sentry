@@ -4,9 +4,7 @@ import createReactClass from 'create-react-class';
 
 import getDisplayName from 'app/utils/getDisplayName';
 import TagStore from 'app/stores/tagStore';
-import {Tag} from 'app/types';
-
-type TagCollection = {[key: string]: Tag};
+import {TagCollection} from 'app/types';
 
 type InjectedTagsProps = {
   tags: TagCollection;
@@ -16,33 +14,11 @@ type State = {
   tags: TagCollection;
 };
 
-type Options = {
-  /**
-   * Set to true if you want to include issue attributes in the tag listt
-   * that is forwarded to the wrapped component.
-   */
-  includeIssueAttributes?: boolean;
-};
-
-const ISSUE_TAGS: TagCollection = TagStore.getIssueAttributes();
-
-function filterTags(tags: TagCollection, includeIssueAttributes: boolean): TagCollection {
-  if (includeIssueAttributes) {
-    return tags;
-  }
-  const out = Object.keys(tags).reduce((acc, name) => {
-    if (!ISSUE_TAGS.hasOwnProperty(name)) {
-      acc[name] = tags[name];
-    }
-
-    return acc;
-  }, {});
-  return out;
-}
-
+/**
+ * HOC for getting *only* tags from the TagStore.
+ */
 const withTags = <P extends InjectedTagsProps>(
-  WrappedComponent: React.ComponentType<P>,
-  {includeIssueAttributes = false}: Options = {}
+  WrappedComponent: React.ComponentType<P>
 ) =>
   createReactClass<Omit<P, keyof InjectedTagsProps>, State>({
     displayName: `withTags(${getDisplayName(WrappedComponent)})`,
@@ -50,16 +26,19 @@ const withTags = <P extends InjectedTagsProps>(
 
     getInitialState() {
       return {
-        tags: filterTags(TagStore.getAllTags(), includeIssueAttributes),
+        tags: TagStore.getAllTags(),
       };
     },
 
     onTagsUpdate(tags: TagCollection) {
-      this.setState({tags: filterTags(tags, includeIssueAttributes)});
+      this.setState({
+        tags,
+      });
     },
 
     render() {
-      return <WrappedComponent tags={this.state.tags} {...(this.props as P)} />;
+      const {tags, ...props} = this.props as P;
+      return <WrappedComponent {...({tags: tags ?? this.state.tags, ...props} as P)} />;
     },
   });
 

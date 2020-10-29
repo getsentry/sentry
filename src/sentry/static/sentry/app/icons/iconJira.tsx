@@ -1,18 +1,20 @@
 import React from 'react';
 
-import {IconProps} from 'app/types/iconProps';
-import theme from 'app/utils/theme';
+import SvgIcon from './svgIcon';
 
-export const IconJira = React.forwardRef(function IconJira(
-  {color: providedColor = 'currentColor', size: providedSize = 'sm', ...props}: IconProps,
+type Props = React.ComponentProps<typeof SvgIcon>;
+
+const IconJira = React.forwardRef(function IconJira(
+  props: Props,
   ref: React.Ref<SVGSVGElement>
 ) {
-  const color = providedColor;
-  const size = theme.iconSizes[providedSize] ?? providedSize;
-
   return (
-    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref}>
       <path d="M15.83,7.57l0,0h0L8.69.67,8,0,2.64,5.18.19,7.55a.63.63,0,0,0,0,.88l0,0,4.9,4.73L8,16l5.36-5.18.08-.08,2.37-2.29A.63.63,0,0,0,15.83,7.57ZM8,10.37H8L5.55,8,8,5.63,10.45,8Z" />
-    </svg>
+    </SvgIcon>
   );
 });
+
+IconJira.displayName = 'IconJira';
+
+export {IconJira};

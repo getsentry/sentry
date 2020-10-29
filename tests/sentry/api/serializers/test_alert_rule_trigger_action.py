@@ -7,7 +7,7 @@ import six
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers import action_target_type_to_string
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
-from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.testutils import TestCase
 
 
@@ -31,9 +31,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
 
     def test_simple(self):
         alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(
-            alert_rule, "hi", AlertRuleThresholdType.ABOVE, 1000, 200
-        )
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         action = create_alert_rule_trigger_action(
             trigger,
             AlertRuleTriggerAction.Type.EMAIL,

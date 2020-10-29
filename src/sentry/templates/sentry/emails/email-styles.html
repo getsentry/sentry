@@ -134,7 +134,7 @@
     box-shadow: 0 2px 0 rgba(0, 0, 0, 0.05);
   }
 
-  .container {
+  .container  {
     max-width: 600px;
     margin: 0 auto;
     text-align: left;
@@ -275,6 +275,7 @@
   .inner table th {
     min-width: 60px;
     color: #968ba0;
+    padding: 10px 0 0 0;
   }
   .interface {
     margin-bottom: 30px;
@@ -753,8 +754,11 @@
     font-weight: bold;
   }
 
-  h3.alert-title {
-    margin-bottom: 0;
+  .alert-title {
+    margin-bottom: 24px;
+  }
+  .alert-title h3 {
+    margin: 0;
   }
 
   .alert-header {
@@ -764,19 +768,66 @@
     text-transform: uppercase;
   }
 
-  table.alert-rule-table thead th {
+  .alert-badge {
+    display: inline-block;
+    border-radius: 3px;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: #fff;
+    background: #C6BECF;
+    padding: 4px 8px;
+    margin-right: 12px;
+  }
+
+  .alert-info-container {
+    border-radius: 3px;
+    padding: 16px;
+  }
+
+  .alert-info-container table {
+    margin: 0;
+  }
+
+  .alert-info-container h4 {
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+  }
+
+  .alert-container-open {
+    background: #FAF9FB ;
+    border: 1px solid #D3CCDA;
+  }
+
+  .alert-container-resolved {
+    background: #F5FFFB;
+    border: 1px solid #4DC771;
+  }
+  .alert-container-resolved .alert-badge {
+    background: #4DC771;
+  }
+
+  .alert-container-critical {
+    background: #FFF5F7;
+    border: 1px solid #FA4747;
+  }
+  .alert-container-critical .alert-badge {
+    background: #FA4747;
+  }
+
+  .alert-container-warning {
+    background: #FFFDF5;
+    border: 1px solid #FFC227;
+  }
+  .alert-container-warning .alert-badge {
+    background: #FFC227;
+  }
+
+  table.alert-rule-table th {
     font-size: 12px;
     color: #9585A3;
     font-weight: bold;
     text-transform: uppercase;
-  }
-
-  .alert-query-box {
-    background-color: #E7E1EC;
-    border-radius: 4px;
-    padding: 8px;
-    color: #645574;
-    margin-top: 12px;
   }
 
   .alert-critical {
@@ -808,6 +859,23 @@
 
   .inner table.table.projects p a {
     color: inherit;
+  }
+
+  /* Integration Logos */
+
+  .logo-container {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
+  .logo {
+      margin:5px;
+      padding:8px;
+      max-width: 25px;
+      border-radius: 5px;
+      border:1px solid #CCC;
+      width:125px;
+      height:29px;
   }
 
   /* Commit list */

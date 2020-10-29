@@ -4,7 +4,6 @@ import omit from 'lodash/omit';
 
 import Link from 'app/components/links/link';
 import ExternalLink from 'app/components/links/externalLink';
-import InlineSvg from 'app/components/inlineSvg';
 import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 
@@ -14,6 +13,7 @@ type Priority = 'info' | 'warning' | 'success' | 'error' | 'muted';
 type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
 
 type OtherProps = {
+  ['data-test-id']?: string;
   icon?: string | React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
 };
@@ -51,9 +51,12 @@ class AlertLink extends React.Component<Props> {
       openInNewTab,
       to,
       href,
+      ['data-test-id']: dataTestId,
     } = this.props;
+
     return (
       <StyledLink
+        data-test-id={dataTestId}
         to={to}
         href={href}
         onClick={onClick}
@@ -62,11 +65,7 @@ class AlertLink extends React.Component<Props> {
         withoutMarginBottom={withoutMarginBottom}
         openInNewTab={openInNewTab}
       >
-        {icon && (
-          <IconWrapper>
-            {typeof icon === 'string' ? <InlineSvg src={icon} /> : icon}
-          </IconWrapper>
-        )}
+        {icon && <IconWrapper>{icon}</IconWrapper>}
         <AlertLinkText>{children}</AlertLinkText>
         <IconLink>
           <IconChevron direction="right" />
@@ -88,7 +87,7 @@ const StyledLink = styled(({openInNewTab, to, href, ...props}: StyledLinkProps) 
 })`
   display: flex;
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   border: 1px dashed ${p => p.theme.alert[p.priority].border};
   padding: ${p => (p.size === 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
   margin-bottom: ${p => (p.withoutMarginBottom ? 0 : space(3))};

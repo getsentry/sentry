@@ -1,28 +1,34 @@
 import Papa from 'papaparse';
-import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
-import {Event, Organization, OrganizationSummary} from 'app/types';
+import {Event, LightWeightOrganization, SelectValue, Organization} from 'app/types';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import EventView from 'app/utils/discover/eventView';
+import localStorage from 'app/utils/localStorage';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {
   Field,
   Column,
+  ColumnType,
   AGGREGATIONS,
   FIELDS,
   explodeFieldString,
   getAggregateAlias,
+  TRACING_FIELDS,
+  Aggregation,
+  isMeasurement,
+  measurementType,
 } from 'app/utils/discover/fields';
 
-import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
-import {TableColumn, TableDataRow} from './table/types';
+import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
+import {TableColumn, FieldValue, FieldValueKind} from './table/types';
 
 export type QueryWithColumnState =
   | Query
@@ -63,10 +69,16 @@ export function decodeColumnOrder(
         column.type = aggregate.outputType;
       } else if (FIELDS.hasOwnProperty(col.function[1])) {
         column.type = FIELDS[col.function[1]];
+      } else if (isMeasurement(col.function[1])) {
+        column.type = measurementType(col.function[1]);
       }
       column.isSortable = aggregate && aggregate.isSortable;
     } else if (col.kind === 'field') {
-      column.type = FIELDS[col.field];
+      if (FIELDS.hasOwnProperty(col.field)) {
+        column.type = FIELDS[col.field];
+      } else if (isMeasurement(col.field)) {
+        column.type = measurementType(col.field);
+      }
     }
     column.column = col;
 
@@ -92,7 +104,15 @@ export function pushEventViewToLocation(props: {
   });
 }
 
-export function generateTitle({eventView, event}: {eventView: EventView; event?: Event}) {
+export function generateTitle({
+  eventView,
+  event,
+  organization,
+}: {
+  eventView: EventView;
+  event?: Event;
+  organization?: Organization;
+}) {
   const titles = [t('Discover')];
 
   const eventViewName = eventView.name;
@@ -100,7 +120,7 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
     titles.push(String(eventViewName).trim());
   }
 
-  const eventTitle = event ? getTitle(event).title : undefined;
+  const eventTitle = event ? getTitle(event, organization).title : undefined;
   if (eventTitle) {
     titles.push(eventTitle);
   }
@@ -109,31 +129,18 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
   return titles.join(' - ');
 }
 
-export function getPrebuiltQueries(organization: Organization) {
-  let views = ALL_VIEWS;
-  if (organization.features.includes('transaction-events')) {
+export function getPrebuiltQueries(organization: LightWeightOrganization) {
+  const views = [...ALL_VIEWS];
+  if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
-    const cloned = [...ALL_VIEWS];
-    cloned.splice(2, 0, ...TRANSACTION_VIEWS);
-    views = cloned;
+    views.splice(2, 0, ...TRANSACTION_VIEWS);
+  }
+
+  if (organization.features.includes('measurements')) {
+    views.push(...WEB_VITALS_VIEWS);
   }
 
   return views;
-}
-
-export function decodeScalar(
-  value: string[] | string | undefined | null
-): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-  const unwrapped =
-    Array.isArray(value) && value.length > 0
-      ? value[0]
-      : isString(value)
-      ? value
-      : undefined;
-  return isString(unwrapped) ? unwrapped : undefined;
 }
 
 export function downloadAsCsv(tableData, columnOrder, filename) {
@@ -145,15 +152,6 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
     data: data.map(row =>
       headings.map(col => {
         col = getAggregateAlias(col);
-        // This needs to match the order done in the userBadge component
-        if (col === 'user') {
-          return disableMacros(
-            row['user.name'] ||
-              row['user.email'] ||
-              row['user.username'] ||
-              row['user.ip']
-          );
-        }
         return disableMacros(row[col]);
       })
     ),
@@ -175,20 +173,30 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 }
 
 // A map between aggregate function names and its un-aggregated form
-const TRANSFORM_AGGREGATES: {[field: string]: string} = {
-  p99: 'transaction.duration',
-  p95: 'transaction.duration',
-  p75: 'transaction.duration',
+const TRANSFORM_AGGREGATES = {
   last_seen: 'timestamp',
-  latest_event: 'id',
+  latest_event: '',
   apdex: '',
-  impact: '',
-  error_rate: '',
-};
+  user_misery: '',
+  failure_rate: '',
+} as const;
+
+function transformAggregate(fieldName: string): string {
+  // test if a field name is a percentile field name. for example: p50
+  if (/^p\d+$/.test(fieldName)) {
+    return 'transaction.duration';
+  }
+
+  return TRANSFORM_AGGREGATES[fieldName] || '';
+}
+
+function isTransformAggregate(fieldName: string): boolean {
+  return transformAggregate(fieldName) !== '';
+}
 
 /**
  * Convert an aggregated query into one that does not have aggregates.
- * Can also apply additions conditions defined in `additionalConditions`
+ * Will also apply additions conditions defined in `additionalConditions`
  * and generate conditions based on the `dataRow` parameter and the current fields
  * in the `eventView`.
  */
@@ -216,20 +224,15 @@ export function getExpandedResults(
     const exploded = explodeFieldString(currentField.field);
 
     let fieldNameAlias: string = '';
-    if (
-      exploded.kind === 'function' &&
-      TRANSFORM_AGGREGATES.hasOwnProperty(exploded.function[0])
-    ) {
+    if (exploded.kind === 'function' && isTransformAggregate(exploded.function[0])) {
       fieldNameAlias = exploded.function[0];
-    } else if (exploded.kind === 'field') {
+    } else if (exploded.kind === 'field' && exploded.field !== 'id') {
+      // Skip id fields as they are implicitly part of all non-aggregate results.
       fieldNameAlias = exploded.field;
     }
 
-    if (
-      fieldNameAlias !== undefined &&
-      TRANSFORM_AGGREGATES.hasOwnProperty(fieldNameAlias)
-    ) {
-      const nextFieldName = TRANSFORM_AGGREGATES[fieldNameAlias];
+    if (fieldNameAlias !== undefined && isTransformAggregate(fieldNameAlias)) {
+      const nextFieldName = transformAggregate(fieldNameAlias);
       if (!nextFieldName || transformedFields.has(nextFieldName)) {
         // this field is either duplicated in another column, or nextFieldName is undefined.
         // in either case, we remove this column
@@ -257,10 +260,26 @@ export function getExpandedResults(
     }
 
     if (exploded.kind === 'function') {
-      let field = exploded.function[1];
-      // edge case: transform count() into id
-      if (exploded.function[0] === 'count') {
-        field = 'id';
+      const field = exploded.function[1];
+
+      // Remove count an aggregates on id, as results have an implicit id in them.
+      if (exploded.function[0] === 'count' || field === 'id') {
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
+
+      // if at least one of the parameters to the function is an available column,
+      // then we should proceed to replace it with the column, however, for functions
+      // like apdex that takes a number as its parameter we should delete it
+      const {parameters = []} = AGGREGATIONS[exploded.function[0]] ?? {};
+      if (
+        !field ||
+        (parameters.length > 0 &&
+          parameters.every(parameter => parameter.kind !== 'column'))
+      ) {
+        // This is a function with no field alias. We delete this column as it'll add a blank column in the drilldown.
+        fieldsToDelete.push(indexToUpdate);
+        return;
       }
       transformedFields.add(field);
 
@@ -312,7 +331,18 @@ function generateAdditionalConditions(
     // match their name.
     if (dataRow.hasOwnProperty(dataKey)) {
       const value = dataRow[dataKey];
-      const nextValue = value === null || value === undefined ? '' : String(value).trim();
+      // if the value will be quoted, then do not trim it as the whitespaces
+      // may be important to the query and should not be trimmed
+      const shouldQuote =
+        value === null || value === undefined
+          ? false
+          : /[\s\(\)\\"]/g.test(String(value).trim());
+      const nextValue =
+        value === null || value === undefined
+          ? ''
+          : shouldQuote
+          ? String(value)
+          : String(value).trim();
 
       switch (column.field) {
         case 'timestamp':
@@ -325,13 +355,15 @@ function generateAdditionalConditions(
     }
 
     // If we have an event, check tags as well.
-    if (dataRow.tags && dataRow.tags instanceof Array) {
+    if (dataRow.tags && Array.isArray(dataRow.tags)) {
       const tagIndex = dataRow.tags.findIndex(item => item.key === dataKey);
       if (tagIndex > -1) {
         const key = specialKeys.includes(column.field)
           ? `tags[${column.field}]`
           : column.field;
-        conditions[key] = dataRow.tags[tagIndex].value;
+
+        const tagValue = dataRow.tags[tagIndex].value;
+        conditions[key] = tagValue;
       }
     }
   });
@@ -347,10 +379,10 @@ function generateExpandedConditions(
 
   // Remove any aggregates from the search conditions.
   // otherwise, it'll lead to an invalid query result.
-  for (const key in parsedQuery) {
+  for (const key in parsedQuery.tagValues) {
     const column = explodeFieldString(key);
     if (column.kind === 'function') {
-      delete parsedQuery[key];
+      parsedQuery.removeTag(key);
     }
   }
 
@@ -362,12 +394,15 @@ function generateExpandedConditions(
 
   // Add additional conditions provided and generated.
   for (const key in conditions) {
+    const value = conditions[key];
     if (key === 'project.id') {
-      eventView.project = [...eventView.project, parseInt(additionalConditions[key], 10)];
+      eventView.project = [...eventView.project, parseInt(value, 10)];
       continue;
     }
     if (key === 'environment') {
-      eventView.environment = [...eventView.environment, additionalConditions[key]];
+      if (!eventView.environment.includes(value)) {
+        eventView.environment = [...eventView.environment, value];
+      }
       continue;
     }
     const column = explodeFieldString(key);
@@ -375,19 +410,115 @@ function generateExpandedConditions(
     if (column.kind === 'function') {
       continue;
     }
-    // Skip project name
-    if (key === 'project' || key === 'project.name') {
-      continue;
-    }
-    parsedQuery[key] = [conditions[key]];
+
+    parsedQuery.setTagValues(key, [conditions[key]]);
   }
 
   return stringifyQueryObject(parsedQuery);
 }
 
-export function getDiscoverLandingUrl(organization: OrganizationSummary): string {
-  if (organization.features.includes('discover-query')) {
-    return `/organizations/${organization.slug}/discover/queries/`;
+type FieldGeneratorOpts = {
+  organization: LightWeightOrganization;
+  tagKeys?: string[] | null;
+  measurementKeys?: string[] | null;
+  aggregations?: Record<string, Aggregation>;
+  fields?: Record<string, ColumnType>;
+};
+
+export function generateFieldOptions({
+  organization,
+  tagKeys,
+  measurementKeys,
+  aggregations = AGGREGATIONS,
+  fields = FIELDS,
+}: FieldGeneratorOpts) {
+  let fieldKeys = Object.keys(fields);
+  let functions = Object.keys(aggregations);
+
+  // Strip tracing features if the org doesn't have access.
+  if (!organization.features.includes('performance-view')) {
+    fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
+    functions = functions.filter(item => !TRACING_FIELDS.includes(item));
   }
-  return `/organizations/${organization.slug}/discover/results/`;
+  const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
+
+  // Index items by prefixed keys as custom tags can overlap both fields and
+  // function names. Having a mapping makes finding the value objects easier
+  // later as well.
+  functions.forEach(func => {
+    const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
+    const parameters = aggregations[func].parameters.map(param => {
+      const generator = aggregations[func].generateDefaultValue;
+      if (typeof generator === 'undefined') {
+        return param;
+      }
+      return {
+        ...param,
+        defaultValue: generator({parameter: param, organization}),
+      };
+    });
+
+    fieldOptions[`function:${func}`] = {
+      label: `${func}(${ellipsis})`,
+      value: {
+        kind: FieldValueKind.FUNCTION,
+        meta: {
+          name: func,
+          parameters,
+        },
+      },
+    };
+  });
+
+  fieldKeys.forEach(field => {
+    fieldOptions[`field:${field}`] = {
+      label: field,
+      value: {
+        kind: FieldValueKind.FIELD,
+        meta: {
+          name: field,
+          dataType: fields[field],
+        },
+      },
+    };
+  });
+
+  if (tagKeys !== undefined && tagKeys !== null) {
+    tagKeys.forEach(tag => {
+      const tagValue =
+        fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
+          ? `tags[${tag}]`
+          : tag;
+      fieldOptions[`tag:${tag}`] = {
+        label: tag,
+        value: {
+          kind: FieldValueKind.TAG,
+          meta: {name: tagValue, dataType: 'string'},
+        },
+      };
+    });
+  }
+
+  if (measurementKeys !== undefined && measurementKeys !== null) {
+    measurementKeys.forEach(measurement => {
+      fieldOptions[`measurement:${measurement}`] = {
+        label: measurement,
+        value: {
+          kind: FieldValueKind.MEASUREMENT,
+          meta: {name: measurement, dataType: measurementType(measurement)},
+        },
+      };
+    });
+  }
+
+  return fieldOptions;
+}
+
+const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
+
+export function isBannerHidden(): boolean {
+  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
+}
+export function setBannerHidden(value: boolean) {
+  localStorage.setItem(BANNER_DISMISSED_KEY, value ? 'true' : 'false');
 }

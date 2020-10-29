@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {fadeOut, pulse} from 'app/styles/animations';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCheckmark, IconWarning} from 'app/icons';
 import Spinner from 'app/views/settings/components/forms/spinner';
 
 type Props = {
@@ -27,7 +27,7 @@ class ControlState extends React.Component<Props> {
         ) : isSaved ? (
           <ControlStateWrapper>
             <FieldIsSaved>
-              <InlineSvg src="icon-checkmark-sm" size="18px" />
+              <IconCheckmark size="18px" />
             </FieldIsSaved>
           </ControlStateWrapper>
         ) : null}
@@ -35,7 +35,7 @@ class ControlState extends React.Component<Props> {
         {error ? (
           <ControlStateWrapper>
             <FieldError>
-              <InlineSvg src="icon-warning-sm" size="18px" />
+              <IconWarning size="18px" />
             </FieldError>
           </ControlStateWrapper>
         ) : null}
@@ -49,7 +49,7 @@ const ControlStateWrapper = styled('div')`
 `;
 
 const FieldIsSaved = styled('div')`
-  color: ${p => p.theme.green};
+  color: ${p => p.theme.green400};
   animation: ${fadeOut} 0.3s ease 2s 1 forwards;
   position: absolute;
   top: 0;
@@ -66,7 +66,7 @@ const FormSpinner = styled(Spinner)`
 `;
 
 const FieldError = styled('div')`
-  color: ${p => p.theme.redDark};
+  color: ${p => p.theme.red500};
   animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 export default ControlState;

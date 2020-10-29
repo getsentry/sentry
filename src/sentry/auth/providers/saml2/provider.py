@@ -1,5 +1,8 @@
 from __future__ import absolute_import, print_function
 
+from datetime import datetime
+from django.utils import timezone
+
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.core.urlresolvers import reverse
@@ -105,7 +108,7 @@ class SAML2AcceptACSView(BaseView):
             sso_login = AuthProviderLoginView()
             return sso_login.handle(request)
 
-        # IdP initiated authentication. The organizatio_slug must be valid and
+        # IdP initiated authentication. The organization_slug must be valid and
         # an auth provider must exist for this organization to proceed with
         # IdP initiated SAML auth.
         try:
@@ -151,6 +154,14 @@ class SAML2ACSView(AuthView):
             return helper.error(ERR_SAML_FAILED.format(reason=auth.get_last_error_reason()))
 
         helper.bind_state("auth_attributes", auth.get_attributes())
+
+        # Not all providers send a session expiration value, but if they do,
+        # we should respect it and set session cookies to expire at the given time.
+        if auth.get_session_expiration() is not None:
+            session_expiration = datetime.fromtimestamp(auth.get_session_expiration()).replace(
+                tzinfo=timezone.utc
+            )
+            request.session.set_expiry(session_expiration)
 
         return helper.next_step()
 

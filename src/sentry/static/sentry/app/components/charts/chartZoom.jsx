@@ -3,8 +3,9 @@ import React from 'react';
 import moment from 'moment';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {updateParams} from 'app/actionCreators/globalSelection';
-import DataZoom from 'app/components/charts/components/dataZoom';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {updateDateTime} from 'app/actionCreators/globalSelection';
+import DataZoomInside from 'app/components/charts/components/dataZoomInside';
 import SentryTypes from 'app/sentryTypes';
 import ToolBox from 'app/components/charts/components/toolBox';
 
@@ -18,9 +19,6 @@ const getDate = date =>
  *
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
- *
- * TODO(billy): If this sees extended uses, this would be better as a child of LineChart so
- * you can enable it via a prop to `<LineChart>`
  */
 class ChartZoom extends React.Component {
   static propTypes = {
@@ -32,6 +30,11 @@ class ChartZoom extends React.Component {
     disabled: PropTypes.bool,
 
     xAxis: SentryTypes.EChartsXAxis,
+    /**
+     * If you need the dataZoom control to control more than one chart.
+     * you can provide a list of the axis indexes.
+     */
+    xAxisIndex: PropTypes.arrayOf(PropTypes.number),
 
     // Callback for when chart has been zoomed
     onZoom: PropTypes.func,
@@ -84,6 +87,7 @@ class ChartZoom extends React.Component {
    * Saves a callback function to be called after chart animation is completed
    */
   setPeriod = ({period, start, end}, saveHistory) => {
+    const {router, onZoom} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
 
@@ -98,20 +102,22 @@ class ChartZoom extends React.Component {
     //
     // Parent container can use this to change into a loading state before
     // URL parameters are changed
-    callIfFunction(this.props.onZoom, {
+    callIfFunction(onZoom, {
       period,
       start: startFormatted,
       end: endFormatted,
     });
 
     this.zooming = () => {
-      updateParams(
+      updateDateTime(
         {
           period,
-          start: startFormatted,
-          end: endFormatted,
+          start: startFormatted
+            ? getUtcToLocalDateObject(startFormatted)
+            : startFormatted,
+          end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
         },
-        this.props.router
+        router
       );
 
       this.saveCurrentPeriod({period, start, end});
@@ -195,12 +201,13 @@ class ChartZoom extends React.Component {
       utc,
       disabled,
       children,
+      xAxisIndex,
 
-      onZoom, // eslint-disable-line no-unused-vars
-      onRestore, // eslint-disable-line no-unused-vars
-      onChartReady, // eslint-disable-line no-unused-vars
-      onDataZoom, // eslint-disable-line no-unused-vars
-      onFinished, // eslint-disable-line no-unused-vars
+      onZoom: _onZoom,
+      onRestore: _onRestore,
+      onChartReady: _onChartReady,
+      onDataZoom: _onDataZoom,
+      onFinished: _onFinished,
       ...props
     } = this.props;
 
@@ -208,12 +215,13 @@ class ChartZoom extends React.Component {
       return children(props);
     }
 
+    // TODO(mark) Update consumers of DataZoom when typing this.
     const renderProps = {
       // Zooming only works when grouped by date
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
       utc,
-      dataZoom: DataZoom(),
+      dataZoom: DataZoomInside({xAxisIndex}),
       showTimeInTooltip: true,
       toolBox: ToolBox(
         {},

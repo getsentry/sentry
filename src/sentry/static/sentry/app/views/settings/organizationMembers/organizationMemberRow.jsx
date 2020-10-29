@@ -7,8 +7,7 @@ import {t, tct} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import InlineSvg from 'app/components/inlineSvg';
-import {IconMail} from 'app/icons/iconMail';
+import {IconClose, IconCheckmark, IconFlag, IconMail, IconSubtract} from 'app/icons';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
@@ -141,7 +140,11 @@ export default class OrganizationMemberRow extends React.PureComponent {
             </React.Fragment>
           ) : (
             <AuthStatus>
-              <AuthIcon has2fa={has2fa} />
+              {has2fa ? (
+                <IconCheckmark isCircled color="success" />
+              ) : (
+                <IconFlag color="error" />
+              )}
               {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
             </AuthStatus>
           )}
@@ -165,7 +168,12 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   orgName,
                 })}
               >
-                <Button icon="icon-circle-subtract" size="small" busy={this.state.busy}>
+                <Button
+                  data-test-id="remove"
+                  icon={<IconSubtract isCircled size="xs" />}
+                  size="small"
+                  busy={this.state.busy}
+                >
                   {t('Remove')}
                 </Button>
               </Confirm>
@@ -176,7 +184,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 disabled
                 size="small"
                 title={t('You do not have access to remove members')}
-                icon="icon-circle-subtract"
+                icon={<IconSubtract isCircled size="xs" />}
               >
                 {t('Remove')}
               </Button>
@@ -195,7 +203,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   orgName,
                 })}
               >
-                <Button priority="danger" size="small" icon="icon-exit">
+                <Button priority="danger" size="small" icon={<IconClose size="xs" />}>
                   {t('Leave')}
                 </Button>
               </Confirm>
@@ -204,7 +212,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
             {showLeaveButton && !memberCanLeave && (
               <Button
                 size="small"
-                icon="icon-exit"
+                icon={<IconClose size="xs" />}
                 disabled
                 title={t(
                   'You cannot leave this organization as you are the only organization owner.'
@@ -247,7 +255,7 @@ const UserName = styled('div')`
 `;
 
 const Email = styled('div')`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   font-size: ${p => p.theme.fontSizeMedium};
   overflow: hidden;
   text-overflow: ellipsis;
@@ -260,10 +268,3 @@ const LoadingContainer = styled('div')`
 `;
 
 const AuthStatus = styled(Section)``;
-const AuthIcon = styled(p => (
-  <InlineSvg {...p} src={p.has2fa ? 'icon-circle-check' : 'icon-circle-exclamation'} />
-))`
-  color: ${p => (p.has2fa ? p.theme.success : p.theme.error)};
-  font-size: 18px;
-  margin-bottom: 1px;
-`;

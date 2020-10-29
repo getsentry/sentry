@@ -29,7 +29,7 @@ class UserSocialAuth(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, related_name="social_auth")
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
-    extra_data = JSONField(default="{}")
+    extra_data = JSONField(default=u"{}")
 
     class Meta:
         """Meta data"""

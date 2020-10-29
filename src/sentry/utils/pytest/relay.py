@@ -1,4 +1,4 @@
-# Fixutres used to interact with a test Relay server
+# Fixtures used to interact with a test Relay server
 
 from __future__ import absolute_import
 
@@ -96,7 +96,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     container_name = _relay_server_container_name()
     _remove_container_if_exists(docker_client, container_name)
     options = {
-        "image": "us.gcr.io/sentryio/relay:latest",
+        "image": "us.gcr.io/sentryio/relay:nightly",
         "ports": {"%s/tcp" % relay_port: relay_port},
         "network": network,
         "detach": True,
@@ -116,7 +116,8 @@ def relay_server_setup(live_server, tmpdir_factory):
 
 
 @pytest.fixture(scope="function")
-def relay_server(relay_server_setup):
+def relay_server(relay_server_setup, settings):
+    adjust_settings_for_relay_tests(settings)
     options = relay_server_setup["options"]
     docker_client = get_docker_client()
     container_name = _relay_server_container_name()
@@ -137,9 +138,65 @@ def relay_server(relay_server_setup):
     return {"url": relay_server_setup["url"]}
 
 
+def adjust_settings_for_relay_tests(settings):
+    """
+    Adjusts the application settings to accept calls from a Relay instance running inside a
+    docker container.
+
+    :param settings: the app settings
+    """
+    settings.ALLOWED_HOSTS = [
+        "localhost",
+        "testserver",
+        "host.docker.internal",
+        "0.0.0.0",
+        "127.0.0.1",
+    ]
+    settings.KAFKA_CLUSTERS = {
+        "default": {
+            "bootstrap.servers": "127.0.0.1:9092",
+            "compression.type": "lz4",
+            "message.max.bytes": 50000000,  # 50MB, default is 1MB
+        }
+    }
+    settings.SENTRY_RELAY_WHITELIST_PK = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]
+
+
 @pytest.fixture
 def get_relay_store_url(relay_server):
-    def relay_store_url(project_id):
+    def inner(project_id):
         return "{}/api/{}/store/".format(relay_server["url"], project_id)
 
-    return relay_store_url
+    return inner
+
+
+@pytest.fixture
+def get_relay_security_url(relay_server):
+    def inner(project_id, key):
+        return "{}/api/{}/security/?sentry_key={}".format(relay_server["url"], project_id, key)
+
+    return inner
+
+
+@pytest.fixture
+def get_relay_minidump_url(relay_server):
+    def inner(project_id, key):
+        return "{}/api/{}/minidump/?sentry_key={}".format(relay_server["url"], project_id, key)
+
+    return inner
+
+
+@pytest.fixture
+def get_relay_unreal_url(relay_server):
+    def inner(project_id, key):
+        return "{}/api/{}/unreal/{}/".format(relay_server["url"], project_id, key)
+
+    return inner
+
+
+@pytest.fixture
+def get_relay_attachments_url(relay_server):
+    def inner(project_id, event_id):
+        return "{}/api/{}/events/{}/attachments/".format(relay_server["url"], project_id, event_id)
+
+    return inner

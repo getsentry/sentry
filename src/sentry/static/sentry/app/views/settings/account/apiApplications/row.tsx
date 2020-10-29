@@ -12,7 +12,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import {IconDelete} from 'app/icons/iconDelete';
+import {IconDelete} from 'app/icons';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
@@ -68,10 +68,10 @@ class Row extends React.Component<Props, State> {
       <StyledPanelItem>
         <ApplicationNameWrapper>
           <ApplicationName to={`${ROUTE_PREFIX}applications/${app.id}/`}>
-            {getDynamicText({value: app.name, fixed: 'PERCY_APPLICATION_NAME'})}
+            {getDynamicText({value: app.name, fixed: 'CI_APPLICATION_NAME'})}
           </ApplicationName>
           <ClientId>
-            {getDynamicText({value: app.clientID, fixed: 'PERCY_CLIENT_ID'})}
+            {getDynamicText({value: app.clientID, fixed: 'CI_CLIENT_ID'})}
           </ClientId>
         </ApplicationNameWrapper>
 
@@ -105,7 +105,7 @@ const ApplicationName = styled(Link)`
 `;
 
 const ClientId = styled('div')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

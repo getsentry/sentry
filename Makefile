@@ -1,10 +1,12 @@
 PIP := python -m pip --disable-pip-version-check
-WEBPACK := NODE_ENV=production ./bin/yarn webpack
-YARN := ./bin/yarn
+WEBPACK := NODE_ENV=production yarn webpack
 
-bootstrap: develop init-config run-dependent-services create-db apply-migrations
+# Currently, this is only required to install black via pre-commit.
+REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)
 
-develop: ensure-pinned-pip setup-git install-yarn-pkgs install-sentry-dev
+bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
+
+develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
 
 clean:
 	@echo "--> Cleaning static cache"
@@ -46,6 +48,9 @@ apply-migrations: ensure-venv
 
 reset-db: drop-db create-db apply-migrations
 
+setup-pyenv:
+	@cat .python-version | xargs -n1 pyenv install --skip-existing
+
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
@@ -59,31 +64,29 @@ setup-git-config:
 
 setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
-	cd .git/hooks && ln -sf ../../config/hooks/* ./
-	@# XXX(joshuarli): virtualenv >= 20 doesn't work with the version of six we have pinned for sentry.
-	@# Since pre-commit is installed in the venv, it will install virtualenv in the venv as well.
-	@# We need to tell pre-commit to install an older virtualenv,
-	@# And we need to tell virtualenv to install an older six, so that sentry installation
-	@# won't complain about a newer six being present.
-	@# So, this six pin here needs to be synced with requirements-base.txt.
-	$(PIP) install "pre-commit==1.18.2" "virtualenv>=16.7,<20" "six>=1.10.0,<1.11.0"
-	pre-commit install --install-hooks
+	mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./
+	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
+	@# pre-commit loosely pins virtualenv, which has caused problems in the past.
+	$(PIP) install "pre-commit==1.18.2" "virtualenv==20.0.32"
+	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) pre-commit install --install-hooks
 	@echo ""
 
 node-version-check:
-	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/volta-cli/volta'; exit 1)
+	@# Checks to see if node's version matches the one specified in package.json for Volta.
+	@node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" || \
+	(echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'; exit 1)
 
-install-yarn-pkgs: node-version-check
+install-js-dev: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-	NODE_ENV=development $(YARN) install --frozen-lockfile
+	NODE_ENV=development yarn install --frozen-lockfile
 	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
 	# says everything is up to date. Even though `yarn install` is run already, it doesn't take into
 	# account the state of the current filesystem (it only checks .yarn-integrity).
 	# Add an additional check against `node_modules`
-	$(YARN) check --verify-tree || $(YARN) install --check-files
+	yarn check --verify-tree || yarn install --check-files
 
-install-sentry-dev: ensure-pinned-pip
+install-py-dev: ensure-pinned-pip
 	@echo "--> Installing Sentry (for development)"
 	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
 	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
@@ -122,6 +125,11 @@ fetch-release-registry:
 	@echo "--> Fetching release registry"
 	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
 
+run-acceptance:
+	@echo "--> Running acceptance tests"
+	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
+	@echo ""
+
 test-cli:
 	@echo "--> Testing CLI"
 	rm -rf test_cli
@@ -135,35 +143,34 @@ test-cli:
 
 test-js-build: node-version-check
 	@echo "--> Running type check"
-	@$(YARN) run tsc
+	@yarn run tsc -p config/tsconfig.build.json
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
 
 test-js: node-version-check
 	@echo "--> Running JavaScript tests"
-	@$(YARN) run test-ci
+	@yarn run test
 	@echo ""
 
-# builds and creates percy snapshots
-test-styleguide:
-	@echo "--> Building and snapshotting styleguide"
-	@$(YARN) run snapshot
+test-js-ci: node-version-check
+	@echo "--> Running CI JavaScript tests"
+	@yarn run test-ci
 	@echo ""
 
 test-python:
-	sentry init
-	make build-platform-assets
 	@echo "--> Running Python tests"
-ifndef TEST_GROUP
+	# This gets called by getsentry
+	py.test tests/integration tests/sentry
+
+test-python-ci:
+	make build-platform-assets
+	@echo "--> Running CI Python tests"
 	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
-else
-	py.test tests/integration tests/sentry -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
-endif
 	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	py.test tests/snuba tests/sentry/eventstream/kafka -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	py.test tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
 test-symbolicator:
@@ -172,28 +179,28 @@ test-symbolicator:
 	@echo ""
 
 test-acceptance: node-version-check
-	sentry init
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
-	@echo "--> Running acceptance tests"
-ifndef TEST_GROUP
-	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
-else
-	py.test tests/acceptance -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
-endif
-
-	@echo ""
+	make run-acceptance
 
 test-plugins:
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running plugin tests"
-	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml"
+	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
 	@echo ""
 
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
 	pytest tests/relay_integration -vv
+	@echo ""
+
+test-api-docs:
+	@echo "--> Generating testing api doc schema"
+	yarn run build-derefed-docs
+	@echo "--> Validating endpoints' examples against schemas"
+	yarn run validate-api-examples
+	pytest tests/apidocs/endpoints
 	@echo ""
 
 review-python-snapshots:
@@ -214,7 +221,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+.PHONY: develop build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
 
 
 ############################
@@ -230,11 +237,11 @@ travis-test-lint-js: lint-js
 
 .PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-js-build
 .PHONY: travis-test-cli travis-test-relay-integration
-travis-test-postgres: test-python
+travis-test-postgres: test-python-ci
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
 travis-test-symbolicator: test-symbolicator
-travis-test-js: test-js
+travis-test-js: test-js-ci
 travis-test-js-build: test-js-build
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins

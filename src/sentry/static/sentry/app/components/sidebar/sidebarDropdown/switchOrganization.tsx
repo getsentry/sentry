@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd, IconChevron} from 'app/icons';
 import withOrganizations from 'app/utils/withOrganizations';
 import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
@@ -40,7 +40,7 @@ const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
           {t('Switch organization')}
 
           <SubMenuCaret>
-            <i className="icon-arrow-right" />
+            <IconChevron size="xs" direction="right" />
           </SubMenuCaret>
         </SwitchOrganizationMenuActor>
 
@@ -89,7 +89,7 @@ export default SwitchOrganizationContainer;
 
 const StyledIconAdd = styled(IconAdd)`
   margin-right: ${space(1)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const MenuItemLabelWithIcon = styled('span')`
@@ -100,12 +100,12 @@ const MenuItemLabelWithIcon = styled('span')`
 `;
 
 const SubMenuCaret = styled('span')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   transition: 0.1s color linear;
 
   &:hover,
   &:active {
-    color: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray600};
   }
 `;
 

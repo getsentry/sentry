@@ -5,26 +5,26 @@ import Creatable from 'react-select/creatable';
 import AsyncCreatable from 'react-select/async-creatable';
 
 import theme from 'app/utils/theme';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron, IconClose} from 'app/icons';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
 import SelectControlLegacy from './selectControlLegacy';
 
 const ClearIndicator = props => (
   <selectComponents.ClearIndicator {...props}>
-    <InlineSvg src="icon-close" size="10px" />
+    <IconClose size="10px" />
   </selectComponents.ClearIndicator>
 );
 
 const DropdownIndicator = props => (
   <selectComponents.DropdownIndicator {...props}>
-    <InlineSvg src="icon-chevron-down" size="14px" />
+    <IconChevron direction="down" size="14px" />
   </selectComponents.DropdownIndicator>
 );
 
 const MultiValueRemove = props => (
   <selectComponents.MultiValueRemove {...props}>
-    <InlineSvg src="icon-close" size="8px" />
+    <IconClose size="8px" />
   </selectComponents.MultiValueRemove>
 );
 
@@ -45,7 +45,7 @@ const defaultStyles = {
   control: (_, state) => ({
     height: '100%',
     fontSize: '15px',
-    color: theme.gray5,
+    color: theme.gray800,
     display: 'flex',
     background: '#fff',
     border: `1px solid ${theme.borderDark}`,
@@ -55,10 +55,10 @@ const defaultStyles = {
     alignItems: 'center',
     minHeight: '36px',
     '&:hover': {
-      borderColor: theme.gray1,
+      borderColor: theme.borderDark,
     },
     ...(state.isFocused && {
-      border: `1px solid ${theme.gray1}`,
+      border: `1px solid ${theme.borderDark}`,
       boxShadow: 'rgba(209, 202, 216, 0.5) 0 0 0 3px',
     }),
     ...(state.menuIsOpen && {
@@ -68,9 +68,12 @@ const defaultStyles = {
     }),
     ...(state.isDisabled && {
       borderColor: theme.borderDark,
-      background: theme.whiteDark,
-      color: theme.gray2,
+      background: theme.gray100,
+      color: theme.gray500,
       cursor: 'not-allowed',
+    }),
+    ...(!state.isSearchable && {
+      cursor: 'pointer',
     }),
   }),
 
@@ -88,18 +91,19 @@ const defaultStyles = {
     ...provided,
     lineHeight: '1.5',
     fontSize: theme.fontSizeMedium,
+    cursor: 'pointer',
     color: state.isFocused
       ? theme.textColor
       : state.isSelected
       ? theme.white
       : theme.textColor,
     backgroundColor: state.isFocused
-      ? theme.offWhiteLight
+      ? theme.gray200
       : state.isSelected
-      ? theme.purple
+      ? theme.purple400
       : 'transparent',
     '&:active': {
-      backgroundColor: theme.offWhiteLight,
+      backgroundColor: theme.gray200,
     },
   }),
   valueContainer: provided => ({
@@ -219,6 +223,7 @@ const SelectControl = props => {
       backspaceRemovesValue={clearable}
       value={mappedValue}
       isMulti={props.multiple || props.multi}
+      isDisabled={props.isDisabled || props.disabled}
       options={choicesOrOptions}
       {...rest}
     />

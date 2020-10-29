@@ -38,7 +38,7 @@ type PropType = {
 };
 
 class TraceViewHeader extends React.Component<PropType> {
-  renderCursorGuide = ({
+  renderCursorGuide({
     cursorGuideHeight,
     showCursorGuide,
     mouseLeft,
@@ -46,7 +46,7 @@ class TraceViewHeader extends React.Component<PropType> {
     cursorGuideHeight: number;
     showCursorGuide: boolean;
     mouseLeft: number | undefined;
-  }) => {
+  }) {
     if (!showCursorGuide || !mouseLeft) {
       return null;
     }
@@ -59,9 +59,9 @@ class TraceViewHeader extends React.Component<PropType> {
         }}
       />
     );
-  };
+  }
 
-  renderViewHandles = ({
+  renderViewHandles({
     isDragging,
     onLeftHandleDragStart,
     leftHandlePosition,
@@ -69,7 +69,7 @@ class TraceViewHeader extends React.Component<PropType> {
     rightHandlePosition,
     viewWindowStart,
     viewWindowEnd,
-  }: DragManagerChildrenProps) => {
+  }: DragManagerChildrenProps) {
     const leftHandleGhost = isDragging ? (
       <Handle
         left={viewWindowStart}
@@ -114,28 +114,30 @@ class TraceViewHeader extends React.Component<PropType> {
         {rightHandle}
       </React.Fragment>
     );
-  };
+  }
 
-  renderFog = (dragProps: DragManagerChildrenProps) => (
-    <React.Fragment>
-      <Fog style={{height: '100%', width: toPercent(dragProps.viewWindowStart)}} />
-      <Fog
-        style={{
-          height: '100%',
-          width: toPercent(1 - dragProps.viewWindowEnd),
-          left: toPercent(dragProps.viewWindowEnd),
-        }}
-      />
-    </React.Fragment>
-  );
+  renderFog(dragProps: DragManagerChildrenProps) {
+    return (
+      <React.Fragment>
+        <Fog style={{height: '100%', width: toPercent(dragProps.viewWindowStart)}} />
+        <Fog
+          style={{
+            height: '100%',
+            width: toPercent(1 - dragProps.viewWindowEnd),
+            left: toPercent(dragProps.viewWindowEnd),
+          }}
+        />
+      </React.Fragment>
+    );
+  }
 
-  renderDurationGuide = ({
+  renderDurationGuide({
     showCursorGuide,
     mouseLeft,
   }: {
     showCursorGuide: boolean;
     mouseLeft: number | undefined;
-  }) => {
+  }) {
     if (!showCursorGuide || !mouseLeft) {
       return null;
     }
@@ -162,15 +164,15 @@ class TraceViewHeader extends React.Component<PropType> {
         <span>{getHumanDuration(duration)}</span>
       </DurationGuideBox>
     );
-  };
+  }
 
-  renderTimeAxis = ({
+  renderTimeAxis({
     showCursorGuide,
     mouseLeft,
   }: {
     showCursorGuide: boolean;
     mouseLeft: number | undefined;
-  }) => {
+  }) {
     const {trace} = this.props;
 
     const duration = Math.abs(trace.traceEndTimestamp - trace.traceStartTimestamp);
@@ -242,9 +244,9 @@ class TraceViewHeader extends React.Component<PropType> {
         })}
       </TimeAxis>
     );
-  };
+  }
 
-  renderWindowSelection = (dragProps: DragManagerChildrenProps) => {
+  renderWindowSelection(dragProps: DragManagerChildrenProps) {
     if (!dragProps.isWindowSelectionDragging) {
       return null;
     }
@@ -262,7 +264,7 @@ class TraceViewHeader extends React.Component<PropType> {
         }}
       />
     );
-  };
+  }
 
   render() {
     return (
@@ -326,7 +328,7 @@ class TraceViewHeader extends React.Component<PropType> {
 }
 
 class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
-  renderRootSpan = (): JSX.Element => {
+  renderRootSpan(): React.ReactNode {
     const {trace} = this.props;
 
     const generateBounds = boundsGenerator({
@@ -351,14 +353,14 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
       span: rootSpan,
       childSpans: trace.childSpans,
     }).spanTree;
-  };
+  }
 
-  getBounds = (
+  getBounds(
     bounds: SpanGeneratedBoundsType
   ): {
     left: string;
     width: string;
-  } => {
+  } {
     switch (bounds.type) {
       case 'TRACE_TIMESTAMPS_EQUAL':
       case 'INVALID_VIEW_WINDOW': {
@@ -386,22 +388,22 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
         return _exhaustiveCheck;
       }
     }
-  };
+  }
 
-  renderSpan = ({
+  renderSpan({
     spanNumber,
     childSpans,
     generateBounds,
     span,
   }: {
     spanNumber: number;
-    childSpans: Readonly<SpanChildrenLookupType>;
+    childSpans: SpanChildrenLookupType;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     span: Readonly<RawSpanType>;
   }): {
     spanTree: JSX.Element;
     nextSpanNumber: number;
-  } => {
+  } {
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
 
     const bounds = generateBounds({
@@ -412,6 +414,13 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
     const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
 
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
+
+    // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
+    // For example if a span has a span_id that's identical to its parent_span_id.
+    childSpans = {
+      ...childSpans,
+    };
+    delete childSpans[getSpanID(span)];
 
     type AccType = {
       nextSpanNumber: number;
@@ -458,7 +467,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
         </React.Fragment>
       ),
     };
-  };
+  }
 
   render() {
     return (
@@ -479,7 +488,7 @@ const TimeAxis = styled('div')`
   border-top: 1px solid ${p => p.theme.borderDark};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.white};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: 10px;
   font-weight: 500;
 `;
@@ -521,7 +530,7 @@ const TickText = styled('span')<{align: TickAlignment}>`
 const TickMarker = styled('div')`
   width: 1px;
   height: 4px;
-  background-color: ${p => p.theme.borderDark};
+  background-color: ${p => p.theme.gray400};
   position: absolute;
   top: 0;
   left: 0;
@@ -599,7 +608,7 @@ const ViewHandleContainer = styled('div')`
 
 const ViewHandle = styled('div')<{isDragging: boolean}>`
   position: absolute;
-  background-color: ${p => p.theme.gray5};
+  background-color: ${p => p.theme.gray800};
   cursor: col-resize;
   width: 8px;
   height: ${VIEW_HANDLE_HEIGHT}px;
@@ -631,7 +640,7 @@ const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: ${p => p.theme.red};
+  background-color: ${p => p.theme.red400};
   transform: translateX(-50%);
 `;
 

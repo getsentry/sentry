@@ -26,6 +26,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
         self.page = IssueDetailsPage(self.browser, self.client)
+        self.dismiss_assistant()
 
     def create_sample_event(self, platform, default=None, sample_name=None, time=None):
         event_data = load_data(platform, default=default, sample_name=sample_name)
@@ -61,7 +62,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_python_rawbody_event(self):
         event = self.create_sample_event(platform="python-rawbody")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.browser.move_to('[data-test-id="rich-http-content-body-context-data"]')
+        self.browser.move_to('[data-test-id="rich-http-content-body-section-pre"]')
         self.browser.snapshot("issue details python raw body")
 
     def test_python_formdata_event(self):
@@ -78,6 +79,13 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="cocoa")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details cocoa")
+
+    def test_cocoa_event_frame_line_hover(self):
+        event = self.create_sample_event(platform="cocoa")
+        self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_not(".loading")
+        self.browser.move_to(".traceback li:nth-child(2)")
+        self.browser.snapshot("issue details cocoa frame line hover")
 
     def test_unity_event(self):
         event = self.create_sample_event(default="unity", platform="csharp")
@@ -104,7 +112,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details javascript - event details")
 
-        self.browser.find_element_by_xpath("//button//span[contains(text(), 'curl')]").click()
+        self.browser.click('[aria-label="curl"]')
         self.browser.snapshot("issue details javascript - event details - curl command")
 
     def test_rust_event(self):
@@ -146,9 +154,10 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_activity_page(self):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.page.go_to_subtab("Comments")
+        self.page.go_to_subtab("Activity")
 
         self.browser.wait_until_test_id("activity-item")
+        self.browser.blur()
         self.browser.snapshot("issue activity python")
 
     def test_resolved(self):
@@ -164,4 +173,3 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.ignore_issue()
 
         self.browser.snapshot("issue details ignored")
-        self.browser.save_screenshot("test.png")

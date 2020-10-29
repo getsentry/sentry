@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 export default function handleXhrErrorResponse(message: string) {
   return (resp: JQueryXHR) => {

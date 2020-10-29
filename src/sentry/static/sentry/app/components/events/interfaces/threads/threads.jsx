@@ -6,15 +6,16 @@ import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
-import CrashHeader from 'app/components/events/interfaces/crashHeader';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import {defined} from 'app/utils';
+import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
+import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
 
-import ThreadsSelector from './threadsSelector';
-import getThreadStacktrace from './getThreadStacktrace';
-import getThreadException from './getThreadException';
+import ThreadSelector from './threadSelector';
+import getThreadStacktrace from './threadSelector/getThreadStacktrace';
+import getThreadException from './threadSelector/getThreadException';
 
 function getIntendedStackView(thread, event) {
   const stacktrace = getThreadStacktrace(thread, event, false);
@@ -49,7 +50,9 @@ class Thread extends React.Component {
         <li className="frame missing-frame">
           <div className="title">
             <span className="informal">
-              {this.props.data.crashed ? 'Thread Crashed' : 'No or unknown stacktrace'}
+              {this.props.data.crashed
+                ? t('Thread Errored')
+                : t('No or unknown stacktrace')}
             </span>
           </div>
         </li>
@@ -80,11 +83,11 @@ class Thread extends React.Component {
       <div className="thread">
         {renderPills && (
           <Pills>
-            <Pill name="id" value={data.id} />
-            <Pill name="name" value={data.name} />
-            <Pill name="was active" value={data.current} />
-            <Pill name="crashed" className={data.crashed ? 'false' : 'true'}>
-              {data.crashed ? 'yes' : 'no'}
+            <Pill name={t('id')} value={data.id} />
+            <Pill name={t('name')} value={data.name} />
+            <Pill name={t('was active')} value={data.current} />
+            <Pill name={t('errored')} className={data.crashed ? 'false' : 'true'}>
+              {data.crashed ? t('yes') : t('no')}
             </Pill>
           </Pills>
         )}
@@ -161,6 +164,10 @@ class ThreadsInterface extends React.Component {
     });
   };
 
+  handleChange = newState => {
+    this.setState(newState);
+  };
+
   render() {
     const threads = this.props.data.values || [];
 
@@ -174,41 +181,47 @@ class ThreadsInterface extends React.Component {
     const exception = this.getException();
     const stacktrace = this.getStacktrace();
 
-    const titleProps = {
-      platform: evt.platform,
-      stacktrace,
-      stackView,
+    const commonCrashHeaderProps = {
       newestFirst,
       hideGuide,
-      stackType,
-      onChange: newState => this.setState(newState),
+      onChange: this.handleChange,
     };
 
-    const title =
-      threads.length > 1 ? (
-        <CrashHeader
-          title={null}
-          beforeTitle={
-            <ThreadsSelector
-              threads={threads}
-              activeThread={activeThread}
-              event={this.props.event}
-              onChange={this.onSelectNewThread}
-            />
-          }
-          thread={activeThread}
-          exception={exception}
-          {...titleProps}
-        />
-      ) : (
-        <CrashHeader title={t('Stacktrace')} {...titleProps} />
-      );
+    const hasThreads = threads.length > 1;
 
     return (
       <EventDataSection
         event={evt}
         type={this.props.type}
-        title={title}
+        title={
+          hasThreads ? (
+            <CrashTitle
+              title={null}
+              beforeTitle={
+                <ThreadSelector
+                  threads={threads}
+                  activeThread={activeThread}
+                  event={this.props.event}
+                  onChange={this.onSelectNewThread}
+                />
+              }
+            />
+          ) : (
+            <CrashTitle title={t('Stacktrace')} />
+          )
+        }
+        actions={
+          <CrashActions
+            stackView={stackView}
+            platform={evt.platform}
+            stacktrace={stacktrace}
+            stackType={stackType}
+            thread={hasThreads ? activeThread : undefined}
+            exception={hasThreads ? exception : undefined}
+            {...commonCrashHeaderProps}
+          />
+        }
+        showPermalink={!hasThreads}
         wrapTitle={false}
       >
         <Thread

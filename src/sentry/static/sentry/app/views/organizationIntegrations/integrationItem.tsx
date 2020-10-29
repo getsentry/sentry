@@ -52,6 +52,7 @@ const Labels = styled('div')<StyledProps>`
   flex-direction: ${p => (p.compact ? 'row' : 'column')};
   padding-left: ${space(1)};
   min-width: 0;
+  justify-content: center;
 `;
 
 const IntegrationName = styled('div')`
@@ -62,7 +63,7 @@ const IntegrationName = styled('div')`
 // as it sets width 100% which causes layout issues in the
 // integration list.
 const DomainName = styled('div')<StyledProps>`
-  color: ${p => (p.compact ? p.theme.gray1 : p.theme.gray3)};
+  color: ${p => (p.compact ? p.theme.gray400 : p.theme.gray600)};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (!p.compact ? space(0.25) : 'inherit')};
   font-size: 1.4rem;

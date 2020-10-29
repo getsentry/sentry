@@ -4,6 +4,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 
+import {IconChevron} from 'app/icons';
 import Checkbox from 'app/components/checkbox';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import FlowLayout from 'app/components/flowLayout';
@@ -112,9 +113,9 @@ const MergedItem = createReactClass({
             <span />
             <Collapse onClick={this.handleToggleEvents}>
               {this.state.collapsed ? (
-                <i className="icon-arrow-down" />
+                <IconChevron direction="down" size="xs" />
               ) : (
-                <i className="icon-arrow-up" />
+                <IconChevron direction="up" size="xs" />
               )}
             </Collapse>
           </div>
@@ -172,7 +173,7 @@ const Controls = styled('div')`
 const Fingerprint = styled('label')`
   font-family: ${p => p.theme.text.familyMono};
 
-  ${Controls} & {
+  ${/* sc-selector */ Controls} & {
     font-weight: normal;
     margin: 0;
   }

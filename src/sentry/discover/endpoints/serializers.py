@@ -5,9 +5,9 @@ import re
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.models import Project, ProjectStatus
 from sentry.discover.models import KeyTransaction, MAX_KEY_TRANSACTIONS
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -170,18 +170,14 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     }
 
     def validate_projects(self, projects):
-        organization = self.context["organization"]
-
         projects = set(projects)
-        if projects == ALL_ACCESS_PROJECTS:
+
+        # Don't need to check all projects or my projects
+        if projects == ALL_ACCESS_PROJECTS or len(projects) == 0:
             return projects
 
-        org_projects = set(
-            Project.objects.filter(
-                organization=organization, id__in=projects, status=ProjectStatus.VISIBLE
-            ).values_list("id", flat=True)
-        )
-        if projects != org_projects:
+        # Check that there aren't projects in the query the user doesn't have access to
+        if len(projects - set(self.context["params"]["project_id"])) > 0:
             raise PermissionDenied
 
         return projects
@@ -218,6 +214,12 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             data["projects"] = []
             query["all_projects"] = True
 
+        if "query" in query:
+            try:
+                get_filter(query["query"], self.context["params"])
+            except InvalidSearchQuery as err:
+                raise serializers.ValidationError("Cannot save invalid query: {}".format(err))
+
         return {
             "name": data["name"],
             "project_ids": data["projects"],
@@ -234,7 +236,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if bad_fields:
             raise serializers.ValidationError(
                 "You cannot use the %s attribute(s) with the selected version"
-                % ", ".join(bad_fields)
+                % ", ".join(sorted(bad_fields))
             )
 
 

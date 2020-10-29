@@ -1,5 +1,5 @@
 import pick from 'lodash/pick';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 

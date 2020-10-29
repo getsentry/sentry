@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import EventDataSection from 'app/components/events/eventDataSection';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 
@@ -16,7 +17,7 @@ const data = {
   culprit: 'culprit',
 };
 
-describe('EventDataSection', function() {
+describe('EventDataSection', function () {
   const groupData = {
     ...data,
     level: 'error',
@@ -29,8 +30,8 @@ describe('EventDataSection', function() {
     groupID: 'groupID',
     culprit: undefined,
   };
-  it('renders formatted', function() {
-    const component = shallow(
+  it('renders formatted', function () {
+    const component = mountWithTheme(
       <EventDataSection
         group={groupData}
         event={eventData}
@@ -40,11 +41,11 @@ describe('EventDataSection', function() {
       />
     );
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
-  it('renders raw', function() {
-    const component = shallow(
+  it('renders raw', function () {
+    const component = mountWithTheme(
       <EventDataSection
         group={groupData}
         event={eventData}
@@ -53,11 +54,11 @@ describe('EventDataSection', function() {
         raw
       />
     );
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 });
 
-describe('KeyValueList', function() {
+describe('KeyValueList', function () {
   const context = {
     somestuff: {andsomeotherstuff: 'here'},
     plussomeotherstuff: 'here',
@@ -65,17 +66,19 @@ describe('KeyValueList', function() {
   };
   const extraDataArray = Object.entries(context);
 
-  it('renders formatted', function() {
-    const component = shallow(
+  it('renders formatted', function () {
+    const component = mountWithTheme(
       <KeyValueList data={extraDataArray} isContextData raw={false} />
     );
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
-  it('renders raw', function() {
-    const component = shallow(<KeyValueList data={extraDataArray} isContextData raw />);
+  it('renders raw', function () {
+    const component = mountWithTheme(
+      <KeyValueList data={extraDataArray} isContextData raw />
+    );
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 });

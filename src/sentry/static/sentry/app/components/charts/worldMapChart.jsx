@@ -1,11 +1,13 @@
 import max from 'lodash/max';
 import PropTypes from 'prop-types';
 import React from 'react';
+import echarts from 'echarts';
 
 import theme from 'app/utils/theme';
 
 import BaseChart from './baseChart';
 import MapSeries from './series/mapSeries';
+import VisualMap from './components/visualMap';
 
 export default class WorldMapChart extends React.Component {
   static propTypes = {
@@ -17,29 +19,30 @@ export default class WorldMapChart extends React.Component {
     super(props);
     this.state = {
       countryToCodeMap: null,
+      map: null,
     };
   }
 
   async componentDidMount() {
-    const countryToCodeMap = await import(
-      /* webpackChunkName: "countryCodesMap" */ 'app/data/countryCodesMap'
-    );
+    const [countryToCodeMap, worldMap] = await Promise.all([
+      import(/* webpackChunkName: "countryCodesMap" */ 'app/data/countryCodesMap'),
+      import(/* webpackChunkName: "worldMapGeoJson" */ 'app/data/world.json'),
+    ]);
+
+    echarts.registerMap('sentryWorld', worldMap.default);
 
     // eslint-disable-next-line
     this.setState({
       countryToCodeMap: countryToCodeMap.default,
-      codeToCountryMap: Object.entries(countryToCodeMap.default).reduce(
-        (acc, [country, code]) => ({
-          ...acc,
-          [code]: country,
-        }),
-        {}
+      map: worldMap.default,
+      codeToCountryMap: Object.fromEntries(
+        Object.entries(countryToCodeMap.default).map(([country, code]) => [code, country])
       ),
     });
   }
 
   render() {
-    if (this.state.countryToCodeMap === null) {
+    if (this.state.countryToCodeMap === null || this.state.map === null) {
       return null;
     }
 
@@ -48,7 +51,7 @@ export default class WorldMapChart extends React.Component {
       MapSeries({
         ...seriesOptions,
         ...options,
-        mapType: 'world',
+        mapType: 'sentryWorld',
         name: seriesName,
         nameMap: this.state.countryToCodeMap,
         aspectScale: 0.85,
@@ -56,11 +59,11 @@ export default class WorldMapChart extends React.Component {
         center: [10.97, 9.71],
         itemStyle: {
           normal: {
-            areaColor: theme.gray1,
+            areaColor: theme.gray400,
             borderColor: theme.borderLighter,
           },
           emphasis: {
-            areaColor: theme.yellowOrange,
+            areaColor: theme.orange300,
           },
         },
         label: {
@@ -81,19 +84,19 @@ export default class WorldMapChart extends React.Component {
       <BaseChart
         options={{
           backgroundColor: theme.borderLighter,
-          visualMap: {
+          visualMap: VisualMap({
             left: 'right',
             min: 0,
             max: maxValue,
             inRange: {
-              color: [theme.purpleLightest, theme.purpleDarkest],
+              color: [theme.purple300, theme.purple500],
             },
             text: ['High', 'Low'],
 
             // Whether show handles, which can be dragged to adjust "selected range".
             // False because the handles are pretty ugly
             calculable: false,
-          },
+          }),
         }}
         {...props}
         yAxis={null}

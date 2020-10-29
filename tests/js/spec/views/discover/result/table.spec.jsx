@@ -1,11 +1,12 @@
 import React from 'react';
 
 import {mount, render} from 'sentry-test/enzyme';
+
 import {ResultTable} from 'app/views/discover/result/table';
 
-describe('ResultTable', function() {
+describe('ResultTable', function () {
   let wrapper;
-  beforeEach(function() {
+  beforeEach(function () {
     wrapper = mount(
       <ResultTable
         organization={TestStubs.Organization({
@@ -29,7 +30,7 @@ describe('ResultTable', function() {
     wrapper.instance().canvas = mockCanvas;
   });
 
-  it('getColumnWidths()', function() {
+  it('getColumnWidths()', function () {
     wrapper.setProps({
       data: {data: [{col1: 'foo'}], meta: [{name: 'col1'}]},
       query: {fields: ['col1'], aggregations: []},
@@ -38,7 +39,7 @@ describe('ResultTable', function() {
     expect(widths).toEqual([347, 151]);
   });
 
-  it('getRowHeight()', function() {
+  it('getRowHeight()', function () {
     const mockCanvas = {
       getContext: () => ({
         measureText: text => {
@@ -70,7 +71,7 @@ describe('ResultTable', function() {
     expect(wrapper.instance().getRowHeight(3, columnsToCheck)).toBe(91);
   });
 
-  it('getCellRenderer()', function() {
+  it('getCellRenderer()', function () {
     const cols = wrapper.instance().getColumnList();
     const cellRenderer = wrapper.instance().getCellRenderer(cols);
 
@@ -81,7 +82,7 @@ describe('ResultTable', function() {
       {value: '1', row: 1, col: 1},
     ];
 
-    expectedCellValues.forEach(function({value, row, col}) {
+    expectedCellValues.forEach(function ({value, row, col}) {
       const cell = cellRenderer({rowIndex: row, columnIndex: col});
       const markup = render(cell);
       expect(markup.text()).toBe(value);

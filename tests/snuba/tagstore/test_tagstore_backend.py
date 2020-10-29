@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
 import calendar
-from datetime import timedelta, datetime
-import json
+from datetime import timedelta
 import pytest
 import requests
 import six
@@ -17,8 +16,9 @@ from sentry.tagstore.exceptions import (
     TagKeyNotFound,
     TagValueNotFound,
 )
-from sentry.tagstore.snuba.backend import SnubaTagStorage, cache_suffix_time
+from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.utils import json
 
 
 class TagStorageTest(TestCase, SnubaTestCase):
@@ -42,64 +42,85 @@ class TagStorageTest(TestCase, SnubaTestCase):
         self.now = timezone.now().replace(microsecond=0)
         data = json.dumps(
             [
-                {
-                    "event_id": six.text_type(r) * 32,
-                    "primary_hash": hash1,
-                    "group_id": self.proj1group1.id,
-                    "project_id": self.proj1.id,
-                    "message": "message 1",
-                    "platform": "python",
-                    "datetime": (self.now - timedelta(seconds=r)).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "data": {
-                        "received": calendar.timegm(self.now.timetuple()) - r,
-                        "tags": {
-                            "foo": "bar",
-                            "baz": "quux",
-                            "environment": self.proj1env1.name,
-                            "sentry:release": 100 * r,
-                            "sentry:user": u"id:user{}".format(r),
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": six.text_type(r) * 32,
+                        "primary_hash": hash1,
+                        "group_id": self.proj1group1.id,
+                        "project_id": self.proj1.id,
+                        "message": "message 1",
+                        "platform": "python",
+                        "datetime": (self.now - timedelta(seconds=r)).strftime(
+                            "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ),
+                        "data": {
+                            "received": calendar.timegm(self.now.timetuple()) - r,
+                            "tags": {
+                                "foo": "bar",
+                                "baz": "quux",
+                                "environment": self.proj1env1.name,
+                                "sentry:release": 100 * r,
+                                "sentry:user": u"id:user{}".format(r),
+                            },
+                            "user": {
+                                "id": u"user{}".format(r),
+                                "email": u"user{}@sentry.io".format(r),
+                            },
+                            "exception": {"values": [{"stacktrace": {"frames": [{"lineno": 29}]}}]},
                         },
-                        "user": {"id": u"user{}".format(r), "email": u"user{}@sentry.io".format(r)},
-                        "exception": {"values": [{"stacktrace": {"frames": [{"lineno": 29}]}}]},
                     },
-                }
+                )
                 for r in [1, 2]
             ]
             + [
-                {
-                    "event_id": "3" * 32,
-                    "primary_hash": hash2,
-                    "group_id": self.proj1group2.id,
-                    "project_id": self.proj1.id,
-                    "message": "message 2",
-                    "platform": "python",
-                    "datetime": (self.now - timedelta(seconds=2)).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "data": {
-                        "received": calendar.timegm(self.now.timetuple()) - 2,
-                        "tags": {
-                            "browser": "chrome",
-                            "environment": self.proj1env1.name,
-                            "sentry:user": "id:user1",
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": "3" * 32,
+                        "primary_hash": hash2,
+                        "group_id": self.proj1group2.id,
+                        "project_id": self.proj1.id,
+                        "message": "message 2",
+                        "platform": "python",
+                        "datetime": (self.now - timedelta(seconds=2)).strftime(
+                            "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ),
+                        "data": {
+                            "received": calendar.timegm(self.now.timetuple()) - 2,
+                            "tags": {
+                                "browser": "chrome",
+                                "environment": self.proj1env1.name,
+                                "sentry:user": "id:user1",
+                            },
+                            "user": {"id": "user1"},
                         },
-                        "user": {"id": "user1"},
                     },
-                }
+                )
             ]
             + [
-                {
-                    "event_id": "4" * 32,
-                    "primary_hash": hash2,
-                    "group_id": self.proj1group1.id,
-                    "project_id": self.proj1.id,
-                    "message": "message 2",
-                    "platform": "python",
-                    "datetime": (self.now - timedelta(seconds=2)).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "data": {
-                        "received": calendar.timegm(self.now.timetuple()) - 2,
-                        "tags": {"foo": "bar", "environment": self.proj1env2.name},
-                        "user": {"id": "user1"},
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": "4" * 32,
+                        "primary_hash": hash2,
+                        "group_id": self.proj1group1.id,
+                        "project_id": self.proj1.id,
+                        "message": "message 2",
+                        "platform": "python",
+                        "datetime": (self.now - timedelta(seconds=2)).strftime(
+                            "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ),
+                        "data": {
+                            "received": calendar.timegm(self.now.timetuple()) - 2,
+                            "tags": {"foo": "bar", "environment": self.proj1env2.name},
+                            "user": {"id": "user1"},
+                        },
                     },
-                }
+                )
             ]
         )
 
@@ -532,7 +553,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
         assert list(
             self.ts.get_group_tag_value_iter(
-                self.proj1.id, self.proj1group1.id, self.proj1env1.id, "sentry:user"
+                self.proj1.id, self.proj1group1.id, [self.proj1env1.id], "sentry:user"
             )
         ) == [
             GroupTagValue(
@@ -558,7 +579,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
         assert list(
             self.ts.get_group_tag_value_paginator(
-                self.proj1.id, self.proj1group1.id, self.proj1env1.id, "sentry:user"
+                self.proj1.id, self.proj1group1.id, [self.proj1env1.id], "sentry:user"
             ).get_result(10)
         ) == [
             GroupTagValue(
@@ -601,77 +622,3 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
             == {}
         )
-
-    def test_cache_suffix_time(self):
-        starting_key = cache_suffix_time(self.now, 0)
-        finishing_key = cache_suffix_time(self.now + timedelta(seconds=300), 0)
-
-        assert starting_key != finishing_key
-
-    def test_cache_suffix_hour_edges(self):
-        """ a suffix should still behave correctly around the end of the hour
-
-            At a duration of 10 only one key between 0-10 should flip on the hour, the other 9
-            should flip at different times.
-        """
-        before = datetime(2019, 9, 5, 17, 59, 59)
-        on_hour = datetime(2019, 9, 5, 18, 0, 0)
-        changed_on_hour = 0
-        # Check multiple keyhashes so that this test doesn't depend on implementation
-        for key_hash in range(10):
-            before_key = cache_suffix_time(before, key_hash, duration=10)
-            on_key = cache_suffix_time(on_hour, key_hash, duration=10)
-            if before_key != on_key:
-                changed_on_hour += 1
-
-        assert changed_on_hour == 1
-
-    def test_cache_suffix_day_edges(self):
-        """ a suffix should still behave correctly around the end of a day
-
-            This test is nearly identical to test_cache_suffix_hour_edges, but is to confirm that date changes don't
-            cause a different behaviour
-        """
-        before = datetime(2019, 9, 5, 23, 59, 59)
-        next_day = datetime(2019, 9, 6, 0, 0, 0)
-        changed_on_hour = 0
-        for key_hash in range(10):
-            before_key = cache_suffix_time(before, key_hash, duration=10)
-            next_key = cache_suffix_time(next_day, key_hash, duration=10)
-            if before_key != next_key:
-                changed_on_hour += 1
-
-        assert changed_on_hour == 1
-
-    def test_cache_suffix_time_matches_duration(self):
-        """ The number of seconds between keys changing should match duration """
-        previous_key = cache_suffix_time(self.now, 0, duration=10)
-        changes = []
-        for i in range(21):
-            current_time = self.now + timedelta(seconds=i)
-            current_key = cache_suffix_time(current_time, 0, duration=10)
-            if current_key != previous_key:
-                changes.append(current_time)
-                previous_key = current_key
-
-        assert len(changes) == 2
-        assert (changes[1] - changes[0]).total_seconds() == 10
-
-    def test_cache_suffix_time_jitter(self):
-        """ Different key hashes should change keys at different times
-
-            While starting_key and other_key might begin as the same values they should change at different times
-        """
-        starting_key = cache_suffix_time(self.now, 0, duration=10)
-        for i in range(11):
-            current_key = cache_suffix_time(self.now + timedelta(seconds=i), 0, duration=10)
-            if current_key != starting_key:
-                break
-
-        other_key = cache_suffix_time(self.now, 5, duration=10)
-        for j in range(11):
-            current_key = cache_suffix_time(self.now + timedelta(seconds=j), 5, duration=10)
-            if current_key != other_key:
-                break
-
-        assert i != j

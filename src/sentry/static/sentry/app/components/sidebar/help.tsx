@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import Hook from 'app/components/hook';
-import {IconQuestion} from 'app/icons/iconQuestion';
+import {IconQuestion} from 'app/icons';
 import {Organization} from 'app/types';
 
 import SidebarMenuItem from './sidebarMenuItem';
@@ -35,7 +35,7 @@ const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) =
         {isOpen && (
           <HelpMenu {...getMenuProps({})}>
             <Hook name="sidebar:help-menu" organization={organization} />
-            <SidebarMenuItem onClick={openHelpSearchModal}>
+            <SidebarMenuItem onClick={() => openHelpSearchModal({organization})}>
               {t('Search Docs and FAQs')}
             </SidebarMenuItem>
             <SidebarMenuItem href="https://forum.sentry.io/">

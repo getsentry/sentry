@@ -59,8 +59,10 @@ class AvatarCropper extends React.Component<Props, State> {
   image = React.createRef<HTMLImageElement>();
   cropContainer = React.createRef<HTMLDivElement>();
 
+  // These values must be synced with the avatar endpoint in backend.
   MIN_DIMENSION = 256;
   MAX_DIMENSION = 1024;
+  ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
 
   onSelectFile = (ev: React.ChangeEvent<HTMLInputElement>) => {
     const file = ev.target.files && ev.target.files[0];
@@ -404,7 +406,7 @@ class AvatarCropper extends React.Component<Props, State> {
           <UploadInput
             ref={this.file}
             type="file"
-            accept="image/gif,image/jpeg,image/png"
+            accept={this.ALLOWED_MIMETYPES}
             onChange={this.onSelectFile}
           />
         </div>
@@ -441,7 +443,7 @@ const CropContainer = styled('div')`
 
 const Cropper = styled('div')`
   position: absolute;
-  border: 2px dashed ${p => p.theme.gray2};
+  border: 2px dashed ${p => p.theme.gray500};
 `;
 
 const Resizer = styled('div')<{position: Position}>`
@@ -449,7 +451,7 @@ const Resizer = styled('div')<{position: Position}>`
   width: 10px;
   height: 10px;
   position: absolute;
-  background-color: ${p => p.theme.gray2};
+  background-color: ${p => p.theme.gray500};
   cursor: ${p => `${p.position}-resize`};
   ${p => resizerPositions[p.position].map(pos => `${pos}: -5px;`)}
 `;

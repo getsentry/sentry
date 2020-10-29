@@ -8,7 +8,7 @@ const HintPanelItem = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLighter};
   border-left: 1px solid ${p => p.theme.borderLighter};
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  background: ${p => p.theme.whiteDark};
+  background: ${p => p.theme.gray100};
   font-size: ${p => p.theme.fontSizeMedium};
 
   h2 {

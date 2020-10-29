@@ -1,13 +1,14 @@
 import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import scrollToElement from 'scroll-to-element';
 import {Location} from 'history';
+import * as Sentry from '@sentry/react';
 
+import {defined} from 'app/utils';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 
-import {FieldObject, JsonFormObject} from './type';
+import {Field, FieldObject, JsonFormObject} from './type';
 import FieldFromConfig from './fieldFromConfig';
 import FormPanel from './formPanel';
 
@@ -128,13 +129,64 @@ class JsonForm extends React.Component<Props, State> {
     }
   }
 
+  shouldDisplayForm(fields: FieldObject[]) {
+    const fieldsWithVisibleProp = fields.filter(
+      field => typeof field !== 'function' && defined(field?.visible)
+    ) as Array<Omit<Field, 'visible'> & Required<Pick<Field, 'visible'>>>;
+
+    if (fields.length === fieldsWithVisibleProp.length) {
+      const {additionalFieldProps, ...props} = this.props;
+
+      const areAllFieldsHidden = fieldsWithVisibleProp.every(field => {
+        if (typeof field.visible === 'function') {
+          return !field.visible({...props, ...additionalFieldProps});
+        }
+        return !field.visible;
+      });
+
+      return !areAllFieldsHidden;
+    }
+
+    return true;
+  }
+
+  renderForm({
+    fields,
+    formPanelProps,
+    title,
+  }: {
+    fields: FieldObject[];
+    formPanelProps: Pick<
+      Props,
+      | 'access'
+      | 'disabled'
+      | 'features'
+      | 'additionalFieldProps'
+      | 'renderFooter'
+      | 'renderHeader'
+    > &
+      Pick<State, 'highlighted'>;
+    title?: React.ReactNode;
+  }) {
+    const shouldDisplayForm = this.shouldDisplayForm(fields);
+
+    if (
+      !shouldDisplayForm &&
+      !formPanelProps?.renderFooter &&
+      !formPanelProps?.renderHeader
+    ) {
+      return null;
+    }
+
+    return <FormPanel title={title} fields={fields} {...formPanelProps} />;
+  }
+
   render() {
     const {
-      forms,
-      title,
-      fields,
-
       access,
+      fields,
+      title,
+      forms,
       disabled,
       features,
       additionalFieldProps,
@@ -157,17 +209,14 @@ class JsonForm extends React.Component<Props, State> {
     return (
       <Box {...otherProps}>
         {typeof forms !== 'undefined' &&
-          forms.map(formGroup => (
-            <FormPanel
-              key={formGroup.title}
-              title={formGroup.title}
-              fields={formGroup.fields}
-              {...formPanelProps}
-            />
+          forms.map((formGroup, i) => (
+            <React.Fragment key={i}>
+              {this.renderForm({formPanelProps, ...formGroup})}
+            </React.Fragment>
           ))}
-        {typeof forms === 'undefined' && typeof fields !== 'undefined' && (
-          <FormPanel title={title} fields={fields} {...formPanelProps} />
-        )}
+        {typeof forms === 'undefined' &&
+          typeof fields !== 'undefined' &&
+          this.renderForm({fields, formPanelProps, title})}
       </Box>
     );
   }

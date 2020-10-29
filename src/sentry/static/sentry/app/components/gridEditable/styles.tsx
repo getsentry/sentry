@@ -24,41 +24,26 @@ export const Header = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 ${space(1)} ${space(1)} 0;
+  margin-bottom: ${space(1)};
 `;
 
 export const HeaderTitle = styled('h4')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 export const HeaderButtonContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
+  justify-items: end;
 
   /* Hovercard anchor element when features are disabled. */
   & > span {
     display: flex;
     flex-direction: row;
-  }
-`;
-
-export const HeaderButton = styled('div')<{disabled?: boolean}>`
-  display: flex;
-  align-items: center;
-  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
-  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-left: ${space(2)};
-
-  > svg {
-    margin-right: ${space(0.5)};
-  }
-
-  &:hover,
-  &:active {
-    color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
   }
 `;
 
@@ -132,8 +117,8 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
-  background-color: ${p => p.theme.offWhite};
-  color: ${p => p.theme.gray3};
+  background-color: ${p => p.theme.gray100};
+  color: ${p => p.theme.gray600};
 
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -173,7 +158,7 @@ export const GridHeadCellStatic = styled('th')`
   display: flex;
   align-items: center;
   padding: 0 ${space(2)};
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: 1;
@@ -290,7 +275,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   }
 
   &:hover::after {
-    background-color: ${p => p.theme.borderDark};
+    background-color: ${p => p.theme.gray400};
   }
 
   /**
@@ -299,7 +284,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.purple};
+    background-color: ${p => p.theme.purple400};
   }
 
   /**
@@ -313,7 +298,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     display: block;
     width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.purple};
+    background-color: ${p => p.theme.purple400};
     opacity: 0.4;
   }
 `;

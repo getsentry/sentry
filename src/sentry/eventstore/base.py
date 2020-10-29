@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from copy import deepcopy
 
+import sentry_sdk
+
 from sentry import nodestore
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
@@ -19,12 +21,14 @@ class Filter(object):
     conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
     having (Sequence[str, str, Any]]): List of having conditions to filter by - default None
     project_ids (Sequence[int]): List of project IDs to fetch - default None
-    group_ids (Sequence[int]): List of group IDs to fetch - defualt None
+    group_ids (Sequence[int]): List of group IDs to fetch - default None
     event_ids (Sequence[int]): List of event IDs to fetch - default None
 
     selected_columns (Sequence[str]): List of columns to select
     aggregations (Sequence[Any, str|None, str]): Aggregate functions to fetch.
     groupby (Sequence[str]): List of columns to group results by
+
+    condition_aggregates (Sequence[str]): List of aggregates used in the condition
     """
 
     def __init__(
@@ -33,6 +37,8 @@ class Filter(object):
         end=None,
         conditions=None,
         having=None,
+        user_id=None,
+        organization_id=None,
         project_ids=None,
         group_ids=None,
         event_ids=None,
@@ -41,11 +47,14 @@ class Filter(object):
         rollup=None,
         groupby=None,
         orderby=None,
+        condition_aggregates=None,
     ):
         self.start = start
         self.end = end
         self.conditions = conditions
         self.having = having
+        self.user_id = user_id
+        self.organization_id = organization_id
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
@@ -55,6 +64,7 @@ class Filter(object):
         self.aggregations = aggregations if aggregations is not None else []
         self.groupby = groupby
         self.orderby = orderby
+        self.condition_aggregates = condition_aggregates
 
     @property
     def filter_keys(self):
@@ -75,11 +85,18 @@ class Filter(object):
         return filter_keys
 
     @property
-    def date_params(self):
+    def params(self):
         """
         Get the datetime parameters as a dictionary
         """
-        return {"start": self.start, "end": self.end}
+        return {
+            "start": self.start,
+            "end": self.end,
+            # needed for the key transaction column
+            "user_id": self.user_id,
+            "organization_id": self.organization_id,
+            "project_id": self.project_ids,
+        }
 
     def update_with(self, updates):
         keys = ("selected_columns", "aggregations", "conditions", "orderby", "groupby")
@@ -227,17 +244,18 @@ class EventStorage(Service):
         It's not necessary to bind a single Event object since data will be lazily
         fetched on any attempt to access a property.
         """
-        object_node_list = [
-            (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
-        ]
+        with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
+            object_node_list = [
+                (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
+            ]
 
-        # Remove duplicates from the list of nodes to be fetched
-        node_ids = list({n.id for _, n in object_node_list})
-        if not node_ids:
-            return
+            # Remove duplicates from the list of nodes to be fetched
+            node_ids = list({n.id for _, n in object_node_list})
+            if not node_ids:
+                return
 
-        node_results = nodestore.get_multi(node_ids)
+            node_results = nodestore.get_multi(node_ids)
 
-        for item, node in object_node_list:
-            data = node_results.get(node.id) or {}
-            node.bind_data(data, ref=node.get_ref(item))
+            for item, node in object_node_list:
+                data = node_results.get(node.id) or {}
+                node.bind_data(data, ref=node.get_ref(item))

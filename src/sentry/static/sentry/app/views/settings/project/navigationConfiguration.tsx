@@ -3,8 +3,8 @@ import {NavigationSection} from 'app/views/settings/types';
 import {Organization, Project} from 'app/types';
 
 type ConfigParams = {
-  organization: Organization;
-  project: Project;
+  organization?: Organization;
+  project?: Project;
 };
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
@@ -50,20 +50,35 @@ export default function getConfiguration({
           description: t('Manage issue ownership rules for a project'),
         },
         {
-          path: `${pathPrefix}/data-privacy/`,
-          title: t('Data Privacy'),
-          description: t('Configure Datascrubbers for a project'),
-          show: () => organization.features?.includes('datascrubbers-v2'),
-          badge: () => 'new',
-        },
-        {
           path: `${pathPrefix}/data-forwarding/`,
           title: t('Data Forwarding'),
         },
+      ],
+    },
+    {
+      name: t('Processing'),
+      items: [
         {
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
         },
+        {
+          path: `${pathPrefix}/source-maps/`,
+          title: t('Source Maps'),
+        },
+        {
+          path: `${pathPrefix}/proguard/`,
+          title: t('ProGuard'),
+          show: () => !!organization?.features?.includes('android-mappings'),
+        },
+        {
+          path: `${pathPrefix}/security-and-privacy/`,
+          title: t('Security & Privacy'),
+          description: t(
+            'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
+          ),
+        },
+
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
@@ -92,7 +107,7 @@ export default function getConfiguration({
       items: [
         {
           path: `${pathPrefix}/install/`,
-          title: t('Error Tracking'),
+          title: t('Instrumentation'),
         },
         {
           path: `${pathPrefix}/keys/`,
@@ -127,7 +142,7 @@ export default function getConfiguration({
         ...plugins.map(plugin => ({
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
-          show: ({access}) => access.has('project:write'),
+          show: opts => opts?.access?.has('project:write'),
           id: 'plugin_details',
           recordAnalytics: true,
         })),

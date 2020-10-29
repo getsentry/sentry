@@ -501,16 +501,16 @@ def consume_until_constraints_met(consumer, constraints, iterations, timeout=1):
         )
 
 
-def collect_messages_recieved(count):
+def collect_messages_received(count):
     messages = []
 
-    def messages_recieved_constraint(message):
+    def messages_received_constraint(message):
         if message is not None:
             messages.append(message)
             if len(messages) == count:
                 return True
 
-    return messages_recieved_constraint
+    return messages_received_constraint
 
 
 @pytest.mark.xfail(
@@ -571,7 +571,7 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
 
         consume_until_constraints_met(
             consumer_a,
-            [lambda message: assignments_received[consumer_a], collect_messages_recieved(4)],
+            [lambda message: assignments_received[consumer_a], collect_messages_received(4)],
             10,
         )
 
@@ -604,7 +604,7 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
 
         consume_until_constraints_met(
             consumer_b,
-            [lambda message: assignments_received[consumer_b], collect_messages_recieved(2)],
+            [lambda message: assignments_received[consumer_b], collect_messages_received(2)],
             10,
         )
 

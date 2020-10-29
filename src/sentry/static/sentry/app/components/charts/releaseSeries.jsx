@@ -4,24 +4,33 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {getFormattedDate} from 'app/utils/dates';
+import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
 import MarkLine from 'app/components/charts/components/markLine';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {escape} from 'app/utils';
 import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
-function getOrganizationReleases(api, organization, projects = null) {
+async function getOrganizationReleases(api, organization, conditions = null) {
   const query = {};
-  if (projects) {
-    query.project = projects;
-  }
-  return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
+  Object.keys(conditions).forEach(key => {
+    let value = conditions[key];
+    if (value && (key === 'start' || key === 'end')) {
+      value = getUtcDateString(value);
+    }
+    if (value) {
+      query[key] = value;
+    }
+  });
+  api.clear();
+  return api.requestPromise(`/organizations/${organization.slug}/releases/stats/`, {
+    includeAllArgs: true,
     method: 'GET',
     query,
   });
@@ -33,7 +42,11 @@ class ReleaseSeries extends React.Component {
     router: PropTypes.object,
     organization: SentryTypes.Organization,
     projects: PropTypes.arrayOf(PropTypes.number),
+    environments: PropTypes.arrayOf(PropTypes.string),
 
+    period: PropTypes.string,
+    start: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
+    end: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
     utc: PropTypes.bool,
     // Array of releases, if empty, component will fetch releases itself
     releases: PropTypes.arrayOf(SentryTypes.Release),
@@ -46,6 +59,7 @@ class ReleaseSeries extends React.Component {
   };
 
   componentDidMount() {
+    this._isMounted = true;
     const {releases} = this.props;
 
     if (releases) {
@@ -58,21 +72,58 @@ class ReleaseSeries extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (!isEqual(prevProps.projects, this.props.projects)) {
+    if (
+      !isEqual(prevProps.projects, this.props.projects) ||
+      !isEqual(prevProps.environments, this.props.environments) ||
+      !isEqual(prevProps.start, this.props.start) ||
+      !isEqual(prevProps.end, this.props.end) ||
+      !isEqual(prevProps.period, this.props.period)
+    ) {
       this.fetchData();
     }
   }
 
-  fetchData() {
-    const {api, organization, projects} = this.props;
+  componentWillUnmount() {
+    this._isMounted = false;
+    this.props.api.clear();
+  }
 
-    getOrganizationReleases(api, organization, projects)
-      .then(releases => {
-        this.setReleasesWithSeries(releases);
-      })
-      .catch(() => {
+  async fetchData() {
+    const {api, organization, projects, environments, period, start, end} = this.props;
+    const conditions = {
+      start,
+      end,
+      project: projects,
+      environment: environments,
+      statsPeriod: period,
+    };
+    let hasMore = true;
+    const releases = [];
+    while (hasMore) {
+      try {
+        const [newReleases, , xhr] = await getOrganizationReleases(
+          api,
+          organization,
+          conditions
+        );
+        releases.push(...newReleases);
+        if (this._isMounted) {
+          this.setReleasesWithSeries(releases);
+        }
+
+        const pageLinks = xhr && xhr.getResponseHeader('Link');
+        if (pageLinks) {
+          const paginationObject = parseLinkHeader(pageLinks);
+          hasMore = paginationObject && paginationObject.next.results;
+          conditions.cursor = paginationObject.next.cursor;
+        } else {
+          hasMore = false;
+        }
+      } catch {
         addErrorMessage(t('Error fetching releases'));
-      });
+        hasMore = false;
+      }
+    }
   }
 
   setReleasesWithSeries(releases) {
@@ -91,12 +142,13 @@ class ReleaseSeries extends React.Component {
       markLine: MarkLine({
         lineStyle: {
           normal: {
-            color: theme.purpleLight,
+            color: theme.purple400,
             opacity: 0.3,
             type: 'solid',
           },
         },
         tooltip: tooltip || {
+          trigger: 'item',
           formatter: ({data}) => {
             // XXX using this.props here as this function does not get re-run
             // unless projects are changed. Using a closure variable would result
@@ -123,7 +175,7 @@ class ReleaseSeries extends React.Component {
           show: false,
         },
         data: releases.map(release => ({
-          xAxis: +new Date(release.dateCreated),
+          xAxis: +new Date(release.date),
           name: formatVersion(release.version, true),
           value: formatVersion(release.version, true),
           onClick: () => {

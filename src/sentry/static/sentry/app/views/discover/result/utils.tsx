@@ -111,7 +111,7 @@ export function getChartDataByDay(rawData: any[], query: Query, options: any = {
   );
 
   // Reverse to get ascending dates - we request descending to ensure latest
-  // day data is compplete in the case of limits being hit
+  // day data is complete in the case of limits being hit
   const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))].reverse();
 
   // Temporarily store series as object with series names as keys
@@ -333,11 +333,11 @@ export function getDisplayText(val: any): string {
 }
 
 const LightGray = styled('span')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
 `;
 
 const DarkGray = styled('span')`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
 `;
 
 /**

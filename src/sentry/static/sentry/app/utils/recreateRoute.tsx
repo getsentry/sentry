@@ -6,7 +6,6 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 type Options = {
   routes: PlainRoute[];
-  location: Location;
 
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
   // params should have `{orgId: slug}`
@@ -19,6 +18,7 @@ type Options = {
    * There's no ts type for negative numbers so we are arbitrarily specifying -1-9
    */
   stepBack?: -1 | -2 | -3 | -4 | -5 | -6 | -7 | -8 | -9;
+  location?: Location;
 };
 
 /**
@@ -47,9 +47,12 @@ export default function recreateRoute(to: string | PlainRoute, options: Options)
     baseRoute = baseRoute.slice(0, stepBack);
   }
 
-  const query = typeof location !== 'undefined' && location.search ? location.search : '';
+  const search = location?.search ?? '';
+  const hash = location?.hash ?? '';
 
-  const fullRoute = `${baseRoute.join('')}${typeof to !== 'string' ? '' : to}${query}`;
+  const fullRoute = `${baseRoute.join('')}${
+    typeof to !== 'string' ? '' : to
+  }${search}${hash}`;
 
   return replaceRouterParams(fullRoute, params);
 }

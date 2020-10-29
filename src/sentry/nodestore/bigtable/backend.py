@@ -7,14 +7,14 @@ from zlib import compress as zlib_compress, decompress as zlib_decompress
 
 from google.cloud import bigtable
 from google.cloud.bigtable.row_set import RowSet
-from simplejson import JSONEncoder, _default_decoder
 from django.utils import timezone
 
+from sentry.utils import json
 from sentry.nodestore.base import NodeStorage
 
 
 # Cache an instance of the encoder we want to use
-json_dumps = JSONEncoder(
+json_dumps = json.JSONEncoder(
     separators=(",", ":"),
     skipkeys=False,
     ensure_ascii=True,
@@ -25,7 +25,7 @@ json_dumps = JSONEncoder(
     default=None,
 ).encode
 
-json_loads = _default_decoder.decode
+json_loads = json._default_decoder.decode
 
 
 _connection_lock = Lock()
@@ -66,7 +66,8 @@ class BigtableNodeStorage(NodeStorage):
     """
 
     max_size = 1024 * 1024 * 10
-    column_family = b"x"
+    column_family = "x"
+
     ttl_column = b"t"
     flags_column = b"f"
     data_column = b"0"
@@ -172,7 +173,7 @@ class BigtableNodeStorage(NodeStorage):
         self._set_cache_item(id, data)
 
     def encode_row(self, id, data, ttl=None):
-        data = json_dumps(data)
+        data = json_dumps(data).encode("utf-8")
 
         row = self.connection.row(id)
         # Call to delete is just a state mutation,
@@ -279,4 +280,8 @@ class BigtableNodeStorage(NodeStorage):
         else:
             gc_rule = None
 
-        table.create(column_families={self.column_family: gc_rule})
+        from google.api_core import exceptions
+        from google.api_core import retry
+
+        retry_504 = retry.Retry(retry.if_exception_type(exceptions.DeadlineExceeded))
+        retry_504(table.create)(column_families={self.column_family: gc_rule})

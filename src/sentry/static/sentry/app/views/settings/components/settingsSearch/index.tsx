@@ -3,7 +3,7 @@ import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconSearch} from 'app/icons';
 import Search from 'app/components/search';
 
 const MIN_SEARCH_LENGTH = 1;
@@ -61,8 +61,8 @@ const SearchInputWrapper = styled('div')`
   position: relative;
 `;
 
-const SearchInputIcon = styled(props => <InlineSvg src="icon-search" {...props} />)`
-  color: ${p => p.theme.gray2};
+const SearchInputIcon = styled(IconSearch)`
+  color: ${p => p.theme.gray500};
   position: absolute;
   left: 10px;
   top: 8px;
@@ -82,10 +82,10 @@ const SearchInput = styled('input')`
 
   &:focus {
     outline: none;
-    border: 1px solid ${p => p.theme.gray1};
+    border: 1px solid ${p => p.theme.borderDark};
   }
 
   &::placeholder {
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
   }
 `;

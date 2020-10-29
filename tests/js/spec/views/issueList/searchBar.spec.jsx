@@ -2,10 +2,11 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import IssueListSearchBar from 'app/views/issueList/searchBar';
 import TagStore from 'app/stores/tagStore';
 
-describe('IssueListSearchBar', function() {
+describe('IssueListSearchBar', function () {
   let tagValuePromise;
   let supportedTags;
   let recentSearchMock;
@@ -16,10 +17,17 @@ describe('IssueListSearchBar', function() {
 
   const clickInput = searchBar => searchBar.find('input[name="query"]').simulate('click');
 
-  beforeEach(function() {
+  beforeEach(function () {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     supportedTags = TagStore.getAllTags();
+    // Add a tag that is preseeded with values.
+    supportedTags.is = {
+      key: 'is',
+      name: 'is',
+      values: ['assigned', 'unresolved', 'ignored'],
+      predefined: true,
+    };
 
     tagValuePromise = Promise.resolve([]);
 
@@ -30,20 +38,20 @@ describe('IssueListSearchBar', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('updateAutoCompleteItems()', function() {
-    beforeAll(function() {
+  describe('updateAutoCompleteItems()', function () {
+    beforeAll(function () {
       jest.useFakeTimers();
     });
 
-    afterAll(function() {
+    afterAll(function () {
       jest.useRealTimers();
     });
 
-    it('sets state with complete tag', function() {
+    it('sets state with complete tag', function () {
       const loader = (key, value) => {
         expect(key).toEqual('url');
         expect(value).toEqual('fu');
@@ -63,7 +71,7 @@ describe('IssueListSearchBar', function() {
       expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
     });
 
-    it('sets state when value has colon', function() {
+    it('sets state when value has colon', function () {
       const loader = (key, value) => {
         expect(key).toEqual('url');
         expect(value).toEqual('http://example.com');
@@ -89,7 +97,7 @@ describe('IssueListSearchBar', function() {
       jest.advanceTimersByTime(301);
     });
 
-    it('does not request values when tag is `timesSeen`', function() {
+    it('does not request values when tag is `timesSeen`', function () {
       // This should never get called
       const loader = jest.fn(x => x);
 
@@ -108,8 +116,8 @@ describe('IssueListSearchBar', function() {
     });
   });
 
-  describe('Recent Searches', function() {
-    it('saves search query as a recent search', async function() {
+  describe('Recent Searches', function () {
+    it('saves search query as a recent search', async function () {
       jest.useFakeTimers();
       const saveRecentSearch = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
@@ -152,7 +160,7 @@ describe('IssueListSearchBar', function() {
       );
     });
 
-    it('queries for recent searches', async function() {
+    it('queries for recent searches', async function () {
       const props = {
         organization,
         query: 'timesSeen:',
@@ -180,7 +188,7 @@ describe('IssueListSearchBar', function() {
       );
     });
 
-    it('cycles through keyboard navigation for selection', async function() {
+    it('cycles through keyboard navigation for selection', async function () {
       const props = {
         organization,
         query: 'timesSeen:',
@@ -197,48 +205,32 @@ describe('IssueListSearchBar', function() {
 
       wrapper.update();
       expect(
-        wrapper
-          .find('SearchItem')
-          .at(0)
-          .find('li')
-          .prop('className')
+        wrapper.find('SearchListItem').at(0).find('li').prop('className')
       ).not.toContain('active');
 
       wrapper.find('input').simulate('keyDown', {key: 'ArrowDown'});
-      expect(
-        wrapper
-          .find('SearchItem')
-          .at(0)
-          .find('li')
-          .prop('className')
-      ).toContain('active');
+      expect(wrapper.find('SearchListItem').at(0).find('li').prop('className')).toContain(
+        'active'
+      );
 
       wrapper.find('input').simulate('keyDown', {key: 'ArrowDown'});
-      expect(
-        wrapper
-          .find('SearchItem')
-          .at(1)
-          .find('li')
-          .prop('className')
-      ).toContain('active');
+      expect(wrapper.find('SearchListItem').at(1).find('li').prop('className')).toContain(
+        'active'
+      );
 
       wrapper.find('input').simulate('keyDown', {key: 'ArrowUp'});
       wrapper.find('input').simulate('keyDown', {key: 'ArrowUp'});
       expect(
-        wrapper
-          .find('SearchItem')
-          .last()
-          .find('li')
-          .prop('className')
+        wrapper.find('SearchListItem').last().find('li').prop('className')
       ).toContain('active');
     });
   });
 
-  describe('Pinned Searches', function() {
+  describe('Pinned Searches', function () {
     let pinSearch;
     let unpinSearch;
 
-    beforeEach(function() {
+    beforeEach(function () {
       MockApiClient.clearMockResponses();
       pinSearch = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
@@ -257,7 +249,7 @@ describe('IssueListSearchBar', function() {
       });
     });
 
-    it('has pin icon', function() {
+    it('has pin icon', function () {
       const props = {
         query: 'url:"fu"',
         onSearch: jest.fn(),
@@ -269,7 +261,7 @@ describe('IssueListSearchBar', function() {
       expect(searchBar.find('[data-test-id="pin-icon"]')).toHaveLength(2);
     });
 
-    it('pins a search from the searchbar', function() {
+    it('pins a search from the searchbar', function () {
       const props = {
         query: 'url:"fu"',
         onSearch: jest.fn(),
@@ -292,7 +284,7 @@ describe('IssueListSearchBar', function() {
       );
     });
 
-    it('unpins a search from the searchbar', function() {
+    it('unpins a search from the searchbar', function () {
       const props = {
         query: 'url:"fu"',
         onSearch: jest.fn(),

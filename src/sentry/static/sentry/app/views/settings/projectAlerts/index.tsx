@@ -14,13 +14,13 @@ const ProjectAlerts = ({children, organization}: Props) => (
   <Access organization={organization} access={['project:write']}>
     {({hasAccess}) => (
       <Feature organization={organization} features={['incidents']}>
-        {({hasFeature}) => (
+        {({hasFeature: hasMetricAlerts}) => (
           <React.Fragment>
             {React.isValidElement(children) &&
               React.cloneElement(children, {
                 organization,
                 canEditRule: hasAccess,
-                hasMetricAlerts: hasFeature,
+                hasMetricAlerts,
               })}
           </React.Fragment>
         )}

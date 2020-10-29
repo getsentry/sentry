@@ -2,12 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import space from 'app/styles/space';
+import ExternalLink from 'app/components/links/externalLink';
+import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {DocumentIntegration} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
-import ExternalLink from 'app/components/links/externalLink';
-import {IconOpen} from 'app/icons/iconOpen';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import {documentIntegrations} from './constants';
@@ -89,7 +89,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     );
   }
 
-  //no configuratons
+  // No configurations.
   renderConfigurations() {
     return null;
   }

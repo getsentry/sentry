@@ -4,7 +4,7 @@ import React from 'react';
 import FormField from 'app/components/forms/formField';
 
 type InputFieldProps = FormField['props'] & {
-  placeholder: string;
+  placeholder?: string;
   inputStyle?: object;
   onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
   onKeyPress?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -13,7 +13,7 @@ type InputFieldProps = FormField['props'] & {
   autoComplete?: string;
 };
 
-export default class InputField<
+class InputField<
   Props extends InputFieldProps = InputFieldProps,
   State extends FormField['state'] = FormField['state']
 > extends FormField<Props, State> {
@@ -52,3 +52,5 @@ export default class InputField<
     throw new Error('Must be implemented by child.');
   }
 }
+
+export default InputField;

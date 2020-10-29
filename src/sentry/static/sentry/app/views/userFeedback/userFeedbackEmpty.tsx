@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Organization, Project} from 'app/types';
 import {t} from 'app/locale';
@@ -10,20 +10,16 @@ import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import userFeedback from 'sentry-dreamy-components/dist/user-feedback.svg';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
+
+import UserFeedbackIllustration from './userFeedbackIllustration';
 
 type Props = {
   organization: Organization;
   projects: Project[];
   loadingProjects: boolean;
   projectIds?: string[];
-};
-
-type IllustrationProps = {
-  data: string;
-  className?: string;
 };
 
 class UserFeedbackEmpty extends React.Component<Props> {
@@ -35,10 +31,10 @@ class UserFeedbackEmpty extends React.Component<Props> {
   componentDidMount() {
     const {organization, projectIds} = this.props;
 
-    window.sentryEmbedCallback = function(embed) {
+    window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
-      embed.submit = function(_body) {
+      embed.submit = function (_body) {
         this._submitInProgress = true;
         setTimeout(() => {
           this._submitInProgress = false;
@@ -97,7 +93,7 @@ class UserFeedbackEmpty extends React.Component<Props> {
       <UserFeedbackLanding>
         <IllustrationContainer>
           <CardComponentContainer>
-            <Illustration data={userFeedback} />
+            <StyledUserFeedbackIllustration />
           </CardComponentContainer>
         </IllustrationContainer>
 
@@ -167,12 +163,10 @@ const IllustrationContainer = styled(StyledBox)`
 `;
 
 const CardComponentContainer = styled('div')`
+  display: flex;
+  align-items: center;
   width: 550px;
   height: 340px;
-
-  img {
-    vertical-align: baseline;
-  }
 
   @media (max-width: 1150px) {
     font-size: ${p => p.theme.fontSizeMedium};
@@ -186,11 +180,7 @@ const CardComponentContainer = styled('div')`
   }
 `;
 
-const Illustration = styled(({data, className}: IllustrationProps) => (
-  <object data={data} className={className}>
-    <img src={data} className={className} />
-  </object>
-))`
+const StyledUserFeedbackIllustration = styled(UserFeedbackIllustration)`
   width: 100%;
   height: 100%;
 `;

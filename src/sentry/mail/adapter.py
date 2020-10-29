@@ -13,13 +13,26 @@ from sentry import digests, options
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
-from sentry.models import Commit, ProjectOption, ProjectOwnership, Release, User
+from sentry.models import (
+    Commit,
+    Group,
+    GroupSubscription,
+    GroupSubscriptionReason,
+    Integration,
+    ProjectOption,
+    ProjectOwnership,
+    Release,
+    Team,
+    User,
+)
 from sentry.plugins.base.structs import Notification
+from sentry.plugins.base import plugins
 from sentry.tasks.digests import deliver_digest
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.email import group_id_to_email, MessageBuilder
+from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 logger = logging.getLogger(__name__)
@@ -33,25 +46,21 @@ class ActionTargetType(Enum):
 
 class MailAdapter(object):
     """
-    This class contains generic logic for notifying users via Email. Short term we'll
-    logic into this class from `MailPlugin` and have `MailPlugin` use the Adapter.
-    Once this is complete, we'll update logic in here to handle more cases for mail,
-    and eventually deprecate `MailPlugin` entirely.
+    This class contains generic logic for notifying users via Email.
     """
-
-    # TODO: Remove this once we've fully moved over to the new action. Just for use with
-    # `unsplit_key`
-    slug = "mail"
 
     mail_option_key = "mail:subject_prefix"
     alert_option_key = "mail:alert"
 
     def rule_notify(self, event, futures, target_type, target_identifier=None):
+        metrics.incr("mail_adapter.rule_notify")
         rules = []
         extra = {
             "event_id": event.event_id,
             "group_id": event.group_id,
             "is_from_mail_action_adapter": True,
+            "target_type": target_type.value,
+            "target_identifier": target_identifier,
         }
         log_event = "dispatched"
         for future in futures:
@@ -70,7 +79,7 @@ class MailAdapter(object):
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
 
-            digest_key = unsplit_key(self, event.group.project)
+            digest_key = unsplit_key(event.group.project, target_type, target_identifier)
             extra["digest_key"] = digest_key
             immediate_delivery = digests.add(
                 digest_key,
@@ -142,12 +151,11 @@ class MailAdapter(object):
         """
         return project.get_notification_recipients(self.alert_option_key)
 
-    def should_notify(self, group):
-        send_to = self.get_sendable_users(group.project)
-        if not send_to:
-            return False
-
-        return group.is_unresolved()
+    def should_notify(self, target_type, group):
+        metrics.incr("mail_adapter.should_notify")
+        # only notify if we have users to notify. We always want to notify if targeting
+        # a member directly.
+        return target_type == ActionTargetType.MEMBER or self.get_sendable_users(group.project)
 
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
@@ -166,7 +174,7 @@ class MailAdapter(object):
             else:
                 send_to = self.get_send_to_owners(event, project)
         elif target_type == ActionTargetType.MEMBER:
-            send_to = self.get_send_to_member(target_identifier)
+            send_to = self.get_send_to_member(project, target_identifier)
         elif target_type == ActionTargetType.TEAM:
             send_to = self.get_send_to_team(project, target_identifier)
         return set(send_to)
@@ -219,10 +227,37 @@ class MailAdapter(object):
         return disabled_users
 
     def get_send_to_team(self, project, target_identifier):
-        raise NotImplementedError()
+        if target_identifier is None:
+            return []
+        try:
+            team = Team.objects.get(id=int(target_identifier), projectteam__project=project)
+        except Team.DoesNotExist:
+            return set()
+        return set(
+            team.member_set.values_list("user_id", flat=True)
+        ) - self.disabled_users_from_project(project)
 
-    def get_send_to_member(self, target_identifier):
-        raise NotImplementedError()
+    def get_send_to_member(self, project, target_identifier):
+        """
+        No checking for disabled users is done. If a user explicitly specifies a member
+        as a target to send to, it should overwrite the user's personal mail settings.
+        :param target_identifier:
+        :return: Iterable[int] id of member that should be sent to.
+        """
+        if target_identifier is None:
+            return []
+        try:
+            user = (
+                User.objects.filter(
+                    id=int(target_identifier),
+                    sentry_orgmember_set__teams__projectteam__project=project,
+                )
+                .distinct()
+                .get()
+            )
+        except User.DoesNotExist:
+            return set([])
+        return set([user.id])
 
     def get_send_to_all_in_project(self, project):
         cache_key = "mail:send_to:{}".format(project.pk)
@@ -242,13 +277,21 @@ class MailAdapter(object):
         )
 
     def notify(self, notification, target_type, target_identifier=None, **kwargs):
+        metrics.incr("mail_adapter.notify")
         event = notification.event
-
         environment = event.get_tag("environment")
-
         group = event.group
         project = group.project
         org = group.organization
+        logger.info(
+            "mail.adapter.notify",
+            extra={
+                "target_type": target_type.value,
+                "target_identifier": target_identifier,
+                "group": group.id,
+                "project_id": project.id,
+            },
+        )
 
         subject = event.get_email_subject()
 
@@ -262,11 +305,7 @@ class MailAdapter(object):
 
         rules = []
         for rule in notification.rules:
-            rule_link = "/settings/%s/projects/%s/alerts/rules/%s/" % (
-                org.slug,
-                project.slug,
-                rule.id,
-            )
+            rule_link = "/organizations/%s/alerts/rules/%s/%s/" % (org.slug, project.slug, rule.id)
 
             rules.append((rule.label, rule_link))
 
@@ -290,12 +329,17 @@ class MailAdapter(object):
                         commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
                         commits[commit["id"]] = commit_data
 
+        project_plugins = plugins.for_project(project, version=1)
+        organization_integrations = Integration.objects.filter(organizations=org).first()
+        has_integrations = bool(project_plugins or organization_integrations)
+
         context = {
             "project_label": project.get_full_name(),
             "group": group,
             "event": event,
             "link": link,
             "rules": rules,
+            "has_integrations": has_integrations,
             "enhanced_privacy": enhanced_privacy,
             "commits": sorted(commits.values(), key=lambda x: x["score"], reverse=True),
             "environment": environment,
@@ -319,6 +363,7 @@ class MailAdapter(object):
             "X-Sentry-Logger-Level": group.get_level_display(),
             "X-Sentry-Project": project.slug,
             "X-Sentry-Reply-To": group_id_to_email(group.id),
+            "category": "issue_alert_email",
         }
 
         for user_id in self.get_send_to(
@@ -327,8 +372,18 @@ class MailAdapter(object):
             target_identifier=target_identifier,
             event=event,
         ):
-            self.add_unsubscribe_link(context, user_id, project, "alert_email")
+            logger.info(
+                "mail.adapter.notify.mail_user",
+                extra={
+                    "target_type": target_type,
+                    "target_identifier": target_identifier,
+                    "group": group.id,
+                    "project_id": project.id,
+                    "user_id": user_id,
+                },
+            )
 
+            self.add_unsubscribe_link(context, user_id, project, "alert_email")
             self._send_mail(
                 subject=subject,
                 template=template,
@@ -350,8 +405,18 @@ class MailAdapter(object):
         )
 
     def notify_digest(self, project, digest, target_type, target_identifier=None):
+        metrics.incr("mail_adapter.notify_digest")
         user_ids = self.get_send_to(project, target_type, target_identifier)
-        for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
+        logger.info(
+            "mail.adapter.notify_digest",
+            extra={
+                "project_id": project.id,
+                "target_type": target_type.value,
+                "target_identifier": target_identifier,
+                "user_ids": user_ids,
+            },
+        )
+        for user_id, digest in get_personalized_digests(target_type, project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
 
             # If there is only one group in this digest (regardless of how many
@@ -377,7 +442,10 @@ class MailAdapter(object):
                 "counts": counts,
             }
 
-            headers = {"X-Sentry-Project": project.slug}
+            headers = {
+                "X-Sentry-Project": project.slug,
+                "category": "digest_email",
+            }
 
             group = six.next(iter(counts))
             subject = self.get_digest_subject(group, counts, start)
@@ -394,3 +462,97 @@ class MailAdapter(object):
                 context=context,
                 send_to=[user_id],
             )
+
+    def notify_about_activity(self, activity):
+        metrics.incr("mail_adapter.notify_about_activity")
+        # TODO: We should move these into the `mail` module.
+        from sentry.mail.activity import emails
+
+        email_cls = emails.get(activity.type)
+        if not email_cls:
+            logger.debug(
+                u"No email associated with activity type `{}`".format(activity.get_type_display())
+            )
+            return
+
+        email = email_cls(activity)
+        email.send()
+
+    def handle_user_report(self, payload, project, **kwargs):
+        metrics.incr("mail_adapter.handle_user_report")
+        group = Group.objects.get(id=payload["report"]["issue"]["id"])
+
+        participants = GroupSubscription.objects.get_participants(group=group)
+
+        if not participants:
+            return
+
+        org = group.organization
+        enhanced_privacy = org.flags.enhanced_privacy
+
+        context = {
+            "project": project,
+            "project_link": absolute_uri(
+                u"/{}/{}/".format(project.organization.slug, project.slug)
+            ),
+            "issue_link": absolute_uri(
+                u"/{}/{}/issues/{}/".format(
+                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
+                )
+            ),
+            # TODO(dcramer): we dont have permalinks to feedback yet
+            "link": absolute_uri(
+                u"/{}/{}/issues/{}/feedback/".format(
+                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
+                )
+            ),
+            "group": group,
+            "report": payload["report"],
+            "enhanced_privacy": enhanced_privacy,
+        }
+
+        subject_prefix = self._build_subject_prefix(project)
+        subject = force_text(
+            u"{}{} - New Feedback from {}".format(
+                subject_prefix, group.qualified_short_id, payload["report"]["name"]
+            )
+        )
+
+        headers = {
+            "X-Sentry-Project": project.slug,
+            "category": "user_report_email",
+        }
+
+        # TODO(dcramer): this is copypasta'd from activity notifications
+        # and while it'd be nice to re-use all of that, they are currently
+        # coupled to <Activity> instances which makes this tough
+        for user, reason in participants.items():
+            context.update(
+                {
+                    "reason": GroupSubscriptionReason.descriptions.get(
+                        reason, "are subscribed to this issue"
+                    ),
+                    "unsubscribe_link": generate_signed_link(
+                        user.id,
+                        "sentry-account-email-unsubscribe-issue",
+                        kwargs={"issue_id": group.id},
+                    ),
+                }
+            )
+
+            msg = MessageBuilder(
+                subject=subject,
+                template="sentry/emails/activity/new-user-feedback.txt",
+                html_template="sentry/emails/activity/new-user-feedback.html",
+                headers=headers,
+                type="notify.user-report",
+                context=context,
+                reference=group,
+            )
+            msg.add_users([user.id], project=project)
+            msg.send_async()
+
+    def handle_signal(self, name, payload, **kwargs):
+        metrics.incr("mail_adapter.handle_signal")
+        if name == "user-reports.created":
+            self.handle_user_report(payload, **kwargs)

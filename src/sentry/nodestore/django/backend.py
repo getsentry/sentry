@@ -54,3 +54,7 @@ class DjangoNodeStorage(NodeStorage):
         BulkDeleteQuery(model=Node, dtfield="timestamp", days=days).execute()
         if self.cache:
             self.cache.clear()
+
+    def bootstrap(self):
+        # Nothing for Django backend to do during bootstrap
+        pass

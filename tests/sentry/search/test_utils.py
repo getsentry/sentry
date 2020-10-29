@@ -21,6 +21,7 @@ from sentry.search.utils import (
     get_latest_release,
     get_numeric_field_value,
     convert_user_tag_to_query,
+    tokenize_query,
     InvalidQuery,
 )
 
@@ -45,6 +46,30 @@ def test_get_numeric_field_value():
         "foo_upper": -3.5,
         "foo_upper_inclusive": True,
     }
+
+
+def test_tokenize_query_only_keyed_fields():
+    tests = [
+        ("a:a", {"a": ["a"]}),
+        ("(a:a AND b:b)", {"a": ["a"], "b": ["b"]}),
+        ("( a:a AND (b:b OR c:c))", {"a": ["a"], "b": ["b"], "c": ["c"]}),
+        ("( a:a AND (b:b OR c:c ) )", {"a": ["a"], "b": ["b"], "c": ["c"]}),
+        (
+            "(x y a:a AND (b:b OR c:c) z)",
+            {"a": ["a"], "b": ["b"], "c": ["c"], "query": ["x", "y", "z"]},
+        ),
+        (
+            "((x y)) a:a AND (b:b OR c:c) z)",
+            {"a": ["a"], "b": ["b"], "c": ["c"], "query": ["x", "y", "z"]},
+        ),
+        (
+            "((x y)) a():>a AND (!b:b OR c():<c) z)",
+            {"a()": [">a"], "!b": ["b"], "c()": ["<c"], "query": ["x", "y", "z"]},
+        ),
+    ]
+
+    for test in tests:
+        assert tokenize_query(test[0]) == test[1], test[0]
 
 
 def test_get_numeric_field_value_invalid():
@@ -520,6 +545,16 @@ class GetLatestReleaseTest(TestCase):
         environment = self.environment
         result = get_latest_release([self.project], [environment])
         assert result == new.version
+
+        assert get_latest_release([self.project.id], [environment]) == ""
+        assert (
+            get_latest_release([self.project.id], [environment], self.project.organization_id)
+            == new.version
+        )
+
+        # Verify that not passing an environment correctly gets the latest one
+        assert get_latest_release([self.project], None) == newest.version
+        assert get_latest_release([self.project], []) == newest.version
 
         with pytest.raises(Release.DoesNotExist):
             # environment with no releases

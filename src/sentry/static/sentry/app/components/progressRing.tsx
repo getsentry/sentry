@@ -1,9 +1,9 @@
 import React from 'react';
 import styled, {SerializedStyles} from '@emotion/styled';
-import posed, {PoseGroup} from 'react-pose';
+import {motion, AnimatePresence} from 'framer-motion';
 
 import theme, {Theme} from 'app/utils/theme';
-import testablePose from 'app/utils/testablePose';
+import testableTransition from 'app/utils/testableTransition';
 
 type TextProps = {
   textCss?: Props['textCss'];
@@ -57,20 +57,21 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   justify-content: center;
   height: 100%;
   width: 100%;
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding-top: 1px;
   transition: color 100ms;
   ${p => p.textCss && p.textCss(p)}
 `;
 
-const PosedText = posed(Text)(
-  testablePose({
-    init: {opacity: 0, y: -10},
-    enter: {opacity: 1, y: 0},
-    exit: {opacity: 0, y: 10},
-  })
-);
+const AnimatedText = motion.custom(Text);
+
+AnimatedText.defaultProps = {
+  initial: {opacity: 0, y: -10},
+  animate: {opacity: 1, y: 0},
+  exit: {opacity: 0, y: 10},
+  transition: testableTransition(),
+};
 
 const ProgressRing = ({
   value,
@@ -81,8 +82,8 @@ const ProgressRing = ({
   text,
   textCss,
   animateText = false,
-  progressColor = theme.green,
-  backgroundColor = theme.offWhite2,
+  progressColor = theme.green400,
+  backgroundColor = theme.gray300,
   progressEndcaps,
   ...p
 }: Props) => {
@@ -94,16 +95,16 @@ const ProgressRing = ({
   const percent = progress * 100;
   const progressOffset = (1 - progress) * circumference;
 
-  const TextComponent = animateText ? PosedText : Text;
+  const TextComponent = animateText ? AnimatedText : Text;
 
   let textNode = (
-    <TextComponent key={text?.toString()} x="50%" y="50%" {...{textCss, percent}}>
+    <TextComponent key={text?.toString()} {...{textCss, percent}}>
       {text}
     </TextComponent>
   );
 
   textNode = animateText ? (
-    <PoseGroup preEnterPose="init">{textNode}</PoseGroup>
+    <AnimatePresence initial={false}>{textNode}</AnimatePresence>
   ) : (
     textNode
   );
@@ -112,7 +113,7 @@ const ProgressRing = ({
     typeof progressColor === 'function' ? progressColor({percent, theme}) : progressColor;
 
   return (
-    <svg height={radius * 2 + barWidth} width={radius * 2 + barWidth} {...p}>
+    <RingSvg height={radius * 2 + barWidth} width={radius * 2 + barWidth} {...p}>
       <RingBackground
         r={radius}
         barWidth={barWidth}
@@ -133,9 +134,13 @@ const ProgressRing = ({
       <foreignObject height="100%" width="100%">
         {text !== undefined && textNode}
       </foreignObject>
-    </svg>
+    </RingSvg>
   );
 };
+
+const RingSvg = styled('svg')`
+  position: relative;
+`;
 
 const RingBackground = styled('circle')<{color: string; barWidth: number}>`
   fill: none;

@@ -123,9 +123,6 @@ class NotificationPlugin(Plugin):
         if not self.is_configured(project=project):
             return False
 
-        if not group.is_unresolved():
-            return False
-
         # If the plugin doesn't support digests or they are not enabled,
         # perform rate limit checks to support backwards compatibility with
         # older plugins.

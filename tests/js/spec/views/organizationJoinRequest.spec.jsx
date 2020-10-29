@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {trackAdhocEvent} from 'app/utils/analytics';
 import OrganizationJoinRequest from 'app/views/organizationJoinRequest';
@@ -10,16 +11,16 @@ jest.mock('app/utils/analytics', () => ({
 }));
 jest.mock('app/actionCreators/indicator');
 
-describe('OrganizationJoinRequest', function() {
+describe('OrganizationJoinRequest', function () {
   const org = TestStubs.Organization({slug: 'test-org'});
   const endpoint = `/organizations/${org.slug}/join-request/`;
 
-  beforeEach(function() {
+  beforeEach(function () {
     trackAdhocEvent.mockClear();
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <OrganizationJoinRequest params={{orgId: org.slug}} />,
       TestStubs.routerContext()
@@ -35,7 +36,7 @@ describe('OrganizationJoinRequest', function() {
     });
   });
 
-  it('submits', async function() {
+  it('submits', async function () {
     const postMock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -61,7 +62,7 @@ describe('OrganizationJoinRequest', function() {
     expect(wrapper.find('button[aria-label="Request to Join"]').exists()).toBe(false);
   });
 
-  it('errors', async function() {
+  it('errors', async function () {
     const postMock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -89,7 +90,7 @@ describe('OrganizationJoinRequest', function() {
     expect(wrapper.find('button[aria-label="Request to Join"]').exists()).toBe(true);
   });
 
-  it('cancels', function() {
+  it('cancels', function () {
     const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
     const wrapper = mountWithTheme(
       <OrganizationJoinRequest params={{orgId: org.slug}} />,

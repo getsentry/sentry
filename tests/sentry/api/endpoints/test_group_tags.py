@@ -120,9 +120,9 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        url = u"/api/0/issues/{}/tags/?enable_snuba=1".format(event2.group.id)
+        url = u"/api/0/issues/{}/tags/".format(event2.group.id)
         response = self.client.get(
-            "%s&environment=%s&environment=%s" % (url, env.name, env2.name), format="json"
+            "%s?environment=%s&environment=%s" % (url, env.name, env2.name), format="json"
         )
         assert response.status_code == 200
         assert set([tag["key"] for tag in response.data]) >= set(["biz", "environment", "foo"])

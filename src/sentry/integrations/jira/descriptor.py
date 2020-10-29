@@ -1,11 +1,19 @@
 from __future__ import absolute_import
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from sentry.api.base import Endpoint
 from sentry.utils.http import absolute_uri
 
 from .client import JIRA_KEY
+
+scopes = ["read", "write", "act_as_user"]
+# For Jira, only approved apps can use the access_email_addresses scope
+# This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)
+# We use the email with Jira 2-way sync in order to match the user
+if settings.JIRA_USE_EMAIL_SCOPE:
+    scopes.append("access_email_addresses")
 
 
 class JiraDescriptorEndpoint(Endpoint):
@@ -28,12 +36,12 @@ class JiraDescriptorEndpoint(Endpoint):
                 "apiVersion": 1,
                 "modules": {
                     "postInstallPage": {
-                        "url": "/extensions/jira/configure",
+                        "url": "/extensions/jira/ui-hook",
                         "name": {"value": "Configure Sentry Add-on"},
                         "key": "post-install-sentry",
                     },
                     "configurePage": {
-                        "url": "/extensions/jira/configure",
+                        "url": "/extensions/jira/ui-hook",
                         "name": {"value": "Configure Sentry Add-on"},
                         "key": "configure-sentry",
                     },
@@ -46,6 +54,6 @@ class JiraDescriptorEndpoint(Endpoint):
                     ],
                 },
                 "apiMigrations": {"gdpr": True},
-                "scopes": ["read", "write", "act_as_user"],
+                "scopes": scopes,
             }
         )

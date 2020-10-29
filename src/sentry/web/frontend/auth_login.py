@@ -13,7 +13,7 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.models import AuthProvider, Organization, OrganizationStatus, OrganizationMember
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -143,6 +143,17 @@ class AuthLoginView(BaseView):
 
             # Attempt to directly accept any pending invites
             invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self)
+
+            # In single org mode, associate the user to the only organization.
+            #
+            # XXX: Only do this if there isn't a pending invitation. The user
+            # may need to configure 2FA in which case, we don't want to make
+            # the association for them.
+            if settings.SENTRY_SINGLE_ORGANIZATION and not invite_helper:
+                organization = Organization.get_default()
+                OrganizationMember.objects.create(
+                    organization=organization, role=organization.default_role, user=user
+                )
 
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()

@@ -7,6 +7,7 @@ import ConfigStore from 'app/stores/configStore';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import {User} from 'app/types';
 import {Theme} from 'app/utils/theme';
+import Tooltip from 'app/components/tooltip';
 
 import EditorTools from './editorTools';
 
@@ -17,32 +18,42 @@ type Props = {
   onDelete: () => void;
 };
 
-function canEdit(editingUser: User) {
-  const user = ConfigStore.get('user');
-  return user && (user.isSuperuser || user.id === editingUser.id);
-}
+const NoteHeader = ({authorName, user, onEdit, onDelete}: Props) => {
+  const activeUser = ConfigStore.get('user');
+  const canEdit = activeUser && (activeUser.isSuperuser || user.id === activeUser.id);
 
-const NoteHeader = ({authorName, user, onEdit, onDelete}: Props) => (
-  <div>
-    <ActivityAuthor>{authorName}</ActivityAuthor>
-    {canEdit(user) && (
-      <EditorTools>
-        <Edit onClick={onEdit}>{t('Edit')}</Edit>
-        <LinkWithConfirmation
-          title={t('Remove')}
-          message={t('Are you sure you wish to delete this comment?')}
-          onConfirm={onDelete}
-        >
-          <Remove>{t('Remove')}</Remove>
-        </LinkWithConfirmation>
-      </EditorTools>
-    )}
-  </div>
-);
+  return (
+    <div>
+      <ActivityAuthor>{authorName}</ActivityAuthor>
+      {canEdit && (
+        <EditorTools>
+          <Tooltip
+            title={t('You can edit this comment due to your superuser status')}
+            disabled={!activeUser.isSuperuser}
+          >
+            <Edit onClick={onEdit}>{t('Edit')}</Edit>
+          </Tooltip>
+          <Tooltip
+            title={t('You can delete this comment due to your superuser status')}
+            disabled={!activeUser.isSuperuser}
+          >
+            <LinkWithConfirmation
+              title={t('Remove')}
+              message={t('Are you sure you wish to delete this comment?')}
+              onConfirm={onDelete}
+            >
+              <Remove>{t('Remove')}</Remove>
+            </LinkWithConfirmation>
+          </Tooltip>
+        </EditorTools>
+      )}
+    </div>
+  );
+};
 
 const getActionStyle = (p: {theme: Theme}) => `
   padding: 0 7px;
-  color: ${p.theme.gray1};
+  color: ${p.theme.gray400};
   font-weight: normal;
 `;
 
@@ -51,7 +62,7 @@ const Edit = styled('a')`
   margin-left: 7px;
 
   &:hover {
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
   }
 `;
 

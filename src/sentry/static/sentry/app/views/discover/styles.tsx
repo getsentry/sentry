@@ -10,7 +10,6 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
 
 const HEADER_HEIGHT = 60;
@@ -37,17 +36,6 @@ export const DiscoverGlobalSelectionHeader = styled(GlobalSelectionHeader)`
   position: absolute;
   top: 0;
   left: 0;
-`;
-
-export const PageTitle = styled('h2')`
-  display: flex;
-  font-size: 20px;
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
-  align-items: center;
-  padding-left: ${space(4)};
-  height: ${HEADER_HEIGHT}px;
 `;
 
 export const ResultViewActions = styled('div')`
@@ -105,32 +93,23 @@ export const DocsSeparator = styled('div')`
 `;
 
 export const DocsLink = styled(ExternalLink)`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   &:hover {
-    color: ${p => p.theme.blue};
+    color: ${p => p.theme.blue400};
   }
-`;
-
-export const StyledInlineSvg = styled(InlineSvg)`
-  justify-content: flex-end;
 `;
 
 export const DiscoverDocs = styled('span')`
   align-items: center;
-  display: flex;
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-template-columns: min-content auto min-content;
   margin: 25px ${space(3)};
-  justify-content: space-between;
 `;
 
 export const DocsLabel = styled('span')`
   font-size: 15px;
   flex-grow: 1;
-`;
-
-export const DocsIcon = styled(InlineSvg)`
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
 `;
 
 export const Body = styled('div')`
@@ -148,7 +127,7 @@ export const BodyContent = styled('div')`
   padding: ${space(3)} ${space(4)} ${space(4)} ${space(4)};
   overflow-y: scroll;
   position: relative;
-  background: ${p => p.theme.whiteDark};
+  background: ${p => p.theme.gray100};
 `;
 
 export const LoadingContainer = styled('div')`
@@ -164,7 +143,7 @@ export const SidebarTabs = styled((props: any) => <NavTabs {...props} underlined
 `;
 
 export const PlaceholderText = styled('div')`
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
   font-size: 15px;
 `;
 
@@ -183,13 +162,14 @@ export const SelectListItem = styled('div')`
   display: grid;
   grid-template-columns: auto ${space(2)};
   grid-gap: ${space(1)};
+  align-items: center;
   margin-top: ${space(0.5)};
 `;
 
 export const SidebarLabel = styled('label')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 export const QueryFieldsContainer = styled('div')`
@@ -203,7 +183,7 @@ export const AddText = styled('span')`
   margin-left: 4px;
   font-size: 13px;
   line-height: 16px;
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
 `;
 
 const spin = keyframes`
@@ -223,12 +203,12 @@ export const ButtonSpinner = styled('div')`
   border-top: 2px solid ${p => p.theme.borderLight};
   border-right: 2px solid ${p => p.theme.borderLight};
   border-bottom: 2px solid ${p => p.theme.borderLight};
-  border-left: 2px solid ${p => p.theme.purple};
+  border-left: 2px solid ${p => p.theme.purple400};
   margin-left: 4px;
 `;
 
 export const ResultSummary = styled('div')`
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -255,12 +235,12 @@ export const ChartWrapper = styled(Panel)`
 export const ChartNote = styled('div')`
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   margin-bottom: ${space(3)};
 `;
 
 export const SavedQueryAction = styled(Link)`
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
   margin-left: ${space(2)};
   display: flex;
 `;
@@ -276,12 +256,10 @@ export const SavedQueryList = styled(Panel)`
   overflow: hidden;
 `;
 
-export const SavedQueryListItem = styled(({isActive, ...props}: any) => (
-  <PanelItem {...props} />
-))`
+export const SavedQueryListItem = styled(PanelItem)<{isActive?: boolean | null}>`
   flex-direction: column;
   padding: 0;
-  background-color: ${(p: any) => (p.isActive ? p.theme.whiteDark : p.theme.white)};
+  background-color: ${(p: any) => (p.isActive ? p.theme.gray100 : p.theme.white)};
 `;
 
 export const SavedQueryLink = styled(Link)`
@@ -291,7 +269,7 @@ export const SavedQueryLink = styled(Link)`
 
 export const SavedQueryUpdated = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
 `;
 
 export const QueryPanelContainer = styled('div')`
@@ -315,7 +293,8 @@ export const QueryPanelTitle = styled('div')`
 `;
 
 export const QueryPanelCloseLink = styled(Link)`
-  color: ${p => p.theme.gray6};
+  display: flex;
+  align-content: center;
 `;
 
 export const QueryActions = styled('div')`

@@ -5,7 +5,13 @@ import {t, tct} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import getDynamicText from 'app/utils/getDynamicText';
 
-import {Incident, IncidentActivityType, IncidentStatus, ActivityType} from '../../types';
+import {
+  Incident,
+  IncidentActivityType,
+  IncidentStatus,
+  ActivityType,
+  IncidentStatusMethod,
+} from '../../types';
 
 type Props = {
   activity: ActivityType;
@@ -31,6 +37,7 @@ class StatusItem extends React.Component<Props> {
     const {activity, authorName, incident, showTime} = this.props;
 
     const isDetected = activity.type === IncidentActivityType.DETECTED;
+    const isStarted = activity.type === IncidentActivityType.STARTED;
     const isClosed =
       activity.type === IncidentActivityType.STATUS_CHANGE &&
       activity.value === `${IncidentStatus.CLOSED}`;
@@ -38,7 +45,7 @@ class StatusItem extends React.Component<Props> {
       activity.type === IncidentActivityType.STATUS_CHANGE && !isClosed;
 
     // Unknown activity, don't render anything
-    if (!isDetected && !isClosed && !isTriggerChange) {
+    if (!isStarted && !isDetected && !isClosed && !isTriggerChange) {
       return null;
     }
 
@@ -66,26 +73,26 @@ class StatusItem extends React.Component<Props> {
                 currentTrigger: <StatusValue>{currentTrigger}</StatusValue>,
               })}
             {isClosed &&
-              !activity.user &&
+              incident?.statusMethod === IncidentStatusMethod.RULE_UPDATED &&
               t(
                 'This alert has been auto-resolved because the rule that triggered it has been modified or deleted.'
               )}
             {isClosed &&
-              activity.user &&
+              incident?.statusMethod !== IncidentStatusMethod.RULE_UPDATED &&
               tct('[user] resolved the alert', {
                 user: <StatusValue>{authorName}</StatusValue>,
               })}
             {isDetected &&
               (incident?.alertRule
-                ? tct('[user] was triggered', {
-                    user: <StatusValue>{incident.alertRule.name}</StatusValue>,
-                  })
+                ? t('Alert was created')
                 : tct('[user] created an alert', {
                     user: <StatusValue>{authorName}</StatusValue>,
                   }))}
+            {isStarted && t('Trigger conditions were met for the interval')}
           </div>
         }
         date={getDynamicText({value: activity.dateCreated, fixed: new Date(0)})}
+        interval={isStarted ? incident?.alertRule.timeWindow : undefined}
       />
     );
   }

@@ -1,27 +1,30 @@
+import {browserHistory} from 'react-router';
 import React, {MouseEvent} from 'react';
-import {Location, Query} from 'history';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
 import moment from 'moment';
-import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
+import {Location, Query} from 'history';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, SavedQuery} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
+import {IconEllipsis} from 'app/icons';
+import {Organization, SavedQuery} from 'app/types';
+import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
+import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DropdownMenu from 'app/components/dropdownMenu';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import EventView from 'app/utils/discover/eventView';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
-import {IconEllipsis} from 'app/icons/iconEllipsis';
-import withApi from 'app/utils/withApi';
+import TimeSince from 'app/components/timeSince';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import EventView from 'app/utils/discover/eventView';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
-import QueryCard from './querycard';
-import MiniGraph from './miniGraph';
 import {getPrebuiltQueries} from './utils';
 import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
+import MiniGraph from './miniGraph';
+import QueryCard from './querycard';
 
 type Props = {
   api: Client;
@@ -34,6 +37,14 @@ type Props = {
 };
 
 class QueryList extends React.Component<Props> {
+  componentDidMount() {
+    /**
+     * We need to reset global selection here because the saved queries can define their own projects
+     * in the query. This can lead to mismatched queries for the project
+     */
+    resetGlobalSelection();
+  }
+
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -81,6 +92,14 @@ class QueryList extends React.Component<Props> {
       cards = cards.concat(this.renderPrebuiltQueries());
     }
     cards = cards.concat(this.renderSavedQueries());
+
+    if (cards.filter(x => x).length === 0) {
+      return (
+        <StyledEmptyStateWarning>
+          <p>{t('No saved queries match that filter')}</p>
+        </StyledEmptyStateWarning>
+      );
+    }
 
     return cards;
   }
@@ -160,6 +179,7 @@ class QueryList extends React.Component<Props> {
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
       const to = eventView.getResultsViewUrlTarget(organization.slug);
+      const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
 
       return (
         <QueryCard
@@ -169,12 +189,12 @@ class QueryList extends React.Component<Props> {
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           createdBy={eventView.createdBy}
+          dateStatus={dateStatus}
           onEventClick={() => {
             trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
+              eventKey: 'discover_v2.saved_query_click',
+              eventName: 'Discoverv2: Click a saved query',
               organization_id: parseInt(this.props.organization.id, 10),
-              query_name: eventView.name,
             });
           }}
           renderGraph={() => (
@@ -210,12 +230,12 @@ class QueryList extends React.Component<Props> {
     return (
       <React.Fragment>
         <QueryGrid>{this.renderQueries()}</QueryGrid>
-        <Pagination
+        <PaginationRow
           pageLinks={pageLinks}
           onCursor={(cursor: string, path: string, query: Query, direction: number) => {
             const offset = Number(cursor.split(':')[1]);
 
-            const newQuery = {...query, cursor};
+            const newQuery: Query & {cursor?: string} = {...query, cursor};
             const isPrevious = direction === -1;
 
             if (offset <= 0 && isPrevious) {
@@ -232,6 +252,10 @@ class QueryList extends React.Component<Props> {
     );
   }
 }
+
+const PaginationRow = styled(Pagination)`
+  margin-bottom: 20px;
+`;
 
 const QueryGrid = styled('div')`
   display: grid;
@@ -284,10 +308,14 @@ const ContextMenu = ({children}) => (
 
 const MoreOptions = styled('span')`
   display: flex;
+  color: ${p => p.theme.gray700};
 `;
 
 const DropdownTarget = styled('div')`
   display: flex;
+`;
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  grid-column: 1 / 4;
 `;
 
 export default withApi(QueryList);

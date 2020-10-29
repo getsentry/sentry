@@ -125,7 +125,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["version"]["pre"] == "a"
         assert result["versionInfo"]["version"]["buildCode"] == "20200101100"
         assert result["versionInfo"]["buildHash"] is None
-        assert result["versionInfo"]["description"] == "1.0.0-a (20200101100)"
+        assert result["versionInfo"]["description"] == "1.0-a (20200101100)"
+        assert result["versionInfo"]["version"]["components"] == 2
 
     def test_no_tag_data(self):
         user = self.create_user()
@@ -158,7 +159,9 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert not result["lastEvent"]
 
     def test_get_user_from_email(self):
-        user = User.objects.create(email="stebe@sentry.io")
+        user = User.objects.create(
+            email="Stebe@sentry.io"
+        )  # upper case so we can test case sensitivity
         UserEmail.get_primary_email(user=user)
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)

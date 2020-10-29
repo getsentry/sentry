@@ -31,6 +31,35 @@ class InMemoryCache(object):
         del self.data[key]
 
 
+def test_meta_basic():
+    att = CachedAttachment(key="c:foo", id=123, name="lol.txt", content_type="text/plain", chunks=3)
+
+    # Regression test to verify that we do not add additional attributes. Note
+    # that ``rate_limited`` is missing from this dict.
+    assert att.meta() == {
+        "chunks": 3,
+        "content_type": "text/plain",
+        "id": 123,
+        "name": "lol.txt",
+        "type": "event.attachment",
+    }
+
+
+def test_meta_rate_limited():
+    att = CachedAttachment(
+        key="c:foo", id=123, name="lol.txt", content_type="text/plain", chunks=3, rate_limited=True
+    )
+
+    assert att.meta() == {
+        "chunks": 3,
+        "content_type": "text/plain",
+        "id": 123,
+        "name": "lol.txt",
+        "rate_limited": True,
+        "type": "event.attachment",
+    }
+
+
 def test_basic_chunked():
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
@@ -46,6 +75,7 @@ def test_basic_chunked():
     assert att2.key == att.key == "c:foo"
     assert att2.id == att.id == 123
     assert att2.data == att.data == b"Hello World! Bye."
+    assert att2.rate_limited is None
 
     cache.delete("c:foo")
     assert not list(cache.get("c:foo"))
@@ -62,6 +92,23 @@ def test_basic_unchunked():
     assert att2.key == att.key == "c:foo"
     assert att2.id == att.id == 0
     assert att2.data == att.data == b"Hello World! Bye."
+    assert att2.rate_limited is None
 
     cache.delete("c:foo")
     assert not list(cache.get("c:foo"))
+
+
+def test_basic_rate_limited():
+    data = InMemoryCache()
+    cache = BaseAttachmentCache(data)
+
+    att = CachedAttachment(
+        name="lol.txt", content_type="text/plain", data=b"Hello World! Bye.", rate_limited=True
+    )
+    cache.set("c:foo", [att])
+
+    (att2,) = cache.get("c:foo")
+    assert att2.key == att.key == "c:foo"
+    assert att2.id == att.id == 0
+    assert att2.data == att.data == b"Hello World! Bye."
+    assert att2.rate_limited is True

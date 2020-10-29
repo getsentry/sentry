@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
+import {withProfiler} from '@sentry/react';
 
 import {Organization, UserReport} from 'app/types';
 import {PageContent} from 'app/styles/organization';
@@ -16,7 +17,6 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
-import withProfiler from 'app/utils/withProfiler';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -29,7 +29,6 @@ type State = AsyncView['state'] & {
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
-  finishProfile: () => void;
 };
 
 class OrganizationUserFeedback extends AsyncView<Props, State> {
@@ -114,8 +113,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const allIssuesQuery = {...query, status: ''};
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader organization={organization} />
+      <GlobalSelectionHeader>
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">
@@ -148,7 +146,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
             </div>
           </LightWeightNoProjectMessage>
         </PageContent>
-      </React.Fragment>
+      </GlobalSelectionHeader>
     );
   }
 }

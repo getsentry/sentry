@@ -3,11 +3,13 @@ from __future__ import absolute_import
 import logging
 
 from django.conf import settings
-from django.core.cache import cache
+import sentry_sdk
+from sentry.utils.sdk import set_current_project
 
-from sentry.models.projectkey import ProjectKey
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.relay import projectconfig_debounce_cache
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +29,20 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
         invalidated.
     """
 
-    from sentry.models import Project
+    from sentry.models import Project, ProjectKey, ProjectKeyStatus
     from sentry.relay import projectconfig_cache
     from sentry.relay.config import get_project_config
+
+    if project_id:
+        set_current_project(project_id)
+
+    if organization_id:
+        # Cannot use bind_organization_context here because we do not have a
+        # model and don't want to fetch one
+        sentry_sdk.set_tag("organization_id", organization_id)
+
+    sentry_sdk.set_tag("update_reason", update_reason)
+    sentry_sdk.set_tag("generate", generate)
 
     # Delete key before generating configs such that we never have an outdated
     # but valid cache.
@@ -37,8 +50,7 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
     # If this was running at the end of the task, it would be more effective
     # against bursts of updates, but introduces a different race where an
     # outdated cache may be used.
-    debounce_key = _get_schedule_debounce_key(project_id, organization_id)
-    cache.delete(debounce_key)
+    projectconfig_debounce_cache.mark_task_done(project_id, organization_id)
 
     if project_id:
         projects = [Project.objects.get_from_cache(id=project_id)]
@@ -47,35 +59,42 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
         # want to add another method to src/sentry/db/models/manager.py
         projects = Project.objects.filter(organization_id=organization_id)
 
-    if generate:
-        project_keys = {}
-        for key in ProjectKey.objects.filter(project_id__in=[project.id for project in projects]):
-            project_keys.setdefault(key.project_id, []).append(key)
+    project_keys = {}
+    for key in ProjectKey.objects.filter(project_id__in=[project.id for project in projects]):
+        project_keys.setdefault(key.project_id, []).append(key)
 
-        project_configs = {}
+    if generate:
+        config_cache = {}
         for project in projects:
             project_config = get_project_config(
                 project, project_keys=project_keys.get(project.id, []), full_config=True
             )
-            project_configs[project.id] = project_config.to_dict()
+            config_cache[project.id] = project_config.to_dict()
 
-        projectconfig_cache.set_many(project_configs)
+            for key in project_keys.get(project.id) or ():
+                # XXX(markus): This is currently the cleanest way to get only
+                # state for a single projectkey (considering quotas and
+                # everything)
+                if key.status != ProjectKeyStatus.ACTIVE:
+                    continue
+
+                project_config = get_project_config(project, project_keys=[key], full_config=True)
+                config_cache[key.public_key] = project_config.to_dict()
+
+        projectconfig_cache.set_many(config_cache)
     else:
-        projectconfig_cache.delete_many([project.id for project in projects])
+        cache_keys_to_delete = []
+        for project in projects:
+            cache_keys_to_delete.append(project.id)
+            for key in project_keys.get(project.id) or ():
+                cache_keys_to_delete.append(key.public_key)
+
+        projectconfig_cache.delete_many(cache_keys_to_delete)
 
     metrics.incr(
         "relay.projectconfig_cache.done",
         tags={"generate": generate, "update_reason": update_reason},
     )
-
-
-def _get_schedule_debounce_key(project_id, organization_id):
-    if organization_id:
-        return "relayconfig-debounce:o:%s" % (organization_id,)
-    elif project_id:
-        return "relayconfig-debounce:p:%s" % (project_id,)
-    else:
-        raise ValueError()
 
 
 def schedule_update_config_cache(
@@ -102,16 +121,13 @@ def schedule_update_config_cache(
     if bool(organization_id) == bool(project_id):
         raise TypeError("One of organization_id and project_id has to be provided, not both.")
 
-    debounce_key = _get_schedule_debounce_key(project_id, organization_id)
-    if cache.get(debounce_key, None):
+    if projectconfig_debounce_cache.check_is_debounced(project_id, organization_id):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
             tags={"reason": "debounce", "update_reason": update_reason},
         )
         # If this task is already in the queue, do not schedule another task.
         return
-
-    cache.set(debounce_key, True, 3600)
 
     # XXX(markus): We could schedule this task a couple seconds into the
     # future, this would make debouncing more effective. If we want to do this

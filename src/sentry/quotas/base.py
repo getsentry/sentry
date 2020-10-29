@@ -47,7 +47,7 @@ class QuotaConfig(object):
                         quota will only apply to the specified scope instance
                         (e.g. a project key). Requires ``scope`` to be set
                         explicitly.
-    :param limit:       Maxmimum number of matching events allowed. Can be ``0``
+    :param limit:       Maximum number of matching events allowed. Can be ``0``
                         to reject all events, ``None`` for an unlimited counted
                         quota, or a positive number for enforcement. Requires
                         ``window`` if the limit is not ``0``.
@@ -73,9 +73,11 @@ class QuotaConfig(object):
     ):
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
+            assert type(limit) == int, "limit must be an integer"
 
         if limit == 0:
-            assert window is None, "zero-sized quotas cannot have a window"
+            assert id is None, "reject-all quotas cannot be tracked"
+            assert window is None, "tracked quotas must specify a window"
         else:
             assert id, "measured quotas require an identifier"
             assert window and window > 0, "window cannot be zero"
@@ -100,7 +102,7 @@ class QuotaConfig(object):
         Whether the quotas service should track this quota.
         """
 
-        return self.id is not None
+        return self.id is not None and self.window is not None
 
     def to_json_legacy(self):
         data = {
@@ -262,7 +264,7 @@ class Quota(Service):
         """
         return NotRateLimited()
 
-    def refund(self, project, key=None, timestamp=None):
+    def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
         """
         Signals event rejection after ``quotas.is_rate_limited`` has been called
         successfully, and refunds the previously consumed quota.
@@ -274,6 +276,13 @@ class Quota(Service):
         :param timestamp: The timestamp at which data was ingested. This is used
                           to determine the correct quota window to refund the
                           previously consumed data to.
+        :param category:  The data category of the item to refund. This is used
+                          to determine the quotas that should be refunded.
+                          Defaults to ``DataCategory.ERROR``.
+        :param quantity:  The quantity to refund. Defaults to ``1``, which is
+                          the only value that should be used for events. For
+                          attachments, this should be set to the size of the
+                          attachment in bytes.
         """
         pass
 

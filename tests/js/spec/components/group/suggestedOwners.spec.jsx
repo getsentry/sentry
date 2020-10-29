@@ -1,16 +1,17 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import SuggestedOwners from 'app/components/group/suggestedOwners';
+
+import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import MemberListStore from 'app/stores/memberListStore';
+import CommitterStore from 'app/stores/committerStore';
 import {Client} from 'app/api';
 
-describe('SuggestedOwners', function() {
-  const event = TestStubs.Event();
+describe('SuggestedOwners', function () {
   const user = TestStubs.User();
-
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
+  const event = TestStubs.Event();
   const group = TestStubs.Group({firstRelease: {}});
 
   const routerContext = TestStubs.routerContext([
@@ -21,15 +22,16 @@ describe('SuggestedOwners', function() {
 
   const endpoint = `/projects/${organization.slug}/${project.slug}/events/${event.id}`;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MemberListStore.loadInitialData([user, TestStubs.CommitAuthor()]);
   });
 
-  afterEach(function() {
+  afterEach(function () {
     Client.clearMockResponses();
+    CommitterStore.reset();
   });
 
-  it('Renders suggested owners', function() {
+  it('Renders suggested owners', async function () {
     Client.addMockResponse({
       url: `${endpoint}/committers/`,
       body: {
@@ -55,6 +57,11 @@ describe('SuggestedOwners', function() {
       routerContext
     );
 
+    await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
+    wrapper.update();
+
     expect(wrapper.find('ActorAvatar')).toHaveLength(2);
 
     // One includes committers, the other includes ownership rules
@@ -72,7 +79,7 @@ describe('SuggestedOwners', function() {
     ).toBe(true);
   });
 
-  it('does not call committers endpoint if `group.firstRelease` does not exist', function() {
+  it('does not call committers endpoint if `group.firstRelease` does not exist', async function () {
     const committers = Client.addMockResponse({
       url: `${endpoint}/committers/`,
       body: {
@@ -98,11 +105,16 @@ describe('SuggestedOwners', function() {
       routerContext
     );
 
+    await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
+    wrapper.update();
+
     expect(committers).not.toHaveBeenCalled();
     expect(wrapper.find('ActorAvatar')).toHaveLength(1);
   });
 
-  it('Merges owner matching rules and having suspect commits', function() {
+  it('Merges owner matching rules and having suspect commits', async function () {
     const author = TestStubs.CommitAuthor();
 
     Client.addMockResponse({
@@ -124,6 +136,11 @@ describe('SuggestedOwners', function() {
       <SuggestedOwners project={project} group={group} event={event} />,
       routerContext
     );
+
+    await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
+    wrapper.update();
 
     expect(wrapper.find('ActorAvatar')).toHaveLength(1);
 

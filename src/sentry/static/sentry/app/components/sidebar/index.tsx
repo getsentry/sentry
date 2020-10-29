@@ -5,7 +5,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 import styled from '@emotion/styled';
 
 import {
@@ -25,15 +25,13 @@ import {
   IconTelescope,
 } from 'app/icons';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
-import localStorage from 'app/utils/localStorage';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
@@ -194,10 +192,8 @@ class Sidebar extends React.Component<Props, State> {
       'releases',
       'user-feedback',
       'discover',
-      'discover/queries',
-      'discover/results',
+      'discover/results', // Team plans do not have query landing page
       'performance',
-      'releasesv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
@@ -269,19 +265,10 @@ class Sidebar extends React.Component<Props, State> {
     if (!organization || !organization.features) {
       return sidebarState;
     }
-    const optState = localStorage.getItem('discover:version');
     const features = organization.features;
 
     if (features.includes('discover-basic')) {
-      // If there is no opt-out state show discover2
-      if (!optState || optState === '2') {
-        sidebarState.discover2 = true;
-      }
-      // User wants discover1
-      if (optState === '1') {
-        sidebarState.discover1 = true;
-        sidebarState.events = true;
-      }
+      sidebarState.discover2 = true;
       return sidebarState;
     }
 
@@ -358,7 +345,6 @@ class Sidebar extends React.Component<Props, State> {
                     to={`/organizations/${organization.slug}/issues/`}
                     id="issues"
                   />
-
                   {discoverState.events && (
                     <Feature
                       features={['events']}
@@ -380,32 +366,32 @@ class Sidebar extends React.Component<Props, State> {
                       />
                     </Feature>
                   )}
-
                   {discoverState.discover2 && (
                     <Feature
                       hookName="feature-disabled:discover2-sidebar-item"
                       features={['discover-basic']}
                       organization={organization}
                     >
-                      <GuideAnchor position="right" target="discover_sidebar">
-                        <SidebarItem
-                          {...sidebarItemProps}
-                          onClick={(_id, evt) =>
-                            this.navigateWithGlobalSelection(
-                              getDiscoverLandingUrl(organization),
-                              evt
-                            )
-                          }
-                          icon={<IconTelescope size="md" />}
-                          label={t('Discover')}
-                          to={getDiscoverLandingUrl(organization)}
-                          id="discover-v2"
-                          isNew
-                        />
-                      </GuideAnchor>
+                      <SidebarItem
+                        {...sidebarItemProps}
+                        onClick={(_id, evt) =>
+                          this.navigateWithGlobalSelection(
+                            getDiscoverLandingUrl(organization),
+                            evt
+                          )
+                        }
+                        icon={<IconTelescope size="md" />}
+                        label={t('Discover')}
+                        to={getDiscoverLandingUrl(organization)}
+                        id="discover-v2"
+                      />
                     </Feature>
                   )}
-                  <Feature features={['performance-view']} organization={organization}>
+                  <Feature
+                    hookName="feature-disabled:performance-sidebar-item"
+                    features={['performance-view']}
+                    organization={organization}
+                  >
                     <SidebarItem
                       {...sidebarItemProps}
                       onClick={(_id, evt) =>
@@ -420,22 +406,26 @@ class Sidebar extends React.Component<Props, State> {
                       id="performance"
                     />
                   </Feature>
-                  <Feature features={['incidents']} organization={organization}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/alerts/`,
-                          evt
-                        )
-                      }
-                      icon={<IconSiren size="md" />}
-                      label={t('Alerts')}
-                      to={`/organizations/${organization.slug}/alerts/`}
-                      id="alerts"
-                    />
+                  <Feature features={['incidents']}>
+                    {({hasFeature}) => {
+                      const alertsPath = hasFeature
+                        ? `/organizations/${organization.slug}/alerts/`
+                        : `/organizations/${organization.slug}/alerts/rules/`;
+                      return (
+                        <SidebarItem
+                          {...sidebarItemProps}
+                          onClick={(_id, evt) =>
+                            this.navigateWithGlobalSelection(alertsPath, evt)
+                          }
+                          icon={<IconSiren size="md" />}
+                          label={t('Alerts')}
+                          to={alertsPath}
+                          id="alerts"
+                          isNew
+                        />
+                      );
+                    }}
                   </Feature>
-
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
@@ -465,7 +455,11 @@ class Sidebar extends React.Component<Props, State> {
                 </SidebarSection>
 
                 <SidebarSection>
-                  <Feature features={['discover']} organization={organization}>
+                  <Feature
+                    features={['discover', 'discover-query']}
+                    organization={organization}
+                    requireAll={false}
+                  >
                     <SidebarItem
                       {...sidebarItemProps}
                       index
@@ -506,22 +500,6 @@ class Sidebar extends React.Component<Props, State> {
                       label={t('Monitors')}
                       to={`/organizations/${organization.slug}/monitors/`}
                       id="monitors"
-                    />
-                  </Feature>
-                  <Feature features={['releases-v2']} organization={organization}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/releases-v2/`,
-                          evt
-                        )
-                      }
-                      icon={<IconReleases size="md" />}
-                      label={t('Releases v2')}
-                      to={`/organizations/${organization.slug}/releases-v2/`}
-                      id="releasesv2"
-                      isBeta
                     />
                   </Feature>
                 </SidebarSection>
@@ -661,7 +639,7 @@ const responsiveFlex = css`
 
 const StyledSidebar = styled('div')<{collapsed: boolean}>`
   background: ${p => p.theme.sidebar.background};
-  background: linear-gradient(${p => p.theme.gray4}, ${p => p.theme.gray5});
+  background: linear-gradient(294.17deg, #2f1937 35.57%, #452650 92.42%, #452650 92.42%);
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
@@ -689,6 +667,7 @@ const StyledSidebar = styled('div')<{collapsed: boolean}>`
 
 const SidebarSectionGroup = styled('div')`
   ${responsiveFlex};
+  flex-shrink: 0; /* prevents shrinking on Safari */
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
@@ -710,8 +689,8 @@ const PrimaryItems = styled('div')`
   display: flex;
   flex-direction: column;
   -ms-overflow-style: -ms-autohiding-scrollbar;
-  @media (max-height: 600px) and (min-width: ${p => p.theme.breakpoints[1]}) {
-    border-bottom: 1px solid ${p => p.theme.gray3};
+  @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints[1]}) {
+    border-bottom: 1px solid ${p => p.theme.gray600};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
     &::-webkit-scrollbar {
@@ -719,7 +698,7 @@ const PrimaryItems = styled('div')`
       width: 8px;
     }
     &::-webkit-scrollbar-thumb {
-      background: ${p => p.theme.gray3};
+      background: ${p => p.theme.gray600};
       border-radius: 8px;
     }
   }
@@ -728,7 +707,7 @@ const PrimaryItems = styled('div')`
     flex-direction: row;
     height: 100%;
     align-items: center;
-    border-right: 1px solid ${p => p.theme.gray3};
+    border-right: 1px solid ${p => p.theme.gray600};
     padding-right: ${space(1)};
     margin-right: ${space(0.5)};
     box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
@@ -766,7 +745,7 @@ const StyledIconChevron = styled(({collapsed, ...props}) => (
   <IconChevron
     direction="left"
     size="md"
-    circle
+    isCircled
     css={[ExpandedIcon, collapsed && CollapsedIcon]}
     {...props}
   />

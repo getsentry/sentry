@@ -1,28 +1,24 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Config, Organization, Project} from 'app/types';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {t, tct} from 'app/locale';
-import ActionsPanel from 'app/views/settings/incidentRules/triggers/actionsPanel';
+import CircleIndicator from 'app/components/circleIndicator';
 import Field from 'app/views/settings/components/forms/field';
 import ThresholdControl from 'app/views/settings/incidentRules/triggers/thresholdControl';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+import space from 'app/styles/space';
 
 import {
-  AlertRuleThreshold,
+  AlertRuleThresholdType,
   Trigger,
-  Action,
-  MetricActionTemplate,
+  UnsavedIncidentRule,
   ThresholdControlValue,
+  UnsavedTrigger,
 } from '../types';
-import hasThresholdValue from '../utils/hasThresholdValue';
-
-type AlertRuleThresholdKey = {
-  [AlertRuleThreshold.INCIDENT]: 'alertThreshold';
-  [AlertRuleThreshold.RESOLUTION]: 'resolveThreshold';
-};
 
 type Props = {
   api: Client;
@@ -35,100 +31,89 @@ type Props = {
    */
   error?: {[fieldName: string]: string};
   projects: Project[];
+  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
+  thresholdType: UnsavedIncidentRule['thresholdType'];
   trigger: Trigger;
   triggerIndex: number;
   isCritical: boolean;
+  fieldHelp: React.ReactNode;
+  triggerLabel: React.ReactNode;
+  placeholder: string;
 
   onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
 };
 
 class TriggerForm extends React.PureComponent<Props> {
-  getThresholdKey = (
-    type: AlertRuleThreshold
-  ): AlertRuleThresholdKey[AlertRuleThreshold] =>
-    type === AlertRuleThreshold.RESOLUTION ? 'resolveThreshold' : 'alertThreshold';
-
   /**
    * Handler for threshold changes coming from slider or chart.
    * Needs to sync state with the form.
    */
-  handleChangeThreshold = (type: AlertRuleThreshold, value: ThresholdControlValue) => {
+  handleChangeThreshold = (value: ThresholdControlValue) => {
     const {onChange, trigger} = this.props;
-
-    const thresholdKey = this.getThresholdKey(type);
-    const newValue = !hasThresholdValue(value.threshold)
-      ? value.threshold
-      : Math.round(value.threshold);
 
     onChange(
       {
         ...trigger,
-        [thresholdKey]: newValue,
-        thresholdType: value.thresholdType,
+        alertThreshold: value.threshold,
       },
-      {[thresholdKey]: newValue}
+      {alertThreshold: value.threshold}
     );
   };
 
   render() {
-    const {disabled, error, trigger, isCritical} = this.props;
-    const triggerLabel = isCritical
-      ? t('Critical Trigger Threshold')
-      : t('Warning Trigger Threshold');
-    const resolutionLabel = isCritical
-      ? t('Critical Resolution Threshold')
-      : t('Warning Resolution Threshold');
+    const {
+      disabled,
+      error,
+      trigger,
+      isCritical,
+      thresholdType,
+      fieldHelp,
+      triggerLabel,
+      placeholder,
+      onThresholdTypeChange,
+    } = this.props;
 
     return (
-      <React.Fragment>
-        <Field
-          label={triggerLabel}
-          help={tct('The threshold that will activate the [severity] status', {
-            severity: isCritical ? t('critical') : t('warning'),
-          })}
-          required
-          error={error && error.alertThreshold}
-        >
-          <ThresholdControl
-            disabled={disabled}
-            type={AlertRuleThreshold.INCIDENT}
-            thresholdType={trigger.thresholdType}
-            threshold={trigger.alertThreshold}
-            onChange={this.handleChangeThreshold}
-          />
-        </Field>
-
-        <Field
-          label={resolutionLabel}
-          help={tct('The threshold that will de-activate the [severity] status', {
-            severity: isCritical ? t('critical') : t('warning'),
-          })}
-          error={error && error.resolveThreshold}
-        >
-          <ThresholdControl
-            disabled={disabled}
-            type={AlertRuleThreshold.RESOLUTION}
-            thresholdType={trigger.thresholdType}
-            threshold={trigger.resolveThreshold}
-            onChange={this.handleChangeThreshold}
-          />
-        </Field>
-      </React.Fragment>
+      <Field
+        label={triggerLabel}
+        help={fieldHelp}
+        required={isCritical}
+        error={error && error.alertThreshold}
+      >
+        <ThresholdControl
+          disabled={disabled}
+          disableThresholdType={!isCritical}
+          type={trigger.label}
+          thresholdType={thresholdType}
+          threshold={trigger.alertThreshold}
+          placeholder={placeholder}
+          onChange={this.handleChangeThreshold}
+          onThresholdTypeChange={onThresholdTypeChange}
+        />
+      </Field>
     );
   }
 }
 
 type TriggerFormContainerProps = Omit<
   React.ComponentProps<typeof TriggerForm>,
-  'onChange'
+  | 'onChange'
+  | 'isCritical'
+  | 'error'
+  | 'triggerIndex'
+  | 'trigger'
+  | 'fieldHelp'
+  | 'triggerHelp'
+  | 'triggerLabel'
+  | 'placeholder'
 > & {
-  api: Client;
-  availableActions: MetricActionTemplate[] | null;
-  organization: Organization;
-  currentProject: string;
-  projects: Project[];
-  trigger: Trigger;
+  triggers: Trigger[];
+  errors?: Map<number, {[fieldName: string]: string}>;
   onChange: (triggerIndex: number, trigger: Trigger, changeObj: Partial<Trigger>) => void;
+  onResolveThresholdChange: (
+    resolveThreshold: UnsavedIncidentRule['resolveThreshold']
+  ) => void;
 };
 
 class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
@@ -138,67 +123,116 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     fetchOrgMembers(api, organization.slug);
   }
 
-  handleChangeTrigger = (trigger: Trigger, changeObj: Partial<Trigger>) => {
-    const {onChange, triggerIndex} = this.props;
+  handleChangeTrigger = (triggerIndex: number) => (
+    trigger: Trigger,
+    changeObj: Partial<Trigger>
+  ) => {
+    const {onChange} = this.props;
     onChange(triggerIndex, trigger, changeObj);
   };
 
-  handleAddAction = (action: Action) => {
-    const {onChange, trigger, triggerIndex} = this.props;
-    const actions = [...trigger.actions, action];
-    onChange(triggerIndex, {...trigger, actions} as Trigger, {actions});
-  };
-
-  handleChangeActions = (actions: Action[]): void => {
-    const {onChange, trigger, triggerIndex} = this.props;
-    onChange(triggerIndex, {...trigger, actions}, {actions});
+  handleChangeResolveTrigger = (trigger: Trigger, _: Partial<Trigger>) => {
+    const {onResolveThresholdChange} = this.props;
+    onResolveThresholdChange(trigger.alertThreshold);
   };
 
   render() {
     const {
       api,
-      availableActions,
       config,
-      currentProject,
       disabled,
-      error,
-      isCritical,
+      errors,
       organization,
-      trigger,
-      triggerIndex,
+      triggers,
+      thresholdType,
+      resolveThreshold,
       projects,
+      onThresholdTypeChange,
     } = this.props;
+
+    const resolveTrigger: UnsavedTrigger = {
+      label: 'resolve',
+      alertThreshold: resolveThreshold,
+      actions: [],
+    };
 
     return (
       <React.Fragment>
+        {triggers.map((trigger, index) => {
+          const isCritical = index === 0;
+          // eslint-disable-next-line no-use-before-define
+          const TriggerIndicator = isCritical ? CriticalIndicator : WarningIndicator;
+          return (
+            <TriggerForm
+              key={index}
+              api={api}
+              config={config}
+              disabled={disabled}
+              error={errors && errors.get(index)}
+              trigger={trigger}
+              thresholdType={thresholdType}
+              resolveThreshold={resolveThreshold}
+              organization={organization}
+              projects={projects}
+              triggerIndex={index}
+              isCritical={isCritical}
+              fieldHelp={tct('The threshold that will activate the [severity] status.', {
+                severity: isCritical ? t('critical') : t('warning'),
+              })}
+              triggerLabel={
+                <React.Fragment>
+                  <TriggerIndicator size={12} />
+                  {isCritical ? t('Critical Status') : t('Warning Status')}
+                </React.Fragment>
+              }
+              placeholder={isCritical ? '300' : t('None')}
+              onChange={this.handleChangeTrigger(index)}
+              onThresholdTypeChange={onThresholdTypeChange}
+            />
+          );
+        })}
         <TriggerForm
           api={api}
           config={config}
           disabled={disabled}
-          error={error}
-          trigger={trigger}
+          error={errors && errors.get(2)}
+          trigger={resolveTrigger}
+          // Flip rule thresholdType to opposite
+          thresholdType={+!thresholdType}
+          resolveThreshold={resolveThreshold}
           organization={organization}
           projects={projects}
-          triggerIndex={triggerIndex}
-          isCritical={isCritical}
-          onChange={this.handleChangeTrigger}
-        />
-        <ActionsPanel
-          disabled={disabled}
-          loading={availableActions === null}
-          error={false}
-          availableActions={availableActions}
-          currentProject={currentProject}
-          organization={organization}
-          projects={projects}
-          triggerIndex={triggerIndex}
-          actions={trigger.actions}
-          onChange={this.handleChangeActions}
-          onAdd={this.handleAddAction}
+          triggerIndex={2}
+          isCritical={false}
+          fieldHelp={t('The threshold that will activate the resolved status.')}
+          triggerLabel={
+            <React.Fragment>
+              <ResolvedIndicator size={12} />
+              {t('Resolved Status')}
+            </React.Fragment>
+          }
+          placeholder={t('Automatic')}
+          onChange={this.handleChangeResolveTrigger}
+          onThresholdTypeChange={onThresholdTypeChange}
         />
       </React.Fragment>
     );
   }
 }
+
+const CriticalIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.red400};
+  margin-right: ${space(1)};
+`;
+
+const WarningIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.yellow400};
+  margin-right: ${space(1)};
+`;
+
+const ResolvedIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.green400};
+  margin-right: ${space(1)};
+`;
 
 export default withConfig(withApi(TriggerFormContainer));

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -17,13 +18,16 @@ type Options = {
     id: string;
     undo: () => void;
   };
+  disableDismiss?: boolean;
+  undo?: () => void;
 };
 
-type Indicator = {
+export type Indicator = {
   type: IndicatorType;
   id: string | number;
   message: React.ReactNode;
   options: Options;
+  clearId?: null | number;
 };
 
 // Removes a single indicator
@@ -43,6 +47,18 @@ export function addMessage(
   options: Options = {}
 ): void {
   const {duration: optionsDuration, append, ...rest} = options;
+
+  // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
+  if (
+    // @ts-expect-error
+    typeof msg?.message !== 'undefined' &&
+    // @ts-expect-error
+    typeof msg?.code !== 'undefined' &&
+    // @ts-expect-error
+    typeof msg?.extra !== 'undefined'
+  ) {
+    Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
+  }
 
   // use default only if undefined, as 0 is a valid duration
   const duration =

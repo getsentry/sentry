@@ -6,7 +6,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {IssueAlertRule} from 'app/types/alerts';
-import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
+import {
+  SavedIncidentRule,
+  AlertRuleThresholdType,
+} from 'app/views/settings/incidentRules/types';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -112,16 +115,20 @@ class RuleRow extends React.Component<Props, State> {
                 <Trigger key={`trigger-${i}`} hideBorder={hideBorder}>
                   <StatusBadge>{trigger.label}</StatusBadge>
                   <TriggerDescription>
-                    {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
-                    {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
+                    {data.aggregate}{' '}
+                    {data.thresholdType === AlertRuleThresholdType.ABOVE
+                      ? t('above')
+                      : t('below')}{' '}
                     {trigger.alertThreshold}/{data.timeWindow}
                     {t('min')}
                   </TriggerDescription>
                 </Trigger>
                 <Actions key={`actions-${i}`} hideBorder={hideBorder}>
-                  {trigger.actions?.map((action, j) => (
-                    <Action key={j}>{action.desc}</Action>
-                  ))}
+                  {trigger.actions?.length
+                    ? trigger.actions.map((action, j) => (
+                        <Action key={j}>{action.desc}</Action>
+                      ))
+                    : t('None')}
                 </Actions>
               </React.Fragment>
             );
@@ -148,7 +155,7 @@ type HasBorderProp = {
 };
 
 const RuleType = styled('div')<RowSpansProp>`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
   text-transform: uppercase;
@@ -190,7 +197,7 @@ const ConditionsWithHeader = styled('div')`
 const MatchTypeHeader = styled('div')`
   font-weight: bold;
   text-transform: uppercase;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   margin-bottom: ${space(1)};
 `;
 
@@ -213,8 +220,8 @@ const TriggerDescription = styled('div')`
 `;
 
 const StatusBadge = styled('div')`
-  background-color: ${p => p.theme.offWhite2};
-  color: ${p => p.theme.gray4};
+  background-color: ${p => p.theme.gray300};
+  color: ${p => p.theme.gray700};
   text-transform: uppercase;
   padding: ${space(0.25)} ${space(0.5)};
   font-weight: 600;

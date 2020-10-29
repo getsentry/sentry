@@ -9,16 +9,17 @@ import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import UserBadge from 'app/components/idBadge/userBadge';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import {IconMail, IconOpen} from 'app/icons';
+import DetailedError from 'app/components/errors/detailedError';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-import {Group, Tag, TagValue} from 'app/types';
+import {Group, Tag, TagValue, Environment} from 'app/types';
 
 type RouteParams = {
   groupId: string;
@@ -28,6 +29,7 @@ type RouteParams = {
 
 type Props = {
   group: Group;
+  environments: Environment[];
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
@@ -40,11 +42,16 @@ class GroupTagValues extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): [string, string, any?][] {
+    const {environments: environment} = this.props;
     const {groupId, tagKey} = this.props.params;
     return [
       ['tag', `/issues/${groupId}/tags/${tagKey}/`],
-      ['tagValueList', `/issues/${groupId}/tags/${tagKey}/values/`],
+      [
+        'tagValueList',
+        `/issues/${groupId}/tags/${tagKey}/values/`,
+        {query: {environment}},
+      ],
     ];
   }
 
@@ -52,12 +59,22 @@ class GroupTagValues extends AsyncComponent<
     const {
       group,
       params: {orgId, tagKey},
+      environments,
     } = this.props;
     const {tag, tagValueList, tagValueListPageLinks} = this.state;
     const sortedTagValueList: TagValue[] = sortBy(
       tagValueList,
       property('count')
     ).reverse();
+
+    if (sortedTagValueList.length === 0 && environments.length > 0) {
+      return (
+        <DetailedError
+          heading={t('Sorry, the tags for this issue could not be found.')}
+          message={t('No tags were found for the currently selected environments')}
+        />
+      );
+    }
 
     const issuesPath = `/organizations/${orgId}/issues/`;
 
@@ -80,19 +97,23 @@ class GroupTagValues extends AsyncComponent<
                 }}
               >
                 {tag.key === 'user' ? (
-                  <UserBadge user={tagValue} avatarSize={20} hideEmail />
+                  <UserBadge
+                    user={{...tagValue, id: tagValue.identifier ?? ''}}
+                    avatarSize={20}
+                    hideEmail
+                  />
                 ) : (
                   <DeviceName value={tagValue.name} />
                 )}
               </GlobalSelectionLink>
               {tagValue.email && (
                 <StyledExternalLink href={`mailto:${tagValue.email}`}>
-                  <IconMail size="xs" color={theme.gray2} />
+                  <IconMail size="xs" color="gray500" />
                 </StyledExternalLink>
               )}
               {isUrl(tagValue.value) && (
                 <StyledExternalLink href={tagValue.value}>
-                  <IconOpen size="xs" color={theme.gray2} />
+                  <IconOpen size="xs" color="gray500" />
                 </StyledExternalLink>
               )}
             </ValueWrapper>
@@ -107,25 +128,26 @@ class GroupTagValues extends AsyncComponent<
     return (
       <React.Fragment>
         <Header>
-          {tag.key === 'user' ? t('Affected Users') : tag.name}
-          <BrowserExportButton
-            size="small"
-            priority="default"
-            href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-          >
-            {t('Export Page to CSV')}
-          </BrowserExportButton>
-          <a />
-          <DataExport
-            payload={{
-              queryType: ExportQueryType.IssuesByTag,
-              queryInfo: {
-                project: group.project.id,
-                group: group.id,
-                key: tagKey,
-              },
-            }}
-          />
+          <HeaderTitle>{tag.key === 'user' ? t('Affected Users') : tag.name}</HeaderTitle>
+          <HeaderButtons gap={1}>
+            <BrowserExportButton
+              size="small"
+              priority="default"
+              href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
+            >
+              {t('Export Page to CSV')}
+            </BrowserExportButton>
+            <DataExport
+              payload={{
+                queryType: ExportQueryType.IssuesByTag,
+                queryInfo: {
+                  project: group.project.id,
+                  group: group.id,
+                  key: tagKey,
+                },
+              }}
+            />
+          </HeaderButtons>
         </Header>
         <table className="table table-striped">
           <thead>
@@ -147,13 +169,24 @@ class GroupTagValues extends AsyncComponent<
     );
   }
 }
-const Header = styled('h3')`
+const Header = styled('div')`
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  margin: 0 0 20px;
+`;
+
+const HeaderTitle = styled('h3')`
+  margin: 0;
+`;
+
+const HeaderButtons = styled(ButtonBar)`
+  align-items: stretch;
+  margin: 0px ${space(1.5)};
 `;
 
 const BrowserExportButton = styled(Button)`
-  margin: 0 ${space(1.5)};
+  display: flex;
+  align-items: center;
 `;
 
 const TableHeader = styled('th')<{width: number}>`

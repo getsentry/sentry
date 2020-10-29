@@ -1,17 +1,21 @@
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import {Theme} from 'app/utils/theme';
-import {AutoCompleteRoot} from 'app/components/dropdownAutoCompleteMenu';
+import {AutoCompleteRoot} from 'app/components/dropdownAutoComplete/menu';
 import {TimeRangeRoot} from 'app/components/organizations/timeRangeSelector/index';
 
 type Props = {
   isSpacer?: boolean;
-  theme: Theme;
 };
 
-function getMediaQueryForSpacer(p: Props): string {
+function getMediaQueryForSpacer(p: Props & {theme: Theme}) {
   return p.isSpacer
-    ? `@media (max-width: ${p.theme.breakpoints[1]}) { display: none; }`
+    ? css`
+        @media (max-width: ${p.theme.breakpoints[1]}) {
+          display: none;
+        }
+      `
     : '';
 }
 

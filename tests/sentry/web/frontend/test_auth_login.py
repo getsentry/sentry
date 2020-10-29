@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import pytest
 from sentry.utils.compat import mock
 
+from django.test import override_settings
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.http import urlquote
@@ -98,6 +99,59 @@ class AuthLoginTest(TestCase):
                 referrer="in-app",
             )
         ]
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    def test_registration_single_org(self):
+        options.set("auth.allow-registration", True)
+        with self.feature("auth:register"):
+            resp = self.client.post(
+                self.path,
+                {
+                    "username": "test-a-really-long-email-address@example.com",
+                    "password": "foobar",
+                    "name": "Foo Bar",
+                    "op": "register",
+                },
+            )
+        assert resp.status_code == 302, (
+            resp.context["register_form"].errors if resp.status_code == 200 else None
+        )
+        user = User.objects.get(username="test-a-really-long-email-address@example.com")
+
+        # User is part of the default org
+        assert OrganizationMember.objects.filter(user=user).exists()
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_cookie")
+    def test_registration_single_org_with_invite(self, from_cookie):
+        self.session["can_register"] = True
+        self.save_session()
+
+        self.client.get(self.path)
+
+        invite_helper = mock.Mock(valid_request=True)
+        from_cookie.return_value = invite_helper
+
+        resp = self.client.post(
+            self.path,
+            {
+                "username": "test@example.com",
+                "password": "foobar",
+                "name": "Foo Bar",
+                "op": "register",
+            },
+        )
+
+        user = User.objects.get(username="test@example.com")
+
+        # An organization member should NOT have been created, even though
+        # we're in single org mode, accepting the invite will handle that
+        # (which we assert next)
+        assert not OrganizationMember.objects.filter(user=user).exists()
+
+        # Invitation was accepted
+        assert len(invite_helper.accept_invite.mock_calls) == 1
+        assert resp.status_code == 302
 
     def test_register_renders_correct_template(self):
         options.set("auth.allow-registration", True)

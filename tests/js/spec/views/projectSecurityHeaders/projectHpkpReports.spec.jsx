@@ -1,14 +1,15 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectHpkpReports from 'app/views/settings/projectSecurityHeaders/hpkp';
 
-describe('ProjectHpkpReports', function() {
+describe('ProjectHpkpReports', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
   const url = `/projects/${org.slug}/${project.slug}/hpkp/`;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -22,8 +23,8 @@ describe('ProjectHpkpReports', function() {
     });
   });
 
-  it('renders', function() {
-    const wrapper = shallow(
+  it('renders', function () {
+    const wrapper = mountWithTheme(
       <ProjectHpkpReports
         organization={org}
         project={project}
@@ -34,6 +35,6 @@ describe('ProjectHpkpReports', function() {
       />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

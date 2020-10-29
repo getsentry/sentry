@@ -55,9 +55,10 @@ class ProjectOptionManager(OptionManager):
         return self._option_cache.get(cache_key, {})
 
     def reload_cache(self, project_id, update_reason):
-        schedule_update_config_cache(
-            project_id=project_id, generate=True, update_reason=update_reason
-        )
+        if update_reason != "projectoption.get_all_values":
+            schedule_update_config_cache(
+                project_id=project_id, generate=True, update_reason=update_reason
+            )
         cache_key = self._make_key(project_id)
         result = dict((i.key, i.value) for i in self.filter(project=project_id))
         cache.set(cache_key, result)

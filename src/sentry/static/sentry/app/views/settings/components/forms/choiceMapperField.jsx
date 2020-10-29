@@ -148,7 +148,7 @@ export default class ChoiceMapper extends React.Component {
       >
         {({isOpen}) => (
           <DropdownButton
-            icon={<IconAdd size="xs" circle />}
+            icon={<IconAdd size="xs" isCircled />}
             isOpen={isOpen}
             size="xsmall"
             disabled={disabled}
@@ -261,7 +261,7 @@ const LabelColumn = styled('div')`
 const HeadingItem = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const Actions = styled('div')`

@@ -1,5 +1,6 @@
 import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import {defined} from 'app/utils';
 
 import getGpuKnownDataDetails from './getGPUKnownDataDetails';
 import {GPUData, GPUKnownDataType} from './types';
@@ -10,8 +11,8 @@ function getGPUKnownData(
 ): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
-  const dataKeys = gpuKnownDataValues.filter(
-    gpuKnownDataValue => data[gpuKnownDataValue]
+  const dataKeys = gpuKnownDataValues.filter(gpuKnownDataValue =>
+    defined(data[gpuKnownDataValue])
   );
 
   for (const key of dataKeys) {

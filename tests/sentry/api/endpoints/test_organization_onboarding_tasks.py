@@ -9,12 +9,13 @@ from sentry.testutils import APITestCase
 class OrganizationOnboardingTaskEndpointTest(APITestCase):
     def setUp(self):
         self.user = self.create_user()
+        self.member_user = self.create_user()
         self.org = self.create_organization(owner=self.user)
+        self.create_member(organization=self.org, user=self.member_user)
         self.login_as(user=self.user)
         self.path = reverse("sentry-api-0-organization-onboardingtasks", args=[self.org.slug])
 
     def test_mark_complete(self):
-
         response = self.client.post(self.path, {"task": "create_project", "status": "complete"})
 
         assert response.status_code == 204, response.content
@@ -28,6 +29,22 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
         assert task.user == self.user
 
     def test_mark_completion_seen(self):
+        response = self.client.post(self.path, {"task": "create_project", "status": "complete"})
+        assert response.status_code == 204, response.content
+
+        response = self.client.post(self.path, {"task": "create_project", "completionSeen": True})
+
+        assert response.status_code == 204, response.content
+
+        task = OrganizationOnboardingTask.objects.get(
+            organization=self.org, task=OnboardingTask.FIRST_PROJECT
+        )
+
+        assert task.completion_seen is not None
+
+    def test_mark_completion_seen_as_member(self):
+        self.login_as(self.member_user)
+
         response = self.client.post(self.path, {"task": "create_project", "status": "complete"})
         assert response.status_code == 204, response.content
 

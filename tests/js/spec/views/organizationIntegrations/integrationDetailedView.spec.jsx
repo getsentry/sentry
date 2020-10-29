@@ -1,7 +1,8 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {Client} from 'app/api';
 import IntegrationDetailedView from 'app/views/organizationIntegrations/integrationDetailedView';
 
 const mockResponse = mocks => {
@@ -13,7 +14,7 @@ const mockResponse = mocks => {
   );
 };
 
-describe('IntegrationDetailedView', function() {
+describe('IntegrationDetailedView', function () {
   const org = TestStubs.Organization();
   const routerContext = TestStubs.routerContext();
   let wrapper;
@@ -92,14 +93,14 @@ describe('IntegrationDetailedView', function() {
       routerContext
     );
   });
-  it('shows the Integration name and install status', async function() {
+  it('shows the Integration name and install status', async function () {
     expect(wrapper.find('Name').props().children).toEqual('Bitbucket');
     expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
   });
-  it('shows the Add Installation button', async function() {
+  it('shows the Add Installation button', async function () {
     expect(wrapper.find('AddIntegrationButton').props().disabled).toEqual(false);
   });
-  it('view configurations', async function() {
+  it('view configurations', async function () {
     wrapper = mountWithTheme(
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}

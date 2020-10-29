@@ -92,7 +92,7 @@ const IntroContainer = styled('div')`
   align-items: center;
   justify-content: center;
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   width: 100%;
   height: 100%;
   min-height: 420px;
@@ -121,5 +121,5 @@ const ExampleQuery = styled(Panel)`
 `;
 const ExampleQueryDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
 `;

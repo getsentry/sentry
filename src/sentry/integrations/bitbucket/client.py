@@ -16,7 +16,7 @@ BITBUCKET_KEY = "%s.bitbucket" % urlparse(absolute_uri()).hostname
 
 class BitbucketAPIPath(object):
     """
-    All UUID's must be surrounded by culybraces.
+    All UUID's must be surrounded by curlybraces.
 
     repo is the fully qualified slug containing 'username/repo_slug'
 
@@ -61,7 +61,7 @@ class BitbucketApiClient(ApiClient):
             "sub": self.subject,
         }
         encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
-        headers = {"Authorization": "JWT %s" % encoded_jwt}
+        headers = {"Authorization": b"JWT %s" % encoded_jwt}
         return self._request(method, path, data=data, params=params, headers=headers, **kwargs)
 
     def get_issue(self, repo, issue_id):

@@ -6,8 +6,8 @@ import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import {IconEdit} from 'app/icons/iconEdit';
 import PageHeading from 'app/components/pageHeading';
+import {IconEdit} from 'app/icons';
 
 import {
   getChartData,
@@ -43,7 +43,7 @@ type ResultProps = {
   savedQuery: SavedQuery | null; // Provided if it's a saved search
   onFetchPage: (nextOrPrev: string) => void;
   onToggleEdit: () => void;
-  utc: boolean;
+  utc: boolean | null;
 };
 
 type ResultState = {
@@ -53,9 +53,6 @@ type ResultState = {
 };
 
 class Result extends React.Component<ResultProps, ResultState> {
-  // This is the ref of the table container component
-  private container: any;
-
   constructor(props: ResultProps) {
     super(props);
     this.state = {
@@ -89,6 +86,9 @@ class Result extends React.Component<ResultProps, ResultState> {
   componentWillUnmount() {
     window.removeEventListener('resize', this.throttledUpdateDimensions);
   }
+
+  // This is the ref of the table container component
+  private container: any;
 
   setDimensions = (ref: any) => {
     this.container = ref;

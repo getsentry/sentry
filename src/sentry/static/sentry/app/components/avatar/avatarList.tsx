@@ -109,8 +109,8 @@ const CollapsedUsers = styled('div')<{size: number}>`
   position: relative;
   text-align: center;
   font-weight: 600;
-  background-color: ${p => p.theme.borderLight};
-  color: ${p => p.theme.gray2};
+  background-color: ${p => p.theme.gray300};
+  color: ${p => p.theme.gray500};
   font-size: ${p => Math.floor(p.size / 2.3)}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;

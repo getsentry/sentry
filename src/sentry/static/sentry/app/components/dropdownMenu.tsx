@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
 
@@ -35,8 +35,8 @@ type MenuProps = {
   onMouseLeave: (e: React.MouseEvent<Element>) => void;
 };
 
-type GetActorPropsFn = (opts: GetActorArgs) => ActorProps;
-type GetMenuPropsFn = (opts: GetMenuArgs) => MenuProps;
+export type GetActorPropsFn = (opts?: GetActorArgs) => ActorProps;
+type GetMenuPropsFn = (opts?: GetMenuArgs) => MenuProps;
 
 type RenderProps = {
   isOpen: boolean;
@@ -75,7 +75,7 @@ type Props = DefaultProps & {
   shouldIgnoreClickOutside?: (event: MouseEvent) => boolean;
   /**
    * If this is set, then this will become a "controlled" component.
-   * It will no longer set local state and dropdown visiblity will
+   * It will no longer set local state and dropdown visibility will
    * only follow `isOpen`.
    */
   isOpen?: boolean;
@@ -320,7 +320,7 @@ class DropdownMenu extends React.Component<Props, State> {
     onKeyDown,
     style = {},
     ...props
-  } = {}) => {
+  }: GetActorArgs = {}) => {
     const {isNestedDropdown, closeOnEscape} = this.props;
 
     const refProps = {ref: this.handleActorMount};
@@ -372,8 +372,14 @@ class DropdownMenu extends React.Component<Props, State> {
       },
 
       onClick: (e: React.MouseEvent<Element>) => {
-        // Note: clicking on an actor that has a nested menu will close the dropdown menus
-        // This is because we currently do not try to find the deepest non-nested dropdown menu
+        // If we are a nested dropdown, clicking the actor
+        // should be a no-op so that the menu doesn't close.
+        if (isNestedDropdown) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
         this.handleToggle(e);
 
         if (typeof onClick === 'function') {
@@ -414,8 +420,6 @@ class DropdownMenu extends React.Component<Props, State> {
         this.handleMouseLeave(e);
       },
       onClick: (e: React.MouseEvent<Element>) => {
-        // Note: clicking on an actor that has a nested menu will close the dropdown menus
-        // This is because we currently do not try to find the deepest non-nested dropdown menu
         this.handleDropdownMenuClick(e);
 
         if (typeof onClick === 'function') {

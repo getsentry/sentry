@@ -21,8 +21,8 @@ const Message = () => (
   </React.Fragment>
 );
 
-const CongratsRobotsVideo = React.lazy(() =>
-  import(/* webpackChunkName: "CongratsRobotsVideo" */ './congratsRobots')
+const CongratsRobotsVideo = React.lazy(
+  () => import(/* webpackChunkName: "CongratsRobotsVideo" */ './congratsRobots')
 );
 
 /**
@@ -72,7 +72,7 @@ const Wrapper = styled('div')`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     font-size: ${p => p.theme.fontSizeMedium};

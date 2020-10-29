@@ -7,7 +7,6 @@ import styled from '@emotion/styled';
 
 import {Theme} from 'app/utils/theme';
 import ExternalLink from 'app/components/links/externalLink';
-import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 
 /**
@@ -25,8 +24,7 @@ type Props = {
   busy?: boolean;
   to?: string | object;
   href?: string;
-  icon?: string | React.ReactNode;
-  iconSize?: string;
+  icon?: React.ReactNode;
   title?: string;
   external?: boolean;
   borderless?: boolean;
@@ -59,9 +57,9 @@ class Button extends React.Component<ButtonProps, {}> {
      */
     href: PropTypes.string,
     /**
-     * Path to an icon svg that will be displayed to left of button label
+     * A react node to use as the icons. Generally pulled from app/icons
      */
-    icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
+    icon: PropTypes.node,
     /**
      * Tooltip text
      */
@@ -126,7 +124,6 @@ class Button extends React.Component<ButtonProps, {}> {
       href,
       title,
       icon,
-      iconSize,
       children,
       label,
       borderless,
@@ -169,16 +166,7 @@ class Button extends React.Component<ButtonProps, {}> {
         >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
-              {typeof icon === 'string' ? (
-                <StyledInlineSvg
-                  src={icon}
-                  size={
-                    iconSize ? iconSize : size && size.endsWith('small') ? '12px' : '14px'
-                  }
-                />
-              ) : (
-                icon
-              )}
+              {icon}
             </Icon>
           )}
           {children}
@@ -299,7 +287,7 @@ const StyledButton = styled(
   }
 )<Props>`
   display: inline-block;
-  line-height: 1.2;
+  line-height: 1;
   border-radius: ${p => p.theme.button.borderRadius};
   padding: 0;
   text-transform: none;
@@ -335,11 +323,11 @@ const getLabelPadding = ({
     case 'zero':
       return '0';
     case 'xsmall':
-      return '4px 8px';
+      return '5px 8px';
     case 'small':
-      return '8px 12px';
+      return '9px 12px';
     default:
-      return '11px 16px';
+      return '12px 16px';
   }
 };
 
@@ -370,11 +358,9 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
   return size && size.endsWith('small') ? '6px' : '8px';
 };
 
-const Icon = styled('span')<IconProps>`
-  margin-right: ${getIconMargin};
+const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
   display: flex;
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  display: block;
+  align-items: center;
+  margin-right: ${getIconMargin};
+  height: ${getFontSize};
 `;

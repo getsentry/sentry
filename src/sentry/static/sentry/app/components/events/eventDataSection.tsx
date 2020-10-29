@@ -1,10 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {DataSection} from 'app/components/events/styles';
+import {IconAnchor} from 'app/icons/iconAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import space from 'app/styles/space';
@@ -12,6 +14,8 @@ import space from 'app/styles/space';
 const defaultProps = {
   wrapTitle: true,
   raw: false,
+  isCentered: false,
+  showPermalink: true,
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
@@ -45,7 +49,7 @@ class EventDataSection extends React.Component<Props> {
         if (anchorElement) {
           anchorElement.scrollIntoView();
         }
-      } catch (e) {
+      } catch {
         // Since we're blindly taking the hash from the url and shoving
         // it into a querySelector, it's possible that this may
         // raise an exception if the input is invalid. So let's just ignore
@@ -66,6 +70,8 @@ class EventDataSection extends React.Component<Props> {
       raw,
       wrapTitle,
       actions,
+      isCentered,
+      showPermalink,
     } = this.props;
 
     const titleNode = wrapTitle ? <h3>{title}</h3> : title;
@@ -73,11 +79,17 @@ class EventDataSection extends React.Component<Props> {
     return (
       <DataSection className={className || ''}>
         {title && (
-          <SectionHeader id={type}>
-            <Permalink href={'#' + type} className="permalink">
-              <em className="icon-anchor" />
-            </Permalink>
-            {titleNode}
+          <SectionHeader id={type} isCentered={isCentered}>
+            <Title>
+              {showPermalink ? (
+                <Permalink href={'#' + type} className="permalink">
+                  <StyledIconAnchor />
+                  {titleNode}
+                </Permalink>
+              ) : (
+                <div>{titleNode}</div>
+              )}
+            </Title>
             {type === 'extra' && (
               <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
                 <Button
@@ -105,29 +117,40 @@ class EventDataSection extends React.Component<Props> {
   }
 }
 
-const Permalink = styled('a')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 27px;
-  display: none;
-  position: absolute;
-  top: -1.5px;
-  left: -22px;
-  color: ${p => p.theme.gray6};
-  padding: ${space(0.25)} 5px;
+const Title = styled('div')`
+  display: flex;
 `;
 
-const SectionHeader = styled('div')`
+const StyledIconAnchor = styled(IconAnchor)`
+  display: none;
+  position: absolute;
+  top: 4px;
+  left: -22px;
+`;
+
+const Permalink = styled('a')`
+  :hover ${StyledIconAnchor} {
+    display: block;
+    color: ${p => p.theme.gray500};
+  }
+`;
+
+const SectionHeader = styled('div')<{isCentered?: boolean}>`
   display: flex;
-  justify-content: space-between;
-  position: relative;
-  margin-bottom: ${space(3)};
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: ${space(2)};
+
+  > * {
+    margin-bottom: ${space(0.5)};
+  }
 
   & h3,
   & h3 a {
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
   }
 
   & h3 {
@@ -140,27 +163,38 @@ const SectionHeader = styled('div')`
   }
 
   & small {
-    color: ${p => p.theme.foreground};
+    color: ${p => p.theme.gray700};
     font-size: ${p => p.theme.fontSizeMedium};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
 
     text-transform: none;
   }
-  & small a {
-    color: ${p => p.theme.foreground};
-    border-bottom: 1px dotted ${p => p.theme.gray6};
+  & small > span {
+    color: ${p => p.theme.gray700};
+    border-bottom: 1px dotted ${p => p.theme.borderDark};
     font-weight: normal;
   }
 
-  &:hover ${Permalink} {
-    display: block;
-  }
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
     & > small {
       margin-left: ${space(1)};
       display: inline-block;
     }
+  }
+
+  ${p =>
+    p.isCentered &&
+    css`
+      align-items: center;
+      @media (max-width: ${p.theme.breakpoints[0]}) {
+        display: block;
+      }
+    `}
+
+  >*:first-child {
+    position: relative;
+    flex-grow: 1;
   }
 `;
 
@@ -170,6 +204,7 @@ const SectionContents = styled('div')`
 
 const ActionContainer = styled('div')`
   flex-shrink: 0;
+  max-width: 100%;
 `;
 
 export default EventDataSection;

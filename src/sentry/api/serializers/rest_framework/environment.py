@@ -12,6 +12,8 @@ class EnvironmentField(serializers.Field):
         return value
 
     def to_internal_value(self, data):
+        if data is None:
+            return None
         try:
             environment = Environment.objects.get(
                 organization_id=self.context["organization"].id, name=data

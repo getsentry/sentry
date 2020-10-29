@@ -9,8 +9,9 @@ import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import {IconDelete} from 'app/icons/iconDelete';
+import {IconDelete} from 'app/icons';
 import space from 'app/styles/space';
+import Tooltip from 'app/components/tooltip';
 
 type DefaultProps = {
   showProvider?: boolean;
@@ -76,7 +77,7 @@ class RepositoryRow extends React.Component<Props> {
     const isActive = this.isActive;
 
     return (
-      <Access access={['org:admin']}>
+      <Access access={['org:integrations']}>
         {({hasAccess}) => (
           <StyledPanelItem status={repository.status}>
             <RepositoryTitleAndUrl>
@@ -105,23 +106,30 @@ class RepositoryRow extends React.Component<Props> {
               </div>
             </RepositoryTitleAndUrl>
 
-            <Confirm
-              disabled={
-                !hasAccess ||
-                (!isActive && repository.status !== RepositoryStatus.DISABLED)
-              }
-              onConfirm={this.deleteRepo}
-              message={t(
-                'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
+            <Tooltip
+              title={t(
+                'You must be an organization owner, manager or admin to remove a repository.'
               )}
+              disabled={hasAccess}
             >
-              <Button
-                size="xsmall"
-                icon={<IconDelete size="xs" />}
-                label={t('delete')}
-                disabled={!hasAccess}
-              />
-            </Confirm>
+              <Confirm
+                disabled={
+                  !hasAccess ||
+                  (!isActive && repository.status !== RepositoryStatus.DISABLED)
+                }
+                onConfirm={this.deleteRepo}
+                message={t(
+                  'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
+                )}
+              >
+                <Button
+                  size="xsmall"
+                  icon={<IconDelete size="xs" />}
+                  label={t('delete')}
+                  disabled={!hasAccess}
+                />
+              </Confirm>
+            </Tooltip>
           </StyledPanelItem>
         )}
       </Access>
@@ -159,7 +167,7 @@ const RepositoryTitleAndUrl = styled('div')`
 
 const RepositoryTitle = styled('div')`
   margin-bottom: ${space(1)};
-  /* accomodate cancel button height */
+  /* accommodate cancel button height */
   line-height: 26px;
 `;
 

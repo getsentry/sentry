@@ -17,9 +17,6 @@ class Notifier(object):
         """
 
     def should_notify(self, group, event):
-        if not group.is_unresolved():
-            return False
-
         project = group.project
 
         rate_limited = ratelimits.is_limited(project=project, key=self.get_conf_key(), limit=10)

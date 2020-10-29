@@ -154,7 +154,10 @@ class OwnerInput extends React.Component {
         >
           <StyledTextArea
             placeholder={
-              '#example usage\npath:src/example/pipeline/* person@sentry.io #infra\nurl:http://example.com/settings/* #product'
+              '#example usage\n' +
+              'path:src/example/pipeline/* person@sentry.io #infra\n' +
+              'url:http://example.com/settings/* #product\n' +
+              'tags.sku_class:enterprise #enterprise'
             }
             onChange={this.handleChange}
             disabled={disabled}

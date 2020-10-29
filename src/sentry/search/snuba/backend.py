@@ -49,6 +49,21 @@ def unassigned_filter(unassigned, projects):
     return query
 
 
+def first_release_all_environments_filter(version, projects):
+    try:
+        release_id = Release.objects.get(
+            organization=projects[0].organization_id, version=version
+        ).id
+    except Release.DoesNotExist:
+        release_id = -1
+    return Q(
+        # If no specific environments are supplied, we look at the
+        # first_release of any environment that the group has been
+        # seen in.
+        id__in=GroupEnvironment.objects.filter(first_release_id=release_id).values_list("group_id")
+    )
+
+
 class Condition(object):
     """\
     Adds a single filter to a ``QuerySet`` object. Used with
@@ -165,6 +180,10 @@ class SnubaSearchBackendBase(SearchBackend):
             date_from=date_from,
             date_to=date_to,
         )
+
+        # ensure sort strategy is supported by executor
+        if not query_executor.has_sort_strategy(sort_by):
+            raise InvalidSearchQuery(u"Sort key '{}' not supported.".format(sort_by))
 
         return query_executor.query(
             projects=projects,
@@ -285,27 +304,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             queryset_conditions.update(
                 {
                     "first_release": QCallbackCondition(
-                        lambda release_version: Q(
-                            # if no specific environments are supplied, we either choose any
-                            # groups/issues whose first release matches the given release_version,
-                            Q(
-                                first_release_id__in=Release.objects.filter(
-                                    version=release_version,
-                                    organization_id=projects[0].organization_id,
-                                )
-                            )
-                            |
-                            # or we choose any groups whose first occurrence in any environment and the latest release at
-                            # the time of the groups' first occurrence matches the given
-                            # release_version
-                            Q(
-                                id__in=GroupEnvironment.objects.filter(
-                                    first_release__version=release_version,
-                                    first_release__organization_id=projects[0].organization_id,
-                                    environment__organization_id=projects[0].organization_id,
-                                ).values_list("group_id")
-                            )
-                        )
+                        functools.partial(first_release_all_environments_filter, projects=projects)
                     ),
                     "first_seen": ScalarCondition("first_seen"),
                 }

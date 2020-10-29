@@ -9,6 +9,7 @@ import ContextSummaryGeneric from './contextSummaryGeneric';
 import ContextSummaryDevice from './contextSummaryDevice';
 import ContextSummaryGPU from './contextSummaryGPU';
 import ContextSummaryOS from './contextSummaryOS';
+import filterContexts from './filterContexts';
 
 const MIN_CONTEXTS = 3;
 const MAX_CONTEXTS = 4;
@@ -40,22 +41,24 @@ class ContextSummary extends React.Component {
 
     // Add defined contexts in the declared order, until we reach the limit
     // defined by MAX_CONTEXTS.
-    let contexts = KNOWN_CONTEXTS.map(({keys, Component, ...props}) => {
-      if (contextCount >= MAX_CONTEXTS) {
-        return null;
+    let contexts = KNOWN_CONTEXTS.filter((...args) => filterContexts(evt, ...args)).map(
+      ({keys, Component, ...props}) => {
+        if (contextCount >= MAX_CONTEXTS) {
+          return null;
+        }
+
+        const [key, data] = keys
+          .map(k => [k, evt.contexts[k] || evt[k]])
+          .find(([_k, d]) => !objectIsEmpty(d)) || [null, null];
+
+        if (!key) {
+          return null;
+        }
+
+        contextCount += 1;
+        return <Component key={key} data={data} {...props} />;
       }
-
-      const [key, data] = keys
-        .map(k => [k, evt.contexts[k] || evt[k]])
-        .find(([_k, d]) => !objectIsEmpty(d)) || [null, null];
-
-      if (!key) {
-        return null;
-      }
-
-      contextCount += 1;
-      return <Component key={key} data={data} {...props} />;
-    });
+    );
 
     // Bail out if all contexts are empty or only the user context is set
     if (contextCount === 0 || (contextCount === 1 && contexts[0])) {
@@ -65,16 +68,18 @@ class ContextSummary extends React.Component {
     if (contextCount < MIN_CONTEXTS) {
       // Add contents in the declared order until we have at least MIN_CONTEXTS
       // contexts in our list.
-      contexts = KNOWN_CONTEXTS.map(({keys, Component, ...props}, index) => {
-        if (contexts[index]) {
-          return contexts[index];
+      contexts = KNOWN_CONTEXTS.filter((...args) => filterContexts(evt, ...args)).map(
+        ({keys, Component, ...props}, index) => {
+          if (contexts[index]) {
+            return contexts[index];
+          }
+          if (contextCount >= MIN_CONTEXTS) {
+            return null;
+          }
+          contextCount += 1;
+          return <Component key={keys[0]} data={{}} {...props} />;
         }
-        if (contextCount >= MIN_CONTEXTS) {
-          return null;
-        }
-        contextCount += 1;
-        return <Component key={keys[0]} data={{}} {...props} />;
-      });
+      );
     }
 
     return <div className="context-summary">{contexts}</div>;

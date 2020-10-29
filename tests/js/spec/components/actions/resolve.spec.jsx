@@ -2,14 +2,15 @@ import React from 'react';
 import $ from 'jquery';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ResolveActions from 'app/components/actions/resolve';
 
-describe('ResolveActions', function() {
-  describe('disabled', function() {
+describe('ResolveActions', function () {
+  describe('disabled', function () {
     let component, button;
     const spy = jest.fn();
 
-    beforeEach(function() {
+    beforeEach(function () {
       component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
@@ -23,21 +24,21 @@ describe('ResolveActions', function() {
       button = component.find('a.btn.btn-default').first();
     });
 
-    it('has disabled prop', function() {
+    it('has disabled prop', function () {
       expect(button.prop('disabled')).toBe(true);
     });
 
-    it('does not call onUpdate when clicked', function() {
+    it('does not call onUpdate when clicked', function () {
       button.simulate('click');
       expect(spy).not.toHaveBeenCalled();
     });
   });
 
-  describe('disableDropdown', function() {
+  describe('disableDropdown', function () {
     let component, button;
     const spy = jest.fn();
 
-    beforeEach(function() {
+    beforeEach(function () {
       component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
@@ -50,27 +51,27 @@ describe('ResolveActions', function() {
       );
     });
 
-    it('main button is enabled', function() {
+    it('main button is enabled', function () {
       button = component.find('ActionLink[title="Resolve"]');
       expect(button.prop('disabled')).toBeFalsy();
     });
 
-    it('main button calls onUpdate when clicked', function() {
+    it('main button calls onUpdate when clicked', function () {
       button = component.find('ActionLink[title="Resolve"]');
       button.simulate('click');
       expect(spy).toHaveBeenCalled();
     });
 
-    it('dropdown menu is disabled', function() {
+    it('dropdown menu is disabled', function () {
       button = component.find('DropdownLink');
       expect(button.prop('disabled')).toBe(true);
     });
   });
 
-  describe('resolved', function() {
+  describe('resolved', function () {
     let component;
     const spy = jest.fn();
-    beforeEach(function() {
+    beforeEach(function () {
       component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
@@ -84,20 +85,20 @@ describe('ResolveActions', function() {
       );
     });
 
-    it('displays resolved view', function() {
+    it('displays resolved view', function () {
       const button = component.find('a.btn.active');
       expect(button).toHaveLength(1);
       expect(button.text()).toBe('');
     });
 
-    it('calls onUpdate with unresolved status when clicked', function() {
+    it('calls onUpdate with unresolved status when clicked', function () {
       component.find('a.btn.active').simulate('click');
       expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
     });
   });
 
-  describe('auto resolved', function() {
-    it('cannot be unresolved manually', function() {
+  describe('auto resolved', function () {
+    it('cannot be unresolved manually', function () {
       const spy = jest.fn();
       const component = mountWithTheme(
         <ResolveActions
@@ -117,10 +118,10 @@ describe('ResolveActions', function() {
     });
   });
 
-  describe('without confirmation', function() {
+  describe('without confirmation', function () {
     let component;
     const spy = jest.fn();
-    beforeEach(function() {
+    beforeEach(function () {
       component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
@@ -132,11 +133,11 @@ describe('ResolveActions', function() {
       );
     });
 
-    it('renders', function() {
-      expect(component).toMatchSnapshot();
+    it('renders', function () {
+      expect(component).toSnapshot();
     });
 
-    it('calls spy with resolved status when clicked', function() {
+    it('calls spy with resolved status when clicked', function () {
       const button = component.find('a.btn.btn-default').first();
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
@@ -144,11 +145,11 @@ describe('ResolveActions', function() {
     });
   });
 
-  describe('with confirmation step', function() {
+  describe('with confirmation step', function () {
     let component, button;
     const spy = jest.fn();
 
-    beforeEach(function() {
+    beforeEach(function () {
       component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
@@ -163,25 +164,23 @@ describe('ResolveActions', function() {
       button = component.find('a.btn.btn-default').first();
     });
 
-    it('renders', function() {
-      expect(component).toMatchSnapshot();
+    it('renders', function () {
+      expect(component).toSnapshot();
     });
 
-    it('displays confirmation modal with message provided', function() {
+    it('displays confirmation modal with message provided', function () {
       button.simulate('click');
 
       const modal = $(document.body).find('.modal');
       expect(modal.text()).toContain('Are you sure???');
       expect(spy).not.toHaveBeenCalled();
-      $(document.body)
-        .find('.modal button:contains("Resolve")')
-        .click();
+      $(document.body).find('.modal button:contains("Resolve")').click();
 
       expect(spy).toHaveBeenCalled();
     });
   });
 
-  it('can resolve in "another version"', async function() {
+  it('can resolve in "another version"', async function () {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
@@ -197,22 +196,19 @@ describe('ResolveActions', function() {
       TestStubs.routerContext()
     );
 
-    wrapper
-      .find('ActionLink')
-      .last()
-      .simulate('click');
+    wrapper.find('ActionLink').last().simulate('click');
 
     await tick();
     wrapper.update();
 
     expect(wrapper.find('CustomResolutionModal Select').prop('options')).toEqual([
       expect.objectContaining({
-        value: '92eccef279d966b2319f0802fa4b22b430a5f72b',
+        value: 'sentry-android-shop@1.2.0',
         label: expect.anything(),
       }),
     ]);
 
-    wrapper.find('input[id="version"]').simulate('change', {target: {value: '9'}});
+    wrapper.find('input[id="version"]').simulate('change', {target: {value: '1.2.0'}});
 
     await tick();
     wrapper.update();
@@ -223,7 +219,7 @@ describe('ResolveActions', function() {
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'resolved',
       statusDetails: {
-        inRelease: '92eccef279d966b2319f0802fa4b22b430a5f72b',
+        inRelease: 'sentry-android-shop@1.2.0',
       },
     });
   });

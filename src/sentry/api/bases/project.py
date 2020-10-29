@@ -11,7 +11,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.exceptions import ResourceDoesNotExist, ProjectMoved
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
-from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect
+from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect, SentryApp
 from sentry.utils.sdk import configure_scope, bind_organization_context
 
 from .organization import OrganizationPermission
@@ -43,10 +43,12 @@ class ProjectPermission(OrganizationPermission):
             )
         elif is_system_auth(request.auth):
             return True
-        elif request.user.is_authenticated():
+        elif request.user and request.user.is_authenticated():
             # this is only for team-less projects
             if is_active_superuser(request):
                 return True
+            elif request.user.is_sentry_app:
+                return SentryApp.check_project_permission_for_sentry_app_user(request.user, project)
             try:
                 role = (
                     OrganizationMember.objects.filter(

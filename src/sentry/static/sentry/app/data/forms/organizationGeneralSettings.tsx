@@ -15,10 +15,9 @@ const formGroups: JsonFormObject[] = [
         name: 'slug',
         type: 'string',
         required: true,
-        label: t('Name'),
+        label: t('Organization Slug'),
         help: t('A unique ID used to identify this organization'),
         transformInput: slugify,
-
         saveOnBlur: false,
         saveMessageAlertType: 'info',
         saveMessage: t(
@@ -29,9 +28,8 @@ const formGroups: JsonFormObject[] = [
         name: 'name',
         type: 'string',
         required: true,
-
         label: t('Display Name'),
-        help: t('This is the name that users will see for the organization'),
+        help: t('A human-friendly name for the organization'),
       },
       {
         name: 'isEarlyAdopter',
@@ -62,6 +60,35 @@ const formGroups: JsonFormObject[] = [
         required: true,
         label: t('Open Membership'),
         help: t('Allow organization members to freely join or leave any team'),
+      },
+      {
+        name: 'eventsMemberAdmin',
+        type: 'boolean',
+        label: t('Grant Members Events Admin'),
+        help: t(
+          'Allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.'
+        ),
+      },
+      {
+        name: 'attachmentsRole',
+        type: 'array',
+        choices: ({initialData = {}}) =>
+          initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+        label: t('Attachments Access'),
+        help: t(
+          'Role required to download event attachments, such as native crash reports or log files.'
+        ),
+        visible: ({features}) => features.has('event-attachments'),
+      },
+      {
+        name: 'debugFilesRole',
+        type: 'array',
+        choices: ({initialData = {}}) =>
+          initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+        label: t('Debug Files Access'),
+        help: t(
+          'Role required to download debug information files, proguard mappings and source maps.'
+        ),
       },
     ],
   },

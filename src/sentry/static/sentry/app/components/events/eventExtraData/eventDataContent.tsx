@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {defined} from 'app/utils';
-import ContextBlock from 'app/components/events/contexts/contextBlockV2';
+import ContextBlock from 'app/components/events/contexts/contextBlock';
 
 import getEventExtraDataKnownData from './getEventExtraDataKnownData';
 
@@ -15,7 +15,7 @@ const EventDataContent = ({data, raw}: Props) => {
     return null;
   }
 
-  return <ContextBlock knownData={getEventExtraDataKnownData(data)} raw={raw} />;
+  return <ContextBlock data={getEventExtraDataKnownData(data)} raw={raw} />;
 };
 
 export default EventDataContent;

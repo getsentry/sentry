@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ExternalIssueForm from 'app/components/group/externalIssueForm';
 
 jest.mock('lodash/debounce', () => {
@@ -57,7 +58,7 @@ describe('ExternalIssueForm', () => {
     });
     it('renders', () => {
       wrapper = generateWrapper();
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
   describe('link', () => {
@@ -129,7 +130,7 @@ describe('ExternalIssueForm', () => {
     });
     it('renders', () => {
       wrapper = generateWrapper('link');
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
     it('load options', async () => {
       wrapper = generateWrapper('link');

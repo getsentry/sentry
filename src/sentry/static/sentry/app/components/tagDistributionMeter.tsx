@@ -244,14 +244,14 @@ const Title = styled('div')`
 `;
 
 const TitleType = styled('div')`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   font-weight: bold;
   ${overflowEllipsis};
 `;
 
 const TitleDescription = styled('div')`
   display: flex;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   text-align: right;
 `;
 
@@ -263,7 +263,7 @@ const Label = styled('div')`
 const Percent = styled('div')`
   font-weight: bold;
   padding-left: ${space(0.5)};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 const OtherSegment = styled('span')`

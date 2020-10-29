@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Meta} from 'app/types';
 import Tooltip from 'app/components/tooltip';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {IconSliders} from 'app/icons';
 import {t} from 'app/locale';
 
 const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
@@ -51,22 +52,15 @@ class frameRegistersValue extends React.Component<Props, State> {
 
   render() {
     const formattedValue = this.formatValue();
+    const {meta} = this.props;
+
     return (
       <InlinePre data-test-id="frame-registers-value">
         <FixedWidth>
-          {this.props.meta ? (
-            <AnnotatedText
-              vakue={formattedValue}
-              chunks={this.props.meta.chunks}
-              remarks={this.props.meta.rem}
-              errors={this.props.meta.err}
-            />
-          ) : (
-            formattedValue
-          )}
+          <AnnotatedText value={formattedValue} meta={meta} />
         </FixedWidth>
         <Tooltip title={this.tooltipTitle()}>
-          <Toggle className="icon-filter" onClick={this.toggleView} />
+          <Toggle onClick={this.toggleView} size="xs" />
         </Tooltip>
       </InlinePre>
     );
@@ -83,11 +77,11 @@ const FixedWidth = styled('span')`
   width: 11em;
   display: inline-block;
   text-align: right;
+  margin-right: 1ex;
 `;
 
-const Toggle = styled('span')`
+const Toggle = styled(IconSliders)`
   opacity: 0.33;
-  margin-left: 1ex;
   cursor: pointer;
 
   &:hover {

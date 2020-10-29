@@ -2,13 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Release, ProjectRelease} from 'app/types';
+import {Release} from 'app/types';
 import AvatarList from 'app/components/avatar/avatarList';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 
 type Props = {
-  release: Release | ProjectRelease;
+  release: Release;
   withHeading: boolean;
 };
 
@@ -40,7 +40,7 @@ ReleaseStats.propTypes = {
 };
 
 const ReleaseSummaryHeading = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;
   font-weight: 600;

@@ -253,12 +253,14 @@ def create_sample_time_series(event, release=None):
         tsdb.incr_multi(
             (
                 (tsdb.models.organization_total_received, project.organization_id),
-                (tsdb.models.project_total_forwarded, project.id),
                 (tsdb.models.project_total_received, project.id),
                 (tsdb.models.key_total_received, key.id),
             ),
             now,
             int(count * 1.1),
+        )
+        tsdb.incr(
+            tsdb.models.project_total_forwarded, project.id, now, int(count * 1.1),
         )
         tsdb.incr_multi(
             (
@@ -324,7 +326,7 @@ def create_sample_time_series(event, release=None):
         now = now - timedelta(hours=1)
 
 
-def main(num_events=1, extra_events=False):
+def main(num_events=1, extra_events=False, load_transactions=False):
     user = User.objects.filter(is_superuser=True)[0]
 
     dummy_user, _ = User.objects.get_or_create(
@@ -341,7 +343,7 @@ def main(num_events=1, extra_events=False):
     Broadcast.objects.create(
         title="Learn about Source Maps",
         message="Source maps are JSON files that contain information on how to map your transpiled source code back to their original source.",
-        link="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry",
+        link="https://docs.sentry.io/platforms/javascript/#source-maps",
     )
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
@@ -562,6 +564,44 @@ def main(num_events=1, extra_events=False):
                         user=generate_user(),
                     )
 
+            if load_transactions:
+                for day in range(14):
+                    for hour in range(24):
+                        timestamp = timezone.now() - timedelta(days=day, hours=hour)
+                        transaction_user = generate_user()
+                        transaction1 = create_sample_event(
+                            project=project,
+                            platform="javascript-transaction",
+                            event_id=uuid4().hex,
+                            user=transaction_user,
+                            timestamp=timestamp,
+                            # start_timestamp decreases based on day so that there's a trend
+                            start_timestamp=timestamp
+                            - timedelta(
+                                milliseconds=int(random.normalvariate(2000 - 50 * day, 250))
+                            ),
+                            measurements={
+                                "fp": {"value": max(random.normalvariate(2000, 200), 1000)},
+                                "fcp": {"value": max(random.normalvariate(2250, 200), 1000)},
+                                "lcp": {"value": max(random.normalvariate(2800, 400), 2000)},
+                                "fid": {"value": max(random.normalvariate(5, 2), 1)},
+                            },
+                        )
+                        create_sample_event(
+                            project=project,
+                            platform="transaction",
+                            event_id=uuid4().hex,
+                            user=transaction_user,
+                            timestamp=timestamp,
+                            # start_timestamp increases based on day so that there's a trend
+                            start_timestamp=timestamp
+                            - timedelta(
+                                milliseconds=int(random.normalvariate(2000 + 50 * day, 250))
+                            ),
+                            # match the trace from the javascript transaction
+                            trace=transaction1.get_tag("trace"),
+                        )
+
             for _ in range(num_events):
                 event1 = create_sample_event(
                     project=project,
@@ -663,16 +703,21 @@ def main(num_events=1, extra_events=False):
             try:
                 # Metric alerts
                 alert_rule = create_alert_rule(
-                    org, [project], "My Alert Rule", "level:error", QueryAggregations.TOTAL, 10, 1
+                    org,
+                    [project],
+                    "My Alert Rule",
+                    "level:error",
+                    "count()",
+                    10,
+                    AlertRuleThresholdType.ABOVE,
+                    1,
                 )
-                create_alert_rule_trigger(alert_rule, "critical", AlertRuleThresholdType.ABOVE, 10)
+                create_alert_rule_trigger(alert_rule, "critical", 10)
                 create_incident(
                     org,
                     type_=IncidentType.DETECTED,
                     title="My Incident",
-                    query="",
                     date_started=datetime.utcnow().replace(tzinfo=utc),
-                    aggregation=QueryAggregations.TOTAL,
                     alert_rule=alert_rule,
                     projects=[project],
                 )
@@ -713,11 +758,18 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--events", dest="num_events", default=1, type=int)
     parser.add_option("--extra-events", dest="extra_events", default=False, action="store_true")
+    parser.add_option(
+        "--load-transactions", dest="load_transactions", default=False, action="store_true"
+    )
 
     (options, args) = parser.parse_args()
 
     try:
-        main(num_events=options.num_events, extra_events=options.extra_events)
+        main(
+            num_events=options.num_events,
+            extra_events=options.extra_events,
+            load_transactions=options.load_transactions,
+        )
     except Exception:
         # Avoid reporting any issues recursively back into Sentry
         import traceback

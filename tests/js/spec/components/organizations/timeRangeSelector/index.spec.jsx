@@ -1,10 +1,11 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ConfigStore from 'app/stores/configStore';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
-describe('TimeRangeSelector', function() {
+describe('TimeRangeSelector', function () {
   let wrapper;
   const onChange = jest.fn();
   const routerContext = TestStubs.routerContext();
@@ -21,14 +22,14 @@ describe('TimeRangeSelector', function() {
       routerContext
     );
 
-  beforeEach(function() {
+  beforeEach(function () {
     ConfigStore.loadInitialData({
       user: {options: {timezone: 'America/New_York'}},
     });
     onChange.mockReset();
   });
 
-  it('renders when given relative period not in dropdown', function() {
+  it('renders when given relative period not in dropdown', function () {
     wrapper = mountWithTheme(
       <TimeRangeSelector showAbsolute={false} showRelative={false} relative="9d" />,
       routerContext
@@ -36,7 +37,7 @@ describe('TimeRangeSelector', function() {
     expect(wrapper.find('HeaderItem').text()).toEqual('Other');
   });
 
-  it('renders when given an invalid relative period', function() {
+  it('renders when given an invalid relative period', function () {
     wrapper = mountWithTheme(
       <TimeRangeSelector showAbsolute={false} showRelative={false} relative="1w" />,
       routerContext
@@ -44,7 +45,7 @@ describe('TimeRangeSelector', function() {
     expect(wrapper.find('HeaderItem').text()).toEqual('Invalid period');
   });
 
-  it('hides relative and absolute selectors', async function() {
+  it('hides relative and absolute selectors', async function () {
     wrapper = mountWithTheme(
       <TimeRangeSelector showAbsolute={false} showRelative={false} />,
       routerContext
@@ -54,7 +55,7 @@ describe('TimeRangeSelector', function() {
     expect(wrapper.find('SelectorItem[value="absolute"]')).toHaveLength(0);
   });
 
-  it('selects absolute item', async function() {
+  it('selects absolute item', async function () {
     wrapper = createWrapper();
     await wrapper.find('HeaderItem').simulate('click');
 
@@ -73,7 +74,7 @@ describe('TimeRangeSelector', function() {
     expect(wrapper.find('[data-test-id="date-range"]')).toHaveLength(1);
   });
 
-  it('selects absolute item with utc enabled', async function() {
+  it('selects absolute item with utc enabled', async function () {
     wrapper = createWrapper({utc: true});
     await wrapper.find('HeaderItem').simulate('click');
 
@@ -93,7 +94,7 @@ describe('TimeRangeSelector', function() {
     expect(wrapper.find('[data-test-id="date-range"]')).toHaveLength(1);
   });
 
-  it('switches from relative to absolute while maintaining equivalent date range', async function() {
+  it('switches from relative to absolute while maintaining equivalent date range', async function () {
     wrapper = createWrapper({
       relative: '7d',
       utc: false,
@@ -126,7 +127,7 @@ describe('TimeRangeSelector', function() {
     });
   });
 
-  it('switches from relative to absolute while maintaining equivalent date range (in utc)', async function() {
+  it('switches from relative to absolute while maintaining equivalent date range (in utc)', async function () {
     wrapper = createWrapper({
       relative: '7d',
       utc: true,
@@ -159,7 +160,7 @@ describe('TimeRangeSelector', function() {
     });
   });
 
-  it('switches from relative to absolute and then toggling UTC (starting with UTC)', async function() {
+  it('switches from relative to absolute and then toggling UTC (starting with UTC)', async function () {
     wrapper = createWrapper({
       relative: '7d',
       utc: true,
@@ -192,7 +193,7 @@ describe('TimeRangeSelector', function() {
     });
   });
 
-  it('switches from relative to absolute and then toggling UTC (starting with non-UTC)', async function() {
+  it('switches from relative to absolute and then toggling UTC (starting with non-UTC)', async function () {
     wrapper = createWrapper({
       relative: '7d',
       utc: false,
@@ -224,7 +225,7 @@ describe('TimeRangeSelector', function() {
     });
   });
 
-  it('maintains time when switching UTC to local time', async function() {
+  it('maintains time when switching UTC to local time', async function () {
     // Times should never change when changing UTC option
     // Instead, the utc flagged is used when querying to create proper date
 
@@ -269,7 +270,7 @@ describe('TimeRangeSelector', function() {
     });
   });
 
-  it('deselects default filter when absolute date selected', async function() {
+  it('deselects default filter when absolute date selected', async function () {
     wrapper = createWrapper({
       relative: '14d',
       utc: false,

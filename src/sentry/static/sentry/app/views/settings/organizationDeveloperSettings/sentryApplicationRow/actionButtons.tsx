@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LightWeightOrganization, SentryApp} from 'app/types';
 import Button from 'app/components/button';
-import {IconDelete} from 'app/icons/iconDelete';
+import {IconDelete, IconStats, IconUpgrade} from 'app/icons';
 import ConfirmDelete from 'app/components/confirmDelete';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -34,7 +34,7 @@ const ActionButtons = ({
   const appDashboardButton = (
     <StyledButton
       size="small"
-      icon="icon-stats"
+      icon={<IconStats />}
       to={`/settings/${org.slug}/developer-settings/${app.slug}/dashboard/`}
     >
       {t('Dashboard')}
@@ -45,7 +45,7 @@ const ActionButtons = ({
     <StyledButton
       disabled={!!disablePublishReason}
       title={disablePublishReason}
-      icon="icon-upgrade"
+      icon={<IconUpgrade />}
       size="small"
       onClick={onPublish}
     >
@@ -98,7 +98,7 @@ const ButtonHolder = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 export default ActionButtons;

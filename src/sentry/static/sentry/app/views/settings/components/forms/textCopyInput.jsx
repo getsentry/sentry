@@ -7,7 +7,7 @@ import {inputStyles} from 'app/styles/input';
 import {selectText} from 'app/utils/selectText';
 import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
-import {IconCopy} from 'app/icons/iconCopy';
+import {IconCopy} from 'app/icons';
 
 const Wrapper = styled('div')`
   display: flex;
@@ -15,7 +15,7 @@ const Wrapper = styled('div')`
 
 const StyledInput = styled('input')`
   ${inputStyles};
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   border-right-width: 0;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
@@ -23,7 +23,7 @@ const StyledInput = styled('input')`
 
   &:hover,
   &:focus {
-    background-color: ${p => p.theme.offWhite};
+    background-color: ${p => p.theme.gray100};
     border-right-width: 0;
   }
 `;

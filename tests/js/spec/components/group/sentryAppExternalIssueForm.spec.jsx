@@ -1,12 +1,13 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue, changeInputValue} from 'sentry-test/select-new';
+
 import {Client} from 'app/api';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
-import {selectByValue} from 'sentry-test/select';
 
-const optionLabelSelector = label => `[aria-label="${label}"]`;
+const optionLabelSelector = label => `[label="${label}"]`;
 
 describe('SentryAppExternalIssueForm', () => {
   let wrapper;
@@ -15,7 +16,7 @@ describe('SentryAppExternalIssueForm', () => {
   let sentryAppInstallation;
   let component;
   let submitUrl;
-  let externalIssueRequst;
+  let externalIssueRequest;
 
   beforeEach(() => {
     group = TestStubs.Group({
@@ -27,7 +28,7 @@ describe('SentryAppExternalIssueForm', () => {
     sentryApp = TestStubs.SentryApp();
     sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
     submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`;
-    externalIssueRequst = Client.addMockResponse({
+    externalIssueRequest = Client.addMockResponse({
       url: submitUrl,
       method: 'POST',
       body: {},
@@ -57,15 +58,15 @@ describe('SentryAppExternalIssueForm', () => {
 
     it('does not submit form if required fields are not set', () => {
       wrapper.find('form').simulate('submit');
-      expect(externalIssueRequst).not.toHaveBeenCalled();
+      expect(externalIssueRequest).not.toHaveBeenCalled();
     });
 
     it('submits to the New External Issue endpoint', () => {
-      selectByValue(wrapper, 1, {name: 'numbers'});
+      selectByValue(wrapper, 'number_1', {name: 'numbers', control: true});
 
       wrapper.find('form').simulate('submit');
 
-      expect(externalIssueRequst).toHaveBeenCalledWith(
+      expect(externalIssueRequest).toHaveBeenCalledWith(
         submitUrl,
         expect.objectContaining({
           data: {
@@ -73,7 +74,7 @@ describe('SentryAppExternalIssueForm', () => {
             description:
               'Sentry Issue: [SEN123](https://sentry.io/organizations/sentry/issues/123/?project=1&referrer=Sample%20App)',
             groupId: '1',
-            numbers: 1,
+            numbers: 'number_1',
             title: 'ApiError: Broken',
           },
           method: 'POST',
@@ -125,7 +126,7 @@ describe('SentryAppExternalIssueForm', () => {
 
       wrapper.find('form').simulate('submit');
 
-      expect(externalIssueRequst).toHaveBeenCalledWith(
+      expect(externalIssueRequest).toHaveBeenCalledWith(
         submitUrl,
         expect.objectContaining({
           data: {
@@ -162,8 +163,8 @@ describe('SentryAppExternalIssueForm Async Field', () => {
   });
 
   describe('renders', () => {
-    it('renders each required_fields field', async function() {
-      Client.addMockResponse({
+    it('renders each required_fields field', async function () {
+      const mockGetOptions = Client.addMockResponse({
         method: 'GET',
         url:
           '/sentry-app-installations/d950595e-cba2-46f6-8a94-b79e42806f98/external-requests/',
@@ -186,10 +187,13 @@ describe('SentryAppExternalIssueForm Async Field', () => {
         />,
         TestStubs.routerContext()
       );
-      wrapper.find('input#numbers').simulate('change', {target: {value: 'I'}});
+
+      const thisInput = wrapper.find('input').at(0);
+      changeInputValue(thisInput, 'I');
+
       await tick();
       wrapper.update();
-
+      expect(mockGetOptions).toHaveBeenCalled();
       expect(wrapper.find(optionLabelSelector('Issue 1')).exists()).toBe(true);
       expect(wrapper.find(optionLabelSelector('Issue 2')).exists()).toBe(true);
     });
@@ -271,7 +275,8 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
         }
       );
 
-      wrapper.find('input#project_id').simulate('change', {target: {value: 'p'}});
+      const projectInput = wrapper.find('[data-test-id="project_id"] input').at(0);
+      changeInputValue(projectInput, 'p');
       await tick();
       wrapper.update();
 
@@ -290,7 +295,9 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
       expect(boardMock).toHaveBeenCalled();
       expect(wrapper.find('SelectControl#board_id').prop('disabled')).toBe(false);
 
-      wrapper.find('input#board_id').simulate('change', {target: {value: 'b'}});
+      const boardInput = wrapper.find('[data-test-id="board_id"] input').at(0);
+      changeInputValue(boardInput, 'b');
+
       await tick();
       wrapper.update();
 

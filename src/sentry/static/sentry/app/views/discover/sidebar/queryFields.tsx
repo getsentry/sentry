@@ -6,6 +6,7 @@ import TextField from 'app/components/forms/textField';
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 import Badge from 'app/components/badge';
+import {IconChevron, IconDocs} from 'app/icons';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import Aggregations from '../aggregations';
@@ -15,10 +16,8 @@ import {
   PlaceholderText,
   SidebarLabel,
   DocsSeparator,
-  StyledInlineSvg,
   DiscoverDocs,
   DocsLabel,
-  DocsIcon,
   DocsLink,
 } from '../styles';
 import Orderby from './orderby';
@@ -92,7 +91,9 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
                 name="name"
                 value={getDynamicText({value: savedQueryName, fixed: 'query name'})}
                 placeholder={t('Saved search name')}
-                onChange={(val: string) => onUpdateName && onUpdateName(val)}
+                onChange={(val: string | number | boolean) =>
+                  onUpdateName && onUpdateName(`${val}`)
+                }
               />
             </React.Fragment>
           </Fieldset>
@@ -159,15 +160,19 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
         <DocsSeparator />
         <DocsLink href="https://docs.sentry.io/product/discover/">
           <DiscoverDocs>
-            <DocsIcon src="icon-docs" />
+            <IconDocs size="sm" />
             <DocsLabel>{t('Discover Documentation')}</DocsLabel>
-            <StyledInlineSvg src="icon-chevron-right" size="1em" />
+            <StyledIconChevron direction="right" size="1em" />
           </DiscoverDocs>
         </DocsLink>
       </div>
     );
   }
 }
+
+const StyledIconChevron = styled(IconChevron)`
+  justify-content: flex-end;
+`;
 
 const Option = styled('div')`
   display: flex;

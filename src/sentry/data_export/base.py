@@ -4,7 +4,9 @@ import six
 from datetime import timedelta
 from enum import Enum
 
-SNUBA_MAX_RESULTS = 1000
+MAX_BATCH_SIZE = 8 * 1024 * 1024
+EXPORTED_ROWS_LIMIT = 10000000
+SNUBA_MAX_RESULTS = 10000
 DEFAULT_EXPIRATION = timedelta(weeks=4)
 
 
@@ -26,7 +28,10 @@ class ExportQueryType(object):
 
     @classmethod
     def as_choices(cls):
-        return ((cls.ISSUES_BY_TAG, cls.ISSUES_BY_TAG_STR), (cls.DISCOVER, cls.DISCOVER_STR))
+        return (
+            (cls.ISSUES_BY_TAG, six.text_type(cls.ISSUES_BY_TAG_STR)),
+            (cls.DISCOVER, six.text_type(cls.DISCOVER_STR)),
+        )
 
     @classmethod
     def as_str_choices(cls):

@@ -10,12 +10,14 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
-import ProjectSelector from 'app/components/projectSelector';
-import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import HeaderItem from 'app/components/organizations/headerItem';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
+import PlatformList from 'app/components/platformList';
+import {IconProject} from 'app/icons';
+
+import ProjectSelector from './projectSelector';
 
 export default class MultipleProjectSelector extends React.PureComponent {
   static propTypes = {
@@ -23,7 +25,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     value: PropTypes.array,
     projects: PropTypes.array.isRequired,
     nonMemberProjects: PropTypes.array.isRequired,
-    loadingProjects: PropTypes.bool,
+    isGlobalSelectionReady: PropTypes.bool,
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,
@@ -44,12 +46,9 @@ export default class MultipleProjectSelector extends React.PureComponent {
     lockedMessageSubject: t('page'),
   };
 
-  constructor() {
-    super();
-    this.state = {
-      hasChanges: false,
-    };
-  }
+  state = {
+    hasChanges: false,
+  };
 
   // Reset "hasChanges" state and call `onUpdate` callback
   doUpdate = () => {
@@ -182,7 +181,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     const {
       value,
       projects,
-      loadingProjects,
+      isGlobalSelectionReady,
       nonMemberProjects,
       multi,
       organization,
@@ -204,7 +203,14 @@ export default class MultipleProjectSelector extends React.PureComponent {
     return shouldForceProject ? (
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
-        icon={<StyledInlineSvg src="icon-project" />}
+        icon={
+          forceProject && (
+            <PlatformList
+              platforms={forceProject.platform ? [forceProject.platform] : []}
+              max={1}
+            />
+          )
+        }
         locked
         lockedMessage={this.getLockedMessage()}
         settingsLink={
@@ -215,11 +221,11 @@ export default class MultipleProjectSelector extends React.PureComponent {
       >
         {this.renderProjectName()}
       </StyledHeaderItem>
-    ) : loadingProjects ? (
+    ) : !isGlobalSelectionReady ? (
       <StyledHeaderItem
-        data-test-id="global-header-project-selector"
-        icon={<StyledInlineSvg src="icon-project" />}
-        loading={loadingProjects}
+        data-test-id="global-header-project-selector-loading"
+        icon={<IconProject />}
+        loading
       >
         {t('Loading\u2026')}
       </StyledHeaderItem>
@@ -263,12 +269,20 @@ export default class MultipleProjectSelector extends React.PureComponent {
                 : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
                 ? t('All Projects')
                 : t('My Projects');
+              const icon = hasSelected ? (
+                <PlatformList
+                  platforms={selectedProjects.map(p => p.platform ?? 'other').reverse()}
+                  max={5}
+                />
+              ) : (
+                <IconProject />
+              );
 
               return (
                 <StyledHeaderItem
                   data-test-id="global-header-project-selector"
                   active={hasSelected || isOpen}
-                  icon={<StyledInlineSvg src="icon-project" />}
+                  icon={icon}
                   hasSelected={hasSelected}
                   hasChanges={this.state.hasChanges}
                   isOpen={isOpen}
@@ -384,16 +398,10 @@ const StyledHeaderItem = styled(HeaderItem)`
   ${p => p.locked && 'cursor: default'};
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
-  height: 18px;
-  width: 18px;
-  transform: translateY(-2px);
-`;
-
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 
   &:hover {
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
   }
 `;

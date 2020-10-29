@@ -10,7 +10,7 @@ cache:
   yarn: true
   directories:
     - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
-    - '$NODE_DIR'
+    - '$VOLTA_HOME'
     - node_modules
     - '${HOME}/google-cloud-sdk'
 
@@ -30,10 +30,9 @@ env:
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - MIGRATIONS_TEST_MIGRATE=0
-    # Use this to override the django version in the requirements file.
-    - DJANGO_VERSION=">=1.11,<1.12"
-    # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
-    - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
+    - VOLTA_VERSION=0.8.1
+    - VOLTA_HOME="${HOME}/.volta"
+    - PATH="${HOME}/.volta/bin:${PATH}"
     - NODE_OPTIONS=--max-old-space-size=4096
     - PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
     - SENTRY_KAFKA_HOSTS=localhost:9092
@@ -62,12 +61,27 @@ base_install: &base_install |-
 
   [ "$TRAVIS_PULL_REQUEST" != "false" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
 
+install_volta: &install_volta |-
+  command -v volta && return 0
+  wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
+  tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C "${HOME}/bin"
+  # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
+  volta -v
+
+install_node_dependencies: &install_node_dependencies |-
+  # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project.
+  # There might be a more readable `volta install` in the future that would replace this magic.
+  # Tracking: https://github.com/volta-cli/volta/issues/653#issuecomment-628909923
+  node -v
+  yarn -v
+  yarn install --frozen-lockfile
+
 start_snuba: &start_snuba |-
   docker run \
     --name sentry_clickhouse \
     -d --network host \
     --ulimit nofile=262144:262144 \
-    yandex/clickhouse-server:19.11 \
+    yandex/clickhouse-server:20.3.9.70 \
 
   docker run \
     --name sentry_snuba \
@@ -77,12 +91,10 @@ start_snuba: &start_snuba |-
     -e CLICKHOUSE_PORT=9000 \
     getsentry/snuba
 
+  docker exec sentry_snuba snuba migrations migrate --force
+
 script:
-  # certain commands require sentry init to be run, but this is only true for
-  # running things within Travis
   - make travis-test-$TEST_SUITE
-  # installing dependencies for after_* steps here ensures they get cached
-  # since those steps execute after travis runs `store build cache`
 
 after_failure:
   - dmesg | tail -n 100
@@ -94,14 +106,15 @@ after_script:
       pip install -U codecov
       codecov -e TEST_SUITE
     fi
-  - ./bin/yarn global add @zeus-ci/cli
-  - $(./bin/yarn global bin)/zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
-  - $(./bin/yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
-  - $(./bin/yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
-  - $(./bin/yarn global bin)/zeus upload -t "text/html+pytest" .artifacts/*pytest.html
-  - $(./bin/yarn global bin)/zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
-  - $(./bin/yarn global bin)/zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
-  - $(./bin/yarn global bin)/zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
+  - *install_volta
+  - volta install @zeus-ci/cli
+  - zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
+  - zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
+  - zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
+  - zeus upload -t "text/html+pytest" .artifacts/*pytest.html
+  - zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
+  - zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
+  - zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
 
 base_postgres: &postgres_default
   python: 2.7
@@ -116,6 +129,7 @@ base_postgres: &postgres_default
   install:
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
+    - sentry init
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
@@ -128,20 +142,20 @@ base_acceptance: &acceptance_default
     - postgresql
   before_install:
     - *base_install
+    - *install_volta
     - *start_snuba
-    - find "$NODE_DIR" -type d -empty -delete
-    - nvm install
     - docker ps -a
   install:
-    - ./bin/yarn install --frozen-lockfile
+    - *install_node_dependencies
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
+    - sentry init
     - |
       CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
       wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
     - unzip ~/chromedriver_linux64.zip -d ~/
     - rm ~/chromedriver_linux64.zip
-    - sudo install -m755 ~/chromedriver /usr/local/bin/
+    - install -m755 ~/chromedriver -C "${HOME}/bin"
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
@@ -154,38 +168,23 @@ matrix:
     - language: generic
       name: 'Linter (Javascript)'
       env: TEST_SUITE=lint-js
-      install:
-        - find "$NODE_DIR" -type d -empty -delete
+      before_install:
         # Under a "generic" language environment, this will make travis pyenv error because there
         # is no pyenv python installed.
         - rm .python-version
-        - nvm install
-        - ./bin/yarn install --frozen-lockfile
+        - *install_volta
+      install:
+        - *install_node_dependencies
 
     - python: 3.7
-      name: 'pre-commit hooks (includes python linting + format check) and dependency scanning'
+      name: 'pre-commit hooks (includes python linting + format check)'
       install:
-        # XXX: this must be synced with requirements-dev.txt
-        - pip install 'sentry-flake8==0.3.0'
         - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
       script:
-        # black is going to rewrite the files in-place.
-        # i need to either define a second hook that only runs --check --diff and conditionally run that,
-        # or i need to figure out how to pass additional args to a hook from the pre-commit invocation.
-        - pre-commit run --all-files
-        # If pre-commit was good, then we scan dependencies.
-        # Note that this isn't moved to an after_script since that would override what we already have.
-        # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...
-        # see the note in bin/scan on why this needs to be done for now.
-        # Note that this will mostly noop because we pull in a cached venv from Travis.
-        - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install -e .
-        - pip install safety
-        # XXX: fun fact, as of April 2020 travis preinstalls numpy 1.15.4 in their 3.7 environments
-        # and the safety scanner won't like that (safety id 36810)
-        # Previously we had 36810 ignored in bin/scan until it was removed because it was fixed in
-        # travis 2.7. So this is isolated to at least travis 3.7.
-        - pip uninstall -y numpy
-        - bin/scan
+        # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
+        # XXX: there is a very small chance that it'll expand to exceed Linux's limits
+        #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
+        - pre-commit run --files $(git diff --diff-filter=d --name-only master)
 
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'
@@ -195,30 +194,34 @@ matrix:
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1 MIGRATIONS_TEST_MIGRATE=1
 
     - <<: *acceptance_default
-      name: 'Acceptance'
-      env: TEST_SUITE=acceptance USE_SNUBA=1
+      name: 'Acceptance (1/3)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=0
+    - <<: *acceptance_default
+      name: 'Acceptance (2/3)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=1
+    - <<: *acceptance_default
+      name: 'Acceptance (3/3)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=2
 
     - <<: *acceptance_default
       name: 'Plugins'
-      env: TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
+      env: TEST_SUITE=plugins DB=postgres
 
     - python: 2.7
       name: 'Frontend [test]'
       env: TEST_SUITE=js
       before_install:
-        - find "$NODE_DIR" -type d -empty -delete
-        - nvm install
+        - *install_volta
       install:
-        - ./bin/yarn install --frozen-lockfile
+        - *install_node_dependencies
 
     - python: 2.7
       name: 'Frontend [build]'
       env: TEST_SUITE=js-build
       before_install:
-        - find "$NODE_DIR" -type d -empty -delete
-        - nvm install
+        - *install_volta
       install:
-        - ./bin/yarn install --frozen-lockfile
+        - *install_node_dependencies
 
     - python: 2.7
       name: 'Command Line'
@@ -228,7 +231,8 @@ matrix:
         - redis-server
       install:
         - python setup.py install_egg_info
-        - pip install -U -e .
+        - pip install -U -e ".[dev]"
+        - sentry init
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -238,7 +242,7 @@ matrix:
       before_install:
         - *base_install
         - *start_snuba
-        - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
+        - docker run -d -v $PWD/config/symbolicator/:/etc/symbolicator --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run -c /etc/symbolicator/config.yml
         - docker ps -a
 
     - <<: *postgres_default
@@ -270,42 +274,22 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev]"
+        - sentry init
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
-    # XXX: this needs to be the same as postgres_default (other than python, name, env, and the rb package override)
-    # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
-    #       So for now, we're unblocking that by not having MIGRATIONS_TEST_MIGRATE=1.
-    # Allowed to fail!
-    # - python: 3.6
-    #   name: 'Python 3.6 backend (no migrations) [Postgres]'
-    #   env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1 PYTEST_ADDOPTS="" PYTEST_SENTRY_ALWAYS_REPORT=no
-    #   services:
-    #     - memcached
-    #     - redis-server
-    #     - postgresql
-    #   before_install:
-    #     - *base_install
-    #     - *start_snuba
-    #     - docker ps -a
-    #   install:
-    #     - python setup.py install_egg_info
-    #     - pip install -U -e ".[dev]"
-    #     - pip uninstall -y rb
-    #     - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
-    #   before_script:
-    #     - psql -c 'create database sentry;' -U postgres
-
     # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'
-      language: node_js
+      language: generic
       env: STORYBOOK_BUILD=1
       before_install:
         # travis pyenv will attempt to use .python-version, but the appropriate python version won't be installed.
         # since we don't need python here, we have to remove this.
         - rm .python-version
-      install: ./bin/yarn install --frozen-lockfile
-      script: ./bin/yarn run storybook-build
+        - *install_volta
+      install:
+        - *install_node_dependencies
+      script: yarn run storybook-build
       after_success: .travis/deploy-storybook.sh
       after_failure: skip
 
@@ -313,6 +297,11 @@ notifications:
   webhooks:
     urls:
       - https://zeus.ci/hooks/fa079cf6-8e6b-11e7-9155-0a580a28081c/public/provider/travis/webhook
+
+      # This is to capture travis metrics
+      # Repo for this webhook is https://github.com/getsentry/sentry-development-metrics
+      # Hosted on GCP
+      - https://product-eng-webhooks-vmrqv3f7nq-uw.a.run.app/metrics/travis/webhook
     on_success: always
     on_failure: always
     on_start: always

@@ -1,11 +1,12 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {Form, SelectCreatableField} from 'app/components/forms';
 
-describe('SelectCreatableField', function() {
-  describe('deprecatedSelectControl', function() {
-    it('can add user input into select field when using options', function() {
+describe('SelectCreatableField', function () {
+  describe('deprecatedSelectControl', function () {
+    it('can add user input into select field when using options', function () {
       const wrapper = mountWithTheme(
         <SelectCreatableField
           deprecatedSelectControl
@@ -36,7 +37,7 @@ describe('SelectCreatableField', function() {
       ]);
     });
 
-    it('can add user input into select field when using choices', function() {
+    it('can add user input into select field when using choices', function () {
       const wrapper = mountWithTheme(
         <SelectCreatableField
           deprecatedSelectControl
@@ -67,7 +68,7 @@ describe('SelectCreatableField', function() {
       ]);
     });
 
-    it('can add user input into select field when using paired choices', function() {
+    it('can add user input into select field when using paired choices', function () {
       const wrapper = mountWithTheme(
         <SelectCreatableField
           deprecatedSelectControl
@@ -98,7 +99,7 @@ describe('SelectCreatableField', function() {
       ]);
     });
 
-    it('with Form context', function() {
+    it('with Form context', function () {
       const submitMock = jest.fn();
       const wrapper = mountWithTheme(
         <Form onSubmit={submitMock}>

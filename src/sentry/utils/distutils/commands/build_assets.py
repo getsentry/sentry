@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
-import json
 import datetime
 import os
 import os.path
 import sys
 import traceback
+
+# Import the stdlib json instead of sentry.utils.json, since this command is
+# run in setup.py
+import json  # NOQA
 
 from distutils import log
 
@@ -131,8 +134,8 @@ class BuildAssetsCommand(BaseBuildCommand):
         env["NODE_OPTIONS"] = (
             (env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096")
         ).lstrip()
-        self._run_yarn_command(["tsc"], env=env)
-        self._run_yarn_command(["webpack", "--bail"], env=env)
+        self._run_command(["yarn", "tsc", "-p", "config/tsconfig.build.json"], env=env)
+        self._run_command(["yarn", "webpack", "--bail"], env=env)
 
     def _write_version_file(self, version_info):
         manifest = {

@@ -8,8 +8,8 @@ import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-import InlineSvg from 'app/components/inlineSvg';
-import Tag from 'app/views/settings/components/tag';
+import {IconFlag} from 'app/icons';
+import Tag from 'app/components/tagDeprecated';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
 import {IntegrationFeature, SentryApp, Organization} from 'app/types';
@@ -119,7 +119,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
               {tct('[read] and [write] access to [resources] resources', {
                 read: <strong>Read</strong>,
                 write: <strong>Write</strong>,
-                resources: permissions.read.join(', '),
+                resources: permissions.write.join(', '),
               })}
             </Text>
           </Permission>
@@ -130,7 +130,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
             <Text key="admin">
               {tct('[admin] access to [resources] resources', {
                 admin: <strong>Admin</strong>,
-                resources: permissions.read.join(', '),
+                resources: permissions.admin.join(', '),
               })}
             </Text>
           </Permission>
@@ -238,12 +238,12 @@ const Description = styled('div')`
 `;
 
 const Author = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div {...p}>
-    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
+    <IconFlag color="red400" size="1.5em" />
     {reason}
   </div>
 ))`
@@ -251,7 +251,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   align-items: center;
   flex: 1;
   grid-template-columns: max-content 1fr;
-  color: ${p => p.theme.red};
+  color: ${p => p.theme.red400};
   font-size: 0.9em;
 `;
 

@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 import Reflux from 'reflux';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {setLocale} from 'app/locale';
 import {Config} from 'app/types';

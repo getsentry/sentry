@@ -74,7 +74,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
         return comment
 
     def get_persisted_default_config_fields(self):
-        return ["project"]
+        return ["project", "issueType"]
 
     def get_create_issue_config(self, group, **kwargs):
         kwargs["link_referrer"] = "example_integration"
@@ -140,6 +140,9 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_display_name(self, external_issue):
         return "display name: %s" % external_issue.key
 
+    def get_stacktrace_link(self, repo, path, version):
+        pass
+
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """
@@ -160,7 +163,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
     def get_config(self):
         return [{"name": "name", "label": "Name", "type": "text", "required": True}]
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         Migrator.run(integration=integration, organization=organization)
 
     def build_integration(self, state):
@@ -188,3 +191,9 @@ class AliasedIntegrationProvider(ExampleIntegrationProvider):
 class ServerExampleProvider(ExampleIntegrationProvider):
     key = "example_server"
     name = "Example Server"
+
+
+class FeatureFlagIntegration(ExampleIntegrationProvider):
+    key = "feature_flag_integration"
+    name = "Feature Flag Integration"
+    requires_feature_flag = True

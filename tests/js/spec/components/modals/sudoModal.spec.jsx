@@ -1,14 +1,15 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
 import App from 'app/views/app';
 import ConfigStore from 'app/stores/configStore';
 
 jest.mock('jquery');
 
-describe('Sudo Modal', function() {
-  beforeEach(function() {
+describe('Sudo Modal', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/internal/health/',
@@ -41,12 +42,15 @@ describe('Sudo Modal', function() {
     });
   });
 
-  it('can delete an org with sudo flow', async function() {
+  it('can delete an org with sudo flow', async function () {
     ConfigStore.set('user', {
       ...ConfigStore.get('user'),
       hasPasswordAuth: true,
     });
-    const wrapper = mount(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = mountWithTheme(
+      <App>{<div>placeholder content</div>}</App>,
+      TestStubs.routerContext()
+    );
 
     const api = new Client();
     const successCb = jest.fn();
@@ -125,12 +129,15 @@ describe('Sudo Modal', function() {
     expect(wrapper.find('ModalDialog')).toHaveLength(0);
   });
 
-  it('shows button to redirect if user does not have password auth', async function() {
+  it('shows button to redirect if user does not have password auth', async function () {
     ConfigStore.set('user', {
       ...ConfigStore.get('user'),
       hasPasswordAuth: false,
     });
-    const wrapper = mount(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = mountWithTheme(
+      <App>{<div>placeholder content</div>}</App>,
+      TestStubs.routerContext()
+    );
 
     const api = new Client();
     const successCb = jest.fn();

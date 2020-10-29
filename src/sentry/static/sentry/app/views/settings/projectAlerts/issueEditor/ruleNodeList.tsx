@@ -14,23 +14,24 @@ import {Organization, Project} from 'app/types';
 import RuleNode from './ruleNode';
 
 type Props = {
-  // All available actions or conditions
-  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
-
-  // actions/conditions that have been added to the rule
-  items?: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
-
   project: Project;
-
   organization: Organization;
-
-  // Placeholder for select control
+  /**
+   * All available actions or conditions
+   */
+  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
+  /**
+   * actions/conditions that have been added to the rule
+   */
+  items: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
+  /**
+   * Placeholder for select control
+   */
   placeholder: string;
-
+  disabled: boolean;
+  error: React.ReactNode;
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
-
   onAddRow: (value: string) => void;
-
   onDeleteRow: (ruleIndex: number) => void;
 };
 
@@ -56,40 +57,44 @@ class RuleNodeList extends React.Component<Props> {
       items,
       organization,
       project,
+      disabled,
+      error,
     } = this.props;
 
+    const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
     const options = nodes
       ? nodes
           .filter(({enabled}) => enabled)
           .map(node => ({
             value: node.id,
-            label: node.label,
+            label: shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label,
           }))
       : [];
 
     return (
       <React.Fragment>
-        {items && !!items.length && (
-          <RuleNodes>
-            {items.map((item, idx) => (
-              <RuleNode
-                key={idx}
-                index={idx}
-                node={this.getNode(item.id)}
-                onDelete={onDeleteRow}
-                data={item}
-                onPropertyChange={onPropertyChange}
-                organization={organization}
-                project={project}
-              />
-            ))}
-          </RuleNodes>
-        )}
+        <RuleNodes>
+          {error}
+          {items.map((item, idx) => (
+            <RuleNode
+              key={idx}
+              index={idx}
+              node={this.getNode(item.id)}
+              onDelete={onDeleteRow}
+              data={item}
+              onPropertyChange={onPropertyChange}
+              organization={organization}
+              project={project}
+              disabled={disabled}
+            />
+          ))}
+        </RuleNodes>
         <StyledSelectControl
           placeholder={placeholder}
           value={null}
           onChange={obj => onAddRow(obj ? obj.value : obj)}
           options={options}
+          disabled={disabled}
         />
       </React.Fragment>
     );
@@ -104,7 +109,7 @@ const StyledSelectControl = styled(SelectControl)`
 
 const RuleNodes = styled('div')`
   display: grid;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
   grid-gap: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {

@@ -35,3 +35,16 @@ class IntegrationTestCase(TestCase):
         assert integration.model == self.model
         assert integration.org_integration == self.org_integration
         assert integration.get_default_identity() == self.identity
+
+    def test_model_default_fields(self):
+        # These fields are added through the DefaultFieldsModel
+        # and date_updated should get automatically updated any
+        # time the model is saved
+        assert self.model.date_added
+        assert self.model.date_updated
+
+        inital_value = self.model.date_updated
+        self.model.name = "cooler_name"
+        self.model.save()
+
+        assert inital_value < Integration.objects.get(id=self.model.id).date_updated
