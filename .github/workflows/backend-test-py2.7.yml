@@ -38,18 +38,18 @@ jobs:
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
         with:
           python-version: 2.7.17
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
         id: pip
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
 
       - name: pip cache
         uses: actions/cache@v2
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
@@ -59,13 +59,13 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
         with:
           python: 2
           snuba: true
 
       - name: Run backend test [py2.7] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: steps.changes.outputs.frontend == 'false'
+        if: steps.changes.outputs.backend == 'true'
         run: |
           # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
           unset USE_SNUBA

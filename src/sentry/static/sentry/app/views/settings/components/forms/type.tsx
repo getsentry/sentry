@@ -37,6 +37,7 @@ type BaseField = {
   label?: React.ReactNode | (() => React.ReactNode);
   name: string;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
+  showHelpInTooltip?: boolean;
   required?: boolean;
   placeholder?: string | ((props: any) => React.ReactNode);
   multiline?: boolean;
@@ -147,10 +148,11 @@ export type ProjectMapperType = {
   };
   sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   nextButton: {
-    url: string | null;
-    text: string;
+    text: string; //url comes from the `next` parameter in the QS
+    allowedDomain: string;
   };
   iconType: string;
+  manageUrl?: string;
 };
 
 //selects a sentry project with avatars

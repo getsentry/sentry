@@ -10,6 +10,11 @@ function getThreadException(thread: Thread, event: Event): EntryTypeData | undef
     if (entry.type !== 'exception') {
       continue;
     }
+
+    if (entry.data.values.length === 1 && !entry.data.values[0].threadId) {
+      return entry.data;
+    }
+
     for (const exc of entry.data.values) {
       if (exc.threadId === thread.id) {
         return entry.data;

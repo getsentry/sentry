@@ -73,7 +73,7 @@ class Settings extends DefaultSettings {
       this.onSaveSuccess(this.onSaveComplete);
       return;
     }
-    const body = Object.assign({}, this.state.data);
+    const body = Object.assign({}, this.state.formData);
     // if the project has changed, it's likely these values aren't valid anymore
     if (body.default_project !== this.state.initialData.default_project) {
       body.default_issue_type = null;

@@ -269,7 +269,7 @@ describe('Grouping Store', function () {
     let mergeState;
 
     beforeEach(function () {
-      mergeList = new Set();
+      mergeList = [];
       mergeState = new Map();
       return GroupingStore.onFetch([
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
@@ -281,14 +281,14 @@ describe('Grouping Store', function () {
       it('can check and uncheck item', function () {
         GroupingStore.onToggleMerge('1');
 
-        mergeList.add('1');
+        mergeList = ['1'];
         mergeState.set('1', {checked: true});
         expect(GroupingStore.mergeList).toEqual(mergeList);
         expect(GroupingStore.mergeState).toEqual(mergeState);
 
         // Uncheck
         GroupingStore.onToggleMerge('1');
-        mergeList.delete('1');
+        mergeList = mergeList.filter(item => item !== '1');
         mergeState.set('1', {checked: false});
 
         // Check all
@@ -296,9 +296,7 @@ describe('Grouping Store', function () {
         GroupingStore.onToggleMerge('2');
         GroupingStore.onToggleMerge('3');
 
-        mergeList.add('1');
-        mergeList.add('2');
-        mergeList.add('3');
+        mergeList = ['1', '2', '3'];
         mergeState.set('1', {checked: true});
         mergeState.set('2', {checked: true});
         mergeState.set('3', {checked: true});
@@ -327,7 +325,7 @@ describe('Grouping Store', function () {
       it('disables rows to be merged', async function () {
         trigger.mockReset();
         GroupingStore.onToggleMerge('1');
-        mergeList.add('1');
+        mergeList = ['1'];
         mergeState.set('1', {checked: true});
 
         expect(trigger).toHaveBeenLastCalledWith({
@@ -372,7 +370,7 @@ describe('Grouping Store', function () {
         );
 
         // Should be removed from mergeList after merged
-        mergeList.delete('1');
+        mergeList = mergeList.filter(item => item !== '1');
         mergeState.set('1', {checked: false, busy: true});
         expect(trigger).toHaveBeenLastCalledWith({
           mergeDisabled: false,
@@ -383,7 +381,7 @@ describe('Grouping Store', function () {
 
       it('keeps rows in "busy" state and unchecks after successfully adding to merge queue', async function () {
         GroupingStore.onToggleMerge('1');
-        mergeList.add('1');
+        mergeList = ['1'];
         mergeState.set('1', {checked: true});
 
         // Expect checked
@@ -420,7 +418,7 @@ describe('Grouping Store', function () {
         // After promise, reset checked to false, but keep busy
         expect(trigger).toHaveBeenLastCalledWith({
           mergeDisabled: false,
-          mergeList: new Set(),
+          mergeList: [],
           mergeState,
         });
       });
@@ -435,7 +433,7 @@ describe('Grouping Store', function () {
         });
 
         GroupingStore.onToggleMerge('1');
-        mergeList.add('1');
+        mergeList = ['1'];
         mergeState.set('1', {checked: true});
 
         const promise = GroupingStore.onMerge({

@@ -14,22 +14,33 @@ type Props = {
 
 const Chart = ({stats, transactionStats}: Props) => {
   const series: BaseChartProps['series'] = [];
+  let hasTransactions = false;
 
   if (transactionStats) {
-    series.push({
-      cursor: 'normal' as const,
-      name: t('Transactions'),
-      type: 'bar',
-      data: transactionStats.map(([timestamp, value]) => [timestamp * 1000, value]),
-      itemStyle: {
-        color: theme.gray300,
-        opacity: 0.8,
-        emphasis: {
-          color: theme.gray300,
-          opacity: 1.0,
-        },
-      },
+    const transactionSeries = transactionStats.map(([timestamp, value]) => {
+      if (value > 0) {
+        hasTransactions = true;
+      }
+      return [timestamp * 1000, value];
     });
+    if (hasTransactions) {
+      series.push({
+        cursor: 'normal' as const,
+        name: t('Transactions'),
+        type: 'bar',
+        data: transactionSeries,
+        xAxisIndex: 0,
+        yAxisIndex: 1,
+        itemStyle: {
+          color: theme.gray400,
+          opacity: 0.8,
+          emphasis: {
+            color: theme.gray400,
+            opacity: 1.0,
+          },
+        },
+      });
+    }
   }
 
   if (stats) {
@@ -38,13 +49,16 @@ const Chart = ({stats, transactionStats}: Props) => {
       name: t('Errors'),
       type: 'bar',
       data: stats.map(([timestamp, value]) => [timestamp * 1000, value]),
+      barMinHeight: 1,
       barGap: '-100%',
+      xAxisIndex: 0,
+      yAxisIndex: 0,
       itemStyle: {
-        color: theme.purple500,
-        opacity: 0.8,
+        color: theme.purple400,
+        opacity: 0.6,
         emphasis: {
-          color: theme.purple500,
-          opacity: 1.0,
+          color: theme.purple400,
+          opacity: 0.8,
         },
       },
     });
@@ -57,12 +71,10 @@ const Chart = ({stats, transactionStats}: Props) => {
     isGroupedByDate: true,
     showTimeInTooltip: true,
     grid: {
-      // Fiddly values to give room for the axis name and breathing room
-      // for the axis line.
-      top: 2,
-      bottom: 1,
-      left: 20,
-      right: 3,
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
     },
     tooltip: {
       trigger: 'axis' as const,
@@ -70,11 +82,7 @@ const Chart = ({stats, transactionStats}: Props) => {
     xAxis: {
       boundaryGap: true,
       axisLine: {
-        show: true,
-        lineStyle: {
-          color: theme.chartLabel,
-          opacity: 0.8,
-        },
+        show: false,
       },
       axisTick: {
         show: false,
@@ -92,20 +100,18 @@ const Chart = ({stats, transactionStats}: Props) => {
         },
       },
     },
-    yAxis: {
-      show: true,
-      name: 'log',
-      nameGap: 3,
-      nameLocation: 'middle' as const,
-      nameTextStyle: {
-        color: theme.gray400,
+    yAxes: [
+      {
+        axisLabel: {
+          show: false,
+        },
       },
-      type: 'log' as const,
-      min: 1,
-      axisLabel: {
-        show: false,
+      {
+        axisLabel: {
+          show: false,
+        },
       },
-    },
+    ],
     options: {
       animation: false,
     },
