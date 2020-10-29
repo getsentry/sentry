@@ -13,10 +13,10 @@ const routes = [
   {path: 'api-keys/', name: 'API Key'},
 ];
 
-describe('OrganizationApiKeysList', function() {
-  beforeEach(function() {});
+describe('OrganizationApiKeysList', function () {
+  beforeEach(function () {});
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}
@@ -25,10 +25,10 @@ describe('OrganizationApiKeysList', function() {
       />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('opens a modal when trying to delete a key', function() {
+  it('opens a modal when trying to delete a key', function () {
     const wrapper = mountWithTheme(
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}

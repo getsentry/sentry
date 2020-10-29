@@ -1,6 +1,7 @@
 import React from 'react';
 import {Global, css} from '@emotion/core';
 
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import {Theme} from 'app/utils/theme';
 
 const styles = (theme: Theme) => css`
@@ -30,6 +31,15 @@ const styles = (theme: Theme) => css`
       transition-delay: 0s !important;
     }
   }
+
+  ${IS_ACCEPTANCE_TEST
+    ? css`
+        input,
+        select {
+          caret-color: transparent;
+        }
+      `
+    : ''}
 `;
 
 /**

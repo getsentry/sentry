@@ -14,7 +14,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
-from simplejson import JSONDecodeError
 from sentry import options
 from sentry.models import (
     Commit,
@@ -411,7 +410,7 @@ class GithubWebhookBase(View):
 
         try:
             event = json.loads(body.decode("utf-8"))
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             logger.error(
                 "github.webhook.invalid-json",
                 extra=self.get_logging_data(organization),

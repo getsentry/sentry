@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {MOCK_RESP_VERBOSE} from 'sentry-test/fixtures/ruleConditions';
 
 import {CreateProject} from 'app/views/projectInstall/createProject';
@@ -8,7 +8,7 @@ import {openCreateTeamModal} from 'app/actionCreators/modal';
 
 jest.mock('app/actionCreators/modal');
 
-describe('CreateProject', function() {
+describe('CreateProject', function () {
   const baseProps = {
     api: new MockApiClient(),
     location: {query: {}},
@@ -20,12 +20,12 @@ describe('CreateProject', function() {
     },
   };
 
-  it('should block if you have access to no teams', function() {
+  it('should block if you have access to no teams', function () {
     const props = {
       ...baseProps,
     };
 
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {
@@ -39,10 +39,10 @@ describe('CreateProject', function() {
       ])
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('can create a new team', function() {
+  it('can create a new team', function () {
     const props = {
       ...baseProps,
     };
@@ -64,7 +64,7 @@ describe('CreateProject', function() {
     expect(openCreateTeamModal).toHaveBeenCalled();
   });
 
-  it('should fill in project name if its empty when platform is chosen', function() {
+  it('should fill in project name if its empty when platform is chosen', function () {
     const props = {
       ...baseProps,
     };
@@ -85,11 +85,11 @@ describe('CreateProject', function() {
 
     let node = wrapper.find('PlatformCard').first();
     node.simulate('click');
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('C#');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('.NET');
 
     node = wrapper.find('PlatformCard').last();
     node.simulate('click');
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Ruby');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Rails');
 
     //but not replace it when project name is something else:
     wrapper.setState({projectName: 'another'});
@@ -98,10 +98,10 @@ describe('CreateProject', function() {
     node.simulate('click');
     expect(wrapper.find('ProjectNameInput input').props().value).toBe('another');
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('should fill in platform name if its provided by url', function() {
+  it('should fill in platform name if its provided by url', function () {
     const props = {
       ...baseProps,
     };
@@ -115,17 +115,17 @@ describe('CreateProject', function() {
             slug: 'testOrg',
             teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
           },
-          location: {query: {platform: 'ruby'}},
+          location: {query: {platform: 'ruby-rails'}},
         },
       ])
     );
 
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Ruby');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Rails');
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('should deal with incorrect platform name if its provided by url', function() {
+  it('should deal with incorrect platform name if its provided by url', function () {
     const props = {
       ...baseProps,
     };
@@ -146,7 +146,7 @@ describe('CreateProject', function() {
 
     expect(wrapper.find('ProjectNameInput input').props().value).toBe('');
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   describe('Issue Alerts Options', () => {
@@ -154,7 +154,6 @@ describe('CreateProject', function() {
     beforeEach(() => {
       props = {
         ...baseProps,
-        experimentAssignment: '2OptionsV1',
       };
       props.organization.teams = [{slug: 'test', id: '1', name: 'test', hasAccess: true}];
       MockApiClient.addMockResponse({
@@ -196,10 +195,7 @@ describe('CreateProject', function() {
         .simulate('change', {target: {value: '2'}});
       expectSubmitButtonToBeDisabled(true);
 
-      wrapper
-        .find('PlatformCard')
-        .first()
-        .simulate('click');
+      wrapper.find('PlatformCard').first().simulate('click');
       expectSubmitButtonToBeDisabled(false);
 
       wrapper
@@ -220,10 +216,7 @@ describe('CreateProject', function() {
         .simulate('change', {target: {value: ''}});
       expectSubmitButtonToBeDisabled(true);
 
-      wrapper
-        .find('Radio')
-        .first()
-        .simulate('change');
+      wrapper.find('Radio').first().simulate('change');
       expectSubmitButtonToBeDisabled(false);
     });
   });

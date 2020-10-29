@@ -7,6 +7,8 @@ import * as Sentry from '@sentry/react';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
+import {IconFlag} from 'app/icons';
+import getDynamicText from 'app/utils/getDynamicText';
 
 type DefaultProps = {
   mini: boolean;
@@ -48,10 +50,15 @@ class ErrorBoundary extends React.Component<Props, State> {
   };
 
   componentDidMount() {
+    this._isMounted = true;
     // Listen for route changes so we can clear error
-    this.unlistenBrowserHistory = browserHistory.listen(() =>
-      this.setState({error: null})
-    );
+    this.unlistenBrowserHistory = browserHistory.listen(() => {
+      // Prevent race between component unmount and browserHistory change
+      // Setting state on a component that is being unmounted throws an error
+      if (this._isMounted) {
+        this.setState({error: null});
+      }
+    });
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -69,13 +76,14 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
+    this._isMounted = false;
     if (this.unlistenBrowserHistory) {
       this.unlistenBrowserHistory();
     }
   }
 
-  // XXX: browserHistory.listen does not have a correct return type.
-  unlistenBrowserHistory: any;
+  private unlistenBrowserHistory?: ReturnType<typeof browserHistory.listen>;
+  private _isMounted = false;
 
   render() {
     const {error} = this.state;
@@ -93,7 +101,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
     if (mini) {
       return (
-        <Alert type="error" icon="icon-circle-exclamation" className={className}>
+        <Alert type="error" icon={<IconFlag size="md" />} className={className}>
           {message || t('There was a problem rendering this component')}
         </Alert>
       );
@@ -102,7 +110,10 @@ class ErrorBoundary extends React.Component<Props, State> {
     return (
       <Wrapper>
         <DetailedError
-          heading={getExclamation()}
+          heading={getDynamicText({
+            value: getExclamation(),
+            fixed: exclamation[0],
+          })}
           message={t(
             `Something went horribly wrong rendering this page.
 We use a decent error reporting service so this will probably be fixed soon. Unless our error reporting service is also broken. That would be awkward.

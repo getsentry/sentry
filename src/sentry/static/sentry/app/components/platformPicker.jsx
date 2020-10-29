@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 
 import {analytics} from 'app/utils/analytics';
 import {inputStyles} from 'app/styles/input';
@@ -12,7 +13,6 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import PlatformIconTile from 'app/components/platformIconTile';
 import categoryList from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
@@ -47,7 +47,9 @@ class PlatformPicker extends React.Component {
     const categoryMatch = platform =>
       category === 'all' || currentCategory.platforms.includes(platform.id);
 
-    const filtered = platforms.filter(this.state.filter ? subsetMatch : categoryMatch);
+    const filtered = platforms
+      .filter(this.state.filter ? subsetMatch : categoryMatch)
+      .sort((a, b) => a.id.localeCompare(b.id));
 
     return this.props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
   }
@@ -153,7 +155,8 @@ const NavContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   margin-bottom: ${space(2)};
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-gap: ${space(2)};
+  grid-template-columns: 1fr minmax(0, 300px);
   align-items: start;
 `;
 
@@ -182,6 +185,12 @@ const SearchBar = styled('div')`
 const CategoryNav = styled(NavTabs)`
   margin: 0;
   margin-top: 4px;
+  white-space: nowrap;
+
+  > li {
+    float: none;
+    display: inline-block;
+  }
 `;
 
 const PlatformList = styled('div')`
@@ -191,14 +200,8 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPlatformIconTile = styled(PlatformIconTile)`
-  width: 56px;
-  height: 56px;
-  font-size: 42px;
-  line-height: 58px;
-  text-align: center;
+const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
-  border-radius: 5px;
 `;
 
 const ClearButton = styled(p => (
@@ -216,7 +219,14 @@ const ClearButton = styled(p => (
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   <div {...props}>
-    <StyledPlatformIconTile platform={platform.id} />
+    <StyledPlatformIcon
+      platform={platform.id}
+      size={56}
+      radius={5}
+      withLanguageIcon
+      format="lg"
+    />
+
     <h3>{platform.name}</h3>
     {selected && <ClearButton onClick={onClear} />}
   </div>
@@ -235,14 +245,15 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   }
 
   h3 {
-    display: block;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     text-align: center;
     font-size: 15px;
     margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding: 0 ${space(0.5)};
     line-height: 1.2;
   }
 `;

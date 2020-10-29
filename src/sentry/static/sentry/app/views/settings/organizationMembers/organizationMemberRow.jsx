@@ -7,8 +7,7 @@ import {t, tct} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import InlineSvg from 'app/components/inlineSvg';
-import {IconClose, IconMail, IconSubtract} from 'app/icons';
+import {IconClose, IconCheckmark, IconFlag, IconMail, IconSubtract} from 'app/icons';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
@@ -141,7 +140,11 @@ export default class OrganizationMemberRow extends React.PureComponent {
             </React.Fragment>
           ) : (
             <AuthStatus>
-              <AuthIcon has2fa={has2fa} />
+              {has2fa ? (
+                <IconCheckmark isCircled color="success" />
+              ) : (
+                <IconFlag color="error" />
+              )}
               {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
             </AuthStatus>
           )}
@@ -265,10 +268,3 @@ const LoadingContainer = styled('div')`
 `;
 
 const AuthStatus = styled(Section)``;
-const AuthIcon = styled(p => (
-  <InlineSvg {...p} src={p.has2fa ? 'icon-circle-check' : 'icon-circle-exclamation'} />
-))`
-  color: ${p => (p.has2fa ? p.theme.success : p.theme.error)};
-  font-size: 18px;
-  margin-bottom: 1px;
-`;

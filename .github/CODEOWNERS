@@ -26,7 +26,9 @@
 /src/sentry/scripts/tsdb/          @getsentry/owners-ingest
 
 # Security
-/src/sentry/net/    @getsentry/security
+/src/sentry/net/                    @getsentry/security
+/src/sentry/auth/                   @getsentry/security
+/src/sentry/api/permissions.py      @getsentry/security
 
 # Build & Releases
 /.github/workflows/release.yml  @getsentry/releases
@@ -123,4 +125,64 @@ Makefile                    @getsentry/owners-sentry-dev
 /tests/js/spec/views/performance/                               @getsentry/visibility
 /src/sentry/static/sentry/app/utils/discover/                   @getsentry/visibility
 /tests/js/spec/utils/discover/                                  @getsentry/visibility
+/src/sentry/static/sentry/app/components/events/interfaces/spans/               @getsentry/visibility
 ### Endof Perfomance/Discover ###
+
+
+### Ecosystem ###
+
+/src/sentry/api/endpoints/organization_integration_details.py           @getsentry/ecosystem
+/src/sentry/api/endpoints/organization_integration_repos.py             @getsentry/ecosystem
+/src/sentry/api/endpoints/organization_integration_request.py           @getsentry/ecosystem
+/src/sentry/api/endpoints/organization_integrations.py                  @getsentry/ecosystem
+/src/sentry/api/endpoints/organization_plugins_configs.py               @getsentry/ecosystem
+/src/sentry/api/endpoints/organization_plugins.py                       @getsentry/ecosystem
+/src/sentry/api/endpoints/organization_release_previous_commits.py      @getsentry/ecosystem
+/src/sentry/api/endpoints/sentry_internal_app_token_details.py          @getsentry/ecosystem
+/src/sentry/api/endpoints/sentry_internal_app_tokens.py                 @getsentry/ecosystem
+
+/src/sentry/static/sentry/app/views/organizationIntegrations  @getsentry/ecosystem
+
+/src/sentry/integrations/                     @getsentry/ecosystem
+/src/sentry/identity/                         @getsentry/ecosystem
+/src/sentry/plugins/                          @getsentry/ecosystem
+/src/sentry/shared_integrations/              @getsentry/ecosystem
+/src/sentry/mediators/                        @getsentry/ecosystem
+
+
+/src/sentry/models/integration.py             @getsentry/ecosystem
+/src/sentry/models/integrationfeature.py      @getsentry/ecosystem
+
+/src/sentry/tasks/integrations.py             @getsentry/ecosystem
+
+/src/sentry_plugins/                          @getsentry/ecosystem
+
+# To find matching files -> find . -name "*sentry_app*.py"
+*sentry_app*.py                               @getsentry/ecosystem
+*sentryapp*.py                                @getsentry/ecosystem
+
+/api-docs/                                    @getsentry/ecosystem
+/tests/apidocs/                               @getsentry/ecosystem
+
+### End of Ecosystem ###
+
+
+### Data ###
+
+/src/sentry/models/featureadoption.py         @getsentry/data
+/src/sentry/models/group.py                   @getsentry/data
+/src/sentry/models/grouphash.py               @getsentry/data
+/src/sentry/models/grouprelease.py            @getsentry/data
+/src/sentry/models/groupresolution.py         @getsentry/data
+/src/sentry/models/integration.py             @getsentry/data
+/src/sentry/models/organization.py            @getsentry/data
+/src/sentry/models/organizationmember.py      @getsentry/data
+/src/sentry/models/organizationoption.py      @getsentry/data
+/src/sentry/models/project.py                 @getsentry/data
+/src/sentry/models/projectoption.py           @getsentry/data
+/src/sentry/models/release.py                 @getsentry/data
+/src/sentry/models/sentryapp.py               @getsentry/data
+/src/sentry/models/sentryappinstallation.py   @getsentry/data
+/src/sentry/models/user.py                    @getsentry/data
+
+### End of Data ###

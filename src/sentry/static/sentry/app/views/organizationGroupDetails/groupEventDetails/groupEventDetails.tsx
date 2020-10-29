@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import * as Sentry from '@sentry/react';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {metric} from 'app/utils/analytics';
@@ -31,6 +32,7 @@ type Props = RouteComponentProps<
   project: Project;
   organization: Organization;
   environments: Environment[];
+  className?: string;
 };
 
 type State = {
@@ -191,11 +193,11 @@ class GroupEventDetails extends React.Component<Props, State> {
   }
 
   render() {
-    const {group, project, organization, environments, location} = this.props;
+    const {className, group, project, organization, environments, location} = this.props;
     const evt = withMeta(this.state.event);
 
     return (
-      <div>
+      <div className={className}>
         <div className="event-details-container">
           <div className="primary">
             {evt && (
@@ -247,4 +249,8 @@ class GroupEventDetails extends React.Component<Props, State> {
   }
 }
 
-export default GroupEventDetails;
+export default styled(GroupEventDetails)`
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+`;

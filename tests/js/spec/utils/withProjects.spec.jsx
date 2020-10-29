@@ -5,12 +5,12 @@ import {mount} from 'sentry-test/enzyme';
 import ProjectsStore from 'app/stores/projectsStore';
 import withProjects from 'app/utils/withProjects';
 
-describe('withProjects HoC', function() {
+describe('withProjects HoC', function () {
   beforeEach(() => {
     ProjectsStore.reset();
   });
 
-  it('works', function() {
+  it('works', function () {
     const MyComponent = () => null;
     const Container = withProjects(MyComponent);
     const wrapper = mount(<Container />);

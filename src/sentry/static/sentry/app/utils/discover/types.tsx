@@ -19,11 +19,18 @@ export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DAILYTOP5, label: t('Top 5 Daily')},
 ];
 
+/**
+ * The chain of fallback display modes to try to use when one is disabled.
+ *
+ * Make sure that the chain always leads to a display mode that is enabled.
+ * There is a fail safe to fall back to the default display mode, but it likely
+ * won't be creating results you expect.
+ */
 export const DISPLAY_MODE_FALLBACK_OPTIONS = {
   [DisplayModes.DEFAULT]: DisplayModes.DEFAULT,
   [DisplayModes.PREVIOUS]: DisplayModes.DEFAULT,
   [DisplayModes.TOP5]: DisplayModes.DEFAULT,
-  [DisplayModes.DAILY]: DisplayModes.DAILY,
+  [DisplayModes.DAILY]: DisplayModes.DEFAULT,
   [DisplayModes.DAILYTOP5]: DisplayModes.DAILY,
 };
 

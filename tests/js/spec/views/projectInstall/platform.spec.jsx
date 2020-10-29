@@ -1,12 +1,12 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {ProjectInstallPlatform} from 'app/views/projectInstall/platform';
 
-describe('ProjectInstallPlatform', function() {
-  describe('render()', function() {
+describe('ProjectInstallPlatform', function () {
+  describe('render()', function () {
     const baseProps = {
       api: new MockApiClient(),
       organization: TestStubs.Organization(),
@@ -14,7 +14,7 @@ describe('ProjectInstallPlatform', function() {
       location: {query: {}},
     };
 
-    it('should redirect to if no matching platform', function() {
+    it('should redirect to if no matching platform', function () {
       const props = {
         ...baseProps,
         params: {
@@ -37,7 +37,7 @@ describe('ProjectInstallPlatform', function() {
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
     });
 
-    it('should render NotFound if no matching integration/platform', async function() {
+    it('should render NotFound if no matching integration/platform', async function () {
       const props = {
         ...baseProps,
         params: {
@@ -52,7 +52,7 @@ describe('ProjectInstallPlatform', function() {
         statusCode: 404,
       });
 
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <ProjectInstallPlatform {...props} />,
         TestStubs.routerContext([{organization: {id: '1337'}}])
       );
@@ -63,7 +63,7 @@ describe('ProjectInstallPlatform', function() {
       expect(wrapper.find('NotFound')).toHaveLength(1);
     });
 
-    it('should render documentation', async function() {
+    it('should render documentation', async function () {
       const props = {
         ...baseProps,
         params: {

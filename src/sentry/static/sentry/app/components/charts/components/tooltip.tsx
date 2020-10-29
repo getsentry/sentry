@@ -1,5 +1,5 @@
-import 'echarts/lib/component/tooltip';
 import {EChartOption} from 'echarts';
+import moment from 'moment';
 
 import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 import BaseChart from 'app/components/charts/baseChart';
@@ -12,14 +12,35 @@ function defaultFormatAxisLabel(
   value: number,
   isTimestamp: boolean,
   utc: boolean,
-  showTimeInTooltip: boolean
+  showTimeInTooltip: boolean,
+  bucketSize?: number
 ) {
   if (!isTimestamp) {
     return value;
   }
-  const format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
 
-  return getFormattedDate(value, format, {local: !utc});
+  if (!bucketSize) {
+    const format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
+    return getFormattedDate(value, format, {local: !utc});
+  }
+
+  const now = moment();
+  const bucketStart = moment(value);
+  const bucketEnd = moment(value + bucketSize);
+
+  const showYear = now.year() !== bucketStart.year() || now.year() !== bucketEnd.year();
+  const showEndDate = bucketStart.date() !== bucketEnd.date();
+
+  const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${
+    showTimeInTooltip ? getTimeFormat() : ''
+  }`.trim();
+  const formatEnd = `${showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : ''}${
+    showTimeInTooltip ? getTimeFormat() : ''
+  }`.trim();
+
+  return `${getFormattedDate(bucketStart, formatStart, {
+    local: !utc,
+  })} — ${getFormattedDate(bucketEnd, formatEnd, {local: !utc})}`;
 }
 
 function defaultValueFormatter(value: string | number) {
@@ -48,7 +69,7 @@ function getSeriesValue(series: EChartOption.Tooltip.Format, offset: number) {
   return undefined;
 }
 
-type NeededChartProps = 'isGroupedByDate' | 'showTimeInTooltip' | 'utc';
+type NeededChartProps = 'isGroupedByDate' | 'showTimeInTooltip' | 'utc' | 'bucketSize';
 
 type TooltipFormatters =
   | 'truncate'
@@ -67,6 +88,7 @@ function getFormatter({
   truncate,
   formatAxisLabel,
   utc,
+  bucketSize,
   valueFormatter = defaultValueFormatter,
   nameFormatter = defaultNameFormatter,
 }: FormatterOptions) {
@@ -103,7 +125,8 @@ function getFormatter({
         timestamp,
         !!isGroupedByDate,
         !!utc,
-        !!showTimeInTooltip
+        !!showTimeInTooltip,
+        bucketSize
       );
       // eCharts sets seriesName as null when `componentType` !== 'series'
       const truncatedName = truncationFormatter(
@@ -140,7 +163,13 @@ function getFormatter({
 
     const label =
       seriesParams.length &&
-      axisFormatterOrDefault(timestamp, !!isGroupedByDate, !!utc, !!showTimeInTooltip);
+      axisFormatterOrDefault(
+        timestamp,
+        !!isGroupedByDate,
+        !!utc,
+        !!showTimeInTooltip,
+        bucketSize
+      );
 
     return [
       '<div class="tooltip-series">',
@@ -172,6 +201,7 @@ export default function Tooltip({
   formatter,
   truncate,
   utc,
+  bucketSize,
   formatAxisLabel,
   valueFormatter,
   nameFormatter,
@@ -185,6 +215,7 @@ export default function Tooltip({
       showTimeInTooltip,
       truncate,
       utc,
+      bucketSize,
       formatAxisLabel,
       valueFormatter,
       nameFormatter,
@@ -217,8 +248,8 @@ export default function Tooltip({
 
       // If the tooltip would leave viewport on the right, pin it.
       // and adjust the arrow position.
-      if (rightEdge >= window.innerWidth - 30) {
-        leftPos -= rightEdge - window.innerWidth + 30;
+      if (rightEdge >= window.innerWidth - 20) {
+        leftPos -= rightEdge - window.innerWidth + 20;
         arrowPosition = `${Number(pos[0]) - leftPos}px`;
       }
 

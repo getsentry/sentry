@@ -4,13 +4,14 @@ import PropTypes from 'prop-types';
 import {t} from 'app/locale';
 import {Config, Organization, Scope} from 'app/types';
 import Alert from 'app/components/alert';
+import {IconInfo} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
 
 const DEFAULT_NO_ACCESS_MESSAGE = (
-  <Alert type="error" icon="icon-circle-info">
+  <Alert type="error" icon={<IconInfo size="md" />}>
     {t('You do not have sufficient permissions to access this.')}
   </Alert>
 );

@@ -48,6 +48,22 @@ class IntegrationExternalProject(DefaultFieldsModel):
         unique_together = (("organization_integration_id", "external_id"),)
 
 
+class RepositoryProjectPathConfig(DefaultFieldsModel):
+    __core__ = False
+
+    repository = FlexibleForeignKey("sentry.Repository")
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
+    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
+    stack_root = models.TextField()
+    source_root = models.TextField()
+    default_branch = models.TextField(null=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_repositoryprojectpathconfig"
+        unique_together = (("project", "stack_root"),)
+
+
 class OrganizationIntegration(DefaultFieldsModel):
     __core__ = False
 
@@ -129,6 +145,7 @@ class Integration(DefaultFieldsModel):
                 integration_id=self.id,
                 defaults={"default_auth_id": default_auth_id, "config": {}},
             )
+            # TODO(Steve): add audit log if created
             if not created and default_auth_id:
                 org_integration.update(default_auth_id=default_auth_id)
         except IntegrityError:

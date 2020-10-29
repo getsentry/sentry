@@ -4,6 +4,7 @@ import csv
 import logging
 import six
 import tempfile
+import codecs
 
 from hashlib import sha1
 
@@ -79,6 +80,20 @@ def assemble_download(
             logger.exception(error)
             return
 
+        with sentry_sdk.configure_scope() as scope:
+            if data_export.user:
+                user = {}
+                if data_export.user.id:
+                    user["id"] = data_export.user.id
+                if data_export.user.username:
+                    user["username"] = data_export.user.username
+                if data_export.user.email:
+                    user["email"] = data_export.user.email
+                scope.user = user
+            scope.set_tag("organization.slug", data_export.organization.slug)
+            scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
+            scope.set_extra("export.query", data_export.query_info)
+
         try:
             # ensure that the export limit is set and capped at EXPORTED_ROWS_LIMIT
             if export_limit is None:
@@ -88,8 +103,24 @@ def assemble_download(
 
             processor = get_processor(data_export, environment_id)
 
-            with tempfile.TemporaryFile() as tf:
-                writer = csv.DictWriter(tf, processor.header_fields, extrasaction="ignore")
+            with tempfile.TemporaryFile(mode="w+b") as tf:
+                # XXX(python3):
+                #
+                # In python2 land we write utf-8 encoded strings as bytes via
+                # the csv writer (see convert_to_utf8). The CSV writer will
+                # ONLY write bytes, even if you give it unicode it will convert
+                # it to bytes.
+                #
+                # In python3 we write unicode strings (which is all the csv
+                # module is able to do, it will NOT write bytes like in py2).
+                # Because of this we use the codec getwriter to transform our
+                # file handle to a stream writer that will encode to utf8.
+                if six.PY2:
+                    tfw = tf
+                else:
+                    tfw = codecs.getwriter("utf-8")(tf)
+
+                writer = csv.DictWriter(tfw, processor.header_fields, extrasaction="ignore")
                 if first_page:
                     writer.writeheader()
 
@@ -204,18 +235,24 @@ def process_rows(processor, data_export, batch_size, offset):
 @handle_snuba_errors(logger)
 def process_issues_by_tag(processor, limit, offset):
     gtv_list_unicode = processor.get_serialized_data(limit=limit, offset=offset)
-    # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
-    # See associated comment in './utils.py'
-    gtv_list = convert_to_utf8(gtv_list_unicode)
+    # TODO(python3): Remove next block once the 'csv' module has been updated
+    # to Python 3
+    if six.PY2:
+        gtv_list = convert_to_utf8(gtv_list_unicode)
+    else:
+        gtv_list = gtv_list_unicode
     return gtv_list
 
 
 @handle_snuba_errors(logger)
 def process_discover(processor, limit, offset):
     raw_data_unicode = processor.data_fn(limit=limit, offset=offset)["data"]
-    # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
-    # See associated comment in './utils.py'
-    raw_data = convert_to_utf8(raw_data_unicode)
+    # TODO(python3): Remove next block once the 'csv' module has been updated
+    # to Python 3
+    if six.PY2:
+        raw_data = convert_to_utf8(raw_data_unicode)
+    else:
+        raw_data = raw_data_unicode
     raw_data = processor.handle_fields(raw_data)
     return raw_data
 
@@ -231,7 +268,7 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
 
         blob_fileobj = ContentFile(contents)
         blob = FileBlob.from_file(blob_fileobj, logger=logger)
-        ExportedDataBlob.objects.create(
+        ExportedDataBlob.objects.get_or_create(
             data_export=data_export, blob=blob, offset=bytes_written + bytes_offset
         )
 
@@ -255,6 +292,21 @@ def merge_export_blobs(data_export_id, **kwargs):
         except ExportedData.DoesNotExist as error:
             logger.exception(error)
             return
+
+        with sentry_sdk.configure_scope() as scope:
+            if data_export.user:
+                user = {}
+                if data_export.user.id:
+                    user["id"] = data_export.user.id
+                if data_export.user.username:
+                    user["username"] = data_export.user.username
+                if data_export.user.email:
+                    user["email"] = data_export.user.email
+                scope.user = user
+            scope.user = user
+            scope.set_tag("organization.slug", data_export.organization.slug)
+            scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
+            scope.set_extra("export.query", data_export.query_info)
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:

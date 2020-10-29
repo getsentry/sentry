@@ -1,0 +1,26 @@
+---
+created: '2020-09-01T22:02:02.030304Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:fingerprint:ident-shingle: "what-is-love"
+similarity:2020-07-23:stacktrace:frames-ident: [["filename","application.java"],["function","main"],["module","io.sentry.example.Application"]]
+similarity:2020-07-23:type:ident-shingle: "NoLove"
+similarity:2020-07-23:value:character-5-shingle: " has "
+similarity:2020-07-23:value:character-5-shingle: " love"
+similarity:2020-07-23:value:character-5-shingle: " no l"
+similarity:2020-07-23:value:character-5-shingle: "as no"
+similarity:2020-07-23:value:character-5-shingle: "ethin"
+similarity:2020-07-23:value:character-5-shingle: "g has"
+similarity:2020-07-23:value:character-5-shingle: "has n"
+similarity:2020-07-23:value:character-5-shingle: "hing "
+similarity:2020-07-23:value:character-5-shingle: "ing h"
+similarity:2020-07-23:value:character-5-shingle: "love."
+similarity:2020-07-23:value:character-5-shingle: "methi"
+similarity:2020-07-23:value:character-5-shingle: "ng ha"
+similarity:2020-07-23:value:character-5-shingle: "no lo"
+similarity:2020-07-23:value:character-5-shingle: "o lov"
+similarity:2020-07-23:value:character-5-shingle: "ometh"
+similarity:2020-07-23:value:character-5-shingle: "s no "
+similarity:2020-07-23:value:character-5-shingle: "somet"
+similarity:2020-07-23:value:character-5-shingle: "thing"

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 import {text} from '@storybook/addon-knobs';
@@ -16,20 +15,25 @@ const options = [
   {value: 'more', label: 'Additional option'},
 ];
 
-storiesOf('Charts|OptionSelector', module).add(
-  'default',
-  withInfo('Selector control for chart controls')(() => (
-    <Container>
-      <OptionSelector
-        options={options}
-        selected={text('selected', 'none')}
-        title={text('title', 'Display')}
-        menuWidth={text('menuWidth', '200px')}
-        onChange={action('changed')}
-      />
-    </Container>
-  ))
-);
+export default {
+  title: 'DataVisualization/Charts/OptionSelector',
+};
+
+export const Default = withInfo('Selector control for chart controls')(() => (
+  <Container>
+    <OptionSelector
+      options={options}
+      selected={text('selected', 'none')}
+      title={text('title', 'Display')}
+      menuWidth={text('menuWidth', '200px')}
+      onChange={action('changed')}
+    />
+  </Container>
+));
+
+Default.story = {
+  name: 'default',
+};
 
 const Container = styled('div')`
   padding: ${space(2)} ${space(3)};

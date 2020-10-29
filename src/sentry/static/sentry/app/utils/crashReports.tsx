@@ -1,20 +1,46 @@
-import {t, tct} from 'app/locale';
+import React from 'react';
 
-export function formatStoreCrashReports(value: number | ''): React.ReactNode {
+import {t, tct} from 'app/locale';
+import {defined} from 'app/utils';
+
+export function formatStoreCrashReports(
+  value: number | null | '',
+  organizationValue?: number
+): React.ReactNode {
+  if (value === null && defined(organizationValue)) {
+    return tct('Inherit organization settings ([organizationValue])', {
+      organizationValue: formatStoreCrashReports(organizationValue),
+    });
+  }
+
   if (value === -1) {
     return t('Unlimited');
-  } else if (value === 0) {
-    return t('Disabled');
-  } else {
-    return tct('[value] per issue', {value});
   }
+
+  if (value === 0) {
+    return t('Disabled');
+  }
+
+  return tct('[value] per issue', {value});
 }
 
-function getStoreCrashReportsValues() {
-  // generate a range from 0 (disabled) to 20 inclusive
-  const values = Array.from(new Array(21), (_, i) => i);
-  values.push(-1); // special "Unlimited" at the end
+export enum SettingScope {
+  Organization,
+  Project,
+}
+export function getStoreCrashReportsValues(settingScope: SettingScope) {
+  const values: Array<number | null> = [
+    0, // disabled
+    1,
+    5,
+    10,
+    20, // limited per issue
+    -1, // unlimited
+  ];
+
+  if (settingScope === SettingScope.Project) {
+    values.unshift(null); // inherit option
+  }
+
   return values;
 }
-
-export const STORE_CRASH_REPORTS_VALUES = getStoreCrashReportsValues();

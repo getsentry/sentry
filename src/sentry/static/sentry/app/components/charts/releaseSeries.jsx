@@ -11,12 +11,13 @@ import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {escape} from 'app/utils';
 import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
-function getOrganizationReleases(api, organization, conditions = null) {
+async function getOrganizationReleases(api, organization, conditions = null) {
   const query = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
@@ -28,7 +29,8 @@ function getOrganizationReleases(api, organization, conditions = null) {
     }
   });
   api.clear();
-  return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
+  return api.requestPromise(`/organizations/${organization.slug}/releases/stats/`, {
+    includeAllArgs: true,
     method: 'GET',
     query,
   });
@@ -40,6 +42,7 @@ class ReleaseSeries extends React.Component {
     router: PropTypes.object,
     organization: SentryTypes.Organization,
     projects: PropTypes.arrayOf(PropTypes.number),
+    environments: PropTypes.arrayOf(PropTypes.string),
 
     period: PropTypes.string,
     start: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
@@ -56,6 +59,7 @@ class ReleaseSeries extends React.Component {
   };
 
   componentDidMount() {
+    this._isMounted = true;
     const {releases} = this.props;
 
     if (releases) {
@@ -70,6 +74,7 @@ class ReleaseSeries extends React.Component {
   componentDidUpdate(prevProps) {
     if (
       !isEqual(prevProps.projects, this.props.projects) ||
+      !isEqual(prevProps.environments, this.props.environments) ||
       !isEqual(prevProps.start, this.props.start) ||
       !isEqual(prevProps.end, this.props.end) ||
       !isEqual(prevProps.period, this.props.period)
@@ -78,16 +83,47 @@ class ReleaseSeries extends React.Component {
     }
   }
 
-  fetchData() {
-    const {api, organization, projects, period, start, end} = this.props;
-    const conditions = {start, end, project: projects, statsPeriod: period};
-    getOrganizationReleases(api, organization, conditions)
-      .then(releases => {
-        this.setReleasesWithSeries(releases);
-      })
-      .catch(() => {
+  componentWillUnmount() {
+    this._isMounted = false;
+    this.props.api.clear();
+  }
+
+  async fetchData() {
+    const {api, organization, projects, environments, period, start, end} = this.props;
+    const conditions = {
+      start,
+      end,
+      project: projects,
+      environment: environments,
+      statsPeriod: period,
+    };
+    let hasMore = true;
+    const releases = [];
+    while (hasMore) {
+      try {
+        const [newReleases, , xhr] = await getOrganizationReleases(
+          api,
+          organization,
+          conditions
+        );
+        releases.push(...newReleases);
+        if (this._isMounted) {
+          this.setReleasesWithSeries(releases);
+        }
+
+        const pageLinks = xhr && xhr.getResponseHeader('Link');
+        if (pageLinks) {
+          const paginationObject = parseLinkHeader(pageLinks);
+          hasMore = paginationObject && paginationObject.next.results;
+          conditions.cursor = paginationObject.next.cursor;
+        } else {
+          hasMore = false;
+        }
+      } catch {
         addErrorMessage(t('Error fetching releases'));
-      });
+        hasMore = false;
+      }
+    }
   }
 
   setReleasesWithSeries(releases) {
@@ -112,6 +148,7 @@ class ReleaseSeries extends React.Component {
           },
         },
         tooltip: tooltip || {
+          trigger: 'item',
           formatter: ({data}) => {
             // XXX using this.props here as this function does not get re-run
             // unless projects are changed. Using a closure variable would result
@@ -138,7 +175,7 @@ class ReleaseSeries extends React.Component {
           show: false,
         },
         data: releases.map(release => ({
-          xAxis: +new Date(release.dateCreated),
+          xAxis: +new Date(release.date),
           name: formatVersion(release.version, true),
           value: formatVersion(release.version, true),
           onClick: () => {

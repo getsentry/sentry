@@ -4,10 +4,10 @@
       "owner": "pytest",
       "pattern": [
         {
-          "regexp": "^Traceback"
+          "regexp": "^____"
         },
         {
-          "regexp": "^\\s+File\\s\"(.*)\",\\sline\\s(\\d+),\\sin\\s(.*)$",
+          "regexp": "^(.*):(\\d+):\\sin\\s(.*)$",
           "file": 1,
           "line": 2
         },
@@ -15,7 +15,7 @@
           "regexp": "^\\s+.*"
         },
         {
-          "regexp": "^(\\w+Error:.*)",
+          "regexp": "^E\\s+(.*)$",
           "message": 1,
           "loop": true
         }

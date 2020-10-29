@@ -12,8 +12,8 @@ import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
-import {TableData} from './types';
 import {downloadAsCsv} from '../utils';
 
 type Props = {
@@ -38,19 +38,14 @@ function handleDownloadAsCsv(title: string, {organization, eventView, tableData}
 }
 
 function renderDownloadButton(canEdit: boolean, props: Props) {
-  const {tableData} = props;
-  if (!tableData || (tableData.data && tableData.data.length < 50)) {
-    return renderBrowserExportButton(canEdit, props);
-  } else {
-    return (
-      <Feature
-        features={['organizations:data-export']}
-        renderDisabled={() => renderBrowserExportButton(canEdit, props)}
-      >
-        {renderAsyncExportButton(canEdit, props)}
-      </Feature>
-    );
-  }
+  return (
+    <Feature
+      features={['organizations:discover-query']}
+      renderDisabled={() => renderBrowserExportButton(canEdit, props)}
+    >
+      {renderAsyncExportButton(canEdit, props)}
+    </Feature>
+  );
 }
 
 function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Props) {

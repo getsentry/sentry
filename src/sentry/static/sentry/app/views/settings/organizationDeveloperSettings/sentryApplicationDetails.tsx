@@ -197,10 +197,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
 
   get showAuthInfo() {
     const {app} = this.state;
-    if (app && app.clientSecret && app.clientSecret[0] === '*') {
-      return false;
-    }
-    return true;
+    return !(app && app.clientSecret && app.clientSecret[0] === '*');
   }
 
   onAddToken = async (evt: React.MouseEvent): Promise<void> => {
@@ -370,7 +367,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                   <FormField name="clientId" label="Client ID">
                     {({value}) => (
                       <TextCopyInput>
-                        {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                        {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
                       </TextCopyInput>
                     )}
                   </FormField>
@@ -387,7 +384,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                         )}
                       >
                         <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                          {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
                         </TextCopyInput>
                       </Tooltip>
                     ) : (

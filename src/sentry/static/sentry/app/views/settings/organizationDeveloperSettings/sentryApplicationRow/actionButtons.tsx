@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LightWeightOrganization, SentryApp} from 'app/types';
 import Button from 'app/components/button';
-import {IconDelete, IconStats} from 'app/icons';
+import {IconDelete, IconStats, IconUpgrade} from 'app/icons';
 import ConfirmDelete from 'app/components/confirmDelete';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -45,7 +45,7 @@ const ActionButtons = ({
     <StyledButton
       disabled={!!disablePublishReason}
       title={disablePublishReason}
-      icon="icon-upgrade"
+      icon={<IconUpgrade />}
       size="small"
       onClick={onPublish}
     >

@@ -6,7 +6,7 @@ import responses
 
 from sentry import eventstore
 from sentry.eventtypes import transaction
-from sentry.models.relay import Relay
+from sentry.models import EventAttachment, Relay
 from sentry.testutils.helpers import get_auth_header
 
 
@@ -34,30 +34,6 @@ def ensure_relay_is_registered():
     except:  # NOQA
         # relay already registered  probably the first test (registration happened at Relay handshake time)
         pass  # NOQA
-
-
-def adjust_settings_for_relay_tests(settings):
-    """
-    Adjusts the application settings to accept calls from a Relay instance running inside a
-    docker container.
-
-    :param settings: the app settings
-    """
-    settings.ALLOWED_HOSTS = [
-        "localhost",
-        "testserver",
-        "host.docker.internal",
-        "0.0.0.0",
-        "127.0.0.1",
-    ]
-    settings.KAFKA_CLUSTERS = {
-        "default": {
-            "bootstrap.servers": "127.0.0.1:9092",
-            "compression.type": "lz4",
-            "message.max.bytes": 50000000,  # 50MB, default is 1MB
-        }
-    }
-    settings.SENTRY_RELAY_WHITELIST_PK = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]
 
 
 class RelayStoreHelper(object):
@@ -123,6 +99,23 @@ class RelayStoreHelper(object):
         except AssertionError:
             return None
 
+    def post_and_retrieve_attachment(self, event_id, files):
+        url = self.get_relay_attachments_url(self.project.id, event_id)
+        responses.add_passthru(url)
+
+        resp = requests.post(url, files=files, headers={"x-sentry-auth": self.auth_header})
+
+        assert resp.ok
+
+        exists = self.wait_for_ingest_consumer(
+            lambda: EventAttachment.objects.filter(
+                project_id=self.project.id, event_id=event_id
+            ).exists()
+            or None  # must return None to continue waiting
+        )
+
+        assert exists
+
     def post_and_retrieve_minidump(self, files, data):
         url = self.get_relay_minidump_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
@@ -164,17 +157,17 @@ class RelayStoreHelper(object):
         get_relay_minidump_url,
         get_relay_unreal_url,
         get_relay_security_url,
+        get_relay_attachments_url,
         wait_for_ingest_consumer,
     ):
         self.auth_header = get_auth_header(
             "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
         )
 
-        adjust_settings_for_relay_tests(settings)
-
         self.settings = settings
         self.get_relay_store_url = get_relay_store_url  # noqa
         self.get_relay_minidump_url = get_relay_minidump_url  # noqa
         self.get_relay_unreal_url = get_relay_unreal_url  # noqa
         self.get_relay_security_url = get_relay_security_url  # noqa
+        self.get_relay_attachments_url = get_relay_attachments_url  # noqa
         self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)  # noqa

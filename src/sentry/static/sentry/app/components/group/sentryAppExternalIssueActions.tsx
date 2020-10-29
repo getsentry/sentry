@@ -162,7 +162,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
     const config = sentryAppComponent.schema[action];
 
     return (
-      <Modal show={showModal} onHide={this.hideModal} animation={false}>
+      <Modal show={showModal} backdrop="static" onHide={this.hideModal} animation={false}>
         <Modal.Header closeButton>
           <Modal.Title>{tct('[name] Issue', {name})}</Modal.Title>
         </Modal.Header>
@@ -199,7 +199,6 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
   }
 }
 
-// @ts-ignore ; TS2589: Type instantiation is excessively deep and possibly infinite.
 const StyledSentryAppIcon = styled(SentryAppIcon)`
   color: ${p => p.theme.gray700};
   width: ${space(3)};

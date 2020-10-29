@@ -24,6 +24,7 @@ export enum MethodType {
 }
 
 export enum EventIdStatus {
+  UNDEFINED = 'undefined',
   LOADING = 'loading',
   INVALID = 'invalid',
   NOT_FOUND = 'not_found',
@@ -36,12 +37,6 @@ export enum SourceSuggestionType {
   UNARY = 'unary',
   BINARY = 'binary',
   STRING = 'string',
-}
-
-export enum RequestError {
-  Unknown = 'unknown',
-  InvalidSelector = 'invalid-selector',
-  RegexParse = 'regex-parse',
 }
 
 export type SourceSuggestion = {
@@ -92,7 +87,7 @@ export type Rule = RuleDefault | RuleReplace | RulePattern | RuleReplaceAndPatte
 
 export type EventId = {
   value: string;
-  status?: EventIdStatus;
+  status: EventIdStatus;
 };
 
 type PiiConfigDefault = {

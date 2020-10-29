@@ -5,14 +5,14 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import IgnoreActions from 'app/components/actions/ignore';
 
-describe('IgnoreActions', function() {
+describe('IgnoreActions', function () {
   const routerContext = TestStubs.routerContext();
 
-  describe('disabled', function() {
+  describe('disabled', function () {
     let component, button;
     const spy = jest.fn();
 
-    beforeEach(function() {
+    beforeEach(function () {
       component = mountWithTheme(
         <IgnoreActions onUpdate={spy} disabled />,
         routerContext
@@ -20,47 +20,47 @@ describe('IgnoreActions', function() {
       button = component.find('a.btn.btn-default').first();
     });
 
-    it('has disabled prop', function() {
+    it('has disabled prop', function () {
       expect(button.prop('disabled')).toBe(true);
     });
 
-    it('does not call onUpdate when clicked', function() {
+    it('does not call onUpdate when clicked', function () {
       button.simulate('click');
       expect(spy).not.toHaveBeenCalled();
     });
   });
 
-  describe('ignored', function() {
+  describe('ignored', function () {
     let component;
     const spy = jest.fn();
-    beforeEach(function() {
+    beforeEach(function () {
       component = mountWithTheme(
         <IgnoreActions onUpdate={spy} isIgnored />,
         routerContext
       );
     });
 
-    it('displays ignored view', function() {
+    it('displays ignored view', function () {
       const button = component.find('a.btn.active');
       expect(button).toHaveLength(1);
       expect(button.text()).toBe('');
     });
 
-    it('calls onUpdate with unresolved status when clicked', function() {
+    it('calls onUpdate with unresolved status when clicked', function () {
       component.find('a.btn.active').simulate('click');
       expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
     });
   });
 
-  describe('without confirmation', function() {
+  describe('without confirmation', function () {
     let component;
     const spy = jest.fn();
 
-    beforeEach(function() {
+    beforeEach(function () {
       component = mountWithTheme(<IgnoreActions onUpdate={spy} />, routerContext);
     });
 
-    it('calls spy with ignore details when clicked', function() {
+    it('calls spy with ignore details when clicked', function () {
       const button = component.find('a.btn.btn-default').first();
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
@@ -68,11 +68,11 @@ describe('IgnoreActions', function() {
     });
   });
 
-  describe('with confirmation step', function() {
+  describe('with confirmation step', function () {
     let component, button;
     const spy = jest.fn();
 
-    beforeEach(function() {
+    beforeEach(function () {
       component = mountWithTheme(
         <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="Yoooooo" />,
         routerContext
@@ -80,15 +80,13 @@ describe('IgnoreActions', function() {
       button = component.find('a.btn.btn-default').first();
     });
 
-    it('displays confirmation modal with message provided', function() {
+    it('displays confirmation modal with message provided', function () {
       button.simulate('click');
 
       const modal = $(document.body).find('.modal');
       expect(modal.text()).toContain('Yoooooo');
       expect(spy).not.toHaveBeenCalled();
-      $(document.body)
-        .find('.modal button:contains("Ignore")')
-        .click();
+      $(document.body).find('.modal button:contains("Ignore")').click();
 
       expect(spy).toHaveBeenCalled();
     });

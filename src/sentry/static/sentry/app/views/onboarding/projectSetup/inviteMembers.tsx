@@ -9,6 +9,7 @@ import Alert from 'app/components/alert';
 import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
 import Panel from 'app/components/panels/panel';
+import {IconGroup} from 'app/icons';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
@@ -82,7 +83,7 @@ class InviteMembers extends React.Component<Props, State> {
     return (
       <React.Fragment>
         {invitedEmails.length > 0 && (
-          <Alert type="success" icon="icon-user-multi">
+          <Alert type="success" icon={<IconGroup />}>
             {tct('[emailList] has been invited to your organization.', {
               emailList: <strong>{invitedEmails.join(', ')}</strong>,
             })}
@@ -94,7 +95,7 @@ class InviteMembers extends React.Component<Props, State> {
             apiMethod="POST"
             submitLabel={t('Invite Member')}
             onSubmitSuccess={this.handleSubmitSuccess}
-            initialData={{teams: [project?.teams[0]?.slug]}}
+            initialData={{teams: [project?.teams?.[0]?.slug]}}
             {...formProps}
           >
             <HelpText>

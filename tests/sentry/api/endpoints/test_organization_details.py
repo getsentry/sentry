@@ -3,19 +3,20 @@ from __future__ import absolute_import
 from datetime import datetime
 
 import dateutil
-from pytz import UTC
 import six
-
+from pytz import UTC
 from base64 import b64encode
-from django.core.urlresolvers import reverse
-from django.core import mail
-from sentry.utils.compat.mock import patch
 from exam import fixture
 from pprint import pprint
-import json
 
+from django.core.urlresolvers import reverse
+from django.core import mail
+
+from sentry.utils import json
+from sentry.utils.compat.mock import patch
+from sentry.auth.authenticators import TotpInterface
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import APDEX_THRESHOLD_DEFAULT, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
@@ -26,7 +27,6 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
-    TotpInterface,
 )
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
@@ -146,6 +146,14 @@ class OrganizationDetailsTest(APITestCase):
         assert len(response.data["onboardingTasks"]) == 1
         assert response.data["onboardingTasks"][0]["task"] == "create_project"
 
+    def test_apdex_threshold_default(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url, format="json")
+
+        assert response.data["apdexThreshold"] == APDEX_THRESHOLD_DEFAULT
+
     def test_trusted_relays_info(self):
         org = self.create_organization(owner=self.user)
         AuditLogEntry.objects.filter(organization=org).delete()
@@ -264,6 +272,7 @@ class OrganizationUpdateTest(APITestCase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
+            "apdexThreshold": 450,
         }
 
         # needed to set require2FA
@@ -273,6 +282,7 @@ class OrganizationUpdateTest(APITestCase):
 
         response = self.client.put(url, data=data)
         assert response.status_code == 200, response.content
+
         org = Organization.objects.get(id=org.id)
         assert initial != org.get_audit_log_data()
 
@@ -294,6 +304,7 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
+        assert options.get("sentry:apdex_threshold") == 450
 
         # log created
         log = AuditLogEntry.objects.get(organization=org)
@@ -315,6 +326,7 @@ class OrganizationUpdateTest(APITestCase):
         assert u"to {}".format(data["scrapeJavaScript"]) in log.data["scrapeJavaScript"]
         assert u"to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
         assert u"to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
+        assert u"to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
 
     def test_setting_trusted_relays_forbidden(self):
         org = self.create_organization(owner=self.user)

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import {IconWarning} from 'app/icons';
 import {PanelItem} from 'app/components/panels';
+import {Project} from 'app/types';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import DateTime from 'app/components/dateTime';
@@ -12,7 +13,6 @@ import Duration from 'app/components/duration';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
@@ -27,7 +27,7 @@ import SparkLine from './sparkLine';
 
 type Props = {
   incident: Incident;
-  projects: Parameters<React.ComponentProps<typeof Projects>['children']>[0]['projects'];
+  projects: Project[];
   projectsLoaded: boolean;
   orgId: string;
   filteredStatus: 'open' | 'closed';
@@ -58,7 +58,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
   /**
    * Memoized function to find a project from a list of projects
    */
-  getProject = memoize((slug, projects) =>
+  getProject = memoize((slug: string, projects: Project[]) =>
     projects.find(project => project.slug === slug)
   );
 

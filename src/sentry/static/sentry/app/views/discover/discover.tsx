@@ -43,7 +43,7 @@ import createResultManager from './resultManager';
 import {SavedQuery} from './types';
 
 type DefaultProps = {
-  utc: boolean;
+  utc: boolean | null;
 };
 
 type Props = DefaultProps & {

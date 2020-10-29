@@ -51,7 +51,12 @@ def _get_cache_key(task, scope, checksum):
     return (
         "assemble-status:%s"
         % hashlib.sha1(
-            b"%s|%s|%s" % (str(scope).encode("ascii"), checksum.encode("ascii"), task)
+            b"%s|%s|%s"
+            % (
+                six.text_type(scope).encode("ascii"),
+                checksum.encode("ascii"),
+                six.text_type(task).encode("utf-8"),
+            )
         ).hexdigest()
     )
 

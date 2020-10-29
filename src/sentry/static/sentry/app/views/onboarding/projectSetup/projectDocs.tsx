@@ -3,6 +3,7 @@ import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
+import PlatformIcon from 'platformicons';
 
 import {analytics} from 'app/utils/analytics';
 import {loadDocs} from 'app/actionCreators/projects';
@@ -11,10 +12,10 @@ import Alert, {alertStyles} from 'app/components/alert';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import FirstEventIndicator from 'app/views/onboarding/projectSetup/firstEventIndicator';
+import {IconInfo} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import Panel from 'app/components/panels/panel';
 import PanelBody from 'app/components/panels/panelBody';
-import PlatformIcon from 'app/components/platformIcon';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
@@ -120,7 +121,7 @@ class ProjectDocs extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="warning" icon="icon-circle-info">
+      <Alert type="warning" icon={<IconInfo size="md" />}>
         {tct(
           `Looks like this getting started example is still undergoing some
            work and doesn't include an example for triggering an event quite
@@ -156,7 +157,11 @@ class ProjectDocs extends React.Component<Props, State> {
           </Description>
           <Footer>
             {project && (
-              <FirstEventIndicator organization={organization} project={project} />
+              <FirstEventIndicator
+                organization={organization}
+                project={project}
+                eventType="error"
+              />
             )}
             <div>
               <Button
@@ -192,7 +197,9 @@ class ProjectDocs extends React.Component<Props, State> {
     );
 
     const testOnlyAlert = (
-      <Alert type="warning">Platform documentation is not rendered in Percy Tests</Alert>
+      <Alert type="warning">
+        Platform documentation is not rendered in for tests in CI
+      </Alert>
     );
 
     return (
@@ -262,17 +269,11 @@ const Header = styled('div')`
   font-weight: bold;
 `;
 
-const StyledPlatformIcon = styled(PlatformIcon)`
-  height: 24px;
-  width: 24px;
-  border-radius: 3px;
-`;
-
 const PlatformHeading = ({platform}) => (
   <HeadingContainer>
     <AnimatePresence initial={false}>
       <Heading key={platform}>
-        <StyledPlatformIcon platform={platform} />
+        <PlatformIcon platform={platform} size={24} />
         <Header>
           {t(
             '%s SDK Installation Guide',

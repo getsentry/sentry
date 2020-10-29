@@ -10,15 +10,18 @@ import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import Hovercard from 'app/components/hovercard';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
-import {IconBookmark, IconDelete} from 'app/icons';
-import Feature from 'app/components/acl/feature';
+import {IconDelete} from 'app/icons';
 import EventView from 'app/utils/discover/eventView';
 import withProjects from 'app/utils/withProjects';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import CreateAlertButton from 'app/components/createAlertButton';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {setBannerHidden} from 'app/views/eventsV2/utils';
 
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
@@ -157,6 +160,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
+        setBannerHidden(true);
         this.setState({queryName: ''});
         browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
       }
@@ -202,14 +206,8 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     });
   };
 
-  renderButtonSaveAs() {
-    const {disabled} = this.props;
-    const {isNewQuery, isEditingQuery, queryName} = this.state;
-
-    if (!isNewQuery && !isEditingQuery) {
-      return null;
-    }
-
+  renderButtonSaveAs(disabled: boolean) {
+    const {queryName} = this.state;
     /**
      * For a great UX, we should focus on `ButtonSaveInput` when `ButtonSave`
      * is clicked. However, `DropdownControl` wraps them in a FunctionComponent
@@ -227,8 +225,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             showChevron={false}
             disabled={disabled}
           >
-            <StyledIconBookmark size="xs" color="gray500" />
-            {t('Save as...')}
+            {t('Save as\u{2026}')}
           </ButtonSaveAs>
         )}
       >
@@ -256,41 +253,39 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     );
   }
 
-  renderButtonSaved() {
+  renderButtonSave(disabled: boolean) {
     const {isNewQuery, isEditingQuery} = this.state;
 
-    if (isNewQuery || isEditingQuery) {
-      return null;
+    // Existing query that hasn't been modified.
+    if (!isNewQuery && !isEditingQuery) {
+      return (
+        <Button disabled data-test-id="discover2-savedquery-button-saved">
+          {t('Saved query')}
+        </Button>
+      );
+    }
+    // Existing query with edits, show save and save as.
+    if (!isNewQuery && isEditingQuery) {
+      return (
+        <React.Fragment>
+          <Button
+            onClick={this.handleUpdateQuery}
+            data-test-id="discover2-savedquery-button-update"
+            disabled={disabled}
+          >
+            <IconUpdate />
+            {t('Save Changes')}
+          </Button>
+          {this.renderButtonSaveAs(disabled)}
+        </React.Fragment>
+      );
     }
 
-    return (
-      <Button disabled data-test-id="discover2-savedquery-button-saved">
-        <StyledIconBookmark isSolid size="xs" color="yellow400" />
-        {t('Saved query')}
-      </Button>
-    );
+    // Is a new query enable saveas
+    return this.renderButtonSaveAs(disabled);
   }
 
-  renderButtonUpdate() {
-    const {isNewQuery, isEditingQuery} = this.state;
-
-    if (isNewQuery || !isEditingQuery) {
-      return null;
-    }
-
-    return (
-      <Button
-        onClick={this.handleUpdateQuery}
-        data-test-id="discover2-savedquery-button-update"
-        disabled={this.props.disabled}
-      >
-        <IconUpdate />
-        {t('Save')}
-      </Button>
-    );
-  }
-
-  renderButtonDelete() {
+  renderButtonDelete(disabled: boolean) {
     const {isNewQuery} = this.state;
 
     if (isNewQuery) {
@@ -301,7 +296,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       <Button
         data-test-id="discover2-savedquery-button-delete"
         onClick={this.handleDeleteQuery}
-        disabled={this.props.disabled}
+        disabled={disabled}
         icon={<IconDelete />}
       />
     );
@@ -311,28 +306,56 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
 
     return (
-      <Feature features={['create-from-discover']} organization={organization}>
-        <CreateAlertButton
-          eventView={eventView}
-          organization={organization}
-          projects={projects}
-          onIncompatibleQuery={onIncompatibleAlertQuery}
-          onSuccess={this.handleCreateAlertSuccess}
-          referrer="discover"
-          data-test-id="discover2-create-from-discover"
-        />
-      </Feature>
+      <CreateAlertButton
+        eventView={eventView}
+        organization={organization}
+        projects={projects}
+        onIncompatibleQuery={onIncompatibleAlertQuery}
+        onSuccess={this.handleCreateAlertSuccess}
+        referrer="discover"
+        data-test-id="discover2-create-from-discover"
+      />
     );
   }
 
   render() {
+    const {organization} = this.props;
+
+    const renderDisabled = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={p.features}
+            hideHelpToggle
+            message={t('Discover queries are disabled')}
+            featureName={t('Discover queries')}
+          />
+        }
+      >
+        {p.children(p)}
+      </Hovercard>
+    );
+
+    const renderQueryButton = (renderFunc: (disabled: boolean) => React.ReactNode) => {
+      return (
+        <Feature
+          organization={organization}
+          features={['discover-query']}
+          hookName="feature-disabled:discover-saved-query-create"
+          renderDisabled={renderDisabled}
+        >
+          {({hasFeature}) => renderFunc(!hasFeature || this.props.disabled)}
+        </Feature>
+      );
+    };
+
     return (
       <ButtonGroup>
-        {this.renderButtonCreateAlert()}
-        {this.renderButtonDelete()}
-        {this.renderButtonSaveAs()}
-        {this.renderButtonUpdate()}
-        {this.renderButtonSaved()}
+        {renderQueryButton(disabled => this.renderButtonSave(disabled))}
+        <Feature organization={organization} features={['incidents']}>
+          {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
+        </Feature>
+        {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
       </ButtonGroup>
     );
   }
@@ -362,10 +385,6 @@ const ButtonSaveDropDown = styled('div')`
 const ButtonSaveInput = styled(Input)`
   width: 100%;
   margin-bottom: ${space(1)};
-`;
-
-const StyledIconBookmark = styled(IconBookmark)`
-  margin-right: ${space(1)};
 `;
 
 const IconUpdate = styled('div')`

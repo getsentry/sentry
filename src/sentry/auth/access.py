@@ -275,7 +275,7 @@ def from_request(request, organization=None, scopes=None):
         return from_user(request.user, organization=organization, scopes=scopes)
 
     if getattr(request.user, "is_sentry_app", False):
-        return from_sentry_app(request.user, organization=organization)
+        return _from_sentry_app(request.user, organization=organization)
 
     if is_active_superuser(request):
         role = None
@@ -305,13 +305,15 @@ def from_request(request, organization=None, scopes=None):
             role=role,
         )
 
+    # TODO: from_auth does not take scopes as a parameter so this fails for anon user
     if hasattr(request, "auth") and not request.user.is_authenticated():
         return from_auth(request.auth, scopes=scopes)
 
     return from_user(request.user, organization, scopes=scopes)
 
 
-def from_sentry_app(user, organization=None):
+# only used internally
+def _from_sentry_app(user, organization=None):
     if not organization:
         return NoAccess()
 

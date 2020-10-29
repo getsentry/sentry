@@ -123,6 +123,22 @@ class ParseSearchQueryTest(TestCase):
             ):
                 parse_search_query(invalid_query)
 
+    def test_parens_in_query(self):
+        assert parse_search_query(
+            "TypeError Anonymous function(app/javascript/utils/transform-object-keys)"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value="TypeError Anonymous function"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value="(app/javascript/utils/transform-object-keys)"),
+            ),
+        ]
+
 
 class ConvertQueryValuesTest(TestCase):
     def test_valid_converter(self):

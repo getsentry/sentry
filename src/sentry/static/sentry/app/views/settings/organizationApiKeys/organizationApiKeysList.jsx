@@ -50,7 +50,7 @@ class OrganizationApiKeysList extends React.Component {
           If you're looking to configure a Sentry client, you'll need a
           client key which is available in your project settings.`,
             {
-              api: <ExternalLink href="https://docs.sentry.io/hosted/api/" />,
+              api: <ExternalLink href="https://docs.sentry.io/api/" />,
             }
           )}
         </TextBlock>

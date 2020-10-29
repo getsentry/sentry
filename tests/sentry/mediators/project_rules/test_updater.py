@@ -57,6 +57,11 @@ class TestUpdater(TestCase):
         self.updater.call()
         assert self.rule.data["action_match"] == "any"
 
+    def test_update_filter_match(self):
+        self.updater.filter_match = "any"
+        self.updater.call()
+        assert self.rule.data["filter_match"] == "any"
+
     def test_update_conditions(self):
         self.updater.conditions = [
             {

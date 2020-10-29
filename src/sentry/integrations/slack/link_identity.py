@@ -37,7 +37,7 @@ class SlackLinkIdentityView(BaseView):
     @transaction_start("SlackLinkIdentityView")
     @never_cache
     def handle(self, request, signed_params):
-        params = unsign(signed_params.encode("ascii", errors="ignore"))
+        params = unsign(signed_params)
 
         organization, integration, idp = get_identity(
             request.user, params["organization_id"], params["integration_id"]

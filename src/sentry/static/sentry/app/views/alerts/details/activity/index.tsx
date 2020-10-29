@@ -9,6 +9,8 @@ import {
   updateIncidentNote,
 } from 'app/actionCreators/incident';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
+import {NoteType} from 'app/types/alerts';
+import {CreateError} from 'app/components/activity/note/types';
 import {t} from 'app/locale';
 import {uniqueId} from 'app/utils/guid';
 import ConfigStore from 'app/stores/configStore';
@@ -20,7 +22,6 @@ import {
   Incident,
   IncidentActivityType,
   IncidentStatus,
-  NoteType,
 } from '../../types';
 import Activity from './activity';
 
@@ -44,7 +45,7 @@ type State = {
   noteInputText: string;
   createBusy: boolean;
   createError: boolean;
-  createErrorJSON: null | object;
+  createErrorJSON: null | CreateError;
   activities: null | Activities;
 };
 
@@ -211,7 +212,6 @@ class ActivityContainer extends React.PureComponent<Props, State> {
 
     return (
       <Activity
-        noteInputId={this.state.noteInputId}
         alertId={alertId}
         me={me}
         api={api}

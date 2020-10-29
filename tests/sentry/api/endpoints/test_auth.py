@@ -13,7 +13,7 @@ class LoginTest(APITestCase):
         user.set_password("test")
         user.save()
 
-        auth_header = "Basic " + base64.b64encode("a@example.com:test")
+        auth_header = b"Basic " + base64.b64encode(b"a@example.com:test")
 
         url = reverse("sentry-api-0-auth")
         response = self.client.post(url, format="json", HTTP_AUTHORIZATION=auth_header)

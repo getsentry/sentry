@@ -14,9 +14,10 @@ import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Field from 'app/views/settings/components/forms/field';
+import {IconFlag} from 'app/icons';
 import ServiceHookSettingsForm from 'app/views/settings/project/serviceHookSettingsForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import StackedBarChart from 'app/components/stackedBarChart';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import getDynamicText from 'app/utils/getDynamicText';
 
@@ -40,45 +41,34 @@ class HookStats extends AsyncComponent {
     ];
   }
 
-  renderTooltip(point, _pointIdx, chart) {
-    const timeLabel = chart.getTimeLabel(point);
-    const [total] = point.y;
-
-    const value = `${total.toLocaleString()} events`;
-
-    return (
-      <div style={{width: '150px'}}>
-        <div className="time-label">{timeLabel}</div>
-        <div className="value-label">{value}</div>
-      </div>
-    );
-  }
-
   renderBody() {
+    const {stats} = this.state;
     let emptyStats = true;
-    const stats = this.state.stats.map(p => {
-      if (p.total) {
-        emptyStats = false;
-      }
-      return {
-        x: p.ts,
-        y: [p.total],
-      };
-    });
+
+    const series = {
+      seriesName: t('Events'),
+      data: stats.map(p => {
+        if (p.total) {
+          emptyStats = false;
+        }
+        return {
+          name: p.ts * 1000,
+          value: p.total,
+        };
+      }),
+    };
 
     return (
       <Panel>
         <PanelHeader>{t('Events in the last 30 days (by day)')}</PanelHeader>
-        <PanelBody>
+        <PanelBody withPadding>
           {!emptyStats ? (
-            <StackedBarChart
-              points={stats}
+            <MiniBarChart
+              isGroupedByDate
+              showTimeinTooltip
+              labelYAxisExtents
+              series={[series]}
               height={150}
-              label="events"
-              barClasses={['total']}
-              className="standard-barchart"
-              style={{border: 'none'}}
-              tooltip={this.renderTooltip}
             />
           ) : (
             <EmptyMessage
@@ -137,7 +127,7 @@ export default class ProjectServiceHookDetails extends AsyncView {
         <Panel>
           <PanelHeader>{t('Event Validation')}</PanelHeader>
           <PanelBody>
-            <PanelAlert type="info" icon="icon-circle-exclamation">
+            <PanelAlert type="info" icon={<IconFlag size="md" />}>
               Sentry will send the <code>X-ServiceHook-Signature</code> header built using{' '}
               <code>HMAC(SHA256, [secret], [payload])</code>. You should always verify
               this signature before trusting the information provided in the webhook.

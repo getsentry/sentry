@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-import json
+import platform
 import responses
 import sentry
 
@@ -11,6 +11,7 @@ from sentry import options
 from sentry.models import Broadcast
 from sentry.testutils import TestCase
 from sentry.tasks.beacon import BEACON_URL, send_beacon
+from sentry.utils import json
 
 
 class SendBeaconTest(TestCase):
@@ -35,6 +36,7 @@ class SendBeaconTest(TestCase):
                 "install_id": install_id,
                 "version": sentry.get_version(),
                 "docker": sentry.is_docker(),
+                "python_version": platform.python_version(),
                 "data": {
                     "organizations": 1,
                     "users": 0,
@@ -73,6 +75,7 @@ class SendBeaconTest(TestCase):
                 "install_id": install_id,
                 "version": sentry.get_version(),
                 "docker": sentry.is_docker(),
+                "python_version": platform.python_version(),
                 "data": {
                     "organizations": 1,
                     "users": 0,

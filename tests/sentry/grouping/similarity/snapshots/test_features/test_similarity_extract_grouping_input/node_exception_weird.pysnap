@@ -1,0 +1,16 @@
+---
+created: '2020-08-19T12:18:49.299319Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","* @returns Scope, the new cloned scope"],["filename","hub.js"],["function","invokeClient"],["module","hub"]],[["context-line","promisedEvent"],["filename","baseclient.ts"],["function","captureException"],["module","baseclient.ts"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","*/"],["filename","hub.js"],["function","withScope"],["module","hub"]],[["filename","onunhandledrejection.ts"],["module","onunhandledrejection.ts"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","if (maxBreadcrumbs <= 0) {"],["filename","hub.ts"],["function","captureException"],["module","hub.ts"]],[["context-line","* @returns Scope, the new cloned scope"],["filename","hub.js"],["function","invokeClient"],["module","hub"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","promisedEvent"],["filename","baseclient.ts"],["function","captureException"],["module","baseclient.ts"]],[["filename","backend.ts"],["function","eventFromException"],["module","backend.ts"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return fn.apply(this, arguments);"],["filename","index.js"],["function","mockConstructor [as captureException]"],["module","jest-mock.build:index"]],[["context-line","})();"],["filename","index.js"],["module","jest-mock.build:index"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return original.apply(this, arguments);"],["filename","index.js"],["module","jest-mock.build:index"]],[["context-line","if (maxBreadcrumbs <= 0) {"],["filename","hub.ts"],["function","captureException"],["module","hub.ts"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return specificMockImpl.apply(this, arguments);"],["filename","index.js"],["function","finalReturnValue"],["module","jest-mock.build:index"]],[["context-line","return original.apply(this, arguments);"],["filename","index.js"],["module","jest-mock.build:index"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","})();"],["filename","index.js"],["module","jest-mock.build:index"]],[["context-line","return specificMockImpl.apply(this, arguments);"],["filename","index.js"],["function","finalReturnValue"],["module","jest-mock.build:index"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","onunhandledrejection.ts"],["module","onunhandledrejection.ts"]],[["context-line","if (maxBreadcrumbs <= 0) {"],["filename","hub.ts"],["function","captureException"],["module","hub.ts"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","onunhandledrejection.ts"],["module","onunhandledrejection.ts"]],[["context-line","return fn.apply(this, arguments);"],["filename","index.js"],["function","mockConstructor [as captureException]"],["module","jest-mock.build:index"]]]
+similarity:2020-07-23:type:ident-shingle: "Error"

@@ -29,7 +29,6 @@ export function clearValue(wrapper) {
 export function findOption(wrapper, {value, label} = {}, options) {
   const selector = getSelector(options);
   const valueSelector = !!value ? 'value' : 'label';
-
   return wrapper.find(`${selector} Option[${valueSelector}="${value || label}"]`);
 }
 
@@ -45,4 +44,10 @@ export function selectByValue(wrapper, value, options = {}) {
   findOption(wrapper, {value}, options)
     .at(options.at || 0)
     .simulate('click');
+}
+
+//used for the text input to replicate a user typing
+export function changeInputValue(element, value) {
+  element.instance().value = value;
+  element.simulate('change', {target: {value}});
 }

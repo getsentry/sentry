@@ -184,7 +184,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   getEnvironments() {
     const {projects, selectedProjects} = this.props;
     let environments = [];
-    projects.forEach(function(project) {
+    projects.forEach(function (project) {
       const projectId = parseInt(project.id, 10);
 
       // Include environments from:
@@ -322,7 +322,11 @@ class EnvironmentSelectorItem extends React.PureComponent {
   render() {
     const {environment, inputValue, isChecked} = this.props;
     return (
-      <GlobalSelectionHeaderRow checked={isChecked} onCheckClick={this.handleClick}>
+      <GlobalSelectionHeaderRow
+        data-test-id={`environment-${environment}`}
+        checked={isChecked}
+        onCheckClick={this.handleClick}
+      >
         <Highlight text={inputValue}>{environment}</Highlight>
       </GlobalSelectionHeaderRow>
     );

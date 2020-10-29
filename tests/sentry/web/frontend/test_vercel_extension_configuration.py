@@ -16,7 +16,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        OrganizationMember.objects.create(user=self.user, organization=self.org)
+        OrganizationMember.objects.create(user=self.user, organization=self.org, role="admin")
 
         responses.reset()
         # need oauth mocks
@@ -57,15 +57,25 @@ class VercelExtensionConfigurationTest(TestCase):
     def test_logged_in_one_org(self):
         self.login_as(self.user)
 
-        with self.feature("organizations:integrations-vercel"):
-            resp = self.client.get(self.path, self.params)
+        resp = self.client.get(self.path, self.params)
 
-            mock_request = responses.calls[0].request
-            req_params = parse_qs(mock_request.body)
-            assert req_params["code"] == ["my-code"]
+        mock_request = responses.calls[0].request
+        req_params = parse_qs(mock_request.body)
+        assert req_params["code"] == ["my-code"]
 
-            # Goes straight to Vercel OAuth
-            assert resp.status_code == 302
+        # Goes straight to Vercel OAuth
+        assert resp.status_code == 302
+
+    def test_logged_in_as_member(self):
+        OrganizationMember.objects.filter(user=self.user, organization=self.org).update(
+            role="member"
+        )
+        self.login_as(self.user)
+
+        resp = self.client.get(self.path, self.params)
+
+        assert resp.status_code == 302
+        assert "/extensions/vercel/link/" in resp.url
 
     def test_logged_in_many_orgs(self):
         self.login_as(self.user)
@@ -86,10 +96,9 @@ class VercelExtensionConfigurationTest(TestCase):
         OrganizationMember.objects.create(user=self.user, organization=org)
         self.params["orgSlug"] = org.slug
 
-        with self.feature("organizations:integrations-vercel"):
-            resp = self.client.get(self.path, self.params)
-            # Goes straight to Vercel OAuth
-            assert resp.status_code == 302
+        resp = self.client.get(self.path, self.params)
+        # Goes straight to Vercel OAuth
+        assert resp.status_code == 302
 
     def test_logged_out(self):
         resp = self.client.get(self.path, self.params)

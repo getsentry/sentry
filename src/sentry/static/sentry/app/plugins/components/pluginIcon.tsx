@@ -16,12 +16,14 @@ import datadog from 'app/../images/logos/logo-datadog.svg';
 import flowdock from 'app/../images/logos/logo-flowdock.svg';
 import fullstory from 'app/../images/logos/logo-fullstory.svg';
 import github from 'app/../images/logos/logo-github.svg';
+import githubActions from 'app/../images/logos/logo-github-actions.svg';
 import githubEnterprise from 'app/../images/logos/logo-github-enterprise.svg';
 import gitlab from 'app/../images/logos/logo-gitlab.svg';
 import heroku from 'app/../images/logos/logo-heroku.svg';
 import jira from 'app/../images/logos/logo-jira.svg';
 import jiraserver from 'app/../images/logos/logo-jira-server.svg';
 import lighthouse from 'app/../images/logos/logo-lighthouse.svg';
+import linear from 'app/../images/logos/logo-linear.svg';
 import msteams from 'app/../images/logos/logo-msteams.svg';
 import netlify from 'app/../images/logos/logo-netlify.svg';
 import opsgenie from 'app/../images/logos/logo-opsgenie.svg';
@@ -63,7 +65,7 @@ export const ICON_PATHS = {
   asana,
   asayer,
   bitbucket,
-  bitbucket_release_pipe: bitbucket,
+  bitbucket_pipelines: bitbucket,
   bitbucket_server: bitbucketserver,
   campfire,
   clickup,
@@ -72,6 +74,7 @@ export const ICON_PATHS = {
   flowdock,
   fullstory,
   github,
+  github_actions: githubActions,
   github_enterprise: githubEnterprise,
   gitlab,
   heroku,
@@ -80,6 +83,7 @@ export const ICON_PATHS = {
   'jira-ac': jira,
   jira_server: jiraserver,
   lighthouse,
+  linear,
   msteams,
   netlify,
   opsgenie,

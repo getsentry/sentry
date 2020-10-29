@@ -17,12 +17,14 @@ import {fetchProjectsCount} from 'app/actionCreators/projects';
 import Alert from 'app/components/alert';
 import CreateAlertButton from 'app/components/createAlertButton';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {IconFlag} from 'app/icons';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Confirm from 'app/components/confirm';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {generateAggregateFields} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -38,6 +40,7 @@ import Tags from './tags';
 import ResultsHeader from './resultsHeader';
 import ResultsChart from './resultsChart';
 import {generateTitle} from './utils';
+import {addRoutePerformanceContext} from '../performance/utils';
 
 type Props = {
   api: Client;
@@ -84,6 +87,7 @@ class Results extends React.Component<Props, State> {
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
   }
@@ -104,6 +108,7 @@ class Results extends React.Component<Props, State> {
       !isEqual(prevProps.selection.projects, selection.projects)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
     }
 
     if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
@@ -192,6 +197,7 @@ class Results extends React.Component<Props, State> {
     if (eventView.isValid()) {
       return;
     }
+
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection} = this.props;
     const nextEventView = EventView.fromNewQueryWithLocation(
@@ -200,6 +206,9 @@ class Results extends React.Component<Props, State> {
     );
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
+    }
+    if (location.query?.query) {
+      nextEventView.query = decodeScalar(location.query.query) || '';
     }
 
     ReactRouter.browserHistory.replace(
@@ -284,11 +293,12 @@ class Results extends React.Component<Props, State> {
   };
 
   getDocumentTitle(): string {
+    const {organization} = this.props;
     const {eventView} = this.state;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView});
+    return generateTitle({eventView, organization});
   }
 
   renderTagsTable() {
@@ -346,7 +356,7 @@ class Results extends React.Component<Props, State> {
       return null;
     }
     return (
-      <Alert type="error" icon="icon-circle-exclamation">
+      <Alert type="error" icon={<IconFlag size="md" />}>
         {error}
       </Alert>
     );
@@ -367,6 +377,9 @@ class Results extends React.Component<Props, State> {
       incompatibleAlertNotice,
       confirmedQuery,
     } = this.state;
+    const fields = eventView.hasAggregateField()
+      ? generateAggregateFields(organization, eventView.fields)
+      : eventView.fields;
     const query = decodeScalar(location.query.query) || '';
     const title = this.getDocumentTitle();
 
@@ -389,7 +402,7 @@ class Results extends React.Component<Props, State> {
                   organization={organization}
                   projectIds={eventView.project}
                   query={query}
-                  fields={eventView.fields}
+                  fields={fields}
                   onSearch={this.handleSearch}
                 />
                 <ResultsChart

@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import {IconChevron} from 'app/icons';
 
-import RulesList from './rulesList';
+import Rules from './rules';
 import {Rule} from './types';
 
 type Props = {
@@ -27,16 +27,16 @@ class OrganizationRules extends React.Component<Props, State> {
     this.loadContentHeight();
   }
 
-  rulesListRef = React.createRef<HTMLUListElement>();
+  rulesRef = React.createRef<HTMLUListElement>();
 
-  loadContentHeight = () => {
+  loadContentHeight() {
     if (!this.state.contentHeight) {
-      const contentHeight = this.rulesListRef.current?.offsetHeight;
+      const contentHeight = this.rulesRef.current?.offsetHeight;
       if (contentHeight) {
         this.setState({contentHeight: `${contentHeight}px`});
       }
     }
-  };
+  }
 
   handleToggleCollapsed = () => {
     this.setState(prevState => ({
@@ -70,7 +70,7 @@ class OrganizationRules extends React.Component<Props, State> {
           />
         </Header>
         <Content>
-          <RulesList rules={rules} ref={this.rulesListRef} />
+          <Rules rules={rules} ref={this.rulesRef} disabled />
         </Content>
       </Wrapper>
     );

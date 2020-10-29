@@ -19,6 +19,7 @@ import ExternalIssueActions from 'app/components/group/externalIssueActions';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import PluginActions from 'app/components/group/pluginActions';
+import {IconGeneric} from 'app/icons';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
@@ -58,9 +59,9 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   constructor(props: Props) {
     super(props, {});
     this.state = Object.assign({}, this.state, {
-      components: [],
-      sentryAppInstallations: [],
-      externalIssues: [],
+      components: SentryAppComponentsStore.getInitialState(),
+      sentryAppInstallations: SentryAppInstallationStore.getInitialState(),
+      externalIssues: ExternalIssueStore.getInitialState(),
     });
   }
 
@@ -136,7 +137,6 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   renderSentryAppIssues() {
     const {externalIssues, sentryAppInstallations, components} = this.state;
     const {group} = this.props;
-
     if (components.length === 0) {
       return null;
     }
@@ -203,7 +203,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
             <span>Linked Issues</span>
           </h6>
           <AlertLink
-            icon="icon-generic-box"
+            icon={<IconGeneric />}
             priority="muted"
             size="small"
             to={`/settings/${this.props.organization.slug}/integrations`}

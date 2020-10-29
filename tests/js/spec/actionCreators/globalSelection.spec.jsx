@@ -11,21 +11,21 @@ import localStorage from 'app/utils/localStorage';
 
 jest.mock('app/utils/localStorage');
 
-describe('GlobalSelection ActionCreators', function() {
+describe('GlobalSelection ActionCreators', function () {
   const organization = TestStubs.Organization();
-  beforeEach(function() {
+  beforeEach(function () {
     localStorage.getItem.mockClear();
     jest.spyOn(GlobalSelectionActions, 'updateProjects');
     jest.spyOn(GlobalSelectionActions, 'initializeUrlState').mockImplementation();
     GlobalSelectionActions.updateProjects.mockClear();
   });
 
-  describe('initializeUrlState', function() {
+  describe('initializeUrlState', function () {
     let router;
     beforeEach(() => {
       router = TestStubs.router();
     });
-    it('loads from local storage when no query params', function() {
+    it('loads from local storage when no query params', function () {
       const key = `global-selection:${organization.slug}`;
       localStorage.setItem(key, JSON.stringify({environments: [], projects: [1]}));
       initializeUrlState({
@@ -52,7 +52,7 @@ describe('GlobalSelection ActionCreators', function() {
         })
       );
     });
-    it('does not load from local storage when no query params and `skipLoadLastUsed` is true', function() {
+    it('does not load from local storage when no query params and `skipLoadLastUsed` is true', function () {
       jest.spyOn(localStorage, 'getItem');
       initializeUrlState({
         organization,
@@ -64,7 +64,7 @@ describe('GlobalSelection ActionCreators', function() {
       expect(localStorage.getItem).not.toHaveBeenCalled();
     });
 
-    it('does not change dates with no query params or defaultSelection', function() {
+    it('does not change dates with no query params or defaultSelection', function () {
       initializeUrlState({
         organization,
         queryParams: {
@@ -84,7 +84,7 @@ describe('GlobalSelection ActionCreators', function() {
       );
     });
 
-    it('does changes to default dates with defaultSelection and no query params', function() {
+    it('does changes to default dates with defaultSelection and no query params', function () {
       initializeUrlState({
         organization,
         queryParams: {
@@ -109,7 +109,7 @@ describe('GlobalSelection ActionCreators', function() {
       );
     });
 
-    it('uses query params statsPeriod over defaults', function() {
+    it('uses query params statsPeriod over defaults', function () {
       initializeUrlState({
         organization,
         queryParams: {
@@ -135,7 +135,7 @@ describe('GlobalSelection ActionCreators', function() {
       );
     });
 
-    it('uses absolute dates over defaults', function() {
+    it('uses absolute dates over defaults', function () {
       initializeUrlState({
         organization,
         queryParams: {
@@ -163,7 +163,7 @@ describe('GlobalSelection ActionCreators', function() {
       );
     });
 
-    it('does not load from local storage when there are query params', function() {
+    it('does not load from local storage when there are query params', function () {
       initializeUrlState({
         organization,
         queryParams: {
@@ -194,8 +194,8 @@ describe('GlobalSelection ActionCreators', function() {
     });
   });
 
-  describe('updateProjects()', function() {
-    it('updates', function() {
+  describe('updateProjects()', function () {
+    it('updates', function () {
       updateProjects([1, 2]);
       expect(GlobalSelectionActions.updateProjects).toHaveBeenCalledWith(
         [1, 2],
@@ -203,14 +203,14 @@ describe('GlobalSelection ActionCreators', function() {
       );
     });
 
-    it('does not update invalid projects', function() {
+    it('does not update invalid projects', function () {
       updateProjects(['1']);
       expect(GlobalSelectionActions.updateProjects).not.toHaveBeenCalled();
     });
   });
 
-  describe('updateEnvironments()', function() {
-    it('updates single', function() {
+  describe('updateEnvironments()', function () {
+    it('updates single', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -225,7 +225,7 @@ describe('GlobalSelection ActionCreators', function() {
       });
     });
 
-    it('updates multiple', function() {
+    it('updates multiple', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -240,7 +240,7 @@ describe('GlobalSelection ActionCreators', function() {
       });
     });
 
-    it('removes environment', function() {
+    it('removes environment', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -255,8 +255,8 @@ describe('GlobalSelection ActionCreators', function() {
     });
   });
 
-  describe('updateDateTime()', function() {
-    it('updates statsPeriod when there is no existing stats period', function() {
+  describe('updateDateTime()', function () {
+    it('updates statsPeriod when there is no existing stats period', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -273,7 +273,7 @@ describe('GlobalSelection ActionCreators', function() {
       });
     });
 
-    it('updates statsPeriod when there is an existing stats period', function() {
+    it('updates statsPeriod when there is an existing stats period', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -290,7 +290,7 @@ describe('GlobalSelection ActionCreators', function() {
       });
     });
 
-    it('updates `statsPeriod` when given a new  `period`', function() {
+    it('updates `statsPeriod` when given a new  `period`', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -307,7 +307,7 @@ describe('GlobalSelection ActionCreators', function() {
       });
     });
 
-    it('changes to absolute date', function() {
+    it('changes to absolute date', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -326,8 +326,8 @@ describe('GlobalSelection ActionCreators', function() {
     });
   });
 
-  describe('updateParams()', function() {
-    it('updates history when queries are different', function() {
+  describe('updateParams()', function () {
+    it('updates history when queries are different', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -348,7 +348,7 @@ describe('GlobalSelection ActionCreators', function() {
         query: {project: [1]},
       });
     });
-    it('does not update history when queries are the same', function() {
+    it('does not update history when queries are the same', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -367,8 +367,8 @@ describe('GlobalSelection ActionCreators', function() {
     });
   });
 
-  describe('updateParamsWithoutHistory()', function() {
-    it('updates history when queries are different', function() {
+  describe('updateParamsWithoutHistory()', function () {
+    it('updates history when queries are different', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -389,7 +389,7 @@ describe('GlobalSelection ActionCreators', function() {
         query: {project: [1]},
       });
     });
-    it('does not update history when queries are the same', function() {
+    it('does not update history when queries are the same', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',

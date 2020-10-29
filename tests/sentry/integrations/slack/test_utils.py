@@ -22,7 +22,7 @@ from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 
-class GetChannelIdTest(TestCase):
+class GetChannelIdWorkspaceTest(TestCase):
     def setUp(self):
         self.resp = responses.mock
         self.resp.__enter__()
@@ -31,7 +31,7 @@ class GetChannelIdTest(TestCase):
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            metadata={"access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
         self.integration.add_organization(self.event.project.organization, self.user)
         self.add_list_response(
@@ -66,7 +66,7 @@ class GetChannelIdTest(TestCase):
 
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
         assert (expected_prefix, expected_id, timed_out) == get_channel_id(
-            self.organization, self.integration.id, channel
+            self.organization, self.integration, channel
         )
 
     def test_valid_channel_selected(self):
@@ -83,11 +83,46 @@ class GetChannelIdTest(TestCase):
 
     def test_invalid_member_selected_display_name(self):
         with pytest.raises(DuplicateDisplayNameError):
-            get_channel_id(self.organization, self.integration.id, "@Morty")
+            get_channel_id(self.organization, self.integration, "@Morty")
 
     def test_invalid_channel_selected(self):
-        assert get_channel_id(self.organization, self.integration.id, "#fake-channel")[1] is None
-        assert get_channel_id(self.organization, self.integration.id, "@fake-user")[1] is None
+        assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
+        assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
+
+
+class GetChannelIdBotTest(GetChannelIdWorkspaceTest):
+    def setUp(self):
+        self.resp = responses.mock
+        self.resp.__enter__()
+
+        self.integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        self.integration.add_organization(self.event.project.organization, self.user)
+        self.add_list_response(
+            "conversations",
+            [
+                {"name": "my-channel", "id": "m-c"},
+                {"name": "other-chann", "id": "o-c"},
+                {"name": "my-private-channel", "id": "m-p-c", "is_private": True},
+            ],
+            result_name="channels",
+        )
+        self.add_list_response(
+            "users",
+            [
+                {"name": "morty", "id": "m", "profile": {"display_name": "Morty"}},
+                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
+                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
+            ],
+            result_name="members",
+        )
 
 
 class BuildIncidentAttachmentTest(TestCase):

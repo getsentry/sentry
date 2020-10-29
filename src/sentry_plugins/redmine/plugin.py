@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import json
 import six
 
 from django.utils.translation import ugettext_lazy as _
@@ -7,6 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue import IssuePlugin
 from sentry_plugins.base import CorePluginMixin
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 import sentry
@@ -173,11 +173,11 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
                 self.fields.remove(field)
                 return
 
-    def build_initial(self, inital_args, project):
+    def build_initial(self, initial_args, project):
         initial = {}
         fields = ["host", "key", "project_id", "tracker_id", "default_priority", "extra_fields"]
         for field in fields:
-            value = inital_args.get(field) or self.get_option(field, project)
+            value = initial_args.get(field) or self.get_option(field, project)
             if value is not None:
                 initial[field] = value
         return initial

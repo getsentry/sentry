@@ -18,6 +18,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
+from django.utils.encoding import force_text
 
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus, SentryAppInstallationStatus
@@ -320,11 +321,11 @@ class Factories(object):
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "name": "An issue is first seen",
+                "name": "A new issue is created",
             },
             {
                 "id": "sentry.rules.conditions.every_event.EveryEventCondition",
-                "name": "An event is seen",
+                "name": "The event occurs",
             },
         ]
         return Rule.objects.create(
@@ -352,7 +353,7 @@ class Factories(object):
     @staticmethod
     def create_release(project, user=None, version=None, date_added=None, additional_projects=None):
         if version is None:
-            version = hexlify(os.urandom(20))
+            version = force_text(hexlify(os.urandom(20)))
 
         if date_added is None:
             date_added = timezone.now()
@@ -447,7 +448,7 @@ class Factories(object):
         commit = Commit.objects.get_or_create(
             organization_id=repo.organization_id,
             repository_id=repo.id,
-            key=key or sha1(uuid4().hex).hexdigest(),
+            key=key or sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             defaults={
                 "message": message or make_sentence(),
                 "author": author
@@ -570,7 +571,11 @@ class Factories(object):
             )
 
         return EventAttachment.objects.create(
-            project_id=event.project_id, event_id=event.event_id, file=file, **kwargs
+            project_id=event.project_id,
+            event_id=event.event_id,
+            file=file,
+            type=file.type,
+            **kwargs
         )
 
     @staticmethod
@@ -611,6 +616,7 @@ class Factories(object):
             object_name=object_name,
             cpu_name=cpu_name or "x86_64",
             file=file,
+            checksum=file.checksum,
             data=data,
             **kwargs
         )
@@ -672,7 +678,7 @@ class Factories(object):
         Factories.create_project(organization=organization)
 
         install = sentry_app_installations.Creator.run(
-            slug=(slug or Factories.create_sentry_app().slug),
+            slug=(slug or Factories.create_sentry_app(organization=organization).slug),
             organization=organization,
             user=(user or Factories.create_user()),
         )
@@ -869,6 +875,8 @@ class Factories(object):
         dataset=QueryDatasets.EVENTS,
         threshold_type=AlertRuleThresholdType.ABOVE,
         resolve_threshold=None,
+        user=None,
+        event_types=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -887,6 +895,8 @@ class Factories(object):
             environment=environment,
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
+            user=user,
+            event_types=event_types,
         )
 
         if date_added is not None:
@@ -895,19 +905,11 @@ class Factories(object):
         return alert_rule
 
     @staticmethod
-    def create_alert_rule_trigger(
-        alert_rule,
-        label=None,
-        threshold_type=AlertRuleThresholdType.ABOVE,
-        alert_threshold=100,
-        resolve_threshold=10,
-    ):
+    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
             label = petname.Generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(
-            alert_rule, label, threshold_type, alert_threshold, resolve_threshold
-        )
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
 
     @staticmethod
     def create_incident_trigger(incident, alert_rule_trigger, status=None):
@@ -915,7 +917,7 @@ class Factories(object):
             status = TriggerStatus.ACTIVE.value
 
         return IncidentTrigger.objects.create(
-            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status,
+            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status
         )
 
     @staticmethod
@@ -925,7 +927,8 @@ class Factories(object):
         target_type=AlertRuleTriggerAction.TargetType.USER,
         target_identifier=None,
         integration=None,
+        sentry_app=None,
     ):
         return create_alert_rule_trigger_action(
-            trigger, type, target_type, target_identifier, integration
+            trigger, type, target_type, target_identifier, integration, sentry_app
         )

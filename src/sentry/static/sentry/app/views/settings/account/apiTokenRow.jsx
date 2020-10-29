@@ -30,7 +30,7 @@ class ApiTokenRow extends React.Component {
         <Controls>
           <InputWrapper>
             <TextCopyInput>
-              {getDynamicText({value: token.token, fixed: 'PERCY_AUTH_TOKEN'})}
+              {getDynamicText({value: token.token, fixed: 'CI_AUTH_TOKEN'})}
             </TextCopyInput>
           </InputWrapper>
           <Button

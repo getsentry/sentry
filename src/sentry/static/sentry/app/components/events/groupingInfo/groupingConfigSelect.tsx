@@ -40,23 +40,17 @@ class GroupingConfigSelect extends AsyncComponent<Props, State> {
     const {configId, eventConfigId, onSelect} = this.props;
     const {configs} = this.state;
 
-    const options = configs
-      .filter(config => !config.hidden || config.id === eventConfigId)
-      .map(({id}) => ({
-        value: id,
-        label: (
-          <GroupingConfigItem isActive={id === eventConfigId}>{id}</GroupingConfigItem>
-        ),
-      }));
+    const options = configs.map(({id, hidden}) => ({
+      value: id,
+      label: (
+        <GroupingConfigItem isHidden={hidden} isActive={id === eventConfigId}>
+          {id}
+        </GroupingConfigItem>
+      ),
+    }));
 
     return (
-      <DropdownAutoComplete
-        value={configId}
-        onSelect={onSelect}
-        alignMenu="left"
-        selectedItem={configId}
-        items={options}
-      >
+      <DropdownAutoComplete onSelect={onSelect} items={options}>
         {({isOpen}) => (
           <Tooltip title={t('Click here to experiment with other grouping configs')}>
             <StyledDropdownButton isOpen={isOpen} size="small">

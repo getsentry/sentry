@@ -2,31 +2,14 @@ from __future__ import absolute_import
 
 import six
 from rest_framework import serializers
-from uuid import uuid4
 
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.api.paginator import DateTimePaginator
 from sentry.models import Environment, GroupStatus, ProjectKey, UserReport
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.ingest.userreport import save_userreport, Conflict
-
-
-@scenario("CreateUserFeedback")
-def create_user_feedback_scenario(runner):
-    with runner.isolated_project("Plain Proxy") as project:
-        runner.request(
-            method="POST",
-            path=u"/projects/{}/{}/user-feedback/".format(runner.org.slug, project.slug),
-            data={
-                "name": "Jane Smith",
-                "email": "jane@example.com",
-                "comments": "It broke!",
-                "event_id": uuid4().hex,
-            },
-        )
 
 
 class UserReportSerializer(serializers.ModelSerializer):
@@ -37,7 +20,6 @@ class UserReportSerializer(serializers.ModelSerializer):
 
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
-    doc_section = DocSection.PROJECTS
 
     def get(self, request, project):
         """
@@ -85,7 +67,6 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             paginator_cls=DateTimePaginator,
         )
 
-    @attach_scenarios([create_user_feedback_scenario])
     def post(self, request, project):
         """
         Submit User Feedback

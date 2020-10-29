@@ -8,12 +8,12 @@ import WrappedDataExport from 'app/components/dataExport';
 
 jest.mock('app/actionCreators/indicator');
 
-describe('DataExport', function() {
+describe('DataExport', function () {
   const mockUnauthorizedOrg = TestStubs.Organization({
     features: [],
   });
   const mockAuthorizedOrg = TestStubs.Organization({
-    features: ['data-export'],
+    features: ['discover-query'],
   });
   const mockPayload = {
     queryType: 'Issues-by-Tag',
@@ -26,7 +26,7 @@ describe('DataExport', function() {
       },
     ]);
 
-  it('should not render anything for an unauthorized organization', function() {
+  it('should not render anything for an unauthorized organization', function () {
     const wrapper = mountWithTheme(
       <WrappedDataExport payload={mockPayload} />,
       mockRouterContext(mockUnauthorizedOrg)
@@ -34,7 +34,7 @@ describe('DataExport', function() {
     expect(wrapper.isEmptyRender()).toBe(true);
   });
 
-  it('should render the button for an authorized organization', function() {
+  it('should render the button for an authorized organization', function () {
     const wrapper = mountWithTheme(
       <WrappedDataExport payload={mockPayload} />,
       mockRouterContext(mockAuthorizedOrg)
@@ -43,7 +43,7 @@ describe('DataExport', function() {
     expect(wrapper.text()).toContain('Export All to CSV');
   });
 
-  it('should render custom children if provided', function() {
+  it('should render custom children if provided', function () {
     const testString = 'This is an example string';
     const wrapper = mountWithTheme(
       <WrappedDataExport payload={mockPayload}>{testString}</WrappedDataExport>,
@@ -52,7 +52,7 @@ describe('DataExport', function() {
     expect(wrapper.text()).toContain(testString);
   });
 
-  it('should respect the disabled prop and not be clickable', function() {
+  it('should respect the disabled prop and not be clickable', function () {
     const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     const postDataExport = MockApiClient.addMockResponse({
       url,
@@ -68,7 +68,7 @@ describe('DataExport', function() {
     expect(postDataExport).not.toHaveBeenCalled();
   });
 
-  it('should send a request and disable itself when clicked', async function() {
+  it('should send a request and disable itself when clicked', async function () {
     const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     const postDataExport = MockApiClient.addMockResponse({
       url,
@@ -97,7 +97,7 @@ describe('DataExport', function() {
     expect(wrapper.find(Button).prop('disabled')).toBe(true);
   });
 
-  it('should reset the state when receiving a new payload', async function() {
+  it('should reset the state when receiving a new payload', async function () {
     const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     MockApiClient.addMockResponse({
       url,
@@ -117,7 +117,7 @@ describe('DataExport', function() {
     expect(wrapper.find(Button).prop('disabled')).toBe(false);
   });
 
-  it('should display default error message if non provided', async function() {
+  it('should display default error message if non provided', async function () {
     const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     MockApiClient.addMockResponse({
       url,
@@ -137,7 +137,7 @@ describe('DataExport', function() {
     expect(wrapper.find(Button).prop('disabled')).toBe(false);
   });
 
-  it('should display provided error message', async function() {
+  it('should display provided error message', async function () {
     const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     MockApiClient.addMockResponse({
       url,

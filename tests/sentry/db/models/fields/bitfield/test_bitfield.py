@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+import unittest
 import pickle
+
 import six
 
 from django import forms
@@ -17,7 +19,7 @@ class BitFieldTestModel(models.Model):
         app_label = "sentry"
 
     flags = BitField(
-        flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=3, db_column="another_name"
+        flags=(u"FLAG_0", u"FLAG_1", u"FLAG_2", u"FLAG_3"), default=3, db_column=u"another_name"
     )
 
 
@@ -27,7 +29,7 @@ class BitFieldTestModelForm(forms.ModelForm):
         exclude = tuple()
 
 
-class BitHandlerTest(TestCase):
+class BitHandlerTest(unittest.TestCase):
     def test_comparison(self):
         bithandler_1 = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         bithandler_2 = BitHandler(1, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
@@ -109,7 +111,7 @@ class BitHandlerTest(TestCase):
         self.assertEquals(bithandler.FLAG_2, False)
 
 
-class BitTest(TestCase):
+class BitTest(unittest.TestCase):
     def test_int(self):
         bit = Bit(0)
         self.assertEquals(int(bit), 1)
@@ -300,7 +302,7 @@ class BitFieldTest(TestCase):
         MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))
 
         # Big flags list
-        flags = ["f" + six.text_type(i) for i in range(100)]
+        flags = [u"f" + six.text_type(i) for i in range(100)]
 
         try:
             BitField(flags=flags[:MAX_COUNT])
@@ -335,14 +337,21 @@ class BitFieldTest(TestCase):
     def test_defaults_as_key_names(self):
         class TestModel(models.Model):
             flags = BitField(
-                flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=("FLAG_1", "FLAG_2")
+                flags=(u"FLAG_0", u"FLAG_1", u"FLAG_2", u"FLAG_3"), default=(u"FLAG_1", u"FLAG_2")
             )
 
         field = TestModel._meta.get_field("flags")
         self.assertEquals(field.default, TestModel.flags.FLAG_1 | TestModel.flags.FLAG_2)
 
+    def test_pickle_integration(self):
+        inst = BitFieldTestModel.objects.create(flags=1)
+        data = pickle.dumps(inst)
+        inst = pickle.loads(data)
+        self.assertEquals(type(inst.flags), BitHandler)
+        self.assertEquals(int(inst.flags), 1)
 
-class BitFieldSerializationTest(TestCase):
+
+class BitFieldSerializationTest(unittest.TestCase):
     def test_can_unserialize_bithandler(self):
         bf = BitFieldTestModel()
         bf.flags.FLAG_0 = 1
@@ -351,13 +360,6 @@ class BitFieldSerializationTest(TestCase):
         inst = pickle.loads(data)
         self.assertTrue(inst.flags.FLAG_0)
         self.assertFalse(inst.flags.FLAG_1)
-
-    def test_pickle_integration(self):
-        inst = BitFieldTestModel.objects.create(flags=1)
-        data = pickle.dumps(inst)
-        inst = pickle.loads(data)
-        self.assertEquals(type(inst.flags), BitHandler)
-        self.assertEquals(int(inst.flags), 1)
 
     def test_added_field(self):
         bf = BitFieldTestModel()

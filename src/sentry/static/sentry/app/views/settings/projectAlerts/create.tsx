@@ -1,16 +1,19 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
+import {PageContent, PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {uniqueId} from 'app/utils/guid';
+import space from 'app/styles/space';
+import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
+import EventView from 'app/utils/discover/eventView';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withProject from 'app/utils/withProject';
-import EventView from 'app/utils/discover/eventView';
-import {uniqueId} from 'app/utils/guid';
+import PageHeading from 'app/components/pageHeading';
 
 import AlertTypeChooser from './alertTypeChooser';
 
@@ -43,7 +46,7 @@ class Create extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, project, location} = this.props;
+    const {organization, location, project} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'new_alert_rule.viewed',
@@ -69,38 +72,57 @@ class Create extends React.Component<Props, State> {
   };
 
   render() {
-    const {hasMetricAlerts, organization} = this.props;
-    const {projectId} = this.props.params;
+    const {
+      hasMetricAlerts,
+      organization,
+      project,
+      params: {projectId},
+    } = this.props;
     const {alertType, eventView} = this.state;
 
     const shouldShowAlertTypeChooser = hasMetricAlerts;
-    const title = t('New Alert');
+    const title = t('New Alert Rule');
 
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={projectId} />
-        <SettingsPageHeader title={title} />
-
-        {shouldShowAlertTypeChooser && (
-          <AlertTypeChooser
-            organization={organization}
-            selected={alertType}
-            onChange={this.handleChangeAlertType}
+        <PageContent>
+          <BuilderBreadCrumbs
+            hasMetricAlerts={hasMetricAlerts}
+            orgSlug={organization.slug}
+            title={title}
           />
-        )}
+          <StyledPageHeader>
+            <PageHeading>{title}</PageHeading>
+          </StyledPageHeader>
+          {shouldShowAlertTypeChooser && (
+            <AlertTypeChooser
+              organization={organization}
+              selected={alertType}
+              onChange={this.handleChangeAlertType}
+            />
+          )}
 
-        {(!hasMetricAlerts || alertType === 'issue') && <IssueEditor {...this.props} />}
+          {(!hasMetricAlerts || alertType === 'issue') && (
+            <IssueEditor {...this.props} project={project} />
+          )}
 
-        {hasMetricAlerts && alertType === 'metric' && (
-          <IncidentRulesCreate
-            {...this.props}
-            eventView={eventView}
-            sessionId={this.sessionId}
-          />
-        )}
+          {hasMetricAlerts && alertType === 'metric' && (
+            <IncidentRulesCreate
+              {...this.props}
+              eventView={eventView}
+              sessionId={this.sessionId}
+              project={project}
+            />
+          )}
+        </PageContent>
       </React.Fragment>
     );
   }
 }
 
-export default withProject(Create);
+const StyledPageHeader = styled(PageHeader)`
+  margin-bottom: ${space(4)};
+`;
+
+export default Create;

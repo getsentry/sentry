@@ -4,7 +4,6 @@ import 'bootstrap/js/dropdown';
 import 'focus-visible';
 
 import 'app/utils/statics-setup';
-import 'app/utils/emotion-setup';
 
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -15,7 +14,7 @@ import SentryRRWeb from '@sentry/rrweb';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
-import {Integrations} from '@sentry/apm';
+import {Integrations} from '@sentry/tracing';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 
@@ -27,7 +26,6 @@ import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
 import routes from 'app/routes';
-import {normalizeTransactionName} from 'app/utils/apm';
 
 import {setupFavicon} from './favicon';
 
@@ -51,23 +49,19 @@ const config = ConfigStore.getConfig();
 
 const tracesSampleRate = config ? config.apmSampling : 0;
 
-const appRoutes = Router.createRoutes(routes());
-
 function getSentryIntegrations(hasReplays: boolean = false) {
   const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    new Integrations.Tracing({
-      tracingOrigins: ['localhost', 'sentry.io', /^\//],
-      debug: {
-        spanDebugTimingInfo: true,
-        writeAsBreadcrumbs: false,
-      },
-      beforeNavigate: (location: Location) => {
-        return normalizeTransactionName(appRoutes, location);
-      },
+    new Integrations.BrowserTracing({
+      routingInstrumentation: Sentry.reactRouterV3Instrumentation(
+        Router.browserHistory as any,
+        Router.createRoutes(routes()),
+        Router.match as any
+      ),
+      idleTimeout: 5000,
     }),
   ];
   if (hasReplays) {
@@ -101,6 +95,7 @@ Sentry.init({
     : window.__SENTRY__OPTIONS.whitelistUrls,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
+  autoSessionTracking: true,
 });
 
 if (window.__SENTRY__USER) {

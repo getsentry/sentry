@@ -397,7 +397,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
     span,
   }: {
     spanNumber: number;
-    childSpans: Readonly<SpanChildrenLookupType>;
+    childSpans: SpanChildrenLookupType;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     span: Readonly<RawSpanType>;
   }): {
@@ -414,6 +414,13 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
     const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
 
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
+
+    // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
+    // For example if a span has a span_id that's identical to its parent_span_id.
+    childSpans = {
+      ...childSpans,
+    };
+    delete childSpans[getSpanID(span)];
 
     type AccType = {
       nextSpanNumber: number;

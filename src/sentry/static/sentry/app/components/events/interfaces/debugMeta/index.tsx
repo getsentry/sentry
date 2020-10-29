@@ -78,7 +78,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange);
+    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange, undefined);
     cache.clearAll();
     this.filterImages();
   }
@@ -140,7 +140,9 @@ class DebugMeta extends React.PureComponent<Props, State> {
   filterImage(image: Image) {
     const {showUnused, filter} = this.state;
 
-    if (!filter || filter.length < MIN_FILTER_LEN) {
+    const searchTerm = filter.trim().toLowerCase();
+
+    if (searchTerm.length < MIN_FILTER_LEN) {
       if (showUnused) {
         return true;
       }
@@ -162,8 +164,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     // When searching for an address, check for the address range of the image
     // instead of an exact match.
-    if (filter.indexOf('0x') === 0) {
-      const needle = parseAddress(filter);
+    if (searchTerm.indexOf('0x') === 0) {
+      const needle = parseAddress(searchTerm);
       if (needle > 0) {
         const [startAddress, endAddress] = getImageRange(image);
         return needle >= startAddress && needle < endAddress;
@@ -172,11 +174,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     return (
       // Prefix match for identifiers
-      (image.code_id || '').indexOf(filter) === 0 ||
-      (image.debug_id || '').indexOf(filter) === 0 ||
+      (image.code_id?.toLowerCase() || '').indexOf(searchTerm) === 0 ||
+      (image.debug_id?.toLowerCase() || '').indexOf(searchTerm) === 0 ||
       // Any match for file paths
-      (image.code_file || '').indexOf(filter) >= 0 ||
-      (image.debug_file || '').indexOf(filter) >= 0
+      (image.code_file?.toLowerCase() || '').indexOf(searchTerm) >= 0 ||
+      (image.debug_file?.toLowerCase() || '').indexOf(searchTerm) >= 0
     );
   }
 
@@ -212,7 +214,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
       ({type}) => type === 'exception'
     )?.data?.values?.[0]?.stacktrace?.frames;
 
-    return frames?.find(frame => frame.instructionAddr === this.state.filter);
+    if (!frames) {
+      return undefined;
+    }
+
+    const searchTerm = this.state.filter.toLowerCase();
+
+    return frames.find(frame => frame.instructionAddr?.toLowerCase() === searchTerm);
   }
 
   getDebugImages() {
@@ -435,6 +443,7 @@ const StyledList = styled(List)<{overflowHidden: boolean; height: number}>`
   ${p => p.overflowHidden && 'overflow: hidden !important;'}
   height: auto !important;
   max-height: ${p => p.height}px;
+  outline: none;
 `;
 
 const Label = styled('label')`
@@ -460,8 +469,7 @@ const StyledEventDataSection = styled(EventDataSection)`
 const DebugImagesPanel = styled(Panel)`
   margin-bottom: ${space(1)};
   max-height: ${PANEL_MAX_HEIGHT}px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 `;
 
 const ToolbarWrapper = styled('div')`
@@ -486,11 +494,5 @@ const SearchInputWrapper = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   .search-input {
     height: 30px;
-  }
-  .search-clear-form {
-    top: 5px !important;
-  }
-  .search-input-icon {
-    top: 8px;
   }
 `;

@@ -1,0 +1,13 @@
+# Unassigned
+
+foo@example.com unassigned an issue
+
+
+## Issue Details
+
+buck oriented molly violently broadly glorious ample namely
+
+http://testserver/organizations/organization/issues/1/?referrer=UnassignedActivityEmail
+
+
+Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

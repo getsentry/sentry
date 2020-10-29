@@ -137,9 +137,21 @@ register("github-app.private-key", default="")
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
 
+# GitHub Auth
+register("github-login.client-id", default="", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.client-secret", default="", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.reqire-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK)
+register("github-login.base-domain", default="github.com", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.api-domain", default="api.github.com", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.extended-permissions", type=Sequence, default=[], flags=FLAG_PRIORITIZE_DISK)
+register("github-login.organization", flags=FLAG_PRIORITIZE_DISK)
+
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("vsts.client-secret", flags=FLAG_PRIORITIZE_DISK)
+# VSTS Integration - with limited scopes
+register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK)
+register("vsts-limited.client-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # PagerDuty Integration
 register("pagerduty.app-id", default="")
@@ -152,6 +164,7 @@ register("vercel.integration-slug", default="sentry")
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("msteams.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("msteams.app-id")
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
@@ -192,7 +205,7 @@ register("store.lie-about-filter-status", default=False)
 
 # Toggles between processing transactions directly in the ingest consumer
 # (``False``) and spawning a save_event task (``True``).
-register("store.transactions-celery", default=False)
+register("store.transactions-celery", default=False)  # unused
 
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
@@ -219,8 +232,8 @@ register("post-process.error-hook-sample-rate", default=0.0)  # unused
 register("transaction-events.force-disable-internal-project", default=False)
 
 # Moving signals and TSDB into outcomes consumer
-register("outcomes.signals-in-consumer-sample-rate", default=0.0)
-register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
+register("outcomes.signals-in-consumer-sample-rate", default=0.0)  # unused
+register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)  # unused
 
 # Node data save rate
 register("nodedata.cache-sample-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
@@ -236,11 +249,11 @@ register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 # in getsentry
 register("incidents-performance.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
-# Async CSV exports incremental rollout rate. Tied to feature handlers in getsentry
-register("data-export.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
-
 # Max number of tags to combine in a single query in Discover2 tags facet.
 register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
+
+# Enables setting a sampling rate when producing the tag facet.
+register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORITIZE_DISK)
 
 # Killswitch for datascrubbing after stacktrace processing. Set to False to
 # disable datascrubbers.

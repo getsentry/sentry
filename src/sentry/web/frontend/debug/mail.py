@@ -93,7 +93,7 @@ def make_group_generator(random, project):
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
 
         culprit = make_culprit(random)
-        level = random.choice(LOG_LEVELS.keys())
+        level = random.choice(list(LOG_LEVELS.keys()))
         message = make_message(random)
 
         group = Group(
@@ -155,7 +155,7 @@ class ActivityMailPreview(object):
     def get_context(self):
         context = self.email.get_base_context()
         context["reason"] = get_random(self.request).choice(
-            GroupSubscriptionReason.descriptions.values()
+            list(GroupSubscriptionReason.descriptions.values())
         )
         context.update(self.email.get_context())
         add_unsubscribe_link(context)
@@ -235,7 +235,7 @@ def alert(request):
     event_manager.normalize()
     data = event_manager.get_data()
     event = event_manager.save(project.id)
-    # Prevent Percy screenshot from constantly changing
+    # Prevent CI screenshot from constantly changing
     event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
     event_type = get_event_type(event.data)
 
@@ -356,7 +356,10 @@ def digest(request):
                 Record(
                     event.event_id,
                     Notification(
-                        event, random.sample(state["rules"], random.randint(1, len(state["rules"])))
+                        event,
+                        random.sample(
+                            list(state["rules"].keys()), random.randint(1, len(state["rules"]))
+                        ),
                     ),
                     to_timestamp(event.datetime),
                 )

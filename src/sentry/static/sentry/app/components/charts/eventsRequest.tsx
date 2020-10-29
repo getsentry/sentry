@@ -104,10 +104,6 @@ type EventsRequestPartialProps = {
    */
   field?: string[];
   /**
-   * Reference event to use when generating additional conditions.
-   */
-  referenceEvent?: string;
-  /**
    * Initial loading state
    */
   loading?: boolean;
@@ -200,7 +196,6 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     yAxis: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
 
     field: PropTypes.arrayOf(PropTypes.string),
-    referenceEvent: PropTypes.string,
     keyTransactions: PropTypes.bool,
     topEvents: PropTypes.number,
     orderby: PropTypes.string,

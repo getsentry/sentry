@@ -2,6 +2,7 @@ import {Params} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import {stringify} from 'query-string';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import styled from '@emotion/styled';
@@ -13,7 +14,6 @@ import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import ConfigStore from 'app/stores/configStore';
@@ -22,7 +22,6 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
-import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import EventView from 'app/utils/discover/eventView';
@@ -30,24 +29,18 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import {getPrebuiltQueries} from './utils';
+import {getPrebuiltQueries, isBannerHidden, setBannerHidden} from './utils';
 import QueryList from './queryList';
-import BackgroundSpace from './backgroundSpace';
-
-const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
+import Banner from './banner';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
-  {label: t('Recently Edited'), value: '-dateUpdated'},
   {label: t('My Queries'), value: 'myqueries'},
+  {label: t('Recently Edited'), value: '-dateUpdated'},
   {label: t('Query Name (A-Z)'), value: 'name'},
   {label: t('Date Created (Newest)'), value: '-dateCreated'},
   {label: t('Date Created (Oldest)'), value: 'dateCreated'},
   {label: t('Most Outdated'), value: 'dateUpdated'},
 ];
-
-function checkIsBannerHidden(): boolean {
-  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
-}
 
 type Props = {
   organization: Organization;
@@ -80,7 +73,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     errors: [],
 
     // local component state
-    isBannerHidden: checkIsBannerHidden(),
+    isBannerHidden: isBannerHidden(),
     isSmallBanner: this.mq?.matches,
     savedQueries: [],
     savedQueriesPageLinks: '',
@@ -115,9 +108,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   getActiveSort() {
     const {location} = this.props;
 
-    const urlSort = location.query.sort
-      ? decodeScalar(location.query.sort)
-      : '-dateUpdated';
+    const urlSort = location.query.sort ? decodeScalar(location.query.sort) : 'myqueries';
     return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
@@ -175,14 +166,13 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const isBannerHidden = checkIsBannerHidden();
-    if (isBannerHidden !== this.state.isBannerHidden) {
+    const isHidden = isBannerHidden();
+    if (isHidden !== this.state.isBannerHidden) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({
-        isBannerHidden,
+        isBannerHidden: isHidden,
       });
     }
-
     const PAYLOAD_KEYS = ['sort', 'cursor', 'query'] as const;
 
     const payloadKeysChanged = !isEqual(
@@ -201,8 +191,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     this.fetchData({reloading: true});
   };
 
-  handleClick = () => {
-    localStorage.setItem(BANNER_DISMISSED_KEY, 'true');
+  handleBannerClick = () => {
+    setBannerHidden(true);
     this.setState({isBannerHidden: true});
   };
 
@@ -220,6 +210,12 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   handleSortChange = (value: string) => {
     const {location} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.change_sort',
+      eventName: 'Discoverv2: Sort By Changed',
+      organization_id: parseInt(this.props.organization.id, 10),
+      sort: value,
+    });
     ReactRouter.browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -236,40 +232,18 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     if (bannerDismissed) {
       return null;
     }
-
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
     const to = eventView.getResultsViewUrlTarget(organization.slug);
+    const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
 
     return (
-      <StyledBanner
-        title={t('Discover Trends')}
-        subtitle={t(
-          'Customize and save queries by search conditions, event fields, and tags'
-        )}
-        backgroundComponent={<BackgroundSpace />}
-        onCloseClick={this.handleClick}
-      >
-        <StarterButton
-          size={this.state.isSmallBanner ? 'xsmall' : undefined}
-          to={to}
-          onClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.build_new_query',
-              eventName: 'Discoverv2: Build a new Discover Query',
-              organization_id: parseInt(this.props.organization.id, 10),
-            });
-          }}
-        >
-          {t('Build a new query')}
-        </StarterButton>
-        <StarterButton
-          size={this.state.isSmallBanner ? 'xsmall' : undefined}
-          href="https://docs.sentry.io/performance-monitoring/discover-queries/"
-        >
-          {t('Read the docs')}
-        </StarterButton>
-      </StyledBanner>
+      <Banner
+        organization={organization}
+        resultsUrl={resultsUrl}
+        isSmallBanner={this.state.isSmallBanner}
+        onHideBanner={this.handleBannerClick}
+      />
     );
   }
 
@@ -407,18 +381,6 @@ const StyledActions = styled('div')`
 
 const StyledButton = styled(Button)`
   white-space: nowrap;
-`;
-
-const StarterButton = styled(Button)`
-  margin: ${space(1)};
-`;
-
-const StyledBanner = styled(Banner)`
-  max-height: 220px;
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    max-height: 260px;
-  }
 `;
 
 export default withOrganization(DiscoverLanding);

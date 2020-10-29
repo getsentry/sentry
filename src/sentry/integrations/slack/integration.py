@@ -25,7 +25,7 @@ from sentry.integrations.slack import post_migration
 from sentry.utils.audit import create_audit_entry
 
 from .client import SlackClient
-from .utils import logger
+from .utils import logger, get_integration_type
 
 from sentry.web.helpers import render_to_response
 
@@ -78,10 +78,7 @@ metadata = IntegrationMetadata(
 
 class SlackIntegration(IntegrationInstallation):
     def get_config_data(self):
-        metadata = self.model.metadata
-        # classic bots had a user_access_token in the metadata
-        default_installation = "classic_bot" if "user_access_token" in metadata else "workspace_app"
-        return {"installationType": metadata.get("installation_type", default_installation)}
+        return {"installationType": get_integration_type(self.model)}
 
 
 class SlackIntegrationProvider(IntegrationProvider):
@@ -102,6 +99,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             "links:write",
             "team:read",
             "im:read",
+            "im:history",
             "chat:write.public",
             "chat:write.customize",
         ]
@@ -217,7 +215,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             return
 
     def post_install(self, integration, organization, extra=None):
-        # normal installtions don't have extra, quit immediately
+        # normal installations don't have extra, quit immediately
         if extra is None:
             return
 

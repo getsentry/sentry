@@ -6,6 +6,7 @@ import {
 } from 'app/views/settings/incidentRules/types';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
 export const DEFAULT_AGGREGATE = 'count()';
 
@@ -17,6 +18,7 @@ export const DATASET_EVENT_TYPE_FILTERS = {
 type OptionConfig = {
   aggregations: AggregationKey[];
   fields: LooseFieldKey[];
+  measurementKeys?: string[];
 };
 
 /**
@@ -44,14 +46,13 @@ export const transactionFieldConfig: OptionConfig = {
     'p100',
   ],
   fields: ['transaction.duration'],
+  measurementKeys: Object.keys(WEB_VITAL_DETAILS),
 };
 
-export function createDefaultTrigger(): Trigger {
+export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
   return {
-    label: 'critical',
+    label,
     alertThreshold: '',
-    resolveThreshold: '',
-    thresholdType: AlertRuleThresholdType.ABOVE,
     actions: [],
   };
 }
@@ -62,9 +63,11 @@ export function createDefaultRule(): UnsavedIncidentRule {
     aggregate: DEFAULT_AGGREGATE,
     query: '',
     timeWindow: 1,
-    triggers: [createDefaultTrigger()],
+    triggers: [createDefaultTrigger('critical'), createDefaultTrigger('warning')],
     projects: [],
     environment: null,
+    resolveThreshold: '',
+    thresholdType: AlertRuleThresholdType.ABOVE,
   };
 }
 

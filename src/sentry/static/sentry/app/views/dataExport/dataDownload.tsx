@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import Button from 'app/components/button';
-import {IconDownload, IconTelescope} from 'app/icons';
+import {IconDownload} from 'app/icons';
 import {ExportQueryType} from 'app/components/dataExport';
 import DateTime from 'app/components/dateTime';
 import AsyncView from 'app/views/asyncView';
@@ -172,11 +172,7 @@ class DataDownload extends AsyncView<Props, State> {
     return type === 'Discover' ? (
       <React.Fragment>
         <p>{t('Need to make changes?')}</p>
-        <Button
-          priority="primary"
-          icon={<IconTelescope />}
-          onClick={() => this.openInDiscover()}
-        >
+        <Button priority="primary" onClick={() => this.openInDiscover()}>
           {t('Open in Discover')}
         </Button>
         <br />
@@ -218,7 +214,7 @@ class DataDownload extends AsyncView<Props, State> {
             {tct('Need help verifying? [link].', {
               link: (
                 <a
-                  href="https://docs.sentry.io/performance-monitoring/discover-queries/query-builder/#filter-by-table-columns"
+                  href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

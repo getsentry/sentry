@@ -71,7 +71,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.page.wait_for_stream()
         self.browser.snapshot("organization issues with issues")
 
-        groups = self.browser.find_elements_by_css_selector('[data-test-id="event-issue-header"]')
+        groups = self.browser.elements('[data-test-id="event-issue-header"]')
         assert len(groups) == 2
         assert "oh snap" in groups[0].text
         assert "oh no" in groups[1].text

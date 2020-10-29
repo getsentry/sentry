@@ -9,8 +9,9 @@ import AsyncView from 'app/views/asyncView';
 import {Organization} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
-import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
+import organizationSecurityAndPrivacyGroups from 'app/data/forms/organizationSecurityAndPrivacyGroups';
 import withOrganization from 'app/utils/withOrganization';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
 import DataScrubbing from '../components/dataScrubbing';
 
@@ -39,26 +40,26 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
     const features = new Set(organization.features);
     const relayPiiConfig = organization.relayPiiConfig;
     const {authProvider} = this.state;
+    const title = t('Security & Privacy');
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Security & Privacy')} />
+        <SentryDocumentTitle title={title} objSlug={organization.slug} />
+        <SettingsPageHeader title={title} />
         <Form
           data-test-id="organization-settings-security-and-privacy"
           apiMethod="PUT"
           apiEndpoint={endpoint}
           initialData={initialData}
           additionalFieldProps={{hasSsoEnabled: !!authProvider}}
-          onSubmitSuccess={(_resp, model) => {
-            this.handleUpdateOrganization(model.initialData as Organization);
-          }}
-          onSubmitError={() => addErrorMessage('Unable to save change')}
+          onSubmitSuccess={this.handleUpdateOrganization}
+          onSubmitError={() => addErrorMessage(t('Unable to save change'))}
           saveOnBlur
           allowUndo
         >
           <JsonForm
             features={features}
-            forms={organizationSecurityAndPrivacy}
+            forms={organizationSecurityAndPrivacyGroups}
             disabled={!access.has('org:write')}
           />
         </Form>

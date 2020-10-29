@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
-import json
-
 import sentry
+from sentry.utils import json
 from sentry.plugins.bases import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 

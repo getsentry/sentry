@@ -1,11 +1,9 @@
 from __future__ import absolute_import
 
-import json
-
 from sentry.api.event_search import get_filter, resolve_field_list
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 from sentry.utils.snuba import (
     _snuba_pool,
     Dataset,
@@ -18,13 +16,37 @@ from sentry.utils.snuba import (
 # TODO: If we want to support security events here we'll need a way to
 # differentiate within the dataset. For now we can just assume all subscriptions
 # created within this dataset are just for errors.
-DATASET_CONDITIONS = {QueryDatasets.EVENTS: [["type", "=", "error"]]}
+DATASET_CONDITIONS = {
+    QueryDatasets.EVENTS: "event.type:error",
+    QueryDatasets.TRANSACTIONS: "event.type:transaction",
+}
 
 
-def apply_dataset_conditions(dataset, conditions):
-    if dataset in DATASET_CONDITIONS:
-        conditions = conditions + DATASET_CONDITIONS[dataset]
-    return conditions
+def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
+    """
+    Applies query dataset conditions to a query. This essentially turns a query like
+    'release:123 or release:456' into '(event.type:error) AND (release:123 or release:456)'.
+    :param dataset: The `QueryDataset` that the query applies to
+    :param query: A string containing query to apply conditions to
+    :param event_types: A list of EventType(s) to apply to the query
+    :param discover: Whether this is intended for use with the discover dataset or not.
+    When False, we won't modify queries for `QueryDatasets.TRANSACTIONS` at all. This is
+    because the discover dataset requires that we always specify `event.type` so we can
+    differentiate between errors and transactions, but the TRANSACTIONS dataset doesn't
+    need it specified, and `event.type` ends up becoming a tag search.
+    """
+    if not discover and dataset == QueryDatasets.TRANSACTIONS:
+        return query
+    if event_types:
+        event_type_conditions = " OR ".join(
+            ["event.type:{}".format(event_type.name.lower()) for event_type in event_types]
+        )
+    elif dataset in DATASET_CONDITIONS:
+        event_type_conditions = DATASET_CONDITIONS[dataset]
+    else:
+        return query
+
+    return u"({}) AND ({})".format(event_type_conditions, query)
 
 
 @instrumented_task(
@@ -49,7 +71,6 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     if subscription.subscription_id is not None:
         metrics.incr("snuba.subscriptions.create.already_created_in_snuba")
         return
-
     subscription_id = _create_in_snuba(subscription)
     subscription.update(
         status=QuerySubscription.Status.ACTIVE.value, subscription_id=subscription_id
@@ -97,7 +118,9 @@ def update_subscription_in_snuba(query_subscription_id, old_dataset=None, **kwar
 def delete_subscription_from_snuba(query_subscription_id, **kwargs):
     """
     Task to delete a corresponding subscription in Snuba from a `QuerySubscription` in
-    Sentry. Deletes the local subscription once we've successfully removed from Snuba.
+    Sentry.
+    If the local subscription is marked for deletion (as opposed to disabled),
+    then we delete the local subscription once we've successfully removed from Snuba.
     """
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
@@ -105,7 +128,10 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         metrics.incr("snuba.subscriptions.delete.subscription_does_not_exist")
         return
 
-    if subscription.status != QuerySubscription.Status.DELETING.value:
+    if subscription.status not in [
+        QuerySubscription.Status.DELETING.value,
+        QuerySubscription.Status.DISABLED.value,
+    ]:
         metrics.incr("snuba.subscriptions.delete.incorrect_status")
         return
 
@@ -114,21 +140,24 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
             QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id
         )
 
-    subscription.delete()
+    if subscription.status == QuerySubscription.Status.DELETING.value:
+        subscription.delete()
+    else:
+        subscription.update(subscription_id=None)
 
 
-def build_snuba_filter(dataset, query, aggregate, environment, params=None):
+def build_snuba_filter(dataset, query, aggregate, environment, event_types, params=None):
     resolve_func = (
         resolve_column(Dataset.Events)
         if dataset == QueryDatasets.EVENTS
         else resolve_column(Dataset.Transactions)
     )
+    query = apply_dataset_query_conditions(dataset, query, event_types)
     snuba_filter = get_filter(query, params=params)
     snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
     snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
     if environment:
         snuba_filter.conditions.append(["environment", "=", environment.name])
-    snuba_filter.conditions = apply_dataset_conditions(dataset, snuba_filter.conditions)
     return snuba_filter
 
 
@@ -139,6 +168,7 @@ def _create_in_snuba(subscription):
         snuba_query.query,
         snuba_query.aggregate,
         snuba_query.environment,
+        snuba_query.event_types,
     )
     response = _snuba_pool.urlopen(
         "POST",

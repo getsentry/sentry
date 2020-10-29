@@ -65,20 +65,28 @@ const _projectStatsToFetch: Set<string> = new Set();
 // it can timeout
 const MAX_PROJECTS_TO_FETCH = 10;
 
-const _queryForStats = (api: Client, projects: string[], orgId: string) => {
+const _queryForStats = (
+  api: Client,
+  projects: string[],
+  orgId: string,
+  additionalQuery: Query | undefined
+) => {
   const idQueryParams = projects.map(project => `id:${project}`).join(' ');
   const endpoint = `/organizations/${orgId}/projects/`;
 
+  const query: Query = {
+    statsPeriod: '24h',
+    query: idQueryParams,
+    ...additionalQuery,
+  };
+
   return api.requestPromise(endpoint, {
-    query: {
-      statsPeriod: '24h',
-      query: idQueryParams,
-    },
+    query,
   });
 };
 
 export const _debouncedLoadStats = debounce(
-  (api: Client, projectSet: Set<string>, params) => {
+  (api: Client, projectSet: Set<string>, params: UpdateParams) => {
     const storedProjects: {[key: string]: Project} = ProjectsStatsStore.getAll();
     const existingProjectStats = Object.values(storedProjects).map(({id}) => id);
     const projects = Array.from(projectSet).filter(
@@ -93,7 +101,7 @@ export const _debouncedLoadStats = debounce(
     // Split projects into more manageable chunks to query, otherwise we can
     // potentially face server timeouts
     const queries = chunk(projects, MAX_PROJECTS_TO_FETCH).map(chunkedProjects =>
-      _queryForStats(api, chunkedProjects, params.orgId)
+      _queryForStats(api, chunkedProjects, params.orgId, params.query)
     );
 
     Promise.all(queries)
@@ -307,17 +315,19 @@ export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: strin
  * @param team The team slug to assign the project to
  * @param name Name of the project
  * @param platform The platform key of the project
+ * @param options Additional options such as creating default alert rules
  */
 export function createProject(
   api: Client,
   orgSlug: string,
   team: string,
   name: string,
-  platform: string
+  platform: string,
+  options: {defaultRules?: boolean} = {}
 ) {
   return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
     method: 'POST',
-    data: {name, platform},
+    data: {name, platform, default_rules: options.defaultRules},
   });
 }
 

@@ -15,6 +15,9 @@ const CONTEXT_TYPES = {
   user: require('app/components/events/contexts/user/user').default,
   gpu: require('app/components/events/contexts/gpu/gpu').default,
   trace: require('app/components/events/contexts/trace/trace').default,
+  // 'redux.state' will be replaced with more generic context called 'state'
+  'redux.state': require('app/components/events/contexts/redux').default,
+  state: require('app/components/events/contexts/state').default,
 };
 
 function getContextComponent(type) {
@@ -122,6 +125,7 @@ class ContextChunk extends React.Component {
       case 'trace':
         return t('Trace Details');
       case 'default':
+        if (alias === 'state') return t('Application State');
         return toTitleCase(alias);
       default:
         return toTitleCase(type);

@@ -9,7 +9,9 @@ from six import BytesIO
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
+from sentry import eventstore
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.models import EventAttachment
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 
@@ -132,3 +134,45 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
         insta_snapshot_stacktrace_data(self, event.data)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
+
+    def test_reprocessing(self):
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
+
+        with self.feature(
+            {"organizations:event-attachments": True, "projects:reprocessing-v2": True}
+        ):
+            with open(get_fixture_path("windows.dmp"), "rb") as f:
+                event = self.post_and_retrieve_minidump(
+                    {"upload_file_minidump": f}, {"sentry[logger]": "test-logger"}
+                )
+
+            insta_snapshot_stacktrace_data(self, event.data, subname="initial")
+
+            self.upload_symbols()
+
+            from sentry.tasks.reprocessing2 import reprocess_group
+
+            with BurstTaskRunner() as burst:
+                reprocess_group.delay(project_id=self.project.id, group_id=event.group_id)
+
+            burst()
+
+            (new_event,) = eventstore.get_events(
+                eventstore.Filter(
+                    project_ids=[self.project.id],
+                    conditions=[["tags[original_event_id]", "=", event.event_id]],
+                )
+            )
+            assert new_event is not None
+            assert new_event.event_id != event.event_id
+
+        insta_snapshot_stacktrace_data(self, new_event.data, subname="reprocessed")
+
+        for event_id in (event.event_id, new_event.event_id):
+            (minidump,) = sorted(
+                EventAttachment.objects.filter(event_id=new_event.event_id), key=lambda x: x.name
+            )
+
+            assert minidump.name == "windows.dmp"
+            assert minidump.file.type == "event.minidump"
+            assert minidump.file.checksum == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"

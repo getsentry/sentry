@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import abc
-import json
 from uuid import uuid4
 
 import responses
@@ -9,13 +8,15 @@ from exam import patcher
 from mock import Mock, patch
 from six import add_metaclass
 
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
+    apply_dataset_query_conditions,
     build_snuba_filter,
     create_subscription_in_snuba,
     update_subscription_in_snuba,
     delete_subscription_from_snuba,
 )
+from sentry.utils import json
 from sentry.testutils import TestCase
 
 
@@ -37,10 +38,12 @@ class BaseSnubaTaskTest(object):
     def task(self):
         pass
 
-    def create_subscription(self, status=None, subscription_id=None):
+    def create_subscription(self, status=None, subscription_id=None, dataset=None):
         if status is None:
             status = self.expected_status
-        dataset = QueryDatasets.EVENTS.value
+        if dataset is None:
+            dataset = QueryDatasets.EVENTS
+        dataset = dataset.value
         aggregate = "count_unique(tags[sentry:user])"
         query = "hello"
         time_window = 60
@@ -94,6 +97,15 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
 
     def test(self):
         sub = self.create_subscription(QuerySubscription.Status.CREATING)
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+    def test_transaction(self):
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING, dataset=QueryDatasets.TRANSACTIONS
+        )
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
@@ -158,14 +170,16 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
 
 class BuildSnubaFilterTest(TestCase):
     def test_simple_events(self):
-        snuba_filter = build_snuba_filter(QueryDatasets.EVENTS, "", "count_unique(user)", None,)
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.EVENTS, "", "count_unique(user)", None, None
+        )
         assert snuba_filter
         assert snuba_filter.conditions == [["type", "=", "error"]]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
 
     def test_simple_transactions(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.TRANSACTIONS, "", "count_unique(user)", None,
+            QueryDatasets.TRANSACTIONS, "", "count_unique(user)", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == []
@@ -173,12 +187,12 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_aliased_query_events(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.EVENTS, "release:latest", "count_unique(user)", None,
+            QueryDatasets.EVENTS, "release:latest", "count_unique(user)", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
-            ["tags[sentry:release]", "=", "latest"],
             ["type", "=", "error"],
+            ["tags[sentry:release]", "=", "latest"],
         ]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
 
@@ -187,6 +201,7 @@ class BuildSnubaFilterTest(TestCase):
             QueryDatasets.TRANSACTIONS,
             "release:latest",
             "percentile(transaction.duration,.95)",
+            None,
             None,
         )
         assert snuba_filter
@@ -197,31 +212,163 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_user_query(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.EVENTS, "user:anengineer@work.io", "count()", None,
+            QueryDatasets.EVENTS, "user:anengineer@work.io", "count()", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
-            [
-                ["email", "=", "anengineer@work.io"],
-                ["username", "=", "anengineer@work.io"],
-                ["ip_address", "=", "anengineer@work.io"],
-                ["user_id", "=", "anengineer@work.io"],
-            ],
             ["type", "=", "error"],
+            ["tags[sentry:user]", "=", "anengineer@work.io"],
         ]
         assert snuba_filter.aggregations == [[u"count", None, u"count"]]
 
     def test_user_query_transactions(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.TRANSACTIONS, "user:anengineer@work.io", "p95()", None,
+            QueryDatasets.TRANSACTIONS, "user:anengineer@work.io", "p95()", None, None
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == [["user", "=", "anengineer@work.io"]]
+        assert snuba_filter.aggregations == [[u"quantile(0.95)", "duration", u"p95"]]
+
+    def test_boolean_query(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.EVENTS, "release:latest OR release:123", "count_unique(user)", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
+            ["type", "=", "error"],
             [
-                ["user_email", "=", "anengineer@work.io"],
-                ["user_name", "=", "anengineer@work.io"],
-                ["ip_address", "=", "anengineer@work.io"],
-                ["user_id", "=", "anengineer@work.io"],
+                [
+                    "or",
+                    [
+                        ["equals", ["tags[sentry:release]", "'latest'"]],
+                        ["equals", ["tags[sentry:release]", "'123'"]],
+                    ],
+                ],
+                "=",
+                1,
             ],
         ]
-        assert snuba_filter.aggregations == [[u"quantile(0.95)", "duration", u"p95"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+
+    def test_event_types(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.EVENTS,
+            "release:latest OR release:123",
+            "count_unique(user)",
+            None,
+            [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == [
+            [["or", [["equals", ["type", "'error'"]], ["equals", ["type", "'default'"]]]], "=", 1],
+            [
+                [
+                    "or",
+                    [
+                        ["equals", ["tags[sentry:release]", "'latest'"]],
+                        ["equals", ["tags[sentry:release]", "'123'"]],
+                    ],
+                ],
+                "=",
+                1,
+            ],
+        ]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+
+
+class TestApplyDatasetQueryConditions(TestCase):
+    def test_no_event_types_no_discover(self):
+        assert (
+            apply_dataset_query_conditions(QueryDatasets.EVENTS, "release:123", None, False)
+            == "(event.type:error) AND (release:123)"
+        )
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.EVENTS, "release:123 OR release:456", None, False
+            )
+            == "(event.type:error) AND (release:123 OR release:456)"
+        )
+        assert (
+            apply_dataset_query_conditions(QueryDatasets.TRANSACTIONS, "release:123", None, False)
+            == "release:123"
+        )
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.TRANSACTIONS, "release:123 OR release:456", None, False
+            )
+            == "release:123 OR release:456"
+        )
+
+    def test_no_event_types_discover(self):
+        assert (
+            apply_dataset_query_conditions(QueryDatasets.EVENTS, "release:123", None, True)
+            == "(event.type:error) AND (release:123)"
+        )
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.EVENTS, "release:123 OR release:456", None, True
+            )
+            == "(event.type:error) AND (release:123 OR release:456)"
+        )
+        assert (
+            apply_dataset_query_conditions(QueryDatasets.TRANSACTIONS, "release:123", None, True)
+            == "(event.type:transaction) AND (release:123)"
+        )
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.TRANSACTIONS, "release:123 OR release:456", None, True
+            )
+            == "(event.type:transaction) AND (release:123 OR release:456)"
+        )
+
+    def test_event_types_no_discover(self):
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.EVENTS, "release:123", [SnubaQueryEventType.EventType.ERROR], False
+            )
+            == "(event.type:error) AND (release:123)"
+        )
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.EVENTS,
+                "release:123",
+                [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
+                False,
+            )
+            == "(event.type:error OR event.type:default) AND (release:123)"
+        )
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.TRANSACTIONS,
+                "release:123",
+                [SnubaQueryEventType.EventType.TRANSACTION],
+                False,
+            )
+            == "release:123"
+        )
+
+    def test_event_types_discover(self):
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.EVENTS, "release:123", [SnubaQueryEventType.EventType.ERROR], True
+            )
+            == "(event.type:error) AND (release:123)"
+        )
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.EVENTS,
+                "release:123",
+                [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
+                True,
+            )
+            == "(event.type:error OR event.type:default) AND (release:123)"
+        )
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.TRANSACTIONS,
+                "release:123",
+                [SnubaQueryEventType.EventType.TRANSACTION],
+                True,
+            )
+            == "(event.type:transaction) AND (release:123)"
+        )

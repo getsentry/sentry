@@ -33,8 +33,6 @@ export default class NewsletterConsent extends React.Component<Props> {
           submitLabel={t('Continue')}
         >
           <RadioBooleanField
-            p={0}
-            inline={false}
             key="subscribed"
             name="subscribed"
             label={t('Email Updates')}
@@ -44,7 +42,7 @@ export default class NewsletterConsent extends React.Component<Props> {
                   `We'd love to keep you updated via email with product and feature
                    announcements, promotions, educational materials, and events. Our updates
                    focus on relevant information, and we'll never sell your data to third
-                   parties. See our [link:Priacy Policy]{' '} for more details.
+                   parties. See our [link:Privacy Policy] for more details.
                    `,
                   {link: <ExternalLink href="https://sentry.io/privacy/" />}
                 )}

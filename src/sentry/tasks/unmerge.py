@@ -22,7 +22,7 @@ from sentry.models import (
     UserReport,
     EventAttachment,
 )
-from sentry.similarity import features
+from sentry import similarity
 from sentry.tasks.base import instrumented_task
 from six.moves import reduce
 
@@ -231,7 +231,7 @@ def migrate_events(
     return (destination.id, eventstream_state)
 
 
-def truncate_denormalizations(group):
+def truncate_denormalizations(project, group):
     GroupRelease.objects.filter(group_id=group.id).delete()
 
     # XXX: This can cause a race condition with the ``FirstSeenEventCondition``
@@ -256,7 +256,7 @@ def truncate_denormalizations(group):
         [group.id],
     )
 
-    features.delete(group)
+    similarity.delete(project, group)
 
 
 def collect_group_environment_data(events):
@@ -418,7 +418,7 @@ def repair_denormalizations(caches, project, events):
     repair_tsdb_data(caches, project, events)
 
     for event in events:
-        features.record([event])
+        similarity.record(project, [event])
 
 
 def lock_hashes(project_id, source_id, fingerprints):
@@ -463,16 +463,16 @@ def unmerge(
 
     source = Group.objects.get(project_id=project_id, id=source_id)
 
+    caches = get_caches()
+
+    project = caches["Project"](project_id)
+
     # On the first iteration of this loop, we clear out all of the
     # denormalizations from the source group so that we can have a clean slate
     # for the new, repaired data.
     if last_event is None:
         fingerprints = lock_hashes(project_id, source_id, fingerprints)
-        truncate_denormalizations(source)
-
-    caches = get_caches()
-
-    project = caches["Project"](project_id)
+        truncate_denormalizations(project, source)
 
     # We process events sorted in descending order by -timestamp, -event_id. We need
     # to include event_id as well as timestamp in the ordering criteria since:
