@@ -6085,6 +6085,11 @@ dotenv@^8.0.0:
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-8.2.0.tgz#97e619259ada750eea3e4ea3e26bceea5424b16a"
   integrity sha512-8sJ78ElpbDJBHNeBzUbUVLsqKdccaa/BXF1uPTw3GrvQTBgrQrtObr2mUrE38vzYd8cEv+m/JBfDLioYcfXoaw==
 
+downsample@1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/downsample/-/downsample-1.3.0.tgz#e7b446c01814003db5595f070c00b702b94a858d"
+  integrity sha512-3y38LFwT0uXjeb9H628JQVB1PNzsXwUfPdr2xEJYOKyN0blrBDg3HfF95Y3W0iPRUxUY4EUEzf7dNMCVQNTBxg==
+
 duplexer@^0.1.1:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/duplexer/-/duplexer-0.1.1.tgz#ace6ff808c1ce66b57d1ebf97977acb02334cfc1"
