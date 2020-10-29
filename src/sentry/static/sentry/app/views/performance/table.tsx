@@ -260,13 +260,10 @@ class Table extends React.Component<Props, State> {
       sort => sort.field === 'key_transaction'
     );
     if (keyTransactionSort) {
-      const allowedFields = eventView.getFields();
-      const sorts = ['key_transaction', 'transaction', 'project']
-        .filter(field => allowedFields.includes(field))
-        .map(field => ({
-          field,
-          kind: keyTransactionSort.kind,
-        }));
+      const sorts = ['key_transaction', 'transaction', 'project'].map(field => ({
+        field,
+        kind: keyTransactionSort.kind,
+      }));
       return eventView.withSorts(sorts);
     }
 
