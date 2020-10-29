@@ -17,10 +17,14 @@ from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
 
+from sentry.utils.sdk import configure_scope, bind_organization_context
+from sentry.web.decorators import transaction_start
+
 
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
+    @transaction_start("ProjectReleaseDetailsEndpoint.get")
     def get(self, request, project, version):
         """
         Retrieve a Project's Release
@@ -64,6 +68,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
             )
         )
 
+    @transaction_start("ProjectReleaseDetailsEndpoint.put")
     def put(self, request, project, version):
         """
         Update a Project's Release
@@ -87,50 +92,56 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
                                       the current time is assumed.
         :auth: required
         """
-        try:
-            release = Release.objects.get(
-                organization_id=project.organization_id, projects=project, version=version
-            )
-        except Release.DoesNotExist:
-            raise ResourceDoesNotExist
+        bind_organization_context(project.organization)
+        with configure_scope() as scope:
+            scope.set_tag("version", version)
+            try:
+                release = Release.objects.get(
+                    organization_id=project.organization_id, projects=project, version=version
+                )
+            except Release.DoesNotExist:
+                scope.set_tag("failure_reason", "Release.DoesNotExist")
+                raise ResourceDoesNotExist
 
-        serializer = ReleaseSerializer(data=request.data, partial=True)
+            serializer = ReleaseSerializer(data=request.data, partial=True)
 
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            if not serializer.is_valid():
+                scope.set_tag("failure_reason", "serializer_error")
+                return Response(serializer.errors, status=400)
 
-        result = serializer.validated_data
+            result = serializer.validated_data
 
-        was_released = bool(release.date_released)
+            was_released = bool(release.date_released)
 
-        kwargs = {}
-        if result.get("dateReleased"):
-            kwargs["date_released"] = result["dateReleased"]
-        if result.get("ref"):
-            kwargs["ref"] = result["ref"]
-        if result.get("url"):
-            kwargs["url"] = result["url"]
+            kwargs = {}
+            if result.get("dateReleased"):
+                kwargs["date_released"] = result["dateReleased"]
+            if result.get("ref"):
+                kwargs["ref"] = result["ref"]
+            if result.get("url"):
+                kwargs["url"] = result["url"]
 
-        if kwargs:
-            release.update(**kwargs)
+            if kwargs:
+                release.update(**kwargs)
 
-        commit_list = result.get("commits")
-        if commit_list:
-            hook = ReleaseHook(project)
-            # TODO(dcramer): handle errors with release payloads
-            hook.set_commits(release.version, commit_list)
+            commit_list = result.get("commits")
+            if commit_list:
+                hook = ReleaseHook(project)
+                # TODO(dcramer): handle errors with release payloads
+                hook.set_commits(release.version, commit_list)
 
-        if not was_released and release.date_released:
-            Activity.objects.create(
-                type=Activity.RELEASE,
-                project=project,
-                ident=Activity.get_version_ident(release.version),
-                data={"version": release.version},
-                datetime=release.date_released,
-            )
+            if not was_released and release.date_released:
+                Activity.objects.create(
+                    type=Activity.RELEASE,
+                    project=project,
+                    ident=Activity.get_version_ident(release.version),
+                    data={"version": release.version},
+                    datetime=release.date_released,
+                )
 
-        return Response(serialize(release, request.user))
+            return Response(serialize(release, request.user))
 
+    @transaction_start("ProjectReleaseDetailsEndpoint.delete")
     def delete(self, request, project, version):
         """
         Delete a Project's Release
