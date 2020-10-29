@@ -13,6 +13,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.FP]: {
     slug: 'fp',
     name: t('First Paint'),
+    acronym: 'FP',
     description: t(
       'Render time of the first pixel loaded in the viewport (may overlap with FCP).'
     ),
@@ -23,6 +24,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.FCP]: {
     slug: 'fcp',
     name: t('First Contentful Paint'),
+    acronym: 'FCP',
     description: t(
       'Render time of the first image, text or other DOM node in the viewport.'
     ),
@@ -33,6 +35,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.LCP]: {
     slug: 'lcp',
     name: t('Largest Contentful Paint'),
+    acronym: 'LCP',
     description: t(
       'Render time of the largest image, text or other DOM node in the viewport.'
     ),
@@ -43,6 +46,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.FID]: {
     slug: 'fid',
     name: t('First Input Delay'),
+    acronym: 'FID',
     description: t(
       'Response time of the browser to a user interaction (clicking, tapping, etc).'
     ),
@@ -53,8 +57,9 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.CLS]: {
     slug: 'cls',
     name: t('Cumulative Layout Shift'),
+    acronym: 'CLS',
     description: t(
-      'The sum total of all individual layout shift scores for every unexpected layout shift that occurs during the entire lifespan of the page.'
+      'Sum of layout shift scores that measure the visual stability of the page.'
     ),
     failureThreshold: 0.25,
     type: measurementType(WebVital.CLS),
@@ -62,6 +67,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.TTFB]: {
     slug: 'ttfb',
     name: t('Time to First Byte'),
+    acronym: 'TTFB',
     description: t(
       "The time that it takes for a user's browser to receive the first byte of page content."
     ),
@@ -71,6 +77,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.RequestTime]: {
     slug: 'ttfb.requesttime',
     name: t('Request Time'),
+    acronym: 'RT',
     description: t(
       'Captures the time spent making the request and receiving the first byte of the response.'
     ),
@@ -78,6 +85,19 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     type: measurementType(WebVital.RequestTime),
   },
 };
+
+// translate known short form names into their long forms
+export const LONG_WEB_VITAL_NAMES = Object.fromEntries(
+  Object.values(WEB_VITAL_DETAILS).map(value => {
+    return [value.slug, value.name];
+  })
+);
+
+export const WEB_VITAL_ACRONYMS = Object.fromEntries(
+  Object.values(WEB_VITAL_DETAILS).map(value => {
+    return [value.slug, value.acronym];
+  })
+);
 
 export const FILTER_OPTIONS: SelectValue<string>[] = [
   {label: t('Exclude Outliers'), value: 'exclude_outliers'},

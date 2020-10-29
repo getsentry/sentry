@@ -74,7 +74,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
         return comment
 
     def get_persisted_default_config_fields(self):
-        return ["project"]
+        return ["project", "issueType"]
 
     def get_create_issue_config(self, group, **kwargs):
         kwargs["link_referrer"] = "example_integration"

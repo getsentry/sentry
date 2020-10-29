@@ -23,10 +23,13 @@ import ExternalLink from 'app/components/links/externalLink';
 import {getTransactionSearchQuery} from '../utils';
 import {TrendChangeType, TrendView, TrendFunctionField} from './types';
 import {
+  DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
+  CONFIDENCE_LEVELS,
+  resetCursors,
   getCurrentTrendFunction,
+  getCurrentConfidenceLevel,
   getSelectedQueryKey,
-  trendCursorNames,
 } from './utils';
 import ChangedTransactions from './changedTransactions';
 import ChangedProjects from './changedProjects';
@@ -55,8 +58,7 @@ class TrendsContent extends React.Component<Props, State> {
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
 
-    const cursors = {};
-    Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
+    const cursors = resetCursors();
 
     browserHistory.push({
       pathname: location.pathname,
@@ -89,8 +91,7 @@ class TrendsContent extends React.Component<Props, State> {
       previousTrendFunction: getCurrentTrendFunction(location).field,
     });
 
-    const cursors = {};
-    Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
+    const cursors = resetCursors();
 
     browserHistory.push({
       pathname: location.pathname,
@@ -99,6 +100,28 @@ class TrendsContent extends React.Component<Props, State> {
         ...offsets,
         ...cursors,
         trendFunction: field,
+      },
+    });
+  };
+
+  handleConfidenceChange = (label: string) => {
+    const {organization, location} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.trends.change_confidence',
+      eventName: 'Performance Views: Change confidence',
+      organization_id: parseInt(organization.id, 10),
+      confidence_level: label,
+    });
+
+    const cursors = resetCursors();
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        ...cursors,
+        confidenceLevel: label,
       },
     });
   };
@@ -114,6 +137,7 @@ class TrendsContent extends React.Component<Props, State> {
       },
     ]);
     const currentTrendFunction = getCurrentTrendFunction(location);
+    const currentConfidenceLevel = getCurrentConfidenceLevel(location);
     const query = getTransactionSearchQuery(location);
     const showChangedProjects = hasMultipleProjects(selection);
 
@@ -136,6 +160,24 @@ class TrendsContent extends React.Component<Props, State> {
               fields={fields}
               onSearch={this.handleSearch}
             />
+            <TrendsDropdown>
+              <DropdownControl
+                buttonProps={{prefix: t('Confidence')}}
+                label={currentConfidenceLevel.label}
+              >
+                {CONFIDENCE_LEVELS.map(({label}) => (
+                  <DropdownItem
+                    key={label}
+                    onSelect={this.handleConfidenceChange}
+                    eventKey={label}
+                    data-test-id={label}
+                    isActive={label === currentConfidenceLevel.label}
+                  >
+                    {label}
+                  </DropdownItem>
+                ))}
+              </DropdownControl>
+            </TrendsDropdown>
             <TrendsDropdown>
               <DropdownControl
                 buttonProps={{prefix: t('Display')}}
@@ -210,7 +252,7 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
       return <React.Fragment>{children}</React.Fragment>;
     } else {
       conditions.setTagValues('epm()', ['>0.01']);
-      conditions.setTagValues('transaction.duration', ['>0', '<60min']);
+      conditions.setTagValues('transaction.duration', ['>0', `<${DEFAULT_MAX_DURATION}`]);
     }
 
     const query = stringifyQueryObject(conditions);
@@ -233,10 +275,10 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
   margin-bottom: ${space(2)};
-  margin-right: ${space(1)};
 `;
 
 const TrendsDropdown = styled('div')`
+  margin-left: ${space(1)};
   flex-grow: 0;
 `;
 

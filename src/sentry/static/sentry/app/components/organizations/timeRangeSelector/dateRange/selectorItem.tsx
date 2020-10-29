@@ -4,14 +4,23 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
-class SelectorItem extends React.PureComponent {
+type Props = {
+  onClick: (value: string, e: React.MouseEvent) => void;
+  value: string;
+  label: React.ReactNode;
+  selected: boolean;
+  last?: boolean;
+  className?: string;
+};
+
+class SelectorItem extends React.PureComponent<Props> {
   static propTypes = {
     onClick: PropTypes.func.isRequired,
     value: PropTypes.string,
     label: PropTypes.node,
   };
 
-  handleClick = e => {
+  handleClick = (e: React.MouseEvent) => {
     const {onClick, value} = this.props;
     onClick(value, e);
   };

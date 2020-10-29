@@ -11,13 +11,20 @@ import space from 'app/styles/space';
 import {Organization, Project, Group} from 'app/types';
 
 import Item from './item';
-import SimilarToolbar from './toolbar';
+import Toolbar from './toolbar';
 
 type SimilarItem = {
   issue: Group;
-  score: Record<string, any>;
-  avgScore: number;
   isBelowThreshold: boolean;
+  score?: Record<string, number | null>;
+  scoresByInterface?: {
+    exception: Array<[string, number | null]>;
+    message: Array<[string, any | null]>;
+  };
+  aggregate?: {
+    exception: number;
+    message: number;
+  };
 };
 
 type DefaultProps = {
@@ -25,7 +32,7 @@ type DefaultProps = {
 };
 
 type Props = {
-  orgId: Organization;
+  orgId: Organization['id'];
   project: Project;
   onMerge: () => void;
   groupId: string;
@@ -85,7 +92,7 @@ class List extends React.Component<Props, State> {
         <Header>
           <SimilarSpectrum />
         </Header>
-        <SimilarToolbar onMerge={onMerge} />
+        <Toolbar onMerge={onMerge} />
         <div className="similar-list">
           {itemsWithFiltered.map(item => (
             <Item

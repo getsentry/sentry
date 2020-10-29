@@ -19,6 +19,10 @@ describe('ProjectCard', function () {
             [1525042800, 1],
             [1525046400, 2],
           ],
+          transactionStats: [
+            [1525042800, 4],
+            [1525046400, 8],
+          ],
           platform: 'javascript',
         })}
         params={{orgId: 'org-slug'}}
@@ -82,6 +86,59 @@ describe('ProjectCard', function () {
     expect(wrapper.find('PlatformList')).toHaveLength(1);
     const icons = wrapper.find('StyledPlatformIcon');
     expect(icons.first().prop('platform')).toBe('javascript');
+  });
+
+  it('renders header link for errors', function () {
+    wrapper = mountWithTheme(
+      <ProjectCard
+        organization={TestStubs.Organization()}
+        project={TestStubs.Project({
+          stats: [
+            [1525042800, 3],
+            [1525046400, 3],
+          ],
+          platform: 'javascript',
+        })}
+        params={{orgId: 'org-slug'}}
+      />,
+      TestStubs.routerContext()
+    );
+
+    const total = wrapper.find('a[data-test-id="project-errors"]');
+    expect(total).toHaveLength(1);
+    expect(total.text()).toContain('6 errors');
+
+    // No transacations as the feature isn't set.
+    const transactions = wrapper.find('a[data-test-id="project-transactions"]');
+    expect(transactions).toHaveLength(0);
+  });
+
+  it('renders header link for transactions', function () {
+    wrapper = mountWithTheme(
+      <ProjectCard
+        organization={TestStubs.Organization({features: ['performance-view']})}
+        project={TestStubs.Project({
+          stats: [
+            [1525042800, 3],
+            [1525046400, 3],
+          ],
+          transactionStats: [
+            [1525042800, 4],
+            [1525046400, 4],
+          ],
+          platform: 'javascript',
+        })}
+        params={{orgId: 'org-slug'}}
+      />,
+      TestStubs.routerContext()
+    );
+
+    const total = wrapper.find('a[data-test-id="project-errors"]');
+    expect(total).toHaveLength(1);
+
+    const transactions = wrapper.find('a[data-test-id="project-transactions"]');
+    expect(transactions).toHaveLength(1);
+    expect(transactions.text()).toContain('8 transactions');
   });
 
   it('renders loading placeholder card if there are no stats', function () {

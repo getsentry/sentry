@@ -102,7 +102,8 @@ class ProjectProguard extends AsyncView<Props, State> {
 
   renderMappings() {
     const {mappings, showDetails} = this.state;
-    const {orgId, projectId} = this.props.params;
+    const {organization, params} = this.props;
+    const {orgId, projectId} = params;
 
     if (!mappings?.length) {
       return null;
@@ -118,6 +119,7 @@ class ProjectProguard extends AsyncView<Props, State> {
           debugFile={mapping}
           showDetails={showDetails}
           downloadUrl={downloadUrl}
+          downloadRole={organization.debugFilesRole}
           onDelete={this.handleDelete}
           key={mapping.id}
         />

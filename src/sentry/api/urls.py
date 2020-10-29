@@ -111,6 +111,12 @@ from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
+from .endpoints.organization_integration_repository_project_path_configs import (
+    OrganizationIntegrationRepositoryProjectPathConfigEndpoint,
+)
+from .endpoints.organization_integration_repository_project_path_config_details import (
+    OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint,
+)
 from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
@@ -151,7 +157,10 @@ from .endpoints.organization_release_details import OrganizationReleaseDetailsEn
 from .endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
-from .endpoints.organization_releases import OrganizationReleasesEndpoint
+from .endpoints.organization_releases import (
+    OrganizationReleasesEndpoint,
+    OrganizationReleasesStatsEndpoint,
+)
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
@@ -893,6 +902,16 @@ urlpatterns = [
                     OrganizationIntegrationReposEndpoint.as_view(),
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repo-project-path-configs/$",
+                    OrganizationIntegrationRepositoryProjectPathConfigEndpoint.as_view(),
+                    name="sentry-api-0-organization-integration-repository-project-path-config",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repo-project-path-configs/(?P<config_id>[^\/]+)/$",
+                    OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-integration-repository-project-path-config-details",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/members/$",
                     OrganizationMemberIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-member-index",
@@ -1030,6 +1049,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/releases/$",
                     OrganizationReleasesEndpoint.as_view(),
                     name="sentry-api-0-organization-releases",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/releases/stats/$",
+                    OrganizationReleasesStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-releases-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/$",

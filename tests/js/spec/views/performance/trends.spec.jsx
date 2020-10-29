@@ -7,9 +7,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import PerformanceLanding from 'app/views/performance/landing';
 import ProjectsStore from 'app/stores/projectsStore';
 import {
+  DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
+  CONFIDENCE_LEVELS,
   getTrendAliasedFieldPercentage,
-  getTrendAliasedQueryPercentage,
   getTrendAliasedMinus,
 } from 'app/views/performance/trends/utils';
 import {TrendFunctionField} from 'app/views/performance/trends/types';
@@ -17,7 +18,7 @@ import {getUtcDateString} from 'app/utils/dates';
 
 const trendsViewQuery = {
   view: 'TRENDS',
-  query: 'epm():>0.01 transaction.duration:>0',
+  query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
 jest.mock('moment', () => {
@@ -28,10 +29,22 @@ jest.mock('moment', () => {
 
 function selectTrendFunction(wrapper, field) {
   const menu = wrapper.find('TrendsDropdown DropdownMenu');
-  expect(menu).toHaveLength(1);
-  menu.find('DropdownButton').simulate('click');
+  expect(menu).toHaveLength(2);
+  menu.find('DropdownButton').at(1).simulate('click');
 
   const option = menu.find(`DropdownItem[data-test-id="${field}"] span`);
+  expect(option).toHaveLength(1);
+  option.simulate('click');
+
+  wrapper.update();
+}
+
+function selectConfidenceLevel(wrapper, label) {
+  const menu = wrapper.find('TrendsDropdown DropdownMenu');
+  expect(menu).toHaveLength(2);
+  menu.find('DropdownButton').first().simulate('click');
+
+  const option = menu.find(`DropdownItem[data-test-id="${label}"] span`);
   expect(option).toHaveLength(1);
   option.simulate('click');
 
@@ -84,7 +97,7 @@ describe('Performance > Trends', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -211,7 +224,7 @@ describe('Performance > Trends', function () {
     wrapper.update();
 
     // Trends dropdown and transaction widgets should render.
-    expect(wrapper.find('TrendsDropdown')).toHaveLength(1);
+    expect(wrapper.find('TrendsDropdown')).toHaveLength(2);
     expect(wrapper.find('ChangedTransactions')).toHaveLength(2);
   });
 
@@ -285,8 +298,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query:
-          'epm():>0.01 transaction.duration:>0 !transaction:/organizations/:orgId/performance/',
+        query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION} !transaction:/organizations/:orgId/performance/`,
         view: 'TRENDS',
       }),
     });
@@ -388,7 +400,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:>=863',
+        query: `epm():>0.01 transaction.duration:<${DEFAULT_MAX_DURATION} transaction.duration:>=863`,
         view: 'TRENDS',
       }),
     });
@@ -522,6 +534,29 @@ describe('Performance > Trends', function () {
     }
   });
 
+  it('choosing a confidence level changes location', async function () {
+    const projects = [TestStubs.Project()];
+    const data = initializeData(projects, {project: ['-1']});
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    for (const confidenceLevel of CONFIDENCE_LEVELS) {
+      selectConfidenceLevel(wrapper, confidenceLevel.label);
+      await tick();
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        query: expect.objectContaining({
+          confidenceLevel: confidenceLevel.label,
+        }),
+      });
+    }
+  });
+
   it('clicking project trend view transactions changes location', async function () {
     const projectId = 42;
     const projects = [TestStubs.Project({id: projectId, slug: 'internal'})];
@@ -598,7 +633,6 @@ describe('Performance > Trends', function () {
       expect(trendsStatsMock).toHaveBeenCalledTimes(2);
 
       const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
-      const aliasedQueryDivide = getTrendAliasedQueryPercentage(trendFunction.alias);
 
       const sort =
         trendFunction.field === TrendFunctionField.USER_MISERY
@@ -621,7 +655,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            query: expect.stringContaining('trend_percentage():<1'),
             interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
@@ -637,7 +671,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            query: expect.stringContaining('trend_percentage():<1'),
             interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
@@ -653,7 +687,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort: '-' + sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':>1'),
+            query: expect.stringContaining('trend_percentage():>1'),
             interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
@@ -669,7 +703,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort: '-' + sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':>1'),
+            query: expect.stringContaining('trend_percentage():>1'),
             interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
