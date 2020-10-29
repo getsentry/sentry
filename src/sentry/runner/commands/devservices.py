@@ -33,11 +33,13 @@ def get_local_image_digest(repo, tag):
     return local_image_details["Id"]
 
 
-def get_docker_registry_token(*, repo):
+def get_docker_registry_token(*, registry="default", repo):
     resp = requests.get(
-        "https://auth.docker.io/token?service=registry.docker.io&scope=repository:{repo}:pull".format(
-            repo=repo,
-        )
+        {
+            "default": "https://auth.docker.io/token?service=registry.docker.io",
+            "us.gcr.io": "https://us.gcr.io/v2/token?service=gcr.io",
+        }[registry]
+        + "&scope=repository:{repo}:pull".format(repo=repo,)
     )
     resp.raise_for_status()
 
@@ -45,14 +47,23 @@ def get_docker_registry_token(*, repo):
     return resp.json()["token"]
 
 
-def get_remote_image_digest(*, repo, tag):
+def get_remote_image_digest(*, registry="default", repo, tag):
+    registry = "default"
     if "/" not in repo:
-        # Assume official remote registry.
+        # If it's indeed the default (official) registry,
+        # then we need to prepend library/ here.
         repo = "library/" + repo
+    else:
+        tokens = repo.split("/")
+        if "." in tokens[0]:
+            # Probably a domain name, so assume it's the registry.
+            registry = tokens[0]
+            repo = "/".join(tokens[1:])
 
-    registry_token = get_docker_registry_token(repo=repo)
+    registry_token = get_docker_registry_token(registry=registry, repo=repo)
     resp = requests.head(
-        "https://index.docker.io/v2/{repo}/manifests/{tag}".format(repo=repo, tag=tag,),
+        {"default": "https://index.docker.io/v2/", "us.gcr.io": "https://us.gcr.io/v2/"}[registry]
+        + "{repo}/manifests/{tag}".format(repo=repo, tag=tag),
         headers={
             "Authorization": "Bearer " + registry_token,
             "Accept": "application/vnd.docker.distribution.manifest.v2+json",
@@ -258,10 +269,14 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
     pull = options.pop("pull", False)
     if not fast:
         repo, tag = options["image"].split(":")
+
+        local_image_digest = None
         try:
             local_image_digest = get_local_image_digest(repo=repo, tag=tag)
         except NotFound:
-            print(options["image"], "not found locally. todo pull.")
+            click.secho("> Image '%s' not found locally, pulling." % options["image"], fg="yellow")
+            client.images.pull(options["image"])
+            local_image_digest = get_local_image_digest(repo=repo, tag=tag)
 
         remote_image_digest = get_remote_image_digest(repo=repo, tag=tag)
 
