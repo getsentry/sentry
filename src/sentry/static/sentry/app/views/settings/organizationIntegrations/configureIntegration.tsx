@@ -7,7 +7,7 @@ import AsyncView from 'app/views/asyncView';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import Button from 'app/components/button';
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconArrow} from 'app/icons';
 import Form from 'app/views/settings/components/forms/form';
 import IntegrationAlertRules from 'app/views/organizationIntegrations/integrationAlertRules';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
@@ -21,6 +21,8 @@ import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import {singleLineRenderer} from 'app/utils/marked';
 import Alert from 'app/components/alert';
 import NavTabs from 'app/components/navTabs';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 
 type RouteParams = {
   orgId: string;
@@ -114,6 +116,9 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     const {orgId} = this.props.params;
     const {integration} = this.state;
 
+    const instructions =
+      integration.dynamicDisplayInformation?.configure_integration?.instructions;
+
     return (
       <React.Fragment>
         <BreadcrumbTitle routes={this.props.routes} title={integration.provider.name} />
@@ -137,12 +142,24 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           </Form>
         )}
 
-        {integration.dynamicDisplayInformation?.configure_integration?.instructions.map(
-          (instruction, i) => (
-            <Alert type="info" key={i}>
-              <span dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}} />
-            </Alert>
-          )
+        {instructions && instructions.length > 0 && (
+          <Alert type="info">
+            {instructions?.length === 1 ? (
+              <span
+                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0])}}
+              />
+            ) : (
+              <List symbol={<IconArrow size="xs" direction="right" />}>
+                {instructions?.map((instruction, i) => (
+                  <ListItem key={i}>
+                    <span
+                      dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}}
+                    />
+                  </ListItem>
+                )) ?? []}
+              </List>
+            )}
+          </Alert>
         )}
 
         {provider.features.includes('alert-rule') && (

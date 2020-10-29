@@ -67,9 +67,6 @@ external_install = {
 
 
 configure_integration = {"title": _("Connect Your Projects")}
-connect_project_instruction = _(
-    "To complete installation, please connect your Sentry and Vercel projects."
-)
 create_project_instruction = _("Don't have a project yet? Click [here]({}) to create one.")
 install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
@@ -120,7 +117,6 @@ class VercelIntegration(IntegrationInstallation):
         return {
             "configure_integration": {
                 "instructions": [
-                    connect_project_instruction,
                     create_project_instruction.format(add_project_link),
                     install_source_code_integration.format(source_code_link),
                 ]
@@ -195,7 +191,13 @@ class VercelIntegration(IntegrationInstallation):
                     "placeholder": _("Vercel project..."),
                 },
                 "sentryProjects": sentry_projects,
-                "nextButton": {"allowedDomain": "https://vercel.com", "text": _("To Vercel")},
+                "nextButton": {
+                    "allowedDomain": "https://vercel.com",
+                    "description": _(
+                        "Link your Sentry projects to complete your installation on Vercel"
+                    ),
+                    "text": _("Complete on Vercel"),
+                },
                 "iconType": "vercel",
                 "manageUrl": manage_url,
             }
