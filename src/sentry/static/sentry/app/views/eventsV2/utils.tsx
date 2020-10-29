@@ -27,7 +27,7 @@ import {
   measurementType,
 } from 'app/utils/discover/fields';
 
-import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
+import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
 import {TableColumn, FieldValue, FieldValueKind} from './table/types';
 
 export type QueryWithColumnState =
@@ -130,12 +130,14 @@ export function generateTitle({
 }
 
 export function getPrebuiltQueries(organization: LightWeightOrganization) {
-  let views = ALL_VIEWS;
+  const views = [...ALL_VIEWS];
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
-    const cloned = [...ALL_VIEWS];
-    cloned.splice(2, 0, ...TRANSACTION_VIEWS);
-    views = cloned;
+    views.splice(2, 0, ...TRANSACTION_VIEWS);
+  }
+
+  if (organization.features.includes('measurements')) {
+    views.push(...WEB_VITALS_VIEWS);
   }
 
   return views;

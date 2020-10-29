@@ -52,7 +52,7 @@ class PagerDutyClient(ApiClient):
                         "href": group.get_absolute_url(
                             params={"referrer": "pagerduty_integration"}
                         ),
-                        "text": "Issue Details",
+                        "text": "View Sentry Issue Details",
                     }
                 ],
             }

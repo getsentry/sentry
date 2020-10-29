@@ -1046,24 +1046,27 @@ def trigger_incident_triggers(incident):
     triggers = IncidentTrigger.objects.filter(incident=incident).select_related(
         "alert_rule_trigger"
     )
-    for trigger in triggers:
-        if trigger.status == TriggerStatus.ACTIVE.value:
-            with transaction.atomic():
-                method = "resolve"
-                for action in AlertRuleTriggerAction.objects.filter(
-                    alert_rule_trigger=trigger.alert_rule_trigger
-                ).select_related("alert_rule_trigger"):
-                    for project in incident.projects.all():
-                        transaction.on_commit(
-                            handle_trigger_action.s(
-                                action_id=action.id,
-                                incident_id=incident.id,
-                                project_id=project.id,
-                                method=method,
-                            ).delay
-                        )
-                trigger.status = TriggerStatus.RESOLVED.value
-                trigger.save()
+    actions = list(
+        AlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger__in=[t.alert_rule_trigger for t in triggers]
+        ).select_related("alert_rule_trigger")
+    )
+    actions = deduplicate_trigger_actions(actions)
+    with transaction.atomic():
+        for trigger in triggers:
+            trigger.status = TriggerStatus.RESOLVED.value
+            trigger.save()
+
+        for action in actions:
+            for project in incident.projects.all():
+                transaction.on_commit(
+                    handle_trigger_action.s(
+                        action_id=action.id,
+                        incident_id=incident.id,
+                        project_id=project.id,
+                        method="resolve",
+                    ).delay
+                )
 
 
 def deduplicate_trigger_actions(actions):

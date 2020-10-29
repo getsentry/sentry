@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import logging
 import re
 import six
+import sentry_sdk
 import itertools
 
 from django.db import models, IntegrityError, transaction
@@ -63,6 +64,8 @@ class Release(Model):
     """
     A release is generally created when a new version is pushed into a
     production state.
+
+    A commit is generally a git commit. See also releasecommit.py
     """
 
     __core__ = False
@@ -83,6 +86,7 @@ class Release(Model):
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
     data = JSONField(default={})
+    # new issues (groups) that arise as a consequence of this release
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
     owner = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
@@ -330,54 +334,57 @@ class Release(Model):
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
     def set_refs(self, refs, user, fetch=False):
-        from sentry.api.exceptions import InvalidRepository
-        from sentry.models import Commit, ReleaseHeadCommit, Repository
-        from sentry.tasks.commits import fetch_commits
+        with sentry_sdk.start_span(op="set_refs"):
+            from sentry.api.exceptions import InvalidRepository
+            from sentry.models import Commit, ReleaseHeadCommit, Repository
+            from sentry.tasks.commits import fetch_commits
 
-        # TODO: this does the wrong thing unless you are on the most
-        # recent release.  Add a timestamp compare?
-        prev_release = (
-            type(self)
-            .objects.filter(organization_id=self.organization_id, projects__in=self.projects.all())
-            .extra(select={"sort": "COALESCE(date_released, date_added)"})
-            .exclude(version=self.version)
-            .order_by("-sort")
-            .first()
-        )
-
-        names = {r["repository"] for r in refs}
-        repos = list(
-            Repository.objects.filter(organization_id=self.organization_id, name__in=names)
-        )
-        repos_by_name = {r.name: r for r in repos}
-        invalid_repos = names - set(repos_by_name.keys())
-        if invalid_repos:
-            raise InvalidRepository("Invalid repository names: %s" % ",".join(invalid_repos))
-
-        self.handle_commit_ranges(refs)
-
-        for ref in refs:
-            repo = repos_by_name[ref["repository"]]
-
-            commit = Commit.objects.get_or_create(
-                organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
-            )[0]
-            # update head commit for repo/release if exists
-            ReleaseHeadCommit.objects.create_or_update(
-                organization_id=self.organization_id,
-                repository_id=repo.id,
-                release=self,
-                values={"commit": commit},
+            # TODO: this does the wrong thing unless you are on the most
+            # recent release.  Add a timestamp compare?
+            prev_release = (
+                type(self)
+                .objects.filter(
+                    organization_id=self.organization_id, projects__in=self.projects.all()
+                )
+                .extra(select={"sort": "COALESCE(date_released, date_added)"})
+                .exclude(version=self.version)
+                .order_by("-sort")
+                .first()
             )
-        if fetch:
-            fetch_commits.apply_async(
-                kwargs={
-                    "release_id": self.id,
-                    "user_id": user.id,
-                    "refs": refs,
-                    "prev_release_id": prev_release and prev_release.id,
-                }
+
+            names = {r["repository"] for r in refs}
+            repos = list(
+                Repository.objects.filter(organization_id=self.organization_id, name__in=names)
             )
+            repos_by_name = {r.name: r for r in repos}
+            invalid_repos = names - set(repos_by_name.keys())
+            if invalid_repos:
+                raise InvalidRepository("Invalid repository names: %s" % ",".join(invalid_repos))
+
+            self.handle_commit_ranges(refs)
+
+            for ref in refs:
+                repo = repos_by_name[ref["repository"]]
+
+                commit = Commit.objects.get_or_create(
+                    organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
+                )[0]
+                # update head commit for repo/release if exists
+                ReleaseHeadCommit.objects.create_or_update(
+                    organization_id=self.organization_id,
+                    repository_id=repo.id,
+                    release=self,
+                    values={"commit": commit},
+                )
+            if fetch:
+                fetch_commits.apply_async(
+                    kwargs={
+                        "release_id": self.id,
+                        "user_id": user.id,
+                        "refs": refs,
+                        "prev_release_id": prev_release and prev_release.id,
+                    }
+                )
 
     def set_commits(self, commit_list):
         """
