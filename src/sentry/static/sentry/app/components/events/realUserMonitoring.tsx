@@ -119,7 +119,7 @@ const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
     }
 
     return `
-      border: 2px solid ${p.theme.red400};
+      border: 1px solid ${p.theme.red400};
     `;
   }};
 `;
