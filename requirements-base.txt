@@ -62,7 +62,7 @@ symbolic>=7.3.5,<8.0.0
 toronado>=0.0.11,<0.1.0
 ua-parser>=0.10.0,<0.11.0
 unidiff>=0.5.4
-urllib3>=1.24.2,!=1.25.0,!=1.25.1,<1.26.0
+urllib3>=1.24.2,<1.26.0
 uwsgi>2.0.0,<2.1.0
 
 # msgpack>=1.0.0 correctly encodes / decodes byte types in python3 as the
