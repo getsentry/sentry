@@ -27,6 +27,7 @@ def convert_options_to_env(options):
 
 class SentryHTTPServer(Service):
     name = "http"
+    protocol_options = "http", "uwsgi"
 
     def __init__(
         self, host=None, port=None, debug=False, workers=None, validate=True, extra_options=None
@@ -46,7 +47,7 @@ class SentryHTTPServer(Service):
             for k, v in six.iteritems(extra_options):
                 options[k] = v
         options.setdefault("module", "sentry.wsgi:application")
-        options.setdefault("protocol", "http")
+        options.setdefault("protocol", os.environ.get("UWSGI_PROTOCOL", "http"))
         options.setdefault("auto-procname", True)
         options.setdefault("procname-prefix-spaced", "[Sentry]")
         options.setdefault("workers", 1)
@@ -121,6 +122,8 @@ class SentryHTTPServer(Service):
         if sentry_options.get("system.logging-format") == LoggingFormat.MACHINE:
             options["disable-logging"] = True
 
+        assert options["protocol"] in self.protocol_options
+
         self.options = options
         self.debug = debug
 
@@ -139,6 +142,16 @@ class SentryHTTPServer(Service):
         # Move all of the options into UWSGI_ env vars
         for k, v in convert_options_to_env(self.options):
             env.setdefault(k, v)
+
+        # If there are multiple UWSGI_{protocol}_SOCKET options set,
+        # we want to remove any other than the ones we care about. We
+        # explicitly don't want to confusingly bind multiple sockets with
+        # different protocols. This is mostly relevant for devserver
+        # when forking for the subprocesses that inherit the parent's env
+        wanted_protocol = self.options["protocol"]
+        for protocol in self.protocol_options:
+            if protocol != wanted_protocol:
+                env.pop("UWSGI_%s_SOCKET" % protocol.upper(), None)
 
         # Signal that we're running within uwsgi
         env["SENTRY_RUNNING_UWSGI"] = "1" if settings.SENTRY_USE_UWSGI else "0"

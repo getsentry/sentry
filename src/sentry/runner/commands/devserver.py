@@ -165,16 +165,22 @@ def devserver(
 
         daemons = [w for w in daemons if w[0] != "webpack"] + [("webpack", webpack_config)]
     else:
+        proxy_port = port
+        port = port + 1
+
         # If we are the bare http server, use the http option with uwsgi protocol
         # See https://uwsgi-docs.readthedocs.io/en/latest/HTTP.html
         uwsgi_overrides.update(
             {
                 # Make sure uWSGI spawns an HTTP server for us as we don't
                 # have a proxy/load-balancer in front in dev mode.
-                "http": "%s:%s" % (host, port),
+                "http": "%s:%d" % (host, proxy_port),
                 "protocol": "uwsgi",
-                # This is needed to prevent https://git.io/fj7Lw
-                "uwsgi-socket": None,
+                # Bind the internal uwsgi-socket on a different port so the
+                # proxy can talk to it, also hardcode to 127.0.0.1 since it's
+                # not really "exposed" and there's no reason to bind to even
+                # 0.0.0.0. It's only ever proxied to via the uwsgi http server.
+                "uwsgi-socket": "127.0.0.1:%d" % port,
             }
         )
 
