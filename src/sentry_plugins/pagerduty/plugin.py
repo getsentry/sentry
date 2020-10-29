@@ -118,7 +118,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
                         "href": absolute_uri(
                             group.get_absolute_url(params={"referrer": "pagerduty_plugin"})
                         ),
-                        "text": "Issue Details",
+                        "text": "View Sentry Issue Details",
                     }
                 ],
             )
