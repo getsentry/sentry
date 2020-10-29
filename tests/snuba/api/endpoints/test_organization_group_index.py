@@ -32,6 +32,7 @@ from sentry.models import (
     OrganizationIntegration,
     UserOption,
     Release,
+    remove_group_from_inbox,
 )
 from sentry.utils import json
 from sentry.utils.compat.mock import patch, Mock
@@ -755,6 +756,85 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["lifetime"] is not None
             assert response.data[0]["filtered"] is not None
+
+    def test_inbox_fields(self):
+        with self.feature("organizations:inbox"):
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+            add_group_to_inbox(event.group, GroupInboxReason.NEW)
+
+            query = u"server:example.com"
+            query += u" status:unresolved"
+            query += u" active_at:" + iso_format(before_now(seconds=350))
+            query += u" first_seen:" + iso_format(before_now(seconds=500))
+
+            self.login_as(user=self.user)
+            response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["inbox"] is not None
+            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+            assert response.data[0]["inbox"]["reason_details"] is None
+            remove_group_from_inbox(event.group)
+            snooze_details = {
+                "until": None,
+                "count": 3,
+                "window": None,
+                "user_count": None,
+                "user_window": 5,
+            }
+            add_group_to_inbox(event.group, GroupInboxReason.UNIGNORED, snooze_details)
+            response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["inbox"] is not None
+            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
+            assert response.data[0]["inbox"]["reason_details"] == snooze_details
+
+    def test_expand_string(self):
+        with self.feature("organizations:inbox"):
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+            add_group_to_inbox(event.group, GroupInboxReason.NEW)
+
+            query = u"server:example.com"
+            query += u" status:unresolved"
+            query += u" active_at:" + iso_format(before_now(seconds=350))
+            query += u" first_seen:" + iso_format(before_now(seconds=500))
+
+            self.login_as(user=self.user)
+            response = self.get_response(sort_by="date", limit=10, query=query, expand="inbox")
+
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["inbox"] is not None
+            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+            assert response.data[0]["inbox"]["reason_details"] is None
 
     @patch(
         "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
