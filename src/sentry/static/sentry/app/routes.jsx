@@ -1754,7 +1754,7 @@ function routes() {
               path="/organizations/:orgId/performance/summary/vitals/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "PerformanceTransactionVitals" */ 'app/views/performance/realUserMonitoring'
+                  /* webpackChunkName: "PerformanceTransactionVitals" */ 'app/views/performance/transactionVitals'
                 )
               }
               component={errorHandler(LazyLoad)}

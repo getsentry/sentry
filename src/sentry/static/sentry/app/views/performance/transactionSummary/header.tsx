@@ -4,12 +4,16 @@ import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import Alert from 'app/components/alert';
 import Feature from 'app/components/acl/feature';
+import FeatureBadge from 'app/components/featureBadge';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
+import ExternalLink from 'app/components/links/externalLink';
 import ButtonBar from 'app/components/buttonBar';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
+import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -17,7 +21,7 @@ import {decodeScalar} from 'app/utils/queryString';
 
 import KeyTransactionButton from './keyTransactionButton';
 import {transactionSummaryRouteWithQuery} from './utils';
-import {vitalsRouteWithQuery} from '../realUserMonitoring/utils';
+import {vitalsRouteWithQuery} from '../transactionVitals/utils';
 
 export enum Tab {
   TransactionSummary,
@@ -31,6 +35,7 @@ type Props = {
   projects: Project[];
   transactionName: string;
   currentTab: Tab;
+  hasWebVitals: boolean;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertButton
   >['onIncompatibleQuery'];
@@ -88,7 +93,13 @@ class TransactionHeader extends React.Component<Props> {
   }
 
   render() {
-    const {organization, location, transactionName, currentTab} = this.props;
+    const {
+      organization,
+      location,
+      transactionName,
+      currentTab,
+      hasWebVitals,
+    } = this.props;
 
     return (
       <Layout.Header>
@@ -127,20 +138,35 @@ class TransactionHeader extends React.Component<Props> {
               query: location.query,
             });
             return (
-              <StyledNavTabs>
-                <ListLink
-                  to={summaryTarget}
-                  isActive={() => currentTab === Tab.TransactionSummary}
-                >
-                  {t('Overview')}
-                </ListLink>
-                <ListLink
-                  to={vitalsTarget}
-                  isActive={() => currentTab === Tab.RealUserMonitoring}
-                >
-                  {t('Web Vitals')}
-                </ListLink>
-              </StyledNavTabs>
+              <React.Fragment>
+                {currentTab === Tab.RealUserMonitoring && (
+                  <StyledAlert type="info" icon={<IconInfo size="md" />}>
+                    {t(
+                      "Web vitals is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
+                    )}{' '}
+                    <ExternalLink href="mailto:performance-feedback@sentry.io">
+                      performance-feedback@sentry.io
+                    </ExternalLink>
+                  </StyledAlert>
+                )}
+                <StyledNavTabs>
+                  <ListLink
+                    to={summaryTarget}
+                    isActive={() => currentTab === Tab.TransactionSummary}
+                  >
+                    {t('Overview')}
+                  </ListLink>
+                  {hasWebVitals && (
+                    <ListLink
+                      to={vitalsTarget}
+                      isActive={() => currentTab === Tab.RealUserMonitoring}
+                    >
+                      {t('Web Vitals')}
+                      <FeatureBadge type="beta" />
+                    </ListLink>
+                  )}
+                </StyledNavTabs>
+              </React.Fragment>
             );
           }}
         </Feature>
@@ -148,6 +174,11 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 }
+
+const StyledAlert = styled(Alert)`
+  /* Makes sure the alert is pushed into another row */
+  width: 100%;
+`;
 
 const StyledNavTabs = styled(NavTabs)`
   margin-bottom: 0;

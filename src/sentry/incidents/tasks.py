@@ -204,18 +204,15 @@ def process_pending_incident_snapshots(next_id=None):
     """
     from sentry.incidents.logic import create_incident_snapshot
 
+    pending_snapshots = PendingIncidentSnapshot.objects.filter(target_run_date__lte=timezone.now())
     if next_id is None:
         # When next_id is None we know we just started running the task. Take the count
         # of total pending snapshots so that we can alert if we notice the queue
         # constantly growing.
         metrics.incr(
-            "incidents.pending_snapshots",
-            amount=PendingIncidentSnapshot.objects.count(),
-            sample_rate=1.0,
+            "incidents.pending_snapshots", amount=pending_snapshots.count(), sample_rate=1.0,
         )
 
-    now = timezone.now()
-    pending_snapshots = PendingIncidentSnapshot.objects.filter(target_run_date__lte=now)
     if next_id is not None:
         pending_snapshots = pending_snapshots.filter(id__lte=next_id)
     pending_snapshots = pending_snapshots.order_by("-id").select_related("incident")[

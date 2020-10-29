@@ -7,9 +7,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import PerformanceLanding from 'app/views/performance/landing';
 import ProjectsStore from 'app/stores/projectsStore';
 import {
+  DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
+  CONFIDENCE_LEVELS,
   getTrendAliasedFieldPercentage,
-  getTrendAliasedQueryPercentage,
   getTrendAliasedMinus,
 } from 'app/views/performance/trends/utils';
 import {TrendFunctionField} from 'app/views/performance/trends/types';
@@ -17,7 +18,7 @@ import {getUtcDateString} from 'app/utils/dates';
 
 const trendsViewQuery = {
   view: 'TRENDS',
-  query: 'count():>1000 transaction.duration:>0',
+  query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
 jest.mock('moment', () => {
@@ -28,10 +29,22 @@ jest.mock('moment', () => {
 
 function selectTrendFunction(wrapper, field) {
   const menu = wrapper.find('TrendsDropdown DropdownMenu');
-  expect(menu).toHaveLength(1);
-  menu.find('DropdownButton').simulate('click');
+  expect(menu).toHaveLength(2);
+  menu.find('DropdownButton').at(1).simulate('click');
 
   const option = menu.find(`DropdownItem[data-test-id="${field}"] span`);
+  expect(option).toHaveLength(1);
+  option.simulate('click');
+
+  wrapper.update();
+}
+
+function selectConfidenceLevel(wrapper, label) {
+  const menu = wrapper.find('TrendsDropdown DropdownMenu');
+  expect(menu).toHaveLength(2);
+  menu.find('DropdownButton').first().simulate('click');
+
+  const option = menu.find(`DropdownItem[data-test-id="${label}"] span`);
   expect(option).toHaveLength(1);
   option.simulate('click');
 
@@ -84,7 +97,11 @@ describe('Performance > Trends', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/transaction.duration/values/',
       body: [],
     });
     trendsStatsMock = MockApiClient.addMockResponse({
@@ -207,7 +224,7 @@ describe('Performance > Trends', function () {
     wrapper.update();
 
     // Trends dropdown and transaction widgets should render.
-    expect(wrapper.find('TrendsDropdown')).toHaveLength(1);
+    expect(wrapper.find('TrendsDropdown')).toHaveLength(2);
     expect(wrapper.find('ChangedTransactions')).toHaveLength(2);
   });
 
@@ -246,9 +263,8 @@ describe('Performance > Trends', function () {
     wrapper.find('DropdownLink').first().simulate('click');
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
-    const summaryLink = firstTransaction.find('StyledSummaryLink');
+    const summaryLink = firstTransaction.find('ItemTransactionName');
 
-    expect(summaryLink.text()).toEqual('View Summary');
     expect(summaryLink.props().to.pathname).toEqual(
       '/organizations/org-slug/performance/summary/'
     );
@@ -276,14 +292,47 @@ describe('Performance > Trends', function () {
     const menuActions = firstTransaction.find('StyledMenuAction');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(0);
+    const menuAction = menuActions.at(2);
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query:
-          'count():>1000 transaction.duration:>0 !transaction:/organizations/:orgId/performance/',
+        query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION} !transaction:/organizations/:orgId/performance/`,
+        view: 'TRENDS',
+      }),
+    });
+  });
+
+  it('Changing search causes cursors to be reset', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+    const search = wrapper.find('#smart-search-input').first();
+
+    search
+      .simulate('change', {target: {value: 'transaction.duration:>9000'}})
+      .simulate('submit', {
+        preventDefault() {},
+      });
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: expect.objectContaining({
+        project: ['1'],
+        query: 'transaction.duration:>9000',
+        improvedCursor: undefined,
+        regressionCursor: undefined,
         view: 'TRENDS',
       }),
     });
@@ -310,14 +359,14 @@ describe('Performance > Trends', function () {
     const menuActions = firstTransaction.find('StyledMenuAction');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(1);
-    expect(menuAction.text()).toEqual('Exclude transactions > 863ms');
+    const menuAction = menuActions.at(0);
+    expect(menuAction.text()).toEqual('Show \u2264 863ms');
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'count():>1000 transaction.duration:>863',
+        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<=863',
         view: 'TRENDS',
       }),
     });
@@ -344,14 +393,14 @@ describe('Performance > Trends', function () {
     const menuActions = firstTransaction.find('StyledMenuAction');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(2);
-    expect(menuAction.text()).toEqual('Exclude transactions < 863ms');
+    const menuAction = menuActions.at(1);
+    expect(menuAction.text()).toEqual('Show \u2265 863ms');
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'count():>1000 transaction.duration:>0 transaction.duration:<863',
+        query: `epm():>0.01 transaction.duration:<${DEFAULT_MAX_DURATION} transaction.duration:>=863`,
         view: 'TRENDS',
       }),
     });
@@ -477,7 +526,32 @@ describe('Performance > Trends', function () {
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
+          regressionCursor: undefined,
+          improvedCursor: undefined,
           trendFunction: trendFunction.field,
+        }),
+      });
+    }
+  });
+
+  it('choosing a confidence level changes location', async function () {
+    const projects = [TestStubs.Project()];
+    const data = initializeData(projects, {project: ['-1']});
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    for (const confidenceLevel of CONFIDENCE_LEVELS) {
+      selectConfidenceLevel(wrapper, confidenceLevel.label);
+      await tick();
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        query: expect.objectContaining({
+          confidenceLevel: confidenceLevel.label,
         }),
       });
     }
@@ -559,19 +633,18 @@ describe('Performance > Trends', function () {
       expect(trendsStatsMock).toHaveBeenCalledTimes(2);
 
       const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
-      const aliasedQueryDivide = getTrendAliasedQueryPercentage(trendFunction.alias);
 
       const sort =
         trendFunction.field === TrendFunctionField.USER_MISERY
           ? getTrendAliasedMinus(trendFunction.alias)
           : aliasedFieldDivide;
 
-      const defaultTrendsFields = ['project', 'count()'];
+      const defaultTrendsFields = ['project'];
 
       const transactionFields = ['transaction', ...defaultTrendsFields];
       const projectFields = [...defaultTrendsFields];
 
-      expect(transactionFields).toHaveLength(3);
+      expect(transactionFields).toHaveLength(2);
       expect(projectFields).toHaveLength(transactionFields.length - 1);
 
       // Improved projects call
@@ -582,7 +655,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            query: expect.stringContaining('trend_percentage():<1'),
             interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
@@ -598,7 +671,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            query: expect.stringContaining('trend_percentage():<1'),
             interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
@@ -614,7 +687,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort: '-' + sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':>1'),
+            query: expect.stringContaining('trend_percentage():>1'),
             interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
@@ -630,7 +703,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort: '-' + sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':>1'),
+            query: expect.stringContaining('trend_percentage():>1'),
             interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',

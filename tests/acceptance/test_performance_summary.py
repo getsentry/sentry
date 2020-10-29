@@ -11,7 +11,10 @@ from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage
 
-FEATURE_NAMES = ("organizations:performance-view",)
+FEATURE_NAMES = (
+    "organizations:performance-view",
+    "organizations:measurements",
+)
 
 
 def make_event(event_data):
@@ -79,7 +82,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("performance event details")
 
     @patch("django.utils.timezone.now")
-    def test_real_user_monitoring(self, mock_now):
+    def test_transaction_vitals(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         vitals_path = u"/organizations/{}/performance/summary/vitals/?{}".format(
@@ -96,7 +99,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         self.store_event(data=event, project_id=self.project.id)
         self.wait_for_event_count(self.project.id, 1)
 
-        with self.feature(list(FEATURE_NAMES) + ["organizations:measurements"]):
+        with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
             self.browser.wait_until_not('[data-test-id="stats-loading"]')
@@ -104,7 +107,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("real user monitoring")
 
     @patch("django.utils.timezone.now")
-    def test_real_user_monitoring_filtering(self, mock_now):
+    def test_transaction_vitals_filtering(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         vitals_path = u"/organizations/{}/performance/summary/vitals/?{}".format(
@@ -121,6 +124,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             event_data["measurements"]["fcp"]["value"] = seconds * 10
             event_data["measurements"]["lcp"]["value"] = seconds * 10
             event_data["measurements"]["fid"]["value"] = seconds * 10
+            event_data["measurements"]["cls"]["value"] = seconds / 10.0
             self.store_event(data=event_data, project_id=self.project.id)
 
         # add anchor point
@@ -131,6 +135,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event_data["measurements"]["fcp"]["value"] = 3000
         event_data["measurements"]["lcp"]["value"] = 3000
         event_data["measurements"]["fid"]["value"] = 3000
+        event_data["measurements"]["cls"]["value"] = 0.3
         self.store_event(data=event_data, project_id=self.project.id)
 
         # add outlier
@@ -141,11 +146,12 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event_data["measurements"]["fcp"]["value"] = 3000000000
         event_data["measurements"]["lcp"]["value"] = 3000000000
         event_data["measurements"]["fid"]["value"] = 3000000000
+        event_data["measurements"]["cls"]["value"] = 3000000000
         self.store_event(data=event_data, project_id=self.project.id)
 
         self.wait_for_event_count(self.project.id, 5)
 
-        with self.feature(list(FEATURE_NAMES) + ["organizations:measurements"]):
+        with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
             self.browser.wait_until_not('[data-test-id="stats-loading"]')

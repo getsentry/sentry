@@ -221,6 +221,41 @@ const badge = {
   },
 };
 
+const tag = {
+  default: {
+    background: colors.gray200,
+    iconColor: colors.purple400,
+  },
+  promotion: {
+    background: colors.orange100,
+    iconColor: colors.orange400,
+  },
+  highlight: {
+    background: colors.purple100,
+    iconColor: colors.purple400,
+  },
+  warning: {
+    background: colors.yellow100,
+    iconColor: colors.yellow400,
+  },
+  success: {
+    background: colors.green100,
+    iconColor: colors.green400,
+  },
+  error: {
+    background: colors.red100,
+    iconColor: colors.red400,
+  },
+  info: {
+    background: colors.blue100,
+    iconColor: colors.blue400,
+  },
+  white: {
+    background: colors.white,
+    iconColor: colors.gray700,
+  },
+};
+
 const generateButtonTheme = alias => ({
   borderRadius: '3px',
 
@@ -290,7 +325,7 @@ const iconSizes = {
 };
 
 const theme = {
-  breakpoints: ['768px', '992px', '1200px', '1440px', '2560px'],
+  breakpoints: ['800px', '992px', '1200px', '1440px', '2560px'],
 
   ...colors,
 
@@ -402,7 +437,7 @@ const theme = {
 
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: 'Monaco, Consolas, "Courier New", monospace',
+    familyMono: '"IBM Plex", Monaco, Consolas, "Courier New", monospace',
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
   },
@@ -412,6 +447,7 @@ const theme = {
 
   alert,
   badge,
+  tag,
   button: generateButtonTheme(aliases),
 
   charts: {

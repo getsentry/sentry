@@ -14,7 +14,6 @@ from sentry.api.bases import OrganizationEndpoint, NoProjects
 from sentry.api.event_search import (
     get_filter,
     InvalidSearchQuery,
-    get_json_meta_type,
     get_function_alias,
 )
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
@@ -52,6 +51,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             params = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
+            params["user_id"] = request.user.id
 
             if check_global_views:
                 has_global_views = features.has(
@@ -171,16 +171,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             if not data:
                 return {"data": [], "meta": {}}
-
-            meta = {
-                value["name"]: get_json_meta_type(value["name"], value["type"])
-                for value in results["meta"]
-            }
-            # Ensure all columns in the result have types.
-            for key in data[0]:
-                if key not in meta:
-                    meta[key] = "string"
-            return {"meta": meta, "data": data}
+            return {"data": data, "meta": results.get("meta", {})}
 
     def handle_data(self, request, organization, project_ids, results):
         if not results:
@@ -223,13 +214,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         top_events=False,
         query_column="count()",
         params=None,
+        query=None,
     ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):
                 columns = request.GET.getlist("yAxis", [query_column])
-                query = request.GET.get("query")
+                if query is None:
+                    query = request.GET.get("query")
                 if params is None:
                     try:
                         # events-stats is still used by events v1 which doesn't require global views

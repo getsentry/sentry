@@ -8,6 +8,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 
 import six
+import unittest
 from django.conf import settings
 from django.core import mail
 from django.utils import timezone
@@ -22,15 +23,16 @@ from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
     InvalidTriggerActionError,
-    get_incident_stats,
+    calculate_incident_time_range,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     create_event_stat_snapshot,
-    calculate_incident_time_range,
     create_incident,
     create_incident_activity,
     create_incident_snapshot,
+    CRITICAL_TRIGGER_LABEL,
+    deduplicate_trigger_actions,
     delete_alert_rule,
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
@@ -42,6 +44,7 @@ from sentry.incidents.logic import (
     get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
     get_incident_event_stats,
+    get_incident_stats,
     get_incident_subscribers,
     get_triggers_for_alert_rule,
     ProjectsNotAssociatedWithAlertRuleError,
@@ -51,6 +54,7 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
     update_alert_rule_trigger,
     update_incident_status,
+    WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
 )
 from sentry.incidents.models import (
@@ -74,7 +78,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
     TriggerStatus,
 )
-from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, BaseIncidentsTest
 from sentry.models import PagerDutyService
@@ -684,6 +688,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         threshold_type = AlertRuleThresholdType.ABOVE
         resolve_threshold = 10
         threshold_period = 1
+        event_types = [SnubaQueryEventType.EventType.ERROR]
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -694,6 +699,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             threshold_type,
             threshold_period,
             resolve_threshold=resolve_threshold,
+            event_types=event_types,
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
@@ -704,6 +710,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.aggregate == aggregate
         assert alert_rule.snuba_query.time_window == time_window * 60
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+        assert set(alert_rule.snuba_query.event_types) == set(event_types)
         assert alert_rule.threshold_type == threshold_type.value
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
@@ -835,6 +842,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         time_window = 50
         threshold_type = AlertRuleThresholdType.BELOW
         threshold_period = 2
+        event_types = [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT]
 
         updated_projects = [self.project, self.create_project(fire_project_created=True)]
 
@@ -847,6 +855,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=time_window,
             threshold_type=threshold_type,
             threshold_period=threshold_period,
+            event_types=event_types,
         )
         assert self.alert_rule.id == updated_rule.id
         assert self.alert_rule.name == name
@@ -861,6 +870,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert self.alert_rule.snuba_query.query == query
         assert self.alert_rule.snuba_query.aggregate == aggregate
         assert self.alert_rule.snuba_query.time_window == time_window * 60
+        assert set(self.alert_rule.snuba_query.event_types) == set(event_types)
         assert self.alert_rule.threshold_type == threshold_type.value
         assert self.alert_rule.threshold_period == threshold_period
 
@@ -1675,6 +1685,13 @@ class TriggerActionTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=six.text_type(self.user.id),
         )
+        # Duplicate action that should be deduped
+        create_alert_rule_trigger_action(
+            trigger=trigger,
+            type=AlertRuleTriggerAction.Type.EMAIL,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=six.text_type(self.user.id),
+        )
         return rule
 
     @fixture
@@ -1707,6 +1724,148 @@ class TriggerActionTest(TestCase):
                 status_method=IncidentStatusMethod.MANUAL,
             )
 
+        assert len(mail.outbox) == 1
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+
+
+class TestDeduplicateTriggerActions(unittest.TestCase):
+    @fixture
+    def critical(self):
+        return AlertRuleTrigger(label=CRITICAL_TRIGGER_LABEL)
+
+    @fixture
+    def warning(self):
+        return AlertRuleTrigger(label=WARNING_TRIGGER_LABEL)
+
+    def run_test(self, input, output):
+        key = lambda action: action.id
+        assert sorted(deduplicate_trigger_actions(input), key=key) == sorted(output, key=key)
+
+    def test_critical_only(self):
+        action = AlertRuleTriggerAction(
+            id=1,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="1",
+        )
+        self.run_test([action], [action])
+        self.run_test([action, action], [action])
+
+        other_action = AlertRuleTriggerAction(
+            id=2,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="2",
+        )
+        self.run_test([action, action, other_action], [action, other_action])
+        integration_action = AlertRuleTriggerAction(
+            id=3,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.SLACK.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        app_action = AlertRuleTriggerAction(
+            id=4,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.MSTEAMS.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        self.run_test(
+            [action, action, other_action, integration_action, app_action],
+            [action, other_action, integration_action, app_action],
+        )
+        self.run_test(
+            [
+                action,
+                action,
+                other_action,
+                other_action,
+                integration_action,
+                integration_action,
+                app_action,
+                app_action,
+            ],
+            [action, other_action, integration_action, app_action],
+        )
+
+    def test_critical_warning(self):
+        action_c = AlertRuleTriggerAction(
+            id=1,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="1",
+        )
+        action_w = AlertRuleTriggerAction(
+            id=2,
+            alert_rule_trigger=self.warning,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="1",
+        )
+        self.run_test([action_w, action_c, action_c], [action_c])
+        other_action_w = AlertRuleTriggerAction(
+            id=3,
+            alert_rule_trigger=self.warning,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="2",
+        )
+        self.run_test([action_w, action_c, action_c, other_action_w], [action_c, other_action_w])
+        integration_action_w = AlertRuleTriggerAction(
+            id=4,
+            alert_rule_trigger=self.warning,
+            type=AlertRuleTriggerAction.Type.SLACK.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        app_action_w = AlertRuleTriggerAction(
+            id=5,
+            alert_rule_trigger=self.warning,
+            type=AlertRuleTriggerAction.Type.MSTEAMS.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        self.run_test(
+            [action_w, action_c, action_c, other_action_w, integration_action_w, app_action_w],
+            [action_c, other_action_w, integration_action_w, app_action_w],
+        )
+        integration_action_c = AlertRuleTriggerAction(
+            id=6,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.SLACK.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        app_action_c = AlertRuleTriggerAction(
+            id=7,
+            alert_rule_trigger=self.critical,
+            type=AlertRuleTriggerAction.Type.MSTEAMS.value,
+            integration_id=1,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="D12345",
+        )
+        self.run_test(
+            [
+                action_w,
+                action_c,
+                action_c,
+                other_action_w,
+                integration_action_w,
+                app_action_w,
+                integration_action_c,
+                app_action_c,
+            ],
+            [action_c, other_action_w, integration_action_c, app_action_c],
+        )

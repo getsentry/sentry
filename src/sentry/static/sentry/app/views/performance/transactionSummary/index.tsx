@@ -34,7 +34,7 @@ import {addRoutePerformanceContext, getTransactionName} from '../utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   WEB_VITAL_DETAILS,
-} from '../realUserMonitoring/constants';
+} from '../transactionVitals/constants';
 
 type Props = {
   api: Client;
@@ -108,6 +108,10 @@ class TransactionSummary extends React.Component<Props, State> {
   ): [EventView, TotalValues] {
     const threshold = organization.apdexThreshold.toString();
 
+    const vitals = organization.features.includes('measurements')
+      ? Object.values(WebVital).filter(vital => WEB_VITAL_DETAILS[vital].includeInSummary)
+      : [];
+
     const totalsView = eventView.withColumns([
       {
         kind: 'function',
@@ -129,15 +133,13 @@ class TransactionSummary extends React.Component<Props, State> {
         kind: 'function',
         function: ['count_unique', 'user', undefined],
       },
-      ...Object.values(WebVital)
-        .filter(vital => WEB_VITAL_DETAILS[vital].includeInSummary)
-        .map(
-          vital =>
-            ({
-              kind: 'function',
-              function: ['percentile', vital, VITAL_PERCENTILE.toString()],
-            } as Column)
-        ),
+      ...vitals.map(
+        vital =>
+          ({
+            kind: 'function',
+            function: ['percentile', vital, VITAL_PERCENTILE.toString()],
+          } as Column)
+      ),
     ]);
     const emptyValues = totalsView.fields.reduce((values, field) => {
       values[getAggregateAlias(field.field)] = 0;

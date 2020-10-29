@@ -345,7 +345,13 @@ class EventManager(object):
             # removed it from the payload.  The call to get_hashes will then
             # look at `grouping_config` to pick the right parameters.
             job["data"]["fingerprint"] = job["data"].get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(job["data"], get_fingerprinting_config_for_project(project))
+            apply_server_fingerprinting(
+                job["data"],
+                get_fingerprinting_config_for_project(project),
+                allow_custom_title=features.has(
+                    "organizations:custom-event-title", project.organization, actor=None
+                ),
+            )
 
         with metrics.timer("event_manager.event.get_hashes"):
             # Here we try to use the grouping config that was requested in the

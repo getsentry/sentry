@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: snuba test py3.6
     runs-on: ubuntu-16.04
     timeout-minutes: 30
     strategy:
@@ -15,7 +16,6 @@ jobs:
         instance: [0]
 
     env:
-      # Note: `USE_SNUBA` is only used for the Snuba test suite because we have some failing acceptance tests with Snuba enabled.
       USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
 
@@ -69,6 +69,7 @@ jobs:
         id: setup
         with:
           python: 3
+          snuba: true
           kafka: true
 
       - name: Run snuba test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})

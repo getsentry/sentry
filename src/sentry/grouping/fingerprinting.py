@@ -36,7 +36,8 @@ quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 fingerprint    = fp_value+
 fp_value        = _ fp_argument _ ","?
-fp_argument    = quoted / unquoted_no_comma
+fp_argument    = fp_attribute / quoted / unquoted_no_comma
+fp_attribute   = key "=" quoted
 
 comment        = ~r"#[^\r\n]*"
 
@@ -318,7 +319,7 @@ class Match(object):
             ref_val = get_rule_bool(self.pattern)
             if ref_val is not None and ref_val == value:
                 return True
-        elif glob_match(value, self.pattern, ignorecase=self.key == "level"):
+        elif glob_match(value, self.pattern, ignorecase=self.key in ("level", "value")):
             return True
         return False
 
@@ -340,9 +341,10 @@ class Match(object):
 
 
 class Rule(object):
-    def __init__(self, matchers, fingerprint):
+    def __init__(self, matchers, fingerprint, attributes):
         self.matchers = matchers
         self.fingerprint = fingerprint
+        self.attributes = attributes
 
     def get_fingerprint_values_for_event_access(self, access):
         by_match_group = {}
@@ -356,17 +358,22 @@ class Rule(object):
             else:
                 return
 
-        return self.fingerprint
+        return self.fingerprint, self.attributes
 
     def _to_config_structure(self):
         return {
             "matchers": [x._to_config_structure() for x in self.matchers],
             "fingerprint": self.fingerprint,
+            "attributes": self.attributes,
         }
 
     @classmethod
     def _from_config_structure(cls, obj):
-        return cls([Match._from_config_structure(x) for x in obj["matchers"]], obj["fingerprint"])
+        return cls(
+            [Match._from_config_structure(x) for x in obj["matchers"]],
+            obj["fingerprint"],
+            obj.get("attributes") or {},
+        )
 
 
 class FingerprintingVisitor(NodeVisitor):
@@ -398,8 +405,8 @@ class FingerprintingVisitor(NodeVisitor):
             return comment_or_rule_or_empty
 
     def visit_rule(self, node, children):
-        _, matcher, _, _, _, fingerprint = children
-        return Rule(matcher, fingerprint)
+        _, matcher, _, _, _, (fingerprint, attributes) = children
+        return Rule(matcher, fingerprint, attributes)
 
     def visit_matcher(self, node, children):
         _, negation, ty, _, argument = children
@@ -414,11 +421,25 @@ class FingerprintingVisitor(NodeVisitor):
     visit_fp_argument = visit_argument
 
     def visit_fingerprint(self, node, children):
-        return children
+        fingerprint = []
+        attributes = {}
+        for item in children:
+            if isinstance(item, tuple):
+                key, value = item
+                attributes[key] = value
+            else:
+                fingerprint.append(item)
+        return fingerprint, attributes
 
     def visit_fp_value(self, node, children):
         _, argument, _, _ = children
         return argument
+
+    def visit_fp_attribute(self, node, children):
+        key, _, value = children
+        if key != "title":
+            raise InvalidFingerprintingConfig("Unknown attribute '%s'" % key)
+        return (key, value)
 
     def visit_quoted(self, node, children):
         return unescape_string(node.text[1:-1])
