@@ -64,6 +64,8 @@ class Release(Model):
     """
     A release is generally created when a new version is pushed into a
     production state.
+
+    A commit is generally a git commit. See also releasecommit.py
     """
 
     __core__ = False
@@ -84,6 +86,7 @@ class Release(Model):
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
     data = JSONField(default={})
+    # new issues (groups) that arise as a consequence of this release
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
     owner = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
