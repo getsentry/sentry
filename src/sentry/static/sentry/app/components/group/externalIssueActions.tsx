@@ -162,10 +162,6 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
 
         {unlinked.length > 0 && (
           <IssueSyncListElement
-            externalIssueLink={null}
-            externalIssueId={null}
-            externalIssueKey={null}
-            externalIssueDisplayName={null}
             integrationType={unlinked[0].provider.key}
             hoverCardHeader={t('Linked %s Integration', unlinked[0].provider.name)}
             hoverCardBody={

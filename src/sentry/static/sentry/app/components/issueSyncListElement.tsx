@@ -19,7 +19,7 @@ import Hovercard from 'app/components/hovercard';
 import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
-  externalIssueLink: string | null;
+  externalIssueLink?: string | null;
   externalIssueId?: string | null;
   externalIssueKey?: string | null;
   externalIssueDisplayName?: string | null;
