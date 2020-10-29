@@ -60,6 +60,10 @@ class Search extends React.Component {
     searchOptions: PropTypes.object,
     // Passed to the underlying AutoComplete component
     closeOnSelect: PropTypes.bool,
+    /**
+     * Adds a footer below the results when the search is complete
+     */
+    resultFooter: PropTypes.node,
   };
 
   static defaultProps = {
@@ -154,18 +158,15 @@ class Search extends React.Component {
       throw new Error('Invalid `renderItem`');
     }
 
-    return React.cloneElement(
-      renderItem({
-        item,
-        matches,
-        index,
-        highlighted,
-      }),
-      {
-        ...itemProps,
-        key,
-      }
-    );
+    const renderedItem = renderItem({
+      item,
+      matches,
+      index,
+      highlighted,
+      itemProps,
+    });
+
+    return React.cloneElement(renderedItem, {key});
   };
 
   render() {
@@ -178,6 +179,7 @@ class Search extends React.Component {
       renderInput,
       sources,
       closeOnSelect,
+      resultFooter,
     } = this.props;
 
     return (
@@ -233,6 +235,9 @@ class Search extends React.Component {
                       {!isLoading && !hasAnyResults && (
                         <EmptyItem>{t('No results found')}</EmptyItem>
                       )}
+                      {!isLoading && resultFooter && (
+                        <ResultFooter>{resultFooter}</ResultFooter>
+                      )}
                     </DropdownBox>
                   )}
                 </SearchSources>
@@ -256,11 +261,19 @@ const DropdownBox = styled('div')`
   right: 0;
   width: 400px;
   border-radius: 5px;
-  overflow: hidden;
+  overflow: auto;
+  max-height: 60vh;
 `;
 
 const SearchWrapper = styled('div')`
   position: relative;
+`;
+
+const ResultFooter = styled('div')`
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
 `;
 
 const EmptyItem = styled(SearchResultWrapper)`

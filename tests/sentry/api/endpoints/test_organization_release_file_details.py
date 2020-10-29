@@ -73,7 +73,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.get("Content-Disposition") == 'attachment; filename="appli catios n.js"'
         assert response.get("Content-Length") == six.text_type(f.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert "File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
+        assert b"File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
 
         user_no_permission = self.create_user("baz@localhost", username="baz")
         self.login_as(user=user_no_permission)

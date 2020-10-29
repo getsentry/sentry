@@ -70,7 +70,7 @@ def test_similarity_extract_grouping_input(grouping_input, insta_snapshot):
         for feature in features:
             snapshot.append("{}: {}".format(":".join(label), json.dumps(feature, sort_keys=True)))
 
-    insta_snapshot("\n".join(snapshot))
+    insta_snapshot("\n".join(sorted(snapshot)))
 
 
 @with_fingerprint_input("fingerprint_input")
@@ -86,7 +86,7 @@ def test_similarity_extract_fingerprinting(fingerprint_input, insta_snapshot):
         for feature in features:
             snapshot.append("{}: {}".format(":".join(label), json.dumps(feature, sort_keys=True)))
 
-    insta_snapshot("\n".join(snapshot))
+    insta_snapshot("\n".join(sorted(snapshot)))
 
 
 def _get_configurations():

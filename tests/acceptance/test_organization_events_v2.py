@@ -8,6 +8,7 @@ from sentry.utils.compat.mock import patch
 from datetime import timedelta
 
 from six.moves.urllib.parse import urlencode
+from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
@@ -58,10 +59,16 @@ def transactions_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
-def generate_transaction():
+def generate_transaction(trace=None, span=None):
     start_datetime = before_now(minutes=1, milliseconds=500)
     end_datetime = before_now(minutes=1)
-    event_data = load_data("transaction", timestamp=end_datetime, start_timestamp=start_datetime)
+    event_data = load_data(
+        "transaction",
+        timestamp=end_datetime,
+        start_timestamp=start_datetime,
+        trace=trace,
+        span=span,
+    )
     event_data.update({"event_id": "a" * 32})
 
     # generate and build up span tree
@@ -89,7 +96,7 @@ def generate_transaction():
     }
 
     def build_span_tree(span_tree, spans, parent_span_id):
-        for span_id, child in span_tree.items():
+        for span_id, child in sorted(span_tree.items(), key=lambda item: item[0]):
             span = copy.deepcopy(reference_span)
             # non-leaf node span
             span["parent_span_id"] = parent_span_id.ljust(16, "0")
@@ -349,14 +356,16 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_event_detail_view_from_transactions_query(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        event_data = generate_transaction()
+        event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         # Create a child event that is linked to the parent so we have coverage
         # of traversal buttons.
-        child_event = generate_transaction()
+        child_event = generate_transaction(
+            trace=event_data["contexts"]["trace"]["trace_id"], span="bc" * 8
+        )
         child_event["event_id"] = "b" * 32
-        child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][5]["span_id"]
+        child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][4]["span_id"]
         child_event["transaction"] = "z-child-transaction"
         child_event["spans"] = child_event["spans"][0:3]
         self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
@@ -386,6 +395,41 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Click on the child transaction.
             self.browser.click(child_button)
             self.wait_until_loaded()
+
+    @patch("django.utils.timezone.now")
+    def test_transaction_event_detail_view_ops_filtering(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+
+        with self.feature(FEATURE_NAMES):
+            # Get the list page
+            self.browser.get(self.result_path + "?" + transactions_query())
+            self.wait_until_loaded()
+
+            # Open the stack
+            self.browser.elements('[data-test-id="open-stack"]')[0].click()
+            self.wait_until_loaded()
+
+            # View Event
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
+            self.wait_until_loaded()
+
+            # Interact with ops filter dropdown
+            self.browser.elements('[data-test-id="filter-button"]')[0].click()
+
+            # select all ops
+            self.browser.elements(
+                '[data-test-id="op-filter-dropdown"] [data-test-id="checkbox-fancy"]'
+            )[0].click()
+
+            # un-select django.middleware
+            self.browser.elements(
+                '[data-test-id="op-filter-dropdown"] [data-test-id="checkbox-fancy"]'
+            )[1].click()
+
+            self.browser.snapshot("events-v2 - transactions event detail view - ops filtering")
 
     def test_create_saved_query(self):
         # Simulate a custom query
@@ -432,7 +476,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             input = self.browser.element('div[name="discover2-query-name"]')
             input.click()
-            input.send_keys("updated!")
+            input.send_keys(Keys.END + "updated!")
 
             # Move focus somewhere else to trigger a blur and update the query
             self.browser.element("table").click()

@@ -134,7 +134,7 @@ const Chart = (props: Props) => {
                     },
                   ]
                 : []),
-            ],
+            ] as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
           }),
         },
         warningTrigger &&
@@ -147,7 +147,7 @@ const Chart = (props: Props) => {
               data: [
                 {
                   yAxis: warningTriggerAlertThreshold,
-                },
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
               ],
               precision: marklinePrecision,
               label: {
@@ -156,7 +156,7 @@ const Chart = (props: Props) => {
                 formatter: 'WARNING',
                 color: theme.yellow400,
                 fontSize: 10,
-              },
+              } as any, // TODO(ts): Color is not an exposed option for label,
             }),
             data: [],
           },
@@ -170,7 +170,7 @@ const Chart = (props: Props) => {
               data: [
                 {
                   yAxis: criticalTriggerAlertThreshold,
-                },
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
               ],
               precision: marklinePrecision,
               label: {
@@ -179,7 +179,7 @@ const Chart = (props: Props) => {
                 formatter: 'CRITICAL',
                 color: theme.red400,
                 fontSize: 10,
-              },
+              } as any, // TODO(ts): Color is not an exposed option for label,
             }),
             data: [],
           },
@@ -193,7 +193,7 @@ const Chart = (props: Props) => {
               data: [
                 {
                   yAxis: alertResolveThreshold,
-                },
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
               ],
               precision: marklinePrecision,
               label: {
@@ -202,7 +202,7 @@ const Chart = (props: Props) => {
                 formatter: 'CRITICAL RESOLUTION',
                 color: theme.gray400,
                 fontSize: 10,
-              },
+              } as any, // TODO(ts): Color is not an option for label,
             }),
             data: [],
           },

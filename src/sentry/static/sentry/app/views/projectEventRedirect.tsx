@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';

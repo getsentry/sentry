@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:50.056216Z'
+created: '2020-08-21T21:07:52.819355Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -14,6 +14,7 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.developm
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","performWorkOnRoot"]],[["filename","react-dom.development.js"],["function","renderRoot"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","renderRoot"]],[["filename","react-dom.development.js"],["function","replayUnitOfWork"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","replayUnitOfWork"]],[["filename","react-dom.development.js"],["function","invokeGuardedCallback"]]]
+similarity:2020-07-23:type:ident-shingle: "ReferenceError"
 similarity:2020-07-23:value:character-5-shingle: " defi"
 similarity:2020-07-23:value:character-5-shingle: " is n"
 similarity:2020-07-23:value:character-5-shingle: " not "
@@ -31,4 +32,3 @@ similarity:2020-07-23:value:character-5-shingle: "s not"
 similarity:2020-07-23:value:character-5-shingle: "t def"
 similarity:2020-07-23:value:character-5-shingle: "t is "
 similarity:2020-07-23:value:character-5-shingle: "varan"
-similarity:2020-07-23:type:ident-shingle: "ReferenceError"

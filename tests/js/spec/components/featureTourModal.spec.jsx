@@ -19,7 +19,7 @@ const steps = [
   {title: 'Second', body: 'Second step'},
 ];
 
-describe('FeatureTourModal', function() {
+describe('FeatureTourModal', function () {
   let onAdvance, onCloseModal;
 
   const createWrapper = (props = {}) =>
@@ -47,12 +47,12 @@ describe('FeatureTourModal', function() {
     wrapper.update();
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     onAdvance = jest.fn();
     onCloseModal = jest.fn();
   });
 
-  it('shows the modal on click', async function() {
+  it('shows the modal on click', async function () {
     const wrapper = createWrapper();
 
     // No modal showing
@@ -63,35 +63,35 @@ describe('FeatureTourModal', function() {
     expect(wrapper.find('GlobalModal').props().visible).toEqual(true);
   });
 
-  it('advances on click', async function() {
+  it('advances on click', async function () {
     const wrapper = createWrapper();
 
     await showModal(wrapper);
 
     // Should start on the first step.
-    expect(wrapper.find('TourContent h3').text()).toEqual(steps[0].title);
+    expect(wrapper.find('TourHeader h4').text()).toEqual(steps[0].title);
 
     // Advance to the next step.
     wrapper.find('Button[data-test-id="next-step"]').simulate('click');
 
     // Should move to next step.
-    expect(wrapper.find('TourContent h3').text()).toEqual(steps[1].title);
+    expect(wrapper.find('TourHeader h4').text()).toEqual(steps[1].title);
     expect(onAdvance).toHaveBeenCalled();
   });
 
-  it('shows step content', async function() {
+  it('shows step content', async function () {
     const wrapper = createWrapper();
 
     await showModal(wrapper);
 
     // Should show title, image and actions
-    expect(wrapper.find('TourContent h3').text()).toEqual(steps[0].title);
+    expect(wrapper.find('TourHeader h4').text()).toEqual(steps[0].title);
     expect(wrapper.find('TourContent em[data-test-id="step-image"]')).toHaveLength(1);
     expect(wrapper.find('TourContent a[data-test-id="step-action"]')).toHaveLength(1);
     expect(wrapper.find('StepCounter').text()).toEqual('1 of 2');
   });
 
-  it('last step shows done', async function() {
+  it('last step shows done', async function () {
     const wrapper = createWrapper();
 
     await showModal(wrapper);
@@ -108,7 +108,7 @@ describe('FeatureTourModal', function() {
     expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
 
-  it('last step shows doneText and uses doneUrl', async function() {
+  it('last step shows doneText and uses doneUrl', async function () {
     const props = {doneText: 'Finished', doneUrl: 'http://example.org'};
     const wrapper = createWrapper(props);
 
@@ -129,7 +129,7 @@ describe('FeatureTourModal', function() {
     expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
 
-  it('close button dismisses modal', async function() {
+  it('close button dismisses modal', async function () {
     const wrapper = createWrapper();
 
     await showModal(wrapper);

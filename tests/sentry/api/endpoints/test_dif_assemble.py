@@ -101,6 +101,7 @@ class DifAssembleEndpoint(APITestCase):
         # Finally, we simulate a successful job
         ProjectDebugFile.objects.create(
             file=file1,
+            checksum=file1.checksum,
             object_name="baz.dSYM",
             cpu_name="x86_64",
             project=self.project,
@@ -223,7 +224,7 @@ class DifAssembleEndpoint(APITestCase):
         )
 
     def test_dif_error_response(self):
-        sym_file = "fail"
+        sym_file = b"fail"
         blob1 = FileBlob.from_file(ContentFile(sym_file))
         total_checksum = sha1(sym_file).hexdigest()
         chunks = [blob1.checksum]

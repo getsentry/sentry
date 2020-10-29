@@ -35,6 +35,7 @@ class EventsContainer extends React.Component {
 
   componentDidUpdate(prevProps) {
     const {api, organization, selection} = this.props;
+
     if (
       !isEqual(prevProps.selection.projects, selection.projects) ||
       !isEqual(prevProps.selection.datetime, selection.datetime)

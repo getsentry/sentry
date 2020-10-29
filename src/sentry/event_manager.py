@@ -48,6 +48,7 @@ from sentry.models import (
     Project,
     ProjectKey,
     Release,
+    ReleaseCommit,
     ReleaseEnvironment,
     ReleaseProject,
     ReleaseProjectEnvironment,
@@ -58,7 +59,7 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry import quotas
-from sentry.signals import first_event_received
+from sentry.signals import first_event_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
@@ -69,6 +70,7 @@ from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
 from sentry.utils.compat import map
+from sentry.reprocessing2 import save_unprocessed_event
 
 logger = logging.getLogger("sentry.events")
 
@@ -79,17 +81,20 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 
 def pop_tag(data, key):
+    if "tags" not in data:
+        return
+
     data["tags"] = [kv for kv in data["tags"] if kv is None or kv[0] != key]
 
 
 def set_tag(data, key, value):
     pop_tag(data, key)
     if value is not None:
-        data["tags"].append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
+        data.setdefault("tags", []).append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
 
 
 def get_tag(data, key):
-    for k, v in get_path(data, "tags", filter=True):
+    for k, v in get_path(data, "tags", filter=True) or ():
         if k == key:
             return v
 
@@ -106,24 +111,27 @@ def plugin_is_regression(group, event):
 
 
 def has_pending_commit_resolution(group):
-    return (
+    """
+    Checks that the most recent commit that fixes a group has had a chance to release
+    """
+    recent_group_link = (
         GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
             relationship=GroupLink.Relationship.resolves,
         )
-        .extra(
-            where=[
-                "NOT EXISTS(SELECT 1 FROM sentry_releasecommit where commit_id = sentry_grouplink.linked_id)"
-            ]
-        )
-        .exists()
+        .order_by("-datetime")
+        .first()
     )
+    if recent_group_link is None:
+        return False
+
+    return not ReleaseCommit.objects.filter(commit__id=recent_group_link.linked_id).exists()
 
 
-def get_max_crashreports(model):
+def get_max_crashreports(model, allow_none=False):
     value = model.get_option("sentry:store_crash_reports")
-    return convert_crashreport_count(value)
+    return convert_crashreport_count(value, allow_none=allow_none)
 
 
 def crashreports_exceeded(current_count, max_count):
@@ -140,12 +148,12 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
         return max_crashreports
 
     cached_reports = cache.get(cache_key, None)
-    if cached_reports >= max_crashreports:
+    if cached_reports is not None and cached_reports >= max_crashreports:
         return cached_reports
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
     return EventAttachment.objects.filter(
-        group_id=event.group_id, file__type__in=CRASH_REPORT_TYPES
+        group_id=event.group_id, type__in=CRASH_REPORT_TYPES
     ).count()
 
 
@@ -337,7 +345,13 @@ class EventManager(object):
             # removed it from the payload.  The call to get_hashes will then
             # look at `grouping_config` to pick the right parameters.
             job["data"]["fingerprint"] = job["data"].get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(job["data"], get_fingerprinting_config_for_project(project))
+            apply_server_fingerprinting(
+                job["data"],
+                get_fingerprinting_config_for_project(project),
+                allow_custom_title=features.has(
+                    "organizations:custom-event-title", project.organization, actor=None
+                ),
+            )
 
         with metrics.timer("event_manager.event.get_hashes"):
             # Here we try to use the grouping config that was requested in the
@@ -422,11 +436,11 @@ class EventManager(object):
                 group=job["group"], environment=job["environment"]
             )
 
-        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
-        _materialize_event_metrics(jobs)
-
         with metrics.timer("event_manager.filter_attachments_for_group"):
             attachments = filter_attachments_for_group(attachments, job)
+
+        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
+        _materialize_event_metrics(jobs)
 
         for attachment in attachments:
             key = "bytes.stored.%s" % (attachment.type,)
@@ -434,6 +448,7 @@ class EventManager(object):
             job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs)
+        save_unprocessed_event(project, event_id=job["event"].event_id)
 
         if job["release"]:
             if job["is_new"]:
@@ -565,7 +580,7 @@ def _get_or_create_release_many(jobs, projects):
         )
 
         for job in jobs_to_update:
-            # dont allow a conflicting 'release' tag
+            # Don't allow a conflicting 'release' tag
             data = job["data"]
             pop_tag(data, "release")
             set_tag(data, "sentry:release", release.version)
@@ -989,6 +1004,13 @@ def _handle_regression(group, event, release):
             status=GroupStatus.UNRESOLVED,
         )
     )
+    issue_unresolved.send_robust(
+        project=group.project,
+        user=None,
+        group=group,
+        transition_type="automatic",
+        sender="handle_regression",
+    )
 
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
@@ -1118,9 +1140,7 @@ def discard_event(job, attachments):
         )
 
     metrics.incr(
-        "events.discarded",
-        skip_internal=True,
-        tags={"organization_id": project.organization_id, "platform": job["platform"]},
+        "events.discarded", skip_internal=True, tags={"platform": job["platform"]},
     )
 
 
@@ -1171,8 +1191,8 @@ def filter_attachments_for_group(attachments, job):
     # The setting is both an organization and project setting. The project
     # setting strictly overrides the organization setting, unless set to the
     # default.
-    max_crashreports = get_max_crashreports(project)
-    if not max_crashreports:
+    max_crashreports = get_max_crashreports(project, allow_none=True)
+    if max_crashreports is None:
         max_crashreports = get_max_crashreports(project.organization)
 
     # The number of crash reports is cached per group
@@ -1194,6 +1214,14 @@ def filter_attachments_for_group(attachments, job):
         # has already verified PII and just store the attachment.
         if attachment.type in CRASH_REPORT_TYPES:
             if crashreports_exceeded(stored_reports, max_crashreports):
+                # Indicate that the crash report has been removed due to a limit
+                # on the maximum number of crash reports. If this flag is True,
+                # it indicates that there are *other* events in the same group
+                # that store a crash report. This flag will therefore *not* be
+                # set if storage of crash reports is completely disabled.
+                if max_crashreports > 0:
+                    job["data"]["metadata"]["stripped_crash"] = True
+
                 track_outcome(
                     org_id=event.project.organization_id,
                     project_id=job["project_id"],
@@ -1290,6 +1318,7 @@ def save_attachment(
         group_id=group_id,
         name=attachment.name,
         file=file,
+        type=attachment.type,
     )
 
     track_outcome(

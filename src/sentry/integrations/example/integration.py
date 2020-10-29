@@ -74,7 +74,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
         return comment
 
     def get_persisted_default_config_fields(self):
-        return ["project"]
+        return ["project", "issueType"]
 
     def get_create_issue_config(self, group, **kwargs):
         kwargs["link_referrer"] = "example_integration"
@@ -139,6 +139,9 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_issue_display_name(self, external_issue):
         return "display name: %s" % external_issue.key
+
+    def get_stacktrace_link(self, repo, path, version):
+        pass
 
 
 class ExampleIntegrationProvider(IntegrationProvider):

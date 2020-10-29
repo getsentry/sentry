@@ -303,7 +303,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return {
             "key": issue_id,
             "title": issue["fields"]["summary"],
-            "description": issue["fields"]["description"],
+            "description": issue["fields"].get("description"),
         }
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -585,7 +585,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # otherwise weird ordering occurs.
         anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
 
-        dynamic_fields = issue_type_meta["fields"].keys()
+        dynamic_fields = list(issue_type_meta["fields"].keys())
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
 
         # build up some dynamic fields based on required shit.
@@ -793,7 +793,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         transitions = client.get_transitions(external_issue.key)
 
         try:
-            transition = [t for t in transitions if t["to"]["id"] == jira_status][0]
+            transition = [t for t in transitions if t.get("to", {}).get("id") == jira_status][0]
         except IndexError:
             # TODO(jess): Email for failure
             logger.warning(
@@ -844,16 +844,23 @@ class JiraIntegrationProvider(IntegrationProvider):
         # since the integration won't have been fully configured on JIRA's side
         # yet, we can't make API calls for more details like the server name or
         # Icon.
-        return {
-            "provider": "jira",
-            "external_id": state["clientKey"],
-            "name": "JIRA",
-            "metadata": {
+        # two ways build_integration can be called
+        if state.get("jira"):
+            metadata = state["jira"]["metadata"]
+            external_id = state["jira"]["external_id"]
+        else:
+            external_id = state["clientKey"]
+            metadata = {
                 "oauth_client_id": state["oauthClientId"],
                 # public key is possibly deprecated, so we can maybe remove this
                 "public_key": state["publicKey"],
                 "shared_secret": state["sharedSecret"],
                 "base_url": state["baseUrl"],
                 "domain_name": state["baseUrl"].replace("https://", ""),
-            },
+            }
+        return {
+            "external_id": external_id,
+            "provider": "jira",
+            "name": "JIRA",
+            "metadata": metadata,
         }

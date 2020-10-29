@@ -14,26 +14,28 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry.pipeline import PipelineView
-from .client import get_token_data
+
+from .card_builder import build_installation_confirmation_message
+from .client import get_token_data, MsTeamsClient
 
 logger = logging.getLogger("sentry.integrations.msteams")
 
-DESCRIPTION = """
-MS TEAMS DESC
-"""
+DESCRIPTION = (
+    "Microsoft Teams is a hub for teamwork in Office 365. Keep all your team's chats, meetings, files, and apps together in one place."
+    "\n\nGet [alerts](https://docs.sentry.io/product/alerts-notifications/alerts/) that let you assign, ignore, and resolve issues"
+    " right in your Teams channels with the Sentry integration for Microsoft Teams."
+)
 
 
 FEATURES = [
     FeatureDescription(
         """
-        Teams unfurl
+        Interact with messages in the chat to assign, ignore, and resolve issues.
         """,
-        IntegrationFeatures.CHAT_UNFURL,
+        IntegrationFeatures.CHAT_UNFURL,  # not acutally using unfurl but we show this as just "chat"
     ),
     FeatureDescription(
-        """
-        Teams alert rule
-        """,
+        "Configure rule based Teams alerts to automatically be posted into a specific channel or user.",
         IntegrationFeatures.ALERT_RULE,
     ),
 ]
@@ -41,7 +43,7 @@ FEATURES = [
 
 INSTALL_NOTICE_TEXT = (
     "Visit the Teams Marketplace to install this integration. After adding the integration"
-    " to your team, you will get a message in the General channel to complete installation."
+    " to your team, you will get a welcome message in the General channel to complete installation."
 )
 
 external_install = {
@@ -68,8 +70,7 @@ class MsTeamsIntegration(IntegrationInstallation):
 
 class MsTeamsIntegrationProvider(IntegrationProvider):
     key = "msteams"
-    name = "Microsoft Teams (development)"
-    requires_feature_flag = True
+    name = "Microsoft Teams"
     can_add = False
     metadata = metadata
     integration_cls = MsTeamsIntegration
@@ -98,6 +99,12 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
             "user_identity": {"type": "msteams", "external_id": team_id, "scopes": [], "data": {}},
         }
         return integration
+
+    def post_install(self, integration, organization, extra=None):
+        client = MsTeamsClient(integration)
+        card = build_installation_confirmation_message(organization)
+        conversation_id = integration.external_id
+        client.send_card(conversation_id, card)
 
 
 class MsTeamsPipelineView(PipelineView):

@@ -1,12 +1,14 @@
 ---
-created: '2020-08-19T12:18:49.859280Z'
+created: '2020-08-21T21:07:52.674605Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
+similarity:2020-07-23:stacktrace:frames-ident: [["function","log_demo::main"]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_main"]],[["function","std::rt::lang_start_internal"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::panicking::try::do_call"]],[["function","std::rt::lang_start::{{closure}}"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::rt::lang_start::{{closure}}"]],[["function","log_demo::main"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::rt::lang_start_internal"]],[["function","std::panicking::try::do_call"]]]
+similarity:2020-07-23:type:ident-shingle: "log_demo"
 similarity:2020-07-23:value:character-5-shingle: " ever"
 similarity:2020-07-23:value:character-5-shingle: " fire"
 similarity:2020-07-23:value:character-5-shingle: " is o"
@@ -35,5 +37,3 @@ similarity:2020-07-23:value:character-5-shingle: "thing"
 similarity:2020-07-23:value:character-5-shingle: "veryt"
 similarity:2020-07-23:value:character-5-shingle: "y shi"
 similarity:2020-07-23:value:character-5-shingle: "ythin"
-similarity:2020-07-23:stacktrace:frames-ident: [["function","log_demo::main"]]
-similarity:2020-07-23:type:ident-shingle: "log_demo"

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 
-from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.snuba.subscriptions import (
     bulk_delete_snuba_subscriptions,
     create_snuba_query,
@@ -28,6 +28,7 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.time_window == int(time_window.total_seconds())
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment is None
+        assert set(snuba_query.event_types) == set([SnubaQueryEventType.EventType.ERROR])
 
     def test_environment(self):
         dataset = QueryDatasets.EVENTS
@@ -44,6 +45,30 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.time_window == int(time_window.total_seconds())
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment == self.environment
+        assert set(snuba_query.event_types) == set([SnubaQueryEventType.EventType.ERROR])
+
+    def test_event_types(self):
+        dataset = QueryDatasets.EVENTS
+        query = "level:error"
+        aggregate = "count()"
+        time_window = timedelta(minutes=10)
+        resolution = timedelta(minutes=1)
+        snuba_query = create_snuba_query(
+            dataset,
+            query,
+            aggregate,
+            time_window,
+            resolution,
+            None,
+            [SnubaQueryEventType.EventType.DEFAULT],
+        )
+        assert snuba_query.dataset == dataset.value
+        assert snuba_query.query == query
+        assert snuba_query.aggregate == aggregate
+        assert snuba_query.time_window == int(time_window.total_seconds())
+        assert snuba_query.resolution == int(resolution.total_seconds())
+        assert snuba_query.environment is None
+        assert set(snuba_query.event_types) == set([SnubaQueryEventType.EventType.DEFAULT])
 
 
 class CreateSnubaSubscriptionTest(TestCase):
@@ -107,19 +132,30 @@ class UpdateSnubaQueryTest(TestCase):
             timedelta(minutes=100),
             timedelta(minutes=2),
             self.environment,
+            [SnubaQueryEventType.EventType.ERROR],
         )
         dataset = QueryDatasets.TRANSACTIONS
         query = "level:error"
         aggregate = "count()"
         time_window = timedelta(minutes=10)
         resolution = timedelta(minutes=1)
-        update_snuba_query(snuba_query, dataset, query, aggregate, time_window, resolution, None)
+        event_types = [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT]
+        update_snuba_query(
+            snuba_query, dataset, query, aggregate, time_window, resolution, None, event_types,
+        )
         assert snuba_query.dataset == dataset.value
         assert snuba_query.query == query
         assert snuba_query.aggregate == aggregate
         assert snuba_query.time_window == int(time_window.total_seconds())
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment is None
+        assert set(snuba_query.event_types) == set(event_types)
+
+        event_types = [SnubaQueryEventType.EventType.DEFAULT]
+        update_snuba_query(
+            snuba_query, dataset, query, aggregate, time_window, resolution, None, event_types,
+        )
+        assert set(snuba_query.event_types) == set(event_types)
 
     def test_environment(self):
         snuba_query = create_snuba_query(
@@ -137,13 +173,17 @@ class UpdateSnubaQueryTest(TestCase):
         aggregate = "count()"
         time_window = timedelta(minutes=10)
         resolution = timedelta(minutes=1)
-        update_snuba_query(snuba_query, dataset, query, aggregate, time_window, resolution, new_env)
+        event_types = snuba_query.event_types
+        update_snuba_query(
+            snuba_query, dataset, query, aggregate, time_window, resolution, new_env, None
+        )
         assert snuba_query.dataset == dataset.value
         assert snuba_query.query == query
         assert snuba_query.aggregate == aggregate
         assert snuba_query.time_window == int(time_window.total_seconds())
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment == new_env
+        assert set(snuba_query.event_types) == set(event_types)
 
     def test_subscriptions(self):
         snuba_query = create_snuba_query(
@@ -162,7 +202,9 @@ class UpdateSnubaQueryTest(TestCase):
         aggregate = "count()"
         time_window = timedelta(minutes=10)
         resolution = timedelta(minutes=1)
-        update_snuba_query(snuba_query, dataset, query, aggregate, time_window, resolution, new_env)
+        update_snuba_query(
+            snuba_query, dataset, query, aggregate, time_window, resolution, new_env, None
+        )
         sub.refresh_from_db()
         assert sub.snuba_query == snuba_query
         assert sub.status == QuerySubscription.Status.UPDATING.value

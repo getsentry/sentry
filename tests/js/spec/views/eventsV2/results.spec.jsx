@@ -26,12 +26,12 @@ const generateFields = () => ({
   field: FIELDS.map(i => i.field),
 });
 
-describe('EventsV2 > Results', function() {
+describe('EventsV2 > Results', function () {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
   let eventResultsMock;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -58,7 +58,7 @@ describe('EventsV2 > Results', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
     eventResultsMock = MockApiClient.addMockResponse({
@@ -123,12 +123,12 @@ describe('EventsV2 > Results', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  it('loads data when moving from an invalid to valid EventView', async function() {
+  it('loads data when moving from an invalid to valid EventView', async function () {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -175,7 +175,7 @@ describe('EventsV2 > Results', function() {
     expect(eventResultsMock).toHaveBeenCalled();
   });
 
-  it('pagination cursor should be cleared when making a search', async function() {
+  it('pagination cursor should be cleared when making a search', async function () {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -228,7 +228,7 @@ describe('EventsV2 > Results', function() {
     });
   });
 
-  it('renders a y-axis selector', function() {
+  it('renders a y-axis selector', function () {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -256,17 +256,14 @@ describe('EventsV2 > Results', function() {
     selector.find('StyledDropdownButton button').simulate('click');
 
     // Click one of the options.
-    selector
-      .find('DropdownMenu MenuItem span')
-      .first()
-      .simulate('click');
+    selector.find('DropdownMenu MenuItem span').first().simulate('click');
     wrapper.update();
 
     const eventsRequest = wrapper.find('EventsChart');
     expect(eventsRequest.props().yAxis).toEqual('count()');
   });
 
-  it('renders a display selector', function() {
+  it('renders a display selector', function () {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -305,7 +302,7 @@ describe('EventsV2 > Results', function() {
     expect(eventsRequest.disablePrevious).toEqual(true);
   });
 
-  it('excludes top5 options when plan does not include discover-query', function() {
+  it('excludes top5 options when plan does not include discover-query', function () {
     const organization = TestStubs.Organization({
       features: ['discover-basic'],
       projects: [TestStubs.Project()],
@@ -341,7 +338,7 @@ describe('EventsV2 > Results', function() {
     expect(options).toContain('option-default');
   });
 
-  it('needs confirmation on long queries', async function() {
+  it('needs confirmation on long queries', async function () {
     const organization = TestStubs.Organization({
       features: ['discover-basic'],
       projects: [TestStubs.Project()],
@@ -370,7 +367,7 @@ describe('EventsV2 > Results', function() {
     expect(results.state('needConfirmation')).toEqual(true);
   });
 
-  it('needs confirmation on long query with explicit projects', async function() {
+  it('needs confirmation on long query with explicit projects', async function () {
     const organization = TestStubs.Organization({
       features: ['discover-basic'],
       projects: [TestStubs.Project()],
@@ -405,7 +402,7 @@ describe('EventsV2 > Results', function() {
     expect(results.state('needConfirmation')).toEqual(true);
   });
 
-  it('does not need confirmation on short queries', async function() {
+  it('does not need confirmation on short queries', async function () {
     const organization = TestStubs.Organization({
       features: ['discover-basic'],
       projects: [TestStubs.Project()],
@@ -434,7 +431,7 @@ describe('EventsV2 > Results', function() {
     expect(results.state('needConfirmation')).toEqual(false);
   });
 
-  it('does not need confirmation with to few projects', async function() {
+  it('does not need confirmation with to few projects', async function () {
     const organization = TestStubs.Organization({
       features: ['discover-basic'],
       projects: [TestStubs.Project()],

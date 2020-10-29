@@ -197,10 +197,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
 
   get showAuthInfo() {
     const {app} = this.state;
-    if (app && app.clientSecret && app.clientSecret[0] === '*') {
-      return false;
-    }
-    return true;
+    return !(app && app.clientSecret && app.clientSecret[0] === '*');
   }
 
   onAddToken = async (evt: React.MouseEvent): Promise<void> => {

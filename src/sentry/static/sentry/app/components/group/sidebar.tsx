@@ -185,20 +185,17 @@ class GroupSidebar extends React.Component<Props, State> {
   }
 
   renderParticipantData() {
-    const error = this.state.error;
-    const participants = (this.state || {}).participants || [];
+    const {error, participants = []} = this.state;
 
-    if (!error) {
-      return (
-        participants.length !== 0 && <GroupParticipants participants={participants} />
-      );
-    } else {
+    if (error) {
       return (
         <LoadingError
           message={t('There was an error while trying to load participants.')}
         />
       );
     }
+
+    return participants.length !== 0 && <GroupParticipants participants={participants} />;
   }
 
   render() {

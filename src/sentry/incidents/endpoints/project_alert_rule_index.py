@@ -15,7 +15,9 @@ from sentry.api.paginator import (
 )
 from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.logic import ChannelLookupTimeoutError
 from sentry.incidents.models import AlertRule
+from sentry.integrations.slack import tasks
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
 from sentry.models import Rule, RuleStatus
@@ -91,18 +93,30 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         )
 
         if serializer.is_valid():
-            alert_rule = serializer.save()
-            referrer = request.query_params.get("referrer")
-            session_id = request.query_params.get("sessionId")
-            alert_rule_created.send_robust(
-                user=request.user,
-                project=project,
-                rule=alert_rule,
-                rule_type="metric",
-                sender=self,
-                referrer=referrer,
-                session_id=session_id,
-            )
-            return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+            try:
+                alert_rule = serializer.save()
+            except ChannelLookupTimeoutError:
+                # need to kick off an async job for Slack
+                client = tasks.RedisRuleStatus()
+                task_args = {
+                    "organization_id": project.organization_id,
+                    "uuid": client.uuid,
+                    "data": data,
+                }
+                tasks.find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
+                return Response({"uuid": client.uuid}, status=202)
+            else:
+                referrer = request.query_params.get("referrer")
+                session_id = request.query_params.get("sessionId")
+                alert_rule_created.send_robust(
+                    user=request.user,
+                    project=project,
+                    rule=alert_rule,
+                    rule_type="metric",
+                    sender=self,
+                    referrer=referrer,
+                    session_id=session_id,
+                )
+                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

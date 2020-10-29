@@ -1,10 +1,11 @@
 ---
-created: '2020-08-19T12:18:49.072460Z'
+created: '2020-08-21T21:07:52.079156Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","resp.raise_for_status()"],["filename","notify_action.py"],["function","send_notification"],["module","sentry.integrations.slack.notify_action"]],[["context-line","raise HTTPError(http_error_msg, response=self)"],["filename","models.py"],["function","raise_for_status"],["module","requests.models"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","result = func(*args, **kwargs)"],["filename","safe.py"],["function","safe_execute"],["module","sentry.utils.safe"]],[["context-line","resp.raise_for_status()"],["filename","notify_action.py"],["function","send_notification"],["module","sentry.integrations.slack.notify_action"]]]
+similarity:2020-07-23:type:ident-shingle: "HTTPError"
 similarity:2020-07-23:value:character-5-shingle: " <url"
 similarity:2020-07-23:value:character-5-shingle: " Clie"
 similarity:2020-07-23:value:character-5-shingle: " Erro"
@@ -53,4 +54,3 @@ similarity:2020-07-23:value:character-5-shingle: "ts fo"
 similarity:2020-07-23:value:character-5-shingle: "uests"
 similarity:2020-07-23:value:character-5-shingle: "url: "
 similarity:2020-07-23:value:character-5-shingle: "y Req"
-similarity:2020-07-23:type:ident-shingle: "HTTPError"

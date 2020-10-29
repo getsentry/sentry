@@ -1,8 +1,9 @@
 ---
-created: '2020-08-19T12:18:48.812904Z'
+created: '2020-08-21T21:07:51.909217Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
+similarity:2020-07-23:stacktrace:frames-ident: [["filename","application.java"],["function","main"],["module","io.sentry.example.Application"]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","abstractapplicationcontext.java"],["function","refresh"],["module","org.springframework.context.support.AbstractApplicationContext"]],[["filename","embeddedwebapplicationcontext.java"],["function","finishRefresh"],["module","org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","abstractendpoint.java"],["function","start"],["module","org.apache.tomcat.util.net.AbstractEndpoint"]],[["filename","nioendpoint.java"],["function","bind"],["module","org.apache.tomcat.util.net.NioEndpoint"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","abstractprotocol.java"],["function","start"],["module","org.apache.coyote.AbstractProtocol"]],[["filename","abstractendpoint.java"],["function","start"],["module","org.apache.tomcat.util.net.AbstractEndpoint"]]]
@@ -24,10 +25,12 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","springapplication.
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","standardservice.java"],["function","addConnector"],["module","org.apache.catalina.core.StandardService"]],[["filename","lifecyclebase.java"],["function","start"],["module","org.apache.catalina.util.LifecycleBase"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","tomcatembeddedservletcontainer.java"],["function","addPreviouslyRemovedConnectors"],["module","org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]],[["filename","standardservice.java"],["function","addConnector"],["module","org.apache.catalina.core.StandardService"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","tomcatembeddedservletcontainer.java"],["function","start"],["module","org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]],[["filename","tomcatembeddedservletcontainer.java"],["function","addPreviouslyRemovedConnectors"],["module","org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]]]
+similarity:2020-07-23:type:ident-shingle: "BindException"
+similarity:2020-07-23:type:ident-shingle: "LifecycleException"
 similarity:2020-07-23:value:character-5-shingle: "  Pro"
-similarity:2020-07-23:value:character-5-shingle: " \"Tom"
 similarity:2020-07-23:value:character-5-shingle: " Prot"
 similarity:2020-07-23:value:character-5-shingle: " [Con"
+similarity:2020-07-23:value:character-5-shingle: " \"Tom"
 similarity:2020-07-23:value:character-5-shingle: " alre"
 similarity:2020-07-23:value:character-5-shingle: " comp"
 similarity:2020-07-23:value:character-5-shingle: " fail"
@@ -35,8 +38,6 @@ similarity:2020-07-23:value:character-5-shingle: " hand"
 similarity:2020-07-23:value:character-5-shingle: " in u"
 similarity:2020-07-23:value:character-5-shingle: " star"
 similarity:2020-07-23:value:character-5-shingle: " to s"
-similarity:2020-07-23:value:character-5-shingle: "\";  P"
-similarity:2020-07-23:value:character-5-shingle: "\"Tomc"
 similarity:2020-07-23:value:character-5-shingle: "(): \""
 similarity:2020-07-23:value:character-5-shingle: "): \"T"
 similarity:2020-07-23:value:character-5-shingle: ".getN"
@@ -58,6 +59,8 @@ similarity:2020-07-23:value:character-5-shingle: "TTP/<"
 similarity:2020-07-23:value:character-5-shingle: "Tomca"
 similarity:2020-07-23:value:character-5-shingle: "[Conn"
 similarity:2020-07-23:value:character-5-shingle: "[HTTP"
+similarity:2020-07-23:value:character-5-shingle: "\";  P"
+similarity:2020-07-23:value:character-5-shingle: "\"Tomc"
 similarity:2020-07-23:value:character-5-shingle: "ady i"
 similarity:2020-07-23:value:character-5-shingle: "ailed"
 similarity:2020-07-23:value:character-5-shingle: "alrea"
@@ -65,8 +68,8 @@ similarity:2020-07-23:value:character-5-shingle: "ame()"
 similarity:2020-07-23:value:character-5-shingle: "andle"
 similarity:2020-07-23:value:character-5-shingle: "art c"
 similarity:2020-07-23:value:character-5-shingle: "art f"
-similarity:2020-07-23:value:character-5-shingle: "at\"; "
 similarity:2020-07-23:value:character-5-shingle: "at><i"
+similarity:2020-07-23:value:character-5-shingle: "at\"; "
 similarity:2020-07-23:value:character-5-shingle: "cat\";"
 similarity:2020-07-23:value:character-5-shingle: "ce.ge"
 similarity:2020-07-23:value:character-5-shingle: "col h"
@@ -136,15 +139,12 @@ similarity:2020-07-23:value:character-5-shingle: "start"
 similarity:2020-07-23:value:character-5-shingle: "t [Co"
 similarity:2020-07-23:value:character-5-shingle: "t com"
 similarity:2020-07-23:value:character-5-shingle: "t fai"
-similarity:2020-07-23:value:character-5-shingle: "t\";  "
 similarity:2020-07-23:value:character-5-shingle: "t><in"
 similarity:2020-07-23:value:character-5-shingle: "tName"
+similarity:2020-07-23:value:character-5-shingle: "t\";  "
 similarity:2020-07-23:value:character-5-shingle: "tart "
 similarity:2020-07-23:value:character-5-shingle: "to st"
 similarity:2020-07-23:value:character-5-shingle: "tocol"
 similarity:2020-07-23:value:character-5-shingle: "tor[H"
 similarity:2020-07-23:value:character-5-shingle: "vice."
 similarity:2020-07-23:value:character-5-shingle: "y in "
-similarity:2020-07-23:stacktrace:frames-ident: [["filename","application.java"],["function","main"],["module","io.sentry.example.Application"]]
-similarity:2020-07-23:type:ident-shingle: "BindException"
-similarity:2020-07-23:type:ident-shingle: "LifecycleException"

@@ -40,7 +40,7 @@ export type MetaType = Record<string, ColumnType>;
 // Data in discover results.
 export type EventData = Record<string, any>;
 
-type LocationQuery = {
+export type LocationQuery = {
   start?: string | string[];
   end?: string | string[];
   utc?: string | string[];
@@ -551,6 +551,10 @@ class EventView {
     return this.fields.some(field => isAggregateField(field.field));
   }
 
+  hasIdField() {
+    return this.fields.some(field => field.field === 'id');
+  }
+
   numOfColumns(): number {
     return this.fields.length;
   }
@@ -914,7 +918,7 @@ class EventView {
     const environment = this.environment as string[];
 
     // generate event query
-    const eventQuery: EventQuery & LocationQuery = Object.assign(
+    const eventQuery = Object.assign(
       omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
@@ -925,7 +929,7 @@ class EventView {
         per_page: DEFAULT_PER_PAGE,
         query: this.query,
       }
-    );
+    ) as EventQuery & LocationQuery;
 
     if (!eventQuery.sort) {
       delete eventQuery.sort;

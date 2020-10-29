@@ -1,13 +1,13 @@
 ---
-created: '2020-08-11T11:59:10.192424Z'
+created: '2020-08-21T21:07:51.956589Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","test.html"]],[["filename","test.html"],["function","callback"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","test.html"]],[["filename","test.html"],["function","testMethod"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","test.html"],["function","aha"]],[["filename","test.html"],["function","test"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","test.html"],["function","callAnotherThing"]],[["filename","test.html"],["function","aha"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","test.html"],["function","callback"]],[["filename","test.html"],["function","callAnotherThing"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","test.html"],["function","test"]],[["filename","test.html"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","test.html"],["function","testMethod"]],[["filename","test.html"],["function","aha"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","test.html"]],[["filename","test.html"],["function","callback"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","test.html"]],[["filename","test.html"],["function","testMethod"]]]
 similarity:2020-07-23:type:ident-shingle: "Error"

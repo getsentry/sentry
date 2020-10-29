@@ -206,8 +206,11 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
 
-        assert u"Unassign" in responses.calls[0].request.body
-        assert u"Assigned to %s" % self.user.email in responses.calls[0].request.body
+        assert b"Unassign" in responses.calls[0].request.body
+        assert (
+            u"Assigned to {}".format(self.user.email).encode("utf-8")
+            in responses.calls[0].request.body
+        )
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -219,9 +222,12 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
 
-        assert u"Unassign" in responses.calls[0].request.body
-        assert u"user_conversation_id" in responses.calls[0].request.url
-        assert u"Assigned to %s" % self.user.email in responses.calls[0].request.body
+        assert b"Unassign" in responses.calls[0].request.body
+        assert "user_conversation_id" in responses.calls[0].request.url
+        assert (
+            u"Assigned to {}".format(self.user.email).encode("utf-8")
+            in responses.calls[0].request.body
+        )
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -233,9 +239,12 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
 
-        assert u"Unassign" in responses.calls[0].request.body
-        assert u"some_channel_id" in responses.calls[0].request.url
-        assert u"Assigned to %s" % self.user.email in responses.calls[0].request.body
+        assert b"Unassign" in responses.calls[0].request.body
+        assert "some_channel_id" in responses.calls[0].request.url
+        assert (
+            u"Assigned to {}".format(self.user.email).encode("utf-8")
+            in responses.calls[0].request.body
+        )
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -276,7 +285,7 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.RESOLVED
-        assert u"Unresolve" in responses.calls[0].request.body
+        assert b"Unresolve" in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -287,7 +296,7 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.status_code == 200, resp.content
         assert not GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
-        assert u"Assign" in responses.calls[0].request.body
+        assert b"Assign" in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.api.client.put")

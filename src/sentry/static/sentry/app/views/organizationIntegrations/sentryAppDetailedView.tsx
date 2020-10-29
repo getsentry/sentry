@@ -86,8 +86,16 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get resourceLinks() {
-    //sentry apps don't have resources (yet)
-    return [];
+    //only show links for published sentry apps
+    if (this.sentryApp.status !== 'published') {
+      return [];
+    }
+    return [
+      {
+        title: 'Documentation',
+        url: `https://docs.sentry.io/product/integrations/${this.integrationSlug}/`,
+      },
+    ];
   }
 
   get permissions() {

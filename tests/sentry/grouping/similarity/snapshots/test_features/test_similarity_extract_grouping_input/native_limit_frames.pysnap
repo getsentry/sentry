@@ -1,8 +1,9 @@
 ---
-created: '2020-08-19T12:18:49.533464Z'
+created: '2020-08-21T21:07:52.437256Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
+similarity:2020-07-23:stacktrace:frames-ident: [["function","<lambda>::operator()"]]
 similarity:2020-07-23:value:character-5-shingle: " ever"
 similarity:2020-07-23:value:character-5-shingle: " fire"
 similarity:2020-07-23:value:character-5-shingle: " is o"
@@ -31,4 +32,3 @@ similarity:2020-07-23:value:character-5-shingle: "thing"
 similarity:2020-07-23:value:character-5-shingle: "veryt"
 similarity:2020-07-23:value:character-5-shingle: "y shi"
 similarity:2020-07-23:value:character-5-shingle: "ythin"
-similarity:2020-07-23:stacktrace:frames-ident: [["function","<lambda>::operator()"]]

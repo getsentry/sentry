@@ -1,9 +1,11 @@
 ---
-created: '2020-08-19T12:18:50.349777Z'
+created: '2020-08-21T21:07:53.030501Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
 similarity:2020-07-23:fingerprint:ident-shingle: "my-route"
+similarity:2020-07-23:stacktrace:frames-ident: [["filename","application.java"],["function","main"],["module","io.sentry.example.Application"]]
+similarity:2020-07-23:type:ident-shingle: "DatabaseUnavailable"
 similarity:2020-07-23:value:character-5-shingle: " away"
 similarity:2020-07-23:value:character-5-shingle: " data"
 similarity:2020-07-23:value:character-5-shingle: " reas"
@@ -38,5 +40,3 @@ similarity:2020-07-23:value:character-5-shingle: "t awa"
 similarity:2020-07-23:value:character-5-shingle: "tabas"
 similarity:2020-07-23:value:character-5-shingle: "the d"
 similarity:2020-07-23:value:character-5-shingle: "went "
-similarity:2020-07-23:stacktrace:frames-ident: [["filename","application.java"],["function","main"],["module","io.sentry.example.Application"]]
-similarity:2020-07-23:type:ident-shingle: "DatabaseUnavailable"

@@ -13,6 +13,8 @@ import {isRenderFunc} from 'app/utils/isRenderFunc';
 import ActivityAvatar from './avatar';
 import ActivityBubble from './bubble';
 
+export type ActivityAuthorType = 'user' | 'system';
+
 type ChildFunction = () => React.ReactNode;
 
 type Props = {
@@ -40,7 +42,7 @@ type Props = {
    * `user` is required if `type` is "user"
    */
   author?: {
-    type: 'user' | 'system';
+    type: ActivityAuthorType;
     user?: AvatarUser;
   };
 
@@ -83,10 +85,7 @@ function ActivityItem({
   const showDate = !hideDate && date && !interval;
   const showRange = !hideDate && date && interval;
   const dateEnded = showRange
-    ? moment(date)
-        .add(interval, 'minutes')
-        .utc()
-        .format()
+    ? moment(date).add(interval, 'minutes').utc().format()
     : undefined;
   const timeOnly = Boolean(
     date && dateEnded && moment(date).date() === moment(dateEnded).date()

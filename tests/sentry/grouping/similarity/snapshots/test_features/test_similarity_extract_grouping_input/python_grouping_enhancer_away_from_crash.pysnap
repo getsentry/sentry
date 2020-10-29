@@ -1,12 +1,12 @@
 ---
-created: '2020-08-19T12:18:50.019676Z'
+created: '2020-08-21T21:07:52.790416Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","email = request.POST['user']"],["filename","plugin.py"],["function","handle"],["module","sentry_plugins.heroku.plugin"]],[["context-line","raise MultiValueDictKeyError(repr(key))"],["filename","datastructures.py"],["function","__getitem__"],["module","django.utils.datastructures"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","hook.handle(request)"],["filename","release_webhook.py"],["function","post"],["module","sentry.web.frontend.release_webhook"]],[["context-line","email = request.POST['user']"],["filename","plugin.py"],["function","handle"],["module","sentry_plugins.heroku.plugin"]]]
-similarity:2020-07-23:value:character-5-shingle: "\"'use"
+similarity:2020-07-23:type:ident-shingle: "MultiValueDictKeyError"
 similarity:2020-07-23:value:character-5-shingle: "'user"
+similarity:2020-07-23:value:character-5-shingle: "\"'use"
 similarity:2020-07-23:value:character-5-shingle: "ser'\""
 similarity:2020-07-23:value:character-5-shingle: "user'"
-similarity:2020-07-23:type:ident-shingle: "MultiValueDictKeyError"

@@ -1,15 +1,19 @@
-import 'zrender/lib/svg/svg';
-
 import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
+import {EChartOption, ECharts} from 'echarts/lib/echarts';
 import styled from '@emotion/styled';
 
-import {IS_CI} from 'app/constants';
-import {Series} from 'app/types/echarts';
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import {
+  Series,
+  EChartEventHandler,
+  EChartChartReadyHandler,
+  EChartDataZoomHandler,
+} from 'app/types/echarts';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
+import LoadingPanel from './loadingPanel';
 import Grid from './components/grid';
 import Legend from './components/legend';
 import LineSeries from './series/lineSeries';
@@ -32,8 +36,6 @@ const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
 
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
-
-type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 
 /**
  * Used for soem properties that can be truncated
@@ -143,37 +145,17 @@ type Props = {
    * states whether not to update chart immediately
    */
   lazyUpdate?: boolean;
-  onChartReady?: (instance: ECharts) => void;
+  onChartReady?: EChartChartReadyHandler;
   onHighlight?: EChartEventHandler<any>;
   onMouseOver?: EChartEventHandler<any>;
   onClick?: EChartEventHandler<any>;
-  onDataZoom?: EChartEventHandler<{
-    type: 'datazoom';
-    /**
-     * percentage of zoom start position, 0 - 100
-     */
-    start: number;
-    /**
-     * percentage of zoom finish position, 0 - 100
-     */
-    end: number;
-    /**
-     * data value of zoom start position; only exists in zoom event of
-     * triggered by toolbar
-     */
-    startValue?: number;
-    /**
-     * data value of zoom finish position; only exists in zoom event of
-     * triggered by toolbar
-     */
-    endValue?: number;
-  }>;
+  onDataZoom?: EChartDataZoomHandler;
   /**
    * One example of when this is called is restoring chart from zoom levels
    */
   onRestore?: EChartEventHandler<{type: 'restore'}>;
   onFinished?: EChartEventHandler<{}>;
-  onLegendSelectChanged: EChartEventHandler<{}>;
+  onLegendSelectChanged?: EChartEventHandler<{}>;
   /**
    * Forwarded Ref
    */
@@ -223,7 +205,11 @@ type Props = {
   style?: React.CSSProperties;
 };
 
-class BaseChart extends React.Component<Props> {
+type State = {
+  chartDeps: any;
+};
+
+class BaseChart extends React.Component<Props, State> {
   static defaultProps = {
     height: 200,
     width: 'auto',
@@ -238,6 +224,30 @@ class BaseChart extends React.Component<Props> {
     yAxis: {},
     isGroupedByDate: false,
   };
+
+  state: State = {
+    chartDeps: undefined,
+  };
+
+  componentDidMount() {
+    this.loadEcharts();
+    this._isMounted = true;
+  }
+
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  async loadEcharts() {
+    const chartDeps = await import(
+      /* webpackChunkName: "echarts" */ 'app/components/charts/libs'
+    );
+    if (this._isMounted) {
+      this.setState({chartDeps});
+    }
+  }
+
+  private _isMounted: boolean = false;
 
   getEventsMap: ReactEchartProps['onEvents'] = {
     click: (props, instance) => {
@@ -314,6 +324,16 @@ class BaseChart extends React.Component<Props> {
       forwardedRef,
       onChartReady,
     } = this.props;
+    const {chartDeps} = this.state;
+
+    if (typeof chartDeps === 'undefined') {
+      return (
+        <LoadingPanel
+          height={height ? `${height}px` : undefined}
+          data-test-id="basechart-loading"
+        />
+      );
+    }
 
     const yAxisOrCustom = !yAxes
       ? yAxis !== null
@@ -342,18 +362,17 @@ class BaseChart extends React.Component<Props> {
 
     // Maybe changing the series type to types/echarts Series[] would be a better solution
     // and can't use ignore for multiline blocks
-    // @ts-ignore
+    // @ts-expect-error
     const seriesValid = series && series[0]?.data && series[0].data.length > 1;
-    // @ts-ignore
+    // @ts-expect-error
     const seriesData = seriesValid ? series[0].data : undefined;
-    // @ts-ignore
     const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
     return (
       <ChartContainer>
-        <ReactEchartsCore
+        <chartDeps.ReactEchartsCore
           ref={forwardedRef}
-          echarts={echarts}
+          echarts={chartDeps.echarts}
           notMerge={notMerge}
           lazyUpdate={lazyUpdate}
           theme={this.props.theme}
@@ -371,7 +390,7 @@ class BaseChart extends React.Component<Props> {
             ...style,
           }}
           option={{
-            animation: IS_CI ? false : true,
+            animation: IS_ACCEPTANCE_TEST ? false : true,
             ...options,
             useUTC: utc,
             color: colors || this.getColorPalette(),

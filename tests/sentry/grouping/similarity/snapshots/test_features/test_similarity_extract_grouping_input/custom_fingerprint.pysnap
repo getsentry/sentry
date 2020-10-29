@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:49.054931Z'
+created: '2020-08-21T21:07:52.067482Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -22,6 +22,7 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","self.shutdown(
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"],["filename","debugfile.py"],["function","get_symcaches"],["module","sentry.models.debugfile"]],[["context-line","model.cache_file.save_to(cachefile_path)"],["filename","debugfile.py"],["function","_load_cachefiles_via_fs"],["module","sentry.models.debugfile"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","t.join(sys.maxint)"],["filename","thread.py"],["function","shutdown"],["module","concurrent.futures.thread"]],[["context-line","self.__block.wait(delay)"],["filename","threading.py"],["function","join"],["module","threading"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","with_conversion_errors=True)"],["filename","symbolizer.py"],["function","__init__"],["module","sentry.lang.native.symbolizer"]],[["context-line","symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"],["filename","debugfile.py"],["function","get_symcaches"],["module","sentry.models.debugfile"]]]
+similarity:2020-07-23:type:ident-shingle: "SoftTimeLimitExceeded"
 similarity:2020-07-23:value:character-5-shingle: "Excee"
 similarity:2020-07-23:value:character-5-shingle: "Limit"
 similarity:2020-07-23:value:character-5-shingle: "SoftT"
@@ -41,4 +42,3 @@ similarity:2020-07-23:value:character-5-shingle: "oftTi"
 similarity:2020-07-23:value:character-5-shingle: "tExce"
 similarity:2020-07-23:value:character-5-shingle: "tTime"
 similarity:2020-07-23:value:character-5-shingle: "xceed"
-similarity:2020-07-23:type:ident-shingle: "SoftTimeLimitExceeded"

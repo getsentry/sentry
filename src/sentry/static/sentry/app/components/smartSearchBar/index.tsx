@@ -75,8 +75,10 @@ const getInputButtonStyles = (p: {
     color: ${theme.gray600};
   }
 
-  ${p.collapseIntoEllipsisMenu &&
-    getMediaQuery(theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')};
+  ${
+    p.collapseIntoEllipsisMenu &&
+    getMediaQuery(theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')
+  };
 `;
 
 const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolean}) => `
@@ -104,8 +106,10 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
     margin-right: ${space(1)};
   }
 
-  ${p.showBelowMediaQuery &&
-    getMediaQuery(theme.breakpoints[p.showBelowMediaQuery], 'flex')}
+  ${
+    p.showBelowMediaQuery &&
+    getMediaQuery(theme.breakpoints[p.showBelowMediaQuery], 'flex')
+  }
 `;
 
 type Props = {
@@ -274,7 +278,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   static defaultProps = {
     defaultQuery: '',
     query: null,
-    onSearch: function() {},
+    onSearch: function () {},
     excludeEnvironment: false,
     placeholder: t('Search for events, users, tags, and everything else.'),
     supportedTags: {},
@@ -629,6 +633,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       .map(value => ({
         value,
         desc: value,
+        type: 'tag-value',
       }));
 
   /**
@@ -1139,7 +1144,6 @@ class SmartSearchBar extends React.Component<Props, State> {
                 <CreateSavedSearchButton
                   query={this.state.query}
                   organization={organization}
-                  disabled={!hasQuery}
                   withTooltip
                   iconOnly
                   buttonClassName={css`
@@ -1199,7 +1203,6 @@ class SmartSearchBar extends React.Component<Props, State> {
                     <CreateSavedSearchButton
                       query={this.state.query}
                       organization={organization}
-                      disabled={!hasQuery}
                       buttonClassName={css`
                         ${getDropdownElementStyles({
                           showBelowMediaQuery: 2,

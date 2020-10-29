@@ -47,8 +47,8 @@ const CONTEXT_BROWSER = {
   name: 'Chrome',
 };
 
-describe('ContextSummary', function() {
-  describe('render()', function() {
+describe('ContextSummary', function () {
+  describe('render()', function () {
     it('renders nothing without contexts', () => {
       const event = {
         id: '',
@@ -177,8 +177,8 @@ describe('ContextSummary', function() {
   });
 });
 
-describe('OsSummary', function() {
-  describe('render()', function() {
+describe('OsSummary', function () {
+  describe('render()', function () {
     it('renders the version string', () => {
       const os = {
         kernel_version: '17.5.0',
@@ -217,8 +217,8 @@ describe('OsSummary', function() {
   });
 });
 
-describe('GpuSummary', function() {
-  describe('render()', function() {
+describe('GpuSummary', function () {
+  describe('render()', function () {
     it('renders name and vendor', () => {
       const gpu = {
         name: 'Mali-T880',
@@ -242,9 +242,9 @@ describe('GpuSummary', function() {
   });
 });
 
-describe('UserSummary', function() {
-  describe('render', function() {
-    it('prefers email, then IP, then id, then username for title', function() {
+describe('UserSummary', function () {
+  describe('render', function () {
+    it('prefers email, then IP, then id, then username for title', function () {
       const user1 = {
         email: 'maisey@dogsrule.com',
         ip_address: '12.31.20.12',
@@ -255,12 +255,9 @@ describe('UserSummary', function() {
       };
 
       const wrapper1 = mountWithTheme(<ContextSummaryUser data={user1} />);
-      expect(
-        wrapper1
-          .find('[data-test-id="user-title"]')
-          .render()
-          .text()
-      ).toEqual(user1.email);
+      expect(wrapper1.find('[data-test-id="user-title"]').render().text()).toEqual(
+        user1.email
+      );
 
       const user2 = {
         ip_address: '12.31.20.12',
@@ -271,12 +268,9 @@ describe('UserSummary', function() {
       };
 
       const wrapper2 = mountWithTheme(<ContextSummaryUser data={user2} />);
-      expect(
-        wrapper2
-          .find('[data-test-id="user-title"]')
-          .render()
-          .text()
-      ).toEqual(user2.ip_address);
+      expect(wrapper2.find('[data-test-id="user-title"]').render().text()).toEqual(
+        user2.ip_address
+      );
 
       const user3 = {
         id: '26',
@@ -286,12 +280,9 @@ describe('UserSummary', function() {
       };
 
       const wrapper3 = mountWithTheme(<ContextSummaryUser data={user3} />);
-      expect(
-        wrapper3
-          .find('[data-test-id="user-title"]')
-          .render()
-          .text()
-      ).toEqual(user3.id);
+      expect(wrapper3.find('[data-test-id="user-title"]').render().text()).toEqual(
+        user3.id
+      );
 
       const user4 = {
         username: 'maiseythedog',
@@ -300,15 +291,12 @@ describe('UserSummary', function() {
       };
 
       const wrapper4 = mountWithTheme(<ContextSummaryUser data={user4} />);
-      expect(
-        wrapper4
-          .find('[data-test-id="user-title"]')
-          .render()
-          .text()
-      ).toEqual(user4.username);
+      expect(wrapper4.find('[data-test-id="user-title"]').render().text()).toEqual(
+        user4.username
+      );
     });
 
-    it('renders NoSummary if no email, IP, id, or username', function() {
+    it('renders NoSummary if no email, IP, id, or username', function () {
       const user = {
         name: 'Maisey Dog',
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
@@ -321,7 +309,7 @@ describe('UserSummary', function() {
       );
     });
 
-    it('does not use filtered values for title', function() {
+    it('does not use filtered values for title', function () {
       const user1 = {
         email: FILTER_MASK,
       };
@@ -358,7 +346,7 @@ describe('UserSummary', function() {
       );
     });
 
-    it('does not use filtered values for avatar', function() {
+    it('does not use filtered values for avatar', function () {
       // id is never used for avatar purposes, but is enough to keep us from
       // ending up with a NoSummary component where the UserSummary component
       // should be

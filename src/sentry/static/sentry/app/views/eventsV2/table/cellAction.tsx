@@ -36,10 +36,10 @@ export function updateQuery(
         // Adding a null value is the same as excluding truthy values.
         // Remove inclusion if it exists.
         results.removeTagValue('has', key);
-        results.addTag('!has', [key]);
+        results.addTagValues('!has', [key]);
       } else {
         // Remove exclusion if it exists.
-        results.removeTag(`!${key}`).setTag(key, [`${value}`]);
+        results.removeTag(`!${key}`).setTagValues(key, [`${value}`]);
       }
       break;
     case Actions.EXCLUDE:
@@ -47,23 +47,23 @@ export function updateQuery(
         // Excluding a null value is the same as including truthy values.
         // Remove exclusion if it exists.
         results.removeTagValue('!has', key);
-        results.addTag('has', [key]);
+        results.addTagValues('has', [key]);
       } else {
         // Remove positive if it exists.
         results.removeTag(key);
         // Negations should stack up.
         const negation = `!${key}`;
-        results.addTag(negation, [`${value}`]);
+        results.addTagValues(negation, [`${value}`]);
       }
       break;
     case Actions.SHOW_GREATER_THAN: {
       // Remove query token if it already exists
-      results.setTag(key, [`>${value}`]);
+      results.setTagValues(key, [`>${value}`]);
       break;
     }
     case Actions.SHOW_LESS_THAN: {
       // Remove query token if it already exists
-      results.setTag(key, [`<${value}`]);
+      results.setTagValues(key, [`<${value}`]);
       break;
     }
     // these actions do not modify the query in any way,
@@ -160,10 +160,24 @@ class CellAction extends React.Component<Props, State> {
 
   renderMenuButtons() {
     const {dataRow, column, handleCellAction, allowActions} = this.props;
-
     const fieldAlias = getAggregateAlias(column.name);
-    const value = dataRow[fieldAlias];
 
+    // Slice out the last element from array values as that is the value
+    // we show. See utils/discover/fieldRenderers.tsx and how
+    // strings and error.handled are rendered.
+    let value = dataRow[fieldAlias];
+    if (Array.isArray(value)) {
+      value = value.slice(-1)[0];
+    }
+
+    // error.handled is a strange field where null = true.
+    if (
+      value === null &&
+      column.column.kind === 'field' &&
+      column.column.field === 'error.handled'
+    ) {
+      value = 1;
+    }
     const actions: React.ReactNode[] = [];
 
     function addMenuItem(action: Actions, menuItem: React.ReactNode) {
@@ -176,9 +190,8 @@ class CellAction extends React.Component<Props, State> {
     }
 
     if (
-      column.type !== 'duration' &&
-      column.type !== 'number' &&
-      column.type !== 'percentage'
+      !['duration', 'number', 'percentage'].includes(column.type) ||
+      (value === null && column.column.kind === 'field')
     ) {
       addMenuItem(
         Actions.ADD,
@@ -205,7 +218,10 @@ class CellAction extends React.Component<Props, State> {
       }
     }
 
-    if (['date', 'duration', 'integer', 'number', 'percentage'].includes(column.type)) {
+    if (
+      ['date', 'duration', 'integer', 'number', 'percentage'].includes(column.type) &&
+      value !== null
+    ) {
       addMenuItem(
         Actions.SHOW_GREATER_THAN,
         <ActionItem

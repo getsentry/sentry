@@ -23,14 +23,14 @@ from sentry.utils import json
 
 
 # GitHub configuration
-GITHUB_AUTHORIZATION_URL = "https://github.com/login/oauth/authorize"
-GITHUB_ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token"
-GITHUB_USER_DATA_URL = "https://api.github.com/user"
+GITHUB_BASE_DOMAIN = getattr(settings, "GITHUB_BASE_DOMAIN", "github.com")
+GITHUB_API_DOMAIN = getattr(settings, "GITHUB_API_DOMAIN", "api.github.com")
+GITHUB_AUTHORIZATION_URL = "https://{0}/login/oauth/authorize".format(GITHUB_BASE_DOMAIN)
+GITHUB_ACCESS_TOKEN_URL = "https://{0}/login/oauth/access_token".format(GITHUB_BASE_DOMAIN)
+GITHUB_USER_DATA_URL = "https://{0}/user".format(GITHUB_API_DOMAIN)
 
 # GitHub organization configuration
-GITHUB_ORGANIZATION_MEMBER_OF_URL = "https://api.github.com/orgs/{org}/members/{username}"
-
-GITHUB_SERVER = "github.com"
+GITHUB_ORGANIZATION_MEMBER_OF_URL = "https://%s/orgs/{org}/members/{username}" % GITHUB_API_DOMAIN
 
 
 class GithubBackend(OAuthBackend):
@@ -87,7 +87,7 @@ class GithubAuth(BaseOAuth2):
     # Look at http://developer.github.com/v3/oauth/
     SCOPE_VAR_NAME = "GITHUB_EXTENDED_PERMISSIONS"
 
-    GITHUB_ORGANIZATION = getattr(settings, "GITHUB_ORGANIZATION", None)
+    GITHUB_ORGANIZATION = settings.GITHUB_ORGANIZATION
 
     def user_data(self, access_token, *args, **kwargs):
         """Loads user data from service"""

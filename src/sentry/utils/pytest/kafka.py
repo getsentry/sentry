@@ -172,7 +172,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
 
         consumer = create_batching_kafka_consumer(
             topic_names=[topic_event_name],
-            worker=IngestConsumerWorker(concurrency=None),
+            worker=IngestConsumerWorker(),
             max_batch_size=1,
             max_batch_time=10,
             group_id=group_id,

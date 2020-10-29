@@ -11,9 +11,14 @@ import {SelectValue} from 'app/types';
 import {t} from 'app/locale';
 import Badge from 'app/components/badge';
 import space from 'app/styles/space';
-import {ColumnType, AggregateParameter, QueryFieldValue} from 'app/utils/discover/fields';
+import {
+  ColumnType,
+  AggregateParameter,
+  QueryFieldValue,
+  ValidateColumnTypes,
+} from 'app/utils/discover/fields';
 
-import {FieldValueKind, FieldValue} from './types';
+import {FieldValueKind, FieldValue, FieldValueColumns} from './types';
 
 type FieldOptions = Record<string, SelectValue<FieldValue>>;
 
@@ -67,6 +72,7 @@ class QueryField extends React.Component<Props> {
 
     switch (value.kind) {
       case FieldValueKind.TAG:
+      case FieldValueKind.MEASUREMENT:
       case FieldValueKind.FIELD:
         fieldValue = {kind: 'field', field: value.meta.name};
         break;
@@ -90,12 +96,12 @@ class QueryField extends React.Component<Props> {
           return;
         }
         if (param.kind === 'column') {
-          const field = this.getFieldOrTagValue(fieldValue.function[i + 1]);
+          const field = this.getFieldOrTagOrMeasurementValue(fieldValue.function[i + 1]);
           if (field === null) {
             fieldValue.function[i + 1] = param.defaultValue || '';
           } else if (
             (field.kind === FieldValueKind.FIELD || field.kind === FieldValueKind.TAG) &&
-            param.columnTypes.includes(field.meta.dataType)
+            validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
           ) {
             // New function accepts current field.
             fieldValue.function[i + 1] = field.meta.name;
@@ -150,7 +156,7 @@ class QueryField extends React.Component<Props> {
     this.props.onChange(fieldValue);
   }
 
-  getFieldOrTagValue(name: string | undefined): FieldValue | null {
+  getFieldOrTagOrMeasurementValue(name: string | undefined): FieldValue | null {
     const {fieldOptions} = this.props;
     if (name === undefined) {
       return null;
@@ -160,6 +166,12 @@ class QueryField extends React.Component<Props> {
     if (fieldOptions[fieldName]) {
       return fieldOptions[fieldName].value;
     }
+
+    const measurementName = `measurement:${name}`;
+    if (fieldOptions[measurementName]) {
+      return fieldOptions[measurementName].value;
+    }
+
     const tagName =
       name.indexOf('tags[') === 0
         ? `tag:${name.replace(/tags\[(.*?)\]/, '$1')}`
@@ -198,7 +210,7 @@ class QueryField extends React.Component<Props> {
     }
 
     if (fieldValue.kind === 'field') {
-      field = this.getFieldOrTagValue(fieldValue.field);
+      field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
 
@@ -213,7 +225,9 @@ class QueryField extends React.Component<Props> {
       parameterDescriptions = field.meta.parameters.map(
         (param, index: number): ParameterDescription => {
           if (param.kind === 'column') {
-            const fieldParameter = this.getFieldOrTagValue(fieldValue.function[1]);
+            const fieldParameter = this.getFieldOrTagOrMeasurementValue(
+              fieldValue.function[1]
+            );
             fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
               kind: 'column',
@@ -222,8 +236,9 @@ class QueryField extends React.Component<Props> {
               options: Object.values(fieldOptions).filter(
                 ({value}) =>
                   (value.kind === FieldValueKind.FIELD ||
-                    value.kind === FieldValueKind.TAG) &&
-                  param.columnTypes.includes(value.meta.dataType)
+                    value.kind === FieldValueKind.TAG ||
+                    value.kind === FieldValueKind.MEASUREMENT) &&
+                  validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
             };
           }
@@ -400,6 +415,17 @@ class QueryField extends React.Component<Props> {
       </Container>
     );
   }
+}
+
+function validateColumnTypes(
+  columnTypes: ValidateColumnTypes,
+  input: FieldValueColumns
+): boolean {
+  if (typeof columnTypes === 'function') {
+    return columnTypes({name: input.meta.name, dataType: input.meta.dataType});
+  }
+
+  return columnTypes.includes(input.meta.dataType);
 }
 
 const Container = styled('div')<{gridColumns: number}>`

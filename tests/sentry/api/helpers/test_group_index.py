@@ -67,8 +67,9 @@ class ValidateSearchFilterPermissionsTest(TestCase):
 
 
 class UpdateGroupsTest(TestCase):
+    @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_unresolving_resolved_group(self, send_robust):
+    def test_unresolving_resolved_group(self, send_robust, send_unresolved):
         resolved_group = self.create_group(status=GroupStatus.RESOLVED)
         assert resolved_group.status == GroupStatus.RESOLVED
 
@@ -84,6 +85,7 @@ class UpdateGroupsTest(TestCase):
 
         assert resolved_group.status == GroupStatus.UNRESOLVED
         assert not send_robust.called
+        assert send_unresolved.called
 
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_unresolved_group(self, send_robust):
@@ -118,4 +120,21 @@ class UpdateGroupsTest(TestCase):
         group.refresh_from_db()
 
         assert group.status == GroupStatus.IGNORED
+        assert send_robust.called
+
+    @patch("sentry.signals.issue_unignored.send_robust")
+    def test_unignoring_group(self, send_robust):
+        group = self.create_group(status=GroupStatus.IGNORED)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "unresolved"}
+        request.GET = QueryDict(query_string="id={}".format(group.id))
+
+        search_fn = Mock()
+        update_groups(request, [self.project], self.organization.id, search_fn)
+
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.UNRESOLVED
         assert send_robust.called

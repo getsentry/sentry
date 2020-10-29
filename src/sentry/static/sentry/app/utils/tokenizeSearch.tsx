@@ -61,7 +61,7 @@ export class QueryResults {
       }
 
       let trailingParen = '';
-      if (token.endsWith(')')) {
+      if (token.endsWith(')') && !token.includes('(')) {
         const parenMatch = token.match(/\)+$/g);
         if (parenMatch) {
           trailingParen = parenMatch[0];
@@ -69,7 +69,7 @@ export class QueryResults {
         }
       }
 
-      if (tokenState === TokenType.QUERY) {
+      if (tokenState === TokenType.QUERY && token.length) {
         this.addQuery(token);
       } else if (tokenState === TokenType.TAG) {
         this.addStringTag(token);
@@ -88,7 +88,7 @@ export class QueryResults {
         case TokenType.TAG:
           if (token.value === '' || token.value === null) {
             formattedTokens.push(`${token.key}:""`);
-          } else if (/[\s:\(\)\\"]/g.test(token.value)) {
+          } else if (/[\s\(\)\\"]/g.test(token.value)) {
             formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
           } else {
             formattedTokens.push(`${token.key}:${token.value}`);
@@ -103,29 +103,34 @@ export class QueryResults {
 
   addStringTag(value: string) {
     const [key, tag] = formatTag(value);
-    this.addTag(key, [tag]);
+    this.addTagValues(key, [tag]);
     return this;
   }
 
-  addTag(key: string, tags: string[]) {
-    for (const t of tags) {
-      this.tagValues[key] = Array.isArray(this.tagValues[key])
-        ? [...this.tagValues[key], t]
+  addTagValues(tag: string, tagValues: string[]) {
+    for (const t of tagValues) {
+      this.tagValues[tag] = Array.isArray(this.tagValues[tag])
+        ? [...this.tagValues[tag], t]
         : [t];
-      const token: Token = {type: TokenType.TAG, key, value: t};
+      const token: Token = {type: TokenType.TAG, key: tag, value: t};
       this.tokens.push(token);
     }
     return this;
   }
 
-  setTag(key: string, tags: string[]) {
-    this.removeTag(key);
-    this.addTag(key, tags);
+  setTagValues(tag: string, tagValues: string[]) {
+    this.removeTag(tag);
+    this.addTagValues(tag, tagValues);
     return this;
   }
 
-  getTags(key: string) {
-    return this.tagValues[key];
+  getTagValues(tag: string) {
+    return this.tagValues[tag];
+  }
+
+  hasTag(tag: string) {
+    const tags = this.getTagValues(tag);
+    return tags && tags.length;
   }
 
   removeTag(key: string) {
@@ -138,9 +143,11 @@ export class QueryResults {
     // to see if that open paren corresponds to a closed paren with one or fewer items inside.
     // If it does, delete those parens, and loop again until there are no more parens to delete.
     let parensToDelete: number[] = [];
-    const cleanParens = (_, idx) => !parensToDelete.includes(idx);
+    const cleanParens = (_, idx: number) => !parensToDelete.includes(idx);
     do {
-      this.tokens = this.tokens.filter(cleanParens);
+      if (parensToDelete.length) {
+        this.tokens = this.tokens.filter(cleanParens);
+      }
       parensToDelete = [];
 
       for (let i = 0; i < this.tokens.length; i++) {
@@ -164,7 +171,7 @@ export class QueryResults {
             }
             alreadySeen = true;
           } else if (isOp(nextToken) && nextToken.value === ')') {
-            // We found another paren with zero or one term inside. Delete the pair.
+            // We found another paren with zero or one terms inside. Delete the pair.
             parensToDelete = [i, j];
             break;
           }
@@ -205,9 +212,9 @@ export class QueryResults {
   }
 
   removeTagValue(key: string, value: string) {
-    const values = this.getTags(key);
+    const values = this.getTagValues(key);
     if (Array.isArray(values) && values.length) {
-      this.setTag(
+      this.setTagValues(
         key,
         values.filter(item => item !== value)
       );

@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:50.180562Z'
+created: '2020-08-21T21:07:52.909691Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -17,6 +17,7 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.producti
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.production.min.js"],["function","ih"],["module","usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]],[["context-line","this.fetchData();"],["filename","groupeventdetails.jsx"],["function","q"],["module","app/views/groupDetails/shared/groupEventDetails"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.production.min.js"],["function","tag"],["module","usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]],[["filename","react-dom.production.min.js"],["function","Yg"],["module","usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react.production.min.js"],["function","setState"],["module","usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"]],[["filename","react-dom.production.min.js"],["function","enqueueSetState"],["module","usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]]]
+similarity:2020-07-23:type:ident-shingle: "NotFoundError"
 similarity:2020-07-23:value:character-5-shingle: " /iss"
 similarity:2020-07-23:value:character-5-shingle: " <int"
 similarity:2020-07-23:value:character-5-shingle: "/ <in"
@@ -50,4 +51,3 @@ similarity:2020-07-23:value:character-5-shingle: "test/"
 similarity:2020-07-23:value:character-5-shingle: "ts/la"
 similarity:2020-07-23:value:character-5-shingle: "ues/<"
 similarity:2020-07-23:value:character-5-shingle: "vents"
-similarity:2020-07-23:type:ident-shingle: "NotFoundError"

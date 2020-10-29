@@ -11,7 +11,7 @@ import {
   IconGithub,
   IconGitlab,
   IconJira,
-  IconOpen,
+  IconAdd,
   IconVsts,
 } from 'app/icons';
 import space from 'app/styles/space';
@@ -135,7 +135,7 @@ class IssueSyncListElement extends React.Component<Props> {
         </ClassNames>
         {this.props.onOpen && this.props.onClose && (
           <StyledIcon onClick={this.isLinked() ? this.handleDelete : this.props.onOpen}>
-            {this.isLinked() ? <IconClose /> : <IconOpen />}
+            {this.isLinked() ? <IconClose /> : <IconAdd />}
           </StyledIcon>
         )}
       </IssueSyncListElementContainer>

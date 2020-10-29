@@ -20,8 +20,7 @@ import SettingsProjectProvider from 'app/views/settings/components/settingsProje
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import errorHandler from 'app/utils/errorHandler';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
-import {decideReleasesVersion} from 'app/views/releasesV2/utils';
-import RedirectTo from 'app/utils/redirect';
+import {TAB} from 'app/views/organizationGroupDetails/header';
 
 function appendTrailingSlash(nextState, replace) {
   const lastChar = nextState.location.pathname.slice(-1);
@@ -271,6 +270,7 @@ function routes() {
           }
         />
         <Redirect from="new/" to="/organizations/:orgId/alerts/:projectId/new/" />
+        <Redirect from="rules/" to="/organizations/:orgId/alerts/rules/" />
         <Redirect from="rules/new/" to="/organizations/:orgId/alerts/:projectId/new/" />
         <Redirect
           from="metric-rules/new/"
@@ -699,11 +699,11 @@ function routes() {
       />
 
       <Route
-        name={t('Relays')}
-        path="relays/"
+        name={t('Relay')}
+        path="relay/"
         componentPromise={() =>
           import(
-            /* webpackChunkName: "OrganizationRelays" */ 'app/views/settings/organizationRelays'
+            /* webpackChunkName: "organizationRelay" */ 'app/views/settings/organizationRelay'
           )
         }
         component={errorHandler(LazyLoad)}
@@ -1176,7 +1176,7 @@ function routes() {
             path="/organizations/:orgId/issues/:groupId/"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "OrganizationGroupDetails" */ 'app/views/organizationGroupDetails'
+                /* webpackChunkName: "GroupDetails" */ 'app/views/organizationGroupDetails'
               )
             }
             component={errorHandler(LazyLoad)}
@@ -1184,10 +1184,14 @@ function routes() {
             <IndexRoute
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
+                  /* webpackChunkName: "GroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.DETAILS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/activity/"
@@ -1197,51 +1201,62 @@ function routes() {
                 )
               }
               component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="/organizations/:orgId/issues/:groupId/events/:eventId/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "OrganizationGroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
-                )
-              }
-              component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.COMMENTS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/events/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupEvents" */ 'app/views/organizationGroupDetails/groupEvents'
+                  /* webpackChunkName: "GroupEvents" */ 'app/views/organizationGroupDetails/groupEvents'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.EVENTS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/tags/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupTags" */ 'app/views/organizationGroupDetails/groupTags'
+                  /* webpackChunkName: "GroupTags" */ 'app/views/organizationGroupDetails/groupTags'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.TAGS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/tags/:tagKey/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupTagsValues" */ 'app/views/organizationGroupDetails/groupTagValues'
+                  /* webpackChunkName: "GroupTagsValues" */ 'app/views/organizationGroupDetails/groupTagValues'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.TAGS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/feedback/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupUserFeedback" */ 'app/views/organizationGroupDetails/groupUserFeedback'
+                  /* webpackChunkName: "GroupUserFeedback" */ 'app/views/organizationGroupDetails/groupUserFeedback'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.USER_FEEDBACK,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/attachments/"
@@ -1251,25 +1266,155 @@ function routes() {
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.ATTACHMENTS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/similar/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "GroupSimilarView" */ 'app/views/organizationGroupDetails/groupSimilar'
+                  /* webpackChunkName: "GroupSimilarIssues" */ 'app/views/organizationGroupDetails/groupSimilarIssues'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.SIMILAR_ISSUES,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/merged/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "GroupSimilarView" */ 'app/views/organizationGroupDetails/groupMerged'
+                  /* webpackChunkName: "GroupMerged" */ 'app/views/organizationGroupDetails/groupMerged'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.MERGED,
+                isEventRoute: false,
+              }}
             />
+            <Route path="/organizations/:orgId/issues/:groupId/events/:eventId/">
+              <IndexRoute
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.DETAILS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="activity/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupActivity" */ 'app/views/organizationGroupDetails/groupActivity'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.COMMENTS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="events/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupEvents" */ 'app/views/organizationGroupDetails/groupEvents'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.EVENTS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="similar/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupSimilarIssues" */ 'app/views/organizationGroupDetails/groupSimilarIssues'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.SIMILAR_ISSUES,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="tags/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupTags" */ 'app/views/organizationGroupDetails/groupTags'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.TAGS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="tags/:tagKey/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupTagsValues" */ 'app/views/organizationGroupDetails/groupTagValues'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.TAGS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="feedback/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupUserFeedback" */ 'app/views/organizationGroupDetails/groupUserFeedback'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.USER_FEEDBACK,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="attachments/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupEventAttachments" */ 'app/views/organizationGroupDetails/groupEventAttachments'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.ATTACHMENTS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="merged/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupMerged" */ 'app/views/organizationGroupDetails/groupMerged'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.MERGED,
+                  isEventRoute: true,
+                }}
+              />
+            </Route>
           </Route>
 
           <Route
@@ -1437,55 +1582,29 @@ function routes() {
           <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>
-              decideReleasesVersion(v2 =>
-                v2
-                  ? import(
-                      /* webpackChunkName: "ReleasesV2Container" */ 'app/views/releasesV2'
-                    )
-                  : import(
-                      /* webpackChunkName: "ReleasesContainer" */ 'app/views/releases'
-                    )
-              )
+              import(/* webpackChunkName: "ReleasesContainer" */ 'app/views/releases')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                decideReleasesVersion(v2 =>
-                  v2
-                    ? import(
-                        /* webpackChunkName: "ReleasesV2List" */ 'app/views/releasesV2/list'
-                      )
-                    : import(/* webpackChunkName: "Releases" */ 'app/views/releases/list')
-                )
+                import(/* webpackChunkName: "ReleasesList" */ 'app/views/releases/list')
               }
               component={errorHandler(LazyLoad)}
             />
             <Route
               path=":release/"
               componentPromise={() =>
-                decideReleasesVersion(v2 =>
-                  v2
-                    ? import(
-                        /* webpackChunkName: "ReleasesV2Detail" */ 'app/views/releasesV2/detail'
-                      )
-                    : import(
-                        /* webpackChunkName: "ReleaseDetail" */ 'app/views/releases/detail'
-                      )
+                import(
+                  /* webpackChunkName: "ReleasesDetail" */ 'app/views/releases/detail'
                 )
               }
               component={errorHandler(LazyLoad)}
             >
               <IndexRoute
                 componentPromise={() =>
-                  decideReleasesVersion(v2 =>
-                    v2
-                      ? import(
-                          /* webpackChunkName: "ReleasesV2DetailOverview" */ 'app/views/releasesV2/detail/overview'
-                        )
-                      : import(
-                          /* webpackChunkName: "ReleaseOverview" */ 'app/views/releases/detail/releaseOverview'
-                        )
+                  import(
+                    /* webpackChunkName: "ReleasesDetailOverview" */ 'app/views/releases/detail/overview'
                   )
                 }
                 component={errorHandler(LazyLoad)}
@@ -1493,14 +1612,8 @@ function routes() {
               <Route
                 path="commits/"
                 componentPromise={() =>
-                  decideReleasesVersion(v2 =>
-                    v2
-                      ? import(
-                          /* webpackChunkName: "ReleasesV2DetailCommits" */ 'app/views/releasesV2/detail/commits'
-                        )
-                      : import(
-                          /* webpackChunkName: "ReleaseCommits" */ 'app/views/releases/detail/releaseCommits'
-                        )
+                  import(
+                    /* webpackChunkName: "ReleasesDetailCommits" */ 'app/views/releases/detail/commits'
                   )
                 }
                 component={errorHandler(LazyLoad)}
@@ -1508,14 +1621,8 @@ function routes() {
               <Route
                 path="artifacts/"
                 componentPromise={() =>
-                  decideReleasesVersion(v2 =>
-                    v2
-                      ? import(
-                          /* webpackChunkName: "ReleasesV2DetailArtifacts" */ 'app/views/releasesV2/detail/artifacts'
-                        )
-                      : import(
-                          /* webpackChunkName: "ReleaseArtifacts" */ 'app/views/releases/detail/releaseArtifacts'
-                        )
+                  import(
+                    /* webpackChunkName: "ReleasesDetailArtifacts" */ 'app/views/releases/detail/artifacts'
                   )
                 }
                 component={errorHandler(LazyLoad)}
@@ -1523,62 +1630,19 @@ function routes() {
               <Route
                 path="files-changed/"
                 componentPromise={() =>
-                  decideReleasesVersion(v2 =>
-                    v2
-                      ? import(
-                          /* webpackChunkName: "ReleasesV2DetailFilesChanged" */ 'app/views/releasesV2/detail/filesChanged'
-                        )
-                      : Promise.resolve(({router, params}) => (
-                          <RedirectTo
-                            router={router}
-                            to={`/organizations/${
-                              params.orgId
-                            }/releases/${encodeURIComponent(params.release)}/`}
-                          />
-                        ))
+                  import(
+                    /* webpackChunkName: "ReleasesDetailFilesChanged" */ 'app/views/releases/detail/filesChanged'
                   )
                 }
                 component={errorHandler(LazyLoad)}
               />
-              <Route
+              <Redirect
                 path="new-events/"
-                componentPromise={() =>
-                  decideReleasesVersion(v2 =>
-                    v2
-                      ? Promise.resolve(({router, params}) => (
-                          <RedirectTo
-                            router={router}
-                            to={`/organizations/${
-                              params.orgId
-                            }/releases/${encodeURIComponent(params.release)}/`}
-                          />
-                        ))
-                      : import(
-                          /* webpackChunkName: "ReleaseNewEvents" */ 'app/views/releases/detail/releaseNewEvents'
-                        )
-                  )
-                }
-                component={errorHandler(LazyLoad)}
+                to="/organizations/:orgId/releases/:release/"
               />
-              <Route
+              <Redirect
                 path="all-events/"
-                componentPromise={() =>
-                  decideReleasesVersion(v2 =>
-                    v2
-                      ? Promise.resolve(({router, params}) => (
-                          <RedirectTo
-                            router={router}
-                            to={`/organizations/${
-                              params.orgId
-                            }/releases/${encodeURIComponent(params.release)}/`}
-                          />
-                        ))
-                      : import(
-                          /* webpackChunkName: "ReleaseAllEvents" */ 'app/views/releases/detail/releaseAllEvents'
-                        )
-                  )
-                }
-                component={errorHandler(LazyLoad)}
+                to="/organizations/:orgId/releases/:release/"
               />
             </Route>
           </Route>
@@ -1682,6 +1746,15 @@ function routes() {
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "PerformanceTransactionSummary" */ 'app/views/performance/transactionSummary'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="/organizations/:orgId/performance/summary/vitals/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "PerformanceTransactionVitals" */ 'app/views/performance/transactionVitals'
                 )
               }
               component={errorHandler(LazyLoad)}

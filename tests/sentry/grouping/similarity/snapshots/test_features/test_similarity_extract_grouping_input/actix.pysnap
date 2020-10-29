@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:48.695442Z'
+created: '2020-08-21T21:07:51.828140Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -81,6 +81,7 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","thread.rs"],["func
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__pthread_body"]],[["filename","lib.rs"],["function","___rust_maybe_catch_panic"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__pthread_body"]],[["filename","thread.rs"],["function","std::sys::unix::thread::Thread::new::thread_start"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__pthread_start"]],[["function","__pthread_body"]]]
+similarity:2020-07-23:type:ident-shingle: "actix_web::pipeline"
 similarity:2020-07-23:value:character-5-shingle: " <int"
 similarity:2020-07-23:value:character-5-shingle: " Erro"
 similarity:2020-07-23:value:character-5-shingle: " Inte"
@@ -183,4 +184,3 @@ similarity:2020-07-23:value:character-5-shingle: "ver E"
 similarity:2020-07-23:value:character-5-shingle: "went "
 similarity:2020-07-23:value:character-5-shingle: "wrong"
 similarity:2020-07-23:value:character-5-shingle: "y wro"
-similarity:2020-07-23:type:ident-shingle: "actix_web::pipeline"

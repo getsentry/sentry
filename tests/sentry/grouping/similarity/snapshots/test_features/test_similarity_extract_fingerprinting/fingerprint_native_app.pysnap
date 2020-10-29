@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:50.565703Z'
+created: '2020-08-21T21:07:53.192427Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -39,6 +39,8 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thre
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thread::Entered<T>::tick"]],[["function","tokio_current_thread::scheduler::Scheduler<T>::tick"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thread::scheduler::Scheduler<T>::tick"]],[["function","tokio_current_thread::CurrentRunner::set_spawn"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","unknown"]],[["function","_start"]]]
+similarity:2020-07-23:type:ident-shingle: "Custom"
+similarity:2020-07-23:type:ident-shingle: "SymCacheError"
 similarity:2020-07-23:value:character-5-shingle: " head"
 similarity:2020-07-23:value:character-5-shingle: " of r"
 similarity:2020-07-23:value:character-5-shingle: " pars"
@@ -81,5 +83,3 @@ similarity:2020-07-23:value:character-5-shingle: "to pa"
 similarity:2020-07-23:value:character-5-shingle: "ut of"
 similarity:2020-07-23:value:character-5-shingle: "valid"
 similarity:2020-07-23:value:character-5-shingle: "ymcac"
-similarity:2020-07-23:type:ident-shingle: "Custom"
-similarity:2020-07-23:type:ident-shingle: "SymCacheError"

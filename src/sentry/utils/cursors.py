@@ -29,8 +29,11 @@ class Cursor(object):
             int(self.is_prev),
         )
 
-    def __nonzero__(self):
-        return self.has_results
+    def __bool__(self):
+        return bool(self.has_results)
+
+    # python2 compatibility
+    __nonzero__ = __bool__
 
     @classmethod
     def from_string(cls, value):

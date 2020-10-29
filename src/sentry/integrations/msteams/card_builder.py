@@ -7,12 +7,18 @@ from sentry.models import (
     GroupAssignee,
     Team,
 )
+from sentry.utils.assets import get_asset_url
 from sentry.utils.compat import map
 from sentry.utils.http import absolute_uri
 
 from .utils import ACTION_TYPE
 
 ME = "ME"
+logo = {
+    "type": "Image",
+    "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
+    "size": "Medium",
+}
 
 
 def generate_action_payload(action_type, event, rules, integration):
@@ -51,12 +57,6 @@ def get_assignee_string(group):
 
 def build_welcome_card(signed_params):
     url = u"%s?signed_params=%s" % (absolute_uri("/extensions/msteams/configure/"), signed_params,)
-    # TODO: Refactor message creation
-    logo = {
-        "type": "Image",
-        "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
-        "size": "Medium",
-    }
     welcome = {
         "type": "TextBlock",
         "weight": "Bolder",
@@ -66,12 +66,15 @@ def build_welcome_card(signed_params):
     }
     description = {
         "type": "TextBlock",
-        "text": "You can use the Sentry app for Microsoft Teams to get notifications that allow you to assign, ignore, or resolve directly in your chat.",
+        "text": "You can use Sentry for Microsoft Teams to get notifications that allow you to assign, ignore, or resolve directly in your chat.",
         "wrap": True,
     }
     instruction = {
         "type": "TextBlock",
-        "text": "If that sounds good to you, finish the setup process.",
+        "text": (
+            "Please click **Complete Setup** to finish the setup process."
+            " Don't have a Sentry account? [Sign Up](https://sentry.io/signup/)."
+        ),
         "wrap": True,
     }
     button = {
@@ -98,6 +101,217 @@ def build_welcome_card(signed_params):
             instruction,
         ],
         "actions": [button],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_installation_confirmation_message(organization):
+    welcome = {
+        "type": "TextBlock",
+        "weight": "Bolder",
+        "size": "Large",
+        "text": u"Installation for {} is successful".format(organization.name),
+        "wrap": True,
+    }
+    alert_rule_instructions = {
+        "type": "TextBlock",
+        "text": "Now that setup is complete, you can continue by configuring alerts.",
+        "wrap": True,
+    }
+    alert_rule_url = absolute_uri("organizations/{}/rules/".format(organization.slug))
+    alert_rule_button = {
+        "type": "Action.OpenUrl",
+        "title": "Add Alert Rules",
+        "url": alert_rule_url,
+    }
+    return {
+        "type": "AdaptiveCard",
+        "body": [
+            {
+                "type": "ColumnSet",
+                "columns": [
+                    {"type": "Column", "items": [logo], "width": "auto"},
+                    {
+                        "type": "Column",
+                        "items": [welcome],
+                        "width": "stretch",
+                        "verticalContentAlignment": "Center",
+                    },
+                ],
+            },
+            alert_rule_instructions,
+        ],
+        "actions": [alert_rule_button],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_personal_installation_message():
+    welcome = {
+        "type": "TextBlock",
+        "weight": "Bolder",
+        "size": "Large",
+        "text": "Personal Installation of Sentry",
+        "wrap": True,
+    }
+    instruction = {
+        "type": "TextBlock",
+        "text": (
+            "It looks like you have installed Sentry as a personal app."
+            " Sentry for Microsoft Teams needs to be added to a team. Please add"
+            ' Sentry again, and select "Add to a team" from the "Add" button\'s list arrow'
+        ),
+        "wrap": True,
+    }
+    return {
+        "type": "AdaptiveCard",
+        "body": [
+            {
+                "type": "ColumnSet",
+                "columns": [
+                    {"type": "Column", "items": [logo], "width": "auto"},
+                    {
+                        "type": "Column",
+                        "items": [welcome],
+                        "width": "stretch",
+                        "verticalContentAlignment": "Center",
+                    },
+                ],
+            },
+            instruction,
+        ],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_mentioned_card():
+    instruction = {
+        "type": "TextBlock",
+        "text": (
+            "Sentry for Microsoft Teams does not support any commands in channels, only in direct messages."
+            " To unlink your Microsoft Teams identity from your Sentry account message the personal bot."
+        ),
+        "wrap": True,
+    }
+
+    alert_instruction = {
+        "type": "TextBlock",
+        "text": (
+            "Want to learn more about configuring alerts in Sentry? Check out our documentation."
+        ),
+        "wrap": True,
+    }
+
+    button = {
+        "type": "Action.OpenUrl",
+        "title": "Docs",
+        "url": "https://docs.sentry.io/product/alerts-notifications/alerts/",
+    }
+
+    return {
+        "type": "AdaptiveCard",
+        "body": [instruction, alert_instruction],
+        "actions": [button],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_unrecognized_command_card(command_text):
+    instruction = {
+        "type": "TextBlock",
+        "text": (u"Sorry, I didn't understand '{}'.".format(command_text)),
+        "wrap": True,
+    }
+
+    commands = {
+        "type": "TextBlock",
+        "text": ("Type **help**: to see the list of available commands"),
+        "wrap": True,
+    }
+
+    return {
+        "type": "AdaptiveCard",
+        "body": [instruction, commands],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_help_command_card():
+    header = {
+        "type": "TextBlock",
+        "text": ("Please use one of the following commands for Sentry:"),
+        "wrap": True,
+    }
+
+    commands = {
+        "type": "TextBlock",
+        "text": (
+            "- **link**: link your Microsoft Teams identity to your Sentry account"
+            "\n\n- **unlink**: unlink your Microsoft Teams identity from your Sentry account"
+            "\n\n- **help**: view list of all bot commands"
+        ),
+        "wrap": True,
+    }
+
+    return {
+        "type": "AdaptiveCard",
+        "body": [header, commands],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_link_identity_command_card():
+    link_identity = {
+        "type": "TextBlock",
+        "text": (
+            "Your Microsoft Teams identity will be linked to your"
+            " Sentry account when you interact with alerts from Sentry."
+        ),
+        "wrap": True,
+    }
+    return {
+        "type": "AdaptiveCard",
+        "body": [link_identity],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_unlink_identity_card(unlink_url):
+    unlink_identity = {
+        "type": "TextBlock",
+        "text": "Click below to unlink your identity",
+        "wrap": True,
+    }
+    button = {
+        "type": "Action.OpenUrl",
+        "title": "Unlink Identity",
+        "url": unlink_url,
+    }
+    return {
+        "type": "AdaptiveCard",
+        "body": [unlink_identity],
+        "actions": [button],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_already_linked_identity_command_card():
+    link_identity = {
+        "type": "TextBlock",
+        "text": ("Your Microsoft Teams identity is already linked to a" " Sentry account."),
+        "wrap": True,
+    }
+    return {
+        "type": "AdaptiveCard",
+        "body": [link_identity],
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "version": "1.2",
     }
@@ -144,7 +358,7 @@ def build_group_footer(group, rules, project, event):
         "items": [
             {
                 "type": "Image",
-                "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
+                "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
                 "height": "20px",
             }
         ],
@@ -457,7 +671,12 @@ def build_group_card(group, event, rules, integration):
     action_cards = build_group_action_cards(group, event, rules, integration)
     body.append(action_cards)
 
-    return {"type": "AdaptiveCard", "body": body}
+    return {
+        "type": "AdaptiveCard",
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+        "body": body,
+    }
 
 
 def build_linking_card(url):
@@ -482,7 +701,7 @@ def build_linking_card(url):
 def build_linked_card():
     image = {
         "type": "Image",
-        "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
+        "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
         "size": "Large",
     }
     desc = {
@@ -501,6 +720,26 @@ def build_linked_card():
     return {
         "type": "AdaptiveCard",
         "body": [body],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_unlinked_card():
+    desc = {
+        "type": "TextBlock",
+        "text": (
+            "Your Microsoft Teams identity has been unlinked to your Sentry account."
+            " You will need to re-link if you want to interact with messages again."
+        ),
+        "wrap": True,
+    }
+
+    return {
+        "type": "AdaptiveCard",
+        "body": [desc],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
     }
 
 
@@ -514,7 +753,7 @@ def build_incident_attachment(incident, metric_value=None):
     return {
         "type": "AdaptiveCard",
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.3",
+        "version": "1.2",
         "body": [
             {
                 "type": "ColumnSet",

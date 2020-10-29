@@ -6,10 +6,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import GroupStore from 'app/stores/groupStore';
 import StreamGroup from 'app/components/stream/group';
 
-describe('StreamGroup', function() {
+describe('StreamGroup', function () {
   let GROUP_1;
 
-  beforeEach(function() {
+  beforeEach(function () {
     GROUP_1 = TestStubs.Group({
       id: '1337',
       project: {
@@ -21,9 +21,9 @@ describe('StreamGroup', function() {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
   });
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  it('renders with anchors', function() {
+  it('renders with anchors', function () {
     const {routerContext} = initializeOrg();
     const component = mountWithTheme(
       <StreamGroup
@@ -39,7 +39,7 @@ describe('StreamGroup', function() {
     );
 
     expect(component.find('GuideAnchor').exists()).toBe(true);
-    expect(component.find('GuideAnchor')).toHaveLength(2);
+    expect(component.find('GuideAnchor')).toHaveLength(3);
     expect(component).toSnapshot();
   });
 });

@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationStats from 'app/views/organizationStats/organizationStatsDetails';
 
-describe('OrganizationStats', function() {
-  it('renders', function() {
+describe('OrganizationStats', function () {
+  it('renders', function () {
     const organization = TestStubs.Organization();
     const props = {
       statsLoading: false,
@@ -23,12 +23,12 @@ describe('OrganizationStats', function() {
     );
 
     expect(wrapper.find('PageHeading').text()).toBe('Organization Stats');
-    expect(wrapper.find('Panel[className="bar-chart"]').exists()).toBe(true);
+    expect(wrapper.find('MiniBarChart').exists()).toBe(true);
     expect(wrapper.find('ProjectTable').exists()).toBe(true);
     expect(wrapper.find('Alert[data-test-id="performance-usage"]').exists()).toBe(false);
   });
 
-  it('renders alert for performance feature', function() {
+  it('renders alert for performance feature', function () {
     const organization = TestStubs.Organization({features: ['performance-view']});
     const props = {
       statsLoading: false,
@@ -46,7 +46,7 @@ describe('OrganizationStats', function() {
     );
 
     expect(wrapper.find('PageHeading').text()).toBe('Organization Stats');
-    expect(wrapper.find('Panel[className="bar-chart"]').exists()).toBe(true);
+    expect(wrapper.find('MiniBarChart').exists()).toBe(true);
     expect(wrapper.find('ProjectTable').exists()).toBe(true);
     expect(wrapper.find('Alert[data-test-id="performance-usage"]').exists()).toBe(true);
   });

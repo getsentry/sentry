@@ -1,0 +1,70 @@
+{
+  "get": {
+    "tags": ["Projects"],
+    "description": "Return a list of values associated with this key.  The `query`\nparameter can be used to to perform a \"contains\" match on\nvalues.",
+    "operationId": "List a Tag's Values",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "key",
+        "in": "path",
+        "description": "The tag key to look up.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "example": [
+              {
+                "name": "mint_choco"
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read"]
+      }
+    ]
+  }
+}

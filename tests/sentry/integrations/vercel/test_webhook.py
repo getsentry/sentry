@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import hashlib
 import hmac
 import responses
-import six
 
+from sentry import VERSION
 from sentry.models import (
     Integration,
     OrganizationIntegration,
@@ -92,7 +92,8 @@ class VercelReleasesTest(APITestCase):
             assert response.status_code == 201
 
             assert len(responses.calls) == 2
-            release_body = json.loads(responses.calls[0].request.body)
+            release_request = responses.calls[0].request
+            release_body = json.loads(release_request.body)
             set_refs_body = json.loads(responses.calls[1].request.body)
             assert release_body == {
                 "projects": [self.project.slug],
@@ -108,6 +109,7 @@ class VercelReleasesTest(APITestCase):
                     }
                 ],
             }
+            assert release_request.headers["User-Agent"] == u"sentry_vercel/{}".format(VERSION)
 
     @responses.activate
     def test_no_match(self):
@@ -242,7 +244,7 @@ class VercelReleasesTest(APITestCase):
         def request_callback(request):
             payload = json.loads(request.body)
             status_code = 400 if payload.get("refs") else 200
-            return (status_code, {}, {})
+            return (status_code, {}, json.dumps({}))
 
         responses.add_callback(
             responses.POST,
@@ -266,7 +268,7 @@ class VercelReleasesTest(APITestCase):
     def test_manual_vercel_deploy(self):
         local_signature = hmac.new(
             key="vercel-client-secret".encode("utf-8"),
-            msg=six.binary_type(DEPLOYMENT_WEBHOOK_NO_COMMITS),
+            msg=DEPLOYMENT_WEBHOOK_NO_COMMITS.encode("utf-8"),
             digestmod=hashlib.sha1,
         ).hexdigest()
 

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
 import functools
 import logging
 import posixpath
@@ -13,7 +14,8 @@ from pkg_resources import resource_string
 from redis.client import Script, StrictRedis
 from redis.connection import ConnectionPool, Encoder
 from redis.exceptions import ConnectionError, BusyLoadingError
-from rediscluster import StrictRedisCluster
+from rediscluster import RedisCluster
+from rediscluster.exceptions import ClusterError
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
@@ -78,7 +80,7 @@ class _RBCluster(object):
         return "Redis Blaster Cluster"
 
 
-class RetryingStrictRedisCluster(StrictRedisCluster):
+class RetryingRedisCluster(RedisCluster):
     """
     Execute a command with cluster reinitialization retry logic.
 
@@ -93,6 +95,7 @@ class RetryingStrictRedisCluster(StrictRedisCluster):
         except (
             ConnectionError,
             BusyLoadingError,
+            ClusterError,
             KeyError,  # see: https://github.com/Grokzen/redis-py-cluster/issues/287
         ):
             self.connection_pool.nodes.reset()
@@ -118,8 +121,15 @@ class _RedisCluster(object):
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
             if config.get("is_redis_cluster", False):
-                return RetryingStrictRedisCluster(
-                    startup_nodes=hosts,
+                return RetryingRedisCluster(
+                    # Intentionally copy hosts here because redis-cluster-py
+                    # mutates the inner dicts and this closure can be run
+                    # concurrently, as SimpleLazyObject is not threadsafe. This
+                    # is likely triggered by RetryingRedisCluster running
+                    # reset() after startup
+                    #
+                    # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
+                    startup_nodes=deepcopy(hosts),
                     decode_responses=True,
                     skip_full_coverage_check=True,
                     max_connections=16,
@@ -273,7 +283,7 @@ def load_script(path):
                 Script(client, resource_string("sentry", posixpath.join("scripts", path)))
             )
             # Unset the client here to keep things as close to how they worked before
-            # as possible. It will always be overriden on `__call__` anyway.
+            # as possible. It will always be overridden on `__call__` anyway.
             script[0].registered_client = None
         return script[0](keys, args, client)
 

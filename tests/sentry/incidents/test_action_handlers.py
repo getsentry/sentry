@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-
 import responses
 import six
 import time
@@ -14,10 +13,11 @@ from six.moves.urllib.parse import parse_qs
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
-    SlackActionHandler,
-    MsTeamsActionHandler,
     generate_incident_trigger_email_context,
-    INCIDENT_STATUS_KEY,
+    MsTeamsActionHandler,
+    PagerDutyActionHandler,
+    SentryAppActionHandler,
+    SlackActionHandler,
 )
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
@@ -27,8 +27,7 @@ from sentry.incidents.models import (
     TriggerStatus,
     INCIDENT_STATUS,
 )
-
-from sentry.models import Integration, UserOption
+from sentry.models import Integration, PagerDutyService, UserOption
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -119,7 +118,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
             "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
-            "status_key": INCIDENT_STATUS_KEY[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
             "environment": "All",
             "is_critical": False,
             "is_warning": False,
@@ -150,10 +149,24 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         ).get("environment")
 
 
+class FireTest(object):
+    def run_test(self, incident, method):
+        raise NotImplementedError
+
+    def run_fire_test(self, method="fire"):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        if method == "resolve":
+            update_incident_status(
+                incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
+            )
+        self.run_test(incident, method)
+
+
 @freeze_time()
-class EmailActionHandlerFireTest(TestCase):
-    def test_user(self):
-        incident = self.create_incident(status=IncidentStatus.CRITICAL.value)
+class EmailActionHandlerTest(FireTest, TestCase):
+    @responses.activate
+    def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(
             target_identifier=six.text_type(self.user.id), triggered_for_incident=incident,
         )
@@ -162,27 +175,19 @@ class EmailActionHandlerFireTest(TestCase):
             handler.fire(1000)
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[Critical] {} - {}".format(incident.title, self.project.slug)
-
-
-@freeze_time()
-class EmailActionHandlerResolveTest(TestCase):
-    def test_user(self):
-        incident = self.create_incident()
-        action = self.create_alert_rule_trigger_action(
-            target_identifier=six.text_type(self.user.id), triggered_for_incident=incident,
+        assert out.subject == u"[{}] {} - {}".format(
+            INCIDENT_STATUS[IncidentStatus(incident.status)], incident.title, self.project.slug
         )
-        handler = EmailActionHandler(action, incident, self.project)
-        with self.tasks():
-            incident.status = IncidentStatus.CLOSED.value
-            handler.resolve(1000)
-        out = mail.outbox[0]
-        assert out.to == [self.user.email]
-        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+
+    def test_fire_metric_alert(self):
+        self.run_fire_test()
+
+    def test_resolve_metric_alert(self):
+        self.run_fire_test("resolve")
 
 
 @freeze_time()
-class SlackActionHandlerBaseTest(object):
+class SlackActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         from sentry.integrations.slack.utils import build_incident_attachment
@@ -228,25 +233,15 @@ class SlackActionHandlerBaseTest(object):
             incident, metric_value
         )
 
+    def test_fire_metric_alert(self):
+        self.run_fire_test()
 
-class SlackActionHandlerFireTest(SlackActionHandlerBaseTest, TestCase):
-    def test(self):
-        alert_rule = self.create_alert_rule()
-        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
-
-
-class SlackActionHandlerResolveTest(SlackActionHandlerBaseTest, TestCase):
-    def test(self):
-        alert_rule = self.create_alert_rule()
-        incident = self.create_incident(alert_rule=alert_rule)
-        update_incident_status(
-            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
-        )
-        self.run_test(incident, "resolve")
+    def test_resolve_metric_alert(self):
+        self.run_fire_test("resolve")
 
 
 @freeze_time()
-class MsTeamsActionHandlerBaseTest(object):
+class MsTeamsActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         from sentry.integrations.msteams.card_builder import build_incident_attachment
@@ -297,8 +292,151 @@ class MsTeamsActionHandlerBaseTest(object):
             incident, metric_value
         )
 
+    def test_fire_metric_alert(self):
+        self.run_fire_test()
 
-class MsTeamsActionHandlerFireTest(MsTeamsActionHandlerBaseTest, TestCase):
-    def test(self):
+
+@freeze_time()
+class PagerDutyActionHandlerTest(FireTest, TestCase):
+    def setUp(self):
+        service = [
+            {
+                "type": "service",
+                "integration_key": "pfc73e8cb4s44d519f3d63d45b5q77g9",
+                "service_id": "123",
+                "service_name": "hellboi",
+            }
+        ]
+        self.integration = Integration.objects.create(
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
+            metadata={"service": service},
+        )
+        self.integration.add_organization(self.organization, self.user)
+
+        self.service = PagerDutyService.objects.create(
+            service_name=service[0]["service_name"],
+            integration_key=service[0]["integration_key"],
+            organization_integration=self.integration.organizationintegration_set.first(),
+        )
+
+    def test_build_incident_attachment(self):
+        from sentry.integrations.pagerduty.utils import build_incident_attachment
+
         alert_rule = self.create_alert_rule()
-        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
+        incident = self.create_incident(alert_rule=alert_rule)
+        update_incident_status(
+            incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
+        )
+        integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
+        metric_value = 1000
+        data = build_incident_attachment(incident, integration_key, metric_value)
+
+        assert data["routing_key"] == "pfc73e8cb4s44d519f3d63d45b5q77g9"
+        assert data["event_action"] == "trigger"
+        assert data["dedup_key"] == "incident_{}_{}".format(
+            incident.organization_id, incident.identifier
+        )
+        assert data["payload"]["summary"] == alert_rule.name
+        assert data["payload"]["severity"] == "critical"
+        assert data["payload"]["source"] == six.text_type(incident.identifier)
+        assert data["payload"]["custom_details"] == {
+            "details": "1000 events in the last 10 minutes\nFilter: level:error"
+        }
+        assert data["links"][0]["text"] == "Critical: {}".format(alert_rule.name)
+        assert data["links"][0]["href"] == "http://testserver/organizations/baz/alerts/1/"
+
+    @responses.activate
+    def run_test(self, incident, method):
+        from sentry.integrations.pagerduty.utils import build_incident_attachment
+
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=self.service.id,
+            type=AlertRuleTriggerAction.Type.PAGERDUTY,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=self.integration,
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://events.pagerduty.com/v2/enqueue/",
+            json={},
+            status=202,
+            content_type="application/json",
+        )
+        handler = PagerDutyActionHandler(action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            getattr(handler, method)(metric_value)
+        data = responses.calls[0].request.body
+
+        assert json.loads(data) == build_incident_attachment(
+            incident, self.service.integration_key, metric_value
+        )
+
+    def test_fire_metric_alert(self):
+        self.run_fire_test()
+
+    def test_fire_metric_alert_multiple_services(self):
+        service = [
+            {
+                "type": "service",
+                "integration_key": "afc73e8cb4s44d519f3d63d45b5q77g9",
+                "service_id": "456",
+                "service_name": "meowmeowfuntime",
+            },
+        ]
+        PagerDutyService.objects.create(
+            service_name=service[0]["service_name"],
+            integration_key=service[0]["integration_key"],
+            organization_integration=self.integration.organizationintegration_set.first(),
+        )
+        self.run_fire_test()
+
+    def test_resolve_metric_alert(self):
+        self.run_fire_test("resolve")
+
+
+@freeze_time()
+class SentryAppActionHandlerTest(FireTest, TestCase):
+    def setUp(self):
+        self.sentry_app = self.create_sentry_app(
+            name="foo", organization=self.organization, is_alertable=True, verify_install=False,
+        )
+        self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+    @responses.activate
+    def run_test(self, incident, method):
+        from sentry.rules.actions.notify_event_service import build_incident_attachment
+
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=self.sentry_app.id,
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=self.sentry_app,
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/webhook",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true"}),
+        )
+
+        handler = SentryAppActionHandler(action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            getattr(handler, method)(metric_value)
+        data = responses.calls[0].request.body
+
+        assert json.dumps(build_incident_attachment(incident, metric_value)) in data
+
+    def test_fire_metric_alert(self):
+        self.run_fire_test()
+
+    def test_resolve_metric_alert(self):
+        self.run_fire_test("resolve")

@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {
+  AssigneeTargetType,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
@@ -14,7 +15,7 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
-import MailActionFields from 'app/views/settings/projectAlerts/issueEditor/mailActionFields';
+import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
 import ExternalLink from 'app/components/links/externalLink';
 import {Organization, Project} from 'app/types';
 import {IconDelete} from 'app/icons';
@@ -43,10 +44,10 @@ class RuleNode extends React.Component<Props> {
     onDelete(index);
   };
 
-  handleMailActionChange = (action: IssueAlertRuleAction) => {
+  handleMemberTeamChange = (data: IssueAlertRuleAction | IssueAlertRuleCondition) => {
     const {index, onPropertyChange} = this.props;
-    onPropertyChange(index, 'targetType', `${action.targetType}`);
-    onPropertyChange(index, 'targetIdentifier', `${action.targetIdentifier}`);
+    onPropertyChange(index, 'targetType', `${data.targetType}`);
+    onPropertyChange(index, 'targetIdentifier', `${data.targetIdentifier}`);
   };
 
   getChoiceField = (name: string, fieldConfig: FormField) => {
@@ -115,7 +116,7 @@ class RuleNode extends React.Component<Props> {
     const {data, index, onPropertyChange, disabled} = this.props;
 
     return (
-      <InlineInput
+      <InlineNumberInput
         type="number"
         name={name}
         value={(data && data[name]) ?? ''}
@@ -133,13 +134,43 @@ class RuleNode extends React.Component<Props> {
     const isInitialized =
       data?.targetType !== undefined && `${data.targetType}`.length > 0;
     return (
-      <MailActionFields
+      <MemberTeamFields
         disabled={disabled}
         project={project}
         organization={organization}
         loading={!isInitialized}
-        action={data as IssueAlertRuleAction}
-        onChange={this.handleMailActionChange}
+        ruleData={data as IssueAlertRuleAction}
+        onChange={this.handleMemberTeamChange}
+        options={[
+          {value: MailActionTargetType.IssueOwners, label: t('Issue Owners')},
+          {value: MailActionTargetType.Team, label: t('Team')},
+          {value: MailActionTargetType.Member, label: t('Member')},
+        ]}
+        memberValue={MailActionTargetType.Member}
+        teamValue={MailActionTargetType.Team}
+      />
+    );
+  };
+
+  getAssigneeFilterFields = (_: string, __: FormField) => {
+    const {data, organization, project, disabled} = this.props;
+    const isInitialized =
+      data?.targetType !== undefined && `${data.targetType}`.length > 0;
+    return (
+      <MemberTeamFields
+        disabled={disabled}
+        project={project}
+        organization={organization}
+        loading={!isInitialized}
+        ruleData={data as IssueAlertRuleCondition}
+        onChange={this.handleMemberTeamChange}
+        options={[
+          {value: AssigneeTargetType.Unassigned, label: t('No One')},
+          {value: AssigneeTargetType.Team, label: t('Team')},
+          {value: AssigneeTargetType.Member, label: t('Member')},
+        ]}
+        memberValue={AssigneeTargetType.Member}
+        teamValue={AssigneeTargetType.Team}
       />
     );
   };
@@ -150,6 +181,7 @@ class RuleNode extends React.Component<Props> {
       number: this.getNumberField,
       string: this.getTextField,
       mailAction: this.getMailActionFields,
+      assignee: this.getAssigneeFilterFields,
     };
     return getFieldTypes[fieldConfig.type](name, fieldConfig);
   };
@@ -158,7 +190,12 @@ class RuleNode extends React.Component<Props> {
     const {data, node} = this.props;
 
     if (!node) {
-      return null;
+      return (
+        <Separator>
+          This node failed to render. It may have migrated to another section of the alert
+          conditions
+        </Separator>
+      );
     }
 
     const {label, formFields} = node;
@@ -204,7 +241,7 @@ class RuleNode extends React.Component<Props> {
      * Instead, we apply duck typing semantics here.
      * See: https://stackoverflow.com/questions/51528780/typescript-check-typeof-against-custom-type
      */
-    if (!data?.targetType) {
+    if (!data?.targetType || data.id !== 'sentry.mail.actions.NotifyEmailAction') {
       return null;
     }
 
@@ -234,17 +271,7 @@ class RuleNode extends React.Component<Props> {
       case MailActionTargetType.Team:
         return null;
       case MailActionTargetType.Member:
-        return (
-          <MarginlessAlert type="warning">
-            {tct('Alerts sent directly to a member override their [alertSettings].', {
-              alertSettings: (
-                <ExternalLink href="/settings/account/notifications/">
-                  {t('personal project alert settings')}
-                </ExternalLink>
-              ),
-            })}
-          </MarginlessAlert>
-        );
+        return null;
       default:
         return null;
     }
@@ -280,6 +307,11 @@ const InlineInput = styled(Input)`
   height: 28px;
 `;
 
+const InlineNumberInput = styled(Input)`
+  width: 90px;
+  height: 28px;
+`;
+
 const InlineSelectControl = styled(SelectControl)`
   width: 180px;
 `;
@@ -297,9 +329,9 @@ const RuleRow = styled('div')`
 `;
 
 const RuleRowContainer = styled('div')`
-  &:nth-child(odd) {
-    background-color: ${p => p.theme.gray100};
-  }
+  background-color: ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px ${p => p.theme.borderLight} solid;
 `;
 
 const Rule = styled('div')`

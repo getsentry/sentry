@@ -7,7 +7,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
 from django.template import loader
 
-from sentry.api.serializers.base import serialize
 from sentry.auth import access
 from sentry.models import Team
 from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
@@ -53,13 +52,6 @@ def get_default_context(request, existing_context=None, team=None):
         user = request.user
     else:
         user = AnonymousUser()
-
-    if organization:
-        context["selectedOrganization"] = serialize(organization, user)
-    if team:
-        context["selectedTeam"] = serialize(team, user)
-    if project:
-        context["selectedProject"] = serialize(project, user)
 
     if not existing_context or "ACCESS" not in existing_context:
         if request:

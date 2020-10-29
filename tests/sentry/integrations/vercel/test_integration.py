@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import responses
-import six
 
 from rest_framework.serializers import ValidationError
 
@@ -78,6 +77,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             "next": "https://example.com",
         }
         self.pipeline.bind_state("user_id", self.user.id)
+        # TODO: Should use the setup path since we /configure instead
         resp = self.client.get(self.setup_path, params)
 
         mock_request = responses.calls[0].request
@@ -467,16 +467,13 @@ class VercelIntegrationTest(IntegrationTestCase):
             },
         )
 
-        data = b"""{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}"""
+        data = b'{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}'
 
         resp = self.client.post(path=uihook_url, data=data, content_type="application/json")
         assert resp.status_code == 200
         assert (
-            six.binary_type(
-                absolute_uri(
-                    "/settings/%s/integrations/vercel/%s/"
-                    % (self.organization.slug, integration.id)
-                )
-            )
+            absolute_uri(
+                "/settings/%s/integrations/vercel/%s/" % (self.organization.slug, integration.id)
+            ).encode("utf-8")
             in resp.content
         )

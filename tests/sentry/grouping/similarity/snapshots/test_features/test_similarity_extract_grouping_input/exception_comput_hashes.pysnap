@@ -1,8 +1,9 @@
 ---
-created: '2020-07-23T16:57:25.135074Z'
+created: '2020-08-21T21:07:51.164088Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
+similarity:2020-07-23:type:ident-shingle: "ValueError"
 similarity:2020-07-23:value:character-5-shingle: " worl"
 similarity:2020-07-23:value:character-5-shingle: "ello "
 similarity:2020-07-23:value:character-5-shingle: "hello"
@@ -10,4 +11,3 @@ similarity:2020-07-23:value:character-5-shingle: "llo w"
 similarity:2020-07-23:value:character-5-shingle: "lo wo"
 similarity:2020-07-23:value:character-5-shingle: "o wor"
 similarity:2020-07-23:value:character-5-shingle: "world"
-similarity:2020-07-23:type:ident-shingle: "ValueError"
