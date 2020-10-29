@@ -912,7 +912,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
         return time_range_result
 
-    def _get_inbox_stats(self, item_list):
+    def _get_inbox_details(self, item_list):
         group_ids = [g.id for g in item_list]
         group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
         inbox_stats = {
@@ -947,7 +947,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     partial_get_stats(conditions=self.conditions) if self.conditions else None
                 )
             if self.include_inbox:
-                inbox_stats = self._get_inbox_stats(item_list)
+                inbox_stats = self._get_inbox_details(item_list)
 
             for item in item_list:
                 if self.has_dynamic_issue_counts and self.conditions:
