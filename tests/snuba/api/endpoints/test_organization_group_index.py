@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models import (
+    add_group_to_inbox,
     Activity,
     ApiToken,
     ExternalIssue,
@@ -18,6 +19,7 @@ from sentry.models import (
     GroupBookmark,
     GroupHash,
     GroupInbox,
+    GroupInboxReason,
     GroupLink,
     GroupSeen,
     GroupShare,
@@ -650,6 +652,62 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
                 before_now_100_seconds
             ).replace(tzinfo=timezone.utc)
+
+    def test_inbox_search(self):
+        with self.feature("organizations:inbox"):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-2"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            event3 = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-3"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-4"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            # group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+            # group2 = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
+            # group3 = self.create_group(checksum="c" * 32, status=GroupStatus.IGNORED)
+            # group4 = self.create_group(checksum="d" * 32, status=GroupStatus.UNRESOLVED)
+
+            # add_group_to_inbox(group2, GroupInboxReason.NEW)
+            add_group_to_inbox(event3.group, GroupInboxReason.NEW)
+
+            self.login_as(user=self.user)
+            response = self.get_response(
+                sort_by="date", limit=10, query="is:inbox is:unresolved", expand=["inbox"]
+            )
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event3.group.id
+            assert response.data[0]["inbox"] is not None
+            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
     def test_aggregate_stats_regression_test(self):
         with self.feature("organizations:dynamic-issue-counts"):
