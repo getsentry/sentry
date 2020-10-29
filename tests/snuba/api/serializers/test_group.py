@@ -2,13 +2,11 @@
 
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
+import pytz
 import six
 
 from datetime import timedelta
-
 from django.utils import timezone
-from sentry.utils.compat.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (
@@ -30,6 +28,8 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils.compat import mock
+from sentry.utils.compat.mock import patch
 
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
@@ -345,6 +345,13 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert iso_format(result["lastSeen"]) == iso_format(self.week_ago)
         assert iso_format(result["firstSeen"]) == iso_format(self.week_ago)
         assert result["count"] == "1"
+
+    def test_get_start_from_seen_stats(self):
+        for days, expected in [(None, 30), (0, 14), (1000, 90)]:
+            last_seen = None if days is None else before_now(days=days).replace(tzinfo=pytz.UTC)
+            start = GroupSerializerSnuba._get_start_from_seen_stats({"": {"last_seen": last_seen}})
+
+            assert iso_format(start) == iso_format(before_now(days=expected))
 
 
 class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):

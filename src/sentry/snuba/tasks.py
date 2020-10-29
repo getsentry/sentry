@@ -16,13 +16,37 @@ from sentry.utils.snuba import (
 # TODO: If we want to support security events here we'll need a way to
 # differentiate within the dataset. For now we can just assume all subscriptions
 # created within this dataset are just for errors.
-DATASET_CONDITIONS = {QueryDatasets.EVENTS: "event.type:error"}
+DATASET_CONDITIONS = {
+    QueryDatasets.EVENTS: "event.type:error",
+    QueryDatasets.TRANSACTIONS: "event.type:transaction",
+}
 
 
-def apply_dataset_query_conditions(dataset, query):
-    if dataset in DATASET_CONDITIONS:
-        query = u"({}) AND ({})".format(DATASET_CONDITIONS[dataset], query)
-    return query
+def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
+    """
+    Applies query dataset conditions to a query. This essentially turns a query like
+    'release:123 or release:456' into '(event.type:error) AND (release:123 or release:456)'.
+    :param dataset: The `QueryDataset` that the query applies to
+    :param query: A string containing query to apply conditions to
+    :param event_types: A list of EventType(s) to apply to the query
+    :param discover: Whether this is intended for use with the discover dataset or not.
+    When False, we won't modify queries for `QueryDatasets.TRANSACTIONS` at all. This is
+    because the discover dataset requires that we always specify `event.type` so we can
+    differentiate between errors and transactions, but the TRANSACTIONS dataset doesn't
+    need it specified, and `event.type` ends up becoming a tag search.
+    """
+    if not discover and dataset == QueryDatasets.TRANSACTIONS:
+        return query
+    if event_types:
+        event_type_conditions = " OR ".join(
+            ["event.type:{}".format(event_type.name.lower()) for event_type in event_types]
+        )
+    elif dataset in DATASET_CONDITIONS:
+        event_type_conditions = DATASET_CONDITIONS[dataset]
+    else:
+        return query
+
+    return u"({}) AND ({})".format(event_type_conditions, query)
 
 
 @instrumented_task(
@@ -122,13 +146,13 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
 
-def build_snuba_filter(dataset, query, aggregate, environment, params=None):
+def build_snuba_filter(dataset, query, aggregate, environment, event_types, params=None):
     resolve_func = (
         resolve_column(Dataset.Events)
         if dataset == QueryDatasets.EVENTS
         else resolve_column(Dataset.Transactions)
     )
-    query = apply_dataset_query_conditions(dataset, query)
+    query = apply_dataset_query_conditions(dataset, query, event_types)
     snuba_filter = get_filter(query, params=params)
     snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
     snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
@@ -144,6 +168,7 @@ def _create_in_snuba(subscription):
         snuba_query.query,
         snuba_query.aggregate,
         snuba_query.environment,
+        snuba_query.event_types,
     )
     response = _snuba_pool.urlopen(
         "POST",

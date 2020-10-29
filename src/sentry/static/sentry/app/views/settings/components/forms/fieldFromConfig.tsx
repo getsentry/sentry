@@ -18,6 +18,7 @@ import ChoiceMapperField from './choiceMapperField';
 import RichListField from './richListField';
 import FieldSeparator from './fieldSeparator';
 import ProjectMapperField from './projectMapperField';
+import SentryProjectSelectorField from './sentryProjectSelectorField';
 import {Field} from './type';
 
 type Props = {
@@ -25,6 +26,7 @@ type Props = {
   highlighted?: boolean;
   disabled?: boolean | ((props) => boolean);
   flexibleControlStateSize?: boolean;
+  getData?: (data) => any;
   stacked?: boolean;
   inline?: boolean;
   onBlur?: (value, event) => void;
@@ -59,6 +61,7 @@ export default class FieldFromConfig extends React.Component<Props> {
         'url',
         'table',
         'project_mapper',
+        'sentry_project_selector',
       ]),
       required: PropTypes.bool,
       multiline: PropTypes.bool,
@@ -141,6 +144,8 @@ export default class FieldFromConfig extends React.Component<Props> {
         return <TableField {...props} />;
       case 'project_mapper':
         return <ProjectMapperField {...props} />;
+      case 'sentry_project_selector':
+        return <SentryProjectSelectorField {...props} />;
       case 'custom':
         return field.Component(props);
       default:

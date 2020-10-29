@@ -7,7 +7,6 @@ import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 
 const data = {
   metadata: {
-    title: 'metadata title',
     type: 'metadata type',
     directive: 'metadata directive',
     uri: 'metadata uri',
@@ -25,15 +24,14 @@ describe('EventOrGroupHeader', function () {
       level: 'error',
       id: 'id',
     };
+
     it('renders with `type = error`', function () {
       const component = mountWithTheme(
         <EventOrGroupHeader
           orgId="orgId"
           data={{
             ...groupData,
-            ...{
-              type: 'error',
-            },
+            type: 'error',
           }}
         />,
         routerContext
@@ -65,8 +63,10 @@ describe('EventOrGroupHeader', function () {
           params={{orgId: 'orgId'}}
           data={{
             ...groupData,
-            ...{
-              type: 'default',
+            type: 'default',
+            metadata: {
+              ...groupData.metadata,
+              title: 'metadata title',
             },
           }}
         />,
@@ -74,6 +74,39 @@ describe('EventOrGroupHeader', function () {
       );
 
       expect(component).toSnapshot();
+    });
+
+    it('renders metadata values in message for error events', function () {
+      const component = mountWithTheme(
+        <EventOrGroupHeader
+          params={{orgId: 'orgId'}}
+          data={{
+            ...groupData,
+            type: 'error',
+          }}
+        />,
+        routerContext
+      );
+      const message = component.find('Message');
+      expect(message.text()).toEqual('metadata value');
+    });
+
+    it('renders location', function () {
+      const component = mountWithTheme(
+        <EventOrGroupHeader
+          params={{orgId: 'orgId'}}
+          data={{
+            metadata: {
+              filename: 'path/to/file.swift',
+            },
+            platform: 'swift',
+            type: 'error',
+          }}
+        />,
+        routerContext
+      );
+      const location = component.find('Location');
+      expect(location.text()).toEqual('in path/to/file.swift');
     });
   });
 
@@ -92,9 +125,7 @@ describe('EventOrGroupHeader', function () {
           params={{orgId: 'orgId'}}
           data={{
             ...eventData,
-            ...{
-              type: 'error',
-            },
+            type: 'error',
           }}
         />,
         routerContext
@@ -109,9 +140,7 @@ describe('EventOrGroupHeader', function () {
           params={{orgId: 'orgId'}}
           data={{
             ...eventData,
-            ...{
-              type: 'csp',
-            },
+            type: 'csp',
           }}
         />,
         routerContext
@@ -126,8 +155,10 @@ describe('EventOrGroupHeader', function () {
           params={{orgId: 'orgId'}}
           data={{
             ...eventData,
-            ...{
-              type: 'default',
+            type: 'default',
+            metadata: {
+              ...eventData.metadata,
+              title: 'metadata title',
             },
           }}
         />,
@@ -144,8 +175,10 @@ describe('EventOrGroupHeader', function () {
           hideLevel
           data={{
             ...eventData,
-            ...{
-              type: 'default',
+            type: 'default',
+            metadata: {
+              ...eventData.metadata,
+              title: 'metadata title',
             },
           }}
         />,
@@ -165,9 +198,7 @@ describe('EventOrGroupHeader', function () {
           params={{orgId: 'orgId'}}
           data={{
             ...eventData,
-            ...{
-              type: 'default',
-            },
+            type: 'default',
           }}
           location={{query}}
         />
@@ -186,9 +217,7 @@ describe('EventOrGroupHeader', function () {
           params={{orgId: 'orgId'}}
           data={{
             ...eventData,
-            ...{
-              type: 'default',
-            },
+            type: 'default',
           }}
           location={{query}}
         />

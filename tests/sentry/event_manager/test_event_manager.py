@@ -172,7 +172,8 @@ class EventManagerTest(TestCase):
 
         assert event.group_id != event2.group_id
 
-    def test_unresolves_group(self):
+    @mock.patch("sentry.signals.issue_unresolved.send_robust")
+    def test_unresolves_group(self, send_robust):
         ts = time() - 300
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
@@ -192,6 +193,7 @@ class EventManagerTest(TestCase):
 
         group = Group.objects.get(id=group.id)
         assert not group.is_resolved()
+        assert send_robust.called
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression):

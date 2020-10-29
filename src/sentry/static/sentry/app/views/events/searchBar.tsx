@@ -13,7 +13,12 @@ import {fetchTagValues} from 'app/actionCreators/tags';
 import SentryTypes from 'app/sentryTypes';
 import {SavedSearchType, Organization, TagCollection} from 'app/types';
 import SmartSearchBar from 'app/components/smartSearchBar';
-import {Field, FIELD_TAGS, TRACING_FIELDS} from 'app/utils/discover/fields';
+import {
+  Field,
+  FIELD_TAGS,
+  TRACING_FIELDS,
+  isAggregateField,
+} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
 import {Client} from 'app/api';
@@ -62,6 +67,12 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
     (tag, query, endpointParams): Promise<string[]> => {
       const {api, organization, projectIds} = this.props;
       const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
+
+      if (isAggregateField(tag.key)) {
+        // We can't really auto suggest values for aggregate fields
+        // so we simply don't
+        return Promise.resolve([]);
+      }
 
       return fetchTagValues(
         api,
