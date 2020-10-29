@@ -142,7 +142,7 @@ class ProjectEnvironments extends React.Component<Props, State> {
     );
   }
 
-  renderEnvironmentList(envs) {
+  renderEnvironmentList(envs: Environment[]) {
     const isHidden = this.props.location.pathname.endsWith('hidden/');
     const buttonText = isHidden ? t('Show') : t('Hide');
 
@@ -213,28 +213,28 @@ class ProjectEnvironments extends React.Component<Props, State> {
 
 type RowProps = {
   environment: Environment;
-  isHidden: boolean;
-  actionText: string;
-  onHide: (env: Environment, isHidden: boolean) => void;
+  onHide?: (env: Environment, isHidden: boolean) => void;
+  isHidden?: boolean;
+  actionText?: string;
   isSystemRow?: boolean;
   shouldShowAction?: boolean;
 };
 
 function EnvironmentRow({
   environment,
-  shouldShowAction,
-  isSystemRow,
-  isHidden,
-  actionText,
   onHide,
+  shouldShowAction = false,
+  isSystemRow = false,
+  isHidden = false,
+  actionText = '',
 }: RowProps) {
   return (
     <EnvironmentItem>
       <Name>{isSystemRow ? t('All Environments') : environment.name}</Name>
       <Access access={['project:write']}>
         {({hasAccess}) => (
-          <div>
-            {shouldShowAction && (
+          <React.Fragment>
+            {shouldShowAction && onHide && (
               <EnvironmentButton
                 size="xsmall"
                 disabled={!hasAccess}
@@ -243,7 +243,7 @@ function EnvironmentRow({
                 {actionText}
               </EnvironmentButton>
             )}
-          </div>
+          </React.Fragment>
         )}
       </Access>
     </EnvironmentItem>
