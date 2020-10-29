@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
-
+import cloneDeep from 'lodash/cloneDeep';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
@@ -78,7 +78,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
       method: 'DELETE',
       success: () => {
         addSuccessMessage(t('Successfully unlinked issue.'));
-        let unlinked = JSON.parse(JSON.stringify(integration)) as GroupIntegration;
+        let unlinked = cloneDeep(integration);
         unlinked.externalIssues = [];
         this.setState({
           selectedIntegration: null,
@@ -119,7 +119,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     integration: GroupIntegration,
     externalIssue: IntegrationExternalIssue
   ) => {
-    let linked = JSON.parse(JSON.stringify(integration)) as GroupIntegration;
+    let linked = cloneDeep(integration);
     linked.externalIssues = [externalIssue];
     this.setState(
       {
