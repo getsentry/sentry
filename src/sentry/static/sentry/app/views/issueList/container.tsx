@@ -45,11 +45,9 @@ class IssueListContainer extends React.Component<Props> {
     return (
       <DocumentTitle title={this.getTitle()}>
         <GlobalSelectionHeader>
-          <PageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              {children}
-            </LightWeightNoProjectMessage>
-          </PageContent>
+          <LightWeightNoProjectMessage organization={organization}>
+            {children}
+          </LightWeightNoProjectMessage>
         </GlobalSelectionHeader>
       </DocumentTitle>
     );
