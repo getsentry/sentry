@@ -121,6 +121,11 @@ const aliases = {
   active: colors.pink300,
 
   /**
+   * Inactive
+   */
+  inactive: colors.gray300,
+
+  /**
    * Link color indicates that something is clickable
    */
   linkColor: colors.purple300,

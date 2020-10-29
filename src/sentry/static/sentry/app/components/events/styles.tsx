@@ -17,7 +17,7 @@ const COLORS = {
 
 export const DataSection = styled('div')`
   padding: ${space(2)} 0;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(3)} ${space(4)} 0 40px;
