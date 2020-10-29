@@ -14,45 +14,6 @@ import Tooltip from 'app/components/tooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-const UserInfo = styled('div')`
-  display: flex;
-  line-height: 1.2;
-  font-size: 13px;
-  flex: 1;
-`;
-
-const NameContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
-const Name = styled('div')`
-  font-weight: 600;
-  font-size: 15px;
-`;
-const Note = styled('div')`
-  font-size: 13px;
-  word-break: break-word;
-`;
-const OverflowBox = styled('div')`
-  ${overflowEllipsis};
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  display: grid;
-  grid-template-columns: 1fr 150px 130px 150px;
-  grid-column-gap: ${space(2)};
-  padding: ${space(2)};
-`;
-
-const StyledPanelItem = styled(PanelItem)`
-  display: grid;
-  grid-template-columns: 1fr 150px 130px 150px;
-  grid-column-gap: ${space(2)};
-  padding: ${space(2)};
-`;
-
 const avatarStyle = {
   width: 36,
   height: 36,
@@ -80,13 +41,12 @@ class AuditLogList extends React.Component {
     const action = (
       <form>
         <SelectField
-          deprecatedSelectControl
           name="event"
           onChange={onEventSelect}
           value={eventType}
           style={{width: 250}}
           options={options}
-          clearable
+          isClearable
         />
       </form>
     );
@@ -125,18 +85,21 @@ class AuditLogList extends React.Component {
                       <Note>{entry.note}</Note>
                     </NameContainer>
                   </UserInfo>
-                  <div>{entry.event}</div>
                   <div>
+                    <MonoDetail>{entry.event}</MonoDetail>
+                  </div>
+                  <TimestampOverflow>
                     <Tooltip
                       title={entry.ipAddress}
                       disabled={entry.ipAddress && entry.ipAddress.length <= ipv4Length}
                     >
-                      <OverflowBox>{entry.ipAddress}</OverflowBox>
+                      <MonoDetail>{entry.ipAddress}</MonoDetail>
                     </Tooltip>
-                  </div>
-                  <div>
-                    <DateTime date={entry.dateCreated} />
-                  </div>
+                  </TimestampOverflow>
+                  <TimestampInfo>
+                    <DateTime dateOnly date={entry.dateCreated} />
+                    <DateTime timeOnly format="LT zz" date={entry.dateCreated} />
+                  </TimestampInfo>
                 </StyledPanelItem>
               ))}
           </PanelBody>
@@ -146,5 +109,55 @@ class AuditLogList extends React.Component {
     );
   }
 }
+
+const UserInfo = styled('div')`
+  display: flex;
+  line-height: 1.2;
+  font-size: 13px;
+  flex: 1;
+`;
+
+const NameContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+const Name = styled('div')`
+  font-weight: 600;
+  font-size: 15px;
+`;
+const Note = styled('div')`
+  font-size: 13px;
+  word-break: break-word;
+`;
+const TimestampOverflow = styled('div')`
+  ${overflowEllipsis};
+`;
+
+const MonoDetail = styled('code')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  display: grid;
+  grid-template-columns: 1fr max-content 130px 150px;
+  grid-column-gap: ${space(2)};
+  padding: ${space(2)};
+`;
+
+const StyledPanelItem = styled(PanelItem)`
+  display: grid;
+  grid-template-columns: 1fr max-content 130px 150px;
+  grid-column-gap: ${space(2)};
+  padding: ${space(2)};
+`;
+
+const TimestampInfo = styled('div')`
+  display: grid;
+  grid-template-rows: auto auto;
+  grid-gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 export default AuditLogList;
