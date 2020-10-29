@@ -169,7 +169,9 @@ jobs:
           snapshot-path: .artifacts/visual-snapshots
 
   visual-diff:
-    if: ${{ github.ref != 'refs/heads/master' }}
+    # Note: `github.ref` is always `master` for `pull_request_target` event
+    # `github.head/base_ref` == '' for `push` event, we want to skip it on pushes
+    if: github.head_ref != ''
     needs: [acceptance, frontend]
     runs-on: ubuntu-16.04
     timeout-minutes: 20
