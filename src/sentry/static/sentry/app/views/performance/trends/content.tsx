@@ -40,6 +40,7 @@ type Props = {
   location: Location;
   eventView: EventView;
   selection: GlobalSelection;
+  setError: (msg: string | undefined) => void;
 };
 
 type State = {
@@ -127,7 +128,7 @@ class TrendsContent extends React.Component<Props, State> {
   };
 
   render() {
-    const {organization, eventView, selection, location} = this.props;
+    const {organization, eventView, selection, location, setError} = this.props;
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
@@ -219,12 +220,14 @@ class TrendsContent extends React.Component<Props, State> {
               previousTrendFunction={previousTrendFunction}
               trendView={trendView}
               location={location}
+              setError={setError}
             />
             <ChangedTransactions
               trendChangeType={TrendChangeType.REGRESSION}
               previousTrendFunction={previousTrendFunction}
               trendView={trendView}
               location={location}
+              setError={setError}
             />
           </TrendsLayoutContainer>
         </DefaultTrends>
