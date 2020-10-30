@@ -46,17 +46,19 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
   }
 
   linkedIssuesFilter() {
-    return this.props.configurations.reduce(
-      (acc: LinkedIssues, curr) => {
-        if (curr.externalIssues.length) {
-          acc.linked.push(curr);
-        } else {
-          acc.unlinked.push(curr);
-        }
-        return acc;
-      },
-      {linked: [], unlinked: []}
-    );
+    return this.props.configurations
+      .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+      .reduce(
+        (acc: LinkedIssues, curr) => {
+          if (curr.externalIssues.length) {
+            acc.linked.push(curr);
+          } else {
+            acc.unlinked.push(curr);
+          }
+          return acc;
+        },
+        {linked: [], unlinked: []}
+      );
   }
 
   deleteIssue(integration: GroupIntegration) {
@@ -148,15 +150,11 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
             hoverCardHeader={t('Linked %s Integration', unlinked[0].provider.name)}
             hoverCardBody={
               <Container>
-                {unlinked
-                  .sort((a, b) =>
-                    a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-                  )
-                  .map(config => (
-                    <Wrapper onClick={() => this.openModal(config)} key={config.id}>
-                      <IntegrationItem integration={config} />
-                    </Wrapper>
-                  ))}
+                {unlinked.map(config => (
+                  <Wrapper onClick={() => this.openModal(config)} key={config.id}>
+                    <IntegrationItem integration={config} />
+                  </Wrapper>
+                ))}
               </Container>
             }
           />
