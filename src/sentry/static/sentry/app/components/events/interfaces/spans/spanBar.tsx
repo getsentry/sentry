@@ -1167,12 +1167,12 @@ export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
 
 const MeasurementMarker = styled('div')`
   position: absolute;
-  top: 2px;
-  height: 100%;
+  top: 0;
+  height: ${SPAN_ROW_HEIGHT}px;
   user-select: none;
-  border-left: 1px dashed ${p => p.theme.gray800};
-  border-right: 1px dashed ${p => p.theme.gray800};
-  opacity: 0.5;
+  width: 1px;
+  background: repeating-linear-gradient(to bottom, transparent 0 4px, black 4px 8px) 80%/2px
+    100% no-repeat;
   z-index: ${zIndex.dividerLine};
 `;
 
