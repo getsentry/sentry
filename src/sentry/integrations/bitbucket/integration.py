@@ -92,7 +92,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
 
     def get_repositories(self, query=None):
         if not query:
-            resp = self.get_client().get_repos(self.username)
+            resp = self.get_client().get_repos(self.model.metadata.get("uuid", self.username))
             return [
                 {"identifier": repo["full_name"], "name": repo["full_name"]}
                 for repo in resp.get("values", [])
@@ -100,9 +100,12 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
 
         exact_query = (u'name="%s"' % (query)).encode("utf-8")
         fuzzy_query = (u'name~"%s"' % (query)).encode("utf-8")
-
-        exact_search_resp = self.get_client().search_repositories(self.username, exact_query)
-        fuzzy_search_resp = self.get_client().search_repositories(self.username, fuzzy_query)
+        exact_search_resp = self.get_client().search_repositories(
+            self.model.metadata.get("uuid", self.username), exact_query
+        )
+        fuzzy_search_resp = self.get_client().search_repositories(
+            self.model.metadata.get("uuid", self.username), fuzzy_query
+        )
 
         result = OrderedSet()
 
