@@ -233,7 +233,6 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
         hasSelected={false}
         isOpen={false}
         locked={false}
-        onClear={() => {}}
       >
         {t('Loading\u2026')}
       </StyledHeaderItem>
@@ -324,6 +323,7 @@ type EnvironmentSelectorItemProps = {
   isChecked: boolean;
   onMultiSelect: (environment: string) => void;
 };
+
 class EnvironmentSelectorItem extends React.PureComponent<EnvironmentSelectorItemProps> {
   handleMultiSelect = () => {
     const {environment, onMultiSelect} = this.props;
