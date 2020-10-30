@@ -34,6 +34,9 @@ type State = AsyncComponent['state'] & {
 
 class StacktraceLink extends AsyncComponent<Props, State> {
   get project() {
+    // we can't use the withProject HoC on an the issue page
+    // so we ge around that by using the withProjects HoC
+    // and look up the project from the list
     const {projects, event} = this.props;
     return projects.find(project => project.id === event.projectID);
   }

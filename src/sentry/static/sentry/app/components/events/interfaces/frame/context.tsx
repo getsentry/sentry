@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 
 import {Frame, SentryAppComponent, Event, Organization} from 'app/types';
 import {t} from 'app/locale';
@@ -80,24 +79,7 @@ const Context = ({
           const isActive = frame.lineNo === line[0];
           const hasComponents = isActive && components.length > 0;
           return (
-            <ContextLine
-              key={index}
-              line={line}
-              isActive={isActive}
-              css={
-                hasComponents
-                  ? css`
-                      background: inherit;
-                      padding: 0;
-                      text-indent: 20px;
-                      z-index: 1000;
-                    `
-                  : css`
-                      background: inherit;
-                      padding: 0 20px;
-                    `
-              }
-            >
+            <StyledContextLine key={index} line={line} isActive={isActive}>
               {hasComponents && (
                 <ErrorBoundary mini>
                   <OpenInContextLine
@@ -120,7 +102,7 @@ const Context = ({
                     />
                   </ErrorBoundary>
                 )}
-            </ContextLine>
+            </StyledContextLine>
           );
         })}
 
@@ -160,4 +142,11 @@ const StyledClippedBox = styled(ClippedBox)`
 
 const StyledIconFlag = styled(IconFlag)`
   margin-right: ${space(1)};
+`;
+
+const StyledContextLine = styled(ContextLine)`
+  background: inherit;
+  padding: 0;
+  text-indent: 20px;
+  z-index: 1000;
 `;
