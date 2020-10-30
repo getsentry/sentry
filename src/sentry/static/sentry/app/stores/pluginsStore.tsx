@@ -7,7 +7,7 @@ type PluginStoreInterface = {
   state: {
     loading: boolean;
     plugins: Plugin[];
-    error: any | null;
+    error: Error | null;
     pageLinks: string | null;
   };
   plugins: Map<string, Plugin> | null;
