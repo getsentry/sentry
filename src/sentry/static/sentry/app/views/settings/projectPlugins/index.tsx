@@ -1,4 +1,5 @@
 import React from 'react';
+import {WithRouterProps} from 'react-router/lib/withRouter';
 
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 import {t} from 'app/locale';
@@ -7,14 +8,23 @@ import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {Plugin, Organization, Project} from 'app/types';
 
 import ProjectPlugins from './projectPlugins';
 
-class ProjectPluginsContainer extends React.Component {
-  static propTypes = {
+type Props = WithRouterProps<{orgId: string; projectId: string}> & {
+  plugins: {
+    plugins: Plugin[];
+    error: React.ComponentProps<typeof ProjectPlugins>['error'];
+    loading: boolean;
+  };
+  organization: Organization;
+  project: Project;
+};
+
+class ProjectPluginsContainer extends React.Component<Props> {
+  static propTypes: any = {
     plugins: SentryTypes.PluginsStore,
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
@@ -42,7 +52,7 @@ class ProjectPluginsContainer extends React.Component {
     );
   };
 
-  handleChange = (pluginId, shouldEnable) => {
+  handleChange = (pluginId: string, shouldEnable: boolean) => {
     const {projectId, orgId} = this.props.params;
     const actionCreator = shouldEnable ? enablePlugin : disablePlugin;
     actionCreator({projectId, orgId, pluginId});
@@ -73,4 +83,4 @@ class ProjectPluginsContainer extends React.Component {
   }
 }
 
-export default withProject(withOrganization(withPlugins(ProjectPluginsContainer)));
+export default withPlugins(ProjectPluginsContainer);
