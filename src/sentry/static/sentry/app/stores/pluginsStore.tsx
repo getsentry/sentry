@@ -7,25 +7,30 @@ type PluginStoreInterface = {
   state: {
     loading: boolean;
     plugins: Plugin[];
-    error?: any;
-    pageLinks?: string;
+    error: any | null;
+    pageLinks: string | null;
   };
-  plugins?: Map<string, Plugin>;
+  plugins: Map<string, Plugin> | null;
   updating: Map<string, Plugin>;
 };
 
 const PluginStoreConfig: Reflux.StoreDefinition & PluginStoreInterface = {
+  plugins: null,
   state: {
     loading: true,
     plugins: [],
+    error: null,
+    pageLinks: null,
   },
   updating: new Map(),
 
   reset() {
-    this.plugins = undefined;
+    this.plugins = null;
     this.state = {
       loading: true,
       plugins: [],
+      error: null,
+      pageLinks: null,
     };
     this.updating = new Map();
     return this.state;
@@ -61,8 +66,8 @@ const PluginStoreConfig: Reflux.StoreDefinition & PluginStoreInterface = {
   onFetchAll({resetLoading}: {resetLoading?: boolean} = {}) {
     if (resetLoading) {
       this.state.loading = true;
-      this.state.error = undefined;
-      this.plugins = undefined;
+      this.state.error = null;
+      this.plugins = null;
     }
 
     this.triggerState();
@@ -70,13 +75,13 @@ const PluginStoreConfig: Reflux.StoreDefinition & PluginStoreInterface = {
 
   onFetchAllSuccess(data: Plugin[], {pageLinks}: {pageLinks?: string}) {
     this.plugins = new Map(data.map(plugin => [plugin.id, plugin]));
-    this.state.pageLinks = pageLinks;
+    this.state.pageLinks = pageLinks || null;
     this.state.loading = false;
     this.triggerState();
   },
 
   onFetchAllError(err) {
-    this.plugins = undefined;
+    this.plugins = null;
     this.state.loading = false;
     this.state.error = err;
     this.triggerState();
