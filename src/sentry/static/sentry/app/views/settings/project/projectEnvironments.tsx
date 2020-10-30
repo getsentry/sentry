@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {WithRouterProps} from 'react-router';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
@@ -15,20 +15,25 @@ import ListLink from 'app/components/links/listLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NavTabs from 'app/components/navTabs';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 import {getUrlRoutingName, getDisplayName} from 'app/utils/environment';
+import {Environment, Project} from 'app/types';
+import {Client} from 'app/api';
 
-class ProjectEnvironments extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    routes: PropTypes.array,
-    params: PropTypes.object,
-  };
+type Props = {
+  api: Client;
+} & WithRouterProps<{orgId: string; projectId: string}, {}>;
 
-  state = {
+type State = {
+  isLoading: boolean;
+  project: null | Project;
+  environments: null | Environment[];
+};
+
+class ProjectEnvironments extends React.Component<Props, State> {
+  state: State = {
     project: null,
     environments: null,
     isLoading: true,
@@ -38,7 +43,7 @@ class ProjectEnvironments extends React.Component {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (
       this.props.location.pathname.endsWith('hidden/') !==
       prevProps.location.pathname.endsWith('hidden/')
@@ -75,7 +80,7 @@ class ProjectEnvironments extends React.Component {
   }
 
   // Toggle visibility of environment
-  toggleEnv = (env, shouldHide) => {
+  toggleEnv = (env: Environment, shouldHide: boolean) => {
     const {orgId, projectId} = this.props.params;
 
     this.props.api.request(
@@ -131,13 +136,14 @@ class ProjectEnvironments extends React.Component {
         environment={{
           id: ALL_ENVIRONMENTS_KEY,
           name: ALL_ENVIRONMENTS_KEY,
+          displayName: ALL_ENVIRONMENTS_KEY,
         }}
         isSystemRow
       />
     );
   }
 
-  renderEnvironmentList(envs) {
+  renderEnvironmentList(envs: Environment[]) {
     const isHidden = this.props.location.pathname.endsWith('hidden/');
     const buttonText = isHidden ? t('Show') : t('Hide');
 
@@ -168,7 +174,7 @@ class ProjectEnvironments extends React.Component {
 
     return (
       <PanelBody>
-        {environments.length
+        {environments?.length
           ? this.renderEnvironmentList(environments)
           : this.renderEmpty()}
       </PanelBody>
@@ -207,40 +213,45 @@ class ProjectEnvironments extends React.Component {
   }
 }
 
-class EnvironmentRow extends React.Component {
-  static propTypes = {
-    environment: SentryTypes.Environment,
-    isHidden: PropTypes.bool,
-    isSystemRow: PropTypes.bool,
-    shouldShowAction: PropTypes.bool,
-    actionText: PropTypes.string,
-    onHide: PropTypes.func,
-  };
+type RowProps = {
+  environment: Environment;
+  name: string;
+  onHide?: (env: Environment, isHidden: boolean) => void;
+  isHidden?: boolean;
+  actionText?: string;
+  isSystemRow?: boolean;
+  shouldShowAction?: boolean;
+};
 
-  render() {
-    const {environment, shouldShowAction, isSystemRow, isHidden, actionText} = this.props;
-
-    return (
-      <EnvironmentItem>
-        <Name>{isSystemRow ? t('All Environments') : environment.name}</Name>
-        <Access access={['project:write']}>
-          {({hasAccess}) => (
-            <div>
-              {shouldShowAction && (
-                <EnvironmentButton
-                  size="xsmall"
-                  disabled={!hasAccess}
-                  onClick={() => this.props.onHide(environment, !isHidden)}
-                >
-                  {actionText}
-                </EnvironmentButton>
-              )}
-            </div>
-          )}
-        </Access>
-      </EnvironmentItem>
-    );
-  }
+function EnvironmentRow({
+  environment,
+  name,
+  onHide,
+  shouldShowAction = false,
+  isSystemRow = false,
+  isHidden = false,
+  actionText = '',
+}: RowProps) {
+  return (
+    <EnvironmentItem>
+      <Name>{isSystemRow ? t('All Environments') : name}</Name>
+      <Access access={['project:write']}>
+        {({hasAccess}) => (
+          <React.Fragment>
+            {shouldShowAction && onHide && (
+              <EnvironmentButton
+                size="xsmall"
+                disabled={!hasAccess}
+                onClick={() => onHide(environment, !isHidden)}
+              >
+                {actionText}
+              </EnvironmentButton>
+            )}
+          </React.Fragment>
+        )}
+      </Access>
+    </EnvironmentItem>
+  );
 }
 
 const EnvironmentItem = styled(PanelItem)`
