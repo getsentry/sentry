@@ -12,7 +12,7 @@ import List from './list';
 import {ItemsBeforeFilter, Item} from './types';
 import autoCompleteFilter from './autoCompleteFilter';
 
-type MenuFooterChildProps = {
+export type MenuFooterChildProps = {
   actions: Actions;
 };
 
@@ -25,6 +25,7 @@ type EventHandles = {
 
 type MenuProps = Omit<EventHandles, 'onKeyDown'> & {
   className?: string;
+  style?: React.CSSProperties;
 };
 
 // Props for the "actor" element of `<DropdownMenu>`
@@ -191,6 +192,7 @@ type Props = {
    */
   rootClassName?: string;
 
+  zIndex?: number;
   css?: any;
 } & Pick<
   ListProps,
