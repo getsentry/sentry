@@ -8,6 +8,7 @@ import * as qs from 'query-string';
 import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import {Client} from 'app/api';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -46,13 +47,13 @@ import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
 import withIssueTags from 'app/utils/withIssueTags';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import * as Layout from 'app/components/layouts/thirds';
-import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 import {PageContent} from 'app/styles/organization';
+import Feature from 'app/components/acl/feature';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
+import IssueListHeader from './header';
 import IssueListSidebar from './sidebar';
 import NoGroupsHandler from './noGroupsHandler';
 
@@ -108,7 +109,7 @@ type EndpointParams = Partial<GlobalSelection['datetime']> & {
 };
 
 class IssueListOverview extends React.Component<Props, State> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     const realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -649,6 +650,10 @@ class IssueListOverview extends React.Component<Props, State> {
     });
   };
 
+  handleTabClick = (query: string) => {
+    this.transitionTo({query});
+  };
+
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getGlobalSearchProjectIds().map(id => id.toString());
@@ -683,91 +688,80 @@ class IssueListOverview extends React.Component<Props, State> {
     const query = this.getQuery();
 
     return (
-      <React.Fragment>
-        <BorderlessHeader>
-          <StyledHeaderContent>
-            <StyledLayoutTitle>Issues</StyledLayoutTitle>
-          </StyledHeaderContent>
-        </BorderlessHeader>
-        <TabLayoutHeader>
-          <Layout.HeaderNavTabs underlined>
-            <li className="active">
-              <Link to="#">Inbox</Link>
-            </li>
-            <li>
-              <Link to="#">Backlog</Link>
-            </li>
-            <li>
-              <Link to="#">Ignored</Link>
-            </li>
-            <li>
-              <Link to="#">Resolved</Link>
-            </li>
-          </Layout.HeaderNavTabs>
-        </TabLayoutHeader>
-        <PageContent>
-          <StreamRow>
-            <StreamContent showSidebar={isSidebarVisible}>
-              <IssueListFilters
-                organization={organization}
+      <Feature features={['organizations:inbox']}>
+        {({hasFeature}) => (
+          <React.Fragment>
+            {hasFeature && (
+              <IssueListHeader
                 query={query}
-                savedSearch={savedSearch}
-                sort={this.getSort()}
                 queryCount={queryCount}
                 queryMaxCount={queryMaxCount}
-                onSortChange={this.onSortChange}
-                onSearch={this.onSearch}
-                onSavedSearchSelect={this.onSavedSearchSelect}
-                onSavedSearchDelete={this.onSavedSearchDelete}
-                onSidebarToggle={this.onSidebarToggle}
-                isSearchDisabled={isSidebarVisible}
-                savedSearchList={savedSearches}
-                tagValueLoader={this.tagValueLoader}
-                tags={tags}
+                onTabChange={this.handleTabClick}
               />
-
-              <Panel>
-                <IssueListActions
+            )}
+            <StyledPageContent isInbox={hasFeature}>
+              <StreamContent showSidebar={isSidebarVisible}>
+                <IssueListFilters
                   organization={organization}
-                  orgId={organization.slug}
-                  selection={selection}
                   query={query}
+                  savedSearch={savedSearch}
+                  sort={this.getSort()}
                   queryCount={queryCount}
-                  onSelectStatsPeriod={this.onSelectStatsPeriod}
-                  onRealtimeChange={this.onRealtimeChange}
-                  realtimeActive={realtimeActive}
-                  statsPeriod={this.getGroupStatsPeriod()}
-                  groupIds={groupIds}
-                  allResultsVisible={this.allResultsVisible()}
-                />
-                <PanelBody>
-                  <ProcessingIssueList
-                    organization={organization}
-                    projectIds={selection?.projects?.map(p => p.toString())}
-                    showProject
-                  />
-                  {this.renderStreamBody()}
-                </PanelBody>
-              </Panel>
-              <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
-            </StreamContent>
-
-            <SidebarContainer showSidebar={isSidebarVisible}>
-              {/* Avoid rendering sidebar until first accessed */}
-              {renderSidebar && (
-                <IssueListSidebar
-                  loading={tagsLoading}
-                  tags={tags}
-                  query={query}
-                  onQueryChange={this.onIssueListSidebarSearch}
-                  orgId={organization.slug}
+                  queryMaxCount={queryMaxCount}
+                  onSortChange={this.onSortChange}
+                  onSearch={this.onSearch}
+                  onSavedSearchSelect={this.onSavedSearchSelect}
+                  onSavedSearchDelete={this.onSavedSearchDelete}
+                  onSidebarToggle={this.onSidebarToggle}
+                  isSearchDisabled={isSidebarVisible}
+                  savedSearchList={savedSearches}
                   tagValueLoader={this.tagValueLoader}
+                  tags={tags}
                 />
-              )}
-            </SidebarContainer>
-          </StreamRow>
-        </PageContent>
-      </React.Fragment>
+
+                <Panel>
+                  <IssueListActions
+                    organization={organization}
+                    orgId={organization.slug}
+                    selection={selection}
+                    query={query}
+                    queryCount={queryCount}
+                    onSelectStatsPeriod={this.onSelectStatsPeriod}
+                    onRealtimeChange={this.onRealtimeChange}
+                    realtimeActive={realtimeActive}
+                    statsPeriod={this.getGroupStatsPeriod()}
+                    groupIds={groupIds}
+                    allResultsVisible={this.allResultsVisible()}
+                  />
+                  <PanelBody>
+                    <ProcessingIssueList
+                      organization={organization}
+                      projectIds={selection?.projects?.map(p => p.toString())}
+                      showProject
+                    />
+                    {this.renderStreamBody()}
+                  </PanelBody>
+                </Panel>
+                <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
+              </StreamContent>
+
+              <SidebarContainer showSidebar={isSidebarVisible}>
+                {/* Avoid rendering sidebar until first accessed */}
+                {renderSidebar && (
+                  <IssueListSidebar
+                    loading={tagsLoading}
+                    tags={tags}
+                    query={query}
+                    onQueryChange={this.onIssueListSidebarSearch}
+                    orgId={organization.slug}
+                    tagValueLoader={this.tagValueLoader}
+                  />
+                )}
+              </SidebarContainer>
+            </StyledPageContent>
+          </React.Fragment>
+        )}
+      </Feature>
     );
   }
 }
@@ -780,9 +774,20 @@ export default withApi(
 
 export {IssueListOverview};
 
-const StreamRow = styled('div')`
+// TODO(workflow): Replace PageContent with thirds body
+const StyledPageContent = styled(PageContent)<{isInbox: boolean}>`
   display: flex;
   flex-direction: row;
+  ${p =>
+    p.isInbox &&
+    css`
+      background-color: ${p.theme.background};
+    `}
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    /* Matches thirds layout */
+    padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  }
 `;
 
 const StreamContent = styled('div')<{showSidebar: boolean}>`
@@ -805,24 +810,4 @@ const SidebarContainer = styled('div')<{showSidebar: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
-`;
-
-const StyledLayoutTitle = styled(Layout.Title)`
-  margin-top: ${space(0.5)};
-`;
-
-const BorderlessHeader = styled(Layout.Header)`
-  border-bottom: 0;
-`;
-
-const TabLayoutHeader = styled(Layout.Header)`
-  padding-top: 0;
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    padding-top: 0;
-  }
-`;
-
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: 0;
 `;
