@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-__all__ = ('Sdk', )
+__all__ = ("Sdk",)
 
-from sentry.interfaces.base import Interface, prune_empty_keys
+from sentry.interfaces.base import Interface
+from sentry.utils.json import prune_empty_keys
 
 
 class Sdk(Interface):
@@ -24,33 +25,23 @@ class Sdk(Interface):
 
     @classmethod
     def to_python(cls, data):
-        for key in (
-            'name',
-            'version',
-            'integrations',
-            'packages',
-        ):
+        for key in ("name", "version", "integrations", "packages"):
             data.setdefault(key, None)
 
         return cls(**data)
 
     def to_json(self):
-        return prune_empty_keys({
-            'name': self.name,
-            'version': self.version,
-            'integrations': self.integrations or None,
-            'packages': self.packages or None
-        })
+        return prune_empty_keys(
+            {
+                "name": self.name,
+                "version": self.version,
+                "integrations": self.integrations or None,
+                "packages": self.packages or None,
+            }
+        )
 
     def get_api_context(self, is_public=False, platform=None):
-        return {
-            'name': self.name,
-            'version': self.version,
-        }
+        return {"name": self.name, "version": self.version}
 
     def get_api_meta(self, meta, is_public=False, platform=None):
-        return {
-            '': meta.get(''),
-            'name': meta.get('name'),
-            'version': meta.get('version'),
-        }
+        return {"": meta.get(""), "name": meta.get("name"), "version": meta.get("version")}

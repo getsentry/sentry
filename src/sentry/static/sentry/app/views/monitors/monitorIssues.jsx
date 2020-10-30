@@ -23,14 +23,15 @@ export default class MonitorIssues extends Component {
         endpoint={this.getIssuesPath()}
         query={{
           query: 'monitor.id:"' + monitor.id + '"',
+          project: monitor.project.id,
           limit: 5,
         }}
         statsPeriod="0"
         pagination={false}
         emptyText={t('No issues found')}
         showActions={false}
-        noBorder={true}
-        noMargin={true}
+        noBorder
+        noMargin
         params={{orgId}}
       />
     );

@@ -1,0 +1,14 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        ["message", "*love*"]
+      ],
+      "fingerprint": ["what-is-love"]
+    }
+  ],
+  "fingerprint": ["client-sent"],
+  "logentry": {
+    "formatted": "Hello my sweet Love"
+  }
+}

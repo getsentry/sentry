@@ -1,15 +1,16 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-describe('withGlobalSelection HoC', function() {
+describe('withGlobalSelection HoC', function () {
   beforeEach(() => {
     GlobalSelectionStore.init();
   });
 
-  it('handles projects', function() {
+  it('handles projects', function () {
     const MyComponent = () => null;
     const Container = withGlobalSelection(MyComponent);
     const wrapper = mount(<Container />);
@@ -22,14 +23,14 @@ describe('withGlobalSelection HoC', function() {
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([1]);
   });
 
-  it('handles datetime', function() {
+  it('handles datetime', function () {
     let selection;
     const MyComponent = () => null;
     const Container = withGlobalSelection(MyComponent);
     const wrapper = mount(<Container />);
 
     selection = wrapper.find('MyComponent').prop('selection');
-    expect(selection.datetime.period).toEqual(null);
+    expect(selection.datetime.period).toEqual('14d');
     expect(selection.datetime.start).toEqual(null);
     expect(selection.datetime.end).toEqual(null);
 
@@ -58,7 +59,7 @@ describe('withGlobalSelection HoC', function() {
     expect(selection.datetime.end).toEqual('2018-08-08T00:00:00');
   });
 
-  it('handles environments', function() {
+  it('handles environments', function () {
     const MyComponent = () => null;
     const Container = withGlobalSelection(MyComponent);
     const wrapper = mount(<Container />);

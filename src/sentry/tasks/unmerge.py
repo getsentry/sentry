@@ -5,15 +5,24 @@ from collections import defaultdict, OrderedDict
 
 from django.db import transaction
 
-from sentry import eventstream, tagstore
+from sentry import eventstore, eventstream
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventUser, Group,
-    GroupEnvironment, GroupHash, GroupRelease, Project, Release, UserReport
+    Activity,
+    Environment,
+    EventUser,
+    Group,
+    GroupEnvironment,
+    GroupHash,
+    GroupRelease,
+    Project,
+    Release,
+    UserReport,
+    EventAttachment,
 )
-from sentry.similarity import features
+from sentry import similarity
 from sentry.tasks.base import instrumented_task
 from six.moves import reduce
 
@@ -43,27 +52,21 @@ def cache(function):
 
 def get_caches():
     return {
-        'Environment': cache(
+        "Environment": cache(
             lambda organization_id, name: Environment.objects.get(
-                organization_id=organization_id,
-                name=name,
-            ),
+                organization_id=organization_id, name=name
+            )
         ),
-        'GroupRelease': cache(
+        "GroupRelease": cache(
             lambda group_id, environment, release_id: GroupRelease.objects.get(
-                group_id=group_id,
-                environment=environment,
-                release_id=release_id,
-            ),
+                group_id=group_id, environment=environment, release_id=release_id
+            )
         ),
-        'Project': cache(
-            lambda id: Project.objects.get(id=id),
-        ),
-        'Release': cache(
+        "Project": cache(lambda id: Project.objects.get(id=id)),
+        "Release": cache(
             lambda organization_id, version: Release.objects.get(
-                organization_id=organization_id,
-                version=version,
-            ),
+                organization_id=organization_id, version=version
+            )
         ),
     }
 
@@ -80,42 +83,39 @@ def _generate_culprit(event):
     # This should be save delete by end of 2019 even considering slow on-prem
     # releases.  Platform was added back to data in december 2018.
     data = event.data
-    if data.get('platform') is None:
+    if data.get("platform") is None:
         data = dict(data.items())
-        data['platform'] = event.platform
+        data["platform"] = event.platform
     return generate_culprit(data)
 
 
 initial_fields = {
-    'culprit': lambda event: _generate_culprit(event),
-    'data': lambda event: {
-        'last_received': event.data.get('received') or float(event.datetime.strftime('%s')),
-        'type': event.data['type'],
-        'metadata': event.data['metadata'],
+    "culprit": lambda event: _generate_culprit(event),
+    "data": lambda event: {
+        "last_received": event.data.get("received") or float(event.datetime.strftime("%s")),
+        "type": event.data["type"],
+        "metadata": event.data["metadata"],
     },
-    'last_seen': lambda event: event.datetime,
-    'level': lambda event: LOG_LEVELS_MAP.get(
-        event.get_tag('level'),
-        logging.ERROR,
-    ),
-    'message': lambda event: event.message,
-    'times_seen': lambda event: 0,
+    "last_seen": lambda event: event.datetime,
+    "level": lambda event: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
+    "message": lambda event: event.search_message,
+    "times_seen": lambda event: 0,
 }
 
 
 backfill_fields = {
-    'platform': lambda caches, data, event: event.platform,
-    'logger': lambda caches, data, event: event.get_tag('logger') or DEFAULT_LOGGER_NAME,
-    'first_seen': lambda caches, data, event: event.datetime,
-    'active_at': lambda caches, data, event: event.datetime,
-    'first_release': lambda caches, data, event: caches['Release'](
-        caches['Project'](event.project_id).organization_id,
-        event.get_tag('sentry:release'),
-    ) if event.get_tag('sentry:release') else data.get('first_release', None),
-    'times_seen': lambda caches, data, event: data['times_seen'] + 1,
-    'score': lambda caches, data, event: Group.calculate_score(
-        data['times_seen'] + 1,
-        data['last_seen'],
+    "platform": lambda caches, data, event: event.platform,
+    "logger": lambda caches, data, event: event.get_tag("logger") or DEFAULT_LOGGER_NAME,
+    "first_seen": lambda caches, data, event: event.datetime,
+    "active_at": lambda caches, data, event: event.datetime,
+    "first_release": lambda caches, data, event: caches["Release"](
+        caches["Project"](event.project_id).organization_id, event.get_tag("sentry:release")
+    )
+    if event.get_tag("sentry:release")
+    else data.get("first_release", None),
+    "times_seen": lambda caches, data, event: data["times_seen"] + 1,
+    "score": lambda caches, data, event: Group.calculate_score(
+        data["times_seen"] + 1, data["last_seen"]
     ),
 }
 
@@ -123,10 +123,9 @@ backfill_fields = {
 def get_group_creation_attributes(caches, events):
     latest_event = events[0]
     return reduce(
-        lambda data, event: merge_mappings([
-            data,
-            {name: f(caches, data, event) for name, f in backfill_fields.items()},
-        ]),
+        lambda data, event: merge_mappings(
+            [data, {name: f(caches, data, event) for name, f in backfill_fields.items()}]
+        ),
         events,
         {name: f(latest_event) for name, f in initial_fields.items()},
     )
@@ -134,15 +133,16 @@ def get_group_creation_attributes(caches, events):
 
 def get_group_backfill_attributes(caches, group, events):
     return {
-        k: v for k, v in
-        reduce(
-            lambda data, event: merge_mappings([
-                data,
-                {name: f(caches, data, event) for name, f in backfill_fields.items()},
-            ]),
+        k: v
+        for k, v in reduce(
+            lambda data, event: merge_mappings(
+                [data, {name: f(caches, data, event) for name, f in backfill_fields.items()}]
+            ),
             events,
-            {name: getattr(group, name)
-             for name in set(initial_fields.keys()) | set(backfill_fields.keys())},
+            {
+                name: getattr(group, name)
+                for name in set(initial_fields.keys()) | set(backfill_fields.keys())
+            },
         ).items()
         if k in backfill_fields
     }
@@ -153,8 +153,9 @@ def get_fingerprint(event):
     return event.get_primary_hash()
 
 
-def migrate_events(caches, project, source_id, destination_id,
-                   fingerprints, events, actor_id, eventstream_state):
+def migrate_events(
+    caches, project, source_id, destination_id, fingerprints, events, actor_id, eventstream_state
+):
     # XXX: This is only actually able to create a destination group and migrate
     # the group hashes if there are events that can be migrated. How do we
     # handle this if there aren't any events? We can't create a group (there
@@ -184,17 +185,13 @@ def migrate_events(caches, project, source_id, destination_id,
         destination_id = destination.id
 
         eventstream_state = eventstream.start_unmerge(
-            project.id,
-            fingerprints,
-            source_id,
-            destination_id
+            project.id, fingerprints, source_id, destination_id
         )
 
         # Move the group hashes to the destination.
-        GroupHash.objects.filter(
-            project_id=project.id,
-            hash__in=fingerprints,
-        ).update(group=destination_id)
+        GroupHash.objects.filter(project_id=project.id, hash__in=fingerprints).update(
+            group=destination_id
+        )
 
         # Create activity records for the source and destination group.
         Activity.objects.create(
@@ -202,10 +199,7 @@ def migrate_events(caches, project, source_id, destination_id,
             group_id=destination_id,
             type=Activity.UNMERGE_DESTINATION,
             user_id=actor_id,
-            data={
-                'fingerprints': fingerprints,
-                'source_id': source_id,
-            },
+            data={"fingerprints": fingerprints, "source_id": source_id},
         )
 
         Activity.objects.create(
@@ -213,54 +207,32 @@ def migrate_events(caches, project, source_id, destination_id,
             group_id=source_id,
             type=Activity.UNMERGE_SOURCE,
             user_id=actor_id,
-            data={
-                'fingerprints': fingerprints,
-                'destination_id': destination_id,
-            },
+            data={"fingerprints": fingerprints, "destination_id": destination_id},
         )
     else:
         # Update the existing destination group.
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
-    event_id_set = set(event.id for event in events)
-
-    Event.objects.filter(
-        project_id=project.id,
-        id__in=event_id_set,
-    ).update(group_id=destination_id)
+    event_id_set = set(event.event_id for event in events)
 
     for event in events:
         event.group = destination
 
-    tagstore.update_group_for_events(
-        project_id=project.id,
-        event_ids=event_id_set,
-        destination_id=destination_id
+    event_id_set = set(event.event_id for event in events)
+
+    UserReport.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
+        group=destination_id
     )
-
-    event_event_id_set = set(event.event_id for event in events)
-
-    EventMapping.objects.filter(
-        project_id=project.id,
-        event_id__in=event_event_id_set,
-    ).update(group_id=destination_id)
-
-    UserReport.objects.filter(
-        project_id=project.id,
-        event_id__in=event_event_id_set,
-    ).update(group=destination_id)
+    EventAttachment.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
+        group_id=destination_id
+    )
 
     return (destination.id, eventstream_state)
 
 
-def truncate_denormalizations(group):
-    tagstore.delete_all_group_tag_keys(group.project_id, group.id)
-    tagstore.delete_all_group_tag_values(group.project_id, group.id)
-
-    GroupRelease.objects.filter(
-        group_id=group.id,
-    ).delete()
+def truncate_denormalizations(project, group):
+    GroupRelease.objects.filter(group_id=group.id).delete()
 
     # XXX: This can cause a race condition with the ``FirstSeenEventCondition``
     # where notifications can be erroneously sent if they occur in this group
@@ -270,27 +242,21 @@ def truncate_denormalizations(group):
         instance.delete()
 
     environment_ids = list(
-        Environment.objects.filter(
-            projects=group.project
-        ).values_list('id', flat=True)
+        Environment.objects.filter(projects=group.project).values_list("id", flat=True)
     )
 
-    tsdb.delete([
-        tsdb.models.group,
-    ], [group.id], environment_ids=environment_ids)
+    tsdb.delete([tsdb.models.group], [group.id], environment_ids=environment_ids)
 
-    tsdb.delete_distinct_counts([
-        tsdb.models.users_affected_by_group,
-    ], [group.id], environment_ids=environment_ids)
+    tsdb.delete_distinct_counts(
+        [tsdb.models.users_affected_by_group], [group.id], environment_ids=environment_ids
+    )
 
     tsdb.delete_frequencies(
-        [
-            tsdb.models.frequent_releases_by_group,
-            tsdb.models.frequent_environments_by_group,
-        ], [group.id]
+        [tsdb.models.frequent_releases_by_group, tsdb.models.frequent_environments_by_group],
+        [group.id],
     )
 
-    features.delete(group)
+    similarity.delete(project, group)
 
 
 def collect_group_environment_data(events):
@@ -300,7 +266,7 @@ def collect_group_environment_data(events):
     """
     results = OrderedDict()
     for event in events:
-        results[(event.group_id, get_environment_name(event))] = event.get_tag('sentry:release')
+        results[(event.group_id, get_environment_name(event))] = event.get_tag("sentry:release")
     return results
 
 
@@ -308,12 +274,10 @@ def repair_group_environment_data(caches, project, events):
     for (group_id, env_name), first_release in collect_group_environment_data(events).items():
         fields = {}
         if first_release:
-            fields['first_release'] = caches['Release'](
-                project.organization_id, first_release
-            )
+            fields["first_release"] = caches["Release"](project.organization_id, first_release)
 
         GroupEnvironment.objects.create_or_update(
-            environment_id=caches['Environment'](project.organization_id, env_name).id,
+            environment_id=caches["Environment"](project.organization_id, env_name).id,
             group_id=group_id,
             defaults=fields,
             values=fields,
@@ -339,67 +303,23 @@ def collect_tag_data(events):
     return results
 
 
-def repair_tag_data(caches, project, events):
-    for (group_id, env_name), keys in collect_tag_data(events).items():
-        environment = caches['Environment'](
-            project.organization_id,
-            env_name,
-        )
-        for key, values in keys.items():
-            tagstore.get_or_create_group_tag_key(
-                project_id=project.id,
-                group_id=group_id,
-                environment_id=environment.id,
-                key=key,
-            )
-
-            # XXX: `{first,last}_seen` columns don't totally replicate the
-            # ingestion logic (but actually represent a more accurate value.)
-            # See GH-5289 for more details.
-            for value, (times_seen, first_seen, last_seen) in values.items():
-                _, created = tagstore.get_or_create_group_tag_value(
-                    project_id=project.id,
-                    group_id=group_id,
-                    environment_id=environment.id,
-                    key=key,
-                    value=value,
-                    defaults={
-                        'first_seen': first_seen,
-                        'last_seen': last_seen,
-                        'times_seen': times_seen,
-                    },
-                )
-
-                if not created:
-                    tagstore.incr_group_tag_value_times_seen(
-                        project_id=project.id,
-                        group_id=group_id,
-                        environment_id=environment.id,
-                        key=key,
-                        value=value,
-                        count=times_seen,
-                        extra={'first_seen': first_seen}
-                    )
-
-
 def get_environment_name(event):
-    return Environment.get_name_or_default(event.get_tag('environment'))
+    return Environment.get_name_or_default(event.get_tag("environment"))
 
 
 def collect_release_data(caches, project, events):
     results = OrderedDict()
 
     for event in events:
-        release = event.get_tag('sentry:release')
+        release = event.get_tag("sentry:release")
 
         if not release:
             continue
 
         key = (
-            event.group_id, get_environment_name(event), caches['Release'](
-                project.organization_id,
-                release,
-            ).id,
+            event.group_id,
+            get_environment_name(event),
+            caches["Release"](project.organization_id, release).id,
         )
 
         if key in results:
@@ -419,10 +339,7 @@ def repair_group_release_data(caches, project, events):
             group_id=group_id,
             environment=environment,
             release_id=release_id,
-            defaults={
-                'first_seen': first_seen,
-                'last_seen': last_seen,
-            },
+            defaults={"first_seen": first_seen, "last_seen": last_seen},
         )
 
         if not created:
@@ -431,66 +348,48 @@ def repair_group_release_data(caches, project, events):
 
 def get_event_user_from_interface(value):
     return EventUser(
-        ident=value.get('id'),
-        email=value.get('email'),
-        username=value.get('valuename'),
-        ip_address=value.get('ip_address'),
+        ident=value.get("id"),
+        email=value.get("email"),
+        username=value.get("valuename"),
+        ip_address=value.get("ip_address"),
     )
 
 
 def collect_tsdb_data(caches, project, events):
-    counters = defaultdict(
-        lambda: defaultdict(
-            lambda: defaultdict(int),
-        ),
-    )
+    counters = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 
-    sets = defaultdict(
-        lambda: defaultdict(
-            lambda: defaultdict(set),
-        ),
-    )
+    sets = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
 
-    frequencies = defaultdict(
-        lambda: defaultdict(
-            lambda: defaultdict(
-                lambda: defaultdict(int),
-            ),
-        ),
-    )
+    frequencies = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int))))
 
     for event in events:
-        environment = caches['Environment'](
-            project.organization_id,
-            get_environment_name(event),
-        )
+        environment = caches["Environment"](project.organization_id, get_environment_name(event))
 
         counters[event.datetime][tsdb.models.group][(event.group_id, environment.id)] += 1
 
-        user = event.data.get('user')
+        user = event.data.get("user")
         if user:
-            sets[event.datetime][tsdb.models.users_affected_by_group][(event.group_id, environment.id)].add(
-                get_event_user_from_interface(user).tag_value,
-            )
+            sets[event.datetime][tsdb.models.users_affected_by_group][
+                (event.group_id, environment.id)
+            ].add(get_event_user_from_interface(user).tag_value)
 
-        frequencies[event.datetime][tsdb.models.frequent_environments_by_group
-                                    ][event.group_id][environment.id] += 1
+        frequencies[event.datetime][tsdb.models.frequent_environments_by_group][event.group_id][
+            environment.id
+        ] += 1
 
-        release = event.get_tag('sentry:release')
+        release = event.get_tag("sentry:release")
         if release:
             # TODO: I'm also not sure if "environment" here is correct, see
             # similar comment above during creation.
-            grouprelease = caches['GroupRelease'](
+            grouprelease = caches["GroupRelease"](
                 event.group_id,
                 get_environment_name(event),
-                caches['Release'](
-                    project.organization_id,
-                    release,
-                ).id,
+                caches["Release"](project.organization_id, release).id,
             )
 
-            frequencies[event.datetime][tsdb.models.frequent_releases_by_group
-                                        ][event.group_id][grouprelease.id] += 1
+            frequencies[event.datetime][tsdb.models.frequent_releases_by_group][event.group_id][
+                grouprelease.id
+            ] += 1
 
     return counters, sets, frequencies
 
@@ -515,49 +414,44 @@ def repair_tsdb_data(caches, project, events):
 
 def repair_denormalizations(caches, project, events):
     repair_group_environment_data(caches, project, events)
-    repair_tag_data(caches, project, events)
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
 
     for event in events:
-        features.record([event])
+        similarity.record(project, [event])
 
 
 def lock_hashes(project_id, source_id, fingerprints):
     with transaction.atomic():
         eligible_hashes = list(
             GroupHash.objects.filter(
-                project_id=project_id,
-                group_id=source_id,
-                hash__in=fingerprints,
-            ).exclude(
-                state=GroupHash.State.LOCKED_IN_MIGRATION,
-            ).select_for_update()
+                project_id=project_id, group_id=source_id, hash__in=fingerprints
+            )
+            .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
+            .select_for_update()
         )
 
-        GroupHash.objects.filter(
-            id__in=[h.id for h in eligible_hashes],
-        ).update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+        GroupHash.objects.filter(id__in=[h.id for h in eligible_hashes]).update(
+            state=GroupHash.State.LOCKED_IN_MIGRATION
+        )
 
     return [h.hash for h in eligible_hashes]
 
 
 def unlock_hashes(project_id, fingerprints):
     GroupHash.objects.filter(
-        project_id=project_id,
-        hash__in=fingerprints,
-        state=GroupHash.State.LOCKED_IN_MIGRATION,
+        project_id=project_id, hash__in=fingerprints, state=GroupHash.State.LOCKED_IN_MIGRATION
     ).update(state=GroupHash.State.UNLOCKED)
 
 
-@instrumented_task(name='sentry.tasks.unmerge', queue='unmerge')
+@instrumented_task(name="sentry.tasks.unmerge", queue="unmerge")
 def unmerge(
     project_id,
     source_id,
     destination_id,
     fingerprints,
     actor_id,
-    cursor=None,
+    last_event=None,
     batch_size=500,
     source_fields_reset=False,
     eventstream_state=None,
@@ -567,67 +461,77 @@ def unmerge(
     # be run without iteration by passing around a state object and we could
     # just use that here instead.
 
-    source = Group.objects.get(
-        project_id=project_id,
-        id=source_id,
-    )
+    source = Group.objects.get(project_id=project_id, id=source_id)
+
+    caches = get_caches()
+
+    project = caches["Project"](project_id)
 
     # On the first iteration of this loop, we clear out all of the
     # denormalizations from the source group so that we can have a clean slate
     # for the new, repaired data.
-    if cursor is None:
+    if last_event is None:
         fingerprints = lock_hashes(project_id, source_id, fingerprints)
-        truncate_denormalizations(source)
+        truncate_denormalizations(project, source)
 
-    caches = get_caches()
+    # We process events sorted in descending order by -timestamp, -event_id. We need
+    # to include event_id as well as timestamp in the ordering criteria since:
+    #
+    # - Event timestamps are rounded to the second so multiple events are likely
+    # to have the same timestamp.
+    #
+    # - When sorting by timestamp alone, Snuba may not give us a deterministic
+    # order for events with the same timestamp.
+    #
+    # - We need to ensure that we do not skip any events between batches. If we
+    # only sorted by timestamp < last_event.timestamp it would be possible to
+    # have missed an event with the same timestamp as the last item in the
+    # previous batch.
 
-    project = caches['Project'](project_id)
+    conditions = []
+    if last_event is not None:
+        conditions.extend(
+            [
+                ["timestamp", "<=", last_event["timestamp"]],
+                [
+                    ["timestamp", "<", last_event["timestamp"]],
+                    ["event_id", "<", last_event["event_id"]],
+                ],
+            ]
+        )
 
-    # We fetch the events in descending order by their primary key to get the
-    # best approximation of the most recently received events.
-    queryset = Event.objects.filter(
-        project_id=project_id,
-        group_id=source_id,
-    ).order_by('-id')
-
-    if cursor is not None:
-        queryset = queryset.filter(id__lt=cursor)
-
-    events = list(queryset[:batch_size])
+    events = eventstore.get_events(
+        filter=eventstore.Filter(
+            project_ids=[project_id], group_ids=[source.id], conditions=conditions
+        ),
+        limit=batch_size,
+        referrer="unmerge",
+        orderby=["-timestamp", "-event_id"],
+    )
 
     # If there are no more events to process, we're done with the migration.
     if not events:
-        tagstore.update_group_tag_key_values_seen(project_id, [source_id, destination_id])
         unlock_hashes(project_id, fingerprints)
-
-        logger.warning('Unmerge complete (eventstream state: %s)', eventstream_state)
+        logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
         if eventstream_state:
             eventstream.end_unmerge(eventstream_state)
 
         return destination_id
 
-    Event.objects.bind_nodes(events, 'data')
-
     source_events = []
     destination_events = []
 
     for event in events:
-        (destination_events
-         if get_fingerprint(event) in fingerprints else source_events).append(event)
+        (destination_events if get_fingerprint(event) in fingerprints else source_events).append(
+            event
+        )
 
     if source_events:
         if not source_fields_reset:
-            source.update(**get_group_creation_attributes(
-                caches,
-                source_events,
-            ))
+            source.update(**get_group_creation_attributes(caches, source_events))
             source_fields_reset = True
         else:
-            source.update(**get_group_backfill_attributes(
-                caches,
-                source,
-                source_events,
-            ))
+            source.update(**get_group_backfill_attributes(caches, source, source_events))
 
     (destination_id, eventstream_state) = migrate_events(
         caches,
@@ -640,11 +544,7 @@ def unmerge(
         eventstream_state,
     )
 
-    repair_denormalizations(
-        caches,
-        project,
-        events,
-    )
+    repair_denormalizations(caches, project, events)
 
     unmerge.delay(
         project_id,
@@ -652,7 +552,7 @@ def unmerge(
         destination_id,
         fingerprints,
         actor_id,
-        cursor=events[-1].id,
+        last_event={"timestamp": events[-1].timestamp, "event_id": events[-1].event_id},
         batch_size=batch_size,
         source_fields_reset=source_fields_reset,
         eventstream_state=eventstream_state,

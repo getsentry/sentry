@@ -1,12 +1,12 @@
 import React from 'react';
 import moment from 'moment';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
-import Tooltip from 'app/components/tooltip';
+import {IconQuestion} from 'app/icons';
 import space from 'app/styles/space';
 
 export default class AdminEnvironment extends AsyncView {
@@ -33,20 +33,17 @@ export default class AdminEnvironment extends AsyncView {
             <VersionLabel>
               {t('Server Version')}
               {version.upgradeAvailable && (
-                <Tooltip
+                <Button
                   title={t(
                     "You're running an old version of Sentry, did you know %s is available?",
                     version.latest
                   )}
-                >
-                  <Button
-                    priority="link"
-                    href="https://github.com/getsentry/sentry/releases"
-                    icon="icon-circle-question"
-                    size="small"
-                    external
-                  />
-                </Tooltip>
+                  priority="link"
+                  href="https://github.com/getsentry/sentry/releases"
+                  icon={<IconQuestion size="sm" />}
+                  size="small"
+                  external
+                />
               )}
             </VersionLabel>
             <dd>

@@ -13,7 +13,7 @@ def stddev(values, mean_=None):
 
     n = 0
     for val in values:
-        n += (val - mean_)**2
+        n += (val - mean_) ** 2
     n = math.sqrt(n / float(len(values) - 1))
     return n
 

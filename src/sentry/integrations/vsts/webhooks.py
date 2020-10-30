@@ -4,7 +4,12 @@ from .client import VstsApiClient
 import logging
 import six
 
-from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
+from sentry.models import (
+    Identity,
+    Integration,
+    OrganizationIntegration,
+    sync_group_assignee_inbound,
+)
 from sentry.models.apitoken import generate_token
 from sentry.api.base import Endpoint
 
@@ -12,11 +17,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import constant_time_compare
 
 import re
+
 UNSET = object()
 # Pull email from the string: u'lauryn <lauryn@sentry.io>'
-EMAIL_PARSER = re.compile(r'<(.*)>')
-logger = logging.getLogger('sentry.integrations')
-PROVIDER_KEY = 'vsts'
+EMAIL_PARSER = re.compile(r"<(.*)>")
+logger = logging.getLogger("sentry.integrations")
+PROVIDER_KEY = "vsts"
 
 
 class WorkItemWebhook(Endpoint):
@@ -33,40 +39,33 @@ class WorkItemWebhook(Endpoint):
     def post(self, request, *args, **kwargs):
         data = request.data
         try:
-            event_type = data['eventType']
-            external_id = data['resourceContainers']['collection']['id']
+            event_type = data["eventType"]
+            external_id = data["resourceContainers"]["collection"]["id"]
         except KeyError as e:
-            logger.info(
-                'vsts.invalid-webhook-payload',
-                extra={
-                    'error': six.text_type(e),
-                }
-            )
+            logger.info("vsts.invalid-webhook-payload", extra={"error": six.text_type(e)})
 
-        if event_type == 'workitem.updated':
+        # https://docs.microsoft.com/en-us/azure/devops/service-hooks/events?view=azure-devops#workitem.updated
+        if event_type == "workitem.updated":
             try:
                 integration = Integration.objects.get(
-                    provider=PROVIDER_KEY,
-                    external_id=external_id,
+                    provider=PROVIDER_KEY, external_id=external_id
                 )
             except Integration.DoesNotExist:
                 logger.info(
-                    'vsts.integration-in-webhook-payload-does-not-exist',
-                    extra={
-                        'external_id': external_id,
-                        'event_type': event_type,
-                    }
+                    "vsts.integration-in-webhook-payload-does-not-exist",
+                    extra={"external_id": external_id, "event_type": event_type},
                 )
 
             try:
                 self.check_webhook_secret(request, integration)
+                logger.info(
+                    "vsts.valid-webhook-secret",
+                    extra={"event_type": event_type, "integration_id": integration.id},
+                )
             except AssertionError:
                 logger.info(
-                    'vsts.invalid-webhook-secret',
-                    extra={
-                        'event_type': event_type,
-                        'integration_id': integration.id
-                    }
+                    "vsts.invalid-webhook-secret",
+                    extra={"event_type": event_type, "integration_id": integration.id},
                 )
                 return self.respond(status=401)
             self.handle_updated_workitem(data, integration)
@@ -74,68 +73,77 @@ class WorkItemWebhook(Endpoint):
 
     def check_webhook_secret(self, request, integration):
         try:
-            integration_secret = integration.metadata['subscription']['secret']
-            webhook_payload_secret = request.META['HTTP_SHARED_SECRET']
+            integration_secret = integration.metadata["subscription"]["secret"]
+            webhook_payload_secret = request.META["HTTP_SHARED_SECRET"]
+            # TODO(Steve): remove
+            logger.info(
+                "vsts.special-webhook-secret",
+                extra={
+                    "integration_id": integration.id,
+                    "integration_secret": six.text_type(integration_secret)[:6],
+                    "webhook_payload_secret": six.text_type(webhook_payload_secret)[:6],
+                },
+            )
         except KeyError as e:
             logger.info(
-                'vsts.missing-webhook-secret',
-                extra={
-                    'error': six.text_type(e),
-                    'integration_id': integration.id,
-                }
+                "vsts.missing-webhook-secret",
+                extra={"error": six.text_type(e), "integration_id": integration.id},
             )
 
         assert constant_time_compare(integration_secret, webhook_payload_secret)
 
     def handle_updated_workitem(self, data, integration):
+        project = None
         try:
-            external_issue_key = data['resource']['workItemId']
-            project = data['resourceContainers']['project']['id']
+            external_issue_key = data["resource"]["workItemId"]
+            project = data["resourceContainers"]["project"]["id"]
         except KeyError as e:
             logger.info(
-                'vsts.updating-workitem-does-not-have-necessary-information',
-                extra={
-                    'error': six.text_type(e),
-                    'integration_id': integration.id
-                }
+                "vsts.updating-workitem-does-not-have-necessary-information",
+                extra={"error": six.text_type(e), "integration_id": integration.id},
             )
 
         try:
-            assigned_to = data['resource']['fields'].get('System.AssignedTo')
-            status_change = data['resource']['fields'].get('System.State')
+            assigned_to = data["resource"]["fields"].get("System.AssignedTo")
+            status_change = data["resource"]["fields"].get("System.State")
         except KeyError as e:
             logger.info(
-                'vsts.updated-workitem-fields-not-passed',
+                "vsts.updated-workitem-fields-not-passed",
                 extra={
-                    'error': six.text_type(e),
-                    'workItemId': data['resource']['workItemId'],
-                    'integration_id': integration.id
-                }
+                    "error": six.text_type(e),
+                    "workItemId": data["resource"]["workItemId"],
+                    "integration_id": integration.id,
+                    "azure_project_id": project,
+                },
             )
             return  # In the case that there are no fields sent, no syncing can be done
+        logger.info(
+            "vsts.updated-workitem-fields-correct",
+            extra={
+                "workItemId": data["resource"]["workItemId"],
+                "integration_id": integration.id,
+                "azure_project_id": project,
+            },
+        )
         self.handle_assign_to(integration, external_issue_key, assigned_to)
-        self.handle_status_change(
-            integration,
-            external_issue_key,
-            status_change,
-            project)
+        self.handle_status_change(integration, external_issue_key, status_change, project)
 
     def handle_assign_to(self, integration, external_issue_key, assigned_to):
         if not assigned_to:
             return
-        new_value = assigned_to.get('newValue')
+        new_value = assigned_to.get("newValue")
         if new_value is not None:
             try:
                 email = self.parse_email(new_value)
             except AttributeError as e:
                 logger.info(
-                    'vsts.failed-to-parse-email-in-handle-assign-to',
+                    "vsts.failed-to-parse-email-in-handle-assign-to",
                     extra={
-                        'error': six.text_type(e),
-                        'integration_id': integration.id,
-                        'assigned_to_values': assigned_to,
-                        'external_issue_key': external_issue_key,
-                    }
+                        "error": six.text_type(e),
+                        "integration_id": integration.id,
+                        "assigned_to_values": assigned_to,
+                        "external_issue_key": external_issue_key,
+                    },
                 )
                 return  # TODO(lb): return if cannot parse email?
             assign = True
@@ -150,22 +158,21 @@ class WorkItemWebhook(Endpoint):
             assign=assign,
         )
 
-    def handle_status_change(self, integration, external_issue_key,
-                             status_change, project):
+    def handle_status_change(self, integration, external_issue_key, status_change, project):
         if status_change is None:
             return
 
         organization_ids = OrganizationIntegration.objects.filter(
-            integration_id=integration.id,
-        ).values_list('organization_id', flat=True)
+            integration_id=integration.id
+        ).values_list("organization_id", flat=True)
 
         for organization_id in organization_ids:
             installation = integration.get_installation(organization_id)
             data = {
-                'new_state': status_change['newValue'],
+                "new_state": status_change["newValue"],
                 # old_state is None when the issue is New
-                'old_state': status_change.get('oldValue'),
-                'project': project,
+                "old_state": status_change.get("oldValue"),
+                "project": project,
             }
 
             installation.sync_status_inbound(external_issue_key, data)

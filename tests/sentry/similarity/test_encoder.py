@@ -11,20 +11,14 @@ def test_builtin_types():
     values = [
         1,
         1.1,
-        b'\x00\x01\x02',
-        u'\N{SNOWMAN}',
-        ('a', 'b', 'c'),
-        ['a', 'b', 'c'],
-        {
-            'a': 1,
-            'b': 2,
-            'c': 3
-        },
-        set(['a', 'b', 'c']),
-        frozenset(['a', 'b', 'c']),
-        [{
-            'a': 1
-        }, set('b'), ['c'], u'text'],
+        b"\x00\x01\x02",
+        u"\N{SNOWMAN}",
+        ("a", "b", "c"),
+        ["a", "b", "c"],
+        {"a": 1, "b": 2, "c": 3},
+        set(["a", "b", "c"]),
+        frozenset(["a", "b", "c"]),
+        [{"a": 1}, set("b"), ["c"], u"text"],
     ]
 
     try:
@@ -45,13 +39,6 @@ def test_custom_types():
         def __init__(self, color):
             self.color = color
 
-    encoder = Encoder({
-        Widget: lambda i: {
-            'color': i.color, },
-    })
+    encoder = Encoder({Widget: lambda i: {"color": i.color}})
 
-    assert encoder.dumps(
-        Widget('red'),
-    ) == encoder.dumps({
-        'color': 'red',
-    })
+    assert encoder.dumps(Widget("red")) == encoder.dumps({"color": "red"})

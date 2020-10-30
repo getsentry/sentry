@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from datetime import timedelta
 
@@ -12,15 +12,12 @@ from sentry.testutils import TestCase
 
 class SyncOptionsTest(TestCase):
     def test_task_persistent_name(self):
-        assert sync_options.name == 'sentry.tasks.options.sync_options'
+        assert sync_options.name == "sentry.tasks.options.sync_options"
 
-    @patch.object(default_store, 'set_cache')
+    @patch.object(default_store, "set_cache")
     def test_simple(self, mock_set_cache):
-        default_manager.register('foo')
-        option = Option.objects.create(
-            key='foo',
-            value='bar',
-        )
+        default_manager.register("foo")
+        option = Option.objects.create(key="foo", value="bar")
         sync_options(cutoff=60)
 
         assert mock_set_cache.called

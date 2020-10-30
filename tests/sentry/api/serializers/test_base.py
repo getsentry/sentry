@@ -12,12 +12,12 @@ class Foo(object):
 
 class FooSerializer(Serializer):
     def serialize(self, *args, **kwargs):
-        return 'lol'
+        return "lol"
 
 
 class VariadicSerializer(Serializer):
     def serialize(self, obj, attrs, user, kw):
-        return {'kw': kw}
+        return {"kw": kw}
 
 
 class BaseSerializerTest(TestCase):
@@ -31,11 +31,11 @@ class BaseSerializerTest(TestCase):
 
         # explicitly passed serializer
         foo_serializer = FooSerializer()
-        assert serialize(user, serializer=foo_serializer) == 'lol'
+        assert serialize(user, serializer=foo_serializer) == "lol"
 
         foo = Foo()
-        assert serialize(foo) is foo, 'should return the object when unknown'
-        assert serialize(foo, serializer=foo_serializer) == 'lol'
+        assert serialize(foo) is foo, "should return the object when unknown"
+        assert serialize(foo, serializer=foo_serializer) == "lol"
 
         rv = serialize([user])
         assert isinstance(rv, list)
@@ -55,5 +55,5 @@ class BaseSerializerTest(TestCase):
     def test_serialize_additional_kwargs(self):
         foo = Foo()
         user = self.create_user()
-        result = serialize(foo, user, VariadicSerializer(), kw='keyword')
-        assert result['kw'] == 'keyword'
+        result = serialize(foo, user, VariadicSerializer(), kw="keyword")
+        assert result["kw"] == "keyword"

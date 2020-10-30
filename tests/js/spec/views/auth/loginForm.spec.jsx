@@ -1,7 +1,8 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ConfigStore from 'app/stores/configStore';
 import LoginForm from 'app/views/auth/loginForm';
 
@@ -19,11 +20,11 @@ function doLogin(wrapper, apiRequest) {
   );
 }
 
-describe('LoginForm', function() {
+describe('LoginForm', function () {
   const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
 
-  it('handles errors', async function() {
+  it('handles errors', async function () {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/login/',
       method: 'POST',
@@ -35,7 +36,10 @@ describe('LoginForm', function() {
 
     const authConfig = {};
 
-    const wrapper = mount(<LoginForm api={api} authConfig={authConfig} />, routerContext);
+    const wrapper = mountWithTheme(
+      <LoginForm api={api} authConfig={authConfig} />,
+      routerContext
+    );
     doLogin(wrapper, mockRequest);
 
     await tick();
@@ -44,7 +48,7 @@ describe('LoginForm', function() {
     expect(wrapper.find('.alert').exists()).toBe(true);
   });
 
-  it('handles success', async function() {
+  it('handles success', async function () {
     const userObject = {
       id: 1,
       name: 'Joe',
@@ -61,7 +65,10 @@ describe('LoginForm', function() {
     });
 
     const authConfig = {};
-    const wrapper = mount(<LoginForm api={api} authConfig={authConfig} />, routerContext);
+    const wrapper = mountWithTheme(
+      <LoginForm api={api} authConfig={authConfig} />,
+      routerContext
+    );
 
     doLogin(wrapper, mockRequest);
 
@@ -71,13 +78,16 @@ describe('LoginForm', function() {
     expect(browserHistory.push).toHaveBeenCalledWith({pathname: '/next/'});
   });
 
-  it('renders login provider buttons', function() {
+  it('renders login provider buttons', function () {
     const authConfig = {
       vstsLoginLink: '/vstsLogin',
       githubLoginLink: '/githubLogin',
     };
 
-    const wrapper = mount(<LoginForm api={api} authConfig={authConfig} />, routerContext);
+    const wrapper = mountWithTheme(
+      <LoginForm api={api} authConfig={authConfig} />,
+      routerContext
+    );
 
     expect(wrapper.find('ProviderWrapper Button').map(b => b.props().href)).toEqual(
       expect.arrayContaining(['/vstsLogin', '/githubLogin'])

@@ -58,7 +58,7 @@ class cached_for_request(memoize):
         if not request:
             return self.func(*args, **kwargs)
 
-        if not hasattr(request, '__func_cache'):
+        if not hasattr(request, "__func_cache"):
             data = request.__func_cache = {}
         else:
             data = request.__func_cache
@@ -72,3 +72,7 @@ class cached_for_request(memoize):
 
     def __get__(self, obj, type=None):
         return functools.partial(self.__call__, obj)
+
+
+def cache_key_for_event(data):
+    return u"e:{1}:{0}".format(data["project"], data["event_id"])

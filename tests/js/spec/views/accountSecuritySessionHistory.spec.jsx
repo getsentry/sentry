@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountSecuritySessionHistory from 'app/views/settings/account/accountSecurity/accountSecuritySessionHistory';
@@ -7,8 +8,8 @@ import AccountSecuritySessionHistory from 'app/views/settings/account/accountSec
 const ENDPOINT = '/users/me/ips/';
 const ORG_ENDPOINT = '/organizations/';
 
-describe('AccountSecuritySessionHistory', function() {
-  beforeEach(function() {
+describe('AccountSecuritySessionHistory', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: ORG_ENDPOINT,
@@ -16,7 +17,7 @@ describe('AccountSecuritySessionHistory', function() {
     });
   });
 
-  it('renders an ip address', async function() {
+  it('renders an ip address', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [

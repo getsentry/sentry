@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationApiKeys from 'app/views/settings/organizationApiKeys';
@@ -11,10 +12,10 @@ const routes = [
   {path: 'api-keys/', name: 'API Key'},
 ];
 
-describe('OrganizationApiKeys', function() {
+describe('OrganizationApiKeys', function () {
   const routerContext = TestStubs.routerContext();
 
-  beforeEach(function() {
+  beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/organizations/org-slug/api-keys/',
@@ -32,8 +33,8 @@ describe('OrganizationApiKeys', function() {
     });
   });
 
-  it('fetches api keys', function() {
-    const wrapper = mount(
+  it('fetches api keys', function () {
+    const wrapper = mountWithTheme(
       <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}
@@ -45,8 +46,8 @@ describe('OrganizationApiKeys', function() {
     expect(wrapper.state('keys')).toEqual([TestStubs.ApiKey()]);
   });
 
-  it('can delete a key', function() {
-    const wrapper = mount(
+  it('can delete a key', function () {
+    const wrapper = mountWithTheme(
       <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}

@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django.db import transaction
 from rest_framework import status
 
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -13,8 +12,6 @@ from sentry.models import AuditLogEntryEvent, ServiceHook
 
 
 class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
-
     def get(self, request, project, hook_id):
         """
         Retrieve a Service Hook
@@ -30,10 +27,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            hook = ServiceHook.objects.get(
-                project_id=project.id,
-                guid=hook_id,
-            )
+            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
         return self.respond(serialize(hook, request.user))
@@ -56,10 +50,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
             return self.respond(status=401)
 
         try:
-            hook = ServiceHook.objects.get(
-                project_id=project.id,
-                guid=hook_id,
-            )
+            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -70,16 +61,16 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         result = validator.validated_data
 
         updates = {}
-        if result.get('events') is not None:
-            updates['events'] = result['events']
-        if result.get('url'):
-            updates['url'] = result['url']
-        if result.get('version') is not None:
-            updates['version'] = result['version']
-        if result.get('isActive') is True:
-            updates['status'] = ObjectStatus.ACTIVE
-        elif result.get('isActive') is False:
-            updates['status'] = ObjectStatus.DISABLED
+        if result.get("events") is not None:
+            updates["events"] = result["events"]
+        if result.get("url"):
+            updates["url"] = result["url"]
+        if result.get("version") is not None:
+            updates["version"] = result["version"]
+        if result.get("isActive") is True:
+            updates["status"] = ObjectStatus.ACTIVE
+        elif result.get("isActive") is False:
+            updates["status"] = ObjectStatus.DISABLED
 
         with transaction.atomic():
             hook.update(**updates)
@@ -110,10 +101,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
             return self.respond(status=401)
 
         try:
-            hook = ServiceHook.objects.get(
-                project_id=project.id,
-                guid=hook_id,
-            )
+            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
 

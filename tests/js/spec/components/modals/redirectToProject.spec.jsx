@@ -1,11 +1,12 @@
 import {Modal} from 'react-bootstrap';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {RedirectToProjectModal} from 'app/components/modals/redirectToProject';
-import {mount} from 'enzyme';
 
 jest.unmock('app/utils/recreateRoute');
-describe('RedirectToProjectModal', function() {
+describe('RedirectToProjectModal', function () {
   jest.useFakeTimers();
   const routes = [
     {path: '/', childRoutes: []},
@@ -13,16 +14,16 @@ describe('RedirectToProjectModal', function() {
     {name: 'Projects', path: ':projectId/', childRoutes: []},
   ];
 
-  beforeEach(function() {
+  beforeEach(function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
   });
 
-  afterEach(function() {
+  afterEach(function () {
     window.location.assign.mockRestore();
   });
 
-  it('has timer to redirect to new slug after mounting', function() {
-    mount(
+  it('has timer to redirect to new slug after mounting', function () {
+    mountWithTheme(
       <RedirectToProjectModal
         routes={routes}
         params={{orgId: 'org-slug', projectId: 'project-slug'}}

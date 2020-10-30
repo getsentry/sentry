@@ -1,27 +1,28 @@
 import React from 'react';
-import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import SpreadLayout from 'app/components/spreadLayout';
 
-describe('SpreadLayout', function() {
-  it('renders with one child', function() {
-    const component = shallow(
+describe('SpreadLayout', function () {
+  it('renders with one child', function () {
+    const component = mountWithTheme(
       <SpreadLayout>
         <div>child</div>
       </SpreadLayout>
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
-  it('renders with multiple children', function() {
-    const component = shallow(
+  it('renders with multiple children', function () {
+    const component = mountWithTheme(
       <SpreadLayout>
         <div>child #1</div>
         <div>child #2</div>
       </SpreadLayout>
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 });

@@ -6,7 +6,6 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -24,13 +23,11 @@ class DeploySerializer(serializers.Serializer):
 
     def validate_environment(self, value):
         if not Environment.is_valid_name(value):
-            raise serializers.ValidationError('Invalid value for environment')
+            raise serializers.ValidationError("Invalid value for environment")
         return value
 
 
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
-    doc_section = DocSection.RELEASES
-
     def get(self, request, organization, version):
         """
         List a Release's Deploys
@@ -42,25 +39,19 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string version: the version identifier of the release.
         """
         try:
-            release = Release.objects.get(
-                version=version,
-                organization=organization,
-            )
+            release = Release.objects.get(version=version, organization=organization)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        queryset = Deploy.objects.filter(
-            organization_id=organization.id,
-            release=release,
-        )
+        queryset = Deploy.objects.filter(organization_id=organization.id, release=release)
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-date_finished',
+            order_by="-date_finished",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
@@ -84,10 +75,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                                       current time is used.
         """
         try:
-            release = Release.objects.get(
-                version=version,
-                organization=organization,
-            )
+            release = Release.objects.get(version=version, organization=organization)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -101,8 +89,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             result = serializer.validated_data
 
             env = Environment.objects.get_or_create(
-                name=result['environment'],
-                organization_id=organization.id,
+                name=result["environment"], organization_id=organization.id
             )[0]
             for project in projects:
                 env.add_project(project)
@@ -111,18 +98,17 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                 organization_id=organization.id,
                 release=release,
                 environment_id=env.id,
-                date_finished=result.get('dateFinished', timezone.now()),
-                date_started=result.get('dateStarted'),
-                name=result.get('name'),
-                url=result.get('url'),
+                date_finished=result.get("dateFinished", timezone.now()),
+                date_started=result.get("dateStarted"),
+                name=result.get("name"),
+                url=result.get("url"),
             )
             deploy_created.send_robust(deploy=deploy, sender=self.__class__)
 
             # XXX(dcramer): this has a race for most recent deploy, but
             # should be unlikely to hit in the real world
             Release.objects.filter(id=release.id).update(
-                total_deploys=F('total_deploys') + 1,
-                last_deploy_id=deploy.id,
+                total_deploys=F("total_deploys") + 1, last_deploy_id=deploy.id
             )
 
             for project in projects:
@@ -130,9 +116,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                     release=release,
                     environment=env,
                     project=project,
-                    values={
-                        'last_deploy_id': deploy.id,
-                    }
+                    values={"last_deploy_id": deploy.id},
                 )
 
             Deploy.notify_if_ready(deploy.id)

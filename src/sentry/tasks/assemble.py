@@ -13,28 +13,28 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.files import get_max_file_size
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import configure_scope, bind_organization_context
 
 logger = logging.getLogger(__name__)
 
 
 def enum(**named_values):
     """Creates an enum type."""
-    return type('Enum', (), named_values)
+    return type("Enum", (), named_values)
 
 
 ChunkFileState = enum(
-    OK='ok',  # File in database
-    NOT_FOUND='not_found',  # File not found in database
-    CREATED='created',  # File was created in the request and send to the worker for assembling
-    ASSEMBLING='assembling',  # File still being processed by worker
-    ERROR='error'  # Error happened during assembling
+    OK="ok",  # File in database
+    NOT_FOUND="not_found",  # File not found in database
+    CREATED="created",  # File was created in the request and send to the worker for assembling
+    ASSEMBLING="assembling",  # File still being processed by worker
+    ERROR="error",  # Error happened during assembling
 )
 
 
 AssembleTask = enum(
-    DIF='project.dsym',  # Debug file upload
-    ARTIFACTS='organization.artifacts',  # Release file upload
+    DIF="project.dsym",  # Debug file upload
+    ARTIFACTS="organization.artifacts",  # Release file upload
 )
 
 
@@ -48,11 +48,17 @@ def _get_cache_key(task, scope, checksum):
     ``checksum`` should be the SHA1 hash of the main file that is being
     assembled.
     """
-    return 'assemble-status:%s' % hashlib.sha1(b'%s|%s|%s' % (
-        str(scope).encode('ascii'),
-        checksum.encode('ascii'),
-        task,
-    )).hexdigest()
+    return (
+        "assemble-status:%s"
+        % hashlib.sha1(
+            b"%s|%s|%s"
+            % (
+                six.text_type(scope).encode("ascii"),
+                checksum.encode("ascii"),
+                six.text_type(task).encode("utf-8"),
+            )
+        ).hexdigest()
+    )
 
 
 def get_assemble_status(task, scope, checksum):
@@ -78,7 +84,7 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
     default_cache.set(cache_key, (state, detail), 600)
 
 
-@instrumented_task(name='sentry.tasks.assemble.assemble_dif', queue='assemble')
+@instrumented_task(name="sentry.tasks.assemble.assemble_dif", queue="assemble")
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
@@ -94,8 +100,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.ASSEMBLING)
 
     # Assemble the chunks into a temporary file
-    rv = assemble_file(AssembleTask.DIF, project, name, checksum, chunks,
-                       file_type='project.dif')
+    rv = assemble_file(AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif")
 
     # If not file has been created this means that the file failed to
     # assemble because of bad input data.  Return.
@@ -110,19 +115,19 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             # client is required to split them up first or we error.
             try:
                 result = debugfile.detect_dif_from_path(
-                    temp_file.name,
-                    name=name,
-                    debug_id=debug_id,
+                    temp_file.name, name=name, debug_id=debug_id
                 )
             except BadDif as e:
-                set_assemble_status(AssembleTask.DIF, project.id, checksum,
-                                    ChunkFileState.ERROR, detail=e.args[0])
+                set_assemble_status(
+                    AssembleTask.DIF, project.id, checksum, ChunkFileState.ERROR, detail=e.args[0]
+                )
                 return
 
             if len(result) != 1:
-                detail = 'Object contains %s architectures (1 expected)' % len(result)
-                set_assemble_status(AssembleTask.DIF, project.id, checksum,
-                                    ChunkFileState.ERROR, detail=detail)
+                detail = "Object contains %s architectures (1 expected)" % len(result)
+                set_assemble_status(
+                    AssembleTask.DIF, project.id, checksum, ChunkFileState.ERROR, detail=detail
+                )
                 return
 
             dif, created = debugfile.create_dif_from_id(project, result[0], file=file)
@@ -135,12 +140,18 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 # revision instead.
                 bump_reprocessing_revision(project)
     except BaseException:
-        set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.ERROR,
-                            detail='internal server error')
-        logger.error('failed to assemble dif', exc_info=True)
+        set_assemble_status(
+            AssembleTask.DIF,
+            project.id,
+            checksum,
+            ChunkFileState.ERROR,
+            detail="internal server error",
+        )
+        logger.error("failed to assemble dif", exc_info=True)
     else:
-        set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.OK,
-                            detail=serialize(dif))
+        set_assemble_status(
+            AssembleTask.DIF, project.id, checksum, ChunkFileState.OK, detail=serialize(dif)
+        )
     finally:
         if delete_file:
             file.delete()
@@ -150,7 +161,7 @@ class AssembleArtifactsError(Exception):
     pass
 
 
-@instrumented_task(name='sentry.tasks.assemble.assemble_artifacts', queue='assemble')
+@instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
 def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     """
     Creates release files from an uploaded artifact bundle.
@@ -161,15 +172,21 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     from sentry.utils.zip import safe_extract_zip
     from sentry.models import File, Organization, Release, ReleaseFile
 
-    with configure_scope() as scope:
-        scope.set_tag("organization", org_id)
+    organization = Organization.objects.get_from_cache(pk=org_id)
 
-    organization = Organization.objects.filter(id=org_id).get()
+    bind_organization_context(organization)
+
     set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ASSEMBLING)
 
     # Assemble the chunks into a temporary file
-    rv = assemble_file(AssembleTask.ARTIFACTS, organization, 'release-artifacts.zip',
-                       checksum, chunks, file_type='release.bundle')
+    rv = assemble_file(
+        AssembleTask.ARTIFACTS,
+        organization,
+        "release-artifacts.zip",
+        checksum,
+        chunks,
+        file_type="release.bundle",
+    )
 
     # If not file has been created this means that the file failed to
     # assemble because of bad input data.  Return.
@@ -187,56 +204,51 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
         try:
             safe_extract_zip(temp_file, scratchpad, strip_toplevel=False)
         except BaseException:
-            raise AssembleArtifactsError('failed to extract bundle')
+            raise AssembleArtifactsError("failed to extract bundle")
 
         try:
-            manifest_path = path.join(scratchpad, 'manifest.json')
-            with open(manifest_path, 'rb') as manifest:
+            manifest_path = path.join(scratchpad, "manifest.json")
+            with open(manifest_path, "rb") as manifest:
                 manifest = json.loads(manifest.read())
         except BaseException:
-            raise AssembleArtifactsError('failed to open release manifest')
+            raise AssembleArtifactsError("failed to open release manifest")
 
-        org_slug = manifest.get('org')
+        org_slug = manifest.get("org")
         if organization.slug != org_slug:
-            raise AssembleArtifactsError('organization does not match uploaded bundle')
+            raise AssembleArtifactsError("organization does not match uploaded bundle")
 
-        release_name = manifest.get('release')
+        release_name = manifest.get("release")
         if release_name != version:
-            raise AssembleArtifactsError('release does not match uploaded bundle')
+            raise AssembleArtifactsError("release does not match uploaded bundle")
 
         try:
-            release = Release.objects.get(
-                organization_id=organization.id,
-                version=release_name
-            )
+            release = Release.objects.get(organization_id=organization.id, version=release_name)
         except Release.DoesNotExist:
-            raise AssembleArtifactsError('release does not exist')
+            raise AssembleArtifactsError("release does not exist")
 
-        dist_name = manifest.get('dist')
+        dist_name = manifest.get("dist")
         dist = None
         if dist_name:
             dist = release.add_dist(dist_name)
 
-        artifacts = manifest.get('files', {})
+        artifacts = manifest.get("files", {})
         for rel_path, artifact in six.iteritems(artifacts):
-            artifact_url = artifact.get('url', rel_path)
-            artifact_basename = artifact_url.rsplit('/', 1)[-1]
+            artifact_url = artifact.get("url", rel_path)
+            artifact_basename = artifact_url.rsplit("/", 1)[-1]
 
             file = File.objects.create(
-                name=artifact_basename,
-                type='release.file',
-                headers=artifact.get('headers', {})
+                name=artifact_basename, type="release.file", headers=artifact.get("headers", {})
             )
 
             full_path = path.join(scratchpad, rel_path)
-            with open(full_path, 'rb') as fp:
+            with open(full_path, "rb") as fp:
                 file.putfile(fp, logger=logger)
 
             kwargs = {
-                'organization_id': organization.id,
-                'release': release,
-                'name': artifact_url,
-                'dist': dist,
+                "organization_id": organization.id,
+                "release": release,
+                "name": artifact_url,
+                "dist": dist,
             }
 
             # Release files must have unique names within their release
@@ -260,15 +272,20 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 old_file.delete()
 
     except AssembleArtifactsError as e:
-        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum,
-                            ChunkFileState.ERROR, detail=e.message)
+        set_assemble_status(
+            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=six.text_type(e)
+        )
     except BaseException:
-        logger.error('failed to assemble release bundle', exc_info=True)
-        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum,
-                            ChunkFileState.ERROR, detail='internal server error')
+        logger.error("failed to assemble release bundle", exc_info=True)
+        set_assemble_status(
+            AssembleTask.ARTIFACTS,
+            org_id,
+            checksum,
+            ChunkFileState.ERROR,
+            detail="internal server error",
+        )
     else:
-        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum,
-                            ChunkFileState.OK)
+        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.OK)
     finally:
         shutil.rmtree(scratchpad)
         if delete_bundle:
@@ -294,23 +311,31 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type):
 
     # Load all FileBlobs from db since we can be sure here we already own all
     # chunks need to build the file
-    file_blobs = FileBlob.objects.filter(
-        checksum__in=chunks
-    ).values_list('id', 'checksum', 'size')
+    file_blobs = FileBlob.objects.filter(checksum__in=chunks).values_list("id", "checksum", "size")
 
     # Reject all files that exceed the maximum allowed size for this
     # organization. This value cannot be
     file_size = sum(x[2] for x in file_blobs)
     if file_size > get_max_file_size(organization):
-        set_assemble_status(task, org_or_project.id, checksum, ChunkFileState.ERROR,
-                            detail='File exceeds maximum size')
+        set_assemble_status(
+            task,
+            org_or_project.id,
+            checksum,
+            ChunkFileState.ERROR,
+            detail="File exceeds maximum size",
+        )
         return
 
     # Sanity check.  In case not all blobs exist at this point we have a
     # race condition.
     if set(x[1] for x in file_blobs) != set(chunks):
-        set_assemble_status(task, org_or_project.id, checksum, ChunkFileState.ERROR,
-                            detail='Not all chunks available for assembling')
+        set_assemble_status(
+            task,
+            org_or_project.id,
+            checksum,
+            ChunkFileState.ERROR,
+            detail="Not all chunks available for assembling",
+        )
         return
 
     # Ensure blobs are in the order and duplication in which they were
@@ -318,17 +343,18 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type):
     ids_by_checksum = {chks: id for id, chks, _ in file_blobs}
     file_blob_ids = [ids_by_checksum[c] for c in chunks]
 
-    file = File.objects.create(
-        name=name,
-        checksum=checksum,
-        type=file_type,
-    )
+    file = File.objects.create(name=name, checksum=checksum, type=file_type)
     try:
         temp_file = file.assemble_from_file_blob_ids(file_blob_ids, checksum)
     except AssembleChecksumMismatch:
         file.delete()
-        set_assemble_status(task, org_or_project.id, checksum, ChunkFileState.ERROR,
-                            detail='Reported checksum mismatch')
+        set_assemble_status(
+            task,
+            org_or_project.id,
+            checksum,
+            ChunkFileState.ERROR,
+            detail="Reported checksum mismatch",
+        )
     else:
         file.save()
         return file, temp_file

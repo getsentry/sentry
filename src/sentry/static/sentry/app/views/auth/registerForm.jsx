@@ -1,7 +1,8 @@
+import {ClassNames} from '@emotion/core';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {formFooterClass} from 'app/views/auth/login';
 import {t, tct} from 'app/locale';
@@ -81,52 +82,58 @@ class RegisterForm extends React.Component {
     const {errorMessage, errors} = this.state;
 
     return (
-      <Form
-        initialData={{subscribe: true}}
-        submitLabel={t('Continue')}
-        onSubmit={this.handleSubmit}
-        footerClass={formFooterClass}
-        errorMessage={errorMessage}
-        extraButton={
-          <PrivacyPolicyLink href="https://sentry.io/privacy/">
-            {t('Privacy Policy')}
-          </PrivacyPolicyLink>
-        }
-      >
-        <TextField
-          name="name"
-          placeholder={t('Jane Doe')}
-          maxlength={30}
-          label={t('Name')}
-          error={errors.name}
-          required
-        />
-        <TextField
-          name="username"
-          placeholder={t('you@example.com')}
-          maxlength={128}
-          label={t('Email')}
-          error={errors.username}
-          required
-        />
-        <PasswordField
-          name="password"
-          placeholder={t('something super secret')}
-          label={t('Password')}
-          error={errors.password}
-          required
-        />
-        {hasNewsletter && <SubscribeField />}
-      </Form>
+      <ClassNames>
+        {({css}) => (
+          <Form
+            initialData={{subscribe: true}}
+            submitLabel={t('Continue')}
+            onSubmit={this.handleSubmit}
+            footerClass={css`
+              ${formFooterClass}
+            `}
+            errorMessage={errorMessage}
+            extraButton={
+              <PrivacyPolicyLink href="https://sentry.io/privacy/">
+                {t('Privacy Policy')}
+              </PrivacyPolicyLink>
+            }
+          >
+            <TextField
+              name="name"
+              placeholder={t('Jane Bloggs')}
+              maxlength={30}
+              label={t('Name')}
+              error={errors.name}
+              required
+            />
+            <TextField
+              name="username"
+              placeholder={t('you@example.com')}
+              maxlength={128}
+              label={t('Email')}
+              error={errors.username}
+              required
+            />
+            <PasswordField
+              name="password"
+              placeholder={t('something super secret')}
+              label={t('Password')}
+              error={errors.password}
+              required
+            />
+            {hasNewsletter && <SubscribeField />}
+          </Form>
+        )}
+      </ClassNames>
     );
   }
 }
 
 const PrivacyPolicyLink = styled(ExternalLink)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 
   &:hover {
-    color: ${p => p.theme.gray5};
+    color: ${p => p.theme.gray800};
   }
 `;
 

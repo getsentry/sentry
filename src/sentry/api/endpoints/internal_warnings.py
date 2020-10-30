@@ -12,12 +12,12 @@ from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, 
 
 
 class InternalWarningsEndpoint(Endpoint):
-    permission_classes = (SuperuserPermission, )
+    permission_classes = (SuperuserPermission,)
 
     def get(self, request):
         groupings = {
-            DeprecatedSettingWarning: 'Deprecated Settings',
-            UnsupportedBackend: 'Unsupported Backends',
+            DeprecatedSettingWarning: "Deprecated Settings",
+            UnsupportedBackend: "Unsupported Backends",
         }
 
         groups = defaultdict(list)
@@ -32,8 +32,10 @@ class InternalWarningsEndpoint(Endpoint):
         sort_by_message = functools.partial(sorted, key=six.binary_type)
 
         data = {
-            'groups': sorted([(groupings[key], sort_by_message(values)) for key, values in groups.items()]),
-            'warnings': sort_by_message(warnings),
+            "groups": sorted(
+                [(groupings[key], sort_by_message(values)) for key, values in groups.items()]
+            ),
+            "warnings": sort_by_message(warnings),
         }
 
         return Response(data)

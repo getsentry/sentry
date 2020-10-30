@@ -1,28 +1,8 @@
 {
-  "extends": "./node_modules/@sentry/typescript/tsconfig.json",
+  "extends": "./config/tsconfig.build.json",
   "compilerOptions": {
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "strict": true,
-    "declaration": false,
-    "declarationMap": false,
-    // Setting `allowJs` to be `false` prevents the TypeScript engine from processing
-    // `*.jsx` files and as well as inferring types of imported js code. This resolves
-    // cryptic proptype type issues for React components sourced in `*.jsx` files .
-    "allowJs": false,
-    // The implications of disabling `allowJs` (above) means that imported modules from
-    // `*.jsx` files are implied to have an `any` type. Hence, we need `noImplicitAny`
-    // to be `false`.
-    "noImplicitAny": false,
-    "esModuleInterop": true,
-    "module": "commonjs",
-    "jsx": "react",
-    "baseUrl": ".",
-    "outDir": "src/sentry/static/sentry/dist",
-    "paths": {
-      "app/*": ["src/sentry/static/sentry/app/*"]
-    },
-    "plugins": [{"name": "typescript-styled-plugin"}]
+    "allowJs": true,
   },
-  "include": ["src"]
+  "include": ["src", "tests", "docs-ui"],
+  "exclude": ["node_modules"]
 }

@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -10,23 +9,20 @@ import ReportUri, {
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
 import PreviewFeature from 'app/components/previewFeature';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectHpkpReports extends AsyncView {
-  static propTypes = {
-    setProjectNavSection: PropTypes.func,
-  };
-
-  componentWillMount() {
-    super.componentWillMount();
-    this.props.setProjectNavSection('settings');
-  }
-
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
     return [
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],
       ['project', `/projects/${orgId}/${projectId}/`],
     ];
+  }
+
+  getTitle() {
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId, false);
   }
 
   getInstructions() {
@@ -65,7 +61,7 @@ export default class ProjectHpkpReports extends AsyncView {
         <Panel>
           <PanelHeader>{t('About')}</PanelHeader>
 
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <p>
               {tct(
                 `[link:HTTP Public Key Pinning]

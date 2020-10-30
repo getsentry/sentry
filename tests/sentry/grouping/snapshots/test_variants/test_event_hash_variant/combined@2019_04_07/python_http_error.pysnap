@@ -1,99 +1,99 @@
 ---
-created: '2019-04-07T10:03:31.566737Z'
+created: '2020-08-25T09:17:18.164316Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '55b71821bccfe62d0df089e2f406c651'
+  hash: "55b71821bccfe62d0df089e2f406c651"
   component:
     app*
       exception*
         stacktrace*
           frame*
             module*
-              u'sentry.utils.safe'
+              "sentry.utils.safe"
             filename (module takes precedence)
-              u'sentry/utils/safe.py'
+              "sentry/utils/safe.py"
             context-line*
-              u'                result = func(*args, **kwargs)'
-            function (function name is used only if module or filename are available)
-              u'safe_execute'
-            lineno (line number is used only if module or filename are available)
+              "                result = func(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "safe_execute"
+            lineno (line number is not used if context-line is available)
               29
           frame*
             module*
-              u'sentry.integrations.slack.notify_action'
+              "sentry.integrations.slack.notify_action"
             filename (module takes precedence)
-              u'sentry/integrations/slack/notify_action.py'
+              "sentry/integrations/slack/notify_action.py"
             context-line*
-              u'            resp.raise_for_status()'
-            function (function name is used only if module or filename are available)
-              u'send_notification'
-            lineno (line number is used only if module or filename are available)
+              "            resp.raise_for_status()"
+            function (function name is not used if context-line is available)
+              "send_notification"
+            lineno (line number is not used if context-line is available)
               119
           frame (non app frame)
             module*
-              u'requests.models'
+              "requests.models"
             filename (module takes precedence)
-              u'requests/models.py'
+              "requests/models.py"
             context-line*
-              u'            raise HTTPError(http_error_msg, response=self)'
-            function (function name is used only if module or filename are available)
-              u'raise_for_status'
-            lineno (line number is used only if module or filename are available)
+              "            raise HTTPError(http_error_msg, response=self)"
+            function (function name is not used if context-line is available)
+              "raise_for_status"
+            lineno (line number is not used if context-line is available)
               940
         type*
-          u'HTTPError'
+          "HTTPError"
         value (stacktrace and type take precedence)
-          u'429 Client Error: Too Many Requests for url: https://slack.com/api/chat.postMessage'
+          "429 Client Error: Too Many Requests for url: https://slack.com/api/chat.postMessage"
 --------------------------------------------------------------------------
 default:
-  hash: None
+  hash: null
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
-        u'%s.process_error'
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
+        "%s.process_error"
 --------------------------------------------------------------------------
 system:
-  hash: 'a140a9ee6bbfb7ca9c21234dc287f2a6'
+  hash: "a140a9ee6bbfb7ca9c21234dc287f2a6"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'sentry.utils.safe'
+              "sentry.utils.safe"
             filename (module takes precedence)
-              u'sentry/utils/safe.py'
+              "sentry/utils/safe.py"
             context-line*
-              u'                result = func(*args, **kwargs)'
-            function (function name is used only if module or filename are available)
-              u'safe_execute'
-            lineno (line number is used only if module or filename are available)
+              "                result = func(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "safe_execute"
+            lineno (line number is not used if context-line is available)
               29
           frame*
             module*
-              u'sentry.integrations.slack.notify_action'
+              "sentry.integrations.slack.notify_action"
             filename (module takes precedence)
-              u'sentry/integrations/slack/notify_action.py'
+              "sentry/integrations/slack/notify_action.py"
             context-line*
-              u'            resp.raise_for_status()'
-            function (function name is used only if module or filename are available)
-              u'send_notification'
-            lineno (line number is used only if module or filename are available)
+              "            resp.raise_for_status()"
+            function (function name is not used if context-line is available)
+              "send_notification"
+            lineno (line number is not used if context-line is available)
               119
           frame*
             module*
-              u'requests.models'
+              "requests.models"
             filename (module takes precedence)
-              u'requests/models.py'
+              "requests/models.py"
             context-line*
-              u'            raise HTTPError(http_error_msg, response=self)'
-            function (function name is used only if module or filename are available)
-              u'raise_for_status'
-            lineno (line number is used only if module or filename are available)
+              "            raise HTTPError(http_error_msg, response=self)"
+            function (function name is not used if context-line is available)
+              "raise_for_status"
+            lineno (line number is not used if context-line is available)
               940
         type*
-          u'HTTPError'
+          "HTTPError"
         value (stacktrace and type take precedence)
-          u'429 Client Error: Too Many Requests for url: https://slack.com/api/chat.postMessage'
+          "429 Client Error: Too Many Requests for url: https://slack.com/api/chat.postMessage"

@@ -4,6 +4,7 @@ import logging
 
 from uuid import uuid4
 
+import six
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -13,14 +14,23 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import features
 from sentry.app import locks
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization, OrganizationMember,
-    OrganizationMemberTeam, User, UserEmail
+    AuditLogEntry,
+    AuditLogEntryEvent,
+    AuthIdentity,
+    AuthProvider,
+    Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    User,
+    UserEmail,
 )
-from sentry.signals import sso_enabled
+from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
@@ -34,19 +44,19 @@ import sentry.utils.json as json
 
 from . import manager
 
-logger = logging.getLogger('sentry.auth')
+logger = logging.getLogger("sentry.auth")
 
-OK_LINK_IDENTITY = _('You have successfully linked your account to your SSO provider.')
+OK_LINK_IDENTITY = _("You have successfully linked your account to your SSO provider.")
 
 OK_SETUP_SSO = _(
-    'SSO has been configured for your organization and any existing members have been sent an email to link their accounts.'
+    "SSO has been configured for your organization and any existing members have been sent an email to link their accounts."
 )
 
-ERR_UID_MISMATCH = _('There was an error encountered during authentication.')
+ERR_UID_MISMATCH = _("There was an error encountered during authentication.")
 
-ERR_NOT_AUTHED = _('You must be authenticated to link accounts.')
+ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 
-ERR_INVALID_IDENTITY = _('The provider did not return a valid user identity.')
+ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
 
 
 class RedisBackedState(object):
@@ -54,20 +64,20 @@ class RedisBackedState(object):
     EXPIRATION_TTL = 10 * 60
 
     def __init__(self, request):
-        self.__dict__['request'] = request
+        self.__dict__["request"] = request
 
     @property
     def _client(self):
-        return clusters.get('default').get_local_client_for_key(self.auth_key)
+        return clusters.get("default").get_local_client_for_key(self.auth_key)
 
     @property
     def auth_key(self):
-        return self.request.session.get('auth_key')
+        return self.request.session.get("auth_key")
 
     def regenerate(self, initial_state):
-        auth_key = u'auth:pipeline:{}'.format(uuid4().hex)
+        auth_key = u"auth:pipeline:{}".format(uuid4().hex)
 
-        self.request.session['auth_key'] = auth_key
+        self.request.session["auth_key"] = auth_key
         self.request.session.modified = True
 
         value = json.dumps(initial_state)
@@ -78,7 +88,7 @@ class RedisBackedState(object):
             return
 
         self._client.delete(self.auth_key)
-        del self.request.session['auth_key']
+        del self.request.session["auth_key"]
         self.request.session.modified = True
 
     def is_valid(self):
@@ -107,47 +117,50 @@ class RedisBackedState(object):
         self._client.setex(self.auth_key, self.EXPIRATION_TTL, json.dumps(state))
 
 
-def handle_existing_identity(auth_provider, provider, organization,
-                             request, state, auth_identity, identity):
+def handle_existing_identity(
+    auth_provider, provider, organization, request, state, auth_identity, identity
+):
     # TODO(dcramer): this is very similar to attach
     now = timezone.now()
     auth_identity.update(
         data=provider.update_identity(
-            new_data=identity.get('data', {}),
-            current_data=auth_identity.data,
+            new_data=identity.get("data", {}), current_data=auth_identity.data
         ),
         last_verified=now,
         last_synced=now,
     )
 
     try:
-        member = OrganizationMember.objects.get(
-            user=auth_identity.user,
-            organization=organization,
-        )
+        member = OrganizationMember.objects.get(user=auth_identity.user, organization=organization)
     except OrganizationMember.DoesNotExist:
         # this is likely the case when someone was removed from the org
         # but still has access to rejoin
         member = handle_new_membership(auth_provider, organization, request, auth_identity)
     else:
-        if getattr(member.flags, 'sso:invalid') or not getattr(member.flags, 'sso:linked'):
-            setattr(member.flags, 'sso:invalid', False)
-            setattr(member.flags, 'sso:linked', True)
+        if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
+            setattr(member.flags, "sso:invalid", False)
+            setattr(member.flags, "sso:linked", True)
             member.save()
 
     user = auth_identity.user
     user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
     if not auth.login(
-        request,
-        user,
-        after_2fa=request.build_absolute_uri(),
-        organization_id=organization.id
+        request, user, after_2fa=request.build_absolute_uri(), organization_id=organization.id
     ):
         return HttpResponseRedirect(auth.get_login_redirect(request))
 
     state.clear()
-    metrics.incr('sso.login-success', tags={'provider': provider.key}, skip_internal=False)
+    metrics.incr(
+        "sso.login-success",
+        tags={
+            "provider": provider.key,
+            "organization_id": organization.id,
+            "user_id": request.user.id,
+        },
+        skip_internal=False,
+        sample_rate=1.0,
+    )
 
     return HttpResponseRedirect(auth.get_login_redirect(request))
 
@@ -155,24 +168,41 @@ def handle_existing_identity(auth_provider, provider, organization,
 def handle_new_membership(auth_provider, organization, request, auth_identity):
     user = auth_identity.user
 
+    # If the user is either currently *pending* invite acceptance (as indicated
+    # from the pending-invite cookie) OR an existing invite exists on this
+    # organziation for the email provided by the identity provider.
+    invite_helper = ApiInviteHelper.from_cookie_or_email(
+        request=request, organization=organization, email=user.email
+    )
+
+    # If we are able to accept an existing invite for the user for this
+    # organization, do so, otherwise handle new membership
+    if invite_helper:
+        if invite_helper.invite_approved:
+            invite_helper.accept_invite(user)
+            return
+
+        # It's possible the user has an _invite request_ that hasn't been approved yet,
+        # and is able to join the organization without an invite through the SSO flow.
+        # In that case, delete the invite request and create a new membership.
+        invite_helper.handle_invite_not_approved()
+
+    # Otherwise create a new membership
     om = OrganizationMember.objects.create(
         organization=organization,
         role=organization.default_role,
         user=user,
-        flags=OrganizationMember.flags['sso:linked'],
+        flags=OrganizationMember.flags["sso:linked"],
     )
 
     default_teams = auth_provider.default_teams.all()
     for team in default_teams:
-        OrganizationMemberTeam.objects.create(
-            team=team,
-            organizationmember=om,
-        )
+        OrganizationMemberTeam.objects.create(team=team, organizationmember=om)
 
     AuditLogEntry.objects.create(
         organization=organization,
         actor=user,
-        ip_address=request.META['REMOTE_ADDR'],
+        ip_address=request.META["REMOTE_ADDR"],
         target_object=om.id,
         target_user=om.user,
         event=AuditLogEntryEvent.MEMBER_ADD,
@@ -193,22 +223,18 @@ def handle_attach_identity(auth_provider, request, organization, provider, ident
         try:
             # prioritize identifying by the SSO provider's user ID
             auth_identity = AuthIdentity.objects.get(
-                auth_provider=auth_provider,
-                ident=identity['id'],
+                auth_provider=auth_provider, ident=identity["id"]
             )
         except AuthIdentity.DoesNotExist:
             # otherwise look for an already attached identity
             # this can happen if the SSO provider's internal ID changes
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider=auth_provider,
-                user=user,
-            )
+            auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider, user=user)
     except AuthIdentity.DoesNotExist:
         auth_identity = AuthIdentity.objects.create(
             auth_provider=auth_provider,
             user=user,
-            ident=identity['id'],
-            data=identity.get('data', {}),
+            ident=identity["id"],
+            data=identity.get("data", {}),
         )
         auth_is_new = True
     else:
@@ -223,33 +249,28 @@ def handle_attach_identity(auth_provider, request, organization, provider, ident
             # so that the new identifier gets used (other we'll hit a constraint)
             # violation since one might exist for (provider, user) as well as
             # (provider, ident)
-            AuthIdentity.objects.exclude(
-                id=auth_identity.id,
-            ).filter(
-                auth_provider=auth_provider,
-                user=user,
+            AuthIdentity.objects.exclude(id=auth_identity.id).filter(
+                auth_provider=auth_provider, user=user
             ).delete()
 
             # since we've identify an identity which is no longer valid
             # lets preemptively mark it as such
             try:
                 other_member = OrganizationMember.objects.get(
-                    user=auth_identity.user_id,
-                    organization=organization,
+                    user=auth_identity.user_id, organization=organization
                 )
             except OrganizationMember.DoesNotExist:
                 pass
             else:
-                other_member.flags['sso:invalid'] = True
-                other_member.flags['sso:linked'] = False
+                other_member.flags["sso:invalid"] = True
+                other_member.flags["sso:linked"] = False
                 other_member.save()
 
         auth_identity.update(
             user=user,
-            ident=identity['id'],
+            ident=identity["id"],
             data=provider.update_identity(
-                new_data=identity.get('data', {}),
-                current_data=auth_identity.data,
+                new_data=identity.get("data", {}), current_data=auth_identity.data
             ),
             last_verified=now,
             last_synced=now,
@@ -258,74 +279,72 @@ def handle_attach_identity(auth_provider, request, organization, provider, ident
 
     if member is None:
         try:
-            member = OrganizationMember.objects.get(
-                user=user,
-                organization=organization,
-            )
+            member = OrganizationMember.objects.get(user=user, organization=organization)
         except OrganizationMember.DoesNotExist:
             member = OrganizationMember.objects.create(
                 organization=organization,
                 role=organization.default_role,
                 user=user,
-                flags=OrganizationMember.flags['sso:linked'],
+                flags=OrganizationMember.flags["sso:linked"],
             )
 
             default_teams = auth_provider.default_teams.all()
             for team in default_teams:
-                OrganizationMemberTeam.objects.create(
-                    team=team,
-                    organizationmember=member,
-                )
+                OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
 
             AuditLogEntry.objects.create(
                 organization=organization,
                 actor=user,
-                ip_address=request.META['REMOTE_ADDR'],
+                ip_address=request.META["REMOTE_ADDR"],
                 target_object=member.id,
                 target_user=user,
                 event=AuditLogEntryEvent.MEMBER_ADD,
                 data=member.get_audit_log_data(),
             )
-    if getattr(member.flags, 'sso:invalid') or not getattr(member.flags, 'sso:linked'):
-        setattr(member.flags, 'sso:invalid', False)
-        setattr(member.flags, 'sso:linked', True)
+    if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
+        setattr(member.flags, "sso:invalid", False)
+        setattr(member.flags, "sso:linked", True)
         member.save()
 
     if auth_is_new:
         AuditLogEntry.objects.create(
             organization=organization,
             actor=user,
-            ip_address=request.META['REMOTE_ADDR'],
+            ip_address=request.META["REMOTE_ADDR"],
             target_object=auth_identity.id,
             event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
             data=auth_identity.get_audit_log_data(),
         )
 
-        messages.add_message(
-            request,
-            messages.SUCCESS,
-            OK_LINK_IDENTITY,
-        )
+        messages.add_message(request, messages.SUCCESS, OK_LINK_IDENTITY)
 
     return auth_identity
 
 
 def get_display_name(identity):
-    return identity.get('name') or identity.get('email')
+    return identity.get("name") or identity.get("email")
 
 
 def get_identifier(identity):
-    return identity.get('email') or identity.get('id')
+    return identity.get("email") or identity.get("id")
 
 
 def respond(template, organization, request, context=None, status=200):
-    default_context = {
-        'organization': organization,
-    }
+    default_context = {"organization": organization}
     if context:
         default_context.update(context)
 
     return render_to_response(template, default_context, request, status=status)
+
+
+def post_login_redirect(request):
+    response = HttpResponseRedirect(auth.get_login_redirect(request))
+
+    # Always remove any pending invite cookies, pending invites will have been
+    # accepted during the SSO flow.
+    remove_invite_cookie(request, response)
+
+    return response
 
 
 def handle_unknown_identity(request, organization, auth_provider, provider, state, identity):
@@ -344,23 +363,21 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
 
     - Should I create a new user based on this identity?
     """
-    op = request.POST.get('op')
+    op = request.POST.get("op")
     if not request.user.is_authenticated():
         # TODO(dcramer): its possible they have multiple accounts and at
         # least one is managed (per the check below)
         try:
             acting_user = User.objects.filter(
-                id__in=UserEmail.objects.filter(email__iexact=identity['email']).values('user'),
+                id__in=UserEmail.objects.filter(email__iexact=identity["email"]).values("user"),
                 is_active=True,
             ).first()
         except IndexError:
             acting_user = None
         login_form = AuthenticationForm(
             request,
-            request.POST if request.POST.get('op') == 'login' else None,
-            initial={
-                'username': acting_user.username if acting_user else None,
-            },
+            request.POST if request.POST.get("op") == "login" else None,
+            initial={"username": acting_user.username if acting_user else None},
         )
     else:
         acting_user = request.user
@@ -371,28 +388,27 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
     # we trust identity providers, its considered safe.
     # Note: we do not trust things like SAML, so the SSO implementation needs
     # to consider if 'email_verified' can be trusted or not
-    if acting_user and identity.get('email_verified'):
+    if acting_user and identity.get("email_verified"):
         # we only allow this flow to happen if the existing user has
         # membership, otherwise we short circuit because it might be
         # an attempt to hijack membership of another organization
         has_membership = OrganizationMember.objects.filter(
-            user=acting_user,
-            organization=organization,
+            user=acting_user, organization=organization
         ).exists()
         if has_membership:
             if not auth.login(
                 request,
                 acting_user,
                 after_2fa=request.build_absolute_uri(),
-                organization_id=organization.id
+                organization_id=organization.id,
             ):
                 if acting_user.has_usable_password():
-                    return HttpResponseRedirect(auth.get_login_redirect(request))
+                    return post_login_redirect(request)
                 else:
                     acting_user = None
             else:
                 # assume they've confirmed they want to attach the identity
-                op = 'confirm'
+                op = "confirm"
         else:
             # force them to create a new account
             acting_user = None
@@ -400,17 +416,13 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
     elif acting_user and not acting_user.has_usable_password():
         acting_user = None
 
-    if op == 'confirm' and request.user.is_authenticated():
+    if op == "confirm" and request.user.is_authenticated():
         auth_identity = handle_attach_identity(
-            auth_provider,
-            request,
-            organization,
-            provider,
-            identity,
+            auth_provider, request, organization, provider, identity
         )
-    elif op == 'newuser':
+    elif op == "newuser":
         auth_identity = handle_new_user(auth_provider, organization, request, identity)
-    elif op == 'login' and not request.user.is_authenticated():
+    elif op == "login" and not request.user.is_authenticated():
         # confirm authentication, login
         op = None
         if login_form.is_valid():
@@ -425,38 +437,38 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
                 request,
                 login_form.get_user(),
                 after_2fa=request.build_absolute_uri(),
-                organization_id=organization.id
+                organization_id=organization.id,
             ):
-                return HttpResponseRedirect(auth.get_login_redirect(request))
+                return post_login_redirect(request)
         else:
-            auth.log_auth_failure(request, request.POST.get('username'))
+            auth.log_auth_failure(request, request.POST.get("username"))
     else:
         op = None
 
     if not op:
         if request.user.is_authenticated():
             return respond(
-                'sentry/auth-confirm-link.html',
+                "sentry/auth-confirm-link.html",
                 organization,
                 request,
                 {
-                    'identity': identity,
-                    'existing_user': request.user,
-                    'identity_display_name': get_display_name(identity),
-                    'identity_identifier': get_identifier(identity)
+                    "identity": identity,
+                    "existing_user": request.user,
+                    "identity_display_name": get_display_name(identity),
+                    "identity_identifier": get_identifier(identity),
                 },
             )
 
         return respond(
-            'sentry/auth-confirm-identity.html',
+            "sentry/auth-confirm-identity.html",
             organization,
             request,
             {
-                'existing_user': acting_user,
-                'identity': identity,
-                'login_form': login_form,
-                'identity_display_name': get_display_name(identity),
-                'identity_identifier': get_identifier(identity)
+                "existing_user": acting_user,
+                "identity": identity,
+                "login_form": login_form,
+                "identity_display_name": get_display_name(identity),
+                "identity_identifier": get_identifier(identity),
             },
         )
 
@@ -465,59 +477,42 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
 
     # XXX(dcramer): this is repeated from above
     if not auth.login(
-        request,
-        user,
-        after_2fa=request.build_absolute_uri(),
-        organization_id=organization.id
+        request, user, after_2fa=request.build_absolute_uri(), organization_id=organization.id
     ):
-        return HttpResponseRedirect(auth.get_login_redirect(request))
+        return post_login_redirect(request)
 
     state.clear()
 
-    return HttpResponseRedirect(auth.get_login_redirect(request))
+    return post_login_redirect(request)
 
 
 def handle_new_user(auth_provider, organization, request, identity):
     user = User.objects.create(
-        username=uuid4().hex,
-        email=identity['email'],
-        name=identity.get('name', '')[:200],
+        username=uuid4().hex, email=identity["email"], name=identity.get("name", "")[:200]
     )
 
     if settings.TERMS_URL and settings.PRIVACY_URL:
-        user.update(flags=F('flags').bitor(User.flags.newsletter_consent_prompt))
+        user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
 
     try:
         with transaction.atomic():
             auth_identity = AuthIdentity.objects.create(
                 auth_provider=auth_provider,
                 user=user,
-                ident=identity['id'],
-                data=identity.get('data', {}),
+                ident=identity["id"],
+                data=identity.get("data", {}),
             )
     except IntegrityError:
-        auth_identity = AuthIdentity.objects.get(
-            auth_provider=auth_provider,
-            ident=identity['id'],
-        )
-        auth_identity.update(
-            user=user,
-            data=identity.get('data', {}),
-        )
+        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider, ident=identity["id"])
+        auth_identity.update(user=user, data=identity.get("data", {}))
 
     user.send_confirm_emails(is_new_user=True)
+    provider = auth_provider.provider if auth_provider else None
+    user_signup.send_robust(
+        sender=handle_new_user, user=user, source="sso", provider=provider, referrer="in-app"
+    )
 
-    # If the user has a pending invitation in this organization, we can
-    # immediately assocaite their user.
-    try:
-        member = OrganizationMember.objects.get(
-            organization=organization,
-            email=user.email,
-        )
-        member.set_user(user)
-        member.save()
-    except OrganizationMember.DoesNotExist:
-        handle_new_membership(auth_provider, organization, request, auth_identity)
+    handle_new_membership(auth_provider, organization, request, auth_identity)
 
     return auth_identity
 
@@ -542,6 +537,7 @@ class AuthHelper(object):
     6. The user is authenticated and creating a new identity, but not linking
        it with their account (thus creating a new account).
     """
+
     # logging in or registering
     FLOW_LOGIN = 1
     # configuring the provider
@@ -555,7 +551,7 @@ class AuthHelper(object):
 
         organization_id = state.org_id
         if not organization_id:
-            logging.info('Invalid SSO data found')
+            logging.info("Invalid SSO data found")
             return None
 
         flow = state.flow
@@ -599,7 +595,7 @@ class AuthHelper(object):
         # we serialize the pipeline to be [AuthView().get_ident(), ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
-        self.signature = md5_text(' '.join(av.get_ident() for av in self.pipeline)).hexdigest()
+        self.signature = md5_text(" ".join(av.get_ident() for av in self.pipeline)).hexdigest()
 
     def pipeline_is_valid(self):
         if not self.state.is_valid():
@@ -609,19 +605,21 @@ class AuthHelper(object):
         return self.state.signature == self.signature
 
     def init_pipeline(self):
-        self.state.regenerate({
-            'uid': self.request.user.id if self.request.user.is_authenticated() else None,
-            'auth_provider': self.auth_provider.id if self.auth_provider else None,
-            'provider_key': self.provider.key,
-            'org_id': self.organization.id,
-            'step_index': 0,
-            'signature': self.signature,
-            'flow': self.flow,
-            'data': {},
-        })
+        self.state.regenerate(
+            {
+                "uid": self.request.user.id if self.request.user.is_authenticated() else None,
+                "auth_provider": self.auth_provider.id if self.auth_provider else None,
+                "provider_key": self.provider.key,
+                "org_id": self.organization.id,
+                "step_index": 0,
+                "signature": self.signature,
+                "flow": self.flow,
+                "data": {},
+            }
+        )
 
     def get_redirect_url(self):
-        return absolute_uri(reverse('sentry-auth-sso'))
+        return absolute_uri(reverse("sentry-auth-sso"))
 
     def clear_session(self):
         self.state.clear()
@@ -635,10 +633,7 @@ class AuthHelper(object):
         if step_index == len(self.pipeline):
             return self.finish_pipeline()
 
-        return self.pipeline[step_index].dispatch(
-            request=self.request,
-            helper=self,
-        )
+        return self.pipeline[step_index].dispatch(request=self.request, helper=self)
 
     def next_step(self):
         """
@@ -650,15 +645,15 @@ class AuthHelper(object):
     def finish_pipeline(self):
         data = self.fetch_state()
 
-        # The state data may have expried, in which case the state data will
+        # The state data may have expired, in which case the state data will
         # simply be None.
         if not data:
             return self.error(ERR_INVALID_IDENTITY)
 
         try:
             identity = self.provider.build_identity(data)
-        except IdentityNotValid:
-            return self.error(ERR_INVALID_IDENTITY)
+        except IdentityNotValid as error:
+            return self.error(six.text_type(error) or ERR_INVALID_IDENTITY)
 
         if self.state.flow == self.FLOW_LOGIN:
             # create identity and authenticate the user
@@ -684,20 +679,15 @@ class AuthHelper(object):
         their account.
         """
         auth_provider = self.auth_provider
-        user_id = identity['id']
+        user_id = identity["id"]
 
         lock = locks.get(
-            u'sso:auth:{}:{}'.format(
-                auth_provider.id,
-                md5_text(user_id).hexdigest(),
-            ),
-            duration=5,
+            u"sso:auth:{}:{}".format(auth_provider.id, md5_text(user_id).hexdigest()), duration=5
         )
         with TimedRetryPolicy(5)(lock.acquire):
             try:
-                auth_identity = AuthIdentity.objects.select_related('user').get(
-                    auth_provider=auth_provider,
-                    ident=user_id,
+                auth_identity = AuthIdentity.objects.select_related("user").get(
+                    auth_provider=auth_provider, ident=user_id
                 )
             except AuthIdentity.DoesNotExist:
                 auth_identity = None
@@ -705,15 +695,31 @@ class AuthHelper(object):
             # Handle migration of identity keys
             if not auth_identity and isinstance(user_id, MigratingIdentityId):
                 try:
-                    auth_identity = AuthIdentity.objects.select_related('user').get(
-                        auth_provider=auth_provider,
-                        ident=user_id.legacy_id,
+                    auth_identity = AuthIdentity.objects.select_related("user").get(
+                        auth_provider=auth_provider, ident=user_id.legacy_id
                     )
                     auth_identity.update(ident=user_id.id)
                 except AuthIdentity.DoesNotExist:
                     auth_identity = None
 
             if not auth_identity:
+                # XXX(leedongwei): Workaround for migrating Okta instance
+                if features.has(
+                    "organizations:sso-migration", self.organization, actor=self.request.user
+                ) and (auth_provider.provider == "okta" or auth_provider.provider == "saml2"):
+                    identity["email_verified"] = True
+
+                    logger.info(
+                        "sso.login-pipeline.okta-verified-workaround",
+                        extra={
+                            "organization_id": self.organization.id,
+                            "user_id": self.request.user.id,
+                            "auth_provider_id": self.auth_provider.id,
+                            "idp_identity_id": identity["id"],
+                            "idp_identity_email": identity["email"],
+                        },
+                    )
+
                 return handle_unknown_identity(
                     self.request,
                     self.organization,
@@ -739,11 +745,7 @@ class AuthHelper(object):
                         identity,
                     )
                 auth_identity = handle_attach_identity(
-                    self.auth_provider,
-                    self.request,
-                    self.organization,
-                    self.provider,
-                    identity,
+                    self.auth_provider, self.request, self.organization, self.provider, identity
                 )
 
             return handle_existing_identity(
@@ -773,10 +775,7 @@ class AuthHelper(object):
         config = self.provider.build_config(data)
 
         try:
-            om = OrganizationMember.objects.get(
-                user=request.user,
-                organization=self.organization,
-            )
+            om = OrganizationMember.objects.get(user=request.user, organization=self.organization)
         except OrganizationMember.DoesNotExist:
             return self.error(ERR_UID_MISMATCH)
 
@@ -785,18 +784,11 @@ class AuthHelper(object):
         self.disable_2fa_required()
 
         self.auth_provider = AuthProvider.objects.create(
-            organization=self.organization,
-            provider=self.provider.key,
-            config=config,
+            organization=self.organization, provider=self.provider.key, config=config
         )
 
         handle_attach_identity(
-            self.auth_provider,
-            self.request,
-            self.organization,
-            self.provider,
-            identity,
-            om,
+            self.auth_provider, self.request, self.organization, self.provider, identity, om
         )
 
         auth.mark_sso_complete(request, self.organization.id)
@@ -805,12 +797,13 @@ class AuthHelper(object):
             organization=self.organization,
             user=request.user,
             provider=self.provider.key,
-            sender=self.__class__)
+            sender=self.__class__,
+        )
 
         AuditLogEntry.objects.create(
             organization=self.organization,
             actor=request.user,
-            ip_address=request.META['REMOTE_ADDR'],
+            ip_address=request.META["REMOTE_ADDR"],
             target_object=self.auth_provider.id,
             event=AuditLogEntryEvent.SSO_ENABLE,
             data=self.auth_provider.get_audit_log_data(),
@@ -818,42 +811,41 @@ class AuthHelper(object):
 
         email_missing_links.delay(self.organization.id, request.user.id, self.provider.key)
 
-        messages.add_message(
-            self.request,
-            messages.SUCCESS,
-            OK_SETUP_SSO,
-        )
+        messages.add_message(self.request, messages.SUCCESS, OK_SETUP_SSO)
 
         self.clear_session()
 
         next_uri = reverse(
-            'sentry-organization-auth-provider-settings', args=[
-                self.organization.slug,
-            ]
+            "sentry-organization-auth-provider-settings", args=[self.organization.slug]
         )
         return HttpResponseRedirect(next_uri)
 
     def error(self, message):
-        redirect_uri = '/'
+        redirect_uri = "/"
 
         if self.state.flow == self.FLOW_LOGIN:
             # create identity and authenticate the user
-            redirect_uri = reverse('sentry-auth-organization', args=[self.organization.slug])
+            redirect_uri = reverse("sentry-auth-organization", args=[self.organization.slug])
 
         elif self.state.flow == self.FLOW_SETUP_PROVIDER:
             redirect_uri = reverse(
-                'sentry-organization-auth-settings', args=[self.organization.slug]
+                "sentry-organization-auth-settings", args=[self.organization.slug]
             )
 
-        metrics.incr('sso.error', tags={
-            'provider': self.provider.key,
-            'flow': self.state.flow
-        }, skip_internal=False)
+        metrics.incr(
+            "sso.error",
+            tags={
+                "flow": self.state.flow,
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": self.request.user.id,
+            },
+            skip_internal=False,
+            sample_rate=1.0,
+        )
 
         messages.add_message(
-            self.request,
-            messages.ERROR,
-            u'Authentication error: {}'.format(message),
+            self.request, messages.ERROR, u"Authentication error: {}".format(message)
         )
 
         return HttpResponseRedirect(redirect_uri)
@@ -873,22 +865,15 @@ class AuthHelper(object):
         if not require_2fa or not require_2fa.is_set:
             return
 
-        self.organization.update(
-            flags=F('flags').bitand(~Organization.flags.require_2fa)
-        )
+        self.organization.update(flags=F("flags").bitand(~Organization.flags.require_2fa))
 
         logger.info(
-            'Require 2fa disabled during sso setup',
-            extra={
-                'organization_id': self.organization.id,
-            }
+            "Require 2fa disabled during sso setup", extra={"organization_id": self.organization.id}
         )
         create_audit_entry(
             request=self.request,
             organization=self.organization,
             target_object=self.organization.id,
             event=AuditLogEntryEvent.ORG_EDIT,
-            data={
-                'require_2fa': u'to False when enabling SSO'
-            },
+            data={"require_2fa": u"to False when enabling SSO"},
         )

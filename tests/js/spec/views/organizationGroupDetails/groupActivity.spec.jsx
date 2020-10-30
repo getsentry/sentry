@@ -1,14 +1,15 @@
 import React from 'react';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import NoteInput from 'app/components/activity/note/input';
 import ProjectsStore from 'app/stores/projectsStore';
 
-describe('GroupActivity', function() {
+describe('GroupActivity', function () {
   const project = TestStubs.Project();
   const group = TestStubs.Group({
     id: '1337',
@@ -21,7 +22,7 @@ describe('GroupActivity', function() {
     group,
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     ProjectsStore.loadInitialData([project]);
     jest.spyOn(ConfigStore, 'get').mockImplementation(key => {
       if (key === 'user') {
@@ -33,10 +34,10 @@ describe('GroupActivity', function() {
     });
   });
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  it('renders a NoteInput', function() {
-    const wrapper = mount(
+  it('renders a NoteInput', function () {
+    const wrapper = mountWithTheme(
       <GroupActivity
         api={new MockApiClient()}
         group={group}
@@ -47,16 +48,16 @@ describe('GroupActivity', function() {
     expect(wrapper.find(NoteInput)).toHaveLength(1);
   });
 
-  describe('Delete', function() {
+  describe('Delete', function () {
     let wrapper;
     let deleteMock;
 
-    beforeEach(function() {
+    beforeEach(function () {
       deleteMock = MockApiClient.addMockResponse({
         url: '/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <GroupActivity
           api={new MockApiClient()}
           group={group}
@@ -66,7 +67,7 @@ describe('GroupActivity', function() {
       );
     });
 
-    it('should do nothing if not present in GroupStore', function() {
+    it('should do nothing if not present in GroupStore', function () {
       jest.spyOn(GroupStore, 'removeActivity').mockImplementation(() => -1); // not found
 
       // Would rather call simulate on the actual component but it's in a styled component
@@ -75,7 +76,7 @@ describe('GroupActivity', function() {
       expect(deleteMock).not.toHaveBeenCalled();
     });
 
-    it('should remove remove the item from the GroupStore make a DELETE API request', function() {
+    it('should remove remove the item from the GroupStore make a DELETE API request', function () {
       jest.spyOn(GroupStore, 'removeActivity').mockImplementation(() => 1);
 
       // Would rather call simulate on the actual component but it's in a styled component

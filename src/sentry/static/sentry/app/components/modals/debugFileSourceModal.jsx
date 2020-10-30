@@ -3,7 +3,6 @@ import React from 'react';
 
 import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import {objectToArray} from 'app/utils';
 import {
   AWS_REGIONS,
   DEBUG_SOURCE_LAYOUTS,
@@ -15,7 +14,7 @@ import Form from 'app/views/settings/components/forms/form';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 
 function objectToChoices(obj) {
-  return objectToArray(obj).map(([key, value]) => [key, t(value)]);
+  return Object.entries(obj).map(([key, value]) => [key, t(value)]);
 }
 
 const commonFields = {
@@ -23,10 +22,7 @@ const commonFields = {
     name: 'id',
     type: 'hidden',
     required: true,
-    defaultValue: () =>
-      Math.random()
-        .toString(36)
-        .substring(2),
+    defaultValue: () => Math.random().toString(36).substring(2),
   },
   name: {
     name: 'name',

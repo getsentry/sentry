@@ -14,86 +14,99 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
-from simplejson import JSONDecodeError
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models import (
-    Commit, CommitAuthor, CommitFileChange, Identity, Integration, PullRequest,
-    Repository
+    Commit,
+    CommitAuthor,
+    CommitFileChange,
+    Identity,
+    Integration,
+    PullRequest,
+    Repository,
 )
 from sentry.utils import json
 
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from .repository import GitHubRepositoryProvider
 
-logger = logging.getLogger('sentry.webhooks')
+logger = logging.getLogger("sentry.webhooks")
 
 
 class Webhook(object):
-    provider = 'github'
+    provider = "github"
 
     def _handle(self, integration, event, organization, repo):
         raise NotImplementedError
 
     def __call__(self, event, host=None):
-        external_id = event['installation']['id']
+        external_id = event["installation"]["id"]
         if host:
-            external_id = u'{}:{}'.format(host, event['installation']['id'])
+            external_id = u"{}:{}".format(host, event["installation"]["id"])
 
         try:
-            integration = Integration.objects.get(
-                external_id=external_id,
-                provider=self.provider,
-            )
+            integration = Integration.objects.get(external_id=external_id, provider=self.provider)
         except Integration.DoesNotExist:
             # It seems possible for the GH or GHE app to be installed on their
             # end, but the integration to not exist. Possibly from deleting in
             # Sentry first or from a failed install flow (where the integration
             # didn't get created in the first place)
             logger.info(
-                'github.missing-integration',
+                "github.missing-integration",
                 extra={
-                    'action': event.get('action'),
-                    'repository': event.get('repository')['full_name'],
-                    'external_id': six.text_type(external_id),
-                }
+                    "action": event.get("action"),
+                    "repository": event.get("repository", {}).get("full_name", None),
+                    "external_id": six.text_type(external_id),
+                },
             )
             return
 
-        if 'repository' in event:
+        if "repository" in event:
 
-            orgs = {
-                org.id: org
-                for org in integration.organizations.all()
-            }
+            orgs = {org.id: org for org in integration.organizations.all()}
 
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
-                provider='integrations:%s' % self.provider,
-                external_id=six.text_type(event['repository']['id']),
+                provider="integrations:%s" % self.provider,
+                external_id=six.text_type(event["repository"]["id"]),
             )
             for repo in repos:
-                # We need to track GitHub's "full_name" which is the repository slug.
-                # This is needed to access the API since `external_id` isn't sufficient.
-                if repo.config.get('name') != event['repository']['full_name']:
-                    repo.config['name'] = event['repository']['full_name']
-                    repo.save()
-
                 self._handle(integration, event, orgs[repo.organization_id], repo)
+
+    def update_repo_data(self, repo, event):
+        """
+        Given a webhook payload, update stored repo data if needed.
+
+        Assumes a 'repository' key in event payload, with certain subkeys.
+        Rework this if that stops being a safe assumption.
+        """
+
+        name_from_event = event["repository"]["full_name"]
+        url_from_event = event["repository"]["html_url"]
+
+        if (
+            repo.name != name_from_event
+            or repo.config.get("name") != name_from_event
+            or repo.url != url_from_event
+        ):
+            repo.update(
+                name=name_from_event,
+                url=url_from_event,
+                config=dict(repo.config, name=name_from_event),
+            )
 
 
 class InstallationEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationevent
     def __call__(self, event, host=None):
-        installation = event['installation']
-        if installation and event['action'] == 'deleted':
-            external_id = event['installation']['id']
+        installation = event["installation"]
+        if installation and event["action"] == "deleted":
+            external_id = event["installation"]["id"]
             if host:
-                external_id = u'{}:{}'.format(host, event['installation']['id'])
+                external_id = u"{}:{}".format(host, event["installation"]["id"])
             try:
                 integration = Integration.objects.get(
-                    external_id=external_id,
-                    provider=self.provider,
+                    external_id=external_id, provider=self.provider
                 )
                 self._handle_delete(event, integration)
             except Integration.DoesNotExist:
@@ -102,22 +115,32 @@ class InstallationEventWebhook(Webhook):
                 # Sentry first or from a failed install flow (where the integration
                 # didn't get created in the first place)
                 logger.info(
-                    'github.deletion-missing-integration',
+                    "github.deletion-missing-integration",
                     extra={
-                        'action': event['action'],
-                        'installation_name': event['account']['login'],
-                        'external_id': six.text_type(external_id),
-                    }
+                        "action": event["action"],
+                        "installation_name": installation["account"]["login"],
+                        "external_id": six.text_type(external_id),
+                    },
                 )
 
     def _handle_delete(self, event, integration):
 
         organizations = integration.organizations.all()
+
+        logger.info(
+            "InstallationEventWebhook._handle_delete",
+            extra={
+                "external_id": event["installation"]["id"],
+                "integration_id": integration.id,
+                "organization_id_list": organizations.values_list("id", flat=True),
+            },
+        )
+
         integration.update(status=ObjectStatus.DISABLED)
 
         Repository.objects.filter(
-            organization_id__in=organizations.values_list('id', flat=True),
-            provider='integrations:%s' % self.provider,
+            organization_id__in=organizations.values_list("id", flat=True),
+            provider="integrations:%s" % self.provider,
             integration_id=integration.id,
         ).update(status=ObjectStatus.DISABLED)
 
@@ -132,37 +155,38 @@ class PushEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#pushevent
 
     def is_anonymous_email(self, email):
-        return email[-25:] == '@users.noreply.github.com'
+        return email[-25:] == "@users.noreply.github.com"
 
     def get_external_id(self, username):
-        return 'github:%s' % username
+        return "github:%s" % username
 
     def get_idp_external_id(self, integration, host=None):
-        return options.get('github-app.id')
+        return options.get("github-app.id")
 
     def should_ignore_commit(self, commit):
-        return GitHubRepositoryProvider.should_ignore_commit(commit['message'])
+        return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
 
     def _handle(self, integration, event, organization, repo, host=None):
+        # while we're here, make sure repo data is up to date
+        self.update_repo_data(repo, event)
+
         authors = {}
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache = {}
 
-        for commit in event['commits']:
-            if not commit['distinct']:
+        for commit in event["commits"]:
+            if not commit["distinct"]:
                 continue
 
             if self.should_ignore_commit(commit):
                 continue
 
-            author_email = commit['author']['email']
-            if '@' not in author_email:
-                author_email = u'{}@localhost'.format(
-                    author_email[:65],
-                )
+            author_email = commit["author"]["email"]
+            if "@" not in author_email:
+                author_email = u"{}@localhost".format(author_email[:65])
             # try to figure out who anonymous emails are
             elif self.is_anonymous_email(author_email):
-                gh_username = commit['author'].get('username')
+                gh_username = commit["author"].get("username")
                 # bot users don't have usernames
                 if gh_username:
                     external_id = self.get_external_id(gh_username)
@@ -171,8 +195,7 @@ class PushEventWebhook(Webhook):
                     else:
                         try:
                             commit_author = CommitAuthor.objects.get(
-                                external_id=external_id,
-                                organization_id=organization.id,
+                                external_id=external_id, organization_id=organization.id
                             )
                         except CommitAuthor.DoesNotExist:
                             commit_author = None
@@ -193,7 +216,12 @@ class PushEventWebhook(Webhook):
                                 gh_username_cache[gh_username] = None
                                 try:
                                     identity = Identity.objects.get(
-                                        external_id=gh_user['id'], idp__type=self.provider, idp__external_id=self.get_idp_external_id(integration, host))
+                                        external_id=gh_user["id"],
+                                        idp__type=self.provider,
+                                        idp__external_id=self.get_idp_external_id(
+                                            integration, host
+                                        ),
+                                    )
                                 except Identity.DoesNotExist:
                                     pass
                                 else:
@@ -203,8 +231,7 @@ class PushEventWebhook(Webhook):
                                         try:
                                             with transaction.atomic():
                                                 commit_author.update(
-                                                    email=author_email,
-                                                    external_id=external_id,
+                                                    email=author_email, external_id=external_id
                                                 )
                                         except IntegrityError:
                                             pass
@@ -220,22 +247,21 @@ class PushEventWebhook(Webhook):
                 authors[author_email] = author = CommitAuthor.objects.get_or_create(
                     organization_id=organization.id,
                     email=author_email,
-                    defaults={
-                        'name': commit['author']['name'][:128],
-                    }
+                    defaults={"name": commit["author"]["name"][:128]},
                 )[0]
 
                 update_kwargs = {}
 
-                if author.name != commit['author']['name'][:128]:
-                    update_kwargs['name'] = commit['author']['name'][:128]
+                if author.name != commit["author"]["name"][:128]:
+                    update_kwargs["name"] = commit["author"]["name"][:128]
 
-                gh_username = commit['author'].get('username')
+                gh_username = commit["author"].get("username")
                 if gh_username:
                     external_id = self.get_external_id(gh_username)
                     if author.external_id != external_id and not self.is_anonymous_email(
-                            author.email):
-                        update_kwargs['external_id'] = external_id
+                        author.email
+                    ):
+                        update_kwargs["external_id"] = external_id
 
                 if update_kwargs:
                     try:
@@ -251,33 +277,24 @@ class PushEventWebhook(Webhook):
                     c = Commit.objects.create(
                         repository_id=repo.id,
                         organization_id=organization.id,
-                        key=commit['id'],
-                        message=commit['message'],
+                        key=commit["id"],
+                        message=commit["message"],
                         author=author,
-                        date_added=dateutil.parser.parse(
-                            commit['timestamp'],
-                        ).astimezone(timezone.utc),
+                        date_added=dateutil.parser.parse(commit["timestamp"]).astimezone(
+                            timezone.utc
+                        ),
                     )
-                    for fname in commit['added']:
+                    for fname in commit["added"]:
                         CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type='A',
+                            organization_id=organization.id, commit=c, filename=fname, type="A"
                         )
-                    for fname in commit['removed']:
+                    for fname in commit["removed"]:
                         CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type='D',
+                            organization_id=organization.id, commit=c, filename=fname, type="D"
                         )
-                    for fname in commit['modified']:
+                    for fname in commit["modified"]:
                         CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type='M',
+                            organization_id=organization.id, commit=c, filename=fname, type="M"
                         )
             except IntegrityError:
                 pass
@@ -286,39 +303,44 @@ class PushEventWebhook(Webhook):
 class PullRequestEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#pullrequestevent
     def is_anonymous_email(self, email):
-        return email[-25:] == '@users.noreply.github.com'
+        return email[-25:] == "@users.noreply.github.com"
 
     def get_external_id(self, username):
-        return 'github:%s' % username
+        return "github:%s" % username
 
     def get_idp_external_id(self, integration, host=None):
-        return options.get('github-app.id')
+        return options.get("github-app.id")
 
     def _handle(self, integration, event, organization, repo, host=None):
-        pull_request = event['pull_request']
-        number = pull_request['number']
-        title = pull_request['title']
-        body = pull_request['body']
-        user = pull_request['user']
+        # while we're here, make sure repo data is up to date
+        self.update_repo_data(repo, event)
+
+        pull_request = event["pull_request"]
+        number = pull_request["number"]
+        title = pull_request["title"]
+        body = pull_request["body"]
+        user = pull_request["user"]
 
         # The value of the merge_commit_sha attribute changes depending on the state of the pull request. Before a pull request is merged, the merge_commit_sha attribute holds the SHA of the test merge commit. After a pull request is merged, the attribute changes depending on how the pull request was merged:
         # - If the pull request was merged as a merge commit, the attribute represents the SHA of the merge commit.
         # - If the pull request was merged via a squash, the attribute represents the SHA of the squashed commit on the base branch.
         # - If the pull request was rebased, the attribute represents the commit that the base branch was updated to.
         # https://developer.github.com/v3/pulls/#get-a-single-pull-request
-        merge_commit_sha = pull_request['merge_commit_sha'] if pull_request['merged'] else None
+        merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
-        author_email = u'{}@localhost'.format(user['login'][:65])
+        author_email = u"{}@localhost".format(user["login"][:65])
         try:
             commit_author = CommitAuthor.objects.get(
-                external_id=self.get_external_id(user['login']),
-                organization_id=organization.id,
+                external_id=self.get_external_id(user["login"]), organization_id=organization.id
             )
             author_email = commit_author.email
         except CommitAuthor.DoesNotExist:
             try:
                 identity = Identity.objects.get(
-                    external_id=user['id'], idp__type=self.provider, idp__external_id=self.get_idp_external_id(integration, host))
+                    external_id=user["id"],
+                    idp__type=self.provider,
+                    idp__external_id=self.get_idp_external_id(integration, host),
+                )
             except Identity.DoesNotExist:
                 pass
             else:
@@ -326,21 +348,19 @@ class PullRequestEventWebhook(Webhook):
 
         try:
             author = CommitAuthor.objects.get(
-                organization_id=organization.id,
-                external_id=self.get_external_id(user['login']),
+                organization_id=organization.id, external_id=self.get_external_id(user["login"])
             )
         except CommitAuthor.DoesNotExist:
             try:
                 author = CommitAuthor.objects.get(
-                    organization_id=organization.id,
-                    email=author_email,
+                    organization_id=organization.id, email=author_email
                 )
             except CommitAuthor.DoesNotExist:
                 author = CommitAuthor.objects.create(
                     organization_id=organization.id,
                     email=author_email,
-                    external_id=self.get_external_id(user['login']),
-                    name=user['login'][:128]
+                    external_id=self.get_external_id(user["login"]),
+                    name=user["login"][:128],
                 )
 
         try:
@@ -349,11 +369,11 @@ class PullRequestEventWebhook(Webhook):
                 repository_id=repo.id,
                 key=number,
                 values={
-                    'organization_id': organization.id,
-                    'title': title,
-                    'author': author,
-                    'message': body,
-                    'merge_commit_sha': merge_commit_sha,
+                    "organization_id": organization.id,
+                    "title": title,
+                    "author": author,
+                    "message": body,
+                    "merge_commit_sha": merge_commit_sha,
                 },
             )
         except IntegrityError:
@@ -366,20 +386,16 @@ class GitHubWebhookBase(View):
         return self._handlers.get(event_type)
 
     def is_valid_signature(self, method, body, secret, signature):
-        if method == 'sha1':
+        if method == "sha1":
             mod = hashlib.sha1
         else:
-            raise NotImplementedError('signature method %s is not supported' % (method, ))
-        expected = hmac.new(
-            key=secret.encode('utf-8'),
-            msg=body,
-            digestmod=mod,
-        ).hexdigest()
+            raise NotImplementedError("signature method %s is not supported" % (method,))
+        expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
-        if request.method != 'POST':
+        if request.method != "POST":
             return HttpResponse(status=405)
 
         return super(GitHubWebhookBase, self).dispatch(request, *args, **kwargs)
@@ -394,55 +410,38 @@ class GitHubWebhookBase(View):
         secret = self.get_secret()
 
         if secret is None:
-            logger.error(
-                'github.webhook.missing-secret',
-                extra=self.get_logging_data(),
-            )
+            logger.error("github.webhook.missing-secret", extra=self.get_logging_data())
             return HttpResponse(status=401)
 
         body = six.binary_type(request.body)
         if not body:
-            logger.error(
-                'github.webhook.missing-body',
-                extra=self.get_logging_data(),
-            )
+            logger.error("github.webhook.missing-body", extra=self.get_logging_data())
             return HttpResponse(status=400)
 
         try:
-            handler = self.get_handler(request.META['HTTP_X_GITHUB_EVENT'])
+            handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
-            logger.error(
-                'github.webhook.missing-event',
-                extra=self.get_logging_data(),
-            )
+            logger.error("github.webhook.missing-event", extra=self.get_logging_data())
             return HttpResponse(status=400)
 
         if not handler:
             return HttpResponse(status=204)
 
         try:
-            method, signature = request.META['HTTP_X_HUB_SIGNATURE'].split('=', 1)
+            method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
         except (KeyError, IndexError):
-            logger.error(
-                'github.webhook.missing-signature',
-                extra=self.get_logging_data(),
-            )
+            logger.error("github.webhook.missing-signature", extra=self.get_logging_data())
             return HttpResponse(status=400)
 
         if not self.is_valid_signature(method, body, self.get_secret(), signature):
-            logger.error(
-                'github.webhook.invalid-signature',
-                extra=self.get_logging_data(),
-            )
+            logger.error("github.webhook.invalid-signature", extra=self.get_logging_data())
             return HttpResponse(status=401)
 
         try:
-            event = json.loads(body.decode('utf-8'))
-        except JSONDecodeError:
+            event = json.loads(body.decode("utf-8"))
+        except json.JSONDecodeError:
             logger.error(
-                'github.webhook.invalid-json',
-                extra=self.get_logging_data(),
-                exc_info=True,
+                "github.webhook.invalid-json", extra=self.get_logging_data(), exc_info=True
             )
             return HttpResponse(status=400)
 
@@ -452,21 +451,21 @@ class GitHubWebhookBase(View):
 
 class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
     _handlers = {
-        'push': PushEventWebhook,
-        'pull_request': PullRequestEventWebhook,
-        'installation': InstallationEventWebhook,
-        'installation_repositories': InstallationRepositoryEventWebhook,
+        "push": PushEventWebhook,
+        "pull_request": PullRequestEventWebhook,
+        "installation": InstallationEventWebhook,
+        "installation_repositories": InstallationRepositoryEventWebhook,
     }
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
-        if request.method != 'POST':
+        if request.method != "POST":
             return HttpResponse(status=405)
 
         return super(GitHubIntegrationsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
 
     def get_secret(self):
-        return options.get('github-app.webhook-secret')
+        return options.get("github-app.webhook-secret")
 
     def post(self, request):
         return self.handle(request)

@@ -1,16 +1,18 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import Projects from 'app/utils/projects';
 import ProjectsStore from 'app/stores/projectsStore';
+import ProjectActions from 'app/actions/projectActions';
 
-describe('utils.projects', function() {
+describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
 
   const createWrapper = props =>
     mount(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
 
-  beforeEach(function() {
+  beforeEach(function () {
     renderer.mockClear();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([
@@ -19,13 +21,13 @@ describe('utils.projects', function() {
     ]);
   });
 
-  afterEach(async function() {
+  afterEach(async function () {
     ProjectsStore.loadInitialData([]);
     await tick();
   });
 
-  describe('with predefined list of slugs', function() {
-    it('gets projects that are in the ProjectsStore ', async function() {
+  describe('with predefined list of slugs', function () {
+    it('gets projects that are in the ProjectsStore ', async function () {
       const wrapper = createWrapper({slugs: ['foo', 'bar']});
 
       // This is initial state
@@ -69,7 +71,7 @@ describe('utils.projects', function() {
       );
     });
 
-    it('fetches projects from API if not found in store', async function() {
+    it('fetches projects from API if not found in store', async function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         query: {
@@ -141,7 +143,7 @@ describe('utils.projects', function() {
       );
     });
 
-    it('only has partial results from API', async function() {
+    it('only has partial results from API', async function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
@@ -206,10 +208,10 @@ describe('utils.projects', function() {
     });
   });
 
-  describe('with no pre-defined projects', function() {
+  describe('with no pre-defined projects', function () {
     let request;
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
@@ -232,7 +234,7 @@ describe('utils.projects', function() {
       await tick();
     });
 
-    it('fetches projects from API', async function() {
+    it('fetches projects from API', async function () {
       const wrapper = createWrapper();
 
       // This is initial state
@@ -274,7 +276,7 @@ describe('utils.projects', function() {
       );
     });
 
-    it('queries API for more projects and replaces results', async function() {
+    it('queries API for more projects and replaces results', async function () {
       const myRenderer = jest.fn(({onSearch}) => (
         <input onChange={({target}) => onSearch(target.value)} />
       ));
@@ -341,7 +343,7 @@ describe('utils.projects', function() {
       );
     });
 
-    it('queries API for more projects and appends results', async function() {
+    it('queries API for more projects and appends results', async function () {
       const myRenderer = jest.fn(({onSearch}) => (
         <input onChange={({target}) => onSearch(target.value, {append: true})} />
       ));
@@ -433,6 +435,92 @@ describe('utils.projects', function() {
           ],
         })
       );
+    });
+  });
+
+  describe('with all projects prop', function () {
+    const loadProjects = jest.spyOn(ProjectActions, 'loadProjects');
+    let mockProjects;
+    let request;
+
+    beforeEach(async function () {
+      mockProjects = [
+        TestStubs.Project({
+          id: '100',
+          slug: 'a',
+        }),
+        TestStubs.Project({
+          id: '101',
+          slug: 'b',
+        }),
+        TestStubs.Project({
+          id: '102',
+          slug: 'c',
+        }),
+      ];
+
+      request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        query: {
+          all_projects: '1',
+        },
+        body: mockProjects,
+      });
+      loadProjects.mockReset();
+      ProjectsStore.reset();
+    });
+
+    it('can query for a list of all projects and save it to the store', async function () {
+      const wrapper = createWrapper({allProjects: true});
+      // This is initial state
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: true,
+          isIncomplete: null,
+          hasMore: null,
+          projects: [],
+        })
+      );
+
+      // wait for request to resolve
+      await tick();
+      wrapper.update();
+      expect(request).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {all_projects: 1},
+        })
+      );
+
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: false,
+          projects: mockProjects,
+        })
+      );
+
+      // expect the store action to be called
+      expect(loadProjects).toHaveBeenCalledWith(mockProjects);
+    });
+
+    it('does not refetch projects that are already loaded in the store', async function () {
+      ProjectsStore.loadInitialData(mockProjects);
+
+      const wrapper = createWrapper({allProjects: true});
+      wrapper.update();
+
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: false,
+          projects: mockProjects,
+        })
+      );
+      expect(request).not.toHaveBeenCalled();
+      expect(loadProjects).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,16 +1,17 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 
-describe('CreateSavedSearchButton', function() {
+describe('CreateSavedSearchButton', function () {
   let wrapper, organization, createMock;
 
-  beforeEach(function() {
+  beforeEach(function () {
     organization = TestStubs.Organization({
       access: ['org:write'],
     });
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <CreateSavedSearchButton
         organization={organization}
         query="is:unresolved assigned:lyn@sentry.io"
@@ -25,24 +26,21 @@ describe('CreateSavedSearchButton', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('saves a search', function() {
-    it('clicking save search opens modal', function() {
+  describe('saves a search', function () {
+    it('clicking save search opens modal', function () {
       expect(wrapper.find('ModalDialog')).toHaveLength(0);
       wrapper.find('button[data-test-id="save-current-search"]').simulate('click');
       expect(wrapper.find('ModalDialog')).toHaveLength(1);
     });
 
-    it('saves a search when query is not changed', async function() {
+    it('saves a search when query is not changed', async function () {
       wrapper.find('button[data-test-id="save-current-search"]').simulate('click');
       wrapper.find('#id-name').simulate('change', {target: {value: 'new search name'}});
-      wrapper
-        .find('ModalDialog')
-        .find('Button[priority="primary"]')
-        .simulate('submit');
+      wrapper.find('ModalDialog').find('Button[priority="primary"]').simulate('submit');
 
       await tick();
       expect(createMock).toHaveBeenCalledWith(
@@ -57,14 +55,11 @@ describe('CreateSavedSearchButton', function() {
       );
     });
 
-    it('saves a search when query is changed', async function() {
+    it('saves a search when query is changed', async function () {
       wrapper.find('button[data-test-id="save-current-search"]').simulate('click');
       wrapper.find('#id-name').simulate('change', {target: {value: 'new search name'}});
       wrapper.find('#id-query').simulate('change', {target: {value: 'is:resolved'}});
-      wrapper
-        .find('ModalDialog')
-        .find('Button[priority="primary"]')
-        .simulate('submit');
+      wrapper.find('ModalDialog').find('Button[priority="primary"]').simulate('submit');
 
       await tick();
       expect(createMock).toHaveBeenCalledWith(
@@ -79,23 +74,27 @@ describe('CreateSavedSearchButton', function() {
       );
     });
 
-    it('shows button by default', function() {
+    it('shows button by default', function () {
       const orgWithoutFeature = TestStubs.Organization({
         access: ['org:write'],
       });
       wrapper.setProps({organization: orgWithoutFeature});
 
-      const button = wrapper.find('button[aria-label="Add to organization filter list"]');
+      const button = wrapper.find(
+        'button[aria-label="Add to organization saved searches"]'
+      );
       expect(button).toHaveLength(1);
     });
 
-    it('hides button if no access', function() {
+    it('hides button if no access', function () {
       const orgWithoutAccess = TestStubs.Organization({
         access: ['org:read'],
       });
       wrapper.setProps({organization: orgWithoutAccess});
 
-      const button = wrapper.find('button[aria-label="Add to organization filter list"]');
+      const button = wrapper.find(
+        'button[aria-label="Add to organization saved searches"]'
+      );
       expect(button).toHaveLength(0);
     });
   });

@@ -1,36 +1,30 @@
 import React from 'react';
 
-import {Client} from 'app/api';
-import {mount} from 'enzyme';
-import OrganizationDeveloperSettings from 'app/views/settings/organizationDeveloperSettings/index';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
-describe('Organization Developer Settings', function() {
+import {Client} from 'app/api';
+import OrganizationDeveloperSettings from 'app/views/settings/organizationDeveloperSettings/index';
+import App from 'app/views/app';
+
+describe('Organization Developer Settings', function () {
   const org = TestStubs.Organization();
-  const sentryApp = TestStubs.SentryApp();
+  const sentryApp = TestStubs.SentryApp({
+    scopes: [
+      'team:read',
+      'project:releases',
+      'event:read',
+      'event:write',
+      'org:read',
+      'org:write',
+    ],
+  });
   const routerContext = TestStubs.routerContext();
 
-  const publishButtonSelector = 'StyledButton[icon="icon-upgrade"]';
+  const publishButtonSelector = 'StyledButton[aria-label="Publish"]';
+  const deleteButtonSelector = 'StyledButton[aria-label="Delete"]';
 
   beforeEach(() => {
     Client.clearMockResponses();
-  });
-
-  describe('when not flagged in to sentry-apps', () => {
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-apps/`,
-      body: [],
-    });
-
-    const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-      routerContext
-    );
-
-    it('displays contact us info', () => {
-      expect(wrapper).toMatchSnapshot();
-      expect(wrapper.find('[icon="icon-circle-add"]').exists()).toBe(false);
-      expect(wrapper.exists('EmptyMessage')).toBe(true);
-    });
   });
 
   describe('when no Apps exist', () => {
@@ -39,16 +33,16 @@ describe('Organization Developer Settings', function() {
       body: [],
     });
 
-    org.features = ['sentry-apps'];
-
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
     it('displays empty state', () => {
+      expect(wrapper).toSnapshot();
       expect(wrapper.exists('EmptyMessage')).toBe(true);
-      expect(wrapper.text()).toMatch('No integrations have been created yet');
+      expect(wrapper.text()).toMatch('No internal integrations have been created yet');
+      expect(wrapper.text()).toMatch('No public integrations have been created yet');
     });
   });
 
@@ -61,11 +55,14 @@ describe('Organization Developer Settings', function() {
         body: [sentryApp],
       });
 
-      org.features = ['sentry-apps'];
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
         routerContext
       );
+    });
+
+    it('internal integration list is empty', () => {
+      expect(wrapper.text()).toMatch('No internal integrations have been created yet');
     });
 
     it('displays all Apps owned by the Org', () => {
@@ -80,31 +77,99 @@ describe('Organization Developer Settings', function() {
         body: [],
       });
 
-      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
-      wrapper.find('[icon="icon-trash"]').simulate('click');
+      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(false);
+      wrapper.find(deleteButtonSelector).simulate('click');
       // confirm deletion by entering in app slug
       wrapper.find('input').simulate('change', {target: {value: 'sample-app'}});
-      wrapper
-        .find('ConfirmDelete Button')
-        .last()
-        .simulate('click');
+      wrapper.find('ConfirmDelete Button').last().simulate('click');
       await tick();
       wrapper.update();
-      expect(wrapper.text()).toMatch('No integrations have been created yet');
+      expect(wrapper.text()).toMatch('No public integrations have been created yet');
     });
 
     it('can make a request to publish an integration', async () => {
+      //add mocks that App calls
+      Client.addMockResponse({
+        url: '/internal/health/',
+        body: {
+          problems: [],
+        },
+      });
+      Client.addMockResponse({
+        url: '/assistant/?v2',
+        body: [],
+      });
+      Client.addMockResponse({
+        url: '/organizations/',
+        body: [TestStubs.Organization()],
+      });
+      Client.addMockResponse({
+        url: '/organizations/org-slug/',
+        method: 'DELETE',
+        statusCode: 401,
+        body: {
+          detail: {
+            code: 'sudo-required',
+            username: 'test@test.com',
+          },
+        },
+      });
+      Client.addMockResponse({
+        url: '/authenticators/',
+        body: [],
+      });
+
       const mock = Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
         method: 'POST',
       });
 
+      //mock with App to render modal
+      wrapper = mountWithTheme(
+        <App>
+          <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
+        </App>,
+        routerContext
+      );
+
       expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(false);
       wrapper.find(publishButtonSelector).simulate('click');
-      wrapper.find('Button[data-test-id="confirm-modal"]').simulate('click');
+
       await tick();
       wrapper.update();
-      expect(mock).toHaveBeenCalled();
+
+      wrapper.find('textarea').forEach((node, i) => {
+        node
+          .simulate('change', {target: {value: `Answer ${i}`}})
+          .simulate('keyDown', {keyCode: 13});
+      });
+      expect(wrapper.find('button[aria-label="Request Publication"]')).toBeTruthy();
+      wrapper.find('form').simulate('submit');
+      expect(mock).toHaveBeenCalledWith(
+        `/sentry-apps/${sentryApp.slug}/publish-request/`,
+        expect.objectContaining({
+          data: {
+            questionnaire: [
+              {
+                answer: 'Answer 0',
+                question:
+                  'What does your integration do? Please be as detailed as possible.',
+              },
+              {answer: 'Answer 1', question: 'What value does it offer customers?'},
+              {
+                answer: 'Answer 2',
+                question:
+                  'Do you operate the web service your integration communicates with?',
+              },
+              {
+                answer: 'Answer 3',
+                question:
+                  'Please justify why you are requesting each of the following permissions: Team Read, Release Admin, Event Write, Organization Write.',
+              },
+            ],
+          },
+        })
+      );
     });
   });
 
@@ -115,9 +180,7 @@ describe('Organization Developer Settings', function() {
       body: [publishedSentryApp],
     });
 
-    org.features = ['sentry-apps'];
-
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
@@ -127,7 +190,7 @@ describe('Organization Developer Settings', function() {
     });
 
     it('trash button is disabled', () => {
-      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
+      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(true);
     });
 
     it('publish button is disabled', () => {
@@ -143,17 +206,21 @@ describe('Organization Developer Settings', function() {
       body: [internalIntegration],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
-    it('allows deleting', () => {
-      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
+    it('public integration list is empty', () => {
+      expect(wrapper.text()).toMatch('No public integrations have been created yet');
     });
 
-    it('publish button is disabled', () => {
-      expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(true);
+    it('allows deleting', () => {
+      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(false);
+    });
+
+    it('publish button does not exist', () => {
+      expect(wrapper.exists(publishButtonSelector)).toBe(false);
     });
   });
 
@@ -164,9 +231,7 @@ describe('Organization Developer Settings', function() {
       body: [sentryApp],
     });
 
-    newOrg.features = ['sentry-apps'];
-
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings
         params={{orgId: newOrg.slug}}
         organization={newOrg}
@@ -175,7 +240,7 @@ describe('Organization Developer Settings', function() {
     );
 
     it('trash button is disabled', () => {
-      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
+      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(true);
     });
 
     it('publish button is disabled', () => {

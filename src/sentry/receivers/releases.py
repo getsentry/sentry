@@ -6,7 +6,19 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.models import (
-    Activity, Commit, Group, GroupAssignee, GroupLink, GroupSubscription, GroupSubscriptionReason, GroupStatus, Release, Repository, PullRequest, UserOption
+    Activity,
+    Commit,
+    Group,
+    GroupAssignee,
+    GroupLink,
+    GroupSubscription,
+    GroupSubscriptionReason,
+    GroupStatus,
+    Release,
+    remove_group_from_inbox,
+    Repository,
+    PullRequest,
+    UserOption,
 )
 from sentry.signals import issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
@@ -25,11 +37,8 @@ def remove_resolved_link(link):
     # the GroupLink
     with transaction.atomic():
         link.delete()
-        affected = Group.objects.filter(
-            status=GroupStatus.RESOLVED,
-            id=link.group_id,
-        ).update(
-            status=GroupStatus.UNRESOLVED,
+        affected = Group.objects.filter(status=GroupStatus.RESOLVED, id=link.group_id).update(
+            status=GroupStatus.UNRESOLVED
         )
         if affected:
             Activity.objects.create(
@@ -87,29 +96,21 @@ def resolved_in_commit(instance, created, **kwargs):
                         type=Activity.SET_RESOLVED_IN_COMMIT,
                         ident=instance.id,
                         user=acting_user,
-                        data={
-                            'commit': instance.id,
-                        }
+                        data={"commit": instance.id},
                     )
                     self_assign_issue = UserOption.objects.get_value(
-                        user=acting_user,
-                        key='self_assign_issue',
-                        default='0'
+                        user=acting_user, key="self_assign_issue", default="0"
                     )
-                    if self_assign_issue == '1' and not group.assignee_set.exists():
+                    if self_assign_issue == "1" and not group.assignee_set.exists():
                         GroupAssignee.objects.assign(
-                            group=group,
-                            assigned_to=acting_user,
-                            acting_user=acting_user,
+                            group=group, assigned_to=acting_user, acting_user=acting_user
                         )
 
                     # while we only create activity and assignment for one user we want to
                     # subscribe every user
                     for user in user_list:
                         GroupSubscription.objects.subscribe(
-                            user=user,
-                            group=group,
-                            reason=GroupSubscriptionReason.status_change,
+                            user=user, group=group, reason=GroupSubscriptionReason.status_change
                         )
 
                 else:
@@ -118,23 +119,19 @@ def resolved_in_commit(instance, created, **kwargs):
                         group=group,
                         type=Activity.SET_RESOLVED_IN_COMMIT,
                         ident=instance.id,
-                        data={
-                            'commit': instance.id,
-                        }
+                        data={"commit": instance.id},
                     )
-                Group.objects.filter(
-                    id=group.id,
-                ).update(
-                    status=GroupStatus.RESOLVED,
-                    resolved_at=current_datetime,
+                Group.objects.filter(id=group.id).update(
+                    status=GroupStatus.RESOLVED, resolved_at=current_datetime
                 )
+                remove_group_from_inbox(group)
         except IntegrityError:
             pass
         else:
             if repo is not None:
                 if repo.integration_id is not None:
                     analytics.record(
-                        'integration.resolve.commit',
+                        "integration.resolve.commit",
                         provider=repo.provider,
                         id=repo.integration_id,
                         organization_id=repo.organization_id,
@@ -146,8 +143,8 @@ def resolved_in_commit(instance, created, **kwargs):
                     user=user,
                     group=group,
                     project=group.project,
-                    resolution_type='with_commit',
-                    sender='resolved_with_commit',
+                    resolution_type="with_commit",
+                    sender="resolved_with_commit",
                 )
 
 
@@ -192,28 +189,25 @@ def resolved_in_pull_request(instance, created, **kwargs):
                         type=Activity.SET_RESOLVED_IN_PULL_REQUEST,
                         ident=instance.id,
                         user=user_list[0],
-                        data={
-                            'pull_request': instance.id,
-                        }
+                        data={"pull_request": instance.id},
                     )
                     GroupAssignee.objects.assign(
-                        group=group, assigned_to=user_list[0], acting_user=user_list[0])
+                        group=group, assigned_to=user_list[0], acting_user=user_list[0]
+                    )
                 else:
                     Activity.objects.create(
                         project_id=group.project_id,
                         group=group,
                         type=Activity.SET_RESOLVED_IN_PULL_REQUEST,
                         ident=instance.id,
-                        data={
-                            'pull_request': instance.id,
-                        }
+                        data={"pull_request": instance.id},
                     )
         except IntegrityError:
             pass
         else:
             if repo is not None and repo.integration_id is not None:
                 analytics.record(
-                    'integration.resolve.pr',
+                    "integration.resolve.pr",
                     provider=repo.provider,
                     id=repo.integration_id,
                     organization_id=repo.organization_id,
@@ -221,18 +215,10 @@ def resolved_in_pull_request(instance, created, **kwargs):
 
 
 post_save.connect(
-    resolve_group_resolutions,
-    sender=Release,
-    dispatch_uid="resolve_group_resolutions",
-    weak=False
+    resolve_group_resolutions, sender=Release, dispatch_uid="resolve_group_resolutions", weak=False
 )
 
-post_save.connect(
-    resolved_in_commit,
-    sender=Commit,
-    dispatch_uid="resolved_in_commit",
-    weak=False,
-)
+post_save.connect(resolved_in_commit, sender=Commit, dispatch_uid="resolved_in_commit", weak=False)
 
 post_save.connect(
     resolved_in_pull_request,

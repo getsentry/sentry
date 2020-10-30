@@ -24,7 +24,7 @@ class UserIPsEndpoint(UserEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-last_seen',
+            order_by="-last_seen",
             paginator_cls=DateTimePaginator,
             on_results=lambda x: serialize(x, request),
         )

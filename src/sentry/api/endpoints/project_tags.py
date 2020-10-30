@@ -25,16 +25,17 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
                     # existing api consumers.
                     include_values_seen=True,
                 ),
-                key=lambda x: x.key)
+                key=lambda x: x.key,
+            )
 
         data = []
         for tag_key in tag_keys:
             data.append(
                 {
-                    'key': tagstore.get_standardized_key(tag_key.key),
-                    'name': tagstore.get_tag_key_label(tag_key.key),
-                    'uniqueValues': tag_key.values_seen,
-                    'canDelete': tag_key.key not in PROTECTED_TAG_KEYS,
+                    "key": tagstore.get_standardized_key(tag_key.key),
+                    "name": tagstore.get_tag_key_label(tag_key.key),
+                    "uniqueValues": tag_key.values_seen,
+                    "canDelete": tag_key.key not in PROTECTED_TAG_KEYS,
                 }
             )
 

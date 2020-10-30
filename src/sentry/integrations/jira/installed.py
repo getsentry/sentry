@@ -21,14 +21,11 @@ class JiraInstalledEndpoint(Endpoint):
     def post(self, request, *args, **kwargs):
         state = request.data
         data = JiraIntegrationProvider().build_integration(state)
-        integration = ensure_integration('jira', data)
+        integration = ensure_integration("jira", data)
 
         # Sync integration metadata from Jira. This msut be executed *after*
-        # the integration has been isntalled on Jira as the access tokens will
+        # the integration has been installed on Jira as the access tokens will
         # not work until then.
-        sync_metadata.apply_async(
-            kwargs={'integration_id': integration.id},
-            countdown=10,
-        )
+        sync_metadata.apply_async(kwargs={"integration_id": integration.id}, countdown=10)
 
         return self.respond()

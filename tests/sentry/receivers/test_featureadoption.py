@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-import json
 from django.utils import timezone
 
 from sentry.models import FeatureAdoption, GroupAssignee, GroupTombstone, Rule
-from sentry.plugins import IssueTrackingPlugin2, NotificationPlugin
+from sentry.plugins.bases import IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -22,10 +21,10 @@ from sentry.signals import (
     data_scrubber_enabled,
 )
 from sentry.receivers.rules import DEFAULT_RULE_DATA
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
 
 
-class FeatureAdoptionTest(TestCase):
+class FeatureAdoptionTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(FeatureAdoptionTest, self).setUp()
         self.now = timezone.now()
@@ -42,14 +41,15 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete is None
 
     def test_all_passed_feature_slugs_are_complete(self):
-        event1 = self.create_full_event()
-        event2 = self.create_full_event(event_id='b')
-        event_processed.send(
-            project=self.project, event=event1, sender=type(self.project)
+        event1 = self.store_event(
+            data={"tags": {"environment": "prod"}}, project_id=self.project.id
         )
-        event_processed.send(
-            project=self.project, event=event2, sender=type(self.project)
+        event2 = self.store_event(
+            data={"tags": {"environment": "prod"}}, project_id=self.project.id
         )
+
+        event_processed.send(project=self.project, event=event1, sender=type(self.project))
+        event_processed.send(project=self.project, event=event2, sender=type(self.project))
 
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="environment_tracking"
@@ -57,14 +57,11 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete.complete
 
     def test_first_event(self):
-        event = self.create_event(
-            project=self.project, platform='javascript', message='javascript error message'
+        event = self.store_event(
+            data={"platform": "javascript", "message": "javascript error message"},
+            project_id=self.project.id,
         )
-        first_event_received.send(
-            project=self.project,
-            event=event,
-            sender=type(self.project),
-        )
+        first_event_received.send(project=self.project, event=event, sender=type(self.project))
 
         first_event = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="first_event"
@@ -72,190 +69,136 @@ class FeatureAdoptionTest(TestCase):
         assert first_event.complete
 
     def test_javascript(self):
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
-        event = self.create_event(group=group, data={'platform': 'javascript'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event = self.store_event(data={"platform": "javascript"}, project_id=self.project.id)
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         js = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="javascript")
         assert js.complete
 
     def test_python(self):
-        group = self.create_group(
-            project=self.project, platform='python', message='python error message'
+        event = self.store_event(
+            data={"platform": "python", "message": "python error message"},
+            project_id=self.project.id,
         )
-        event = self.create_event(group=group)
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         python = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="python")
         assert python.complete
 
     def test_node(self):
-        group = self.create_group(
-            project=self.project, platform='node', message='node error message'
+        event = self.store_event(
+            data={"platform": "node", "message": "node error message"}, project_id=self.project.id
         )
-        event = self.create_event(group=group, data={'platform': 'node'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         node = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="node")
         assert node.complete
 
     def test_ruby(self):
-        group = self.create_group(
-            project=self.project, platform='ruby', message='ruby error message'
+        event = self.store_event(
+            data={"platform": "ruby", "message": "ruby error message"}, project_id=self.project.id
         )
-        event = self.create_event(group=group, data={'platform': 'ruby'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         ruby = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="ruby")
         assert ruby.complete
 
     def test_java(self):
-        group = self.create_group(
-            project=self.project, platform='java', message='java error message'
+        event = self.store_event(
+            data={"platform": "java", "message": "java error message"}, project_id=self.project.id
         )
-        event = self.create_event(group=group, data={'platform': 'java'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         java = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="java")
         assert java.complete
 
     def test_cocoa(self):
-        group = self.create_group(
-            project=self.project, platform='cocoa', message='cocoa error message'
+        event = self.store_event(
+            data={"platform": "cocoa", "message": "cocoa error message"}, project_id=self.project.id
         )
-        event = self.create_event(group=group, data={'platform': 'cocoa'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         cocoa = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="cocoa")
         assert cocoa.complete
 
     def test_objc(self):
-        group = self.create_group(
-            project=self.project, platform='objc', message='objc error message'
+        event = self.store_event(
+            data={"platform": "objc", "message": "objc error message"}, project_id=self.project.id
         )
-        event = self.create_event(group=group, data={'platform': 'objc'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         objc = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="objc")
         assert objc.complete
 
     def test_php(self):
-        group = self.create_group(
-            project=self.project, platform='php', message='php error message'
+        event = self.store_event(
+            data={"platform": "php", "message": "php error message"}, project_id=self.project.id
         )
-        event = self.create_event(group=group, data={'platform': 'php'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         php = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="php")
         assert php.complete
 
     def test_go(self):
-        group = self.create_group(
-            project=self.project, platform='go', message='go error message'
+        event = self.store_event(
+            data={"platform": "go", "message": "go error message"}, project_id=self.project.id
         )
-        event = self.create_event(group=group, data={'platform': 'go'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         go = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="go")
         assert go.complete
 
     def test_csharp(self):
-        group = self.create_group(
-            project=self.project, platform='csharp', message='csharp error message'
+        event = self.store_event(
+            data={"platform": "csharp", "message": "csharp error message"},
+            project_id=self.project.id,
         )
-        event = self.create_event(group=group, data={'platform': 'csharp'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         csharp = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="csharp")
         assert csharp.complete
 
     def test_perl(self):
-        group = self.create_group(
-            project=self.project, platform='perl', message='perl error message'
+        event = self.store_event(
+            data={"platform": "perl", "message": "perl error message"}, project_id=self.project.id
         )
-        event = self.create_event(group=group, data={'platform': 'perl'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         perl = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="perl")
         assert perl.complete
 
     def test_elixir(self):
-        group = self.create_group(
-            project=self.project, platform='elixir', message='elixir error message'
+        event = self.store_event(
+            data={"platform": "elixir", "message": "elixir error message"},
+            project_id=self.project.id,
         )
-        event = self.create_event(group=group, data={'platform': 'elixir'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         elixir = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="elixir")
         assert elixir.complete
 
     def test_cfml(self):
-        group = self.create_group(
-            project=self.project, platform='cfml', message='cfml error message'
+        event = self.store_event(
+            data={"platform": "cfml", "message": "cfml error message"}, project_id=self.project.id
         )
-        event = self.create_event(group=group, data={'platform': 'cfml'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         cfml = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="cfml")
         assert cfml.complete
 
     def test_groovy(self):
-        group = self.create_group(
-            project=self.project, platform='groovy', message='groovy error message'
+        event = self.store_event(
+            data={"platform": "groovy", "message": "groovy error message"},
+            project_id=self.project.id,
         )
-        event = self.create_event(group=group, data={'platform': 'groovy'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         groovy = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="groovy")
         assert groovy.complete
 
-    def test_csp(self):
-        group = self.create_group(
-            project=self.project, platform='csp', message='csp error message'
-        )
-        event = self.create_event(group=group, data={'platform': 'csp'})
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
-
-        csp = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="csp")
-        assert csp.complete
-
     def test_release_tracking(self):
-        event = self.create_full_event()
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event = self.store_event(data={"tags": {"sentry:release": "1"}}, project_id=self.project.id)
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         release_tracking = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="release_tracking"
@@ -263,10 +206,8 @@ class FeatureAdoptionTest(TestCase):
         assert release_tracking
 
     def test_environment_tracking(self):
-        event = self.create_full_event()
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event = self.store_event(data={"environment": "prod"}, project_id=self.project.id)
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         environment_tracking = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="environment_tracking"
@@ -274,13 +215,16 @@ class FeatureAdoptionTest(TestCase):
         assert environment_tracking
 
     def test_bulk_create(self):
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
+        event = self.store_event(
+            data={
+                "platform": "javascript",
+                "environment": "prod",
+                "tags": {"sentry:release": "abc"},
+                "user": {"id": "123"},
+            },
+            project_id=self.project.id,
         )
-        event = self.create_full_event(group=group)
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         javascript = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="javascript"
@@ -303,10 +247,8 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_user_tracking(self):
-        event = self.create_full_event()
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event = self.store_event(data={"user": {"id": "123"}}, project_id=self.project.id)
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="user_tracking"
@@ -315,96 +257,10 @@ class FeatureAdoptionTest(TestCase):
 
     def test_no_user_tracking_for_ip_address_only(self):
         """test to see if just sending ip address doesn't check the user tracking box"""
-        userless_payload = """
-            {
-                "id": "f5dd88e612bc406ba89dfebd09120769",
-                "project": 11276,
-                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
-                "platform": "javascript",
-                "culprit": "app/components/events/eventEntries in map",
-                "message": "TypeError: Cannot read property '1' of null",
-                "tags": [
-                    ["environment", "prod"],
-                    ["sentry_version", "e1b5d1900526feaf20fe2bc9cad83d392136030a"],
-                    ["level", "error"],
-                    ["logger", "javascript"],
-                    ["sentry:release", "e1b5d1900526feaf20fe2bc9cad83d392136030a"],
-                    ["browser", "Chrome 48.0"],
-                    ["device", "Other"],
-                    ["os", "Windows 10"],
-                    ["url", "https://sentry.io/katon-direct/localhost/issues/112734598/"],
-                    ["sentry:user", "id:41656"]
-                ],
-                "errors": [{
-                    "url": "<anonymous>",
-                    "type": "js_no_source"
-                }],
-                "extra": {
-                    "session:duration": 40364
-                },
-                "exception": {
-                    "exc_omitted": null,
-                    "values": [{
-                        "stacktrace": {
-                            "frames": [{
-                                "function": "batchedUpdates",
-                                "abs_path": "webpack:////usr/src/getsentry/src/sentry/~/react/lib/ReactUpdates.js",
-                                "pre_context": ["  // verify that that's the case. (This is called by each top-level update", "  // function, like setProps, setState, forceUpdate, etc.; creation and", "  // destruction of top-level components is guarded in ReactMount.)", "", "  if (!batchingStrategy.isBatchingUpdates) {"],
-                                "post_context": ["    return;", "  }", "", "  dirtyComponents.push(component);", "}"],
-                                "filename": "~/react/lib/ReactUpdates.js",
-                                "module": "react/lib/ReactUpdates",
-                                "colno": 0,
-                                "in_app": false,
-                                "data": {
-                                    "orig_filename": "/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "orig_abs_path": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map",
-                                    "orig_lineno": 37,
-                                    "orig_function": "Object.s [as enqueueUpdate]",
-                                    "orig_colno": 16101
-                                },
-                                "context_line": "    batchingStrategy.batchedUpdates(enqueueUpdate, component);",
-                                "lineno": 176
-                            }],
-                            "frames_omitted": null
-                        },
-                        "type": "TypeError",
-                        "value": "Cannot read property '1' of null",
-                        "module": null
-                    }]
-                },
-                "request": {
-                    "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
-                    "headers": [
-                        ["Referer", "https://sentry.io/welcome/"],
-                        ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
-                    ]
-                },
-                "user": {
-                    "ip_address": "0.0.0.0"
-                },
-                "version": "7",
-                "breadcrumbs": {
-                    "values": [
-                        {
-                            "category": "xhr",
-                            "timestamp": 1496395011.63,
-                            "type": "http",
-                            "data": {
-                                "url": "/api/path/here",
-                                "status_code": "500",
-                                "method": "POST"
-                            }
-                        }
-                    ]
-                }
-            }"""
-        userless_event = self.create_event(
-            event_id='a', platform='javascript', data=json.loads(userless_payload)
+        userless_event = self.store_event(
+            data={"user": {"ip_address": "0.0.0.0"}}, project_id=self.project.id
         )
-        event_processed.send(
-            project=self.project, event=userless_event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=userless_event, sender=type(self.project))
 
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="user_tracking"
@@ -412,75 +268,60 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete is None
 
     def test_no_env_tracking(self):
-        """test to see if just sending ip address doesn't check the user tracking box"""
-        envless_payload = """
-            {
-                "id": "f5dd88e612bc406ba89dfebd09120769",
-                "project": 11276,
-                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
+        envless_event = self.store_event(
+            data={"platform": "javascript"}, project_id=self.project.id
+        )
+        event_processed.send(project=self.project, event=envless_event, sender=type(self.project))
+
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="environment_tracking"
+        )
+        assert feature_complete is None
+
+    def test_custom_tags(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data["tags"].append(("foo", "bar"))
+        assert event.get_tag("foo") == "bar"
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
+
+        custom_tags = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="custom_tags"
+        )
+        assert custom_tags
+
+    def test_source_maps(self):
+        event = self.store_event(
+            data={
                 "platform": "javascript",
-                "culprit": "app/components/events/eventEntries in map",
-                "message": "TypeError: Cannot read property '1' of null",
-                "tags": [
-                    ["sentry_version", "e1b5d1900526feaf20fe2bc9cad83d392136030a"],
-                    ["level", "error"],
-                    ["logger", "javascript"],
-                    ["sentry:release", "e1b5d1900526feaf20fe2bc9cad83d392136030a"],
-                    ["browser", "Chrome 48.0"],
-                    ["device", "Other"],
-                    ["os", "Windows 10"],
-                    ["url", "https://sentry.io/katon-direct/localhost/issues/112734598/"],
-                    ["sentry:user", "id:41656"]
-                ],
-                "errors": [{
-                    "url": "<anonymous>",
-                    "type": "js_no_source"
-                }],
-                "extra": {
-                    "session:duration": 40364
-                },
                 "exception": {
-                    "exc_omitted": null,
-                    "values": [{
-                        "stacktrace": {
-                            "frames": [{
-                                "function": "batchedUpdates",
-                                "abs_path": "webpack:////usr/src/getsentry/src/sentry/~/react/lib/ReactUpdates.js",
-                                "pre_context": ["  // verify that that's the case. (This is called by each top-level update", "  // function, like setProps, setState, forceUpdate, etc.; creation and", "  // destruction of top-level components is guarded in ReactMount.)", "", "  if (!batchingStrategy.isBatchingUpdates) {"],
-                                "post_context": ["    return;", "  }", "", "  dirtyComponents.push(component);", "}"],
-                                "filename": "~/react/lib/ReactUpdates.js",
-                                "module": "react/lib/ReactUpdates",
-                                "colno": 0,
-                                "in_app": false,
-                                "data": {
-                                    "orig_filename": "/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "orig_abs_path": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map",
-                                    "orig_lineno": 37,
-                                    "orig_function": "Object.s [as enqueueUpdate]",
-                                    "orig_colno": 16101
-                                },
-                                "context_line": "    batchingStrategy.batchedUpdates(enqueueUpdate, component);",
-                                "lineno": 176
-                            }],
-                            "frames_omitted": null
-                        },
-                        "type": "TypeError",
-                        "value": "Cannot read property '1' of null",
-                        "module": null
-                    }]
-                },
-                "request": {
-                    "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
-                    "headers": [
-                        ["Referer", "https://sentry.io/welcome/"],
-                        ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
+                    "values": [
+                        {
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "data": {
+                                            "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                        }
+                                    }
+                                ]
+                            },
+                            "type": "TypeError",
+                        }
                     ]
                 },
-                "user": {
-                    "ip_address": "0.0.0.0"
-                },
-                "version": "7",
+            },
+            project_id=self.project.id,
+        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
+
+        source_maps = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="source_maps"
+        )
+        assert source_maps
+
+    def test_breadcrumbs(self):
+        event = self.store_event(
+            data={
                 "breadcrumbs": {
                     "values": [
                         {
@@ -490,53 +331,15 @@ class FeatureAdoptionTest(TestCase):
                             "data": {
                                 "url": "/api/path/here",
                                 "status_code": "500",
-                                "method": "POST"
-                            }
+                                "method": "POST",
+                            },
                         }
                     ]
                 }
-            }"""
-        envless_event = self.create_event(
-            event_id='a', platform='javascript', data=json.loads(envless_payload)
+            },
+            project_id=self.project.id,
         )
-        event_processed.send(
-            project=self.project, event=envless_event, sender=type(self.project)
-        )
-
-        feature_complete = FeatureAdoption.objects.get_by_slug(
-            organization=self.organization, slug="environment_tracking"
-        )
-        assert feature_complete is None
-
-    def test_custom_tags(self):
-        event = self.create_full_event()
-        event.data['tags'].append(('foo', 'bar'))
-        assert event.get_tag('foo') == 'bar'
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
-
-        custom_tags = FeatureAdoption.objects.get_by_slug(
-            organization=self.organization, slug="custom_tags"
-        )
-        assert custom_tags
-
-    def test_source_maps(self):
-        event = self.create_full_event()
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
-
-        source_maps = FeatureAdoption.objects.get_by_slug(
-            organization=self.organization, slug="source_maps"
-        )
-        assert source_maps
-
-    def test_breadcrumbs(self):
-        event = self.create_full_event()
-        event_processed.send(
-            project=self.project, event=event, sender=type(self.project)
-        )
+        event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         breadcrumbs = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="breadcrumbs"
@@ -544,19 +347,14 @@ class FeatureAdoptionTest(TestCase):
         assert breadcrumbs
 
     def test_multiple_events(self):
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
+        simple_event = self.store_event(
+            data={"message": "javascript error message", "platform": "javascript"},
+            project_id=self.project.id,
         )
-        simple_event = self.create_event(group=group, platform='javascript')
         first_event_received.send(
-            project=self.project,
-            event=simple_event,
-            sender=type(self.project),
+            project=self.project, event=simple_event, sender=type(self.project)
         )
-        event_processed.send(
-            project=self.project, event=simple_event, sender=type(
-                self.project)
-        )
+        event_processed.send(project=self.project, event=simple_event, sender=type(self.project))
 
         first_event = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="first_event"
@@ -567,11 +365,48 @@ class FeatureAdoptionTest(TestCase):
         js = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="javascript")
         assert js.complete
 
-        full_event = self.create_full_event()
-        event_processed.send(
-            project=self.project, event=full_event, sender=type(
-                self.project)
+        full_event = self.store_event(
+            data={
+                "message": "javascript error message",
+                "platform": "javascript",
+                "environment": "prod",
+                "tags": {"sentry:release": "abc"},
+                "user": {"id": "123"},
+                "exception": {
+                    "values": [
+                        {
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "data": {
+                                            "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                        }
+                                    }
+                                ]
+                            },
+                            "type": "TypeError",
+                        }
+                    ]
+                },
+                "breadcrumbs": {
+                    "values": [
+                        {
+                            "category": "xhr",
+                            "timestamp": 1496395011.63,
+                            "type": "http",
+                            "data": {
+                                "url": "/api/path/here",
+                                "status_code": "500",
+                                "method": "POST",
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
         )
+
+        event_processed.send(project=self.project, event=full_event, sender=type(self.project))
 
         release_tracking = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="release_tracking"
@@ -625,16 +460,12 @@ class FeatureAdoptionTest(TestCase):
 
     def test_assignment(self):
         GroupAssignee.objects.create(
-            group_id=self.group.id,
-            user_id=self.user.id,
-            project_id=self.project.id,
+            group_id=self.group.id, user_id=self.user.id, project_id=self.project.id
         )
 
         issue_assigned.send(
-            project=self.project,
-            group=self.group,
-            user=self.user,
-            sender='something')
+            project=self.project, group=self.group, user=self.user, sender="something"
+        )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="assignment"
         )
@@ -646,9 +477,9 @@ class FeatureAdoptionTest(TestCase):
             project=self.project,
             group=self.group,
             user=self.user,
-            resolution_type='in_next_release',
-            sender=type(
-                self.project))
+            resolution_type="in_next_release",
+            sender=type(self.project),
+        )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="resolved_in_release"
         )
@@ -660,9 +491,9 @@ class FeatureAdoptionTest(TestCase):
             project=self.project,
             group=self.group,
             user=self.user,
-            resolution_type='now',
-            sender=type(
-                self.project))
+            resolution_type="now",
+            sender=type(self.project),
+        )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="resolved_in_release"
         )
@@ -698,8 +529,9 @@ class FeatureAdoptionTest(TestCase):
             user=self.owner,
             project=self.project,
             rule=rule,
-            sender=type(
-                self.project))
+            rule_type="issue",
+            sender=type(self.project),
+        )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="alert_rules"
         )
@@ -710,7 +542,7 @@ class FeatureAdoptionTest(TestCase):
             plugin=IssueTrackingPlugin2(),
             project=self.project,
             user=self.owner,
-            sender=type(self.project)
+            sender=type(self.project),
         )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="issue_tracker_integration"
@@ -722,7 +554,7 @@ class FeatureAdoptionTest(TestCase):
             plugin=NotificationPlugin(),
             project=self.project,
             user=self.owner,
-            sender=type(self.project)
+            sender=type(self.project),
         )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="notification_integration"
@@ -733,9 +565,9 @@ class FeatureAdoptionTest(TestCase):
         sso_enabled.send(
             organization=self.organization,
             user=self.user,
-            provider='google',
-            sender=type(
-                self.organization))
+            provider="google",
+            sender=type(self.organization),
+        )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="sso"
         )
@@ -749,10 +581,7 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_delete_and_discard(self):
-        GroupTombstone.objects.create(
-            previous_group_id=self.group.id,
-            project=self.project,
-        )
+        GroupTombstone.objects.create(previous_group_id=self.group.id, project=self.project)
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="delete_and_discard"
         )

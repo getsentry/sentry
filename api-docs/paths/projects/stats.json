@@ -1,0 +1,116 @@
+{
+  "get": {
+    "tags": ["Projects"],
+    "summary": "Caution\nThis endpoint may change in the future without  notice.",
+    "description": "Return a set of points representing a normalized timestamp and the\nnumber of events seen in the period.\n\nQuery ranges are limited to Sentry's configured time-series resolutions.",
+    "operationId": "Retrieve Event Counts for a Project",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "stat",
+        "in": "query",
+        "description": "The name of the stat to query `(\"received\", \"rejected\", \"blacklisted\", \"generated\")`.",
+        "schema": {
+          "type": "string",
+          "enum": ["received", "rejected", "blacklisted", "generated"]
+        }
+      },
+      {
+        "name": "since",
+        "in": "query",
+        "description": "A timestamp to set the start of the query in seconds since UNIX epoch.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      {
+        "name": "until",
+        "in": "query",
+        "description": "A timestamp to set the end of the query in seconds since UNIX epoch.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      {
+        "name": "resolution",
+        "in": "query",
+        "description": "An explicit resolution to search for (one of `10s`, `1h`, and `1d`).",
+        "schema": {
+          "type": "string",
+          "enum": ["10s", "1h", "1d"]
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              }
+            },
+            "example": [
+              [1541455200.0, 1184],
+              [1541458800.0, 1410],
+              [1541462400.0, 1440],
+              [1541466000.0, 1682],
+              [1541469600.0, 1203],
+              [1541473200.0, 497],
+              [1541476800.0, 661],
+              [1541480400.0, 1481],
+              [1541484000.0, 678],
+              [1541487600.0, 1857],
+              [1541491200.0, 819],
+              [1541494800.0, 1013],
+              [1541498400.0, 1883],
+              [1541502000.0, 1450],
+              [1541505600.0, 1102],
+              [1541509200.0, 1317],
+              [1541512800.0, 1017],
+              [1541516400.0, 813],
+              [1541520000.0, 1189],
+              [1541523600.0, 496],
+              [1541527200.0, 1936],
+              [1541530800.0, 1405],
+              [1541534400.0, 617],
+              [1541538000.0, 1533]
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read"]
+      }
+    ]
+  }
+}

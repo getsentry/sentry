@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
+
 import {SubscriptionBox} from 'app/views/settings/organizationDeveloperSettings/subscriptionBox';
 
 describe('SubscriptionBox', () => {
@@ -14,7 +15,7 @@ describe('SubscriptionBox', () => {
       <SubscriptionBox
         resource="issue"
         checked={false}
-        disabled={false}
+        disabledFromPermissions={false}
         onChange={onChange}
         organization={org}
       />,
@@ -23,17 +24,16 @@ describe('SubscriptionBox', () => {
   });
 
   it('renders resource checkbox', () => {
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('updates state and calls onChange prop when checking checkbox', () => {
+  it('calls onChange prop when checking checkbox', () => {
     wrapper.find('Checkbox input').simulate('change', {target: {checked: true}});
-    expect(wrapper.state('checked')).toBe(true);
     expect(onChange).toHaveBeenCalledWith('issue', true);
   });
 
   it('renders tooltip when checkbox is disabled', () => {
-    wrapper.setProps({disabled: true});
+    wrapper.setProps({disabledFromPermissions: true});
     expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
   });
 
@@ -44,7 +44,7 @@ describe('SubscriptionBox', () => {
         <SubscriptionBox
           resource="error"
           checked={false}
-          disabled={false}
+          disabledFromPermissions={false}
           onChange={onChange}
           organization={org}
         />,
@@ -66,7 +66,7 @@ describe('SubscriptionBox', () => {
         <SubscriptionBox
           resource="error"
           checked={false}
-          disabled={false}
+          disabledFromPermissions={false}
           onChange={onChange}
           organization={org}
         />,
@@ -81,7 +81,7 @@ describe('SubscriptionBox', () => {
         <SubscriptionBox
           resource="error"
           checked={false}
-          disabled={false}
+          disabledFromPermissions={false}
           onChange={onChange}
           organization={org}
         />,
@@ -89,5 +89,25 @@ describe('SubscriptionBox', () => {
       );
       expect(wrapper.find('Tooltip').prop('disabled')).toBe(true);
     });
+  });
+
+  it('disables checkbox when webhookDisabled=true', () => {
+    wrapper = mount(
+      <SubscriptionBox
+        resource="issue"
+        checked={false}
+        disabledFromPermissions={false}
+        webhookDisabled
+        onChange={onChange}
+        organization={org}
+      />,
+      TestStubs.routerContext()
+    );
+    const tooltip = wrapper.find('Tooltip');
+    expect(tooltip.prop('disabled')).toBe(false);
+    expect(tooltip.prop('title')).toBe(
+      'Cannot enable webhook subscription without specifying a webhook url'
+    );
+    expect(wrapper.find('Checkbox').prop('disabled')).toBe(true);
   });
 });

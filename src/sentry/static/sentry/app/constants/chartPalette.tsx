@@ -176,5 +176,6 @@ export const CHART_PALETTE = [
     '#f4aa27',
     '#f2b712',
   ],
-];
+] as const;
+
 export default CHART_PALETTE;

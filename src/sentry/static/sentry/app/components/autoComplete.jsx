@@ -77,7 +77,7 @@ class AutoComplete extends React.Component {
     this.items = new Map();
   }
 
-  componentWillReceiveProps(nextProps, nextState) {
+  UNSAFE_componentWillReceiveProps(nextProps, nextState) {
     // If we do NOT want to close on select, then we should not reset highlight state
     // when we select an item (when we select an item, `this.state.selectedItem` changes)
     if (!nextProps.closeOnSelect && this.state.selectedItem !== nextState.selectedItem) {
@@ -87,7 +87,7 @@ class AutoComplete extends React.Component {
     this.resetHighlightState();
   }
 
-  componentWillUpdate() {
+  UNSAFE_componentWillUpdate() {
     this.items.clear();
   }
 
@@ -157,7 +157,7 @@ class AutoComplete extends React.Component {
 
     // Wait until the current macrotask completes, in the case that the click
     // happened on a hovercard or some other element rendered outside of the
-    // autocomplete, but controlled by the existance of the autocomplete, we
+    // autocomplete, but controlled by the existence of the autocomplete, we
     // need to ensure any click handlers are run.
     await new Promise(resolve => setTimeout(resolve));
 
@@ -226,7 +226,7 @@ class AutoComplete extends React.Component {
     this.setState(newState);
   };
 
-  moveHighlightedIndex = (step, e) => {
+  moveHighlightedIndex = (step, _e) => {
     let newIndex = this.state.highlightedIndex + step;
 
     // when this component is in virtualized mode, only a subset of items will be passed
@@ -275,12 +275,10 @@ class AutoComplete extends React.Component {
       return;
     }
 
-    this.setState(state => {
-      return {
-        isOpen: false,
-        inputValue: resetInputOnClose ? '' : state.inputValue,
-      };
-    });
+    this.setState(state => ({
+      isOpen: false,
+      inputValue: resetInputOnClose ? '' : state.inputValue,
+    }));
   };
 
   getInputProps = inputProps => ({
@@ -298,7 +296,7 @@ class AutoComplete extends React.Component {
       console.warn('getItemProps requires an object with an `item` key');
     }
 
-    const newIndex = index || this.items.size;
+    const newIndex = index ?? this.items.size;
     this.items.set(newIndex, item);
 
     return {

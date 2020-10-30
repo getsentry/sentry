@@ -1,12 +1,13 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import codesworth from 'app/../images/codesworth.png';
+import codesworth from 'app/../images/spot/codesworth.png';
 import CommitRow from 'app/components/commitRow';
 import getDynamicText from 'app/utils/getDynamicText';
+import {DataSection} from 'app/components/events/styles';
 import {Panel} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
 import SentryTypes from 'app/sentryTypes';
@@ -14,7 +15,6 @@ import {snoozedDays} from 'app/utils/promptsActivity';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
-import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 
 const EXAMPLE_COMMITS = ['dec0de', 'de1e7e', '5ca1ed'];
@@ -25,9 +25,7 @@ const DUMMY_COMMIT = {
     fixed: '5ca1ed',
   }),
   author: {name: 'codesworth'},
-  dateCreated: moment()
-    .subtract(3, 'day')
-    .format(),
+  dateCreated: moment().subtract(3, 'day').format(),
   repository: {
     provider: {id: 'integrations:github', name: 'GitHub', status: 'active'},
   },
@@ -120,7 +118,7 @@ class EventCauseEmpty extends React.Component {
     }
 
     return (
-      <div className="box">
+      <DataSection data-test-id="loaded-event-cause-empty">
         <StyledPanel dashedBorder>
           <BoxHeader>
             <Description>
@@ -138,28 +136,26 @@ class EventCauseEmpty extends React.Component {
                     eventName: 'Event Cause Docs Clicked',
                   })
                 }
-                data-test-id="read-the-docs"
               >
                 {t('Read the docs')}
               </DocsButton>
 
               <div>
-                <Tooltip title={t('Remind me next week')}>
-                  <SnoozeButton
-                    size="small"
-                    onClick={() =>
-                      this.handleClick({
-                        action: 'snoozed',
-                        eventKey: 'event_cause.snoozed',
-                        eventName: 'Event Cause Snoozed',
-                      })
-                    }
-                    data-test-id="snoozed"
-                  >
-                    {t('Snooze')}
-                  </SnoozeButton>
-                </Tooltip>
+                <SnoozeButton
+                  title={t('Remind me next week')}
+                  size="small"
+                  onClick={() =>
+                    this.handleClick({
+                      action: 'snoozed',
+                      eventKey: 'event_cause.snoozed',
+                      eventName: 'Event Cause Snoozed',
+                    })
+                  }
+                >
+                  {t('Snooze')}
+                </SnoozeButton>
                 <DismissButton
+                  title={t('Dismiss for this project')}
                   size="small"
                   onClick={() =>
                     this.handleClick({
@@ -168,22 +164,21 @@ class EventCauseEmpty extends React.Component {
                       eventName: 'Event Cause Dismissed',
                     })
                   }
-                  data-test-id="dismissed"
                 >
                   {t('Dismiss')}
                 </DismissButton>
               </div>
             </ButtonList>
           </BoxHeader>
-          <Panel>
+          <ExampleCommitPanel>
             <CommitRow
               key={DUMMY_COMMIT.id}
               commit={DUMMY_COMMIT}
               customAvatar={<CustomAvatar src={codesworth} />}
             />
-          </Panel>
+          </ExampleCommitPanel>
         </StyledPanel>
-      </div>
+      </DataSection>
     );
   }
 }
@@ -194,24 +189,18 @@ const StyledPanel = styled(Panel)`
   background: none;
 `;
 
-const BoxHeader = styled('div')`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
-`;
-
 const Description = styled('div')`
   h3 {
     font-size: 14px;
     text-transform: uppercase;
     margin-bottom: ${space(0.25)};
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
   }
 
   p {
     font-size: 13px;
     font-weight: bold;
-    color: ${p => p.theme.gray4};
+    color: ${p => p.theme.gray700};
     margin-bottom: ${space(1.5)};
   }
 `;
@@ -242,10 +231,38 @@ const DismissButton = styled(Button)`
   border-bottom-left-radius: 0;
 `;
 
+const ExampleCommitPanel = styled(Panel)`
+  overflow: hidden;
+  pointer-events: none;
+  position: relative;
+  padding-right: ${space(3)};
+
+  &:after {
+    display: block;
+    content: 'Example';
+    position: absolute;
+    top: 16px;
+    right: -24px;
+    text-transform: uppercase;
+    background: #e46187;
+    padding: 4px 26px;
+    line-height: 11px;
+    font-size: 11px;
+    color: ${p => p.theme.white};
+    transform: rotate(45deg);
+  }
+`;
+
 const CustomAvatar = styled('img')`
   height: 48px;
   padding-right: 12px;
   margin: -6px 0px -6px -2px;
+`;
+
+const BoxHeader = styled('div')`
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
 `;
 
 export default withApi(EventCauseEmpty);

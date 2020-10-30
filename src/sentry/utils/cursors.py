@@ -7,36 +7,41 @@ from collections import Sequence
 
 class Cursor(object):
     def __init__(self, value, offset=0, is_prev=False, has_results=None):
-        self.value = int(value)
+        self.value = value
         self.offset = int(offset)
         self.is_prev = bool(is_prev)
         self.has_results = has_results
 
     def __str__(self):
-        return '%s:%s:%s' % (self.value, self.offset, int(self.is_prev))
+        return "%s:%s:%s" % (self.value, self.offset, int(self.is_prev))
 
     def __eq__(self, other):
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in
-            ('value', 'offset', 'is_prev', 'has_results')
+            for attr in ("value", "offset", "is_prev", "has_results")
         )
 
     def __repr__(self):
-        return '<%s: value=%s offset=%s is_prev=%s>' % (
-            type(self).__name__, self.value, self.offset, int(self.is_prev)
+        return "<%s: value=%s offset=%s is_prev=%s>" % (
+            type(self).__name__,
+            self.value,
+            self.offset,
+            int(self.is_prev),
         )
 
-    def __nonzero__(self):
-        return self.has_results
+    def __bool__(self):
+        return bool(self.has_results)
+
+    # python2 compatibility
+    __nonzero__ = __bool__
 
     @classmethod
     def from_string(cls, value):
-        bits = value.split(':')
+        bits = value.split(":")
         if len(bits) != 3:
             raise ValueError
         try:
-            bits = float(bits[0]), int(bits[1]), int(bits[2])
+            bits = int(bits[0]), int(bits[1]), int(bits[2])
         except (TypeError, ValueError):
             raise ValueError
         return cls(*bits)
@@ -60,7 +65,7 @@ class CursorResult(Sequence):
         return self.results[key]
 
     def __repr__(self):
-        return '<%s: results=%s>' % (type(self).__name__, len(self.results))
+        return "<%s: results=%s>" % (type(self).__name__, len(self.results))
 
 
 def _build_next_values(cursor, results, key, limit, is_desc):
@@ -71,7 +76,7 @@ def _build_next_values(cursor, results, key, limit, is_desc):
     num_results = len(results)
 
     if not value and num_results:
-        value = int(key(results[0]))
+        value = key(results[0])
 
     # Next cursor for a prev-cursor simply starts from that prev cursors value
     # without an offset.
@@ -86,7 +91,7 @@ def _build_next_values(cursor, results, key, limit, is_desc):
     has_next = num_results > limit
 
     # Determine what our next cursor is by ensuring we have a unique offset
-    next_value = int(key(results[-1]))
+    next_value = key(results[-1])
 
     # value has not changed, page forward by adjusting the offset
     if next_value == value:
@@ -109,7 +114,7 @@ def _build_next_values(cursor, results, key, limit, is_desc):
         six.next(result_iter)
 
     for result in result_iter:
-        result_value = int(key(result))
+        result_value = key(result)
 
         is_larger = result_value >= next_value
         is_smaller = result_value <= next_value
@@ -144,7 +149,7 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     # If we're paging back we need to calculate the key from the first result
     # with for_prev=True to ensure rounding of the key is correct.See
     # sentry.api.paginator.BasePaginator.get_item_key
-    prev_value = int(key(results[first_prev_index], for_prev=True)) if results else 0
+    prev_value = key(results[first_prev_index], for_prev=True) if results else 0
 
     # Prev only has an offset if the cursor we were dealing with was a
     # previous cursor. Otherwise we'd be taking the offset while moving forward.
@@ -176,7 +181,7 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     six.next(result_iter)
 
     for result in result_iter:
-        result_value = int(key(result, for_prev=True))
+        result_value = key(result, for_prev=True)
 
         is_larger = result_value >= prev_value
         is_smaller = result_value <= prev_value
@@ -191,31 +196,24 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     return (prev_value, prev_offset, has_prev)
 
 
-def build_cursor(results, key, limit=100, is_desc=False, cursor=None, hits=None,
-        max_hits=None, on_results=None):
+def build_cursor(
+    results, key, limit=100, is_desc=False, cursor=None, hits=None, max_hits=None, on_results=None
+):
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 
     # Compute values for next cursor
     next_value, next_offset, has_next = _build_next_values(
-        cursor=cursor,
-        results=results,
-        key=key,
-        limit=limit,
-        is_desc=is_desc
+        cursor=cursor, results=results, key=key, limit=limit, is_desc=is_desc
     )
 
     # Compute values for prev cursor
     prev_value, prev_offset, has_prev = _build_prev_values(
-        cursor=cursor,
-        results=results,
-        key=key,
-        limit=limit,
-        is_desc=is_desc
+        cursor=cursor, results=results, key=key, limit=limit, is_desc=is_desc
     )
 
     if cursor.is_prev and has_prev:
-        # A prev cursor with more reults should have the first item chopped off
+        # A prev cursor with more results should have the first item chopped off
         # as this is the item that indicates we have more items before, and
         # should not be included on this page.
         results = results[1:]
@@ -231,9 +229,5 @@ def build_cursor(results, key, limit=100, is_desc=False, cursor=None, hits=None,
         results = on_results(results)
 
     return CursorResult(
-        results=results,
-        next=next_cursor,
-        prev=prev_cursor,
-        hits=hits,
-        max_hits=max_hits,
+        results=results, next=next_cursor, prev=prev_cursor, hits=hits, max_hits=max_hits
     )

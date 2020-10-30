@@ -1,20 +1,21 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme, mount} from 'sentry-test/enzyme';
 
 import {RadioBooleanField} from 'app/components/forms';
 import NewRadioBooleanField from 'app/views/settings/components/forms/radioBooleanField';
 
-describe('RadioBooleanField', function() {
-  describe('render()', function() {
-    it('renders without form context', function() {
-      const wrapper = shallow(
+describe('RadioBooleanField', function () {
+  describe('render()', function () {
+    it('renders without form context', function () {
+      const wrapper = mountWithTheme(
         <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
-    it('renders with form context', function() {
-      const wrapper = shallow(
+    it('renders with form context', function () {
+      const wrapper = mountWithTheme(
         <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />,
         {
           context: {
@@ -27,17 +28,17 @@ describe('RadioBooleanField', function() {
           },
         }
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
-    it('renders new field without form context', function() {
+    it('renders new field without form context', function () {
       const wrapper = mount(
         <NewRadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
-    it('can change values', function() {
+    it('can change values', function () {
       const mock = jest.fn();
       const wrapper = mount(
         <NewRadioBooleanField

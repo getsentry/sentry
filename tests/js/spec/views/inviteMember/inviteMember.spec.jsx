@@ -1,16 +1,18 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
-import _ from 'lodash';
+import cloneDeep from 'lodash/cloneDeep';
+
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+
 import {InviteMember} from 'app/views/settings/organizationMembers/inviteMember';
 import ConfigStore from 'app/stores/configStore';
 
 jest.mock('app/api');
 jest.mock('jquery');
 
-describe('InviteMember', function() {
+describe('InviteMember', function () {
   let organization, baseProps, teams, baseContext;
 
-  beforeEach(function() {
+  beforeEach(function () {
     organization = TestStubs.Organization({
       id: '1',
       slug: 'testOrg',
@@ -53,12 +55,15 @@ describe('InviteMember', function() {
     });
   });
 
-  it('should render loading', function() {
-    const wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
-    expect(wrapper).toMatchSnapshot();
+  it('should render loading', function () {
+    const wrapper = shallow(<InviteMember {...baseProps} />, {
+      ...baseContext,
+      disableLifecycleMethods: true,
+    });
+    expect(wrapper).toSnapshot();
   });
 
-  it('should render no team select when there is only one option', function() {
+  it('should render no team select when there is only one option', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -73,33 +78,48 @@ describe('InviteMember', function() {
       },
     });
 
-    const context = _.cloneDeep(baseContext);
+    const context = cloneDeep(baseContext);
 
     const team = organization.teams.slice(0, 1);
     organization.teams = team;
 
-    const wrapper = mount(<InviteMember {...baseProps} />, context);
+    const wrapper = mountWithTheme(<InviteMember {...baseProps} />, context);
 
     expect(wrapper.state('selectedTeams').size).toBe(1);
     expect(wrapper.state('selectedTeams').has(team[0].slug)).toBe(true);
   });
 
-  it('should use invite/add language based on config', function() {
+  it('should use invite/add language based on config', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/testOrg/members/me/',
+      body: {
+        roles: [
+          {
+            id: '1',
+            name: 'member',
+            desc: 'a normal member',
+            allowed: true,
+          },
+        ],
+      },
+    });
     jest.spyOn(ConfigStore, 'getConfig').mockImplementation(() => ({
       id: 1,
       invitesEnabled: false,
     }));
 
-    const wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = shallow(<InviteMember {...baseProps} />, {
+      ...baseContext,
+    });
     wrapper.setState({
       loading: false,
     });
 
     // Lets just target message
-    expect(wrapper.find('TextBlock')).toMatchSnapshot();
+    expect(wrapper.find('TextBlock')).toSnapshot();
   });
 
-  it('should redirect when no roles available', function() {
+  it('should redirect when no roles available', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -115,7 +135,7 @@ describe('InviteMember', function() {
     });
 
     const pushMock = jest.fn();
-    let wrapper = mount(
+    let wrapper = mountWithTheme(
       <InviteMember
         router={{
           push: pushMock,
@@ -131,7 +151,7 @@ describe('InviteMember', function() {
     expect(pushMock).toHaveBeenCalledWith('/settings/testOrg/members/');
     expect(wrapper.state('loading')).toBe(false);
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <InviteMember
         router={{
           push: pushMock,
@@ -147,7 +167,7 @@ describe('InviteMember', function() {
     expect(pushMock).toHaveBeenCalledWith('/organizations/testOrg/members/');
   });
 
-  it('should render roles when available and allowed, and handle submitting', function() {
+  it('should render roles when available and allowed, and handle submitting', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -167,14 +187,14 @@ describe('InviteMember', function() {
 
     const mock = MockApiClient.addMockResponse(inviteRequest);
 
-    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mountWithTheme(<InviteMember {...baseProps} />, baseContext);
 
     expect(wrapper.state('loading')).toBe(false);
 
     let node = wrapper.find('RoleSelect PanelItem').first();
     node.props().onClick();
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
 
     node = wrapper.find('.invite-member-submit').first();
     node.props().onClick({preventDefault: () => {}});
@@ -188,7 +208,7 @@ describe('InviteMember', function() {
     expect(mock).toHaveBeenCalledTimes(3);
   });
 
-  it('shows an error when submitting an invalid email', async function() {
+  it('shows an error when submitting an invalid email', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -210,7 +230,7 @@ describe('InviteMember', function() {
 
     const mock = MockApiClient.addMockResponse(inviteRequest);
 
-    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mountWithTheme(<InviteMember {...baseProps} />, baseContext);
 
     let node = wrapper.find('RoleSelect PanelItem').first();
     node.props().onClick();
@@ -234,7 +254,7 @@ describe('InviteMember', function() {
     expect(wrapper.find('.has-error .error').text()).toBe('Enter a valid email address.');
   });
 
-  it('allows teams to be removed', async function() {
+  it('allows teams to be removed', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -250,7 +270,7 @@ describe('InviteMember', function() {
       statusCode: 200,
     });
 
-    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mountWithTheme(<InviteMember {...baseProps} />, baseContext);
     // Wait for team list to load
     await tick();
 
@@ -264,10 +284,7 @@ describe('InviteMember', function() {
     wrapper.find('TeamSelect DropdownButton').simulate('click');
 
     // Click the first item
-    wrapper
-      .find('TeamSelect TeamDropdownElement')
-      .first()
-      .simulate('click');
+    wrapper.find('TeamSelect TeamDropdownElement').first().simulate('click');
 
     // Remove our one team
     const button = wrapper.find('TeamSelect TeamRow Button');
@@ -287,7 +304,7 @@ describe('InviteMember', function() {
     );
   });
 
-  it('allows teams to be added', async function() {
+  it('allows teams to be added', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -302,7 +319,7 @@ describe('InviteMember', function() {
       method: 'POST',
       statusCode: 200,
     });
-    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mountWithTheme(<InviteMember {...baseProps} />, baseContext);
 
     // Wait for team list to fetch.
     await wrapper.update();
@@ -317,10 +334,7 @@ describe('InviteMember', function() {
     wrapper.find('TeamSelect DropdownButton').simulate('click');
 
     // Click the first item
-    wrapper
-      .find('TeamSelect TeamDropdownElement')
-      .first()
-      .simulate('click');
+    wrapper.find('TeamSelect TeamDropdownElement').first().simulate('click');
 
     // Save Member
     wrapper.find('Button[priority="primary"]').simulate('click');

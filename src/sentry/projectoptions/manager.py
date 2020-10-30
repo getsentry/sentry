@@ -9,7 +9,6 @@ from pytz import utc
 
 
 class WellKnownProjectOption(object):
-
     def __init__(self, key, default=None, epoch_defaults=None):
         self.key = key
         self.default = default
@@ -22,7 +21,7 @@ class WellKnownProjectOption(object):
                 if project is None:
                     epoch = 1
                 else:
-                    epoch = project.get_option('sentry:option-epoch') or 1
+                    epoch = project.get_option("sentry:option-epoch") or 1
             idx = bisect.bisect(self._epoch_default_list, epoch)
             if idx > 0:
                 return self.epoch_defaults[self._epoch_default_list[idx - 1]]
@@ -48,12 +47,14 @@ class ProjectOptionsManager(object):
     def freeze_option_epoch(self, project, force=False):
         # The options are frozen in a receiver hook for project saves.
         # See `sentry.receivers.core.freeze_option_epoch_for_project`
-        if force or project.get_option('sentry:option-epoch') is None:
+        if force or project.get_option("sentry:option-epoch") is None:
             from .defaults import LATEST_EPOCH
-            project.update_option('sentry:option-epoch', LATEST_EPOCH)
+
+            project.update_option("sentry:option-epoch", LATEST_EPOCH)
 
     def set(self, project, key, value):
         from sentry.models import ProjectOption
+
         self.update_rev_for_option(project)
         return ProjectOption.objects.set_value(project, key, value)
 
@@ -62,37 +63,30 @@ class ProjectOptionsManager(object):
 
     def get(self, project, key, default=None, validate=None):
         from sentry.models import ProjectOption
-        return ProjectOption.objects.get_value(
-            project, key, default, validate=validate)
+
+        return ProjectOption.objects.get_value(project, key, default, validate=validate)
 
     def delete(self, project, key):
         from sentry.models import ProjectOption
+
         self.update_rev_for_option(project)
         return ProjectOption.objects.unset_value(project, key)
 
     def update_rev_for_option(self, project):
         from sentry.models import ProjectOption
-        ProjectOption.objects.set_value(project, 'sentry:relay-rev', uuid.uuid4().hex)
-        ProjectOption.objects.set_value(
-            project,
-            'sentry:relay-rev-lastchange',
-            datetime.utcnow().replace(
-                tzinfo=utc))
 
-    def register(
-        self,
-        key,
-        default=None,
-        epoch_defaults=None,
-    ):
+        ProjectOption.objects.set_value(project, "sentry:relay-rev", uuid.uuid4().hex)
+        ProjectOption.objects.set_value(
+            project, "sentry:relay-rev-lastchange", datetime.utcnow().replace(tzinfo=utc)
+        )
+
+    def register(self, key, default=None, epoch_defaults=None):
         self.registry[key] = WellKnownProjectOption(
-            key=key,
-            default=default,
-            epoch_defaults=epoch_defaults,
+            key=key, default=default, epoch_defaults=epoch_defaults
         )
 
     def all(self):
         """
-        Return an interator for all keys in the registry.
+        Return an iterator for all keys in the registry.
         """
         return six.itervalues(self.registry)

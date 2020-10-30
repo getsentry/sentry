@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import logging
 import six
+
 from io import BytesIO
 from gzip import GzipFile
-from itertools import izip
 from rest_framework import status
 from six.moves.urllib.parse import urljoin
 from rest_framework.response import Response
@@ -13,35 +13,34 @@ from django.conf import settings
 
 from sentry import options
 from sentry.models import FileBlob
-from sentry.api.bases.organization import (OrganizationEndpoint,
-                                           OrganizationReleasePermission)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.utils.files import get_max_file_size
+from sentry.utils.compat import zip
 
 
-# The blob size must be a power of two
-CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
-HASH_ALGORITHM = 'sha1'
+HASH_ALGORITHM = "sha1"
 
 CHUNK_UPLOAD_ACCEPT = (
-    'debug_files',  # DIF assemble
-    'release_files',  # Artifacts assemble
-    'pdbs',  # PDB upload and debug id override
+    "debug_files",  # DIF assemble
+    "release_files",  # Release files assemble
+    "pdbs",  # PDB upload and debug id override
+    "sources",  # Source artifact bundle upload
 )
 
 
 class GzipChunk(BytesIO):
     def __init__(self, file):
-        data = GzipFile(fileobj=file, mode='rb').read()
+        data = GzipFile(fileobj=file, mode="rb").read()
         self.size = len(data)
         self.name = file.name
         super(GzipChunk, self).__init__(data)
 
 
 class ChunkUploadEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationReleasePermission, )
+    permission_classes = (OrganizationReleasePermission,)
 
     def get(self, request, organization):
         """
@@ -49,25 +48,25 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         ``````````````````````````````
         :auth: required
         """
-        endpoint = options.get('system.upload-url-prefix')
+        endpoint = options.get("system.upload-url-prefix")
         # We fallback to default system url if config is not set
         if len(endpoint) == 0:
-            endpoint = options.get('system.url-prefix')
+            endpoint = options.get("system.url-prefix")
 
-        url = reverse('sentry-api-0-chunk-upload', args=[organization.slug])
-        endpoint = urljoin(endpoint.rstrip('/') + '/', url.lstrip('/'))
+        url = reverse("sentry-api-0-chunk-upload", args=[organization.slug])
+        endpoint = urljoin(endpoint.rstrip("/") + "/", url.lstrip("/"))
 
         return Response(
             {
-                'url': endpoint,
-                'chunkSize': CHUNK_UPLOAD_BLOB_SIZE,
-                'chunksPerRequest': MAX_CHUNKS_PER_REQUEST,
-                'maxFileSize': get_max_file_size(organization),
-                'maxRequestSize': MAX_REQUEST_SIZE,
-                'concurrency': MAX_CONCURRENCY,
-                'hashAlgorithm': HASH_ALGORITHM,
-                'compression': ['gzip'],
-                'accept': CHUNK_UPLOAD_ACCEPT,
+                "url": endpoint,
+                "chunkSize": settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE,
+                "chunksPerRequest": MAX_CHUNKS_PER_REQUEST,
+                "maxFileSize": get_max_file_size(organization),
+                "maxRequestSize": MAX_REQUEST_SIZE,
+                "concurrency": MAX_CONCURRENCY,
+                "hashAlgorithm": HASH_ALGORITHM,
+                "compression": ["gzip"],
+                "accept": CHUNK_UPLOAD_ACCEPT,
             }
         )
 
@@ -83,47 +82,46 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         """
         # Create a unique instance so our logger can be decoupled from the request
         # and used in threads.
-        logger = logging.getLogger('sentry.files')
-        logger.info('chunkupload.start')
+        logger = logging.getLogger("sentry.files")
+        logger.info("chunkupload.start")
 
-        files = request.data.getlist('file')
-        files += [GzipChunk(chunk) for chunk in request.data.getlist('file_gzip')]
+        files = []
+        if request.data:
+            files = request.data.getlist("file")
+            files += [GzipChunk(chunk) for chunk in request.data.getlist("file_gzip")]
+
         if len(files) == 0:
             # No files uploaded is ok
-            logger.info('chunkupload.end', extra={'status': status.HTTP_200_OK})
+            logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
             return Response(status=status.HTTP_200_OK)
 
-        logger.info('chunkupload.post.files', extra={'len': len(files)})
+        logger.info("chunkupload.post.files", extra={"len": len(files)})
 
         # Validate file size
         checksums = []
         size = 0
         for chunk in files:
             size += chunk.size
-            if chunk.size > CHUNK_UPLOAD_BLOB_SIZE:
-                logger.info('chunkupload.end', extra={'status': status.HTTP_400_BAD_REQUEST})
-                return Response({'error': 'Chunk size too large'},
-                                status=status.HTTP_400_BAD_REQUEST)
+            if chunk.size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
+                logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+                return Response(
+                    {"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST
+                )
             checksums.append(chunk.name)
 
         if size > MAX_REQUEST_SIZE:
-            logger.info('chunkupload.end', extra={'status': status.HTTP_400_BAD_REQUEST})
-            return Response({'error': 'Request too large'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response({"error": "Request too large"}, status=status.HTTP_400_BAD_REQUEST)
 
         if len(files) > MAX_CHUNKS_PER_REQUEST:
-            logger.info('chunkupload.end', extra={'status': status.HTTP_400_BAD_REQUEST})
-            return Response({'error': 'Too many chunks'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response({"error": "Too many chunks"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            FileBlob.from_files(izip(files, checksums),
-                                organization=organization,
-                                logger=logger)
+            FileBlob.from_files(zip(files, checksums), organization=organization, logger=logger)
         except IOError as err:
-            logger.info('chunkupload.end', extra={'status': status.HTTP_400_BAD_REQUEST})
-            return Response({'error': six.text_type(err)},
-                            status=status.HTTP_400_BAD_REQUEST)
+            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response({"error": six.text_type(err)}, status=status.HTTP_400_BAD_REQUEST)
 
-        logger.info('chunkupload.end', extra={'status': status.HTTP_200_OK})
+        logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
         return Response(status=status.HTTP_200_OK)

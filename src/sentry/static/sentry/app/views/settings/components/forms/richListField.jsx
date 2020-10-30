@@ -1,12 +1,13 @@
-import _ from 'lodash';
+import pickBy from 'lodash/pickBy';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
+import {IconAdd, IconDelete, IconSettings} from 'app/icons';
 import InputField from 'app/views/settings/components/forms/inputField';
 import Confirm from 'app/components/confirm';
 
@@ -49,12 +50,17 @@ const RichListProps = {
 };
 
 function getDefinedProps(propTypes, props) {
-  return _.pickBy(props, (_prop, key) => key in propTypes);
+  return pickBy(props, (_prop, key) => key in propTypes);
 }
 
 class RichList extends React.PureComponent {
   static propTypes = {
     ...RichListProps,
+
+    /**
+     * Disables all controls in the rich list.
+     */
+    disabled: PropTypes.bool,
 
     /**
      * The list of items to render.
@@ -70,8 +76,10 @@ class RichList extends React.PureComponent {
   };
 
   triggerChange = items => {
-    this.props.onChange(items, {});
-    this.props.onBlur(items, {});
+    if (!this.props.disabled) {
+      this.props.onChange(items, {});
+      this.props.onBlur(items, {});
+    }
   };
 
   addItem = data => {
@@ -92,43 +100,59 @@ class RichList extends React.PureComponent {
   };
 
   onSelectDropdownItem = item => {
-    this.props.onAddItem(item, this.addItem);
+    if (!this.props.disabled) {
+      this.props.onAddItem(item, this.addItem);
+    }
   };
 
   onEditItem = (item, index) => {
-    this.props.onEditItem(item, data => this.updateItem(data, index));
+    if (!this.props.disabled) {
+      this.props.onEditItem(item, data => this.updateItem(data, index));
+    }
   };
 
   onRemoveItem = (item, index) => {
-    this.props.onRemoveItem(item, () => this.removeItem(index));
+    if (!this.props.disabled) {
+      this.props.onRemoveItem(item, () => this.removeItem(index));
+    }
   };
 
   renderItem = (item, index) => {
+    const {disabled} = this.props;
+
     const removeIcon = (onClick = null) => (
-      <ItemButton onClick={onClick} size="micro" icon="icon-trash" borderless />
+      <ItemButton
+        onClick={onClick}
+        disabled={disabled}
+        size="zero"
+        icon={<IconDelete size="xs" />}
+        borderless
+      />
     );
 
-    const removeConfirm = this.props.removeConfirm ? (
-      <Confirm
-        priority="danger"
-        confirmText={t('Remove')}
-        {...this.props.removeConfirm}
-        onConfirm={() => this.onRemoveItem(item, index)}
-      >
-        {removeIcon()}
-      </Confirm>
-    ) : (
-      removeIcon(() => this.onRemoveItem(item, index))
-    );
+    const removeConfirm =
+      this.props.removeConfirm && !disabled ? (
+        <Confirm
+          priority="danger"
+          confirmText={t('Remove')}
+          {...this.props.removeConfirm}
+          onConfirm={() => this.onRemoveItem(item, index)}
+        >
+          {removeIcon()}
+        </Confirm>
+      ) : (
+        removeIcon(() => this.onRemoveItem(item, index))
+      );
 
     return (
-      <Item key={index}>
+      <Item disabled={disabled} key={index}>
         {this.props.renderItem(item)}
         {this.props.onEditItem && (
           <ItemButton
             onClick={() => this.onEditItem(item, index)}
-            icon="icon-settings"
-            size="micro"
+            disabled={disabled}
+            icon={<IconSettings />}
+            size="zero"
             borderless
           />
         )}
@@ -138,14 +162,21 @@ class RichList extends React.PureComponent {
   };
 
   renderDropdown = () => {
+    const {disabled} = this.props;
+
     return (
       <DropdownAutoComplete
         {...this.props.addDropdown}
-        alignMenu="left"
+        disabled={disabled}
         onSelect={this.onSelectDropdownItem}
       >
         {({isOpen}) => (
-          <DropdownButton icon="icon-circle-add" isOpen={isOpen} size="small">
+          <DropdownButton
+            disabled={disabled}
+            icon={<IconAdd size="xs" isCircled />}
+            isOpen={isOpen}
+            size="small"
+          >
             {this.props.addButtonText}
           </DropdownButton>
         )}
@@ -203,13 +234,14 @@ const Item = styled('li')`
   border: 1px solid ${p => p.theme.button.default.border};
   border-radius: ${p => p.theme.button.borderRadius};
   color: ${p => p.theme.button.default.color};
-  cursor: default;
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'default')};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: ${p => p.theme.fontSizeSmall};
   text-transform: none;
   margin: 0 10px 5px 0;
   white-space: nowrap;
+  opacity: ${p => (p.disabled ? 0.65 : null)};
   padding: 8px 12px;
   /* match adjacent elements */
   height: 30px;
@@ -217,8 +249,8 @@ const Item = styled('li')`
 
 const ItemButton = styled(Button)`
   margin-left: 10px;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   &:hover {
-    color: ${p => p.theme.button.default.color};
+    color: ${p => (p.disabled ? p.theme.gray500 : p.theme.button.default.color)};
   }
 `;

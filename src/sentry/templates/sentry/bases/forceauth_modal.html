@@ -3,7 +3,6 @@
 {% load i18n %}
 
 {% block wrapperclass %}{{ block.super }} narrow hide-sidebar{% endblock %}
-{% block global_sidebar %}{% endblock %}
 
 {% block content %}
   <p><strong>Account</strong>: {{ request.user.get_display_name }}</p>

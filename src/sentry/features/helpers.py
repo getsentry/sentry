@@ -23,24 +23,29 @@ def requires_feature(feature, any_org=None):
         >>> def get(self, request, organization):
         >>>     return Response()
     """
+
     def decorator(func):
         def wrapped(self, request, *args, **kwargs):
             # The endpoint is accessible if any of the User's Orgs have the feature
             # flag enabled.
             if any_org:
-                if not any(features.has(feature, org, actor=request.user)
-                           for org in request.user.get_orgs()):
+                if not any(
+                    features.has(feature, org, actor=request.user)
+                    for org in request.user.get_orgs()
+                ):
                     return Response(status=404)
 
                 return func(self, request, *args, **kwargs)
             # The Org in scope for the request must have the feature flag enabled.
             else:
-                if 'organization' not in kwargs:
+                if "organization" not in kwargs:
                     return Response(status=404)
 
-                if not features.has(feature, kwargs['organization'], actor=request.user):
+                if not features.has(feature, kwargs["organization"], actor=request.user):
                     return Response(status=404)
 
                 return func(self, request, *args, **kwargs)
+
         return wrapped
+
     return decorator

@@ -16,7 +16,7 @@ class ProjectEnvironmentSerializer(serializers.Serializer):
 class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
     def get(self, request, project, environment):
         try:
-            instance = EnvironmentProject.objects.select_related('environment').get(
+            instance = EnvironmentProject.objects.select_related("environment").get(
                 project=project,
                 environment__name=Environment.get_name_from_path_segment(environment),
             )
@@ -27,7 +27,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
 
     def put(self, request, project, environment):
         try:
-            instance = EnvironmentProject.objects.select_related('environment').get(
+            instance = EnvironmentProject.objects.select_related("environment").get(
                 project=project,
                 environment__name=Environment.get_name_from_path_segment(environment),
             )
@@ -41,8 +41,8 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         data = serializer.validated_data
         fields = {}
 
-        if 'isHidden' in data:
-            fields['is_hidden'] = data['isHidden']
+        if "isHidden" in data:
+            fields["is_hidden"] = data["isHidden"]
 
         if fields:
             instance.update(**fields)

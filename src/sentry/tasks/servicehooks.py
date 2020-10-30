@@ -16,28 +16,20 @@ def get_payload_v0(event):
     project = group.project
 
     group_context = serialize(group)
-    group_context['url'] = group.get_absolute_url()
+    group_context["url"] = group.get_absolute_url()
 
     event_context = serialize(event)
-    event_context['url'] = u'{}events/{}/'.format(
-        group.get_absolute_url(),
-        event.event_id,
-    )
+    event_context["url"] = u"{}events/{}/".format(group.get_absolute_url(), event.event_id)
     data = {
-        'project': {
-            'slug': project.slug,
-            'name': project.name,
-        },
-        'group': group_context,
-        'event': event_context,
+        "project": {"slug": project.slug, "name": project.name},
+        "group": group_context,
+        "event": event_context,
     }
     return data
 
 
 @instrumented_task(
-    name='sentry.tasks.process_service_hook',
-    default_retry_delay=60 * 5,
-    max_retries=5,
+    name="sentry.tasks.process_service_hook", default_retry_delay=60 * 5, max_retries=5
 )
 def process_service_hook(servicehook_id, event, **kwargs):
     try:
@@ -51,19 +43,16 @@ def process_service_hook(servicehook_id, event, **kwargs):
         raise NotImplementedError
 
     from sentry import tsdb
+
     tsdb.incr(tsdb.models.servicehook_fired, servicehook.id)
 
     headers = {
-        'Content-Type': 'application/json',
-        'X-ServiceHook-Timestamp': six.text_type(int(time())),
-        'X-ServiceHook-GUID': servicehook.guid,
-        'X-ServiceHook-Signature': servicehook.build_signature(json.dumps(payload)),
+        "Content-Type": "application/json",
+        "X-ServiceHook-Timestamp": six.text_type(int(time())),
+        "X-ServiceHook-GUID": servicehook.guid,
+        "X-ServiceHook-Signature": servicehook.build_signature(json.dumps(payload)),
     }
 
     safe_urlopen(
-        url=servicehook.url,
-        data=json.dumps(payload),
-        headers=headers,
-        timeout=5,
-        verify_ssl=False,
+        url=servicehook.url, data=json.dumps(payload), headers=headers, timeout=5, verify_ssl=False
     )

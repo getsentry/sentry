@@ -4,24 +4,13 @@ from rest_framework.response import Response
 from six.moves import range
 
 from sentry import tsdb
-from sentry.api.base import DocSection, EnvironmentMixin, StatsMixin
+from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment, Project
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario('RetrieveEventCountsTeam')
-def retrieve_event_counts_team(runner):
-    runner.request(
-        method='GET', path='/teams/%s/%s/stats/' % (runner.org.slug, runner.default_team.slug)
-    )
 
 
 class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
-    doc_section = DocSection.TEAMS
-
-    @attach_scenarios([retrieve_event_counts_team])
     def get(self, request, team):
         """
         Retrieve Event Counts for a Team
@@ -49,17 +38,11 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
         :auth: required
         """
         try:
-            environment_id = self._get_environment_id_from_request(
-                request,
-                team.organization_id,
-            )
+            environment_id = self._get_environment_id_from_request(request, team.organization_id)
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
 
-        projects = Project.objects.get_for_user(
-            team=team,
-            user=request.user,
-        )
+        projects = Project.objects.get_for_user(team=team, user=request.user)
 
         if not projects:
             return Response([])

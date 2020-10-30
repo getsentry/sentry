@@ -9,8 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_activity_notifiers(project):
+    from sentry.mail import mail_adapter
     from sentry.plugins.bases.notify import NotificationPlugin
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
 
     results = []
     for plugin in plugins.for_project(project, version=1):
@@ -18,14 +19,17 @@ def get_activity_notifiers(project):
             results.append(plugin)
 
     for plugin in plugins.for_project(project, version=2):
-        for notifier in (safe_execute(plugin.get_notifiers, _with_transaction=False) or ()):
+        for notifier in safe_execute(plugin.get_notifiers, _with_transaction=False) or ():
             results.append(notifier)
+
+    results.append(mail_adapter)
 
     return results
 
 
-@instrumented_task(name='sentry.tasks.activity.send_activity_notifications',
-                   queue='activity.notify')
+@instrumented_task(
+    name="sentry.tasks.activity.send_activity_notifications", queue="activity.notify"
+)
 def send_activity_notifications(activity_id):
     from sentry.models import Activity
 

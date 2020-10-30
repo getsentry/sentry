@@ -6,18 +6,12 @@ from .base import BaseEvent
 
 
 class TransactionEvent(BaseEvent):
-    key = 'transaction'
+    key = "transaction"
 
-    def get_metadata(self, data):
-        description = get_path(data, 'contexts', 'trace', 'description')
-        transaction = get_path(data, 'transaction')
-        return {
-            'title': description or transaction,
-            'location': transaction
-        }
-
-    def get_title(self, metadata):
-        return metadata['title']
+    def extract_metadata(self, data):
+        description = get_path(data, "contexts", "trace", "description")
+        transaction = get_path(data, "transaction")
+        return {"title": description or transaction, "location": transaction}
 
     def get_location(self, metadata):
-        return metadata['location']
+        return metadata["location"]

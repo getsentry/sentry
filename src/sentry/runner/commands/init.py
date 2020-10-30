@@ -6,15 +6,16 @@ import click
 
 @click.command()
 @click.option(
-    '--dev', default=False, is_flag=True, help='Use settings more conducive to local development.'
+    "--dev", default=False, is_flag=True, help="Use settings more conducive to local development."
 )
-@click.argument('directory', required=False)
+@click.argument("directory", required=False)
 @click.pass_context
 def init(ctx, dev, directory):
     "Initialize new configuration directory."
     from sentry.runner.settings import discover_configs, generate_settings
+
     if directory is not None:
-        os.environ['SENTRY_CONF'] = directory
+        os.environ["SENTRY_CONF"] = directory
 
     directory, py, yaml = discover_configs()
 
@@ -39,7 +40,7 @@ def init(ctx, dev, directory):
             "File already exists at '%s', overwrite?" % click.format_filename(yaml), abort=True
         )
 
-    with click.open_file(yaml, 'w') as fp:
+    with click.open_file(yaml, "w") as fp:
         fp.write(yaml_contents)
 
     if os.path.isfile(py):
@@ -47,5 +48,5 @@ def init(ctx, dev, directory):
             "File already exists at '%s', overwrite?" % click.format_filename(py), abort=True
         )
 
-    with click.open_file(py, 'w') as fp:
+    with click.open_file(py, "w") as fp:
         fp.write(py_contents)

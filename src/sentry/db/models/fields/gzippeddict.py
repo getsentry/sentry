@@ -3,16 +3,15 @@ from __future__ import absolute_import, print_function
 import logging
 import six
 
-from django.conf import settings
 from django.db.models import TextField
 
 from sentry.db.models.utils import Creator
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 
-__all__ = ('GzippedDictField', )
+__all__ = ("GzippedDictField",)
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger("sentry")
 
 
 class GzippedDictField(TextField):
@@ -53,9 +52,3 @@ class GzippedDictField(TextField):
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)
         return self.get_prep_value(value)
-
-
-if 'south' in settings.INSTALLED_APPS:
-    from south.modelsinspector import add_introspection_rules
-
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.gzippeddict\.GzippedDictField"])

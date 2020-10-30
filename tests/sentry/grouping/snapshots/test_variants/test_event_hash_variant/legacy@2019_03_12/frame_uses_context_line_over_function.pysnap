@@ -1,34 +1,34 @@
 ---
-created: '2019-03-14T17:12:37.246976Z'
+created: '2020-02-26T19:54:27.075229Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           filename*
-            u'foo.py'
+            "foo.py"
           context-line*
-            u'foo bar'
-          function (function name is used only if module or filename are available)
-            u'bar'
-          lineno (line number is used only if module or filename are available)
+            "foo bar"
+          function (function name is not used if context-line is available)
+            "bar"
+          lineno (line number is not used if context-line is available)
             1
 --------------------------------------------------------------------------
 system:
-  hash: '60e0a667027bef0d0b7c4882891df7e8'
+  hash: "60e0a667027bef0d0b7c4882891df7e8"
   component:
     system*
       stacktrace*
         frame*
           filename*
-            u'foo.py'
+            "foo.py"
           context-line*
-            u'foo bar'
-          function (function name is used only if module or filename are available)
-            u'bar'
-          lineno (line number is used only if module or filename are available)
+            "foo bar"
+          function (function name is not used if context-line is available)
+            "bar"
+          lineno (line number is not used if context-line is available)
             1

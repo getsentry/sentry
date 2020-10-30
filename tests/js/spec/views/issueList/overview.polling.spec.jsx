@@ -1,7 +1,8 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import IssueList from 'app/views/issueList/overview';
 import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
@@ -23,7 +24,7 @@ const DEFAULT_LINKS_HEADER =
 
 jest.useFakeTimers();
 
-describe('IssueList -> Polling', function() {
+describe('IssueList -> Polling', function () {
   let wrapper;
 
   let issuesRequest;
@@ -63,7 +64,10 @@ describe('IssueList -> Polling', function() {
       },
     };
 
-    wrapper = mount(<IssueList {...newRouter} {...defaultProps} {...p} />, routerContext);
+    wrapper = mountWithTheme(
+      <IssueList {...newRouter} {...defaultProps} {...p} />,
+      routerContext
+    );
 
     await Promise.resolve();
     jest.runAllTimers();
@@ -72,7 +76,7 @@ describe('IssueList -> Polling', function() {
     return wrapper;
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -134,7 +138,7 @@ describe('IssueList -> Polling', function() {
     TagStore.init();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     if (wrapper) {
       wrapper.unmount();
@@ -142,7 +146,7 @@ describe('IssueList -> Polling', function() {
     wrapper = null;
   });
 
-  it('toggles polling for new issues', async function() {
+  it('toggles polling for new issues', async function () {
     await createWrapper();
 
     expect(issuesRequest).toHaveBeenCalledWith(
@@ -154,10 +158,10 @@ describe('IssueList -> Polling', function() {
     );
 
     // Enable real time control
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(1);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(1);
     wrapper.find('[data-test-id="realtime-control"]').simulate('click');
 
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(0);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -167,13 +171,13 @@ describe('IssueList -> Polling', function() {
 
     // Pauses
     wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(1);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(1);
 
     jest.advanceTimersByTime(12001);
     expect(pollRequest).toHaveBeenCalledTimes(2);
   });
 
-  it('stops polling for new issues when endpoint returns a 401', async function() {
+  it('stops polling for new issues when endpoint returns a 401', async function () {
     pollRequest = MockApiClient.addMockResponse({
       url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
@@ -184,7 +188,7 @@ describe('IssueList -> Polling', function() {
 
     // Enable real time control
     wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(0);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -193,7 +197,7 @@ describe('IssueList -> Polling', function() {
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('stops polling for new issues when endpoint returns a 403', async function() {
+  it('stops polling for new issues when endpoint returns a 403', async function () {
     pollRequest = MockApiClient.addMockResponse({
       url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
@@ -203,9 +207,9 @@ describe('IssueList -> Polling', function() {
     await createWrapper();
 
     // Enable real time control
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(1);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(1);
     wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(0);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -214,7 +218,7 @@ describe('IssueList -> Polling', function() {
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('stops polling for new issues when endpoint returns a 404', async function() {
+  it('stops polling for new issues when endpoint returns a 404', async function () {
     pollRequest = MockApiClient.addMockResponse({
       url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
@@ -225,7 +229,7 @@ describe('IssueList -> Polling', function() {
 
     // Enable real time control
     wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(0);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);

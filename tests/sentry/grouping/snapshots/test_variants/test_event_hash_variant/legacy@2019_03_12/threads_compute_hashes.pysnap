@@ -1,32 +1,32 @@
 ---
-created: '2019-04-03T22:37:15.506746Z'
+created: '2020-08-25T09:17:10.922310Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
-    app (threads of system takes precedence)
+    app (threads of system take precedence)
       threads (ignored because hash matches system variant)
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              u'foo/baz.c'
+              "foo/baz.c"
             function*
-              u'main'
+              "main"
             lineno (function takes precedence)
               1
 --------------------------------------------------------------------------
 system:
-  hash: '39db5b4edf187e89cec12245e5c9fb3c'
+  hash: "39db5b4edf187e89cec12245e5c9fb3c"
   component:
     system*
       threads*
         stacktrace*
           frame*
             filename*
-              u'foo/baz.c'
+              "foo/baz.c"
             function*
-              u'main'
+              "main"
             lineno (function takes precedence)
               1

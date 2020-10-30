@@ -16,10 +16,7 @@ def with_event_counts(project_list):
     start = end - datetime.timedelta(days=1)
 
     tsdb_results = tsdb.get_range(
-        model=tsdb.models.project,
-        keys=[p.id for p in project_list],
-        start=start,
-        end=end,
+        model=tsdb.models.project, keys=[p.id for p in project_list], start=start, end=end
     )
 
     for project in project_list:

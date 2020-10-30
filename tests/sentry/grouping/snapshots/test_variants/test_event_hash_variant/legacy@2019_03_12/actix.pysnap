@@ -1,1088 +1,1088 @@
 ---
-created: '2019-03-14T17:12:36.853169Z'
+created: '2020-02-26T19:54:26.341445Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 'c9dc61e20bb252c9ec1e28a75f015132'
+  hash: "0b1576b98e87afe7e4de476f6f290c65"
   component:
     app*
       exception*
         stacktrace*
           frame
-            function (function name is used only if module or filename are available)
-              u'__pthread_start'
+            function (function name is not used if module or filename are available)
+              "__pthread_start"
           frame
-            function (function name is used only if module or filename are available)
-              u'__pthread_body'
-          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "__pthread_body"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'thread.rs'
+              "thread.rs"
             function*
-              u'std::sys::unix::thread::Thread::new::thread_start'
+              "std::sys::unix::thread::Thread::new::thread_start"
             lineno (function takes precedence)
               24
-          frame*
+          frame (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
             filename*
-              u'boxed.rs'
+              "boxed.rs"
             function*
-              u'<F as alloc::boxed::FnBox<A>>::call_box'
+              "<F as alloc::boxed::FnBox<A>>::call_box"
             lineno (function takes precedence)
               673
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'std::thread::Builder::spawn_unchecked::{{closure}}'
+              "std::thread::Builder::spawn_unchecked::{{closure}}"
             lineno (function takes precedence)
               476
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'panic.rs'
+              "panic.rs"
             function*
-              u'std::panic::catch_unwind'
+              "std::panic::catch_unwind"
             lineno (function takes precedence)
               398
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'panicking.rs'
+              "panicking.rs"
             function*
-              u'std::panicking::try'
+              "std::panicking::try"
             lineno (function takes precedence)
               289
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u'___rust_maybe_catch_panic'
+              "___rust_maybe_catch_panic"
             lineno (function takes precedence)
               102
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'panicking.rs'
+              "panicking.rs"
             function*
-              u'std::panicking::try::do_call'
+              "std::panicking::try::do_call"
             lineno (function takes precedence)
               310
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'panic.rs'
+              "panic.rs"
             function*
-              u'<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once'
+              "<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once"
             lineno (function takes precedence)
               319
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}'
+              "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               477
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'backtrace.rs'
+              "backtrace.rs"
             function*
-              u'std::sys_common::backtrace::__rust_begin_short_backtrace'
+              "std::sys_common::backtrace::__rust_begin_short_backtrace"
             lineno (function takes precedence)
               136
           frame*
             filename*
-              u'arbiter.rs'
+              "arbiter.rs"
             function*
-              u'actix::arbiter::Arbiter::new_with_builder::{{closure}}'
+              "actix::arbiter::Arbiter::new_with_builder::{{closure}}"
             lineno (function takes precedence)
               116
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::block_on'
+              "tokio::runtime::current_thread::runtime::Runtime::block_on"
             lineno (function takes precedence)
               189
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::enter'
+              "tokio::runtime::current_thread::runtime::Runtime::enter"
             lineno (function takes precedence)
               221
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u'tokio_reactor::with_default'
+              "tokio_reactor::with_default"
             lineno (function takes precedence)
               212
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u'tokio_reactor::with_default::{{closure}}'
+              "tokio_reactor::with_default::{{closure}}"
             lineno (function takes precedence)
               229
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}'
+              "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"
             lineno (function takes precedence)
               222
           frame*
             filename*
-              u'clock.rs'
+              "clock.rs"
             function*
-              u'tokio_timer::clock::clock::with_default'
+              "tokio_timer::clock::clock::with_default"
             lineno (function takes precedence)
               124
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'clock.rs'
+              "clock.rs"
             function*
-              u'tokio_timer::clock::clock::with_default::{{closure}}'
+              "tokio_timer::clock::clock::with_default::{{closure}}"
             lineno (function takes precedence)
               141
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}'
+              "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               223
           frame*
             filename*
-              u'handle.rs'
+              "handle.rs"
             function*
-              u'tokio_timer::timer::handle::with_default'
+              "tokio_timer::timer::handle::with_default"
             lineno (function takes precedence)
               81
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'handle.rs'
+              "handle.rs"
             function*
-              u'tokio_timer::timer::handle::with_default::{{closure}}'
+              "tokio_timer::timer::handle::with_default::{{closure}}"
             lineno (function takes precedence)
               94
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}'
+              "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               230
           frame*
             filename*
-              u'global.rs'
+              "global.rs"
             function*
-              u'tokio_executor::global::with_default'
+              "tokio_executor::global::with_default"
             lineno (function takes precedence)
               162
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'global.rs'
+              "global.rs"
             function*
-              u'tokio_executor::global::with_default::{{closure}}'
+              "tokio_executor::global::with_default::{{closure}}"
             lineno (function takes precedence)
               192
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}'
+              "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               232
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}'
+              "tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"
             lineno (function takes precedence)
               191
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u"<tokio_current_thread::Entered<'a, P>>::block_on"
+              "<tokio_current_thread::Entered<'a, P>>::block_on"
             lineno (function takes precedence)
               488
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u"<tokio_current_thread::Entered<'a, P>>::tick"
+              "<tokio_current_thread::Entered<'a, P>>::tick"
             lineno (function takes precedence)
               605
           frame*
             filename*
-              u'scheduler.rs'
+              "scheduler.rs"
             function*
-              u'<tokio_current_thread::scheduler::Scheduler<U>>::tick'
+              "<tokio_current_thread::scheduler::Scheduler<U>>::tick"
             lineno (function takes precedence)
               333
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u"<tokio_current_thread::Borrow<'a, U>>::enter"
+              "<tokio_current_thread::Borrow<'a, U>>::enter"
             lineno (function takes precedence)
               776
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u"<tokio_current_thread::Borrow<'a, U>>::enter::{{closure}}"
+              "<tokio_current_thread::Borrow<'a, U>>::enter::{{closure}}"
             lineno (function takes precedence)
               778
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u'tokio_current_thread::CurrentRunner::set_spawn'
+              "tokio_current_thread::CurrentRunner::set_spawn"
             lineno (function takes precedence)
               816
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u"<tokio_current_thread::Borrow<'a, U>>::enter::{{closure}}::{{closure}}"
+              "<tokio_current_thread::Borrow<'a, U>>::enter::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               779
           frame*
             filename*
-              u'scheduler.rs'
+              "scheduler.rs"
             function*
-              u'<tokio_current_thread::scheduler::Scheduler<U>>::tick::{{closure}}'
+              "<tokio_current_thread::scheduler::Scheduler<U>>::tick::{{closure}}"
             lineno (function takes precedence)
               333
           frame*
             filename*
-              u'scheduler.rs'
+              "scheduler.rs"
             function*
-              u"<tokio_current_thread::scheduler::Scheduled<'a, U>>::tick"
+              "<tokio_current_thread::scheduler::Scheduled<'a, U>>::tick"
             lineno (function takes precedence)
               354
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_future_notify'
+              "<futures::task_impl::Spawn<T>>::poll_future_notify"
             lineno (function takes precedence)
               326
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_fn_notify'
+              "<futures::task_impl::Spawn<T>>::poll_fn_notify"
             lineno (function takes precedence)
               288
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<futures::task_impl::Spawn<T>>::enter'
+              "<futures::task_impl::Spawn<T>>::enter"
             lineno (function takes precedence)
               396
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'futures::task_impl::std::set'
+              "futures::task_impl::std::set"
             lineno (function takes precedence)
               78
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<futures::task_impl::Spawn<T>>::enter::{{closure}}'
+              "<futures::task_impl::Spawn<T>>::enter::{{closure}}"
             lineno (function takes precedence)
               396
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_future_notify::{{closure}}'
+              "<futures::task_impl::Spawn<T>>::poll_future_notify::{{closure}}"
             lineno (function takes precedence)
               326
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<alloc::boxed::Box<F> as futures::future::Future>::poll'
+              "<alloc::boxed::Box<F> as futures::future::Future>::poll"
             lineno (function takes precedence)
               113
           frame*
             filename*
-              u'then.rs'
+              "then.rs"
             function*
-              u'<futures::future::then::Then<A, B, F> as futures::future::Future>::poll'
+              "<futures::future::then::Then<A, B, F> as futures::future::Future>::poll"
             lineno (function takes precedence)
               32
           frame*
             filename*
-              u'chain.rs'
+              "chain.rs"
             function*
-              u'<futures::future::chain::Chain<A, B, C>>::poll'
+              "<futures::future::chain::Chain<A, B, C>>::poll"
             lineno (function takes precedence)
               26
           frame*
             filename*
-              u'either.rs'
+              "either.rs"
             function*
-              u'<futures::future::either::Either<A, B> as futures::future::Future>::poll'
+              "<futures::future::either::Either<A, B> as futures::future::Future>::poll"
             lineno (function takes precedence)
               35
           frame (ignored due to recursion)
             filename*
-              u'either.rs'
+              "either.rs"
             function*
-              u'<futures::future::either::Either<A, B> as futures::future::Future>::poll'
+              "<futures::future::either::Either<A, B> as futures::future::Future>::poll"
             lineno (function takes precedence)
               35
           frame*
             filename*
-              u'acceptor.rs'
+              "acceptor.rs"
             function*
-              u'<actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T> as futures::future::Future>::poll'
+              "<actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T> as futures::future::Future>::poll"
             lineno (function takes precedence)
               378
           frame*
             filename*
-              u'and_then.rs'
+              "and_then.rs"
             function*
-              u'<actix_net::service::and_then::AndThenFuture<A, B> as futures::future::Future>::poll'
+              "<actix_net::service::and_then::AndThenFuture<A, B> as futures::future::Future>::poll"
             lineno (function takes precedence)
               94
           frame*
             filename*
-              u'map_err.rs'
+              "map_err.rs"
             function*
-              u'<actix_net::service::map_err::MapErrFuture<A, F, E> as futures::future::Future>::poll'
+              "<actix_net::service::map_err::MapErrFuture<A, F, E> as futures::future::Future>::poll"
             lineno (function takes precedence)
               92
           frame*
             filename*
-              u'channel.rs'
+              "channel.rs"
             function*
-              u'<actix_web::server::channel::HttpChannel<T, H> as futures::future::Future>::poll'
+              "<actix_web::server::channel::HttpChannel<T, H> as futures::future::Future>::poll"
             lineno (function takes precedence)
               155
           frame*
             filename*
-              u'channel.rs'
+              "channel.rs"
             function*
-              u'<actix_web::server::channel::HttpChannel<T, H> as futures::future::Future>::poll'
+              "<actix_web::server::channel::HttpChannel<T, H> as futures::future::Future>::poll"
             lineno (function takes precedence)
               105
           frame*
             filename*
-              u'h1.rs'
+              "h1.rs"
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T, H>>::poll'
+              "<actix_web::server::h1::Http1Dispatcher<T, H>>::poll"
             lineno (function takes precedence)
               223
           frame*
             filename*
-              u'h1.rs'
+              "h1.rs"
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T, H>>::poll_handler'
+              "<actix_web::server::h1::Http1Dispatcher<T, H>>::poll_handler"
             lineno (function takes precedence)
               376
           frame*
             filename*
-              u'h1.rs'
+              "h1.rs"
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T, H>>::poll_io'
+              "<actix_web::server::h1::Http1Dispatcher<T, H>>::poll_io"
             lineno (function takes precedence)
               348
           frame*
             filename*
-              u'h1.rs'
+              "h1.rs"
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T, H>>::parse'
+              "<actix_web::server::h1::Http1Dispatcher<T, H>>::parse"
             lineno (function takes precedence)
               506
           frame*
             filename*
-              u'pipeline.rs'
+              "pipeline.rs"
             function*
-              u'<actix_web::pipeline::Pipeline<S, H> as actix_web::server::handler::HttpHandlerTask>::poll_io'
+              "<actix_web::pipeline::Pipeline<S, H> as actix_web::server::handler::HttpHandlerTask>::poll_io"
             lineno (function takes precedence)
               126
           frame*
             filename*
-              u'<::log::macros::log macros>'
+              "<::log::macros::log macros>"
             function*
-              u'<actix_web::pipeline::ProcessResponse<S, H>>::poll_io'
+              "<actix_web::pipeline::ProcessResponse<S, H>>::poll_io"
             lineno (function takes precedence)
               5
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u'log::__private_api_log'
+              "log::__private_api_log"
             lineno (function takes precedence)
               1232
           frame (non app frame)
             filename*
-              u'log.rs'
+              "log.rs"
             function*
-              u'<sentry::integrations::log::Logger as log::Log>::log'
+              "<sentry::integrations::log::Logger as log::Log>::log"
             lineno (function takes precedence)
               184
           frame (non app frame)
             filename*
-              u'hub.rs'
+              "hub.rs"
             function*
-              u'sentry::hub::Hub::with_active'
+              "sentry::hub::Hub::with_active"
             lineno (function takes precedence)
               208
           frame (non app frame)
             filename*
-              u'hub.rs'
+              "hub.rs"
             function*
-              u'sentry::hub::Hub::with'
+              "sentry::hub::Hub::with"
             lineno (function takes precedence)
               190
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame (non app frame)
             filename*
-              u'hub.rs'
+              "hub.rs"
             function*
-              u'sentry::hub::Hub::with::{{closure}}'
+              "sentry::hub::Hub::with::{{closure}}"
             lineno (function takes precedence)
               192
           frame (non app frame)
             filename*
-              u'hub.rs'
+              "hub.rs"
             function*
-              u'sentry::hub::Hub::with_active::{{closure}}'
+              "sentry::hub::Hub::with_active::{{closure}}"
             lineno (function takes precedence)
               210
         type*
-          u'actix_web::pipeline'
+          "actix_web::pipeline"
         value (stacktrace and type take precedence)
-          u'Error occurred during request handling, status: 500 Internal Server Error Something went really wrong here'
+          "Error occurred during request handling, status: 500 Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 system:
-  hash: '4796dda6f2cfa81ec7862cd24bcfb58e'
+  hash: "4796dda6f2cfa81ec7862cd24bcfb58e"
   component:
     system*
       exception*
         stacktrace*
           frame
-            function (function name is used only if module or filename are available)
-              u'__pthread_start'
+            function (function name is not used if module or filename are available)
+              "__pthread_start"
           frame
-            function (function name is used only if module or filename are available)
-              u'__pthread_body'
+            function (function name is not used if module or filename are available)
+              "__pthread_body"
           frame*
             filename*
-              u'thread.rs'
+              "thread.rs"
             function*
-              u'std::sys::unix::thread::Thread::new::thread_start'
+              "std::sys::unix::thread::Thread::new::thread_start"
             lineno (function takes precedence)
               24
-          frame*
+          frame* (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
             filename*
-              u'boxed.rs'
+              "boxed.rs"
             function*
-              u'<F as alloc::boxed::FnBox<A>>::call_box'
+              "<F as alloc::boxed::FnBox<A>>::call_box"
             lineno (function takes precedence)
               673
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'std::thread::Builder::spawn_unchecked::{{closure}}'
+              "std::thread::Builder::spawn_unchecked::{{closure}}"
             lineno (function takes precedence)
               476
           frame*
             filename*
-              u'panic.rs'
+              "panic.rs"
             function*
-              u'std::panic::catch_unwind'
+              "std::panic::catch_unwind"
             lineno (function takes precedence)
               398
           frame*
             filename*
-              u'panicking.rs'
+              "panicking.rs"
             function*
-              u'std::panicking::try'
+              "std::panicking::try"
             lineno (function takes precedence)
               289
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u'___rust_maybe_catch_panic'
+              "___rust_maybe_catch_panic"
             lineno (function takes precedence)
               102
           frame*
             filename*
-              u'panicking.rs'
+              "panicking.rs"
             function*
-              u'std::panicking::try::do_call'
+              "std::panicking::try::do_call"
             lineno (function takes precedence)
               310
           frame*
             filename*
-              u'panic.rs'
+              "panic.rs"
             function*
-              u'<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once'
+              "<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once"
             lineno (function takes precedence)
               319
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}'
+              "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               477
           frame*
             filename*
-              u'backtrace.rs'
+              "backtrace.rs"
             function*
-              u'std::sys_common::backtrace::__rust_begin_short_backtrace'
+              "std::sys_common::backtrace::__rust_begin_short_backtrace"
             lineno (function takes precedence)
               136
           frame*
             filename*
-              u'arbiter.rs'
+              "arbiter.rs"
             function*
-              u'actix::arbiter::Arbiter::new_with_builder::{{closure}}'
+              "actix::arbiter::Arbiter::new_with_builder::{{closure}}"
             lineno (function takes precedence)
               116
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::block_on'
+              "tokio::runtime::current_thread::runtime::Runtime::block_on"
             lineno (function takes precedence)
               189
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::enter'
+              "tokio::runtime::current_thread::runtime::Runtime::enter"
             lineno (function takes precedence)
               221
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u'tokio_reactor::with_default'
+              "tokio_reactor::with_default"
             lineno (function takes precedence)
               212
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u'tokio_reactor::with_default::{{closure}}'
+              "tokio_reactor::with_default::{{closure}}"
             lineno (function takes precedence)
               229
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}'
+              "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"
             lineno (function takes precedence)
               222
           frame*
             filename*
-              u'clock.rs'
+              "clock.rs"
             function*
-              u'tokio_timer::clock::clock::with_default'
+              "tokio_timer::clock::clock::with_default"
             lineno (function takes precedence)
               124
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'clock.rs'
+              "clock.rs"
             function*
-              u'tokio_timer::clock::clock::with_default::{{closure}}'
+              "tokio_timer::clock::clock::with_default::{{closure}}"
             lineno (function takes precedence)
               141
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}'
+              "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               223
           frame*
             filename*
-              u'handle.rs'
+              "handle.rs"
             function*
-              u'tokio_timer::timer::handle::with_default'
+              "tokio_timer::timer::handle::with_default"
             lineno (function takes precedence)
               81
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'handle.rs'
+              "handle.rs"
             function*
-              u'tokio_timer::timer::handle::with_default::{{closure}}'
+              "tokio_timer::timer::handle::with_default::{{closure}}"
             lineno (function takes precedence)
               94
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}'
+              "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               230
           frame*
             filename*
-              u'global.rs'
+              "global.rs"
             function*
-              u'tokio_executor::global::with_default'
+              "tokio_executor::global::with_default"
             lineno (function takes precedence)
               162
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'global.rs'
+              "global.rs"
             function*
-              u'tokio_executor::global::with_default::{{closure}}'
+              "tokio_executor::global::with_default::{{closure}}"
             lineno (function takes precedence)
               192
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}'
+              "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               232
           frame*
             filename*
-              u'runtime.rs'
+              "runtime.rs"
             function*
-              u'tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}'
+              "tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"
             lineno (function takes precedence)
               191
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u"<tokio_current_thread::Entered<'a, P>>::block_on"
+              "<tokio_current_thread::Entered<'a, P>>::block_on"
             lineno (function takes precedence)
               488
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u"<tokio_current_thread::Entered<'a, P>>::tick"
+              "<tokio_current_thread::Entered<'a, P>>::tick"
             lineno (function takes precedence)
               605
           frame*
             filename*
-              u'scheduler.rs'
+              "scheduler.rs"
             function*
-              u'<tokio_current_thread::scheduler::Scheduler<U>>::tick'
+              "<tokio_current_thread::scheduler::Scheduler<U>>::tick"
             lineno (function takes precedence)
               333
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u"<tokio_current_thread::Borrow<'a, U>>::enter"
+              "<tokio_current_thread::Borrow<'a, U>>::enter"
             lineno (function takes precedence)
               776
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u"<tokio_current_thread::Borrow<'a, U>>::enter::{{closure}}"
+              "<tokio_current_thread::Borrow<'a, U>>::enter::{{closure}}"
             lineno (function takes precedence)
               778
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u'tokio_current_thread::CurrentRunner::set_spawn'
+              "tokio_current_thread::CurrentRunner::set_spawn"
             lineno (function takes precedence)
               816
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u"<tokio_current_thread::Borrow<'a, U>>::enter::{{closure}}::{{closure}}"
+              "<tokio_current_thread::Borrow<'a, U>>::enter::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               779
           frame*
             filename*
-              u'scheduler.rs'
+              "scheduler.rs"
             function*
-              u'<tokio_current_thread::scheduler::Scheduler<U>>::tick::{{closure}}'
+              "<tokio_current_thread::scheduler::Scheduler<U>>::tick::{{closure}}"
             lineno (function takes precedence)
               333
           frame*
             filename*
-              u'scheduler.rs'
+              "scheduler.rs"
             function*
-              u"<tokio_current_thread::scheduler::Scheduled<'a, U>>::tick"
+              "<tokio_current_thread::scheduler::Scheduled<'a, U>>::tick"
             lineno (function takes precedence)
               354
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_future_notify'
+              "<futures::task_impl::Spawn<T>>::poll_future_notify"
             lineno (function takes precedence)
               326
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_fn_notify'
+              "<futures::task_impl::Spawn<T>>::poll_fn_notify"
             lineno (function takes precedence)
               288
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<futures::task_impl::Spawn<T>>::enter'
+              "<futures::task_impl::Spawn<T>>::enter"
             lineno (function takes precedence)
               396
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'futures::task_impl::std::set'
+              "futures::task_impl::std::set"
             lineno (function takes precedence)
               78
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<futures::task_impl::Spawn<T>>::enter::{{closure}}'
+              "<futures::task_impl::Spawn<T>>::enter::{{closure}}"
             lineno (function takes precedence)
               396
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_future_notify::{{closure}}'
+              "<futures::task_impl::Spawn<T>>::poll_future_notify::{{closure}}"
             lineno (function takes precedence)
               326
           frame*
             filename*
-              u'mod.rs'
+              "mod.rs"
             function*
-              u'<alloc::boxed::Box<F> as futures::future::Future>::poll'
+              "<alloc::boxed::Box<F> as futures::future::Future>::poll"
             lineno (function takes precedence)
               113
           frame*
             filename*
-              u'then.rs'
+              "then.rs"
             function*
-              u'<futures::future::then::Then<A, B, F> as futures::future::Future>::poll'
+              "<futures::future::then::Then<A, B, F> as futures::future::Future>::poll"
             lineno (function takes precedence)
               32
           frame*
             filename*
-              u'chain.rs'
+              "chain.rs"
             function*
-              u'<futures::future::chain::Chain<A, B, C>>::poll'
+              "<futures::future::chain::Chain<A, B, C>>::poll"
             lineno (function takes precedence)
               26
           frame*
             filename*
-              u'either.rs'
+              "either.rs"
             function*
-              u'<futures::future::either::Either<A, B> as futures::future::Future>::poll'
+              "<futures::future::either::Either<A, B> as futures::future::Future>::poll"
             lineno (function takes precedence)
               35
           frame (ignored due to recursion)
             filename*
-              u'either.rs'
+              "either.rs"
             function*
-              u'<futures::future::either::Either<A, B> as futures::future::Future>::poll'
+              "<futures::future::either::Either<A, B> as futures::future::Future>::poll"
             lineno (function takes precedence)
               35
           frame*
             filename*
-              u'acceptor.rs'
+              "acceptor.rs"
             function*
-              u'<actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T> as futures::future::Future>::poll'
+              "<actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T> as futures::future::Future>::poll"
             lineno (function takes precedence)
               378
           frame*
             filename*
-              u'and_then.rs'
+              "and_then.rs"
             function*
-              u'<actix_net::service::and_then::AndThenFuture<A, B> as futures::future::Future>::poll'
+              "<actix_net::service::and_then::AndThenFuture<A, B> as futures::future::Future>::poll"
             lineno (function takes precedence)
               94
           frame*
             filename*
-              u'map_err.rs'
+              "map_err.rs"
             function*
-              u'<actix_net::service::map_err::MapErrFuture<A, F, E> as futures::future::Future>::poll'
+              "<actix_net::service::map_err::MapErrFuture<A, F, E> as futures::future::Future>::poll"
             lineno (function takes precedence)
               92
           frame*
             filename*
-              u'channel.rs'
+              "channel.rs"
             function*
-              u'<actix_web::server::channel::HttpChannel<T, H> as futures::future::Future>::poll'
+              "<actix_web::server::channel::HttpChannel<T, H> as futures::future::Future>::poll"
             lineno (function takes precedence)
               155
           frame*
             filename*
-              u'channel.rs'
+              "channel.rs"
             function*
-              u'<actix_web::server::channel::HttpChannel<T, H> as futures::future::Future>::poll'
+              "<actix_web::server::channel::HttpChannel<T, H> as futures::future::Future>::poll"
             lineno (function takes precedence)
               105
           frame*
             filename*
-              u'h1.rs'
+              "h1.rs"
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T, H>>::poll'
+              "<actix_web::server::h1::Http1Dispatcher<T, H>>::poll"
             lineno (function takes precedence)
               223
           frame*
             filename*
-              u'h1.rs'
+              "h1.rs"
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T, H>>::poll_handler'
+              "<actix_web::server::h1::Http1Dispatcher<T, H>>::poll_handler"
             lineno (function takes precedence)
               376
           frame*
             filename*
-              u'h1.rs'
+              "h1.rs"
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T, H>>::poll_io'
+              "<actix_web::server::h1::Http1Dispatcher<T, H>>::poll_io"
             lineno (function takes precedence)
               348
           frame*
             filename*
-              u'h1.rs'
+              "h1.rs"
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T, H>>::parse'
+              "<actix_web::server::h1::Http1Dispatcher<T, H>>::parse"
             lineno (function takes precedence)
               506
           frame*
             filename*
-              u'pipeline.rs'
+              "pipeline.rs"
             function*
-              u'<actix_web::pipeline::Pipeline<S, H> as actix_web::server::handler::HttpHandlerTask>::poll_io'
+              "<actix_web::pipeline::Pipeline<S, H> as actix_web::server::handler::HttpHandlerTask>::poll_io"
             lineno (function takes precedence)
               126
           frame*
             filename*
-              u'<::log::macros::log macros>'
+              "<::log::macros::log macros>"
             function*
-              u'<actix_web::pipeline::ProcessResponse<S, H>>::poll_io'
+              "<actix_web::pipeline::ProcessResponse<S, H>>::poll_io"
             lineno (function takes precedence)
               5
           frame*
             filename*
-              u'lib.rs'
+              "lib.rs"
             function*
-              u'log::__private_api_log'
+              "log::__private_api_log"
             lineno (function takes precedence)
               1232
           frame*
             filename*
-              u'log.rs'
+              "log.rs"
             function*
-              u'<sentry::integrations::log::Logger as log::Log>::log'
+              "<sentry::integrations::log::Logger as log::Log>::log"
             lineno (function takes precedence)
               184
           frame*
             filename*
-              u'hub.rs'
+              "hub.rs"
             function*
-              u'sentry::hub::Hub::with_active'
+              "sentry::hub::Hub::with_active"
             lineno (function takes precedence)
               208
           frame*
             filename*
-              u'hub.rs'
+              "hub.rs"
             function*
-              u'sentry::hub::Hub::with'
+              "sentry::hub::Hub::with"
             lineno (function takes precedence)
               190
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
           frame*
             filename*
-              u'local.rs'
+              "local.rs"
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              "<std::thread::local::LocalKey<T>>::try_with"
             lineno (function takes precedence)
               309
           frame*
             filename*
-              u'hub.rs'
+              "hub.rs"
             function*
-              u'sentry::hub::Hub::with::{{closure}}'
+              "sentry::hub::Hub::with::{{closure}}"
             lineno (function takes precedence)
               192
           frame*
             filename*
-              u'hub.rs'
+              "hub.rs"
             function*
-              u'sentry::hub::Hub::with_active::{{closure}}'
+              "sentry::hub::Hub::with_active::{{closure}}"
             lineno (function takes precedence)
               210
         type*
-          u'actix_web::pipeline'
+          "actix_web::pipeline"
         value (stacktrace and type take precedence)
-          u'Error occurred during request handling, status: 500 Internal Server Error Something went really wrong here'
+          "Error occurred during request handling, status: 500 Internal Server Error Something went really wrong here"

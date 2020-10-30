@@ -6,8 +6,12 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Release
-from sentry.tasks.assemble import get_assemble_status, set_assemble_status, \
-    AssembleTask, ChunkFileState
+from sentry.tasks.assemble import (
+    get_assemble_status,
+    set_assemble_status,
+    AssembleTask,
+    ChunkFileState,
+)
 from sentry.utils import json
 
 
@@ -21,10 +25,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         """
 
         try:
-            release = Release.objects.get(
-                organization_id=organization.id,
-                version=version,
-            )
+            release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -34,17 +35,11 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         schema = {
             "type": "object",
             "properties": {
-                "checksum": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{40}$",
-                },
+                "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                 "chunks": {
                     "type": "array",
-                    "items": {
-                        "type": "string",
-                        "pattern": "^[0-9a-f]{40}$",
-                    }
-                }
+                    "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                },
             },
             "required": ["checksum", "chunks"],
             "additionalProperties": False,
@@ -54,52 +49,38 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
             data = json.loads(request.body)
             jsonschema.validate(data, schema)
         except jsonschema.ValidationError as e:
-            return Response({'error': str(e).splitlines()[0]},
-                            status=400)
-        except BaseException as e:
-            return Response({'error': 'Invalid json body'},
-                            status=400)
+            return Response({"error": str(e).splitlines()[0]}, status=400)
+        except BaseException:
+            return Response({"error": "Invalid json body"}, status=400)
 
-        checksum = data.get('checksum', None)
-        chunks = data.get('chunks', [])
+        checksum = data.get("checksum", None)
+        chunks = data.get("chunks", [])
 
         state, detail = get_assemble_status(AssembleTask.ARTIFACTS, organization.id, checksum)
         if state == ChunkFileState.OK:
-            return Response({
-                'state': state,
-                'detail': None,
-                'missingChunks': [],
-            }, status=200)
+            return Response({"state": state, "detail": None, "missingChunks": []}, status=200)
         elif state is not None:
-            return Response({
-                'state': state,
-                'detail': detail,
-                'missingChunks': [],
-            })
+            return Response({"state": state, "detail": detail, "missingChunks": []})
 
         # There is neither a known file nor a cached state, so we will
         # have to create a new file.  Assure that there are checksums.
         # If not, we assume this is a poll and report NOT_FOUND
         if not chunks:
-            return Response({
-                'state': ChunkFileState.NOT_FOUND,
-                'missingChunks': [],
-            }, status=200)
+            return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []}, status=200)
 
-        set_assemble_status(AssembleTask.ARTIFACTS, organization.id, checksum,
-                            ChunkFileState.CREATED)
+        set_assemble_status(
+            AssembleTask.ARTIFACTS, organization.id, checksum, ChunkFileState.CREATED
+        )
 
         from sentry.tasks.assemble import assemble_artifacts
+
         assemble_artifacts.apply_async(
             kwargs={
-                'org_id': organization.id,
-                'version': version,
-                'checksum': checksum,
-                'chunks': chunks,
+                "org_id": organization.id,
+                "version": version,
+                "checksum": checksum,
+                "chunks": chunks,
             }
         )
 
-        return Response({
-            'state': ChunkFileState.CREATED,
-            'missingChunks': [],
-        }, status=200)
+        return Response({"state": ChunkFileState.CREATED, "missingChunks": []}, status=200)

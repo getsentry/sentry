@@ -2,12 +2,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
+import {IconAdd} from 'app/icons';
 
 import AllTeamsList from './allTeamsList';
 
@@ -38,7 +40,7 @@ class OrganizationTeams extends React.Component {
       return null;
     }
 
-    const canCreateTeams = new Set(organization.access).has('project:admin');
+    const canCreateTeams = access.has('project:admin');
 
     const action = (
       <Button
@@ -53,7 +55,7 @@ class OrganizationTeams extends React.Component {
             organization,
           })
         }
-        icon="icon-circle-add"
+        icon={<IconAdd size="xs" isCircled />}
       >
         {t('Create Team')}
       </Button>
@@ -64,15 +66,16 @@ class OrganizationTeams extends React.Component {
 
     const activeTeamIds = new Set(activeTeams.map(team => team.id));
     const otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));
+    const title = t('Teams');
 
     return (
-      <div data-test-id="team-list" className="team-list">
-        <SettingsPageHeader title={t('Teams')} action={action} />
+      <div data-test-id="team-list">
+        <SentryDocumentTitle title={title} objSlug={organization.slug} />
+        <SettingsPageHeader title={title} action={action} />
         <Panel>
           <PanelHeader>{t('Your Teams')}</PanelHeader>
           <PanelBody>
             <AllTeamsList
-              useCreateModal
               urlPrefix={urlPrefix}
               organization={org}
               teamList={activeTeams}
@@ -85,7 +88,6 @@ class OrganizationTeams extends React.Component {
           <PanelHeader>{t('Other Teams')}</PanelHeader>
           <PanelBody>
             <AllTeamsList
-              useCreateModal
               urlPrefix={urlPrefix}
               organization={org}
               teamList={otherTeams}

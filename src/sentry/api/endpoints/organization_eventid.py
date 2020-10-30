@@ -4,33 +4,22 @@ import six
 
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
+from sentry import eventstore
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.api.serializers import serialize
-from sentry.models import Project, Event, EventMapping
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario('ResolveEventId')
-def resolve_event_id_scenario(runner):
-    event = Event.objects.filter(project_id=runner.default_project.id).first()
-    runner.request(
-        method='GET',
-        path='/organizations/%s/eventids/%s/' % (runner.org.slug, event.event_id, )
-    )
+from sentry.models import Project
 
 
 class EventIdLookupEndpoint(OrganizationEndpoint):
-    doc_section = DocSection.ORGANIZATIONS
-
-    @attach_scenarios([resolve_event_id_scenario])
+    @rate_limit_endpoint(limit=1, window=1)
     def get(self, request, organization, event_id):
         """
-        Resolve a Event ID
+        Resolve an Event ID
         ``````````````````
 
-        This resolves a event ID to the project slug and internal issue ID and internal event ID.
+        This resolves an event ID to the project slug and internal issue ID and internal event ID.
 
         :pparam string organization_slug: the slug of the organization the
                                           event ID should be looked up in.
@@ -39,41 +28,28 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         """
         # Largely copied from ProjectGroupIndexEndpoint
         if len(event_id) != 32:
-            return Response({'detail': 'Event ID must be 32 characters.'}, status=400)
+            return Response({"detail": "Event ID must be 32 characters."}, status=400)
 
         project_slugs_by_id = dict(
-            Project.objects.filter(
-                organization=organization).values_list(
-                'id', 'slug'))
+            Project.objects.filter(organization=organization).values_list("id", "slug")
+        )
 
         try:
-            event = Event.objects.filter(event_id=event_id,
-                                         project_id__in=project_slugs_by_id.keys())[0]
+            snuba_filter = eventstore.Filter(
+                conditions=[["event.type", "!=", "transaction"]],
+                project_ids=list(project_slugs_by_id.keys()),
+                event_ids=[event_id],
+            )
+            event = eventstore.get_events(filter=snuba_filter, limit=1)[0]
         except IndexError:
-            try:
-                event_mapping = EventMapping.objects.filter(event_id=event_id,
-                                                            project_id__in=project_slugs_by_id.keys())[0]
-
-            except IndexError:
-                raise ResourceDoesNotExist()
-
+            raise ResourceDoesNotExist()
+        else:
             return Response(
                 {
-                    'organizationSlug': organization.slug,
-                    'projectSlug': project_slugs_by_id[event_mapping.project_id],
-                    'groupId': six.text_type(event_mapping.group_id),
+                    "organizationSlug": organization.slug,
+                    "projectSlug": project_slugs_by_id[event.project_id],
+                    "groupId": six.text_type(event.group_id),
+                    "eventId": six.text_type(event.event_id),
+                    "event": serialize(event, request.user),
                 }
             )
-
-        return Response(
-            {
-                'organizationSlug': organization.slug,
-                'projectSlug': project_slugs_by_id[event.project_id],
-                'groupId': six.text_type(event.group_id),
-                'eventId': six.text_type(event.id),
-                'event': serialize(
-                    event,
-                    request.user,
-                ),
-            }
-        )

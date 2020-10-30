@@ -12,9 +12,7 @@ class ReleaseHeadCommitSerializerDeprecated(serializers.Serializer):
     currentId = serializers.CharField(max_length=MAX_COMMIT_LENGTH)
     repository = serializers.CharField(max_length=64)
     previousId = serializers.CharField(
-        max_length=MAX_COMMIT_LENGTH,
-        required=False,
-        allow_null=True,
+        max_length=MAX_COMMIT_LENGTH, required=False, allow_null=True
     )
 
 
@@ -22,10 +20,7 @@ class ReleaseHeadCommitSerializer(serializers.Serializer):
     commit = serializers.CharField()
     repository = serializers.CharField(max_length=200)
     previousCommit = serializers.CharField(
-        max_length=MAX_COMMIT_LENGTH,
-        required=False,
-        allow_null=True,
-        allow_blank=True,
+        max_length=MAX_COMMIT_LENGTH, required=False, allow_null=True, allow_blank=True
     )
 
     def validate_commit(self, value):
@@ -38,30 +33,27 @@ class ReleaseHeadCommitSerializer(serializers.Serializer):
 
             if not startCommit or not endCommit:
                 raise serializers.ValidationError(
-                    'Commit cannot begin or end with %s' %
-                    COMMIT_RANGE_DELIMITER)
+                    "Commit cannot begin or end with %s" % COMMIT_RANGE_DELIMITER
+                )
 
             if len(startCommit) > MAX_COMMIT_LENGTH or len(endCommit) > MAX_COMMIT_LENGTH:
                 raise serializers.ValidationError(
-                    'Start or end commit too long - max is %s chars each' %
-                    MAX_COMMIT_LENGTH)
+                    "Start or end commit too long - max is %s chars each" % MAX_COMMIT_LENGTH
+                )
 
             return value
 
         if len(value) > MAX_COMMIT_LENGTH:
             raise serializers.ValidationError(
-                'Commit too long - max is %s chars' %
-                MAX_COMMIT_LENGTH)
+                "Commit too long - max is %s chars" % MAX_COMMIT_LENGTH
+            )
 
         return value
 
 
 class ReleaseSerializer(serializers.Serializer):
     ref = serializers.CharField(
-        max_length=MAX_VERSION_LENGTH,
-        required=False,
-        allow_null=True,
-        allow_blank=True,
+        max_length=MAX_VERSION_LENGTH, required=False, allow_null=True, allow_blank=True
     )
     url = serializers.URLField(required=False, allow_null=True, allow_blank=True)
     dateReleased = serializers.DateTimeField(required=False, allow_null=True)
@@ -69,10 +61,12 @@ class ReleaseSerializer(serializers.Serializer):
 
 
 class ReleaseWithVersionSerializer(ReleaseSerializer):
-    version = serializers.CharField(max_length=MAX_VERSION_LENGTH, required=True)
+    version = serializers.CharField(
+        max_length=MAX_VERSION_LENGTH, trim_whitespace=False, required=True
+    )
     owner = UserField(required=False)
 
     def validate_version(self, value):
         if not Release.is_valid_version(value):
-            raise serializers.ValidationError('Release with name %s is not allowed' % value)
+            raise serializers.ValidationError("Release with name %s is not allowed" % value)
         return value

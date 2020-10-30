@@ -26,12 +26,12 @@ logger = logging.getLogger(__name__)
 
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
-# the maximum number of remote resources (i.e. sourc eifles) that should be
+# the maximum number of remote resources (i.e. source files) that should be
 # fetched
 MAX_URL_LENGTH = 150
 
 # UrlResult.body **must** be bytes
-UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body', 'status', 'encoding'])
+UrlResult = namedtuple("UrlResult", ["url", "headers", "body", "status", "encoding"])
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -51,8 +51,8 @@ class BadSource(Exception):
     def __init__(self, data=None):
         if data is None:
             data = {}
-        data.setdefault('type', self.error_type)
-        super(BadSource, self).__init__(data['type'])
+        data.setdefault("type", self.error_type)
+        super(BadSource, self).__init__(data["type"])
         self.data = data
 
 
@@ -61,7 +61,7 @@ class CannotFetch(BadSource):
 
 
 def get_server_hostname():
-    return urlparse(options.get('system.url-prefix')).hostname
+    return urlparse(options.get("system.url-prefix")).hostname
 
 
 build_session = SafeSession
@@ -77,36 +77,36 @@ def safe_urlopen(
     allow_redirects=False,
     timeout=30,
     verify_ssl=True,
-    user_agent=None
+    user_agent=None,
 ):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
     and ensures the URL isn't attempting to hit a blacklisted IP range.
     """
     if user_agent is not None:
-        warnings.warn('user_agent is no longer used with safe_urlopen')
+        warnings.warn("user_agent is no longer used with safe_urlopen")
 
     session = SafeSession()
 
     kwargs = {}
 
     if json:
-        kwargs['json'] = json
+        kwargs["json"] = json
         if not headers:
             headers = {}
-        headers.setdefault('Content-Type', 'application/json')
+        headers.setdefault("Content-Type", "application/json")
 
     if data:
-        kwargs['data'] = data
+        kwargs["data"] = data
 
     if params:
-        kwargs['params'] = params
+        kwargs["params"] = params
 
     if headers:
-        kwargs['headers'] = headers
+        kwargs["headers"] = headers
 
     if method is None:
-        method = 'POST' if (data or json) else 'GET'
+        method = "POST" if (data or json) else "GET"
 
     response = session.request(
         method=method,
@@ -126,12 +126,12 @@ def safe_urlread(response):
 
 def expose_url(url):
     if url is None:
-        return u'<unknown>'
-    if url[:5] == 'data:':
-        return u'<data url>'
+        return u"<unknown>"
+    if url[:5] == "data:":
+        return u"<data url>"
     url = truncatechars(url, MAX_URL_LENGTH)
     if isinstance(url, six.binary_type):
-        url = url.decode('utf-8', 'replace')
+        url = url.decode("utf-8", "replace")
     return url
 
 
@@ -151,13 +151,13 @@ def fetch_file(
     # lock down domains that are problematic
     if domain_lock_enabled:
         domain = urlparse(url).netloc
-        domain_key = 'source:blacklist:v2:%s' % (md5_text(domain).hexdigest(), )
+        domain_key = "source:blacklist:v2:%s" % (md5_text(domain).hexdigest(),)
         domain_result = cache.get(domain_key)
         if domain_result:
-            domain_result['url'] = url
+            domain_result["url"] = url
             raise CannotFetch(domain_result)
 
-    logger.debug('Fetching %r from the internet', url)
+    logger.debug("Fetching %r from the internet", url)
 
     http_session = SafeSession()
     response = None
@@ -176,7 +176,7 @@ def fetch_file(
             )
 
             try:
-                cl = int(response.headers['content-length'])
+                cl = int(response.headers["content-length"])
             except (LookupError, ValueError):
                 cl = 0
             if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
@@ -201,47 +201,38 @@ def fetch_file(
                         raise OverflowError()
 
         except Exception as exc:
-            logger.debug('Unable to fetch %r', url, exc_info=True)
+            logger.debug("Unable to fetch %r", url, exc_info=True)
             if isinstance(exc, RestrictedIPAddress):
-                error = {
-                    'type': EventError.RESTRICTED_IP,
-                    'url': expose_url(url),
-                }
+                error = {"type": EventError.RESTRICTED_IP, "url": expose_url(url)}
             elif isinstance(exc, SuspiciousOperation):
-                error = {
-                    'type': EventError.SECURITY_VIOLATION,
-                    'url': expose_url(url),
-                }
+                error = {"type": EventError.SECURITY_VIOLATION, "url": expose_url(url)}
             elif isinstance(exc, (Timeout, ReadTimeout)):
                 error = {
-                    'type': EventError.FETCH_TIMEOUT,
-                    'url': expose_url(url),
-                    'timeout': settings.SENTRY_SOURCE_FETCH_TIMEOUT,
+                    "type": EventError.FETCH_TIMEOUT,
+                    "url": expose_url(url),
+                    "timeout": settings.SENTRY_SOURCE_FETCH_TIMEOUT,
                 }
             elif isinstance(exc, OverflowError):
                 error = {
-                    'type': EventError.FETCH_TOO_LARGE,
-                    'url': expose_url(url),
+                    "type": EventError.FETCH_TOO_LARGE,
+                    "url": expose_url(url),
                     # We want size in megabytes to format nicely
-                    'max_size': float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
+                    "max_size": float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
                 }
             elif isinstance(exc, (RequestException, ZeroReturnError, OpenSSLError)):
                 error = {
-                    'type': EventError.FETCH_GENERIC_ERROR,
-                    'value': six.text_type(type(exc)),
-                    'url': expose_url(url),
+                    "type": EventError.FETCH_GENERIC_ERROR,
+                    "value": six.text_type(type(exc)),
+                    "url": expose_url(url),
                 }
             else:
                 logger.exception(six.text_type(exc))
-                error = {
-                    'type': EventError.UNKNOWN_ERROR,
-                    'url': expose_url(url),
-                }
+                error = {"type": EventError.UNKNOWN_ERROR, "url": expose_url(url)}
 
             # TODO(dcramer): we want to be less aggressive on disabling domains
             if domain_lock_enabled:
-                cache.set(domain_key, error or '', 300)
-                logger.warning('source.disabled', extra=error)
+                cache.set(domain_key, error or "", 300)
+                logger.warning("source.disabled", extra=error)
             raise CannotFetch(error)
 
         headers = {k.lower(): v for k, v in response.headers.items()}
