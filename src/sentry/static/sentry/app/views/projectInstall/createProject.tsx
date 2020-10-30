@@ -51,7 +51,7 @@ type State = {
   error: boolean;
   projectName: string;
   team: string;
-  platform: PlatformName;
+  platform: PlatformName | null;
   inFlight: boolean;
   dataFragment: IssueAlertFragment | undefined;
 };
@@ -92,7 +92,7 @@ class CreateProject extends React.Component<Props, State> {
         <div>
           <FormLabel>{t('Project name')}</FormLabel>
           <ProjectNameInput theme={theme}>
-            <StyledPlatformIcon platform={platform} />
+            <StyledPlatformIcon platform={platform ?? ''} />
             <input
               type="text"
               name="name"
@@ -276,7 +276,7 @@ class CreateProject extends React.Component<Props, State> {
     trackAnalyticsEvent(data);
   }
 
-  setPlatform = (platformId: PlatformName) =>
+  setPlatform = (platformId: PlatformName | null) =>
     this.setState(({projectName, platform}: State) => ({
       platform: platformId,
       projectName:
