@@ -64,6 +64,8 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
   deleteIssue(integration: GroupIntegration) {
     const {group} = this.props;
     const {externalIssues} = integration;
+    // Currently we do not support a case where there is multiple external issues.
+    // For example, we shouldn't have more than 1 jira ticket created for an issue for each jira configuration.
     let issue = externalIssues[0];
     let {id} = issue;
     const endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${id}`;
