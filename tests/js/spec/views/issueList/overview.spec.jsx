@@ -1314,7 +1314,7 @@ describe('IssueList', function () {
 
   describe('processingIssues', function () {
     beforeEach(function () {
-      wrapper = shallow(<IssueListOverview {...props} />);
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
     });
 
     it('fetches and displays processing issues', async function () {
