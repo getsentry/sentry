@@ -1,8 +1,6 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
@@ -12,19 +10,18 @@ import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Group, GroupIntegration, IntegrationExternalIssue} from 'app/types';
+import {Group, GroupIntegration} from 'app/types';
 
 type Props = AsyncComponent['props'] & {
   configurations: GroupIntegration[];
   group: Group;
+  onChange: (onSuccess?: () => void, onError?: () => void) => void;
 };
 
 type State = AsyncComponent['state'] & {
   showModal: boolean;
   action: 'create' | 'link' | null;
   selectedIntegration: GroupIntegration | null;
-  unlinked: GroupIntegration[];
-  linked: GroupIntegration[];
 };
 
 type LinkedIssues = {
@@ -33,10 +30,6 @@ type LinkedIssues = {
 };
 
 class ExternalIssueActions extends AsyncComponent<Props, State> {
-  static propTypes = {
-    group: PropTypes.object.isRequired,
-  };
-
   constructor(props: Props, context) {
     super(props, context);
 
@@ -45,7 +38,6 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
       action: 'create',
       selectedIntegration: null,
       ...this.getDefaultState(),
-      ...this.linkedIssuesFilter(),
     };
   }
 
@@ -77,13 +69,12 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     this.api.request(endpoint, {
       method: 'DELETE',
       success: () => {
-        addSuccessMessage(t('Successfully unlinked issue.'));
-        let unlinked = cloneDeep(integration);
-        unlinked.externalIssues = [];
+        this.props.onChange(
+          () => addSuccessMessage(t('Successfully unlinked issue.')),
+          () => addErrorMessage(t('Unable to unlink issue.'))
+        );
         this.setState({
           selectedIntegration: null,
-          linked: this.state.linked.filter(config => config.id !== unlinked.id),
-          unlinked: [...this.state.unlinked, unlinked],
         });
       },
       error: () => {
@@ -115,23 +106,14 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     this.setState({action});
   };
 
-  linkIssueSuccess = (
-    integration: GroupIntegration,
-    externalIssue: IntegrationExternalIssue
-  ) => {
-    let linked = cloneDeep(integration);
-    linked.externalIssues = [externalIssue];
-    this.setState(
-      {
-        linked: [...this.state.linked, linked],
-        unlinked: this.state.unlinked.filter(config => config.id !== linked.id),
-      },
-      () => this.closeModal()
-    );
+  linkIssueSuccess = (onSuccess: () => void) => {
+    this.props.onChange(() => onSuccess());
+    this.closeModal();
   };
 
   renderBody() {
-    const {action, selectedIntegration, linked, unlinked} = this.state;
+    const {action, selectedIntegration} = this.state;
+    const {linked, unlinked} = this.linkedIssuesFilter();
     return (
       <React.Fragment>
         {linked.length > 0 &&
@@ -207,9 +189,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
                   group={this.props.group}
                   integration={selectedIntegration}
                   action={action}
-                  onSubmitSuccess={externalIssue =>
-                    this.linkIssueSuccess(selectedIntegration, externalIssue)
-                  }
+                  onSubmitSuccess={(_, onSuccess) => this.linkIssueSuccess(onSuccess)}
                 />
               )}
             </Modal.Body>

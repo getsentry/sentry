@@ -33,7 +33,10 @@ type Props = {
   group: Group;
   integration: Integration;
   action: 'create' | 'link';
-  onSubmitSuccess: (externalIssue: IntegrationExternalIssue) => void;
+  onSubmitSuccess: (
+    externalIssue: IntegrationExternalIssue,
+    onSucess: () => void
+  ) => void;
 } & AsyncComponent['props'];
 
 type State = {
@@ -83,8 +86,9 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
   };
 
   onSubmitSuccess = (data: IntegrationExternalIssue) => {
-    addSuccessMessage(MESSAGES_BY_ACTION[this.props.action]);
-    this.props.onSubmitSuccess(data);
+    this.props.onSubmitSuccess(data, () =>
+      addSuccessMessage(MESSAGES_BY_ACTION[this.props.action])
+    );
     this.submitTransaction?.finish();
   };
 

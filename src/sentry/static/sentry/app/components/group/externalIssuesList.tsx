@@ -23,7 +23,6 @@ import {IconGeneric} from 'app/icons';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -109,6 +108,18 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     }
   }
 
+  async updateIntegrations(onSuccess = () => {}, onError = () => {}) {
+    try {
+      const {group} = this.props;
+      let integrations = await this.api.requestPromise(
+        `/groups/${group.id}/integrations/`
+      );
+      this.setState({integrations}, () => onSuccess());
+    } catch (error) {
+      onError();
+    }
+  }
+
   renderIntegrationIssues(integrations: GroupIntegration[] = []) {
     const {group} = this.props;
 
@@ -133,6 +144,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
             key={provider}
             configurations={configurations}
             group={group}
+            onChange={this.updateIntegrations.bind(this)}
           />
         ))
       : null;
