@@ -12,6 +12,7 @@ import {css} from '@emotion/core';
 
 import {Client} from 'app/api';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {tct} from 'app/locale';
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics, metric} from 'app/utils/analytics';
 import {defined} from 'app/utils';
@@ -37,6 +38,7 @@ import {
   SavedSearch,
   TagCollection,
 } from 'app/types';
+import QueryCount from 'app/components/queryCount';
 import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
 import parseApiError from 'app/utils/parseApiError';
@@ -651,7 +653,7 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   handleTabClick = (query: string) => {
-    this.transitionTo({query});
+    this.transitionTo({query}, null);
   };
 
   tagValueLoader = (key: string, search: string) => {
@@ -684,11 +686,21 @@ class IssueListOverview extends React.Component<Props, State> {
       groupIds,
       queryMaxCount,
     } = this.state;
-    const {organization, savedSearch, savedSearches, tags, selection} = this.props;
+    const {
+      organization,
+      savedSearch,
+      savedSearches,
+      tags,
+      selection,
+      location,
+    } = this.props;
     const query = this.getQuery();
+    const queryPageInt = parseInt(location.query.page, 10);
+    const page = isNaN(queryPageInt) ? 0 : queryPageInt;
+    const pageCount = page * MAX_ITEMS + groupIds?.length;
 
     return (
-      <Feature features={['organizations:inbox']}>
+      <Feature organization={organization} features={['organizations:inbox']}>
         {({hasFeature}) => (
           <React.Fragment>
             {hasFeature && (
@@ -718,7 +730,6 @@ class IssueListOverview extends React.Component<Props, State> {
                   tagValueLoader={this.tagValueLoader}
                   tags={tags}
                 />
-
                 <Panel>
                   <IssueListActions
                     organization={organization}
@@ -742,7 +753,23 @@ class IssueListOverview extends React.Component<Props, State> {
                     {this.renderStreamBody()}
                   </PanelBody>
                 </Panel>
-                <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
+                <PaginationWrapper>
+                  {hasFeature && groupIds?.length > 0 && (
+                    <div>
+                      {/* total includes its own space */}
+                      {tct('Showing [count] of[total] issues', {
+                        count: <React.Fragment>{pageCount}</React.Fragment>,
+                        total: (
+                          <QueryCount hideParens count={queryCount} max={queryMaxCount} />
+                        ),
+                      })}
+                    </div>
+                  )}
+                  <StyledPagination
+                    pageLinks={pageLinks}
+                    onCursor={this.onCursorChange}
+                  />
+                </PaginationWrapper>
               </StreamContent>
 
               <SidebarContainer showSidebar={isSidebarVisible}>
@@ -810,4 +837,16 @@ const SidebarContainer = styled('div')<{showSidebar: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
+`;
+
+const PaginationWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+  margin-left: ${space(2)};
 `;
