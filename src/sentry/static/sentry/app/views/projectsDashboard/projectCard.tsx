@@ -8,7 +8,7 @@ import {Organization, Project} from 'app/types';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import {Client} from 'app/api';
 import {loadStatsForProject} from 'app/actionCreators/projects';
-import {tn} from 'app/locale';
+import {t, tn} from 'app/locale';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
@@ -17,6 +17,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import withApi from 'app/utils/withApi';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
+import QuestionTooltip from 'app/components/questionTooltip';
 
 import Chart from './chart';
 import Deploys from './deploys';
@@ -67,6 +68,7 @@ class ProjectCard extends React.Component<Props> {
             transactionStats.reduce((sum, [_, value]) => sum + value, 0)
           )
         : '\u2014';
+    const zeroTransactions = totalTransactions === '0';
 
     return (
       <div data-test-id={slug}>
@@ -101,12 +103,22 @@ class ProjectCard extends React.Component<Props> {
                 {this.hasPerformance && (
                   <React.Fragment>
                     <em>|</em>
-                    <Link
+                    <TransactionsLink
                       data-test-id="project-transactions"
                       to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
                     >
                       {tn('%s transaction', '%s transactions', totalTransactions)}
-                    </Link>
+
+                      {zeroTransactions && (
+                        <QuestionTooltip
+                          title={t(
+                            'Click here to learn more about performance monitoring'
+                          )}
+                          position="top"
+                          size="xs"
+                        />
+                      )}
+                    </TransactionsLink>
                   </React.Fragment>
                 )}
               </SummaryLinks>
@@ -213,6 +225,9 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 const SummaryLinks = styled('div')`
+  display: flex;
+  align-items: center;
+
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -228,6 +243,16 @@ const SummaryLinks = styled('div')`
   em {
     font-style: normal;
     margin: 0 ${space(0.5)};
+  }
+`;
+
+const TransactionsLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  > span {
+    margin-left: ${space(0.5)};
   }
 `;
 
