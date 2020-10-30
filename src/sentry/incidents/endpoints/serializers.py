@@ -23,12 +23,14 @@ from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
+    CRITICAL_TRIGGER_LABEL,
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
     translate_aggregate_field,
     update_alert_rule,
     update_alert_rule_trigger,
     update_alert_rule_trigger_action,
+    WARNING_TRIGGER_LABEL,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -65,9 +67,6 @@ dataset_valid_event_types = {
     ),
     QueryDatasets.TRANSACTIONS: set([SnubaQueryEventType.EventType.TRANSACTION]),
 }
-
-CRITICAL_TRIGGER_LABEL = "critical"
-WARNING_TRIGGER_LABEL = "warning"
 
 
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
