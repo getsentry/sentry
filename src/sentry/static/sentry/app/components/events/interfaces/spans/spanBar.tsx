@@ -1174,6 +1174,7 @@ const MeasurementMarker = styled('div')`
   background: repeating-linear-gradient(to bottom, transparent 0 4px, black 4px 8px) 80%/2px
     100% no-repeat;
   z-index: ${zIndex.dividerLine};
+  color: ${p => p.theme.gray700};
 `;
 
 const StyledIconWarning = styled(IconWarning)`
