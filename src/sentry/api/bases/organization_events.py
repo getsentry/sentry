@@ -51,6 +51,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             params = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
+            params["user_id"] = request.user.id
 
             if check_global_views:
                 has_global_views = features.has(
@@ -213,13 +214,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         top_events=False,
         query_column="count()",
         params=None,
+        query=None,
     ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):
                 columns = request.GET.getlist("yAxis", [query_column])
-                query = request.GET.get("query")
+                if query is None:
+                    query = request.GET.get("query")
                 if params is None:
                     try:
                         # events-stats is still used by events v1 which doesn't require global views

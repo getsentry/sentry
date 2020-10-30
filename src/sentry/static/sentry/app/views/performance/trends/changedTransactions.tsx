@@ -48,6 +48,7 @@ import {
   normalizeTrends,
   getSelectedQueryKey,
   getCurrentTrendFunction,
+  getCurrentConfidenceLevel,
   getTrendBaselinesForTransaction,
   getIntervalRatio,
   StyledIconArrow,
@@ -162,6 +163,12 @@ function handleFilterTransaction(location: Location, transaction: string) {
 
   const query = stringifyQueryObject(conditions);
 
+  trackAnalyticsEvent({
+    eventKey: 'performance_views.trends.hide_transaction',
+    eventName: 'Performance Views: Hide Transaction',
+    confidence_level: getCurrentConfidenceLevel(location).label,
+  });
+
   browserHistory.push({
     pathname: location.pathname,
     query: {
@@ -171,15 +178,24 @@ function handleFilterTransaction(location: Location, transaction: string) {
   });
 }
 
+function handleSummaryClick(confidenceLevel: string) {
+  trackAnalyticsEvent({
+    eventKey: 'performance_views.trends.summary',
+    eventName: 'Performance Views: Summary Navigation',
+    confidence_level: confidenceLevel,
+  });
+}
+
 function handleFilterDuration(location: Location, value: number, symbol: FilterSymbols) {
   const durationTag = 'transaction.duration';
   const queryString = decodeScalar(location.query.query);
   const conditions = tokenizeSearch(queryString || '');
 
   const existingValues = conditions.getTagValues(durationTag);
+  const alternateSymbol = symbol === FilterSymbols.GREATER_THAN_EQUALS ? '>' : '<';
 
   existingValues.forEach(existingValue => {
-    if (existingValue.startsWith(symbol)) {
+    if (existingValue.startsWith(symbol) || existingValue.startsWith(alternateSymbol)) {
       conditions.removeTagValue(durationTag, existingValue);
     }
   });
@@ -229,8 +245,10 @@ function ChangedTransactions(props: Props) {
         if (!trendsData) {
           return null;
         }
+        const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
-          (trendsData && trendsData.events && trendsData.events.data) || []
+          (trendsData && trendsData.events && trendsData.events.data) || [],
+          trendFunction
         );
         const selectedTransaction = getSelectedTransaction(
           location,
@@ -241,7 +259,6 @@ function ChangedTransactions(props: Props) {
         const statsData = trendsData?.stats;
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
-        const trendFunction = getCurrentTrendFunction(location);
         const currentTrendFunction =
           isLoading && previousTrendFunction
             ? previousTrendFunction
@@ -346,7 +363,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     projects,
     handleSelectTransaction,
   } = props;
-  const color = trendToColor[trendChangeType];
+  const color = trendToColor[trendChangeType].default;
 
   const selectedTransaction = getSelectedTransaction(
     location,
@@ -374,11 +391,11 @@ function TrendsListItem(props: TrendsListItemProps) {
 
   const previousDuration = getDuration(
     previousPeriodValue / 1000,
-    previousPeriodValue < 1000 ? 0 : 2
+    previousPeriodValue < 1000 && previousPeriodValue > 10 ? 0 : 2
   );
   const currentDuration = getDuration(
     currentPeriodValue / 1000,
-    currentPeriodValue < 1000 ? 0 : 2
+    currentPeriodValue < 1000 && currentPeriodValue > 10 ? 0 : 2
   );
 
   const percentChangeExplanation = t(
@@ -564,7 +581,8 @@ const CompareDurations = (props: CompareLinkProps) => {
 type TransactionSummaryLinkProps = TrendsListItemProps & {};
 
 const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
-  const {organization, trendView: eventView, transaction, projects} = props;
+  const {organization, trendView: eventView, transaction, projects, location} = props;
+  const confidenceLevel = getCurrentConfidenceLevel(location).label;
 
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
@@ -575,7 +593,11 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     projectID,
   });
 
-  return <ItemTransactionName to={target}>{transaction.transaction}</ItemTransactionName>;
+  return (
+    <ItemTransactionName to={target} onClick={() => handleSummaryClick(confidenceLevel)}>
+      {transaction.transaction}
+    </ItemTransactionName>
+  );
 };
 
 const TransactionsListContainer = styled('div')`

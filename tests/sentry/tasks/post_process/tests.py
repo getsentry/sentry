@@ -6,7 +6,14 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.eventstore.processing import event_processing_store
-from sentry.models import Group, GroupSnooze, GroupStatus, ProjectOwnership
+from sentry.models import (
+    Group,
+    GroupSnooze,
+    GroupStatus,
+    ProjectOwnership,
+    GroupInbox,
+    GroupInboxReason,
+)
 from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -189,6 +196,8 @@ class PostProcessGroupTest(TestCase):
             cache_key=cache_key,
             group_id=event.group_id,
         )
+        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
+        GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
 
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
@@ -208,6 +217,9 @@ class PostProcessGroupTest(TestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+        assert GroupInbox.objects.filter(
+            group=group, reason=GroupInboxReason.UNIGNORED.value
+        ).exists()
         assert send_robust.called
 
     @patch("sentry.rules.processor.RuleProcessor")
@@ -573,3 +585,44 @@ class PostProcessGroupTest(TestCase):
         )
 
         assert not delay.called
+
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_group_inbox_regression(self, mock_processor):
+        from sentry.models import GroupInbox, GroupInboxReason
+
+        event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        group = event.group
+
+        post_process_group(
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
+        GroupInbox.objects.filter(
+            group=group
+        ).delete()  # Delete so it creates the .REGRESSION entry.
+
+        mock_processor.assert_called_with(EventMatcher(event), True, True, False, False)
+
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            event=None,
+            is_new=False,
+            is_regression=True,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+
+        mock_processor.assert_called_with(EventMatcher(event), False, True, False, False)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert GroupInbox.objects.filter(
+            group=group, reason=GroupInboxReason.REGRESSION.value
+        ).exists()

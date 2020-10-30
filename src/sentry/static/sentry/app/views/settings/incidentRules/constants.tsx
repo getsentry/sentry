@@ -6,6 +6,7 @@ import {
 } from 'app/views/settings/incidentRules/types';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
 export const DEFAULT_AGGREGATE = 'count()';
 
@@ -17,6 +18,7 @@ export const DATASET_EVENT_TYPE_FILTERS = {
 type OptionConfig = {
   aggregations: AggregationKey[];
   fields: LooseFieldKey[];
+  measurementKeys?: string[];
 };
 
 /**
@@ -44,6 +46,7 @@ export const transactionFieldConfig: OptionConfig = {
     'p100',
   ],
   fields: ['transaction.duration'],
+  measurementKeys: Object.keys(WEB_VITAL_DETAILS),
 };
 
 export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {

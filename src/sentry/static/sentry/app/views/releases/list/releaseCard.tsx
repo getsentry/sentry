@@ -155,7 +155,7 @@ const Layout = styled('div')`
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-areas: 'version created new-issues';
-    grid-template-columns: 2fr 1.5fr 1fr;
+    grid-template-columns: 2fr 1.6fr 1fr;
   }
 `;
 
@@ -202,6 +202,7 @@ const ColumnTitle = styled('div')`
   font-weight: 600;
   margin-bottom: ${space(0.75)};
   line-height: 1.2;
+  ${overflowEllipsis};
 `;
 
 const VersionWrapper = styled('div')`

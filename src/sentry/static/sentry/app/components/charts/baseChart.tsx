@@ -400,11 +400,10 @@ class BaseChart extends React.Component<Props, State> {
 
     // Maybe changing the series type to types/echarts Series[] would be a better solution
     // and can't use ignore for multiline blocks
-    // @ts-ignore
+    // @ts-expect-error
     const seriesValid = series && series[0]?.data && series[0].data.length > 1;
-    // @ts-ignore
+    // @ts-expect-error
     const seriesData = seriesValid ? series[0].data : undefined;
-    // @ts-ignore
     const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
     return (

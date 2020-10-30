@@ -12,6 +12,7 @@ import Tooltip from 'app/components/tooltip';
 import {defined, toTitleCase} from 'app/utils';
 import {t} from 'app/locale';
 import {Release} from 'app/types';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
@@ -70,12 +71,12 @@ class SeenInfo extends React.Component<Props> {
           <React.Fragment>
             {toTitleCase(environment)}
             {': '}
-            <TimeSince date={date} />
+            <TimeSince date={date} disabledAbsoluteTooltip />
             <br />
           </React.Fragment>
         )}
         {t('Globally: ')}
-        <TimeSince date={dateGlobal} />
+        <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
       </div>
     );
   }
@@ -96,13 +97,13 @@ class SeenInfo extends React.Component<Props> {
           <TooltipWrapper>
             <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
               <IconInfo size="xs" color="gray500" />
-              <TimeSince date={date} />
+              <TimeSince date={date} disabledAbsoluteTooltip />
             </Tooltip>
           </TooltipWrapper>
         ) : dateGlobal && environment === '' ? (
           <React.Fragment>
             <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
-              <TimeSince date={dateGlobal} />
+              <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
             </Tooltip>
           </React.Fragment>
         ) : (
@@ -117,7 +118,7 @@ class SeenInfo extends React.Component<Props> {
               releaseVersion={release.version}
             >
               <span>
-                <Version version={release.version} truncate projectId={projectId} />
+                <Version version={release.version} projectId={projectId} />
               </span>
             </VersionHoverCard>
           </React.Fragment>
@@ -148,6 +149,7 @@ const StyledDateTime = styled(DateTime)`
 
 const DateWrapper = styled('div')`
   margin-bottom: ${space(2)};
+  ${overflowEllipsis};
 `;
 
 const TooltipWrapper = styled('span')`

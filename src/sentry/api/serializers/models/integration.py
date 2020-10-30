@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import six
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
 
@@ -96,7 +97,7 @@ class IntegrationProviderSerializer(Serializer):
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None
 
-        return {
+        output = {
             "key": obj.key,
             "slug": obj.key,
             "name": obj.name,
@@ -109,6 +110,17 @@ class IntegrationProviderSerializer(Serializer):
                 **obj.setup_dialog_config
             ),
         }
+
+        # until we GA the stack trace linking feature to everyone it's easier to
+        # control whether we show the feature this way
+        if obj.has_stacktrace_linking:
+            feature_flag_name = "organizations:integrations-stacktrace-link"
+            has_stacktrace_linking = features.has(feature_flag_name, organization, actor=user)
+            if has_stacktrace_linking:
+                # only putting the field in if it's true to minimize test changes
+                output["hasStacktraceLinking"] = True
+
+        return output
 
 
 class IntegrationIssueConfigSerializer(IntegrationSerializer):

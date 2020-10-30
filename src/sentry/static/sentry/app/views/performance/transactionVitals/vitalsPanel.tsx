@@ -160,8 +160,8 @@ class VitalsPanel extends React.Component<Props> {
                       failureRate,
                       multiHistogramResults.histograms?.[vital] ?? [],
                       [colors[index]],
-                      start !== undefined ? parseInt(start, 10) : undefined,
-                      end !== undefined ? parseInt(end, 10) : undefined,
+                      parseBound(start, precision),
+                      parseBound(end, precision),
                       precision
                     )}
                   </React.Fragment>
@@ -198,6 +198,18 @@ class VitalsPanel extends React.Component<Props> {
       </Panel>
     );
   }
+}
+
+function parseBound(
+  boundString: string | undefined,
+  precision: number | undefined
+): number | undefined {
+  if (boundString === undefined) {
+    return undefined;
+  } else if (precision === undefined || precision === 0) {
+    return parseInt(boundString, 10);
+  }
+  return parseFloat(boundString);
 }
 
 export default VitalsPanel;

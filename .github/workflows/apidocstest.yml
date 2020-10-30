@@ -11,21 +11,8 @@ on:
 
 jobs:
   test:
+    name: api docs test
     runs-on: ubuntu-16.04
-    env:
-      SENTRY_PYTHON3: 1
-      PIP_DISABLE_PIP_VERSION_CHECK: on
-
-      SENTRY_LIGHT_BUILD: 1
-      SENTRY_SKIP_BACKEND_VALIDATION: 1
-      MIGRATIONS_TEST_MIGRATE: 0
-
-      PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-      PYTEST_ADDOPTS: '--reruns 5'
-
-      # The hostname used to communicate with the PostgreSQL from sentry
-      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
-
     steps:
       - uses: actions/checkout@v2
 

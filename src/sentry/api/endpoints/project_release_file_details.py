@@ -9,6 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
+from sentry.api.endpoints.debug_files import has_download_permission
 
 
 class ReleaseFileSerializer(serializers.Serializer):
@@ -61,7 +62,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         download_requested = request.GET.get("download") is not None
-        if download_requested and (request.access.has_scope("project:write")):
+        if download_requested and (has_download_permission(request, project)):
             return self.download(releasefile)
         elif download_requested:
             return Response(status=403)

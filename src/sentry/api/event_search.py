@@ -14,6 +14,7 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
+from sentry.discover.models import KeyTransaction
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.search.utils import (
@@ -25,6 +26,7 @@ from sentry.search.utils import (
     InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
+from sentry.utils.compat import functools
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
@@ -166,10 +168,10 @@ function_arg         = space? key? comma? space?
 # only allow colons in quoted keys
 quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
-date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|$)"
-alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|$)"
-rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
-duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|$)"
+date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|\)|$)"
+alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|\)|$)"
+rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|\)|$)"
+duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|\)|$)"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -210,6 +212,7 @@ ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 USER_DISPLAY_ALIAS = "user.display"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
+KEY_TRANSACTION_ALIAS = "key_transaction"
 
 
 class InvalidSearchQuery(Exception):
@@ -314,7 +317,7 @@ class SearchVisitor(NodeVisitor):
             "transaction.end_time",
         ]
     )
-    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app"])
+    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -456,7 +459,7 @@ class SearchVisitor(NodeVisitor):
             aggregate_value = None
             if search_value.expr_name == "duration_format":
                 # Even if the search value matches duration format, only act as duration for certain columns
-                function = resolve_field(search_key.name, None)
+                function = resolve_field(search_key.name, functions_acl=FUNCTIONS.keys())
                 if function.aggregate is not None:
                     # Extract column and function name out so we can check if we should parse as duration
                     if self.is_duration_key(function.aggregate[1]):
@@ -747,7 +750,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
         return [["isNull", [name]], aggregate_filter.operator, 1]
 
-    function = resolve_field(name, params)
+    function = resolve_field(name, params, functions_acl=FUNCTIONS.keys())
     if function.aggregate is not None:
         name = function.aggregate[-1]
 
@@ -755,7 +758,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     return condition
 
 
-def convert_search_filter_to_snuba_query(search_filter, key=None):
+def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
@@ -829,7 +832,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
         # allow snuba's prewhere optimizer to find this condition.
         return [name, search_filter.operator, value]
     elif name == USER_DISPLAY_ALIAS:
-        user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS]["expression"]
+        user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_expression(params)
 
         # Handle 'has' condition
         if search_filter.value.raw_value == "":
@@ -865,6 +868,19 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
             return [["notHandled", []], "=", 1]
         raise InvalidSearchQuery(
             "Invalid value for error.handled condition. Accepted values are 1, 0"
+        )
+    elif name == KEY_TRANSACTION_ALIAS:
+        key_transaction_expr = FIELD_ALIASES[KEY_TRANSACTION_ALIAS].get_expression(params)
+
+        if search_filter.value.raw_value == "":
+            operator = "!=" if search_filter.operator == "!=" else "="
+            return [key_transaction_expr, operator, 0]
+        if value in ("1", 1):
+            return [key_transaction_expr, "=", 1]
+        if value in ("0", 0):
+            return [key_transaction_expr, "=", 0]
+        raise InvalidSearchQuery(
+            "Invalid value for key_transaction condition. Accepted values are 1, 0"
         )
     else:
         value = (
@@ -975,7 +991,7 @@ def format_search_filter(term, params):
         if converted_filter:
             conditions.append(converted_filter)
     else:
-        converted_filter = convert_search_filter_to_snuba_query(term)
+        converted_filter = convert_search_filter_to_snuba_query(term, params=params)
         if converted_filter:
             conditions.append(converted_filter)
 
@@ -1178,6 +1194,8 @@ def get_filter(query=None, params=None):
         "end": None,
         "conditions": [],
         "having": [],
+        "user_id": None,
+        "organization_id": None,
         "project_ids": [],
         "group_ids": [],
         "condition_aggregates": [],
@@ -1233,6 +1251,10 @@ def get_filter(query=None, params=None):
         for key in ("start", "end"):
             kwargs[key] = params.get(key, None)
         # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
+        if "user_id" in params:
+            kwargs["user_id"] = params["user_id"]
+        if "organization_id" in params:
+            kwargs["organization_id"] = params["organization_id"]
         if "project_id" in params:
             if projects_to_filter:
                 kwargs["project_ids"] = projects_to_filter
@@ -1250,25 +1272,115 @@ def get_filter(query=None, params=None):
     return eventstore.Filter(**kwargs)
 
 
+class PseudoField(object):
+    def __init__(self, name, alias, expression=None, expression_fn=None, result_type=None):
+        self.name = name
+        self.alias = alias
+        self.expression = expression
+        self.expression_fn = expression_fn
+        self.result_type = result_type
+
+        self.validate()
+
+    def get_expression(self, params):
+        if isinstance(self.expression, (list, tuple)):
+            return deepcopy(self.expression)
+        elif self.expression_fn is not None:
+            return self.expression_fn(params)
+        return None
+
+    def get_field(self, params=None):
+        expression = self.get_expression(params)
+        if expression is not None:
+            expression.append(self.alias)
+            return expression
+        return self.alias
+
+    def validate(self):
+        assert self.alias is not None, u"{}: alias is required".format(self.name)
+        assert (
+            self.expression is None or self.expression_fn is None
+        ), u"{}: only one of expression, expression_fn is allowed".format(self.name)
+
+
+# This function will only ever be called with 1 set of parameters in the lifetime of a
+# single request. So cache its results to avoid doing more lookups than necessary.
+@functools.lru_cache(maxsize=1)
+def key_transaction_expression(user_id, organization_id, project_ids):
+    if user_id is None or organization_id is None or project_ids is None:
+        raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
+
+    key_transactions = (
+        KeyTransaction.objects.filter(
+            owner_id=user_id, organization_id=organization_id, project_id__in=project_ids,
+        )
+        .order_by("transaction", "project_id")
+        .values("project_id", "transaction")
+    )
+
+    # if there are no key transactions, the value should always be 0
+    if not len(key_transactions):
+        return ["toInt64", [0]]
+
+    return [
+        "has",
+        [
+            [
+                "array",
+                [
+                    [
+                        "tuple",
+                        [
+                            ["toUInt64", [transaction["project_id"]]],
+                            "'{}'".format(transaction["transaction"]),
+                        ],
+                    ]
+                    for transaction in key_transactions
+                ],
+            ],
+            ["tuple", ["project_id", "transaction"]],
+        ],
+    ]
+
+
 # When adding aliases to this list please also update
-# static/app/views/eventsV2/eventQueryParams.tsx so that
+# static/app/utils/discover/fields.tsx so that
 # the UI builder stays in sync.
 FIELD_ALIASES = {
-    "project": {"field": "project.id", "column_alias": "project.id"},
-    "issue": {"field": "issue.id", "column_alias": "issue.id"},
-    ERROR_UNHANDLED_ALIAS: {
-        "field": ["notHandled", [], ERROR_UNHANDLED_ALIAS],
-        "column_alias": ERROR_UNHANDLED_ALIAS,
-    },
-    USER_DISPLAY_ALIAS: {
-        "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
-        "field": ["coalesce", ["user.email", "user.username", "user.ip"], USER_DISPLAY_ALIAS],
-        "column_alias": USER_DISPLAY_ALIAS,
-    },
+    field.name: field
+    for field in [
+        PseudoField("project", "project.id"),
+        PseudoField("issue", "issue.id"),
+        PseudoField(ERROR_UNHANDLED_ALIAS, ERROR_UNHANDLED_ALIAS, expression=["notHandled", []]),
+        PseudoField(
+            USER_DISPLAY_ALIAS,
+            USER_DISPLAY_ALIAS,
+            expression=["coalesce", ["user.email", "user.username", "user.ip"]],
+        ),
+        # the key transaction field is intentially not added to the discover/fields list yet
+        # because there needs to be some work on the front end to integrate this into discover
+        PseudoField(
+            KEY_TRANSACTION_ALIAS,
+            KEY_TRANSACTION_ALIAS,
+            # the result is cached, but may be mutated by the caller, so we deepcopy it here
+            expression_fn=lambda params: deepcopy(
+                key_transaction_expression(
+                    params.get("user_id"),
+                    params.get("organization_id"),
+                    tuple(params.get("project_id", [])),
+                )
+            ),
+            result_type="boolean",
+        ),
+    ]
 }
 
 
 def get_json_meta_type(field_alias, snuba_type, function=None):
+    alias_definition = FIELD_ALIASES.get(field_alias)
+    if alias_definition and alias_definition.result_type is not None:
+        return alias_definition.result_type
+
     snuba_json = get_json_type(snuba_type)
     if snuba_json != "string":
         if function is not None:
@@ -1313,7 +1425,7 @@ class FunctionArg(object):
     def get_default(self, params):
         raise InvalidFunctionArgument(u"{} has no defaults".format(self.name))
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         return value
 
     def get_type(self, value):
@@ -1334,7 +1446,7 @@ class NullColumn(FunctionArg):
     def get_default(self, params):
         return None
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         return None
 
 
@@ -1346,27 +1458,29 @@ class CountColumn(FunctionArg):
     def get_default(self, params):
         return None
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         if value is None:
             raise InvalidFunctionArgument("a column is required")
 
         if value not in FIELD_ALIASES:
             return value
 
-        alias = FIELD_ALIASES[value]
+        field = FIELD_ALIASES[value]
 
         # If the alias has an expression prefer that over the column alias
         # This enables user.display to work in aggregates
-        if "expression" in alias:
-            return alias["expression"]
-
-        return alias.get("column_alias", value)
+        expression = field.get_expression(params)
+        if expression is not None:
+            return expression
+        elif field.alias is not None:
+            return field.alias
+        return value
 
 
 class DateArg(FunctionArg):
     date_format = "%Y-%m-%dT%H:%M:%S"
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         try:
             datetime.strptime(value, self.date_format)
         except ValueError:
@@ -1390,7 +1504,7 @@ class NumericColumn(FunctionArg):
             raise InvalidFunctionArgument(u"{} is not a numeric column".format(value))
         return snuba_column
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         return self._normalize(value)
 
     def get_type(self, value):
@@ -1405,13 +1519,13 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
-    def normalize(self, value):
-        super(NumericColumnNoLookup, self).normalize(value)
+    def normalize(self, value, params):
+        super(NumericColumnNoLookup, self).normalize(value, params)
         return value
 
 
 class DurationColumn(FunctionArg):
-    def normalize(self, value):
+    def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_duration_measurement(value):
             return value
@@ -1423,13 +1537,13 @@ class DurationColumn(FunctionArg):
 
 
 class DurationColumnNoLookup(DurationColumn):
-    def normalize(self, value):
-        super(DurationColumnNoLookup, self).normalize(value)
+    def normalize(self, value, params):
+        super(DurationColumnNoLookup, self).normalize(value, params)
         return value
 
 
 class StringArrayColumn(FunctionArg):
-    def normalize(self, value):
+    def normalize(self, value, params):
         if value in ["tags.key", "tags.value", "measurements_key"]:
             return value
         raise InvalidFunctionArgument(u"{} is not a valid string array column".format(value))
@@ -1441,7 +1555,7 @@ class NumberRange(FunctionArg):
         self.start = start
         self.end = end
 
-    def normalize(self, value):
+    def normalize(self, value, params):
         try:
             value = float(value)
         except ValueError:
@@ -1492,6 +1606,7 @@ class Function(object):
         transform=None,
         result_type_fn=None,
         default_result_type=None,
+        private=False,
     ):
         """
         Specifies a function interface that must be followed when defining new functions
@@ -1514,7 +1629,8 @@ class Function(object):
             This function will be passed the list of argument classes and argument values. This should
             be tried first as the source of truth if available.
         :param str default_result_type: The default resulting type of this function. Must be a type
-            defined by RESULTS_TYPES
+            defined by RESULTS_TYPES.
+        :param bool private: Whether or not this function should be disabled for general use.
         """
 
         self.name = name
@@ -1526,6 +1642,7 @@ class Function(object):
         self.transform = transform
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
+        self.private = private
 
         self.validate()
 
@@ -1572,7 +1689,7 @@ class Function(object):
         # normalize the arguments before putting them in a dict
         for argument, column in zip(self.args, columns):
             try:
-                arguments[argument.name] = argument.normalize(column)
+                arguments[argument.name] = argument.normalize(column, params)
             except InvalidFunctionArgument as e:
                 raise InvalidSearchQuery(
                     u"{}: {} argument invalid: {}".format(field, argument.name, e)
@@ -1658,6 +1775,13 @@ class Function(object):
         assert (
             result_type is None or result_type in RESULT_TYPES
         ), u"{}: result type {} not one of {}".format(self.name, result_type, list(RESULT_TYPES))
+
+    def is_accessible(self, acl=None):
+        if not self.private:
+            return True
+        elif not acl:
+            return False
+        return self.name in acl
 
 
 def reflective_result_type(index=0):
@@ -1756,6 +1880,7 @@ FUNCTIONS = {
             required_args=[StringArrayColumn("column")],
             column=["arrayJoin", [ArgValue("column")], None],
             default_result_type="string",
+            private=True,
         ),
         Function(
             "measurements_histogram",
@@ -1805,6 +1930,7 @@ FUNCTIONS = {
                 None,
             ],
             default_result_type="number",
+            private=True,
         ),
         # The user facing signature for this function is histogram(<column>, <num_buckets>)
         # Internally, snuba.discover.query() expands the user request into this value by
@@ -1956,6 +2082,31 @@ FUNCTIONS = {
             default_result_type="duration",
         ),
         Function(
+            "variance_range",
+            required_args=[
+                DurationColumnNoLookup("column"),
+                DateArg("start"),
+                DateArg("end"),
+                NumberRange("index", 1, None),
+            ],
+            aggregate=[
+                u"varSampIf",
+                [
+                    ArgValue("column"),
+                    [
+                        "and",
+                        [
+                            # see `percentile_range` for why the conditions are backwards
+                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
+                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                        ],
+                    ],
+                ],
+                "variance_range_{index:g}",
+            ],
+            default_result_type="duration",
+        ),
+        Function(
             "user_misery_range",
             required_args=[
                 NumberRange("satisfaction", 0, None),
@@ -2020,6 +2171,24 @@ FUNCTIONS = {
                 None,
             ],
             default_result_type="percentage",
+        ),
+        # Calculate the Welch's t-test value, this is used to help identify which of our trends are significant or not
+        Function(
+            "t_test",
+            required_args=[
+                FunctionArg("avg_1"),
+                FunctionArg("avg_2"),
+                FunctionArg("variance_1"),
+                FunctionArg("variance_2"),
+                FunctionArg("count_1"),
+                FunctionArg("count_2"),
+            ],
+            aggregate=[
+                u"divide(minus({avg_1},{avg_2}),sqrt(plus(divide({variance_1},{count_1}),divide({variance_2},{count_2}))))",
+                None,
+                "t_test",
+            ],
+            default_result_type="number",
         ),
         Function(
             "minus",
@@ -2091,9 +2260,12 @@ FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
 ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")
 
 
-def resolve_function(field, match=None, params=None):
+def resolve_function(field, match=None, params=None, functions_acl=False):
     function_name, columns = parse_function(field, match)
     function = FUNCTIONS[function_name]
+    if not function.is_accessible(functions_acl):
+        raise InvalidSearchQuery(u"{}: no access to private function".format(function.name))
+
     arguments = function.format_as_arguments(field, columns, params)
     details = FunctionDetails(field, function, arguments)
 
@@ -2134,7 +2306,7 @@ def resolve_function(field, match=None, params=None):
             addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3 and addition[2] is None:
             addition[2] = get_function_alias_with_columns(function.name, columns)
-        return ResolvedFunction(details, addition, [])
+        return ResolvedFunction(details, addition, None)
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -2166,11 +2338,11 @@ def resolve_orderby(orderby, fields, aggregations):
 
         if (
             bare_column in FIELD_ALIASES
-            and FIELD_ALIASES[bare_column].get("column_alias")
+            and FIELD_ALIASES[bare_column].alias
             and bare_column != PROJECT_ALIAS
         ):
             prefix = "-" if column.startswith("-") else ""
-            validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
+            validated.append(prefix + FIELD_ALIASES[bare_column].alias)
             continue
 
         found = [
@@ -2193,21 +2365,23 @@ def get_aggregate_alias(match):
     return u"{}_{}".format(match.group("function"), column).rstrip("_")
 
 
-def resolve_field(field, params=None):
+def resolve_field(field, params=None, functions_acl=None):
     if not isinstance(field, six.string_types):
         raise InvalidSearchQuery("Field names must be strings")
 
     match = is_function(field)
     if match:
-        return resolve_function(field, match, params)
+        return resolve_function(field, match, params, functions_acl)
 
     if field in FIELD_ALIASES:
-        special_field = deepcopy(FIELD_ALIASES[field])
-        return ResolvedFunction(None, special_field.get("field"), None)
+        special_field = FIELD_ALIASES[field]
+        return ResolvedFunction(None, special_field.get_field(params), None)
     return ResolvedFunction(None, field, None)
 
 
-def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations=False):
+def resolve_field_list(
+    fields, snuba_filter, auto_fields=True, auto_aggregations=False, functions_acl=None
+):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
@@ -2241,7 +2415,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     for field in fields:
         if isinstance(field, six.string_types) and field.strip() == "":
             continue
-        function = resolve_field(field, snuba_filter.date_params)
+        function = resolve_field(field, snuba_filter.params, functions_acl)
         if function.column is not None and function.column not in columns:
             columns.append(function.column)
             if function.details is not None and isinstance(function.column, (list, tuple)):
@@ -2254,7 +2428,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
-            function = resolve_field(agg, snuba_filter.date_params)
+            function = resolve_field(agg, snuba_filter.params, functions_acl)
             if function.aggregate is not None and function.aggregate not in aggregations:
                 aggregations.append(function.aggregate)
                 if function.details is not None and isinstance(function.aggregate, (list, tuple)):

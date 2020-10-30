@@ -9,15 +9,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import space from 'app/styles/space';
 
 import List from './list';
-import {Item} from './types';
+import {ItemsBeforeFilter, Item} from './types';
 import autoCompleteFilter from './autoCompleteFilter';
-
-type Items = Array<
-  Omit<Item, 'index'> & {
-    items?: Array<Omit<Item, 'index'>>;
-    hideGroupLabel?: boolean; // Should hide group label
-  }
->;
 
 type MenuFooterChildProps = {
   actions: Actions;
@@ -60,7 +53,7 @@ type ChildrenArgs = {
 type ListProps = React.ComponentProps<typeof List>;
 
 type Props = {
-  items: Items;
+  items: ItemsBeforeFilter;
   children: (args: ChildrenArgs) => React.ReactNode;
 
   menuHeader?: React.ReactElement;

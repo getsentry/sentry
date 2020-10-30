@@ -2,6 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 import moment from 'moment';
+import {ASAP} from 'downsample/methods/ASAP';
 
 import theme from 'app/utils/theme';
 import {getInterval} from 'app/components/charts/utils';
@@ -19,6 +20,7 @@ import {IconArrow} from 'app/icons';
 
 import {
   TrendFunction,
+  ConfidenceLevel,
   TrendChangeType,
   TrendView,
   TrendsTransaction,
@@ -30,6 +32,7 @@ import {
 import {BaselineQueryResults} from '../transactionSummary/baselineQuery';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
+export const DEFAULT_MAX_DURATION = '15min';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
@@ -69,9 +72,27 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
   },
 ];
 
+export const CONFIDENCE_LEVELS: ConfidenceLevel[] = [
+  {
+    label: 'High',
+    min: 6,
+  },
+  {
+    label: 'Low',
+    min: 0,
+    max: 6,
+  },
+];
+
 export const trendToColor = {
-  [TrendChangeType.IMPROVED]: theme.green400,
-  [TrendChangeType.REGRESSION]: theme.red400,
+  [TrendChangeType.IMPROVED]: {
+    lighter: theme.green300,
+    default: theme.green400,
+  },
+  [TrendChangeType.REGRESSION]: {
+    lighter: theme.red300,
+    default: theme.red400,
+  },
 };
 
 export const trendSelectedQueryKeys = {
@@ -84,10 +105,24 @@ export const trendCursorNames = {
   [TrendChangeType.REGRESSION]: 'regressionCursor',
 };
 
+export function resetCursors() {
+  const cursors = {};
+  Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
+  return cursors;
+}
+
 export function getCurrentTrendFunction(location: Location): TrendFunction {
   const trendFunctionField = decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
   return trendFunction || TRENDS_FUNCTIONS[0];
+}
+
+export function getCurrentConfidenceLevel(location: Location): ConfidenceLevel {
+  const confidenceLevelLabel = decodeScalar(location?.query?.confidenceLevel);
+  const confidenceLevel = CONFIDENCE_LEVELS.find(
+    ({label}) => label === confidenceLevelLabel
+  );
+  return confidenceLevel || CONFIDENCE_LEVELS[0];
 }
 
 export function getIntervalRatio(location: Location): number {
@@ -102,8 +137,8 @@ export function transformDeltaSpread(
 ) {
   const fromSeconds = from / 1000;
   const toSeconds = to / 1000;
-  const fromSubSecond = fromSeconds < 1;
-  const toSubSecond = toSeconds < 1;
+
+  const showDigits = from > 1000 || to > 1000 || from < 10 || to < 10; // Show digits consistently if either has them
 
   if (trendFunctionField === TrendFunctionField.USER_MISERY) {
     return (
@@ -117,9 +152,9 @@ export function transformDeltaSpread(
 
   return (
     <span>
-      <Duration seconds={fromSeconds} fixedDigits={fromSubSecond ? 0 : 1} abbreviation />
+      <Duration seconds={fromSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
       <StyledIconArrow direction="right" size="xs" />
-      <Duration seconds={toSeconds} fixedDigits={toSubSecond ? 0 : 1} abbreviation />
+      <Duration seconds={toSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
     </span>
   );
 }
@@ -142,6 +177,7 @@ export function modifyTrendView(
   isProjectOnly?: boolean
 ) {
   const trendFunction = getCurrentTrendFunction(location);
+  const confidenceLevel = getCurrentConfidenceLevel(location);
 
   const transactionField = isProjectOnly ? [] : ['transaction'];
   const fields = [...transactionField, 'project'].map(field => ({
@@ -164,7 +200,7 @@ export function modifyTrendView(
   if (trendFunction) {
     trendView.trendFunction = trendFunction.field;
   }
-  const limitTrendResult = getLimitTransactionItems(trendFunction, trendsType);
+  const limitTrendResult = getLimitTransactionItems(trendsType, confidenceLevel);
   trendView.query += ' ' + limitTrendResult;
 
   trendView.interval = getQueryInterval(location, trendView);
@@ -287,11 +323,10 @@ export function transformValueDelta(
 
   const seconds = absoluteValue / 1000;
 
-  const isSubSecond = seconds < 1;
+  const fixedDigits = absoluteValue > 1000 || absoluteValue < 10 ? 1 : 0;
   return (
     <span>
-      <Duration seconds={seconds} fixedDigits={isSubSecond ? 0 : 1} abbreviation />{' '}
-      {changeLabel}
+      <Duration seconds={seconds} fixedDigits={fixedDigits} abbreviation /> {changeLabel}
     </span>
   );
 }
@@ -301,13 +336,18 @@ export function transformValueDelta(
  * To minimize extra renders with missing results.
  */
 export function normalizeTrends(
-  data: Array<TrendsTransaction>
+  data: Array<TrendsTransaction>,
+  trendFunction: TrendFunction
 ): Array<NormalizedTrendsTransaction>;
 
-export function normalizeTrends(data: Array<ProjectTrend>): Array<NormalizedProjectTrend>;
+export function normalizeTrends(
+  data: Array<ProjectTrend>,
+  trendFunction: TrendFunction
+): Array<NormalizedProjectTrend>;
 
 export function normalizeTrends(
-  data: Array<TrendsTransaction | ProjectTrend>
+  data: Array<TrendsTransaction | ProjectTrend>,
+  trendFunction: TrendFunction
 ): Array<NormalizedTrendsTransaction | NormalizedProjectTrend> {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
@@ -319,16 +359,13 @@ export function normalizeTrends(
     } = row;
 
     const aliasedFields = {} as NormalizedTrendsTransaction;
-    TRENDS_FUNCTIONS.forEach(({alias}) => {
-      if (typeof row[`${alias}_1`] !== 'undefined') {
-        aliasedFields.aggregate_range_1 = row[`${alias}_1`];
-        aliasedFields.aggregate_range_2 = row[`${alias}_2`];
-        aliasedFields.percentage_aggregate_range_2_aggregate_range_1 =
-          row[getTrendAliasedFieldPercentage(alias)];
-        aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
-          row[getTrendAliasedMinus(alias)];
-      }
-    });
+    const alias = trendFunction.alias;
+    aliasedFields.aggregate_range_1 = row[`${alias}_1`];
+    aliasedFields.aggregate_range_2 = row[`${alias}_2`];
+    aliasedFields.percentage_aggregate_range_2_aggregate_range_1 =
+      row[getTrendAliasedFieldPercentage(alias)];
+    aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
+      row[getTrendAliasedMinus(alias)];
 
     const normalized = {
       ...aliasedFields,
@@ -357,10 +394,6 @@ export function getTrendAliasedFieldPercentage(alias: string) {
   return `percentage_${alias}_2_${alias}_1`;
 }
 
-export function getTrendAliasedQueryPercentage(alias: string) {
-  return `percentage(${alias}_2,${alias}_1)`;
-}
-
 export function getTrendAliasedMinus(alias: string) {
   return `minus_${alias}_2_${alias}_1`;
 }
@@ -382,18 +415,23 @@ export function movingAverage(data, index, size) {
  * This function applies a query to limit the results based on the trend type to being greater or less than 100% (depending on the type)
  */
 function getLimitTransactionItems(
-  trendFunction: TrendFunction,
-  trendChangeType: TrendChangeType
+  trendChangeType: TrendChangeType,
+  confidenceLevel: ConfidenceLevel
 ) {
-  const aliasedPercentage = getTrendAliasedQueryPercentage(trendFunction.alias);
-  let limitQuery = aliasedPercentage + ':<1';
+  let limitQuery = `trend_percentage():<1 t_test():>${confidenceLevel.min}`;
+  limitQuery += confidenceLevel.max ? ` t_test():<=${confidenceLevel.max}` : '';
   if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery = aliasedPercentage + ':>1';
+    limitQuery = `trend_percentage():>1 t_test():<-${confidenceLevel.min}`;
+    limitQuery += confidenceLevel.max ? ` t_test():>=-${confidenceLevel.max}` : '';
   }
   limitQuery +=
-    ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';
+    ' percentage(count_range_2,count_range_1):>0.25 percentage(count_range_2,count_range_1):<4';
   return limitQuery;
 }
+
+export const smoothTrend = (data: [number, number][], resolution = 100) => {
+  return ASAP(data, resolution);
+};
 
 export const StyledIconArrow = styled(IconArrow)`
   margin: 0 ${space(1)};

@@ -438,6 +438,65 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 use_aggregate_conditions=True,
             )
 
+    def test_conditions_with_timestamps(self):
+        events = [("a", 1), ("b", 2), ("c", 3)]
+        for t, ev in enumerate(events):
+            val = ev[0] * 32
+            for i in range(ev[1]):
+                data = load_data("transaction", timestamp=before_now(seconds=3 * t + 1))
+                data["transaction"] = "{}".format(val)
+                self.store_event(data=data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=["transaction", "count()"],
+            query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
+                iso_format(before_now(seconds=5)), iso_format(before_now(seconds=3)),
+            ),
+            params={"project_id": [self.project.id]},
+            orderby="transaction",
+            use_aggregate_conditions=True,
+        )
+
+        data = results["data"]
+        assert len(data) == 2
+        assert data[0]["transaction"] == "a" * 32
+        assert data[0]["count"] == 1
+        assert data[1]["transaction"] == "c" * 32
+        assert data[1]["count"] == 3
+
+    def test_access_to_private_functions(self):
+        # using private functions directly without access should error
+        with pytest.raises(InvalidSearchQuery, match="array_join: no access to private function"):
+            discover.query(
+                selected_columns=["array_join(tags.key)"],
+                query="",
+                params={"project_id": [self.project.id]},
+            )
+
+        # using private functions in an aggregation without access should error
+        with pytest.raises(
+            InvalidSearchQuery, match="measurements_histogram: no access to private function"
+        ):
+            discover.query(
+                selected_columns=["measurements_histogram(1,0,1)"],
+                query="measurements_histogram(1,0,1):>0",
+                params={"project_id": [self.project.id]},
+                use_aggregate_conditions=True,
+            )
+
+        # using private functions in an aggregation without access should error
+        # with auto aggregation on
+        with pytest.raises(
+            InvalidSearchQuery, match="measurements_histogram: no access to private function"
+        ):
+            discover.query(
+                selected_columns=["count()"],
+                query="measurements_histogram(1,0,1):>0",
+                params={"project_id": [self.project.id]},
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            )
+
 
 class QueryTransformTest(TestCase):
     """

@@ -31,6 +31,7 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupEnvironment,
+    GroupInbox,
     GroupLink,
     GroupMeta,
     GroupResolution,
@@ -90,30 +91,29 @@ class GroupSerializerBase(Serializer):
         """
         raise NotImplementedError
 
-    def _get_group_snuba_stats(self, item_list, seen_stats):
-        filter_keys = {}
-
+    @staticmethod
+    def _get_start_from_seen_stats(seen_stats):
         # Try to figure out what is a reasonable time frame to look into stats,
         # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
         # but it has to be at least 14 days, and not more than 90 days ago.
         # Fallback to the 30 days ago if we are not able to calculate the value.
         last_seen = None
         for item in seen_stats.values():
-            if last_seen is None or (
-                item["last_seen"] is not None and last_seen > item["last_seen"]
-            ):
+            if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
                 last_seen = item["last_seen"]
-        if last_seen is not None:
-            last_seen = last_seen - timedelta(days=1)
 
         if last_seen is None:
-            start = datetime.now(pytz.utc) - timedelta(days=30)
-        else:
-            start = max(
-                min(last_seen, datetime.now(pytz.utc) - timedelta(days=14)),
-                datetime.now(pytz.utc) - timedelta(days=90),
-            )
+            return datetime.now(pytz.utc) - timedelta(days=30)
 
+        return max(
+            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
+            datetime.now(pytz.utc) - timedelta(days=90),
+        )
+
+    def _get_group_snuba_stats(self, item_list, seen_stats):
+        start = self._get_start_from_seen_stats(seen_stats)
+
+        filter_keys = {}
         for item in item_list:
             filter_keys.setdefault("project_id", []).append(item.project_id)
             filter_keys.setdefault("group_id", []).append(item.id)
@@ -865,6 +865,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         end=None,
         search_filters=None,
         has_dynamic_issue_counts=False,
+        include_inbox=False,
     ):
         super(StreamGroupSerializerSnuba, self).__init__(
             environment_ids, start, end, search_filters
@@ -880,6 +881,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
         self.has_dynamic_issue_counts = has_dynamic_issue_counts
+        self.include_inbox = include_inbox
 
     def _get_seen_stats(self, item_list, user):
         partial_execute_seen_stats_query = functools.partial(
@@ -910,6 +912,20 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
         return time_range_result
 
+    def _get_inbox_details(self, item_list):
+        group_ids = [g.id for g in item_list]
+        group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
+        inbox_stats = {
+            gi.group_id: {
+                "reason": gi.reason,
+                "reason_details": gi.reason_details,
+                "date_added": gi.date_added,
+            }
+            for gi in group_inboxes
+        }
+
+        return inbox_stats
+
     def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
         return snuba_tsdb.get_range(
             model=snuba_tsdb.models.group,
@@ -930,9 +946,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 filtered_stats = (
                     partial_get_stats(conditions=self.conditions) if self.conditions else None
                 )
+            if self.include_inbox:
+                inbox_stats = self._get_inbox_details(item_list)
+
             for item in item_list:
                 if self.has_dynamic_issue_counts and self.conditions:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
+                if self.include_inbox:
+                    attrs[item].update({"inbox": inbox_stats.get(item.id)})
+
                 attrs[item].update({"stats": stats[item.id]})
 
         return attrs
@@ -959,5 +981,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     )
             else:
                 result["filtered"] = None
+
+        if self.include_inbox:
+            result["inbox"] = attrs["inbox"]
 
         return result

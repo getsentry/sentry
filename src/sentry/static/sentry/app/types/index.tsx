@@ -140,6 +140,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
+  debugFilesRole: string;
   eventsMemberAdmin: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
@@ -183,6 +184,11 @@ export type AvatarProject = {
   platform?: PlatformKey;
 };
 
+/**
+ * Simple timeseries data used in groups, projects and release health.
+ */
+export type TimeseriesValue = [timestamp: number, value: number];
+
 export type Project = {
   id: string;
   dateCreated: string;
@@ -205,7 +211,8 @@ export type Project = {
   relayPiiConfig: string;
   latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
-  stats?: Array<[number, number]>;
+  stats?: TimeseriesValue[];
+  transactionStats?: TimeseriesValue[];
   latestRelease?: {version: string};
 } & AvatarProject;
 
@@ -227,7 +234,7 @@ export type Health = {
   durationP90: number | null;
 };
 
-export type HealthGraphData = Record<string, [number, number][]>;
+export type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export type Team = {
   id: string;
@@ -684,8 +691,6 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
-export type GroupStats = [number, number];
-
 // TODO(ts): incomplete
 export type Group = {
   id: string;
@@ -718,7 +723,7 @@ export type Group = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  stats: Record<string, GroupStats[]>;
+  stats: Record<string, TimeseriesValue[]>;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
   status: string;
@@ -731,12 +736,21 @@ export type Group = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
 };
 
+export type GroupTombstone = {
+  id: string;
+  title: string;
+  culprit: string;
+  level: Level;
+  actor: AvatarUser;
+  metadata: EventMetadata;
+};
+
 export type ProcessingIssue = {
   project: string;
   numIssues: number;
   signedLink: string;
   lastSeen: string;
-  hasMoreResolvableIssues: boolean;
+  hasMoreResolveableIssues: boolean;
   hasIssues: boolean;
   issuesProcessing: number;
   resolveableIssues: number;
@@ -793,6 +807,18 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
+export type RepositoryProjectPathConfig = {
+  id: string;
+  projectId: string;
+  projectSlug: string;
+  repoId: string;
+  repoName: string;
+  organizationIntegrationId: string;
+  stackRoot: string;
+  sourceRoot: string;
+  defaultBranch?: string;
+};
+
 export type PullRequest = {
   id: string;
   title: string;
@@ -839,6 +865,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
     aspects: IntegrationAspects;
   };
+  hasStacktraceLinking?: boolean; // TODO: Remove when we GA the feature
 };
 
 export type IntegrationFeature = {
