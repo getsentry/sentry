@@ -110,7 +110,7 @@ const Container = styled('div')`
 `;
 
 const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(1.5)};
   margin-bottom: ${space(1)};
 
   ${p => {
@@ -135,7 +135,7 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
-  margin-right: ${space(1)};
+  margin-right: ${space(0.5)};
   color: ${p => p.theme.red400};
 `;
 
