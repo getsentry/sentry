@@ -30,14 +30,17 @@ type State = {
   wasConfiguredOnPageLoad: boolean;
 } & PluginComponentBase['state'];
 
-class PluginSettings extends PluginComponentBase<Props, State> {
+class PluginSettings<
+  P extends Props = Props,
+  S extends State = State
+> extends PluginComponentBase<P, S> {
   static propTypes: any = {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     plugin: PropTypes.object.isRequired,
   };
 
-  constructor(props: Props, context) {
+  constructor(props: P, context: any) {
     super(props, context);
 
     Object.assign(this.state, {
@@ -80,7 +83,7 @@ class PluginSettings extends PluginComponentBase<Props, State> {
   }
 
   changeField(name: string, value: any) {
-    const formData = this.state.formData;
+    const formData: State['formData'] = this.state.formData;
     formData[name] = value;
     // upon changing a field, remove errors
     const errors = this.state.errors;
@@ -210,7 +213,9 @@ class PluginSettings extends PluginComponentBase<Props, State> {
       );
     }
 
-    if (!(this.state.fieldList || []).length) {
+    const fieldList: State['fieldList'] = this.state.fieldList;
+
+    if (!(fieldList || []).length) {
       return null;
     }
     return (
