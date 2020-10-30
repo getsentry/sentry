@@ -1364,9 +1364,7 @@ FIELD_ALIASES = {
             KEY_TRANSACTION_ALIAS,
             KEY_TRANSACTION_ALIAS,
             expression_fn=lambda params: key_transaction_expression(
-                params.get("user_id"),
-                params.get("organization_id"),
-                tuple(params.get("project_id", [])),
+                params.get("user_id"), params.get("organization_id"), params.get("project_id"),
             ),
             result_type="boolean",
         ),
