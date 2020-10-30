@@ -33,7 +33,7 @@ import SummaryContent from './content';
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
-  WEB_VITAL_DETAILS,
+  VITAL_GROUPS,
 } from '../transactionVitals/constants';
 
 type Props = {
@@ -109,7 +109,10 @@ class TransactionSummary extends React.Component<Props, State> {
     const threshold = organization.apdexThreshold.toString();
 
     const vitals = organization.features.includes('measurements')
-      ? Object.values(WebVital).filter(vital => WEB_VITAL_DETAILS[vital].includeInSummary)
+      ? VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
+          vs.forEach(vital => keys.push(vital));
+          return keys;
+        }, [])
       : [];
 
     const totalsView = eventView.withColumns([
