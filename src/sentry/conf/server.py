@@ -882,6 +882,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members-rate-limits": True,
     # Enable measurements-based product features.
     "organizations:measurements": False,
+    # Enable key transactions as a column in performance
+    "organizations:key-transactions": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -1143,6 +1145,7 @@ SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 
 # Snuba configuration
 SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
+SENTRY_SNUBA_TIMEOUT = 30
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
