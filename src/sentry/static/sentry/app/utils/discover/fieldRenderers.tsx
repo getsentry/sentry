@@ -3,7 +3,6 @@ import {Location} from 'history';
 import partial from 'lodash/partial';
 import styled from '@emotion/styled';
 
-import {IconStar} from 'app/icons';
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
@@ -19,6 +18,7 @@ import {getAggregateAlias, AGGREGATIONS} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
 import {getShortEventId} from 'app/utils/events';
 
+import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
   Container,
@@ -310,18 +310,16 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   key_transaction: {
     sortField: 'key_transaction',
-    renderFunc: data => {
-      const isKeyTransaction = (data.key_transaction ?? 0) !== 0;
-      return (
-        <Container>
-          <IconStar
-            color={isKeyTransaction ? 'yellow500' : 'gray500'}
-            isSolid={isKeyTransaction}
-            data-test-id="key-transaction-column"
-          />
-        </Container>
-      );
-    },
+    renderFunc: (data, {organization}) => (
+      <Container>
+        <KeyTransactionField
+          isKeyTransaction={(data.key_transaction ?? 0) !== 0}
+          organization={organization}
+          projectSlug={data.project}
+          transactionName={data.transaction}
+        />
+      </Container>
+    ),
   },
 };
 
