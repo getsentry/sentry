@@ -20,7 +20,7 @@ import LineSeries from './series/lineSeries';
 import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
-import {highlightedSinglePoint} from './highlightedSinglePoint';
+import highlightedSinglePoint from './highlightedSinglePoint';
 
 // If dimension is a number convert it to pixels, otherwise use dimension without transform
 const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
