@@ -24,12 +24,12 @@ export const displayCrashFreePercent = (
   }
 
   if (percent < 1 && percent > 0) {
-    return `<1%`;
+    return `<1\u0025`;
   }
 
   const rounded = getCrashFreePercent(percent, decimalThreshold, decimalPlaces);
 
-  return `${rounded}%`;
+  return `${rounded}\u0025`;
 };
 
 export const convertAdoptionToProgress = (
