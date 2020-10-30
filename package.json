@@ -213,7 +213,7 @@
     "validate-api-examples": "openapi-examples-validator ./api-docs/openapi.json --no-additional-properties"
   },
   "volta": {
-    "node": "10.21.0",
-    "yarn": "1.22.4"
+    "node": "12.19.0",
+    "yarn": "1.22.5"
   }
 }
