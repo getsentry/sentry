@@ -2,6 +2,7 @@ import React from 'react';
 import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
+import {Panel, PanelHeader} from 'app/components/panels';
 import LoadingError from 'app/components/loadingError';
 
 export default {
@@ -22,4 +23,15 @@ export const CustomMessage = withInfo('Loading error with custom message')(() =>
 
 CustomMessage.story = {
   name: 'custom message',
+};
+
+export const InPanel = withInfo('Loading error inside panel component')(() => (
+  <Panel>
+    <PanelHeader>Header</PanelHeader>
+    <LoadingError onRetry={action('retry')} />
+  </Panel>
+));
+
+InPanel.story = {
+  name: 'in panel',
 };
