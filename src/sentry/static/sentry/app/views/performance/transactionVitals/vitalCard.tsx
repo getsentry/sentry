@@ -24,6 +24,7 @@ import {
 } from 'app/utils/formatters';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import {NUM_BUCKETS} from './constants';
 import {Card, CardSummary, CardSectionHeading, StatNumber, Description} from './styles';
@@ -100,6 +101,18 @@ class VitalCard extends React.Component<Props, State> {
     return {...prevState};
   }
 
+  trackOpenInDiscoverClicked = () => {
+    const {organization} = this.props;
+    const {vital} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.vitals.open_in_discover',
+      eventName: 'Performance Views: Open vitals in discover',
+      organization_id: organization.id,
+      vital: vital.slug,
+    });
+  };
+
   getFormattedStatNumber() {
     const {summary, vital} = this.props;
     const {type} = vital;
@@ -154,6 +167,7 @@ class VitalCard extends React.Component<Props, State> {
           <DiscoverButton
             size="small"
             to={newEventView.getResultsViewUrlTarget(organization.slug)}
+            onClick={this.trackOpenInDiscoverClicked}
           >
             {t('Open in Discover')}
           </DiscoverButton>
