@@ -56,7 +56,6 @@ class ResolvedInCommitTest(TestCase):
     def test_simple_no_author(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        assert GroupInbox.objects.filter(group=group).exists()
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
@@ -72,7 +71,6 @@ class ResolvedInCommitTest(TestCase):
     def test_updating_commit(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        assert GroupInbox.objects.filter(group=group).exists()
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
@@ -92,7 +90,6 @@ class ResolvedInCommitTest(TestCase):
     def test_updating_commit_with_existing_grouplink(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        assert GroupInbox.objects.filter(group=group).exists()
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
@@ -113,7 +110,6 @@ class ResolvedInCommitTest(TestCase):
     def test_removes_group_link_when_message_changes(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        assert GroupInbox.objects.filter(group=group).exists()
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
@@ -149,7 +145,6 @@ class ResolvedInCommitTest(TestCase):
     def test_matching_author_with_assignment(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        assert GroupInbox.objects.filter(group=group).exists()
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
         email = UserEmail.get_primary_email(user=user)
         email.is_verified = True
@@ -185,7 +180,6 @@ class ResolvedInCommitTest(TestCase):
     def test_matching_author_without_assignment(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        assert GroupInbox.objects.filter(group=group).exists()
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
         email = UserEmail.get_primary_email(user=user)
         email.is_verified = True
