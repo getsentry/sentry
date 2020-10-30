@@ -122,6 +122,7 @@ class HealthChart extends React.Component<Props> {
         }}
         yAxis={this.configureYAxis()}
         tooltip={{valueFormatter: this.formatTooltipValue}}
+        highlightSingleDatapoint
       />
     );
   }
