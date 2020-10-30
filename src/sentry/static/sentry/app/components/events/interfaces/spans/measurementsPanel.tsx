@@ -99,6 +99,7 @@ const StyledLabelContainer = styled('div')`
   top: 0;
   height: 100%;
   user-select: none;
+  white-space: nowrap;
 `;
 
 const Label = styled('div')`
