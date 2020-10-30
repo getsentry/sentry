@@ -1170,7 +1170,8 @@ const MeasurementMarker = styled('div')`
   top: 2px;
   height: 100%;
   user-select: none;
-  border-left: 2px dashed ${p => p.theme.gray800};
+  border-left: 1px dashed ${p => p.theme.gray800};
+  border-right: 1px dashed ${p => p.theme.gray800};
   opacity: 0.5;
   z-index: ${zIndex.dividerLine};
 `;
