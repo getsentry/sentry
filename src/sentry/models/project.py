@@ -138,7 +138,11 @@ class Project(Model, PendingDeletionMixin):
             lock = locks.get("slug:project", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(
-                    self, self.name, organization=self.organization, reserved=RESERVED_PROJECT_SLUGS
+                    self,
+                    self.name,
+                    organization=self.organization,
+                    reserved=RESERVED_PROJECT_SLUGS,
+                    max_length=50,
                 )
             super(Project, self).save(*args, **kwargs)
         else:
@@ -344,7 +348,7 @@ class Project(Model, PendingDeletionMixin):
             with transaction.atomic():
                 self.update(organization=organization)
         except IntegrityError:
-            slugify_instance(self, self.name, organization=organization)
+            slugify_instance(self, self.name, organization=organization, max_length=50)
             self.update(slug=self.slug, organization=organization)
 
         # Both environments and releases are bound at an organization level.
