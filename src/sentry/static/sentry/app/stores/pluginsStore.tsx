@@ -1,8 +1,36 @@
 import Reflux from 'reflux';
 
 import PluginActions from 'app/actions/pluginActions';
+import {Plugin} from 'app/types';
 
-const PluginsStore = Reflux.createStore({
+type PluginStoreInterface = {
+  state: {
+    loading: boolean;
+    plugins: Plugin[];
+    error?: any;
+    pageLinks?: string;
+  };
+  plugins?: Map<string, Plugin>;
+  updating: Map<string, Plugin>;
+};
+
+const PluginStoreConfig: Reflux.StoreDefinition & PluginStoreInterface = {
+  state: {
+    loading: true,
+    plugins: [],
+  },
+  updating: new Map(),
+
+  reset() {
+    this.plugins = undefined;
+    this.state = {
+      loading: true,
+      plugins: [],
+    };
+    this.updating = new Map();
+    return this.state;
+  },
+
   getInitialState() {
     return this.getState();
   },
@@ -26,33 +54,21 @@ const PluginsStore = Reflux.createStore({
     this.listenTo(PluginActions.updateError, this.onUpdateError);
   },
 
-  reset() {
-    this.plugins = null;
-    this.state = {
-      loading: true,
-      plugins: [],
-      error: null,
-      pageLinks: null,
-    };
-    this.updating = new Map();
-    return this.state;
-  },
-
   triggerState() {
     this.trigger(this.getState());
   },
 
-  onFetchAll({resetLoading} = {}) {
+  onFetchAll({resetLoading}: {resetLoading?: boolean} = {}) {
     if (resetLoading) {
       this.state.loading = true;
-      this.state.error = null;
-      this.plugins = null;
+      this.state.error = undefined;
+      this.plugins = undefined;
     }
 
     this.triggerState();
   },
 
-  onFetchAllSuccess(data, {pageLinks}) {
+  onFetchAllSuccess(data: Plugin[], {pageLinks}: {pageLinks?: string}) {
     this.plugins = new Map(data.map(plugin => [plugin.id, plugin]));
     this.state.pageLinks = pageLinks;
     this.state.loading = false;
@@ -60,18 +76,21 @@ const PluginsStore = Reflux.createStore({
   },
 
   onFetchAllError(err) {
-    this.plugins = null;
+    this.plugins = undefined;
     this.state.loading = false;
     this.state.error = err;
     this.triggerState();
   },
 
-  onUpdate(id, updateObj) {
+  onUpdate(id: string, updateObj: Partial<Plugin>) {
     if (!this.plugins) {
       return;
     }
 
     const plugin = this.plugins.get(id);
+    if (!plugin) {
+      return;
+    }
     const newPlugin = {
       ...plugin,
       ...updateObj,
@@ -82,13 +101,13 @@ const PluginsStore = Reflux.createStore({
     this.triggerState();
   },
 
-  onUpdateSuccess(id, _updateObj) {
+  onUpdateSuccess(id: string, _updateObj: Partial<Plugin>) {
     this.updating.delete(id);
   },
 
-  onUpdateError(id, _updateObj, err) {
+  onUpdateError(id: string, _updateObj: Partial<Plugin>, err) {
     const origPlugin = this.updating.get(id);
-    if (!origPlugin) {
+    if (!origPlugin || !this.plugins) {
       return;
     }
 
@@ -97,6 +116,9 @@ const PluginsStore = Reflux.createStore({
     this.state.error = err;
     this.triggerState();
   },
-});
+};
 
-export default PluginsStore;
+const PluginStore = Reflux.createStore(PluginStoreConfig);
+
+type PluginStore = Reflux.Store & PluginStoreInterface;
+export default PluginStore as PluginStore;
