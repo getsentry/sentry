@@ -8,7 +8,6 @@ import {PanelItem} from 'app/components/panels';
 import {Project} from 'app/types';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
@@ -73,9 +72,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
   renderTimeSince(date: string) {
     return (
       <CreatedResolvedTime>
-        <Tooltip title={<DateTime date={date} utc={false} />} position="top">
-          <TimeSince title="" date={date} />
-        </Tooltip>
+        <TimeSince date={date} />
       </CreatedResolvedTime>
     );
   }
