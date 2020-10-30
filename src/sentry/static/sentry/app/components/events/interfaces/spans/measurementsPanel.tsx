@@ -41,7 +41,7 @@ class MeasurementsPanel extends React.PureComponent<Props> {
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
 
-          if (!shouldDisplay) {
+          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
             return null;
           }
 

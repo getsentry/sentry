@@ -366,7 +366,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
 
-          if (!shouldDisplay) {
+          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
             return null;
           }
 
