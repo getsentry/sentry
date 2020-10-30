@@ -26,7 +26,6 @@ from sentry.search.utils import (
     InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.utils.compat import functools
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
@@ -1303,10 +1302,12 @@ class PseudoField(object):
         ), u"{}: only one of expression, expression_fn is allowed".format(self.name)
 
 
-# This function will only ever be called with 1 set of parameters in the lifetime of a
-# single request. So cache its results to avoid doing more lookups than necessary.
-@functools.lru_cache(maxsize=1)
 def key_transaction_expression(user_id, organization_id, project_ids):
+    """
+    This function may be called multiple times, making for repeated data bases queries.
+    Lifting the query higher to earlier in the call stack will require a lot more changes
+    as there are numerous entry points. So we will leave the duplicate query alone for now.
+    """
     if user_id is None or organization_id is None or project_ids is None:
         raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
 
@@ -1362,13 +1363,8 @@ FIELD_ALIASES = {
         PseudoField(
             KEY_TRANSACTION_ALIAS,
             KEY_TRANSACTION_ALIAS,
-            # the result is cached, but may be mutated by the caller, so we deepcopy it here
-            expression_fn=lambda params: deepcopy(
-                key_transaction_expression(
-                    params.get("user_id"),
-                    params.get("organization_id"),
-                    tuple(params.get("project_id", [])),
-                )
+            expression_fn=lambda params: key_transaction_expression(
+                params.get("user_id"), params.get("organization_id"), params.get("project_id"),
             ),
             result_type="boolean",
         ),
