@@ -45,7 +45,7 @@ class GetChannelIdWorkspaceTest(TestCase):
         self.add_list_response(
             "users",
             [
-                {"name": "morty", "id": "m", "profile": {"display_name": "Morty"}},
+                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
                 {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
                 {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
             ],
@@ -70,13 +70,13 @@ class GetChannelIdWorkspaceTest(TestCase):
         )
 
     def test_valid_channel_selected(self):
-        self.run_valid_test("#my-channel", CHANNEL_PREFIX, "m-c", False)
+        self.run_valid_test("#My-Channel", CHANNEL_PREFIX, "m-c", False)
 
     def test_valid_private_channel_selected(self):
         self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
 
     def test_valid_member_selected(self):
-        self.run_valid_test("@morty", MEMBER_PREFIX, "m", False)
+        self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
     def test_valid_member_selected_display_name(self):
         self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
@@ -117,7 +117,7 @@ class GetChannelIdBotTest(GetChannelIdWorkspaceTest):
         self.add_list_response(
             "users",
             [
-                {"name": "morty", "id": "m", "profile": {"display_name": "Morty"}},
+                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
                 {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
                 {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
             ],
