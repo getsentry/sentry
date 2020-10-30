@@ -23,13 +23,14 @@ type Props = AsyncComponent['props'] & {
   projects: Project[];
 };
 
+//format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
   config?: RepositoryProjectPathConfig;
   sourceUrl?: string;
 };
 
 type State = AsyncComponent['state'] & {
-  match?: StacktraceResultItem;
+  match: StacktraceResultItem;
 };
 
 class StacktraceLink extends AsyncComponent<Props, State> {
@@ -44,7 +45,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     return this.state.match;
   }
   get config() {
-    return this.match?.config;
+    return this.match.config;
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
