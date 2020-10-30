@@ -25,7 +25,7 @@ from sentry.utils import auth
 logger = logging.getLogger("sentry.accounts")
 
 
-def get_template(name, mode):
+def get_template(mode, name):
     return u"sentry/account/{}/{}.html".format(mode, name)
 
 
@@ -134,9 +134,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
     else:
         form = ChangePasswordRecoverForm()
 
-    return render_to_response(
-        get_template(mode, "confirm"), {"form": form}, request
-    )
+    return render_to_response(get_template(mode, "confirm"), {"form": form}, request)
 
 
 # Set password variation of password recovery
