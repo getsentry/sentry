@@ -111,7 +111,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         has_dynamic_issue_counts = features.has(
             "organizations:dynamic-issue-counts", organization, actor=request.user
         )
-        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
         include_inbox = features.has(
             "organizations:inbox", organization, actor=request.user
