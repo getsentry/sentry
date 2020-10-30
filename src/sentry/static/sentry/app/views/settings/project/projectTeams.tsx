@@ -126,7 +126,7 @@ class ProjectTeams extends AsyncView<Props, State> {
       params.projectId
     );
     const {projectTeams} = this.state;
-    const selectedTeams = projectTeams ? projectTeams.map(({slug}) => slug) : [];
+    const selectedTeams = projectTeams?.map(({slug}) => slug) ?? [];
 
     const menuHeader = (
       <StyledTeamsLabel>
