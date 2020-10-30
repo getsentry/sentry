@@ -208,6 +208,7 @@
     "webpack-profile": "NO_TS_FORK=1 yarn -s webpack --profile --json > stats.json",
     "build-derefed-docs": "node api-docs/index.js api-docs/openapi.json",
     "watch-api-docs": "sane 'yarn build-derefed-docs' api-docs",
+    "build-acceptance": "NODE_ENV=production yarn webpack --display errors-only",
     "build-css": "NODE_ENV=production yarn webpack --config=config/webpack.css.config.js",
     "build": "NODE_ENV=production yarn webpack --mode production --display errors-only --output-path=public",
     "validate-api-examples": "openapi-examples-validator ./api-docs/openapi.json --no-additional-properties"
