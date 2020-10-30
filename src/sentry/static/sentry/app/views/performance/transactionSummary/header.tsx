@@ -54,6 +54,15 @@ class TransactionHeader extends React.Component<Props> {
     });
   }
 
+  trackVitalsTabClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.vitals.vitals_tab_clicked',
+      eventName: 'Performance Views: Vitals tab clicked',
+      organization_id: organization.id,
+    });
+  };
+
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
