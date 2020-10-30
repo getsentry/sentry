@@ -283,3 +283,18 @@ class BuildIncidentAttachmentTest(TestCase):
             "fallback": u"[{}] {}".format(self.project.slug, event.title),
             "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
+
+    def test_build_group_attachment_color_no_event_error_fallback(self):
+        group_with_no_events = self.create_group(project=self.project)
+        assert build_group_attachment(group_with_no_events)["color"] == "#E03E2F"
+
+    def test_build_group_attachment_color_unxpected_level_error_fallback(self):
+        unexpected_level_event = self.store_event(
+            data={"level": "trace"}, project_id=self.project.id, assert_no_errors=False
+        )
+        assert build_group_attachment(unexpected_level_event.group)["color"] == "#E03E2F"
+
+    def test_build_group_attachment_color_warning(self):
+        warning_event = self.store_event(data={"level": "warning"}, project_id=self.project.id)
+        assert build_group_attachment(warning_event.group)["color"] == "#FFC227"
+        assert build_group_attachment(warning_event.group, warning_event)["color"] == "#FFC227"
