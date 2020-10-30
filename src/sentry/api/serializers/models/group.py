@@ -865,7 +865,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         end=None,
         search_filters=None,
         has_dynamic_issue_counts=False,
-        has_inbox=False,
+        include_inbox=False,
     ):
         super(StreamGroupSerializerSnuba, self).__init__(
             environment_ids, start, end, search_filters
@@ -881,7 +881,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
         self.has_dynamic_issue_counts = has_dynamic_issue_counts
-        self.has_inbox = has_inbox
+        self.include_inbox = include_inbox
 
     def _get_seen_stats(self, item_list, user):
         partial_execute_seen_stats_query = functools.partial(
@@ -912,11 +912,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
         return time_range_result
 
-    def _get_inbox_stats(self, item_list):
+    def _get_inbox_details(self, item_list):
         group_ids = [g.id for g in item_list]
         group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
         inbox_stats = {
-            gi.group.id: {
+            gi.group_id: {
                 "reason": gi.reason,
                 "reason_details": gi.reason_details,
                 "date_added": gi.date_added,
@@ -946,16 +946,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 filtered_stats = (
                     partial_get_stats(conditions=self.conditions) if self.conditions else None
                 )
+            if self.include_inbox:
+                inbox_stats = self._get_inbox_details(item_list)
+
             for item in item_list:
                 if self.has_dynamic_issue_counts and self.conditions:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
-                if self.has_inbox:
-                    # Add inbox dict - either False, or label + reason, etc. "comments", "integration"
-                    inbox_stats = self._get_inbox_stats(item_list)
-                    if item.id in inbox_stats:
-                        attrs[item].update({"inbox": inbox_stats[item.id]})
-                    else:
-                        attrs[item].update({"inbox": None})
+                if self.include_inbox:
+                    attrs[item].update({"inbox": inbox_stats.get(item.id)})
 
                 attrs[item].update({"stats": stats[item.id]})
 
@@ -984,7 +982,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             else:
                 result["filtered"] = None
 
-        if self.has_inbox:
+        if self.include_inbox:
             result["inbox"] = attrs["inbox"]
 
         return result

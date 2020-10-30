@@ -863,6 +863,8 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
+    # Allow orgs to automatically create Tickets in Issue Alerts
+    "organizations:integrations-ticket-rules": False,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
@@ -910,6 +912,8 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable dynamic issue counts and user counts in the issue stream
     "organizations:dynamic-issue-counts": True,
+    # Enable inbox support in the issue stream
+    "organizations:inbox": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
     # Enable functionality to specify custom inbound filters on events.
@@ -1139,6 +1143,7 @@ SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 
 # Snuba configuration
 SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
+SENTRY_SNUBA_TIMEOUT = 30
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"

@@ -12,7 +12,7 @@ frontend:
   - 'docs-ui/**'
   - 'src/sentry/static/sentry/**'
   - 'tests/js/**'
-  - '.github/workflows/javascript*.yml'
+  - '.github/workflows/js-*.yml'
 
 backend:
   - '**/*.py'
@@ -20,4 +20,4 @@ backend:
   - 'requirements-*.txt'
   - 'migrations_lockfile.txt'
   - '.python-version'
-  - '.github/workflows/!(javascript*)'
+  - '.github/workflows/!(js-*)'

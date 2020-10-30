@@ -2,6 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 import moment from 'moment';
+import {ASAP} from 'downsample/methods/ASAP';
 
 import theme from 'app/utils/theme';
 import {getInterval} from 'app/components/charts/utils';
@@ -136,8 +137,8 @@ export function transformDeltaSpread(
 ) {
   const fromSeconds = from / 1000;
   const toSeconds = to / 1000;
-  const fromSubSecond = fromSeconds < 1;
-  const toSubSecond = toSeconds < 1;
+
+  const showDigits = from > 1000 || to > 1000 || from < 10 || to < 10; // Show digits consistently if either has them
 
   if (trendFunctionField === TrendFunctionField.USER_MISERY) {
     return (
@@ -151,9 +152,9 @@ export function transformDeltaSpread(
 
   return (
     <span>
-      <Duration seconds={fromSeconds} fixedDigits={fromSubSecond ? 0 : 1} abbreviation />
+      <Duration seconds={fromSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
       <StyledIconArrow direction="right" size="xs" />
-      <Duration seconds={toSeconds} fixedDigits={toSubSecond ? 0 : 1} abbreviation />
+      <Duration seconds={toSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
     </span>
   );
 }
@@ -322,11 +323,10 @@ export function transformValueDelta(
 
   const seconds = absoluteValue / 1000;
 
-  const isSubSecond = seconds < 1;
+  const fixedDigits = absoluteValue > 1000 || absoluteValue < 10 ? 1 : 0;
   return (
     <span>
-      <Duration seconds={seconds} fixedDigits={isSubSecond ? 0 : 1} abbreviation />{' '}
-      {changeLabel}
+      <Duration seconds={seconds} fixedDigits={fixedDigits} abbreviation /> {changeLabel}
     </span>
   );
 }
@@ -418,16 +418,20 @@ function getLimitTransactionItems(
   trendChangeType: TrendChangeType,
   confidenceLevel: ConfidenceLevel
 ) {
-  let limitQuery = `trend_percentage():<1 t_score():>${confidenceLevel.min}`;
-  limitQuery += confidenceLevel.max ? ` t_score():<=${confidenceLevel.max}` : '';
+  let limitQuery = `trend_percentage():<1 t_test():>${confidenceLevel.min}`;
+  limitQuery += confidenceLevel.max ? ` t_test():<=${confidenceLevel.max}` : '';
   if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery = `trend_percentage():>1 t_score():<-${confidenceLevel.min}`;
-    limitQuery += confidenceLevel.max ? ` t_score():>=-${confidenceLevel.max}` : '';
+    limitQuery = `trend_percentage():>1 t_test():<-${confidenceLevel.min}`;
+    limitQuery += confidenceLevel.max ? ` t_test():>=-${confidenceLevel.max}` : '';
   }
   limitQuery +=
-    ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';
+    ' percentage(count_range_2,count_range_1):>0.25 percentage(count_range_2,count_range_1):<4';
   return limitQuery;
 }
+
+export const smoothTrend = (data: [number, number][], resolution = 100) => {
+  return ASAP(data, resolution);
+};
 
 export const StyledIconArrow = styled(IconArrow)`
   margin: 0 ${space(1)};
