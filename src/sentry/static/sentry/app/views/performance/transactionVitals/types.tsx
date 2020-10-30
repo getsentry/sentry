@@ -12,7 +12,6 @@ export type Vital = {
   description: string;
   failureThreshold: number;
   type: ColumnType;
-  includeInSummary?: boolean;
 };
 
 export type VitalGroup = {
