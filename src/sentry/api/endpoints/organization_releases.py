@@ -131,7 +131,7 @@ def debounce_update_release_health_data(organization, project_ids):
 
 
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    @transaction_start("ReleaseSerializerWithProjects.get")
+    @transaction_start("OrganizationReleasesEndpoint.get")
     def get(self, request, organization):
         """
         List an Organization's Releases
@@ -248,7 +248,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             **paginator_kwargs
         )
 
-    @transaction_start("ReleaseSerializerWithProjects.post")
+    @transaction_start("OrganizationReleasesEndpoint.post")
     def post(self, request, organization):
         """
         Create a New Release for an Organization
