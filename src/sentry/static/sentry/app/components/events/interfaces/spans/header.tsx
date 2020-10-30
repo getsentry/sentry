@@ -606,6 +606,12 @@ const ViewHandleContainer = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
 `;
 
+const ViewHandleLine = styled('div')`
+  height: ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px;
+  width: 2px;
+  background-color: ${p => p.theme.gray800};
+`;
+
 const ViewHandle = styled('div')<{isDragging: boolean}>`
   position: absolute;
   background-color: ${p => p.theme.gray800};
@@ -613,7 +619,7 @@ const ViewHandle = styled('div')<{isDragging: boolean}>`
   width: 8px;
   height: ${VIEW_HANDLE_HEIGHT}px;
   bottom: 0;
-  left: -4px;
+  left: -3px;
 `;
 
 const Fog = styled('div')`
@@ -658,21 +664,7 @@ const Handle = ({
       left: toPercent(left),
     }}
   >
-    <svg
-      width={2}
-      height={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
-      fill="none"
-      style={{width: '1px', overflow: 'visible'}}
-    >
-      <line
-        x1="0"
-        x2="0"
-        y1="0"
-        y2={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
-        strokeWidth="2"
-        style={{stroke: '#302839'}}
-      />
-    </svg>
+    <ViewHandleLine />
     <ViewHandle
       data-ignore="true"
       onMouseDown={onMouseDown}
