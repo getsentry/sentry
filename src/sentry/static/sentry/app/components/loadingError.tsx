@@ -55,7 +55,7 @@ class LoadingError extends React.Component<Props> {
 export default LoadingError;
 
 const StyledAlert = styled(Alert)`
-  ${Panel} & {
+  ${/* sc-selector */ Panel} & {
     border-radius: 0;
     border-width: 1px 0;
   }
