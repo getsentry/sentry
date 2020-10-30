@@ -17,6 +17,7 @@ import EventView from 'app/utils/discover/eventView';
 import {Client} from 'app/api';
 import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
 import {IconArrow} from 'app/icons';
+import {Series, SeriesDataUnit} from 'app/types/echarts';
 
 import {
   TrendFunction,
@@ -432,6 +433,47 @@ function getLimitTransactionItems(
 export const smoothTrend = (data: [number, number][], resolution = 100) => {
   return ASAP(data, resolution);
 };
+
+export function transformEventStatsSmoothed(data?: Series[], seriesName?: string) {
+  let minValue = Number.MAX_SAFE_INTEGER;
+  let maxValue = 0;
+  if (!data) {
+    return {
+      maxValue,
+      minValue,
+      smoothedResults: undefined,
+    };
+  }
+  const currentData = data[0].data;
+  const resultData: SeriesDataUnit[] = [];
+
+  const smoothed = smoothTrend(currentData.map(({name, value}) => [Number(name), value]));
+
+  for (let i = 0; i < smoothed.length; i++) {
+    const point = smoothed[i] as any;
+    const value = point.y;
+    resultData.push({
+      name: point.x,
+      value,
+    });
+    if (!isNaN(value)) {
+      const rounded = Math.round(value);
+      minValue = Math.min(rounded, minValue);
+      maxValue = Math.max(rounded, maxValue);
+    }
+  }
+
+  return {
+    minValue,
+    maxValue,
+    smoothedResults: [
+      {
+        seriesName: seriesName || 'Current',
+        data: resultData,
+      },
+    ],
+  };
+}
 
 export const StyledIconArrow = styled(IconArrow)`
   margin: 0 ${space(1)};

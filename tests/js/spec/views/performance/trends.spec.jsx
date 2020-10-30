@@ -265,10 +265,16 @@ describe('Performance > Trends', function () {
     const firstTransaction = wrapper.find('TrendsListItem').first();
     const summaryLink = firstTransaction.find('ItemTransactionName');
 
-    expect(summaryLink.props().to.pathname).toEqual(
-      '/organizations/org-slug/performance/summary/'
+    expect(summaryLink.props().to).toEqual(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/performance/summary/',
+        query: expect.objectContaining({
+          project: 1,
+          display: 'trend',
+          trendDisplay: 'p50()',
+        }),
+      })
     );
-    expect(summaryLink.props().to.query.project).toEqual(1);
   });
 
   it('hide from list menu action modifies query', async function () {
