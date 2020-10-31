@@ -127,28 +127,29 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       integration => integration.status === 'active'
     );
 
-    const activeIntegrationsByProvider: {
-      [key: string]: GroupIntegration[];
-    } = activeIntegrations.reduce((acc, curr) => {
-      if (acc[curr.provider.key]) {
-        acc[curr.provider.key].push(curr);
+    const activeIntegrationsByProvider: Map<
+      string,
+      GroupIntegration[]
+    > = activeIntegrations.reduce((acc, curr) => {
+      let items = acc.get(curr.provider.key);
+
+      if (!!items) {
+        acc.set(curr.provider.key, [...items, curr]);
       } else {
-        acc[curr.provider.key] = [curr];
+        acc.set(curr.provider.key, [curr]);
       }
       return acc;
-    }, {});
+    }, new Map());
 
     return activeIntegrations.length
-      ? Object.keys(activeIntegrationsByProvider)
-          .sort((a, b) => a.localeCompare(b))
-          .map(provider => (
-            <ExternalIssueActions
-              key={provider}
-              configurations={activeIntegrationsByProvider[provider]}
-              group={group}
-              onChange={this.updateIntegrations.bind(this)}
-            />
-          ))
+      ? [...activeIntegrationsByProvider.entries()].map(([provider, configurations]) => (
+          <ExternalIssueActions
+            key={provider}
+            configurations={configurations}
+            group={group}
+            onChange={this.updateIntegrations.bind(this)}
+          />
+        ))
       : null;
   }
 
