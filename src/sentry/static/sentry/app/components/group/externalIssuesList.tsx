@@ -139,14 +139,16 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     }, {});
 
     return activeIntegrations.length
-      ? Object.entries(activeIntegrationsByProvider).map(([provider, configurations]) => (
-          <ExternalIssueActions
-            key={provider}
-            configurations={configurations}
-            group={group}
-            onChange={this.updateIntegrations.bind(this)}
-          />
-        ))
+      ? Object.keys(activeIntegrationsByProvider)
+          .sort((a, b) => a.localeCompare(b))
+          .map(provider => (
+            <ExternalIssueActions
+              key={provider}
+              configurations={activeIntegrationsByProvider[provider]}
+              group={group}
+              onChange={this.updateIntegrations.bind(this)}
+            />
+          ))
       : null;
   }
 
