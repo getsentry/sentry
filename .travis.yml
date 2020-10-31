@@ -256,7 +256,7 @@ matrix:
       before_install:
         - *base_install
         - *start_snuba
-        - docker pull us.gcr.io/sentryio/relay:latest # pull relay we'll run and kill it for each test
+        - docker pull us.gcr.io/sentryio/relay:nightly # pull relay we'll run and kill it for each test
         - docker ps -a
 
     - python: 2.7
