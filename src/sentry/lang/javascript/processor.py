@@ -697,7 +697,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # (i.e. node_modules)
                     if "/~/" in filename:
                         filename = "~/" + abs_path.split("/~/", 1)[-1]
-                    else:
+                    elif filename.match(/webpack:\/\/[\w-_.\/]+\//):
+                        # https://github.com/getsentry/sentry/issues/20745
+                        filename = /webpack:\/\/\w+\/([\w-_.\/]+)/.exec(filename)[1]
+                    else
                         filename = filename.split("webpack:///", 1)[-1]
 
                     # As noted above:
