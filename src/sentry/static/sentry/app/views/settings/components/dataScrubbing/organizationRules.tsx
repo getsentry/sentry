@@ -90,7 +90,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
 `;
 
@@ -98,7 +98,7 @@ const Wrapper = styled('div')<{isCollapsed?: boolean; contentHeight?: string}>`
   color: ${p => p.theme.gray400};
   background: ${p => p.theme.gray100};
   ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};
-  ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.borderDark}`};
+  ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.border}`};
   ${p =>
     !p.isCollapsed &&
     p.contentHeight &&

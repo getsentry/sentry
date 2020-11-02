@@ -17,7 +17,7 @@ const disabledStyles = (p: Props & {theme: Theme}) =>
   p.isDisabled &&
   css`
     background: ${p.isChecked || p.isIndeterminate ? p.theme.gray400 : p.theme.gray100};
-    border-color: ${p.theme.borderDark};
+    border-color: ${p.theme.border};
   `;
 
 const hoverStyles = (p: Props & {theme: Theme}) =>

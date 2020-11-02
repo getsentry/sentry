@@ -417,14 +417,14 @@ const BubbleWithMinWidth = styled(DropdownBubble)`
 
 const InputWrapper = styled('div')`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   align-items: center;
 `;
 
 const LabelWithPadding = styled('div')`
   background-color: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
   color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};

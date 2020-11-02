@@ -485,7 +485,7 @@ const TimeAxis = styled('div')`
   position: absolute;
   left: 0;
   bottom: 0;
-  border-top: 1px solid ${p => p.theme.borderDark};
+  border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.white};
   color: ${p => p.theme.gray500};
@@ -579,7 +579,7 @@ const HeaderContainer = styled('div')`
   top: 0;
   z-index: ${zIndex.minimapContainer};
   background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
 `;
 

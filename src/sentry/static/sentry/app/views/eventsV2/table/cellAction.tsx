@@ -403,7 +403,7 @@ const Menu = styled('div')`
 
 const MenuButtons = styled('div')`
   background: ${p => p.theme.white};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   overflow: hidden;
@@ -419,7 +419,7 @@ const MenuArrow = styled('span')`
     margin-top: -9px;
     &::before {
       border-width: 0 9px 9px 9px;
-      border-color: transparent transparent ${p => p.theme.borderLight} transparent;
+      border-color: transparent transparent ${p => p.theme.border} transparent;
     }
     &::after {
       top: 1px;
@@ -433,7 +433,7 @@ const MenuArrow = styled('span')`
     bottom: 0;
     &::before {
       border-width: 9px 9px 0 9px;
-      border-color: ${p => p.theme.borderLight} transparent transparent transparent;
+      border-color: ${p => p.theme.border} transparent transparent transparent;
     }
     &::after {
       bottom: 1px;
@@ -462,7 +462,7 @@ const ActionItem = styled('button')`
 
   outline: none;
   border: 0;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
 
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: left;
@@ -487,7 +487,7 @@ const MenuButton = styled('button')`
 
   background: rgba(255, 255, 255, 0.85);
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   cursor: pointer;
   outline: none;
 `;

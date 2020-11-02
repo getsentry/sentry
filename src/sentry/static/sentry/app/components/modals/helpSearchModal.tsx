@@ -35,7 +35,7 @@ const HelpSearchModal = ({
                 border-top-right-radius: 0;
                 position: initial;
                 box-shadow: none;
-                border-top: 1px solid ${theme.borderLight};
+                border-top: 1px solid ${theme.border};
               `}
           renderInput={({getInputProps}) => (
             <InputWrapper>

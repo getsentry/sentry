@@ -56,18 +56,6 @@ const colors = {
   pink300: '#FF99BC',
   pink400: '#E1567C',
   pink500: '#902D4C',
-
-  get borderLighter() {
-    return colors.gray100;
-  },
-
-  get borderLight() {
-    return colors.gray300;
-  },
-
-  get borderDark() {
-    return colors.gray400;
-  },
 } as const;
 
 const aliases = {
@@ -104,7 +92,12 @@ const aliases = {
   /**
    * Primary border color
    */
-  border: colors.gray200,
+  border: colors.gray400,
+
+  /**
+   * Inner borders, e.g. borders inside of a grid
+   */
+  innerBorder: colors.gray300,
 
   /**
    * A color that denotes a "success", or something good
@@ -126,6 +119,11 @@ const aliases = {
    * Indicates that something is "active" or "selected"
    */
   active: colors.pink300,
+
+  /**
+   * Inactive
+   */
+  inactive: colors.gray300,
 
   /**
    * Link color indicates that something is clickable
@@ -180,7 +178,7 @@ const alert = {
   muted: {
     background: colors.gray400,
     backgroundLight: colors.gray100,
-    border: colors.borderDark,
+    border: aliases.border,
     iconColor: 'inherit',
   },
   info: {

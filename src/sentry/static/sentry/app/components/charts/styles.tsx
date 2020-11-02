@@ -6,7 +6,7 @@ export const ChartControls = styled('div')`
   display: flex;
   justify-content: space-between;
   padding: ${space(1)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 export const SubHeading = styled('h3')`

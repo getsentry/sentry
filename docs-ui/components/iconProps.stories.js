@@ -132,7 +132,7 @@ const SwatchWrapper = styled('div')`
 `;
 
 const Swatches = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   padding: 24px;
 `;
 

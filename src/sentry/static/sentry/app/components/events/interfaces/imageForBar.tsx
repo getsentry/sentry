@@ -41,7 +41,7 @@ const Wrapper = styled('div')`
   justify-content: space-between;
   padding: ${space(0.5)} ${space(2)};
   background: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   font-weight: 700;
   code {
     color: ${p => p.theme.blue500};

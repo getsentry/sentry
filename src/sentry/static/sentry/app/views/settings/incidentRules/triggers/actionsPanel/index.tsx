@@ -388,7 +388,7 @@ const StyledPanelItem = styled(PanelItem)`
 const RuleRowContainer = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px ${p => p.theme.borderLight} solid;
+  border: 1px ${p => p.theme.border} solid;
 `;
 
 export default withOrganization(ActionsPanelWithSpace);

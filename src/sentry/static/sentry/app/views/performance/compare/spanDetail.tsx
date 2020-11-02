@@ -261,7 +261,7 @@ const RowSplitter = styled('div')`
   flex-direction: row;
 
   > * + * {
-    border-left: 1px solid ${p => p.theme.borderDark};
+    border-left: 1px solid ${p => p.theme.border};
   }
 `;
 

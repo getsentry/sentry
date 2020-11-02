@@ -171,7 +171,7 @@ export default ShareIssue;
 const UrlContainer = styled('div')`
   display: flex;
   align-items: stretch;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${space(0.5)};
 `;
 
@@ -211,7 +211,7 @@ const IndicatorDot = styled('span')<{isShared?: boolean}>`
   border-radius: 50%;
   width: 10px;
   height: 10px;
-  background: ${p => (p.isShared ? p.theme.green400 : p.theme.borderDark)};
+  background: ${p => (p.isShared ? p.theme.green400 : p.theme.border)};
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)<
@@ -227,17 +227,17 @@ const TextContainer = styled('div')`
   display: flex;
   flex: 1;
   background-color: transparent;
-  border-right: 1px solid ${p => p.theme.borderDark};
+  border-right: 1px solid ${p => p.theme.border};
   max-width: 288px;
 `;
 
 const ClipboardButton = styled(Button)`
   border-radius: 0;
-  border-right: 1px solid ${p => p.theme.borderDark};
+  border-right: 1px solid ${p => p.theme.border};
   height: 100%;
 
   &:hover {
-    border-right: 1px solid ${p => p.theme.borderDark};
+    border-right: 1px solid ${p => p.theme.border};
   }
 `;
 
