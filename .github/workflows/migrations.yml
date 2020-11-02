@@ -8,6 +8,7 @@ jobs:
   sql:
     name: Generate SQL
     runs-on: ubuntu-16.04
+    timeout-minutes: 8
 
     steps:
       - uses: actions/checkout@v1
@@ -34,6 +35,11 @@ jobs:
         id: setup
         with:
           python: 2
+          wait-for-postgres: true
+
+      - name: Apply migrations
+        run: |
+          sentry upgrade --noinput
 
       - name: Get changed migration files
         id: file
