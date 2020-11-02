@@ -72,7 +72,7 @@ describe('Threads', () => {
       />
     );
 
-    // no exceptions and stacktraces have been found
+    // no exceptions or stacktraces have been found
     expect(wrapper.find('Line').length).toBe(0);
   });
 
