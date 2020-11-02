@@ -40,6 +40,7 @@ class Activity(Model):
     UNMERGE_SOURCE = 19
     UNMERGE_DESTINATION = 20
     SET_RESOLVED_IN_PULL_REQUEST = 21
+    REPROCESS = 22
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -64,6 +65,8 @@ class Activity(Model):
         (NEW_PROCESSING_ISSUES, u"new_processing_issues"),
         (UNMERGE_SOURCE, u"unmerge_source"),
         (UNMERGE_DESTINATION, u"unmerge_destination"),
+        # The user has reprocessed the group, so events may have moved to new groups
+        (REPROCESS, u"reprocess"),
     )
 
     project = FlexibleForeignKey("sentry.Project")
@@ -72,7 +75,7 @@ class Activity(Model):
     type = BoundedPositiveIntegerField(choices=TYPE)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     datetime = models.DateTimeField(default=timezone.now)
     data = GzippedDictField(null=True)
 

@@ -68,6 +68,7 @@
     "css-loader": "^2.0.1",
     "diff": "4.0.2",
     "dompurify": "^2.0.7",
+    "downsample": "1.3.0",
     "echarts": "4.7.0",
     "echarts-for-react": "2.0.16",
     "emotion": "10.0.27",
@@ -127,7 +128,7 @@
     "svgo-loader": "^2.1.0",
     "typescript": "^4.0",
     "u2f-api": "1.0.10",
-    "webpack": "4.42.1",
+    "webpack": "^4.44.2",
     "webpack-cli": "3.3.11",
     "webpack-fix-style-only-entries": "^0.2.0",
     "wink-jaro-distance": "^2.0.0",
@@ -135,7 +136,7 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.2.0",
-    "@pmmmwh/react-refresh-webpack-plugin": "^0.3.1",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.4.2",
     "@sentry/node": "5.27.0-beta.1",
     "@size-limit/preset-small-lib": "^4.5.6",
     "@storybook/addon-a11y": "^5.3.3",
@@ -168,7 +169,7 @@
     "object.fromentries": "^2.0.0",
     "openapi-examples-validator": "^4.0.0",
     "prettier": "2.1.2",
-    "react-refresh": "^0.8.2",
+    "react-refresh": "^0.9.0",
     "react-test-renderer": "16.12.0",
     "size-limit": "^4.5.6",
     "source-map-loader": "^0.2.4",
@@ -212,7 +213,7 @@
     "validate-api-examples": "openapi-examples-validator ./api-docs/openapi.json --no-additional-properties"
   },
   "volta": {
-    "node": "10.21.0",
-    "yarn": "1.22.4"
+    "node": "12.19.0",
+    "yarn": "1.22.5"
   }
 }

@@ -2,11 +2,6 @@
 
 # TODO: There are some meta files that we potentially could ignore for both front/backend,
 # as well as some configuration files that should trigger both
-
-# For now we can infer that "backend == !frontend"
-# We do this because frontend sources are a bit more well defined than backend and
-# the scope is a bit smaller. e.g. by simply doing a filter on python files (*.py)
-# would miss the django templates
 frontend:
   - '**/*.[tj]{s,sx}'
   - '**/*.less'
@@ -17,3 +12,12 @@ frontend:
   - 'docs-ui/**'
   - 'src/sentry/static/sentry/**'
   - 'tests/js/**'
+  - '.github/workflows/js-*.yml'
+
+backend:
+  - '**/*.py'
+  - 'src/sentry/!(static)/**'
+  - 'requirements-*.txt'
+  - 'migrations_lockfile.txt'
+  - '.python-version'
+  - '.github/workflows/!(js-*)'

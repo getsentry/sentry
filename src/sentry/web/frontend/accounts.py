@@ -17,12 +17,16 @@ from django.utils.translation import ugettext as _
 from sentry.models import UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 from sentry.security import capture_security_activity
 from sentry.signals import email_verified
-from sentry.web.decorators import login_required, signed_auth_required
+from sentry.web.decorators import login_required, signed_auth_required, set_referrer_policy
 from sentry.web.forms.accounts import RecoverPasswordForm, ChangePasswordRecoverForm
 from sentry.web.helpers import render_to_response
 from sentry.utils import auth
 
 logger = logging.getLogger("sentry.accounts")
+
+
+def get_template(mode, name):
+    return u"sentry/account/{}/{}.html".format(mode, name)
 
 
 @login_required
@@ -36,7 +40,7 @@ def expired(request, user):
     password_hash.send_email(request)
 
     context = {"email": password_hash.user.email}
-    return render_to_response("sentry/account/recover/expired.html", context, request)
+    return render_to_response(get_template("recover", "expired"), context, request)
 
 
 def recover(request):
@@ -76,20 +80,19 @@ def recover(request):
 
             logger.info("recover.sent", extra=extra)
 
-        tpl = "sentry/account/recover/sent.html"
         context = {"email": email}
 
-        return render_to_response(tpl, context, request)
+        return render_to_response(get_template("recover", "sent"), context, request)
 
     if form._errors:
         logger.warning("recover.error", extra=extra)
 
-    tpl = "sentry/account/recover/index.html"
     context = {"form": form}
 
-    return render_to_response(tpl, context, request)
+    return render_to_response(get_template("recover", "index"), context, request)
 
 
+@set_referrer_policy("strict-origin-when-cross-origin")
 def recover_confirm(request, user_id, hash, mode="recover"):
     try:
         password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
@@ -99,7 +102,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
         user = password_hash.user
 
     except LostPasswordHash.DoesNotExist:
-        return render_to_response(u"sentry/account/{}/{}.html".format(mode, "failure"), {}, request)
+        return render_to_response(get_template(mode, "failure"), {}, request)
 
     if request.method == "POST":
         form = ChangePasswordRecoverForm(request.POST)
@@ -131,9 +134,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
     else:
         form = ChangePasswordRecoverForm()
 
-    return render_to_response(
-        u"sentry/account/{}/{}.html".format(mode, "confirm"), {"form": form}, request
-    )
+    return render_to_response(get_template(mode, "confirm"), {"form": form}, request)
 
 
 # Set password variation of password recovery
@@ -189,6 +190,7 @@ def start_confirm_email(request):
     return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
 
 
+@set_referrer_policy("strict-origin-when-cross-origin")
 def confirm_email(request, user_id, hash):
     msg = _("Thanks for confirming your email")
     level = messages.SUCCESS
