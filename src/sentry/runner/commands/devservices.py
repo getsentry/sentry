@@ -40,7 +40,7 @@ def get_local_image_digest(low_level_client, repo, tag):
     return digest[i + 1 :]
 
 
-def get_docker_registry_token(*, registry="default", repo):
+def get_docker_registry_token(repo, registry="default"):
     resp = requests.get(
         {
             "default": "https://auth.docker.io/token?service=registry.docker.io",
@@ -54,7 +54,7 @@ def get_docker_registry_token(*, registry="default", repo):
     return resp.json()["token"]
 
 
-def get_remote_image_digest(*, registry="default", repo, tag):
+def get_remote_image_digest(repo, tag, registry="default"):
     registry = "default"
     if "/" not in repo:
         # If it's indeed the default (official) registry,
@@ -67,7 +67,7 @@ def get_remote_image_digest(*, registry="default", repo, tag):
             registry = tokens[0]
             repo = "/".join(tokens[1:])
 
-    registry_token = get_docker_registry_token(registry=registry, repo=repo)
+    registry_token = get_docker_registry_token(repo, registry)
     resp = requests.head(
         {"default": "https://index.docker.io/v2/", "us.gcr.io": "https://us.gcr.io/v2/"}[registry]
         + "{repo}/manifests/{tag}".format(repo=repo, tag=tag),
@@ -326,7 +326,7 @@ def _start_service(
         except NotFound:
             pass
 
-        remote_image_digest = get_remote_image_digest(repo=repo, tag=tag)
+        remote_image_digest = get_remote_image_digest(repo, tag)
         if local_image_digest != remote_image_digest:
             click.secho(
                 "> Pulling '%s' %s -> %s"
