@@ -22,19 +22,19 @@ logger = logging.getLogger(__name__)
 MAX_POLL_ITERATIONS = 100
 
 
-@pytest.fixture(params=["transaction", "event"])
-def get_test_message(request, default_project):
+@pytest.fixture
+def get_test_message(default_project):
     """
     creates a test message to be inserted in a kafka queue
     """
 
-    def inner(project=default_project):
+    def inner(type, project=default_project):
         now = datetime.datetime.now()
         # the event id should be 32 digits
         event_id = "{}".format(now.strftime("000000000000%Y%m%d%H%M%S%f"))
         message_text = "some message {}".format(event_id)
         project_id = project.id  # must match the project id set up by the test fixtures
-        if request.param == "transaction":
+        if type == "transaction":
             event = {
                 "type": "transaction",
                 "timestamp": now.isoformat(),
@@ -52,8 +52,10 @@ def get_test_message(request, default_project):
                     }
                 },
             }
-        elif request.param == "event":
+        elif type == "event":
             event = {"message": message_text, "extra": {"the_id": event_id}, "event_id": event_id}
+        else:
+            raise ValueError(type)
 
         em = EventManager(event, project=project)
         em.normalize()
@@ -83,11 +85,11 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     admin.delete_topic(topic_event_name)
     producer = kafka_producer(settings)
 
-    event_ids = set()
-    for _ in range(3):
-        message, event_id = get_test_message()
-        producer.produce(topic_event_name, message)
-        event_ids.add(event_id)
+    message, event_id = get_test_message(type="event")
+    producer.produce(topic_event_name, message)
+
+    transaction_message, transaction_event_id = get_test_message(type="transaction")
+    producer.produce(topic_event_name, transaction_message)
 
     with override_settings(KAFKA_CONSUMER_AUTO_CREATE_TOPICS=True):
         consumer = get_ingest_consumer(
@@ -101,22 +103,24 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
-            if eventstore.get_event_by_id(default_project.id, event_id):
+            transaction_message = eventstore.get_event_by_id(
+                default_project.id, transaction_event_id
+            )
+            message = eventstore.get_event_by_id(default_project.id, event_id)
+
+            if transaction_message and message:
                 break
 
             consumer._run_once()
             i += 1
 
     # check that we got the messages
-    for event_id in event_ids:
-        message = eventstore.get_event_by_id(default_project.id, event_id)
-        assert message is not None
-        assert message.data["event_id"] == event_id
-        if message.data["type"] == "transaction":
-            assert message.data["spans"] == []
-            assert message.data["contexts"]["trace"]
-        else:
-            assert message.data["extra"]["the_id"] == event_id
+    assert message.data["event_id"] == event_id
+    assert message.data["extra"]["the_id"] == event_id
+
+    assert transaction_message.data["event_id"] == transaction_event_id
+    assert transaction_message.data["spans"] == []
+    assert transaction_message.data["contexts"]["trace"]
 
 
 def test_ingest_consumer_fails_when_not_autocreating_topics(

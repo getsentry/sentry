@@ -1,12 +1,16 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
+import space from 'app/styles/space';
 import {Group, Organization} from 'app/types';
 import {t, tct} from 'app/locale';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import FeatureBadge from 'app/components/featureBadge';
-import Alert from 'app/components/alert';
 import NumberField from 'app/components/forms/numberField';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
+import Alert from 'app/components/alert';
 import ApiForm from 'app/components/forms/apiForm';
 import ExternalLink from 'app/components/links/externalLink';
 
@@ -39,60 +43,56 @@ class ReprocessingForm extends React.Component<Props> {
         </Header>
         <Body>
           <Alert type="warning">
-            {t(
-              'Reprocessing is a preview feature. Please carefully review the limitations and implications!'
-            )}
+            {t('This is a preview feature that’s currently under development.')}
           </Alert>
-
           <p>
             {t(
-              'You can choose to reprocess issues to apply new debug files and updated grouping configuration. While reprocessing is in preview, keep the following limitations in mind:'
+              'Reprocessing applies any new debug files or grouping configuration to an Issue. Before you give it a try, you should probably consider these impacts:'
             )}
           </p>
 
-          <ul>
-            <li>
+          <StyledList>
+            <ListItem>
               {tct(
-                'Sentry [strong:creates new events and deletes this issue.] This may temporarily affect event counts in Discover and the Issue Stream.',
+                '[strong:Creates new events and deletes the old issue.] This may temporarily affect event counts in both Discover and the Issue Stream.',
                 {strong: <strong />}
               )}
-            </li>
-            <li>
+            </ListItem>
+            <ListItem>
               {tct(
-                'Depending on the number of events, [strong:reprocessing can take several minutes.] Once started, Sentry opens a view on the Issue Stream that shows the reprocessed issues.',
+                '[strong:Reprocessing may take a while.] See progress as it happens in the Issue Stream.',
                 {strong: <strong />}
               )}
-            </li>
-            <li>
+            </ListItem>
+            <ListItem>
+              {' '}
               {tct(
-                'To reprocess Minidump crash reports, ensure [strong:storing native crash reports is enabled.] Attachment storage is required for this.',
+                '[strong:Store Native crash reports to reprocess Minidump crash reports.] Note that this requires attachment storage.',
                 {strong: <strong />}
               )}
-            </li>
-            <li>
+            </ListItem>
+            <ListItem>
               {tct(
-                "Reprocessing one or multiple events [strong:counts against your organization's quota]. Rate limits and spike protection do not apply.",
+                '[strong:Reprocessed events count towards your organization’s quota]. Rate limits and spike protection don’t apply here.',
                 {strong: <strong />}
               )}
-            </li>
-            <li>
+            </ListItem>
+            <ListItem>
+              {tct('Wait one hour before attempting to reprocess missing debug files.', {
+                strong: <strong />,
+              })}
+            </ListItem>
+            <ListItem>
               {tct(
-                'If you have uploaded missing debug files, [strong:please wait at least one hour before attempting to reprocess.]',
-                {strong: <strong />}
-              )}
-            </li>
-            <li>
-              {tct(
-                'Reprocessed events will not trigger issue alerts, and reprocessed events will not be subject to [link:data forwarding].',
+                'Reprocessed events will not trigger issue alerts, and reprocessed events are not subject to [link:data forwarding].',
                 {
                   fwd: (
                     <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/data-management/data-forwarding/" />
                   ),
                 }
               )}
-            </li>
-          </ul>
-
+            </ListItem>
+          </StyledList>
           <ApiForm
             apiEndpoint={this.getEndpoint()}
             apiMethod="POST"
@@ -106,9 +106,9 @@ class ReprocessingForm extends React.Component<Props> {
           >
             <NumberField
               name="maxEvents"
-              label={t('Limit Number of Events')}
+              label={t('Select number of events to be processed')}
               help={t(
-                'Constrain reprocessing to a maximum number of events in this issue. The latest events will be reprocessed. Defaults to all events.'
+                'The default is to reprocess all events, but you can limit the number of events reprocessed in this Issue. If you set a limit, we will reprocess your most recent events.'
               )}
               placeholder={t('All events')}
               min={1}
@@ -119,5 +119,9 @@ class ReprocessingForm extends React.Component<Props> {
     );
   }
 }
+
+const StyledList = styled(List)`
+  margin-bottom: ${space(4)};
+`;
 
 export default ReprocessingForm;

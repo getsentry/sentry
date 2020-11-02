@@ -22,8 +22,10 @@ import Tooltip from 'app/components/tooltip';
 import Badge from 'app/components/badge';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import {getMessage} from 'app/utils/events';
 
 import GroupActions from './actions';
+import UnhandledTag, {TagAndMessageWrapper} from './unhandledTag';
 
 const TAB = {
   DETAILS: 'details',
@@ -62,19 +64,6 @@ class GroupHeader extends React.Component {
     });
   }
 
-  getMessage() {
-    const data = this.props.group;
-    const metadata = data.metadata;
-    switch (data.type) {
-      case 'error':
-        return metadata.value;
-      case 'csp':
-        return metadata.message;
-      default:
-        return this.props.group.culprit || '';
-    }
-  }
-
   render() {
     const {project, group, currentTab, baseUrl} = this.props;
     const {organization, location} = this.context;
@@ -96,7 +85,7 @@ class GroupHeader extends React.Component {
 
     const {memberList} = this.state;
     const orgId = organization.slug;
-    const message = this.getMessage();
+    const message = getMessage(group);
 
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
@@ -114,33 +103,35 @@ class GroupHeader extends React.Component {
             <h3>
               <EventOrGroupTitle hasGuideAnchor data={group} />
             </h3>
-
-            <EventMessage
-              message={message}
-              level={group.level}
-              annotations={
-                <React.Fragment>
-                  {group.logger && (
-                    <EventAnnotationWithSpace>
-                      <Link
-                        to={{
-                          pathname: `/organizations/${orgId}/issues/`,
-                          query: {query: 'logger:' + group.logger},
-                        }}
-                      >
-                        {group.logger}
-                      </Link>
-                    </EventAnnotationWithSpace>
-                  )}
-                  {group.annotations.map((annotation, i) => (
-                    <EventAnnotationWithSpace
-                      key={i}
-                      dangerouslySetInnerHTML={{__html: annotation}}
-                    />
-                  ))}
-                </React.Fragment>
-              }
-            />
+            <StyledTagAndMessageWrapper>
+              {group.isUnhandled && <UnhandledTag />}
+              <EventMessage
+                message={message}
+                level={group.level}
+                annotations={
+                  <React.Fragment>
+                    {group.logger && (
+                      <EventAnnotationWithSpace>
+                        <Link
+                          to={{
+                            pathname: `/organizations/${orgId}/issues/`,
+                            query: {query: 'logger:' + group.logger},
+                          }}
+                        >
+                          {group.logger}
+                        </Link>
+                      </EventAnnotationWithSpace>
+                    )}
+                    {group.annotations.map((annotation, i) => (
+                      <EventAnnotationWithSpace
+                        key={i}
+                        dangerouslySetInnerHTML={{__html: annotation}}
+                      />
+                    ))}
+                  </React.Fragment>
+                }
+              />
+            </StyledTagAndMessageWrapper>
           </div>
 
           <div className="col-sm-5 stats">
@@ -255,6 +246,12 @@ class GroupHeader extends React.Component {
     );
   }
 }
+
+const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-bottom: ${space(2)};
+  }
+`;
 
 const StyledProjectBadge = styled(ProjectBadge)`
   flex-shrink: 0;

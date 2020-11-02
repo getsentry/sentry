@@ -252,6 +252,7 @@ export const getCategories = (features: IntegrationFeature[]): string[] => {
       case 'actionable notification':
         return 'notification action';
       case 'issue basic':
+      case 'issue link':
       case 'issue sync':
         return 'project management';
       case 'commits':
@@ -322,5 +323,14 @@ export const convertIntegrationTypeToSnakeCase = (
       return 'document';
     default:
       return type;
+  }
+};
+
+export const safeGetQsParam = (param: string) => {
+  try {
+    const query = qs.parse(window.location.search) || {};
+    return query[param];
+  } catch {
+    return undefined;
   }
 };

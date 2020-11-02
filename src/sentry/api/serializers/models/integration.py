@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import six
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
 
@@ -35,8 +36,11 @@ class IntegrationConfigSerializer(IntegrationSerializer):
     def __init__(self, organization_id=None):
         self.organization_id = organization_id
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, include_config=True):
         data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
+
+        if not include_config:
+            return data
 
         data.update({"configOrganization": []})
 
@@ -54,7 +58,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, include_config=True):
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
@@ -63,7 +67,12 @@ class OrganizationIntegrationSerializer(Serializer):
             objects=obj.integration,
             user=user,
             serializer=IntegrationConfigSerializer(obj.organization.id),
+            include_config=include_config,
         )
+
+        # TODO: skip adding configData if include_config is False
+        # we need to wait until the Slack migration is complete first
+        # because we have a dependency on configData in the integration directory
         try:
             installation = obj.integration.get_installation(obj.organization_id)
         except NotImplementedError:
@@ -88,7 +97,7 @@ class IntegrationProviderSerializer(Serializer):
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None
 
-        return {
+        output = {
             "key": obj.key,
             "slug": obj.key,
             "name": obj.name,
@@ -101,6 +110,17 @@ class IntegrationProviderSerializer(Serializer):
                 **obj.setup_dialog_config
             ),
         }
+
+        # until we GA the stack trace linking feature to everyone it's easier to
+        # control whether we show the feature this way
+        if obj.has_stacktrace_linking:
+            feature_flag_name = "organizations:integrations-stacktrace-link"
+            has_stacktrace_linking = features.has(feature_flag_name, organization, actor=user)
+            if has_stacktrace_linking:
+                # only putting the field in if it's true to minimize test changes
+                output["hasStacktraceLinking"] = True
+
+        return output
 
 
 class IntegrationIssueConfigSerializer(IntegrationSerializer):

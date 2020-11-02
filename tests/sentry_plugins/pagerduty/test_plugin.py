@@ -78,7 +78,7 @@ class PagerDutyPluginTest(PluginTestCase):
             "event_type": "trigger",
             "contexts": [
                 {
-                    "text": "Issue Details",
+                    "text": "View Sentry Issue Details",
                     "href": "http://example.com/organizations/baz/issues/{}/?referrer=pagerduty_plugin".format(
                         group.id
                     ),

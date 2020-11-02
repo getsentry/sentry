@@ -35,31 +35,42 @@ const ReleaseChartControls = ({
   hasHealthData,
   hasDiscover,
 }: Props) => {
+  const noHealthDataTooltip = !hasHealthData
+    ? t('This view is only available with release health data.')
+    : undefined;
+  const noDiscoverTooltip = !hasDiscover
+    ? t('This view is only available with Discover feature.')
+    : undefined;
   const yAxisOptions: SelectValue<YAxis>[] = [
     {
       value: YAxis.SESSIONS,
       label: t('Session Count'),
       disabled: !hasHealthData,
+      tooltip: noHealthDataTooltip,
     },
     {
       value: YAxis.SESSION_DURATION,
       label: t('Session Duration'),
       disabled: !hasHealthData,
+      tooltip: noHealthDataTooltip,
     },
     {
       value: YAxis.USERS,
       label: t('User Count'),
       disabled: !hasHealthData,
+      tooltip: noHealthDataTooltip,
     },
     {
       value: YAxis.CRASH_FREE,
       label: t('Crash Free Rate'),
       disabled: !hasHealthData,
+      tooltip: noHealthDataTooltip,
     },
     {
       value: YAxis.EVENTS,
       label: t('Event Count'),
       disabled: !hasDiscover,
+      tooltip: noDiscoverTooltip,
     },
   ];
 
@@ -70,7 +81,7 @@ const ReleaseChartControls = ({
       case YAxis.CRASH_FREE:
         return t('Average Rate');
       case YAxis.SESSION_DURATION:
-        return t('Average Duration');
+        return t('Median Duration');
       case YAxis.EVENTS:
         return t('Total Events');
       case YAxis.SESSIONS:

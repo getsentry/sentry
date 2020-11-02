@@ -9,7 +9,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import withOrganization from 'app/utils/withOrganization';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -20,14 +19,20 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 
+import ProjectTrendsDiscoverQuery from './projectTrendsDiscoverQuery';
 import {
   TrendChangeType,
   TrendFunctionField,
   TrendView,
-  ProjectTrendsDataEvents,
   NormalizedProjectTrend,
 } from './types';
-import {modifyTrendView, normalizeTrends, trendToColor, getTrendProjectId} from './utils';
+import {
+  modifyTrendView,
+  normalizeTrends,
+  trendToColor,
+  getTrendProjectId,
+  getCurrentTrendFunction,
+} from './utils';
 import {HeaderTitleLegend} from '../styles';
 
 type Props = {
@@ -127,17 +132,17 @@ function ChangedProjects(props: Props) {
   modifyTrendView(projectTrendView, location, trendChangeType, true);
 
   return (
-    <DiscoverQuery
+    <ProjectTrendsDiscoverQuery
       eventView={projectTrendView}
       orgSlug={organization.slug}
       location={location}
       trendChangeType={trendChangeType}
       limit={1}
     >
-      {({isLoading, tableData}) => {
-        const eventsTrendsData = (tableData as unknown) as ProjectTrendsDataEvents;
-        const trends = eventsTrendsData?.data || [];
-        const events = normalizeTrends(trends);
+      {({isLoading, projectTrendsData}) => {
+        const trends = projectTrendsData?.data || [];
+        const trendFunction = getCurrentTrendFunction(location);
+        const events = normalizeTrends(trends, trendFunction);
 
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
         const projectTrend = transactionsList[0];
@@ -189,7 +194,7 @@ function ChangedProjects(props: Props) {
           </TrendsProjectPanel>
         );
       }}
-    </DiscoverQuery>
+    </ProjectTrendsDiscoverQuery>
   );
 }
 
@@ -228,7 +233,7 @@ function getVisualization(
   trendChangeType: TrendChangeType,
   projectTrend: NormalizedProjectTrend
 ) {
-  const color = trendToColor[trendChangeType];
+  const color = trendToColor[trendChangeType].default;
 
   const trendPercent = formatPercentage(
     projectTrend.percentage_aggregate_range_2_aggregate_range_1 - 1,

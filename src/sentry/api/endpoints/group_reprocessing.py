@@ -2,23 +2,11 @@ from __future__ import absolute_import
 
 
 from sentry import features
-from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
-from sentry.models import Group
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.tasks.reprocessing2 import reprocess_group
 
 
-@scenario("ReprocessGroup")
-def reprocess_group_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method="POST", path="/issues/%s/reprocessing/" % group.id)
-
-
 class GroupReprocessingEndpoint(GroupEndpoint):
-    doc_section = DocSection.EVENTS
-
-    @attach_scenarios([reprocess_group_scenario])
     def post(self, request, group):
         """
         Reprocess a group
@@ -46,5 +34,10 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         else:
             max_events = None
 
-        reprocess_group.delay(project_id=group.project_id, group_id=group.id, max_events=max_events)
+        reprocess_group.delay(
+            project_id=group.project_id,
+            group_id=group.id,
+            max_events=max_events,
+            acting_user_id=getattr(request.user, "id", None),
+        )
         return self.respond(status=200)

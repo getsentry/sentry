@@ -45,7 +45,7 @@ class GetChannelIdWorkspaceTest(TestCase):
         self.add_list_response(
             "users",
             [
-                {"name": "morty", "id": "m", "profile": {"display_name": "Morty"}},
+                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
                 {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
                 {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
             ],
@@ -66,28 +66,28 @@ class GetChannelIdWorkspaceTest(TestCase):
 
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
         assert (expected_prefix, expected_id, timed_out) == get_channel_id(
-            self.organization, self.integration.id, channel
+            self.organization, self.integration, channel
         )
 
     def test_valid_channel_selected(self):
-        self.run_valid_test("#my-channel", CHANNEL_PREFIX, "m-c", False)
+        self.run_valid_test("#My-Channel", CHANNEL_PREFIX, "m-c", False)
 
     def test_valid_private_channel_selected(self):
         self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
 
     def test_valid_member_selected(self):
-        self.run_valid_test("@morty", MEMBER_PREFIX, "m", False)
+        self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
     def test_valid_member_selected_display_name(self):
         self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
 
     def test_invalid_member_selected_display_name(self):
         with pytest.raises(DuplicateDisplayNameError):
-            get_channel_id(self.organization, self.integration.id, "@Morty")
+            get_channel_id(self.organization, self.integration, "@Morty")
 
     def test_invalid_channel_selected(self):
-        assert get_channel_id(self.organization, self.integration.id, "#fake-channel")[1] is None
-        assert get_channel_id(self.organization, self.integration.id, "@fake-user")[1] is None
+        assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
+        assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
 
 
 class GetChannelIdBotTest(GetChannelIdWorkspaceTest):
@@ -117,7 +117,7 @@ class GetChannelIdBotTest(GetChannelIdWorkspaceTest):
         self.add_list_response(
             "users",
             [
-                {"name": "morty", "id": "m", "profile": {"display_name": "Morty"}},
+                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
                 {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
                 {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
             ],
@@ -283,3 +283,18 @@ class BuildIncidentAttachmentTest(TestCase):
             "fallback": u"[{}] {}".format(self.project.slug, event.title),
             "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
+
+    def test_build_group_attachment_color_no_event_error_fallback(self):
+        group_with_no_events = self.create_group(project=self.project)
+        assert build_group_attachment(group_with_no_events)["color"] == "#E03E2F"
+
+    def test_build_group_attachment_color_unxpected_level_error_fallback(self):
+        unexpected_level_event = self.store_event(
+            data={"level": "trace"}, project_id=self.project.id, assert_no_errors=False
+        )
+        assert build_group_attachment(unexpected_level_event.group)["color"] == "#E03E2F"
+
+    def test_build_group_attachment_color_warning(self):
+        warning_event = self.store_event(data={"level": "warning"}, project_id=self.project.id)
+        assert build_group_attachment(warning_event.group)["color"] == "#FFC227"
+        assert build_group_attachment(warning_event.group, warning_event)["color"] == "#FFC227"

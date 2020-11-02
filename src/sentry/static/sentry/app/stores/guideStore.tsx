@@ -188,8 +188,12 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     const userDateJoined = new Date(user?.dateJoined);
 
     if (!forceShow) {
-      guideOptions = guideOptions.filter(({seen}) =>
-        seen ? false : user?.isSuperuser ? true : userDateJoined > assistantThreshold
+      guideOptions = guideOptions.filter(({guide, seen}) =>
+        seen
+          ? false
+          : user?.isSuperuser || guide === 'dynamic_counts'
+          ? true
+          : userDateJoined > assistantThreshold
       );
     }
 

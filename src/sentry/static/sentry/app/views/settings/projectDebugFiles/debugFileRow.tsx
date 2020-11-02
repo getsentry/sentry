@@ -5,12 +5,13 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
-import Tag from 'app/components/tag';
+import Tag from 'app/components/tagDeprecated';
 import FileSize from 'app/components/fileSize';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {IconDelete, IconClock, IconDownload} from 'app/icons';
 import Access from 'app/components/acl/access';
+import Role from 'app/components/acl/role';
 import ButtonBar from 'app/components/buttonBar';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
@@ -21,10 +22,17 @@ type Props = {
   debugFile: DebugFile;
   showDetails: boolean;
   downloadUrl: string;
+  downloadRole: string;
   onDelete: (id: string) => void;
 };
 
-const DebugFileRow = ({debugFile, showDetails, downloadUrl, onDelete}: Props) => {
+const DebugFileRow = ({
+  debugFile,
+  showDetails,
+  downloadUrl,
+  downloadRole,
+  onDelete,
+}: Props) => {
   const {
     id,
     data,
@@ -85,18 +93,23 @@ const DebugFileRow = ({debugFile, showDetails, downloadUrl, onDelete}: Props) =>
       </Column>
       <RightColumn>
         <ButtonBar gap={0.5}>
-          <Access access={['project:releases']}>
-            {({hasAccess}) => (
-              <Button
-                size="xsmall"
-                icon={<IconDownload size="xs" />}
-                href={downloadUrl}
-                disabled={!hasAccess}
+          <Role role={downloadRole}>
+            {({hasRole}) => (
+              <Tooltip
+                disabled={hasRole}
+                title={t('You do not have permission to download debug files.')}
               >
-                {t('Download')}
-              </Button>
+                <Button
+                  size="xsmall"
+                  icon={<IconDownload size="xs" />}
+                  href={downloadUrl}
+                  disabled={!hasRole}
+                >
+                  {t('Download')}
+                </Button>
+              </Tooltip>
             )}
-          </Access>
+          </Role>
           <Access access={['project:write']}>
             {({hasAccess}) => (
               <Tooltip

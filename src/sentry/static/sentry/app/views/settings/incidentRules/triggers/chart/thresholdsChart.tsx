@@ -33,7 +33,7 @@ type State = {
 const CHART_GRID = {
   left: space(1),
   right: space(1),
-  top: space(2),
+  top: space(4),
   bottom: space(1),
 };
 
@@ -143,7 +143,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     type: 'alertThreshold' | 'resolveThreshold',
     isResolution: boolean
   ) => {
-    const {thresholdType, resolveThreshold} = this.props;
+    const {thresholdType, resolveThreshold, maxValue} = this.props;
     const position =
       type === 'alertThreshold'
         ? this.getChartPixelForThreshold(trigger[type])
@@ -161,6 +161,12 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
     const yAxisPixelPosition = this.chartRef.convertToPixel({yAxisIndex: 0}, '0');
     const yAxisPosition = typeof yAxisPixelPosition === 'number' ? yAxisPixelPosition : 0;
+    // As the yAxis gets larger we want to start our line/area further to the right
+    // Handle case where the graph max is 1 and includes decimals
+    const yAxisMax = Math.max(maxValue ?? 1, this.state.yAxisMax ?? 1);
+    const yAxisSize = 15 + (yAxisMax <= 1 ? 15 : `${yAxisMax ?? ''}`.length * 8);
+    // Distance from the top of the chart to save for the legend
+    const legendPadding = 20;
 
     const isCritical = trigger.label === 'critical';
     const LINE_STYLE = {
@@ -176,7 +182,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         // Resolution is considered "off" if it is -1
         invisible: position === null,
         draggable: false,
-        position: [0, position],
+        position: [yAxisSize, position],
         shape: {y1: 1, y2: 1, x1: 0, x2: this.state.width},
         style: LINE_STYLE,
       },
@@ -190,11 +196,16 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
           type: 'rect',
           draggable: false,
 
-          //
-          position: isResolution !== isInverted ? [0, position + 1] : [0, 0],
+          position:
+            isResolution !== isInverted
+              ? [yAxisSize, position + 1]
+              : [yAxisSize, legendPadding],
           shape: {
             width: this.state.width,
-            height: isResolution !== isInverted ? yAxisPosition - position : position,
+            height:
+              isResolution !== isInverted
+                ? yAxisPosition - position
+                : position - legendPadding,
           },
 
           style: {
@@ -224,6 +235,30 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       data: eventData.slice(0, -1),
     }));
 
+    // Disable all lines by default but the 1st one
+    const selected: Record<string, boolean> = dataWithoutRecentBucket.reduce(
+      (acc, {seriesName}, index) => {
+        acc[seriesName] = index === 0;
+        return acc;
+      },
+      {}
+    );
+    const legend = {
+      right: 10,
+      top: 0,
+      icon: 'circle',
+      itemHeight: 8,
+      itemWidth: 8,
+      itemGap: 12,
+      align: 'left',
+      textStyle: {
+        verticalAlign: 'top',
+        fontSize: 11,
+        fontFamily: 'Rubik',
+      },
+      selected,
+    };
+
     return (
       <LineChart
         isGroupedByDate
@@ -234,6 +269,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         yAxis={{
           max: this.state.yAxisMax,
         }}
+        legend={legend}
         graphic={Graphic({
           elements: flatten(
             triggers.map((trigger: Trigger) => [

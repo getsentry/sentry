@@ -1750,6 +1750,15 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
+            <Route
+              path="/organizations/:orgId/performance/summary/vitals/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "PerformanceTransactionVitals" */ 'app/views/performance/transactionVitals'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
           </Route>
           <Route
             path="/organizations/:orgId/performance/:eventSlug/"

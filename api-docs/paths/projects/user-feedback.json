@@ -99,32 +99,34 @@
             "properties": {
               "event_id": {
                 "type": "string",
-                "description": "The event ID.",
-                "example": "14bad9a2e3774046977a21440ddb39b2"
+                "description": "The event ID. This can be retrieved from the [beforeSend callback](https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-beforesend)."
               },
               "name": {
                 "type": "string",
-                "description": "User's name.",
-                "example": "Jane Smith"
+                "description": "User's name."
               },
               "email": {
                 "type": "string",
-                "description": "User's email address.",
-                "example": "jane@example.com"
+                "description": "User's email address."
               },
               "comments": {
                 "type": "string",
-                "description": "Comments supplied by user.",
-                "example": "It broke!"
+                "description": "Comments supplied by user."
               }
             }
+          },
+          "example": {
+            "event_id": "14bad9a2e3774046977a21440ddb39b2",
+            "name": "Jane Schmidt",
+            "email": "jane@empowerplant.io",
+            "comments": "It broke!"
           }
         }
       },
       "required": false
     },
     "responses": {
-      "201": {
+      "200": {
         "description": "Success",
         "content": {
           "application/json": {

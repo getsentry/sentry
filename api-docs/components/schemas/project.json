@@ -205,7 +205,16 @@
         "type": "string"
       },
       "team": {
-        "$ref": "team.json#/TeamMinimal"
+          "type": "object",
+          "nullable": true,
+          "oneOf": [
+            {
+              "$ref": "team.json#/TeamMinimal"
+            },
+            {
+              "$ref": "null.json#/NullValue"
+            }
+          ]
       },
       "teams": {
         "type": "array",
@@ -330,6 +339,7 @@
       },
       "latestRelease": {
         "type": "object",
+        "nullable": true,
         "required": [
           "authors",
           "commitCount",

@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
-import {OrderedList} from 'app/components/list';
+import List from 'app/components/list';
 import space from 'app/styles/space';
 
 import ModalManager from '../modalManager';
-import Item from './item';
 import Terminal from './terminal';
+import Item from './item';
 
 class Add extends ModalManager {
   getTitle() {
@@ -28,16 +28,16 @@ class Add extends ModalManager {
 
   getContent() {
     return (
-      <StyledOrderedList>
+      <StyledList symbol="colored-numeric">
         <Item
           title={tct('Initialize the configuration. [link: Learn how]', {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/relay/getting-started/#initializing-configuration" />
             ),
           })}
-          subtitle={t('Within your terminal.')}
+          subtitle={t('Within your terminal:')}
         >
-          <Terminal command="./relay config init" />
+          <Terminal command="relay config init" />
         </Item>
         <Item
           title={tct(
@@ -51,29 +51,16 @@ class Add extends ModalManager {
         >
           {super.getForm()}
         </Item>
-      </StyledOrderedList>
+      </StyledList>
     );
   }
 }
 
 export default Add;
 
-// TODO(Priscila): Refactor the component List so that it is easier to customize numeric bullets
-const StyledOrderedList = styled(OrderedList)`
-  ol& {
-    display: grid;
-    grid-gap: ${space(3)};
-    margin-bottom: 0;
-    > li :before {
-      width: 24px;
-      height: 24px;
-      font-size: ${p => p.theme.fontSizeSmall};
-      background-color: ${p => p.theme.yellow400};
-      border: none;
-      top: 0px;
-      font-weight: 500;
-    }
-  }
+const StyledList = styled(List)`
+  display: grid;
+  grid-gap: ${space(3)};
 `;
 
 const CredentialsLink = styled(ExternalLink)`

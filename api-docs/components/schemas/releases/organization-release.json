@@ -59,32 +59,14 @@
       "lastDeploy": {
         "type": "object",
         "nullable": true,
-        "required": ["environment", "name", "dateStarted", "dateFinished", "url", "id"],
-        "properties": {
-          "environment": {
-            "type": "string"
+        "oneOf": [
+          {
+            "$ref": "deploy.json#/Deploy"
           },
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "dateStarted": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "dateFinished": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "url": {
-            "type": "string",
-            "nullable": true
-          },
-          "id": {
-            "type": "string"
+          {
+            "$ref": "../null.json#/NullValue"
           }
-        }
+        ]
       },
       "lastEvent": {
         "type": "string",

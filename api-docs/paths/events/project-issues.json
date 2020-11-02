@@ -187,8 +187,7 @@
             "properties": {
               "status": {
                 "type": "string",
-                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`.",
-                "example": "unresolved"
+                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`."
               },
               "statusDetails": {
                 "type": "object",
@@ -226,8 +225,7 @@
               },
               "isPublic": {
                 "type": "boolean",
-                "description": "Sets the issue to public or private.",
-                "example": false
+                "description": "Sets the issue to public or private."
               },
               "merge": {
                 "type": "boolean",

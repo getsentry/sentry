@@ -90,7 +90,8 @@
         "type": "string"
       },
       "lastLogin": {
-        "type": "string"
+        "type": "string",
+        "nullable": true
       },
       "isSuperuser": {
         "type": "boolean"

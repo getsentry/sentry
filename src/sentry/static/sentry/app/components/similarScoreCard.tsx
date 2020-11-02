@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -7,7 +6,6 @@ import space from 'app/styles/space';
 
 const scoreComponents = {
   'exception:message:character-shingles': t('Exception Message'),
-  'exception:stacktrace:application-chunks': t('Application Code'),
   'exception:stacktrace:pairs': t('Stacktrace Frames'),
   'message:message:character-shingles': t('Log Message'),
 };
@@ -25,7 +23,7 @@ const SimilarScoreCard = ({scoreList = []}: Props) => {
   }
 
   return (
-    <div>
+    <React.Fragment>
       {scoreList.map(([key, score]) => (
         <Wrapper key={key}>
           <div>{scoreComponents[key]}</div>
@@ -33,7 +31,7 @@ const SimilarScoreCard = ({scoreList = []}: Props) => {
           <Score score={score === null ? score : Math.round(score * 5)} />
         </Wrapper>
       ))}
-    </div>
+    </React.Fragment>
   );
 };
 
@@ -50,9 +48,5 @@ const Score = styled('div')<{score: Score}>`
   background-color: ${p =>
     p.score === null ? p.theme.similarity.empty : p.theme.similarity.colors[p.score]};
 `;
-
-SimilarScoreCard.propTypes = {
-  scoreList: PropTypes.arrayOf(PropTypes.array),
-};
 
 export default SimilarScoreCard;

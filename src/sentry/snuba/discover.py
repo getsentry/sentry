@@ -14,6 +14,7 @@ from sentry.api.event_search import (
     FIELD_ALIASES,
     get_filter,
     get_function_alias,
+    get_json_meta_type,
     is_function,
     InvalidSearchQuery,
     resolve_field_list,
@@ -44,7 +45,7 @@ __all__ = (
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
-    "transform_results",
+    "transform_data",
     "zerofill",
     "measurements_histogram_query",
 )
@@ -236,7 +237,30 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(result, translated_columns, snuba_filter, selected_columns=None):
+def transform_results(
+    results, function_alias_map, translated_columns, snuba_filter, selected_columns=None
+):
+    results = transform_data(results, translated_columns, snuba_filter, selected_columns)
+    results["meta"] = transform_meta(results, function_alias_map)
+    return results
+
+
+def transform_meta(results, function_alias_map):
+    meta = {
+        value["name"]: get_json_meta_type(
+            value["name"], value.get("type"), function_alias_map.get(value["name"])
+        )
+        for value in results["meta"]
+    }
+    # Ensure all columns in the result have types.
+    if results["data"]:
+        for key in results["data"][0]:
+            if key not in meta:
+                meta[key] = "string"
+    return meta
+
+
+def transform_data(result, translated_columns, snuba_filter, selected_columns=None):
     """
     Transform internal names back to the public schema ones.
 
@@ -246,12 +270,9 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     if selected_columns is None:
         selected_columns = []
 
-    meta = []
     for col in result["meta"]:
         # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
-        # Remove user fields as they will be replaced by the alias.
-        meta.append(col)
 
     def get_row(row):
         transformed = {}
@@ -305,8 +326,10 @@ def query(
     limit=50,
     referrer=None,
     auto_fields=False,
+    auto_aggregations=False,
     use_aggregate_conditions=False,
     conditions=None,
+    functions_acl=None,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -326,6 +349,9 @@ def query(
     limit (int) The number of records to fetch.
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
+    auto_aggregations (bool) Whether aggregates should be added automatically if they're used
+                    in conditions, and there's at least one aggregate already.
+    use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
                     any additional processing.
     """
@@ -342,6 +368,9 @@ def query(
 
         snuba_filter = get_filter(query, params)
         if not use_aggregate_conditions:
+            assert (
+                not auto_aggregations
+            ), "Auto aggregations cannot be used without enabling aggregate conditions"
             snuba_filter.having = []
 
     # We need to run a separate query to be able to properly bucket the values for the histogram
@@ -380,9 +409,15 @@ def query(
             orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
             snuba_filter.orderby = [get_function_alias(o) for o in orderby]
 
-        snuba_filter.update_with(
-            resolve_field_list(selected_columns, snuba_filter, auto_fields=auto_fields)
+        resolved_fields = resolve_field_list(
+            selected_columns,
+            snuba_filter,
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            functions_acl=functions_acl,
         )
+
+        snuba_filter.update_with(resolved_fields)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(
@@ -393,6 +428,7 @@ def query(
         for having_clause in snuba_filter.having:
             # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
             # any referenced functions are in the aggregations.
+            error_extra = u", and could not be automatically added" if auto_aggregations else u""
             if isinstance(having_clause[0], (list, tuple)):
                 # Functions are of the form [fn, [args]]
                 args_to_check = [[having_clause[0]]]
@@ -412,8 +448,8 @@ def query(
 
                 if len(conditions_not_in_aggregations) > 0:
                     raise InvalidSearchQuery(
-                        u"Aggregate(s) {} used in a condition but are not in the selected columns.".format(
-                            ", ".join(conditions_not_in_aggregations)
+                        u"Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
+                            ", ".join(conditions_not_in_aggregations), error_extra,
                         )
                     )
             else:
@@ -422,8 +458,8 @@ def query(
                 )
                 if not found:
                     raise InvalidSearchQuery(
-                        u"Aggregate {} used in a condition but is not a selected column.".format(
-                            having_clause[0]
+                        u"Aggregate {} used in a condition but is not a selected column{}.".format(
+                            having_clause[0], error_extra,
                         )
                     )
 
@@ -451,7 +487,9 @@ def query(
         op="discover.discover", description="query.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        return transform_results(result, translated_columns, snuba_filter, selected_columns)
+        return transform_results(
+            result, resolved_fields["functions"], translated_columns, snuba_filter, selected_columns
+        )
 
 
 def key_transaction_conditions(queryset):
@@ -495,6 +533,7 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
         orderby=orderby,
         referrer=referrer,
         conditions=key_transaction_conditions(queryset),
+        auto_aggregations=True,
         use_aggregate_conditions=True,
     )
 
@@ -652,17 +691,20 @@ def top_events_timeseries(
     case of gaps. Each value of the dictionary should match the result of a timeseries query
 
     timeseries_columns (Sequence[str]) List of public aliases to fetch for the timeseries query,
-                        usually matches the y-axis of the graph
+                    usually matches the y-axis of the graph
     selected_columns (Sequence[str]) List of public aliases to fetch for the events query,
-                        this is to determine what the top events are
+                    this is to determine what the top events are
     user_query (str) Filter query string to create conditions from. needs to be user_query
-                        to not conflict with the function query
+                    to not conflict with the function query
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
     orderby (Sequence[str]) The fields to order results by.
     rollup (int) The bucket width in seconds
     limit (int) The number of events to get timeseries for
     organization (Organization) Used to map group ids to short ids
     referrer (str|None) A referrer string to help locate the origin of this query.
+    top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
+                    represent the top events matching the query. Useful when you have found
+                    the top events earlier and want to save a query.
     """
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
@@ -673,6 +715,7 @@ def top_events_timeseries(
                 orderby=orderby,
                 limit=limit,
                 referrer=referrer,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
 
@@ -692,8 +735,8 @@ def top_events_timeseries(
             # project is handled by filter_keys already
             if field in ["project", "project.id"]:
                 continue
-            if field == "issue":
-                field = FIELD_ALIASES["issue"]["column_alias"]
+            if field in FIELD_ALIASES:
+                field = FIELD_ALIASES[field].alias
             # Note that because orderby shouldn't be an array field its not included in the values
             values = list(
                 {
@@ -712,6 +755,8 @@ def top_events_timeseries(
                     if non_none_values:
                         condition.append([resolve_discover_column(field), "IN", non_none_values])
                     snuba_filter.conditions.append(condition)
+                elif field in FIELD_ALIASES:
+                    snuba_filter.conditions.append([field, "IN", values])
                 else:
                     snuba_filter.conditions.append([resolve_discover_column(field), "IN", values])
 
@@ -735,9 +780,10 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_results(result, translated_columns, snuba_filter, selected_columns)
+        result = transform_data(result, translated_columns, snuba_filter, selected_columns)
 
-        translated_columns["project_id"] = "project"
+        if "project" in selected_columns:
+            translated_columns["project_id"] = "project"
         translated_groupby = [
             translated_columns.get(groupby, groupby) for groupby in snuba_filter.groupby
         ]
@@ -960,6 +1006,7 @@ def measurements_histogram_query(
     precision=0,
     min_value=None,
     max_value=None,
+    data_filter=None,
     referrer=None,
 ):
     """
@@ -978,15 +1025,15 @@ def measurements_histogram_query(
         If left unspecified, it is queried using `user_query` and `params`.
     :param float max_value: The maximum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
-
     multiplier = int(10 ** precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
     min_value, max_value = find_measurements_min_max(
-        measurements, min_value, max_value, user_query, params
+        measurements, min_value, max_value, user_query, params, data_filter
     )
 
     key_col = "array_join(measurements_key)"
@@ -1016,6 +1063,7 @@ def measurements_histogram_query(
         referrer=referrer,
         auto_fields=True,
         use_aggregate_conditions=True,
+        functions_acl=["array_join", "measurements_histogram"],
     )
 
     return normalize_measurements_histogram(
@@ -1062,7 +1110,9 @@ def find_measurements_histogram_params(num_buckets, min_value, max_value, multip
     return HistogramParams(bucket_size, start_offset, multiplier)
 
 
-def find_measurements_min_max(measurements, min_value, max_value, user_query, params):
+def find_measurements_min_max(
+    measurements, min_value, max_value, user_query, params, data_filter=None
+):
     """
     Find the min/max value of the specified measurements. If either min/max is already
     specified, it will be used and not queried for.
@@ -1075,6 +1125,7 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
         If left unspecified, it is queried using `user_query` and `params`.
     :param str user_query: Filter query string to create conditions from.
     :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
 
     if min_value is not None and max_value is not None:
@@ -1086,6 +1137,9 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
             min_columns.append("min(measurements.{})".format(measurement))
         if max_value is None:
             max_columns.append("max(measurements.{})".format(measurement))
+        if data_filter == "exclude_outliers":
+            max_columns.append("percentile(measurements.{}, 0.25)".format(measurement))
+            max_columns.append("percentile(measurements.{}, 0.75)".format(measurement))
 
     results = query(
         selected_columns=min_columns + max_columns,
@@ -1094,6 +1148,7 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
         limit=1,
         referrer="api.organization-events-measurements-min-max",
         auto_fields=True,
+        auto_aggregations=True,
         use_aggregate_conditions=True,
     )
 
@@ -1112,9 +1167,39 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
         min_value = min(min_values) if min_values else None
 
     if max_value is None:
-        max_values = [row[get_function_alias(column)] for column in max_columns]
+        max_values = [
+            row[get_function_alias("max(measurements.{})".format(measurement))]
+            for measurement in measurements
+        ]
         max_values = list(filter(lambda v: v is not None, max_values))
         max_value = max(max_values) if max_values else None
+
+        fences = []
+        if data_filter == "exclude_outliers":
+            for measurement in measurements:
+                # also known as the first quartile
+                p25_column = get_function_alias(
+                    "percentile(measurements.{}, 0.25)".format(measurement)
+                )
+                # also known as the third quartile
+                p75_column = get_function_alias(
+                    "percentile(measurements.{}, 0.75)".format(measurement)
+                )
+
+                first_quartile = row[p25_column]
+                third_quartile = row[p75_column]
+
+                if first_quartile is not None and third_quartile is not None:
+                    interquartile_range = abs(third_quartile - first_quartile)
+
+                    upper_outer_fence = third_quartile + 3 * interquartile_range
+                    fences.append(upper_outer_fence)
+
+        max_fence_value = max(fences) if fences else None
+
+        candidates = [max_fence_value, max_value]
+        candidates = list(filter(lambda v: v is not None, candidates))
+        max_value = min(candidates) if candidates else None
 
     return min_value, max_value
 
@@ -1139,11 +1224,12 @@ def normalize_measurements_histogram(measurements, num_buckets, key_col, histogr
 
     # adjust the meta for the renamed columns
     meta = results["meta"]
-    new_meta = []
+    new_meta = {}
 
     meta_map = {key_name: "key", bin_name: "bin"}
-    for col in meta:
-        new_meta.append({"type": col["type"], "name": meta_map.get(col["name"], col["name"])})
+    for snuba_alias, col_type in meta.items():
+        new_alias = meta_map.get(snuba_alias, snuba_alias)
+        new_meta[new_alias] = col_type
 
     results["meta"] = new_meta
 

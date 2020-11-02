@@ -24,10 +24,14 @@ export type ColumnType =
 
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
+type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
+
+export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
+
 export type AggregateParameter =
   | {
       kind: 'column';
-      columnTypes: Readonly<ColumnType[]>;
+      columnTypes: Readonly<ValidateColumnTypes>;
       defaultValue?: string;
       required: boolean;
     }
@@ -81,7 +85,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration', 'date'],
+        columnTypes: validateForNumericAggregate([
+          'integer',
+          'number',
+          'duration',
+          'date',
+        ]),
         required: true,
       },
     ],
@@ -93,7 +102,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration', 'date'],
+        columnTypes: validateForNumericAggregate([
+          'integer',
+          'number',
+          'duration',
+          'date',
+        ]),
         required: true,
       },
     ],
@@ -105,7 +119,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -118,7 +132,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         required: true,
       },
     ],
@@ -135,32 +149,66 @@ export const AGGREGATIONS = {
 
   // Tracing functions.
   p50: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p75: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p95: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     type: [],
     isSortable: true,
     multiPlotType: 'line',
   },
   p99: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p100: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
@@ -169,7 +217,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['duration'],
+        columnTypes: validateForNumericAggregate(['duration', 'number']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -291,6 +339,7 @@ enum FieldKey {
   DIST = 'dist',
   ENVIRONMENT = 'environment',
   ERROR_HANDLED = 'error.handled',
+  ERROR_UNHANDLED = 'error.unhandled',
   ERROR_MECHANISM = 'error.mechanism',
   ERROR_TYPE = 'error.type',
   ERROR_VALUE = 'error.value',
@@ -388,6 +437,7 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.ERROR_VALUE]: 'string',
   [FieldKey.ERROR_MECHANISM]: 'string',
   [FieldKey.ERROR_HANDLED]: 'boolean',
+  [FieldKey.ERROR_UNHANDLED]: 'boolean',
   [FieldKey.STACK_ABS_PATH]: 'string',
   [FieldKey.STACK_FILENAME]: 'string',
   [FieldKey.STACK_PACKAGE]: 'string',
@@ -446,7 +496,71 @@ export const TRACING_FIELDS = [
   'epm',
 ];
 
+export enum WebVital {
+  FP = 'measurements.fp',
+  FCP = 'measurements.fcp',
+  LCP = 'measurements.lcp',
+  FID = 'measurements.fid',
+  CLS = 'measurements.cls',
+  TTFB = 'measurements.ttfb',
+  RequestTime = 'measurements.ttfb.requesttime',
+}
+
+const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
+  [WebVital.FP]: 'duration',
+  [WebVital.FCP]: 'duration',
+  [WebVital.LCP]: 'duration',
+  [WebVital.FID]: 'duration',
+  [WebVital.CLS]: 'number',
+  [WebVital.TTFB]: 'duration',
+  [WebVital.RequestTime]: 'duration',
+};
+
+const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
+
+export function isMeasurement(field: string): boolean {
+  const results = field.match(MEASUREMENT_PATTERN);
+  return !!results;
+}
+
+export function measurementType(field: string) {
+  if (MEASUREMENTS.hasOwnProperty(field)) {
+    return MEASUREMENTS[field];
+  }
+  return 'number';
+}
+
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
+
+export function generateAggregateFields(
+  organization: LightWeightOrganization,
+  eventFields: readonly Field[] | Field[]
+): Field[] {
+  const functions = Object.keys(AGGREGATIONS);
+  const fields = Object.values(eventFields).map(field => field.field);
+  functions.forEach(func => {
+    const parameters = AGGREGATIONS[func].parameters.map(param => {
+      const generator = AGGREGATIONS[func].generateDefaultValue;
+      if (typeof generator === 'undefined') {
+        return param;
+      }
+      return {
+        ...param,
+        defaultValue: generator({parameter: param, organization}),
+      };
+    });
+
+    if (parameters.every(param => typeof param.defaultValue !== 'undefined')) {
+      const newField = `${func}(${parameters
+        .map(param => param.defaultValue)
+        .join(',')})`;
+      if (fields.indexOf(newField) === -1) {
+        fields.push(newField);
+      }
+    }
+  });
+  return fields.map(field => ({field})) as Field[];
+}
 
 export function explodeFieldString(field: string): Column {
   const results = field.match(AGGREGATE_PATTERN);
@@ -521,6 +635,8 @@ export function aggregateOutputType(field: string): AggregationOutputType {
     return aggregate.outputType;
   } else if (matches[2] && FIELDS.hasOwnProperty(matches[2])) {
     return FIELDS[matches[2]];
+  } else if (matches[2] && isMeasurement(matches[2])) {
+    return measurementType(matches[2]);
   }
   return 'number';
 }
@@ -539,4 +655,24 @@ export function aggregateMultiPlotType(field: string): PlotType {
     return 'area';
   }
   return AGGREGATIONS[funcName].multiPlotType;
+}
+
+function validateForNumericAggregate(
+  validColumnTypes: ColumnType[]
+): ValidateColumnValueFunction {
+  return function ({name, dataType}: {name: string; dataType: ColumnType}): boolean {
+    // these built-in columns cannot be applied to numeric aggregates such as percentile(...)
+    if (
+      [
+        FieldKey.DEVICE_BATTERY_LEVEL,
+        FieldKey.STACK_COLNO,
+        FieldKey.STACK_LINENO,
+        FieldKey.STACK_STACK_LEVEL,
+      ].includes(name as FieldKey)
+    ) {
+      return false;
+    }
+
+    return validColumnTypes.includes(dataType);
+  };
 }

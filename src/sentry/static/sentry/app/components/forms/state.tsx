@@ -5,4 +5,4 @@ export default {
   READY: 'Ready',
   SAVING: 'Saving',
   ERROR: 'Error',
-};
+} as const;
