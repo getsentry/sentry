@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.utils.compat.mock import patch, Mock
 from django.http import QueryDict
 
-from sentry.models import add_group_to_inbox, GroupInbox, GroupInboxReason, GroupStatus
+from sentry.models import add_group_to_inbox, GroupInboxReason, GroupStatus
 from sentry.api.helpers.group_index import (
     validate_search_filter_permissions,
     ValidationError,
@@ -122,7 +122,8 @@ class UpdateGroupsTest(TestCase):
 
         assert group.status == GroupStatus.IGNORED
         assert send_robust.called
-        assert not GroupInbox.objects.filter(group=group).exists()
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_unignored.send_robust")
     def test_unignoring_group(self, send_robust):
