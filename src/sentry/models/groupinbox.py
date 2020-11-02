@@ -38,9 +38,12 @@ class GroupInbox(Model):
 def add_group_to_inbox(group, reason, reason_details=None):
     group_inbox, created = GroupInbox.objects.get_or_create(
         group=group,
-        project=group.project,
-        organization=group.project.organization,
-        defaults={"reason": reason.value, "reason_details": reason_details},
+        defaults={
+            "project": group.project,
+            "organization": group.project.organization,
+            "reason": reason.value,
+            "reason_details": reason_details,
+        },
     )
     return group_inbox
 
