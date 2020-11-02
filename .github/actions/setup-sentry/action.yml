@@ -13,10 +13,6 @@ inputs:
     description: 'Is kafka required?'
     required: false
     default: 'false'
-  wait-for-postgres:
-    description: 'Wait for postgres to become ready'
-    required: false
-    default: 'false'
 
 outputs:
   yarn-cache-dir:
@@ -142,14 +138,3 @@ runs:
         fi
 
         docker ps -a
-
-    - name: Wait for postgres
-      shell: bash
-      env:
-        WAIT_FOR_POSTGRES: ${{ inputs.wait-for-postgres }}
-      run: |
-        if [ "$WAIT_FOR_POSTGRES" = "true" ]; then
-          until docker run --rm --link sentry_postgres:pg --net sentry postgres:9.6-alpine pg_isready -U postgres -h pg; do
-          sleep 1
-          done
-        fi

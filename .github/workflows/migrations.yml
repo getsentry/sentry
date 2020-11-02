@@ -35,7 +35,6 @@ jobs:
         id: setup
         with:
           python: 2
-          wait-for-postgres: true
 
       - name: Apply migrations
         run: |
