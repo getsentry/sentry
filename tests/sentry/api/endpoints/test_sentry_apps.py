@@ -3,22 +3,25 @@ from __future__ import absolute_import
 import six
 import re
 
-from sentry.utils.compat.mock import patch
 from django.core.urlresolvers import reverse
 
 from sentry.constants import SentryAppStatus
-from sentry.utils import json
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature, with_feature
+from sentry.mediators import sentry_apps
 from sentry.models import (
-    SentryApp,
-    SentryAppInstallationToken,
-    SentryAppInstallation,
     ApiToken,
     OrganizationMember,
+    SentryApp,
+    SentryAppInstallation,
+    SentryAppInstallationToken,
 )
 from sentry.models.sentryapp import MASKED_VALUE
-from sentry.mediators import sentry_apps
+from sentry.testutils import APITestCase
+from sentry.testutils.helpers import (
+    Feature,
+    with_feature,
+)
+from sentry.utils import json
+from sentry.utils.compat.mock import patch
 
 
 class SentryAppsTest(APITestCase):
@@ -353,6 +356,58 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data["name"] == sentry_app.name
         assert response.data["slug"] != sentry_app.slug
 
+    def test_cannot_create_app_without_organization(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        sentry_app = self.create_internal_integration(name="Foo Bar")
+        body = {
+            "name": sentry_app.name,
+            "organization": None,
+        }
+        response = self._post(**body)
+        assert response.status_code == 400
+        assert response.data == {
+            "organization": "Please provide a valid value for the 'organization' field.",
+        }
+
+    def test_cannot_create_app_in_alien_organization(self):
+        self.create_project(organization=self.super_org)
+        self.login_as(user=self.user)
+        sentry_app = self.create_internal_integration(name="Foo Bar")
+        body = {
+            "name": sentry_app.name,
+            "organization": self.super_org.slug,
+        }
+        response = self._post(**body)
+        assert response.status_code == 403
+        assert response.data["detail"].startswith("User does not belong to")
+
+    def test_user_cannot_create_app_in_nonexistent_organization(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        sentry_app = self.create_internal_integration(name="Foo Bar")
+        body = {
+            "name": sentry_app.name,
+            "organization": "some-non-existent-org",
+        }
+        response = self._post(**body)
+        assert response.status_code == 403
+        assert response.data["detail"].startswith("User does not belong to")
+
+    def test_superuser_cannot_create_app_in_nonexistent_organization(self):
+        self.create_project(organization=self.super_org)
+        self.login_as(user=self.superuser, superuser=True)
+        sentry_app = self.create_internal_integration(name="Foo Bar")
+        body = {
+            "name": sentry_app.name,
+            "organization": "some-non-existent-org",
+        }
+        response = self._post(**body)
+        assert response.status_code == 400
+        assert response.data == {
+            "organization": "Organization 'some-non-existent-org' does not exist.",
+        }
+
     def test_long_name_internal_integration(self):
         self.create_project(organization=self.org)
         self.login_as(user=self.user)
@@ -607,8 +662,8 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self._post(name=other_org_internal_integration.name, isInternal=True)
         assert response.status_code == 201
 
-    def _post(self, **kwargs):
-        body = {
+    def _default_body(self):
+        return {
             "name": "MyApp",
             "organization": self.org.slug,
             "author": "Sentry",
@@ -622,6 +677,7 @@ class PostSentryAppsTest(SentryAppsTest):
             "verifyInstall": True,
         }
 
+    def _post(self, **kwargs):
+        body = self._default_body()
         body.update(**kwargs)
-
         return self.client.post(self.url, body, headers={"Content-Type": "application/json"})
