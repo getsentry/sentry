@@ -10,7 +10,7 @@ auth: 0008_alter_user_username_max_length
 contenttypes: 0002_remove_content_type_name
 jira_ac: 0001_initial
 nodestore: 0001_initial
-sentry: 0118_backfill_snuba_query_event_types
+sentry: 0119_addprojectandorgtogroupinbox
 sessions: 0001_initial
 sites: 0002_alter_domain_unique
 social_auth: 0001_initial
