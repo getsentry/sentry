@@ -109,7 +109,7 @@ export default SearchDropdown;
 
 const StyledSearchDropdown = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadiusBottom};
   position: absolute;
   top: 38px;
@@ -134,13 +134,13 @@ const Info = styled('div')`
   color: ${p => p.theme.gray500};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 
 const ListItem = styled('li')`
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 
