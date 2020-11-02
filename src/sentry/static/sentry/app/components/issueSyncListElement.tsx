@@ -141,7 +141,7 @@ class IssueSyncListElement extends React.Component<Props> {
             </Hovercard>
           )}
         </ClassNames>
-        {this.props.onClose && (
+        {(this.props.onClose || this.props.onOpen) && (
           <StyledIcon onClick={this.handleIconClick}>
             {this.isLinked() ? <IconClose /> : this.props.onOpen ? <IconAdd /> : null}
           </StyledIcon>

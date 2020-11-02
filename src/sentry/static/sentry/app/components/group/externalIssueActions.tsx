@@ -159,6 +159,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
                 ))}
               </Container>
             }
+            onOpen={unlinked.length === 1 ? () => this.openModal(unlinked[0]) : undefined}
           />
         )}
         {selectedIntegration && (
