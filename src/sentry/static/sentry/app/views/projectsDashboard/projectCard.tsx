@@ -68,7 +68,7 @@ class ProjectCard extends React.Component<Props> {
           )
         : '\u2014';
     const zeroTransactions = totalTransactions === '0';
-    const hasFirstEvent = project.firstEvent || project.firstTransactionEvent;
+    const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
 
     return (
       <div data-test-id={slug}>
