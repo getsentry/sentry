@@ -1,7 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import throttle from 'lodash/throttle';
 import isEqual from 'lodash/isEqual';
 
 import {Organization} from 'app/types';
@@ -10,6 +10,7 @@ import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import Tag from 'app/components/tagDeprecated';
 import DiscoverButton from 'app/components/discoverButton';
 import {FIRE_SVG_PATH} from 'app/icons/iconFire';
@@ -177,13 +178,13 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   /**
-   * This callback happens everytime ECharts finishes rendering. This includes
-   * when it finishes rendering tooltips, so it can be called quite frequently.
-   * The calculations here can get expensive if done frequently, furthermore,
-   * this can trigger a state change leading to a re-render. So slow down the
-   * updates here as they do not need to be updated every single time.
+   * This callback happens everytime ECharts renders. This is NOT when ECharts
+   * finishes rendering, so it can be called quite frequently. The calculations
+   * here can get expensive if done frequently, furthermore, this can trigger a
+   * state change leading to a re-render. So slow down the updates here as they
+   * do not need to be updated every single time.
    */
-  handleFinished = debounce(
+  handleRendered = throttle(
     (_, chartRef) => {
       const {chartData} = this.props;
       const {refDataRect} = this.state;
@@ -199,13 +200,13 @@ class VitalCard extends React.Component<Props, State> {
       }
     },
     200,
-    {leading: true, trailing: true, maxWait: 1000}
+    {leading: true}
   );
 
   handleDataZoomCancelled = () => {};
 
   renderHistogram() {
-    const {location, colors, vital, precision = 0} = this.props;
+    const {location, isLoading, colors, vital, precision = 0} = this.props;
     const {slug} = vital;
 
     const series = this.getTransformedData();
@@ -244,15 +245,18 @@ class VitalCard extends React.Component<Props, State> {
         onDataZoomCancelled={this.handleDataZoomCancelled}
       >
         {zoomRenderProps => (
-          <BarChart
-            series={[series]}
-            xAxis={xAxis}
-            yAxis={yAxis}
-            colors={colors}
-            onFinished={this.handleFinished}
-            grid={{left: space(3), right: space(3), top: space(3), bottom: space(1.5)}}
-            {...zoomRenderProps}
-          />
+          <Container>
+            <TransparentLoadingMask visible={isLoading} />
+            <BarChart
+              series={[series]}
+              xAxis={xAxis}
+              yAxis={yAxis}
+              colors={colors}
+              onRendered={this.handleRendered}
+              grid={{left: space(3), right: space(3), top: space(3), bottom: space(1.5)}}
+              {...zoomRenderProps}
+            />
+          </Container>
         )}
       </BarChartZoom>
     );
@@ -280,7 +284,7 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getTransformedData() {
-    const {chartData, vital} = this.props;
+    const {chartData, vital, isLoading, error} = this.props;
     const bucketWidth = this.bucketWidth();
 
     const seriesData = chartData.map(item => {
@@ -306,8 +310,10 @@ class VitalCard extends React.Component<Props, State> {
       data: seriesData,
     };
 
-    this.drawBaselineValue(series);
-    this.drawFailRegion(series);
+    if (!isLoading && !error) {
+      this.drawBaselineValue(series);
+      this.drawFailRegion(series);
+    }
 
     return series;
   }
@@ -350,6 +356,7 @@ class VitalCard extends React.Component<Props, State> {
     }
 
     series.markLine = MarkLine({
+      animationDuration: 200,
       data: [[thresholdPixelBottom, thresholdPixelTop] as any],
       label: {
         show: false,
@@ -411,6 +418,7 @@ class VitalCard extends React.Component<Props, State> {
     }
 
     series.markArea = MarkArea({
+      animationDuration: 200,
       data: [
         [
           {x: failurePixel.x, yAxis: 0},
@@ -461,6 +469,7 @@ class VitalCard extends React.Component<Props, State> {
     }
 
     series.markPoint = MarkPoint({
+      animationDuration: 200,
       data: [{x: topRightPixel.x - 16, y: topRightPixel.y + 16}] as any,
       itemStyle: {color: theme.red400},
       silent: true,
@@ -507,6 +516,10 @@ const StyledTag = styled(Tag)<TagProps>`
   right: ${space(3)};
   background-color: ${p => p.color};
   color: ${p => p.theme.white};
+`;
+
+const Container = styled('div')`
+  position: relative;
 `;
 
 function formatDuration(duration: number) {

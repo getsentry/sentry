@@ -37,28 +37,33 @@ class VitalsPanel extends React.Component<Props> {
     const {location, organization, eventView, dataFilter} = this.props;
     const vitalDetails = WEB_VITAL_DETAILS[vital];
 
-    if (min !== undefined || max !== undefined) {
-      return (
-        <MeasurementsHistogramQuery
-          location={location}
-          orgSlug={organization.slug}
-          eventView={eventView}
-          numBuckets={NUM_BUCKETS}
-          measurements={[vitalDetails.slug]}
-          min={min}
-          max={max}
-          precision={precision}
-          dataFilter={dataFilter}
-        >
-          {results => (
+    const zoomed = min !== undefined || max !== undefined;
+
+    return (
+      <MeasurementsHistogramQuery
+        location={location}
+        orgSlug={organization.slug}
+        eventView={eventView}
+        numBuckets={NUM_BUCKETS}
+        measurements={zoomed ? [vitalDetails.slug] : []}
+        min={min}
+        max={max}
+        precision={precision}
+        dataFilter={dataFilter}
+      >
+        {results => {
+          const loading = zoomed ? results.isLoading : isLoading;
+          const errored = zoomed ? results.error !== null : error;
+          const chartData = zoomed ? results.histograms?.[vital] ?? histogram : histogram;
+          return (
             <VitalCard
               location={location}
-              isLoading={isLoading || results.isLoading}
-              error={error || results.error !== null}
+              isLoading={loading}
+              error={errored}
               vital={vitalDetails}
               summary={summary}
               failureRate={failureRate}
-              chartData={results.histograms?.[vital] ?? []}
+              chartData={chartData}
               colors={color}
               eventView={eventView}
               organization={organization}
@@ -66,26 +71,10 @@ class VitalsPanel extends React.Component<Props> {
               max={max}
               precision={precision}
             />
-          )}
-        </MeasurementsHistogramQuery>
-      );
-    } else {
-      return (
-        <VitalCard
-          location={location}
-          isLoading={isLoading}
-          error={error}
-          vital={vitalDetails}
-          summary={summary}
-          failureRate={failureRate}
-          chartData={histogram}
-          colors={color}
-          eventView={eventView}
-          organization={organization}
-          precision={precision}
-        />
-      );
-    }
+          );
+        }}
+      </MeasurementsHistogramQuery>
+    );
   }
 
   renderVitalGroup(group: VitalGroup, summaryResults: GenericChildrenProps<TableData>) {
@@ -109,17 +98,13 @@ class VitalsPanel extends React.Component<Props> {
       {}
     );
 
-    const allZoomed = vitals.every(
-      vital => bounds[vital]?.start !== undefined || bounds[vital]?.end !== undefined
-    );
-
     return (
       <MeasurementsHistogramQuery
         location={location}
         orgSlug={organization.slug}
         eventView={eventView}
         numBuckets={NUM_BUCKETS}
-        measurements={allZoomed ? [] : vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
+        measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
         min={min}
         max={max}
         precision={precision}
