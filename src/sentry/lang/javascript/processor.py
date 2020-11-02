@@ -686,6 +686,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 if original_function_name is not None:
                     new_frame["function"] = original_function_name
 
+                WEBPACK_WITH_LIBRARY_PREFIX_RE = re.compile(r"webpack:\/\/[\w\-_.]+\/([\w\-_.\/]+)")
                 filename = token.src
                 # special case webpack support
                 # abs_path will always be the full path with webpack:/// prefix.
@@ -697,10 +698,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # (i.e. node_modules)
                     if "/~/" in filename:
                         filename = "~/" + abs_path.split("/~/", 1)[-1]
-                    elif filename.match(/webpack:\/\/[\w-_.\/]+\//):
+                    elif WEBPACK_WITH_LIBRARY_PREFIX_RE.search(filename):
                         # https://github.com/getsentry/sentry/issues/20745
-                        filename = /webpack:\/\/\w+\/([\w-_.\/]+)/.exec(filename)[1]
-                    else
+                        filename = WEBPACK_WITH_LIBRARY_PREFIX_RE.search(filename).group(1)
+                    else:
                         filename = filename.split("webpack:///", 1)[-1]
 
                     # As noted above:
