@@ -215,7 +215,7 @@ class PluginSettings<
 
     const fieldList: State['fieldList'] = this.state.fieldList;
 
-    if (!(fieldList || []).length) {
+    if (!fieldList?.length) {
       return null;
     }
     return (
