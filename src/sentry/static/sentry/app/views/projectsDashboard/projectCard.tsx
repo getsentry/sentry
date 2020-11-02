@@ -21,7 +21,6 @@ import QuestionTooltip from 'app/components/questionTooltip';
 
 import Chart from './chart';
 import Deploys from './deploys';
-import NoEvents from './noEvents';
 
 type Props = {
   api: Client;
@@ -56,7 +55,7 @@ class ProjectCard extends React.Component<Props> {
 
   render() {
     const {organization, project, hasProjectAccess} = this.props;
-    const {id, firstEvent, stats, slug, transactionStats} = project;
+    const {id, stats, slug, transactionStats} = project;
     const totalErrors =
       stats !== undefined
         ? formatAbbreviatedNumber(stats.reduce((sum, [_, value]) => sum + value, 0))
@@ -69,6 +68,7 @@ class ProjectCard extends React.Component<Props> {
           )
         : '\u2014';
     const zeroTransactions = totalTransactions === '0';
+    const hasFirstEvent = project.firstEvent || project.firstTransactionEvent;
 
     return (
       <div data-test-id={slug}>
@@ -124,8 +124,11 @@ class ProjectCard extends React.Component<Props> {
               </SummaryLinks>
             </CardHeader>
             <ChartContainer>
-              <Chart stats={stats} transactionStats={transactionStats} />
-              {!firstEvent && <NoEvents />}
+              <Chart
+                firstEvent={hasFirstEvent}
+                stats={stats}
+                transactionStats={transactionStats}
+              />
             </ChartContainer>
             <Deploys project={project} />
           </StyledProjectCard>
@@ -193,7 +196,6 @@ const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
 const ChartContainer = styled('div')`
   position: relative;
   background: ${p => p.theme.gray100};
-  padding-top: ${space(1)};
 `;
 
 const CardHeader = styled('div')`
@@ -216,7 +218,7 @@ const StyledProjectCard = styled('div')`
 const LoadingCard = styled('div')`
   border: 1px solid transparent;
   background-color: ${p => p.theme.gray100};
-  height: 265px;
+  height: 334px;
 `;
 
 const StyledIdBadge = styled(IdBadge)`
