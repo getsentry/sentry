@@ -10,7 +10,7 @@ class SessionStackPlugin extends BasePlugin {
   renderGroupActions() {
     return null;
   }
-  
+
   renderSettings(props: Parameters<typeof BasePlugin.prototype.renderSettings>[0]) {
     return <Settings plugin={this.plugin} {...props} />;
   }
