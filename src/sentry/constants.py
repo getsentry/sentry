@@ -155,6 +155,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "integration-platform",
         "trust",
         "legal",
+        "community",
     )
 )
 
