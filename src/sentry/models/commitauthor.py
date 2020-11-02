@@ -21,7 +21,7 @@ class CommitAuthor(Model):
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     name = models.CharField(max_length=128, null=True)
-    email = models.EmailField(max_length=75)
+    email = models.CharField(max_length=75)
     external_id = models.CharField(max_length=164, null=True)
 
     objects = CommitAuthorManager()

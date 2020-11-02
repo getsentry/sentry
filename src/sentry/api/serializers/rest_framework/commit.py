@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from rest_framework import serializers
 from sentry.api.serializers.rest_framework.list import ListField
-from sentry.api.validators.email import CommitAuthorValidator
 from sentry.models import CommitFileChange
 
 
@@ -26,11 +25,7 @@ class CommitSerializer(serializers.Serializer):
         max_length=128, required=False, allow_null=True, allow_blank=True
     )
     author_email = serializers.CharField(
-        max_length=75,
-        required=False,
-        allow_null=True,
-        allow_blank=True,
-        validators=[CommitAuthorValidator()],
+        max_length=75, required=False, allow_null=True, allow_blank=True,
     )
     timestamp = serializers.DateTimeField(required=False, allow_null=True)
     patch_set = ListField(
