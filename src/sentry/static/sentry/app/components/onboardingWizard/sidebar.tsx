@@ -47,7 +47,7 @@ const Heading = styled(motion.div)`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   font-weight: normal;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   color: ${p => p.theme.gray600};
   padding-bottom: ${space(1)};
 `;

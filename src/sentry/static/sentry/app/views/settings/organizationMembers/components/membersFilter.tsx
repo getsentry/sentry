@@ -146,13 +146,13 @@ const FilterContainer = styled('div')`
   border-radius: 4px;
   background: #fff;
   box-shadow: ${p => p.theme.dropShadowLight};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const FilterHeader = styled('h2')`
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.gray100};
   color: ${p => p.theme.gray600};
   text-transform: uppercase;
