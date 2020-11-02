@@ -438,16 +438,14 @@ def query(
                     for arg in args:
                         if arg[0] in [SNUBA_AND, SNUBA_OR]:
                             args_to_check.extend(arg[1])
-                        else:
-                            # Only need to iterate on arg[1] if its a list
-                            if isinstance(arg[1], (list, tuple)):
-                                alias = arg[1][0]
-                                found = any(
-                                    alias == agg_clause[-1]
-                                    for agg_clause in snuba_filter.aggregations
-                                )
-                                if not found:
-                                    conditions_not_in_aggregations.append(alias)
+                        # Only need to iterate on arg[1] if its a list
+                        elif isinstance(arg[1], (list, tuple)):
+                            alias = arg[1][0]
+                            found = any(
+                                alias == agg_clause[-1] for agg_clause in snuba_filter.aggregations
+                            )
+                            if not found:
+                                conditions_not_in_aggregations.append(alias)
 
                 if len(conditions_not_in_aggregations) > 0:
                     raise InvalidSearchQuery(
