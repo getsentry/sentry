@@ -541,8 +541,18 @@ class AlertRuleTriggerAction(Model):
         SLACK = 2
         MSTEAMS = 3
         SENTRY_APP = 4
+        JIRA = 5
+        AZURE_DEVOPS = 6
 
-    INTEGRATION_TYPES = frozenset((Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value))
+    INTEGRATION_TYPES = frozenset(
+        (
+            Type.PAGERDUTY.value,
+            Type.SLACK.value,
+            Type.MSTEAMS.value,
+            Type.JIRA.value,
+            Type.AZURE_DEVOPS.value,
+        )
+    )
 
     class TargetType(Enum):
         # A direct reference, like an email address, Slack channel, or PagerDuty service
@@ -554,6 +564,8 @@ class AlertRuleTriggerAction(Model):
         TEAM = 2
         # A Sentry App instead of any of the above.
         SENTRY_APP = 3
+        # TODO
+        ISSUE_TRACKING = 4
 
     TypeRegistration = namedtuple(
         "TypeRegistration",

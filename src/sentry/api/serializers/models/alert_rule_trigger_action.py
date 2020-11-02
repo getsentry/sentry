@@ -24,6 +24,10 @@ class AlertRuleTriggerActionSerializer(Serializer):
             return "Send a Microsoft Teams notification to " + action.target_display
         elif action.type == action.Type.SENTRY_APP.value:
             return "Send a notification via " + action.target_display
+        elif action.type == action.Type.JIRA.value:
+            return "Create a Jira ticket"
+        elif action.type == action.Type.AZURE_DEVOPS.value:
+            return "Create an Azure DevOps ticket"
 
     def get_identifier_from_action(self, action):
         if action.type in [

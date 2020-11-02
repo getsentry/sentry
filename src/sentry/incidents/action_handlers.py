@@ -167,6 +167,40 @@ class SentryAppActionHandler(ActionHandler):
         send_incident_alert_notification(self.action, self.incident, metric_value)
 
 
+@AlertRuleTriggerAction.register_type(
+    "jira", AlertRuleTriggerAction.Type.JIRA, [AlertRuleTriggerAction.TargetType.ISSUE_TRACKING],
+)
+class JiraActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
+
+    def send_alert(self, metric_value):
+        from sentry.integrations.jira.utils import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value)
+
+
+@AlertRuleTriggerAction.register_type(
+    "azure_devops",
+    AlertRuleTriggerAction.Type.AZURE_DEVOPS,
+    [AlertRuleTriggerAction.TargetType.ISSUE_TRACKING],
+)
+class AzureDevOpsActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
+
+    def send_alert(self, metric_value):
+        from sentry.integrations.vsts.utils import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value)
+
+
 def format_duration(minutes):
     """
     Format minutes into a duration string
