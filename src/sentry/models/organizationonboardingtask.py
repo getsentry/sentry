@@ -138,7 +138,9 @@ class OrganizationOnboardingTask(Model):
     )
 
     organization = FlexibleForeignKey("sentry.Organization")
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)  # user that completed
+    user = FlexibleForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
+    )  # user that completed
     task = BoundedPositiveIntegerField(choices=[(k, six.text_type(v)) for k, v in TASK_CHOICES])
     status = BoundedPositiveIntegerField(choices=[(k, six.text_type(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
