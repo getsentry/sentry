@@ -10,39 +10,49 @@ type Props = {
   tooltip?: string;
 };
 
-class PackageStatus extends React.Component<Props> {
-  getIcon(status: Props['status']): React.ReactNode {
+const PackageStatus = ({status, tooltip}: Props) => {
+  const getIcon = () => {
     switch (status) {
       case 'success':
-        return <IconCheckmark isCircled color="green500" />;
+        return <IconCheckmark isCircled color="green500" size="xs" />;
       case 'empty':
-        return <IconCircle />;
+        return <IconCircle size="xs" />;
       case 'error':
       default:
-        return <IconFlag color="red400" />;
+        return <IconFlag color="red400" size="xs" />;
     }
+  };
+
+  const icon = getIcon();
+
+  if (status === 'empty') {
+    return null;
   }
 
-  render() {
-    const {status, tooltip} = this.props;
+  return (
+    <StyledTooltip
+      title={tooltip}
+      disabled={!(tooltip && tooltip.length)}
+      containerDisplayMode="inline-flex"
+    >
+      <PackageStatusIcon>{icon}</PackageStatusIcon>
+    </StyledTooltip>
+  );
+};
 
-    const icon = this.getIcon(status);
-
-    if (status === 'empty') {
-      return null;
-    }
-
-    return (
-      <Tooltip title={tooltip} disabled={!(tooltip && tooltip.length)}>
-        <PackageStatusIcon>{icon}</PackageStatusIcon>
-      </Tooltip>
-    );
-  }
-}
+const StyledTooltip = styled(Tooltip)`
+  margin-left: ${space(0.75)};
+`;
 
 export const PackageStatusIcon = styled('span')`
-  margin-left: ${space(0.5)};
-  opacity: 0;
+  height: 12px;
+  align-items: center;
+  cursor: pointer;
+  visibility: hidden;
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+  }
 `;
 
 export default PackageStatus;

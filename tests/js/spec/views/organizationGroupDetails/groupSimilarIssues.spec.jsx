@@ -26,7 +26,6 @@ describe('Issues Similar View', function () {
     {'exception:stacktrace:pairs': 0.01264},
     {'exception:stacktrace:pairs': 0.875},
     {
-      'exception:stacktrace:application-chunks': 0.000235,
       'exception:stacktrace:pairs': 0.001488,
     },
   ];
@@ -70,7 +69,7 @@ describe('Issues Similar View', function () {
     await tick();
     wrapper.update();
     expect(mock).toHaveBeenCalled();
-    expect(wrapper.find('GroupGroupingView')).toSnapshot();
+    expect(wrapper.find('SimilarStackTrace')).toSnapshot();
   });
 
   it('can merge and redirect to new parent', async function () {
@@ -98,7 +97,7 @@ describe('Issues Similar View', function () {
 
     await tick();
     wrapper.update();
-    wrapper.find('[data-test-id="merge"] a').simulate('click');
+    wrapper.find('[data-test-id="merge"] button').simulate('click');
     wrapper.find('Button[data-test-id="confirm-button"]').simulate('click');
 
     await tick();

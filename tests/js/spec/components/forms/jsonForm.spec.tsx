@@ -6,7 +6,7 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import accountDetailsFields from 'app/data/forms/accountDetails';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 
-// @ts-ignore
+// @ts-expect-error
 const user = TestStubs.User({});
 
 describe('JsonForm', function () {

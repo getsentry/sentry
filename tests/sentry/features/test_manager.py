@@ -87,16 +87,16 @@ class FeatureManagerTest(TestCase):
 
         # A feature with a registered handler shouldn't use the entity handler
         assert manager.has("organizations:feature1", test_org)
-        assert len(entity_handler.mock_calls) == 0
+        assert len(entity_handler.has.mock_calls) == 0
         assert len(registered_handler.mock_calls) == 1
 
         # The feature isn't registered, so it should try checking the entity_handler
         assert manager.has("organizations:unregistered-feature", test_org)
-        assert len(entity_handler.mock_calls) == 1
+        assert len(entity_handler.has.mock_calls) == 1
         assert len(registered_handler.mock_calls) == 1
 
         # The entity_handler doesn't have a response for this feature either, so settings should be checked instead
-        entity_handler.return_value = None
+        entity_handler.has.return_value = None
         settings.SENTRY_FEATURES["organizations:settings-feature"] = "test"
         assert manager.has("organizations:settings-feature", test_org) == "test"
         assert len(entity_handler.mock_calls) == 2

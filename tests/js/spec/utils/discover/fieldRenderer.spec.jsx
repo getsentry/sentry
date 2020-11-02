@@ -1,6 +1,7 @@
 import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import ProjectsStore from 'app/stores/projectsStore';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
 describe('getFieldRenderer', function () {
@@ -11,6 +12,7 @@ describe('getFieldRenderer', function () {
     });
     organization = context.organization;
     project = context.project;
+    ProjectsStore.loadInitialData([project]);
     user = 'email:text@example.com';
 
     location = {
@@ -18,6 +20,7 @@ describe('getFieldRenderer', function () {
       query: {},
     };
     data = {
+      key_transaction: 1,
       title: 'ValueError: something bad',
       transaction: 'api.do_things',
       boolValue: 1,
@@ -34,6 +37,16 @@ describe('getFieldRenderer', function () {
       url: `/organizations/${organization.slug}/projects/${project.slug}/`,
       body: project,
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/key-transactions/`,
+      method: 'POST',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/key-transactions/`,
+      method: 'DELETE',
+    });
   });
 
   it('can render string fields', function () {
@@ -47,7 +60,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
     const wrapper = mount(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
-    expect(text.text()).toEqual('yes');
+    expect(text.text()).toEqual('true');
   });
 
   it('can render integer fields', function () {
@@ -127,5 +140,55 @@ describe('getFieldRenderer', function () {
     const value = wrapper.find('ProjectBadge');
     expect(value).toHaveLength(1);
     expect(value.text()).toEqual(project.slug);
+  });
+
+  it('can render key transaction as a star', async function () {
+    const renderer = getFieldRenderer('key_transaction', {key_transaction: 'boolean'});
+    delete data.project;
+
+    const wrapper = mountWithTheme(
+      renderer(data, {location, organization}),
+      context.routerContext
+    );
+
+    const value = wrapper.find('IconStar');
+    expect(value).toHaveLength(1);
+    expect(value.props().isSolid).toBeTruthy();
+
+    // Since there is not project column, it's not clickable
+    expect(wrapper.find('Button')).toHaveLength(0);
+  });
+
+  it('can render key transaction as a clickable star', async function () {
+    const renderer = getFieldRenderer('key_transaction', {key_transaction: 'boolean'});
+
+    const wrapper = mountWithTheme(
+      renderer(data, {location, organization}),
+      context.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    let value;
+
+    value = wrapper.find('IconStar');
+    expect(value).toHaveLength(1);
+    expect(value.props().isSolid).toBeTruthy();
+
+    wrapper.find('Button').simulate('click');
+    await tick();
+    wrapper.update();
+
+    value = wrapper.find('IconStar');
+    expect(value).toHaveLength(1);
+    expect(value.props().isSolid).toBeFalsy();
+
+    wrapper.find('Button').simulate('click');
+    await tick();
+    wrapper.update();
+
+    value = wrapper.find('IconStar');
+    expect(value).toHaveLength(1);
+    expect(value.props().isSolid).toBeTruthy();
   });
 });

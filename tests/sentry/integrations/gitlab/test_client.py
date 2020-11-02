@@ -4,6 +4,7 @@ import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import Identity
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from .testutils import GitLabTestCase
 
@@ -25,6 +26,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             "scope": "api",
         }
         self.original_identity_data = dict(self.client.identity.data)
+        self.gitlab_id = 123
 
     def tearDown(self):
         responses.reset()
@@ -122,3 +124,34 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         self.assert_response_call(call, self.request_url, 200)
         assert resp == self.request_data
         self.assert_identity_was_not_refreshed()
+
+    @responses.activate
+    def test_check_file(self):
+        path = "file.py"
+        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
+        responses.add(
+            responses.HEAD,
+            "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+                self.gitlab_id, path, ref
+            ),
+            json={"text": 200},
+        )
+
+        resp = self.client.check_file(self.gitlab_id, path, ref)
+        assert responses.calls[0].response.status_code == 200
+        assert resp.status_code == 200
+
+    @responses.activate
+    def test_check_no_file(self):
+        path = "file.py"
+        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
+        responses.add(
+            responses.HEAD,
+            "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+                self.gitlab_id, path, ref
+            ),
+            status=404,
+        )
+        with self.assertRaises(ApiError):
+            self.client.check_file(self.gitlab_id, path, ref)
+        assert responses.calls[0].response.status_code == 404

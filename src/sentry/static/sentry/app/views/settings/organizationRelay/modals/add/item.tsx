@@ -1,26 +1,25 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import ListItem from 'app/components/list/listItem';
 import space from 'app/styles/space';
-import {ListItem} from 'app/components/list';
 
 type Props = {
   title: React.ReactNode;
   children: React.ReactElement;
   subtitle?: React.ReactNode;
+  className?: string;
 };
 
-const Item = ({title, subtitle, children}: Props) => (
-  <StyledListItem>
+const Item = styled(({title, subtitle, children, className}: Props) => (
+  <ListItem className={className}>
     {title}
     {subtitle && <small>{subtitle}</small>}
     <div>{children}</div>
-  </StyledListItem>
-);
-
-export default Item;
-
-const StyledListItem = styled(ListItem)`
+  </ListItem>
+))`
   display: grid;
   grid-gap: ${space(1.5)};
 `;
+
+export default Item;

@@ -17,6 +17,7 @@ import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
+import RealUserMonitoring from 'app/components/events/realUserMonitoring';
 import EventMetadata from 'app/components/events/eventMetadata';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
@@ -174,7 +175,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               organization={organization}
               location={location}
             />
-            <EventHeader event={event} />
+            <EventHeader event={event} organization={organization} />
           </Layout.HeaderContent>
           <StyledHeaderActions>
             <ButtonBar gap={1}>
@@ -241,6 +242,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               />
               <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
+              <RealUserMonitoring organization={organization} event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}
@@ -280,7 +282,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {eventView, organization} = this.props;
     const {event} = this.state;
 
-    const title = generateTitle({eventView, event});
+    const title = generateTitle({eventView, event, organization});
 
     return (
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
@@ -290,10 +292,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 }
 
-const EventHeader = (props: {event: Event}) => {
-  const {title} = getTitle(props.event);
+const EventHeader = ({
+  event,
+  organization,
+}: {
+  event: Event;
+  organization: Organization;
+}) => {
+  const {title} = getTitle(event, organization);
 
-  const message = getMessage(props.event);
+  const message = getMessage(event);
 
   return (
     <Layout.Title data-test-id="event-header">
@@ -301,7 +309,7 @@ const EventHeader = (props: {event: Event}) => {
         {title}
         {message && message.length > 0 ? ':' : null}
       </span>
-      <EventSubheading>{getMessage(props.event)}</EventSubheading>
+      <EventSubheading>{getMessage(event)}</EventSubheading>
     </Layout.Title>
   );
 };

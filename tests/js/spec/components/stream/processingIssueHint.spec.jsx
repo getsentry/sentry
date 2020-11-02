@@ -43,7 +43,7 @@ describe('ProcessingIssueHint', function () {
     });
 
     it('displays text', function () {
-      const text = wrapper.find('Container').text();
+      const text = wrapper.find('Wrapper').text();
       expect(text).toEqual(expect.stringContaining('issues blocking'));
     });
   });
@@ -67,7 +67,7 @@ describe('ProcessingIssueHint', function () {
     });
 
     it('displays text', function () {
-      const text = wrapper.find('Container').text();
+      const text = wrapper.find('Wrapper').text();
       expect(text).toEqual(expect.stringContaining('Reprocessing'));
     });
   });
@@ -94,7 +94,7 @@ describe('ProcessingIssueHint', function () {
     });
 
     it('displays text', function () {
-      const text = wrapper.find('Container').text();
+      const text = wrapper.find('Wrapper').text();
       expect(text).toEqual(expect.stringContaining('pending reprocessing'));
     });
   });
@@ -112,7 +112,7 @@ describe('ProcessingIssueHint', function () {
       );
     });
     it('displays the project slug', function () {
-      const text = wrapper.find('Container').text();
+      const text = wrapper.find('Wrapper').text();
       expect(text).toEqual(expect.stringContaining(projectId));
     });
   });

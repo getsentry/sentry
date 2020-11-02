@@ -10,6 +10,8 @@ from math import ceil
 
 from django.core.urlresolvers import reverse
 
+from sentry.discover.models import KeyTransaction
+
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -519,6 +521,49 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert 2 == len(response.data["data"])
             assert [None] == response.data["data"][0]["error.handled"]
             assert [1] == response.data["data"][1]["error.handled"]
+
+    def test_error_unhandled_condition(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        prototype = load_data("android-ndk")
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "was handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
+            prototype["exception"]["values"][0]["value"] = event[1]
+            prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.two_min_ago
+            self.store_event(data=prototype, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.unhandled", "error.handled"],
+                "query": "error.unhandled:true",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 1 == len(response.data["data"])
+            assert [0] == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][0]["error.unhandled"]
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled", "error.unhandled"],
+                "query": "error.unhandled:false",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert [None] == response.data["data"][0]["error.handled"]
+            assert 0 == response.data["data"][0]["error.unhandled"]
+            assert [1] == response.data["data"][1]["error.handled"]
+            assert 0 == response.data["data"][1]["error.unhandled"]
 
     def test_implicit_groupby(self):
         project = self.create_project()
@@ -2477,6 +2522,62 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     == "You can view up to 20 fields at a time. Please delete some and try again."
                 )
 
+    def test_percentile_function_meta_types(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "percentile(transaction.duration, 0.95)",
+                "percentile(measurements.fp, 0.95)",
+                "percentile(measurements.fcp, 0.95)",
+                "percentile(measurements.lcp, 0.95)",
+                "percentile(measurements.fid, 0.95)",
+                "percentile(measurements.ttfb, 0.95)",
+                "percentile(measurements.ttfb.requesttime, 0.95)",
+                "percentile(measurements.cls, 0.95)",
+                "percentile(measurements.foo, 0.95)",
+                "percentile(measurements.bar, 0.95)",
+            ],
+            "query": "",
+            "orderby": ["transaction"],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["percentile_transaction_duration_0_95"] == "duration"
+        assert meta["percentile_measurements_fp_0_95"] == "duration"
+        assert meta["percentile_measurements_fcp_0_95"] == "duration"
+        assert meta["percentile_measurements_lcp_0_95"] == "duration"
+        assert meta["percentile_measurements_fid_0_95"] == "duration"
+        assert meta["percentile_measurements_ttfb_0_95"] == "duration"
+        assert meta["percentile_measurements_ttfb_requesttime_0_95"] == "duration"
+        assert meta["percentile_measurements_cls_0_95"] == "number"
+        assert meta["percentile_measurements_foo_0_95"] == "number"
+        assert meta["percentile_measurements_bar_0_95"] == "number"
+
+    def test_count_at_least_query(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(0)})
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_at_least_measurements_fcp_0"] == 1
+
+        # a value that's a little bigger than the stored fcp
+        fcp = int(self.transaction_data["measurements"]["fcp"]["value"] + 1)
+        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(fcp)})
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_at_least_measurements_fcp_{}".format(fcp)] == 0
+
     def test_measurements_query(self):
         self.store_event(self.transaction_data, self.project.id)
         query = {
@@ -2631,3 +2732,175 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.assert_measurement_condition_without_results(
             "{}:0".format(count_unique), field=[count_unique]
         )
+
+    def test_no_key_transactions(self):
+        transactions = [
+            "/blah_transaction/",
+            "/foo_transaction/",
+            "/zoo_transaction/",
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        query = {
+            "project": [self.project.id],
+            # use the order by to ensure the result order
+            "orderby": "transaction",
+            "field": [
+                "key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["key_transaction"] == 0
+        assert data[1]["transaction"] == "/foo_transaction/"
+        assert data[2]["key_transaction"] == 0
+        assert data[2]["transaction"] == "/zoo_transaction/"
+
+    def test_key_transactions_orderby(self):
+        transactions = ["/blah_transaction/"]
+        key_transactions = [
+            "/foo_transaction/",
+            "/zoo_transaction/",
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        for transaction in key_transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+            KeyTransaction.objects.create(
+                owner=self.user,
+                organization=self.organization,
+                transaction=transaction,
+                project=self.project,
+            )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        # test ascending order
+        query["orderby"] = ["key_transaction", "transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["key_transaction"] == 1
+        assert data[1]["transaction"] == "/foo_transaction/"
+        assert data[2]["key_transaction"] == 1
+        assert data[2]["transaction"] == "/zoo_transaction/"
+
+        # test descending order
+        query["orderby"] = ["-key_transaction", "-transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["key_transaction"] == 1
+        assert data[0]["transaction"] == "/zoo_transaction/"
+        assert data[1]["key_transaction"] == 1
+        assert data[1]["transaction"] == "/foo_transaction/"
+        assert data[2]["key_transaction"] == 0
+        assert data[2]["transaction"] == "/blah_transaction/"
+
+    def test_key_transactions_query(self):
+        transactions = ["/blah_transaction/"]
+        key_transactions = [
+            "/foo_transaction/",
+            "/zoo_transaction/",
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        for transaction in key_transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+            KeyTransaction.objects.create(
+                owner=self.user,
+                organization=self.organization,
+                transaction=transaction,
+                project=self.project,
+            )
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "transaction",
+            "field": [
+                "key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        # key transactions
+        query["query"] = "has:key_transaction"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["key_transaction"] == 1
+        assert data[0]["transaction"] == "/foo_transaction/"
+        assert data[1]["key_transaction"] == 1
+        assert data[1]["transaction"] == "/zoo_transaction/"
+
+        # key transactions
+        query["query"] = "key_transaction:true"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["key_transaction"] == 1
+        assert data[0]["transaction"] == "/foo_transaction/"
+        assert data[1]["key_transaction"] == 1
+        assert data[1]["transaction"] == "/zoo_transaction/"
+
+        # not key transactions
+        query["query"] = "!has:key_transaction"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+
+        # not key transactions
+        query["query"] = "key_transaction:false"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"

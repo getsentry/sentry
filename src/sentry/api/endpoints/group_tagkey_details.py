@@ -3,25 +3,14 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Environment, Group
-from sentry.utils.apidocs import scenario
-
-
-@scenario("ListTagDetails")
-def list_tag_details_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method="GET", path="/issues/%s/tags/%s/" % (group.id, "browser"))
+from sentry.models import Environment
 
 
 class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
-    doc_section = DocSection.EVENTS
-
-    # XXX: this scenario does not work for some inexplicable reasons
-    # @attach_scenarios([list_tag_details_scenario])
     def get(self, request, group, key):
         """
         Retrieve Tag Details

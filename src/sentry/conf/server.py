@@ -838,10 +838,16 @@ SENTRY_FEATURES = {
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
+    # Lets organizations set a custom title through fingerprinting
+    "organizations:custom-event-title": False,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable metric aggregate in metric alert rule builder
+    "organizations:metric-alert-builder-aggregate": False,
+    # Enable new GUI filters in the metric alert rule builder
+    "organizations:metric-alert-gui-filters": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -857,8 +863,12 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
+    # Allow orgs to automatically create Tickets in Issue Alerts
+    "organizations:integrations-ticket-rules": False,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
+    # Allow orgs to use the stacktrace linking feature
+    "organizations:integrations-stacktrace-link": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -872,6 +882,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members-rate-limits": True,
     # Enable measurements-based product features.
     "organizations:measurements": False,
+    # Enable key transactions as a column in performance
+    "organizations:key-transactions": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -891,6 +903,8 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable workaround for migrating IdP instances
+    "organizations:sso-migration": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
     # Enable trends view for performance.
@@ -899,7 +913,9 @@ SENTRY_FEATURES = {
     # attachments
     "organizations:usage-stats-graph": False,
     # Enable dynamic issue counts and user counts in the issue stream
-    "organizations:dynamic-issue-counts": False,
+    "organizations:dynamic-issue-counts": True,
+    # Enable inbox support in the issue stream
+    "organizations:inbox": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
     # Enable functionality to specify custom inbound filters on events.
@@ -1129,6 +1145,7 @@ SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 
 # Snuba configuration
 SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
+SENTRY_SNUBA_TIMEOUT = 30
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
@@ -1527,7 +1544,7 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "snuba": {
-        "image": "getsentry/snuba:latest",
+        "image": "getsentry/snuba:nightly",
         "pull": True,
         "ports": {"1218/tcp": 1218},
         "command": ["devserver"],
@@ -1559,7 +1576,7 @@ SENTRY_DEVSERVICES = {
         in settings.CACHES.get("default", {}).get("BACKEND"),
     },
     "symbolicator": {
-        "image": "us.gcr.io/sentryio/symbolicator:latest",
+        "image": "us.gcr.io/sentryio/symbolicator:nightly",
         "pull": True,
         "ports": {"3021/tcp": 3021},
         "volumes": {SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
@@ -1567,7 +1584,7 @@ SENTRY_DEVSERVICES = {
         "only_if": lambda settings, options: options.get("symbolicator.enabled"),
     },
     "relay": {
-        "image": "us.gcr.io/sentryio/relay:latest",
+        "image": "us.gcr.io/sentryio/relay:nightly",
         "pull": True,
         "ports": {"7899/tcp": SENTRY_RELAY_PORT},
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},

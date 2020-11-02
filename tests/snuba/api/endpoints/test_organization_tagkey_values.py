@@ -306,7 +306,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test("transaction.op", qs_params={"query": "bar"}, expected=[("bar.server", 1)])
 
     def test_duration(self):
-        self.run_test("transaction.duration", expected=[("5000", 1), ("2000", 1)])
+        self.run_test("transaction.duration", expected=[("5000", 1), ("3000", 1)])
         self.run_test("transaction.duration", qs_params={"query": "5001"}, expected=[("5000", 1)])
         self.run_test("transaction.duration", qs_params={"query": "50"}, expected=[])
 
@@ -331,3 +331,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test(
             "trace.parent_span", qs_params={"query": "9000"}, expected=[("9000cec7cc0779c1", 1)]
         )
+
+    def test_boolean_fields(self):
+        self.run_test("error.handled", expected=[("true", None), ("false", None)])
+        self.run_test("error.unhandled", expected=[("true", None), ("false", None)])

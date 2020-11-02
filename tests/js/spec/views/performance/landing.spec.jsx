@@ -7,12 +7,13 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectsStore from 'app/stores/projectsStore';
 import PerformanceLanding, {FilterViews} from 'app/views/performance/landing';
 import * as globalSelection from 'app/actionCreators/globalSelection';
+import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
 
 const FEATURES = ['transaction-event', 'performance-view'];
 
-function initializeData(projects, query) {
+function initializeData(projects, query, features = FEATURES) {
   const organization = TestStubs.Organization({
-    features: FEATURES,
+    features,
     projects,
   });
   const initialData = initializeOrg({
@@ -40,7 +41,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 
   const otherTrendsQuery = addDefaultQuery
     ? {
-        query: 'count():>1000 transaction.duration:>0',
+        query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
       }
     : {};
 
@@ -60,6 +61,8 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 }
 
 describe('Performance > Landing', function () {
+  let eventsMock;
+  let keyTransactionsMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
@@ -89,35 +92,117 @@ describe('Performance > Landing', function () {
       method: 'POST',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
-      body: {
-        meta: {
-          user: 'string',
-          transaction: 'string',
-          'project.id': 'integer',
-          epm: 'number',
-          p50: 'number',
-          p95: 'number',
-          failure_rate: 'number',
-          apdex_300: 'number',
-          count_unique_user: 'number',
-          user_misery_300: 'number',
-        },
-        data: [
-          {
-            transaction: '/apple/cart',
-            'project.id': 1,
-            user: 'uhoh@example.com',
-            epm: 30,
-            p50: 100,
-            p95: 500,
-            failure_rate: 0.1,
-            apdex_300: 0.6,
-            count_unique_user: 1000,
-            user_misery_300: 122,
+    eventsMock = MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/eventsv2/',
+        body: {
+          meta: {
+            user: 'string',
+            transaction: 'string',
+            'project.id': 'integer',
+            epm: 'number',
+            p50: 'number',
+            p95: 'number',
+            failure_rate: 'number',
+            apdex_300: 'number',
+            count_unique_user: 'number',
+            user_misery_300: 'number',
           },
-        ],
+          data: [
+            {
+              transaction: '/apple/cart',
+              'project.id': 1,
+              user: 'uhoh@example.com',
+              epm: 30,
+              p50: 100,
+              p95: 500,
+              failure_rate: 0.1,
+              apdex_300: 0.6,
+              count_unique_user: 1000,
+              user_misery_300: 122,
+            },
+          ],
+        },
+      },
+      {
+        predicate: (_, options) => {
+          if (!options.hasOwnProperty('query')) {
+            return false;
+          } else if (!options.query.hasOwnProperty('field')) {
+            return false;
+          }
+          return !options.query.field.includes('key_transaction');
+        },
+      }
+    );
+    MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/eventsv2/',
+        body: {
+          meta: {
+            user: 'string',
+            transaction: 'string',
+            'project.id': 'integer',
+            epm: 'number',
+            p50: 'number',
+            p95: 'number',
+            failure_rate: 'number',
+            apdex_300: 'number',
+            count_unique_user: 'number',
+            user_misery_300: 'number',
+          },
+          data: [
+            {
+              key_transaction: 1,
+              transaction: '/apple/cart',
+              'project.id': 1,
+              user: 'uhoh@example.com',
+              epm: 30,
+              p50: 100,
+              p95: 500,
+              failure_rate: 0.1,
+              apdex_300: 0.6,
+              count_unique_user: 1000,
+              user_misery_300: 122,
+            },
+            {
+              key_transaction: 0,
+              transaction: '/apple/checkout',
+              'project.id': 1,
+              user: 'uhoh@example.com',
+              epm: 30,
+              p50: 100,
+              p95: 500,
+              failure_rate: 0.1,
+              apdex_300: 0.6,
+              count_unique_user: 1000,
+              user_misery_300: 122,
+            },
+          ],
+        },
+      },
+      {
+        predicate: (_, options) => {
+          if (!options.hasOwnProperty('query')) {
+            return false;
+          } else if (!options.query.hasOwnProperty('field')) {
+            return false;
+          }
+          return options.query.field.includes('key_transaction');
+        },
+      }
+    );
+    keyTransactionsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/key-transactions/',
+      body: {
+        meta: {},
+        data: [],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/key-transactions-stats/',
+      body: {
+        data: [],
       },
     });
     MockApiClient.addMockResponse({
@@ -261,7 +346,7 @@ describe('Performance > Landing', function () {
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
     const data = initializeTrendsData({
-      query: 'count():>500 transaction.duration:>10',
+      query: `epm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
       statsPeriod: '24h',
     });
 
@@ -283,7 +368,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'count():>500 transaction.duration:>10',
+          query: `epm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           statsPeriod: '24h',
           view: 'TRENDS',
         },
@@ -311,8 +396,24 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
 
-  it('Default page (trends) with trends feature will update filters if none are set', async function () {
+  it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(0);
+  });
+
+  it('Visiting trends with trends feature will update filters if none are set', async function () {
+    const data = initializeTrendsData({view: FilterViews.TRENDS}, false);
 
     const wrapper = mountWithTheme(
       <PerformanceLanding
@@ -328,11 +429,40 @@ describe('Performance > Landing', function () {
       1,
       expect.objectContaining({
         query: {
-          query: 'count():>1000 transaction.duration:>0',
+          query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           view: 'TRENDS',
         },
       })
     );
+  });
+
+  it('Changing views from all transactions to key transactions fires discover query', async function () {
+    const data = initializeTrendsData({view: FilterViews.ALL_TRANSACTIONS}, false);
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(keyTransactionsMock).toHaveBeenCalledTimes(0);
+
+    const changedViewData = initializeTrendsData(
+      {view: FilterViews.KEY_TRANSACTIONS},
+      false
+    );
+
+    wrapper.setProps({location: changedViewData.router.location});
+    await tick();
+    wrapper.update();
+
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(keyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
   it('Tags are replaced with trends default query if navigating to trends', async function () {
@@ -357,7 +487,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'count():>1000 transaction.duration:>0',
+          query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           view: 'TRENDS',
         },
       })
@@ -368,7 +498,7 @@ describe('Performance > Landing', function () {
     const data = initializeTrendsData(
       {
         view: FilterViews.TRENDS,
-        query: 'device.family:Mac count():>1000 transaction.duration:>0',
+        query: `device.family:Mac epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
       },
       false
     );
@@ -399,5 +529,62 @@ describe('Performance > Landing', function () {
         },
       })
     );
+  });
+
+  it('should render correctly if key transaction feature is off', async function () {
+    const projects = [TestStubs.Project({firstTransactionEvent: true})];
+    const data = initializeData(projects, {});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    // Check number of rendered tab buttons
+    expect(wrapper.find('ButtonBar Button')).toHaveLength(2);
+
+    // Check to see if the key transaction column is not there
+    expect(wrapper.find('IconStar[data-test-id="key-transaction-header"]')).toHaveLength(
+      0
+    );
+    expect(wrapper.find('IconStar[data-test-id="key-transaction-column"]')).toHaveLength(
+      0
+    );
+  });
+
+  it('should render correctly if key transaction feature is on', async function () {
+    const projects = [TestStubs.Project({firstTransactionEvent: true})];
+    const data = initializeData(projects, {}, [...FEATURES, 'key-transactions']);
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    // Check number of rendered tab buttons
+    expect(wrapper.find('ButtonBar Button')).toHaveLength(1);
+
+    // Check to see if the key transaction column is there
+    expect(wrapper.find('IconStar[data-test-id="key-transaction-header"]')).toHaveLength(
+      1
+    );
+    const keyTransactionColumns = wrapper.find(
+      'IconStar[data-test-id="key-transaction-column"]'
+    );
+    expect(keyTransactionColumns).toHaveLength(2);
+    expect(keyTransactionColumns.first().props().isSolid).toEqual(true);
+    expect(keyTransactionColumns.last().props().isSolid).toEqual(false);
   });
 });

@@ -14,11 +14,11 @@ import {Client} from 'app/api';
 
 type Props = {
   api: Client;
+  organization: Organization;
+  project: Project;
   /* used to override when under local state */
   isBookmarked?: boolean;
   className?: string;
-  organization: Organization;
-  project: Project;
   onToggle?: (isBookmarked: boolean) => void;
 };
 

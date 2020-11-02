@@ -34,11 +34,11 @@ class OrganizationProjectsTest(APITestCase):
 
         response = self.client.get(u"{}?statsPeriod=24h".format(self.path), format="json")
         self.check_valid_response(response, projects)
-        assert response.data[0]["stats"]
+        assert "stats" in response.data[0]
 
         response = self.client.get(u"{}?statsPeriod=14d".format(self.path), format="json")
         self.check_valid_response(response, projects)
-        assert response.data[0]["stats"]
+        assert "stats" in response.data[0]
 
         response = self.client.get(u"{}?statsPeriod=".format(self.path), format="json")
         self.check_valid_response(response, projects)

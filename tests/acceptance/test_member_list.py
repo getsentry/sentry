@@ -26,5 +26,5 @@ class ListOrganizationMembersTest(AcceptanceTestCase):
         self.browser.get(u"/organizations/{}/members/".format(self.org.slug))
         self.browser.wait_until_not(".loading-indicator")
         self.browser.snapshot(name="list organization members")
-        assert self.browser.element_exists_by_aria_label("Invite Members")
+        assert self.browser.element_exists_by_test_id("email-invite")
         assert self.browser.element_exists_by_aria_label("Resend invite")

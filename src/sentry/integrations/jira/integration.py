@@ -303,7 +303,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return {
             "key": issue_id,
             "title": issue["fields"]["summary"],
-            "description": issue["fields"]["description"],
+            "description": issue["fields"].get("description"),
         }
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -793,7 +793,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         transitions = client.get_transitions(external_issue.key)
 
         try:
-            transition = [t for t in transitions if t["to"]["id"] == jira_status][0]
+            transition = [t for t in transitions if t.get("to", {}).get("id") == jira_status][0]
         except IndexError:
             # TODO(jess): Email for failure
             logger.warning(

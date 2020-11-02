@@ -14,6 +14,7 @@ import Tooltip from 'app/components/tooltip';
 import TextOverflow from 'app/components/textOverflow';
 import Placeholder from 'app/components/placeholder';
 import Link from 'app/components/links/link';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 import HealthStatsChart from '../healthStatsChart';
 import {convertAdoptionToProgress, getReleaseNewIssuesUrl} from '../../utils';
@@ -212,7 +213,7 @@ const Layout = styled('div')`
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-areas: 'project crash-free-sessions new-issues';
-    grid-template-columns: 2fr 1.5fr 1fr;
+    grid-template-columns: 2fr 1.6fr 1fr;
   }
 `;
 
@@ -221,7 +222,7 @@ const HeaderLayout = styled(Layout)`
 `;
 
 const Column = styled('div')`
-  overflow: hidden;
+  ${overflowEllipsis};
 `;
 
 const RightColumn = styled(Column)`
@@ -240,6 +241,8 @@ const DailyUsersColumn = styled(Column)`
   grid-area: daily-users;
   display: flex;
   align-items: flex-end;
+  /* Chart tooltips need overflow */
+  overflow: visible;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     display: none;
   }
