@@ -71,4 +71,4 @@ jobs:
           # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
           # XXX: there is a very small chance that it'll expand to exceed Linux's limits
           #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
-          - pre-commit run --files $(git diff --diff-filter=d --name-only master)
+          - pre-commit run --files $(git diff --diff-filter=d --name-only origin/master HEAD)
