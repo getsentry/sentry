@@ -1479,7 +1479,7 @@ SENTRY_DEVSERVICES = {
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
         "healthcheck": {
-            "test": ["false",],  # pg_isready
+            "test": ["CMD", "false"],  # pg_isready
             "interval": 1000000 * 1000,
             "timeout": 1000000 * 1000,
             "retries": 5,
