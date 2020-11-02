@@ -63,7 +63,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "start": iso_format(self.day_ago),
                     "field": ["project", "transaction"],
-                    "query": "event.type:transaction",
+                    "query": "event.type:transaction trend_percentage():>0% t_test():>6 trend_difference():>10min count_percentage():>50% count_percentage():<400%",
+                    "trendType": "regression",
                 },
             )
 
@@ -72,6 +73,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
+        print(events["data"][0])
         self.expected_data.update(
             {
                 "percentile_range_1": 2000,
