@@ -33,7 +33,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             except ApiError as e:
                 raise IntegrationError(self.message_from_error(e))
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_org_default_config_fields(self):
         return ["repo"]
 
     def create_default_repo_choice(self, default_repo):
@@ -42,7 +42,7 @@ class GitHubIssueBasic(IssueBasicMixin):
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "github_integration"
         fields = super(GitHubIssueBasic, self).get_create_issue_config(group, user, **kwargs)
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, user, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
 
@@ -105,8 +105,8 @@ class GitHubIssueBasic(IssueBasicMixin):
             "repo": repo,
         }
 
-    def get_link_issue_config(self, group, **kwargs):
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+    def get_link_issue_config(self, group, user, **kwargs):
+        default_repo, repo_choices = self.get_repository_choices(group, user, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(

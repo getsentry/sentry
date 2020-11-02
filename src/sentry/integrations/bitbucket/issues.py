@@ -25,7 +25,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         repo, issue_id = key.split("#")
         return u"https://bitbucket.org/{}/issues/{}".format(repo, issue_id)
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_org_default_config_fields(self):
         return ["repo"]
 
     def get_create_issue_config(self, group, user, **kwargs):
@@ -33,7 +33,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         fields = super(BitbucketIssueBasicMixin, self).get_create_issue_config(
             group, user, **kwargs
         )
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, user, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -72,8 +72,8 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             ]
         )
 
-    def get_link_issue_config(self, group, **kwargs):
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+    def get_link_issue_config(self, group, user, **kwargs):
+        default_repo, repo_choices = self.get_repository_choices(group, user, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(

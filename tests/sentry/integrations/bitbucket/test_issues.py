@@ -117,7 +117,7 @@ class BitbucketIssueTest(APITestCase):
         }
         self.org_integration.save()
         installation = self.integration.get_installation(self.organization.id)
-        fields = installation.get_link_issue_config(self.group)
+        fields = installation.get_link_issue_config(self.group, self.user)
         repo_field = [field for field in fields if field["name"] == "repo"][0]
         assert repo_field["default"] == "myaccount/repo1"
 
@@ -160,7 +160,7 @@ class BitbucketIssueTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
-        fields = installation.get_link_issue_config(self.group)
+        fields = installation.get_link_issue_config(self.group, self.user)
         repo_field = [field for field in fields if field["name"] == "repo"][0]
         assert repo_field["default"] == ""
         assert repo_field["choices"] == []
@@ -242,7 +242,7 @@ class BitbucketIssueTest(APITestCase):
             json={"values": [{"full_name": "myaccount/repo1"}, {"full_name": "myaccount/repo2"}]},
         )
         installation = self.integration.get_installation(self.organization.id)
-        assert installation.get_link_issue_config(self.group) == [
+        assert installation.get_link_issue_config(self.group, self.user) == [
             {
                 "name": "repo",
                 "required": True,

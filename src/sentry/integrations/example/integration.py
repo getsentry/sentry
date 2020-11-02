@@ -73,13 +73,13 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
         }
         return comment
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_org_default_config_fields(self):
         return ["project", "issueType"]
 
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "example_integration"
         fields = super(ExampleIntegration, self).get_create_issue_config(group, user, **kwargs)
-        default = self.get_project_defaults(group.project_id)
+        default = self.get_project_defaults(group.project, user)
         example_project_field = self.generate_example_project_field(default)
         return fields + [example_project_field]
 
@@ -97,9 +97,9 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return project_field
 
-    def get_link_issue_config(self, group, **kwargs):
-        fields = super(ExampleIntegration, self).get_link_issue_config(group, **kwargs)
-        default = self.get_project_defaults(group.project_id)
+    def get_link_issue_config(self, group, user, **kwargs):
+        fields = super(ExampleIntegration, self).get_link_issue_config(group, user, **kwargs)
+        default = self.get_project_defaults(group.project, user)
         example_project_field = self.generate_example_project_field(default)
         return fields + [example_project_field]
 

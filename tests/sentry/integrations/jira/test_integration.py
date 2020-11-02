@@ -759,7 +759,7 @@ class JiraIntegrationTest(APITestCase):
 
         installation = self.integration.get_installation(org.id)
 
-        assert installation.get_link_issue_config(group) == [
+        assert installation.get_link_issue_config(group, self.user) == [
             {
                 "name": "externalIssue",
                 "label": "Issue",

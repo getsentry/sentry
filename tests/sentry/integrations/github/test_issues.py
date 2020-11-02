@@ -204,7 +204,7 @@ class GitHubIssueBasicTest(TestCase):
         ]
         # link an issue
         data = {"params": {"repo": "getsentry/hello"}}
-        resp = self.integration.get_link_issue_config(group=event.group, **data)
+        resp = self.integration.get_link_issue_config(group=event.group, user=self.user, **data)
         assert resp[0]["choices"] == [
             (u"getsentry/hello", u"hello"),
             (u"getsentry/sentry", u"sentry"),
@@ -262,7 +262,7 @@ class GitHubIssueBasicTest(TestCase):
             }
         }
         org_integration.save()
-        fields = self.integration.get_link_issue_config(group)
+        fields = self.integration.get_link_issue_config(group, self.user)
         for field in fields:
             if field["name"] == "repo":
                 repo_field = field
@@ -318,7 +318,7 @@ class GitHubIssueBasicTest(TestCase):
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
-        fields = self.integration.get_link_issue_config(event.group)
+        fields = self.integration.get_link_issue_config(event.group, self.user)
         repo_field = [field for field in fields if field["name"] == "repo"][0]
         assert repo_field["default"] == ""
         assert repo_field["choices"] == []

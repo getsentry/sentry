@@ -122,13 +122,13 @@ class IssueDefaultTest(TestCase):
         self.installation = integration.get_installation(self.group.organization.id)
 
     def test_get_repository_choices(self):
-        default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+        default_repo, repo_choice = self.installation.get_repository_choices(self.group, self.user)
         assert default_repo == "user/repo"
         assert repo_choice == [("user/repo", "repo")]
 
     def test_get_repository_choices_no_repos(self):
         self.installation.get_repositories = lambda: []
-        default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+        default_repo, repo_choice = self.installation.get_repository_choices(self.group, self.user)
         assert default_repo == ""
         assert repo_choice == []
 
@@ -141,13 +141,13 @@ class IssueDefaultTest(TestCase):
             {"name": "repo1", "identifier": "user/repo1"},
             {"name": "repo2", "identifier": "user/repo2"},
         ]
-        default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+        default_repo, repo_choice = self.installation.get_repository_choices(self.group, self.user)
         assert default_repo == "user/repo2"
         assert repo_choice == [("user/repo1", "repo1"), ("user/repo2", "repo2")]
 
     def test_store_issue_last_defaults_partial_update(self):
-        assert "project" in self.installation.get_persisted_default_config_fields()
-        assert "issueType" in self.installation.get_persisted_default_config_fields()
+        assert "project" in self.installation.get_persisted_org_default_config_fields()
+        assert "issueType" in self.installation.get_persisted_org_default_config_fields()
         self.installation.store_issue_last_defaults(
             self.project, self.user, {"project": "xyz", "issueType": "BUG"}
         )
@@ -156,18 +156,18 @@ class IssueDefaultTest(TestCase):
         )
         # {} is commonly triggered by "link issue" flow
         self.installation.store_issue_last_defaults(self.project, self.user, {})
-        assert self.installation.get_project_defaults(self.project.id) == {
+        assert self.installation._get_org_defaults_for_project(self.project) == {
             "project": "xyz",
             "issueType": "FEATURE",
         }
 
     def test_store_issue_last_defaults_multiple_projects(self):
-        assert "project" in self.installation.get_persisted_default_config_fields()
+        assert "project" in self.installation.get_persisted_org_default_config_fields()
         other_project = self.create_project(name="Foo", slug="foo", teams=[self.team])
         self.installation.store_issue_last_defaults(self.project, self.user, {"project": "xyz"})
         self.installation.store_issue_last_defaults(other_project, self.user, {"project": "abc"})
-        assert self.installation.get_project_defaults(self.project.id) == {"project": "xyz"}
-        assert self.installation.get_project_defaults(other_project.id) == {"project": "abc"}
+        assert self.installation._get_org_defaults_for_project(self.project) == {"project": "xyz"}
+        assert self.installation._get_org_defaults_for_project(other_project) == {"project": "abc"}
 
     def test_annotations(self):
         label = self.installation.get_issue_display_name(self.external_issue)

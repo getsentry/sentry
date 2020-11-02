@@ -283,8 +283,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         self.model.save()
 
-    def get_link_issue_config(self, group, **kwargs):
-        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+    def get_link_issue_config(self, group, user, **kwargs):
+        fields = super(JiraIntegration, self).get_link_issue_config(group, user, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -296,7 +296,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_url(self, key, **kwargs):
         return "%s/browse/%s" % (self.model.metadata["base_url"], key)
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_org_default_config_fields(self):
         return ["project", "issuetype", "priority", "labels"]
 
     def get_persisted_user_default_config_fields(self):
@@ -540,7 +540,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
         params = kwargs.get("params", {})
 
-        defaults = self.get_defaults(group.project, user)
+        defaults = self.get_project_defaults(group.project, user)
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:

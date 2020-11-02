@@ -236,8 +236,8 @@ class JiraServerIntegration(JiraIntegration):
             self.model.metadata["verify_ssl"],
         )
 
-    def get_link_issue_config(self, group, **kwargs):
-        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+    def get_link_issue_config(self, group, user, **kwargs):
+        fields = super(JiraIntegration, self).get_link_issue_config(group, user, **kwargs)
         org = group.organization
         autocomplete_url = reverse(
             "sentry-extensions-jiraserver-search", args=[org.slug, self.model.id]

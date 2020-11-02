@@ -80,7 +80,7 @@ class IssueBasicMixin(object):
             },
         ]
 
-    def get_link_issue_config(self, group, **kwargs):
+    def get_link_issue_config(self, group, user, **kwargs):
         """
         Used by the `GroupIntegrationDetailsEndpoint` to create an
         `ExternalIssue` using title/description obtained from calling
@@ -88,7 +88,7 @@ class IssueBasicMixin(object):
         """
         return [{"name": "externalIssue", "label": "Issue", "default": "", "type": "string"}]
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_org_default_config_fields(self):
         """
         Returns a list of field names that should have their last used values
         persisted on a per-project basis.
@@ -106,7 +106,7 @@ class IssueBasicMixin(object):
         """
         Stores the last used field defaults on a per-project basis. This
         accepts a dict of values that will be filtered to keys returned by
-        ``get_persisted_default_config_fields`` which will automatically be
+        ``get_persisted_org_default_config_fields`` which will automatically be
         merged into the associated field config object as the default.
 
         >>> integ.store_issue_last_defaults(project, user, {'externalProject': 2})
@@ -117,7 +117,7 @@ class IssueBasicMixin(object):
         NOTE: These are currently stored for both link and create issue, no
               differentiation is made between the two field configs.
         """
-        persisted_fields = self.get_persisted_default_config_fields()
+        persisted_fields = self.get_persisted_org_default_config_fields()
         if persisted_fields:
             project_defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
             self.org_integration.config.setdefault("project_issue_defaults", {}).setdefault(
@@ -135,25 +135,27 @@ class IssueBasicMixin(object):
             )
             UserOption.objects.set_value(value=new_user_defaults, **user_option_key)
 
-    def get_defaults(self, project, user):
-        project_defaults = self.get_project_defaults(project.id)
+    def get_project_defaults(self, project, user):
+        """
+        Get defaults for the given project.
 
-        user_option_key = dict(user=user, key="issue:defaults", project=project)
-        user_defaults = UserOption.objects.get_value(default={}, **user_option_key).get(
-            self.org_integration.integration.provider, {}
-        )
-
+        Per-user fields are specified via get_persisted_user_default_config_fields.
+        Per-org fields are specified via get_persisted_org_default_config_fields.
+        """
         defaults = {}
-        defaults.update(project_defaults)
-        defaults.update(user_defaults)
-
+        defaults.update(self._get_org_defaults_for_project(project))
+        defaults.update(self._get_user_defaults_for_project(project, user))
         return defaults
 
-    # TODO(saif): Make private and move all usages over to `get_defaults`
-    def get_project_defaults(self, project_id):
+    def _get_org_defaults_for_project(self, project):
         return self.org_integration.config.get("project_issue_defaults", {}).get(
-            six.text_type(project_id), {}
+            six.text_type(project.id), {}
         )
+
+    def _get_user_defaults_for_project(self, project, user):
+        user_option_key = dict(user=user, key="issue:defaults", project=project)
+        user_defaults = UserOption.objects.get_value(default={}, **user_option_key)
+        return user_defaults.get(self.org_integration.integration.provider, {})
 
     def create_issue(self, data, **kwargs):
         """
@@ -215,7 +217,7 @@ class IssueBasicMixin(object):
         """
         return ""
 
-    def get_repository_choices(self, group, **kwargs):
+    def get_repository_choices(self, group, user, **kwargs):
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
         """
@@ -229,7 +231,7 @@ class IssueBasicMixin(object):
         repo = kwargs.get("repo")
         if not repo:
             params = kwargs.get("params", {})
-            defaults = self.get_project_defaults(group.project_id)
+            defaults = self.get_project_defaults(group.project, user)
             repo = params.get("repo", defaults.get("repo"))
 
         try:

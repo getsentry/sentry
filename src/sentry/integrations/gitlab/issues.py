@@ -19,16 +19,16 @@ class GitlabIssueBasic(IssueBasicMixin):
         project, issue_id = match.group(1), match.group(2)
         return u"{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_org_default_config_fields(self):
         return ["project"]
 
-    def get_projects_and_default(self, group, **kwargs):
+    def get_projects_and_default(self, group, user, **kwargs):
         params = kwargs.get("params", {})
-        defaults = self.get_project_defaults(group.project_id)
+        defaults = self.get_project_defaults(group.project, user)
         kwargs["repo"] = params.get("project", defaults.get("project"))
 
         # In GitLab Repositories are called Projects
-        default_project, project_choices = self.get_repository_choices(group, **kwargs)
+        default_project, project_choices = self.get_repository_choices(group, user, **kwargs)
         return default_project, project_choices
 
     def create_default_repo_choice(self, default_repo):
@@ -41,7 +41,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         return (project["id"], project["name_with_namespace"])
 
     def get_create_issue_config(self, group, user, **kwargs):
-        default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+        default_project, project_choices = self.get_projects_and_default(group, user, **kwargs)
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super(GitlabIssueBasic, self).get_create_issue_config(group, user, **kwargs)
 
@@ -107,8 +107,8 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-    def get_link_issue_config(self, group, **kwargs):
-        default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+    def get_link_issue_config(self, group, user, **kwargs):
+        default_project, project_choices = self.get_projects_and_default(group, user, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(

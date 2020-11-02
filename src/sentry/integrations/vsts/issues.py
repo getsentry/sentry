@@ -20,7 +20,7 @@ class VstsIssueSync(IssueSyncMixin):
     issue_fields = frozenset(["id", "title", "url"])
     done_categories = frozenset(["Resolved", "Completed"])
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_org_default_config_fields(self):
         return ["project", "work_item_type"]
 
     def create_default_repo_choice(self, default_repo):
@@ -28,7 +28,7 @@ class VstsIssueSync(IssueSyncMixin):
         project = self.get_client().get_project(self.instance, default_repo)
         return (project["id"], project["name"])
 
-    def get_project_choices(self, group, **kwargs):
+    def get_project_choices(self, group, user, **kwargs):
         client = self.get_client()
         try:
             projects = client.get_projects(self.instance)
@@ -38,7 +38,7 @@ class VstsIssueSync(IssueSyncMixin):
         project_choices = [(project["id"], project["name"]) for project in projects]
 
         params = kwargs.get("params", {})
-        defaults = self.get_project_defaults(group.project_id)
+        defaults = self.get_project_defaults(group.project, user)
         try:
             default_project = params.get(
                 "project", defaults.get("project") or project_choices[0][0]
@@ -59,7 +59,7 @@ class VstsIssueSync(IssueSyncMixin):
 
         return default_project, project_choices
 
-    def get_work_item_choices(self, project, group):
+    def get_work_item_choices(self, project, group, user):
         client = self.get_client()
         try:
             item_categories = client.get_work_item_categories(self.instance, project)["value"]
@@ -79,7 +79,7 @@ class VstsIssueSync(IssueSyncMixin):
         item_tuples = list(item_type_map.items())
 
         # try to get the default from either the last value used or from the first item on the list
-        defaults = self.get_project_defaults(group.project_id)
+        defaults = self.get_project_defaults(group.project, user)
         try:
             default_item_type = defaults.get("work_item_type") or item_tuples[0][0]
         except IndexError:
@@ -92,13 +92,13 @@ class VstsIssueSync(IssueSyncMixin):
         fields = super(VstsIssueSync, self).get_create_issue_config(group, user, **kwargs)
         # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
         # Workitems (issues) are associated with the project not the repository.
-        default_project, project_choices = self.get_project_choices(group, **kwargs)
+        default_project, project_choices = self.get_project_choices(group, user, **kwargs)
 
         work_item_choices = []
         default_work_item = None
         if default_project:
             default_work_item, work_item_choices = self.get_work_item_choices(
-                default_project, group
+                default_project, group, user
             )
 
         return [
@@ -123,8 +123,8 @@ class VstsIssueSync(IssueSyncMixin):
             },
         ] + fields
 
-    def get_link_issue_config(self, group, **kwargs):
-        fields = super(VstsIssueSync, self).get_link_issue_config(group, **kwargs)
+    def get_link_issue_config(self, group, user, **kwargs):
+        fields = super(VstsIssueSync, self).get_link_issue_config(group, user, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-vsts-search", args=[org.slug, self.model.id])
         for field in fields:

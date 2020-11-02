@@ -101,7 +101,7 @@ class GitlabIssuesTest(GitLabTestCase):
             ],
         )
         autocomplete_url = "/extensions/gitlab/search/baz/%d/" % self.installation.model.id
-        assert self.installation.get_link_issue_config(self.group) == [
+        assert self.installation.get_link_issue_config(self.group, self.user) == [
             {
                 "name": "project",
                 "label": "GitLab Project",
