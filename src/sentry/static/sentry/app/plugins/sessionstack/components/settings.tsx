@@ -33,7 +33,7 @@ class Settings extends DefaultSettings<Props, State> {
   }
 
   filterFields(fields: State['fieldList'], fieldNames: string[]) {
-    return fields?.filter(field => fieldNames.includes(field.name)) || [];
+    return fields?.filter(field => fieldNames.includes(field.name)) ?? [];
   }
 
   toggleOnPremisesConfiguration() {
