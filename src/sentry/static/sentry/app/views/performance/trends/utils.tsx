@@ -82,6 +82,9 @@ export const CONFIDENCE_LEVELS: ConfidenceLevel[] = [
     min: 0,
     max: 6,
   },
+  {
+    label: 'Any',
+  },
 ];
 
 export const trendToColor = {
@@ -418,14 +421,25 @@ function getLimitTransactionItems(
   trendChangeType: TrendChangeType,
   confidenceLevel: ConfidenceLevel
 ) {
-  let limitQuery = `trend_percentage():<1 t_test():>${confidenceLevel.min}`;
-  limitQuery += confidenceLevel.max ? ` t_test():<=${confidenceLevel.max}` : '';
+  let limitQuery =
+    'percentage(count_range_2,count_range_1):>0.25 percentage(count_range_2,count_range_1):<4';
   if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery = `trend_percentage():>1 t_test():<-${confidenceLevel.min}`;
-    limitQuery += confidenceLevel.max ? ` t_test():>=-${confidenceLevel.max}` : '';
+    limitQuery += ' trend_percentage():>1';
+    limitQuery += confidenceLevel.hasOwnProperty('min')
+      ? ` t_test():<-${confidenceLevel.min}`
+      : '';
+    limitQuery += confidenceLevel.hasOwnProperty('max')
+      ? ` t_test():>=-${confidenceLevel.max}`
+      : '';
+  } else {
+    limitQuery += ' trend_percentage():<1';
+    limitQuery += confidenceLevel.hasOwnProperty('min')
+      ? ` t_test():>${confidenceLevel.min}`
+      : '';
+    limitQuery += confidenceLevel.hasOwnProperty('max')
+      ? ` t_test():<=${confidenceLevel.max}`
+      : '';
   }
-  limitQuery +=
-    ' percentage(count_range_2,count_range_1):>0.25 percentage(count_range_2,count_range_1):<4';
   return limitQuery;
 }
 
