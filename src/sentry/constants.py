@@ -153,6 +153,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "sentry-apps",
         "resources",
         "integration-platform",
+        "trust",
+        "legal",
         "community",
     )
 )
@@ -176,8 +178,6 @@ RESERVED_PROJECT_SLUGS = frozenset(
         "integrations",
         "developer-settings",
         "usage",
-        "trust",
-        "legal",
     )
 )
 
