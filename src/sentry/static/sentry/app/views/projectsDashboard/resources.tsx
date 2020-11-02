@@ -55,7 +55,7 @@ class Resources extends React.Component<Props> {
 export default Resources;
 
 const ResourcesWrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   padding: 25px 30px 10px 30px;
 `;
 
