@@ -89,6 +89,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
                 "stacktrace": event.data.get("stacktrace"),
                 "threads": event.data.get("threads"),
                 "extra": event.data.get("extra"),
+                "sdk": event.data.get("sdk"),
             }
         )
 

@@ -54,7 +54,7 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         run: |
           # pull relay we'll run and kill it for each test
-          docker pull us.gcr.io/sentryio/relay:latest
+          docker pull us.gcr.io/sentryio/relay:nightly
           docker ps -a
 
       - name: Run test
