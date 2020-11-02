@@ -153,6 +153,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "sentry-apps",
         "resources",
         "integration-platform",
+        "community",
     )
 )
 
