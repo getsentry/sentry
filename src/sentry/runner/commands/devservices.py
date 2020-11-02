@@ -58,7 +58,7 @@ def wait_for_healthcheck(low_level_client, container_name, healthcheck_options):
     delay = 0.25
 
     health_status = None
-    start_time = time.time()  # monotonic?
+    start_time = time.time()
 
     while time.time() - start_time < timeout:
         resp = low_level_client.inspect_container(container_name)
