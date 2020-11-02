@@ -1,12 +1,25 @@
 from __future__ import absolute_import
+import logging
 
 import time
 
 from sentry import eventstore
 
 from sentry.tasks.base import instrumented_task
+from django.conf import settings
+
+
+logger = logging.getLogger(__name__)
 
 GROUP_REPROCESSING_CHUNK_SIZE = 100
+
+SENTRY_REPROCESSING_EVENT_TASK_CREATE_PAUSE = getattr(
+    settings, "SENTRY_REPROCESSING_EVENT_TASK_CREATE_PAUSE", 0.2
+)
+
+SENTRY_REPROCESS_EVENT_TASKS_RATE_LIMIT = getattr(
+    settings, "SENTRY_REPROCESS_EVENT_TASK_RATE_LIMIT", "30/s",
+)
 
 
 @instrumented_task(
@@ -52,6 +65,7 @@ def reprocess_group(
         reprocess_event.delay(
             project_id=project_id, event_id=event.event_id, start_time=start_time,
         )
+        time.sleep(SENTRY_REPROCESSING_EVENT_TASK_CREATE_PAUSE)
 
     if max_events is not None:
         max_events -= len(events)
@@ -70,6 +84,7 @@ def reprocess_group(
     queue="events.reprocessing.preprocess_event",  # XXX: dedicated queue
     time_limit=30,
     soft_time_limit=20,
+    rate_limit=SENTRY_REPROCESS_EVENT_TASKS_RATE_LIMIT,
 )
 def reprocess_event(project_id, event_id, start_time):
     from sentry.reprocessing2 import reprocess_event as reprocess_event_impl

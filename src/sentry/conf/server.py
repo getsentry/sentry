@@ -2020,3 +2020,10 @@ SENTRY_USE_UWSGI = True
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
+
+# Pause, in seconds, between consecutive reprocessing event task creation calls.
+SENTRY_REPROCESSING_EVENT_TASK_CREATE_PAUSE = 0.2
+
+# Limit celery worker to execute only number of tasks per time second
+# https://docs.celeryproject.org/en/v4.4.7/userguide/tasks.html#Task.rate_limit
+SENTRY_REPROCESS_EVENT_TASK_RATE_LIMIT = "30/s"
