@@ -63,8 +63,7 @@ def devservices(ctx):
 @click.pass_context
 def attach(ctx, project, fast, service):
     """
-    Run a single devservice in foreground, as opposed to `up` which runs all of
-    them in the background.
+    Run a single devservice in the foreground.
 
     Accepts a single argument, the name of the service to spawn. The service
     will run with output printed to your terminal, and the ability to kill it
@@ -109,7 +108,7 @@ def attach(ctx, project, fast, service):
 @click.pass_context
 def up(ctx, services, project, exclude, fast):
     """
-    Run/update dependent services.
+    Run/update all devservices in the background.
 
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to bring up.
