@@ -5,7 +5,7 @@ import {Form, FormState} from 'app/components/forms';
 import DefaultSettings from 'app/plugins/components/settings';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
-type Props = DefaultSettings['props'] & {};
+type Props = DefaultSettings['props'];
 
 type State = DefaultSettings['state'] & {
   showOnPremisesConfiguration?: boolean;
