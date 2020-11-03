@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 3
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
       # creates a status check in the "pending" state. This means that the workflow needs to run
