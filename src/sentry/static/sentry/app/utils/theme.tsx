@@ -208,7 +208,7 @@ const badge = {
     indicatorColor: colors.orange400,
   },
   beta: {
-    background: `linear-gradient(90deg, ${colors.pink400}, ${colors.purple400})`,
+    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple400})`,
     indicatorColor: colors.purple400,
   },
   new: {
