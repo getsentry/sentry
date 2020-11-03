@@ -76,6 +76,7 @@ describe('Frame - Line', function () {
       const frame = mountWithTheme(
         <Line data={data} registers={registers} components={[]} isExpanded />
       );
+
       expect(frame.find('FrameRegisters')).toHaveLength(0);
     });
 

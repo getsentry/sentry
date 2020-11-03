@@ -140,6 +140,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
+  debugFilesRole: string;
   eventsMemberAdmin: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
@@ -183,6 +184,11 @@ export type AvatarProject = {
   platform?: PlatformKey;
 };
 
+/**
+ * Simple timeseries data used in groups, projects and release health.
+ */
+export type TimeseriesValue = [timestamp: number, value: number];
+
 export type Project = {
   id: string;
   dateCreated: string;
@@ -205,7 +211,9 @@ export type Project = {
   relayPiiConfig: string;
   latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
-  stats?: Array<[number, number]>;
+  stats?: TimeseriesValue[];
+  transactionStats?: TimeseriesValue[];
+  latestRelease?: {version: string};
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -226,7 +234,7 @@ export type Health = {
   durationP90: number | null;
 };
 
-export type HealthGraphData = Record<string, [number, number][]>;
+export type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export type Team = {
   id: string;
@@ -683,8 +691,6 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
-export type GroupStats = [number, number];
-
 // TODO(ts): incomplete
 export type Group = {
   id: string;
@@ -717,7 +723,7 @@ export type Group = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  stats: Record<string, GroupStats[]>;
+  stats: Record<string, TimeseriesValue[]>;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
   status: string;
@@ -730,12 +736,21 @@ export type Group = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
 };
 
+export type GroupTombstone = {
+  id: string;
+  title: string;
+  culprit: string;
+  level: Level;
+  actor: AvatarUser;
+  metadata: EventMetadata;
+};
+
 export type ProcessingIssue = {
   project: string;
   numIssues: number;
   signedLink: string;
   lastSeen: string;
-  hasMoreResolvableIssues: boolean;
+  hasMoreResolveableIssues: boolean;
   hasIssues: boolean;
   issuesProcessing: number;
   resolveableIssues: number;
@@ -792,6 +807,18 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
+export type RepositoryProjectPathConfig = {
+  id: string;
+  projectId: string;
+  projectSlug: string;
+  repoId: string;
+  repoName: string;
+  organizationIntegrationId: string;
+  stackRoot: string;
+  sourceRoot: string;
+  defaultBranch?: string;
+};
+
 export type PullRequest = {
   id: string;
   title: string;
@@ -838,6 +865,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
     aspects: IntegrationAspects;
   };
+  hasStacktraceLinking?: boolean; // TODO: Remove when we GA the feature
 };
 
 export type IntegrationFeature = {
@@ -1288,6 +1316,7 @@ export type Tag = {
   values?: string[];
   totalValues?: number;
   predefined?: boolean;
+  isInput?: boolean;
 };
 
 export type TagCollection = {[key: string]: Tag};
@@ -1327,7 +1356,7 @@ export type TagWithTopValues = {
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 
 export type Meta = {
-  chunks: Array<Chunks>;
+  chunks: Array<ChunkType>;
   len: number;
   rem: Array<MetaRemark>;
   err: Array<MetaError>;
@@ -1336,11 +1365,11 @@ export type Meta = {
 export type MetaError = [string, any];
 export type MetaRemark = Array<string | number>;
 
-export type Chunks = {
+export type ChunkType = {
   text: string;
   type: string;
-  remark?: string;
-  rule_id?: string;
+  rule_id: string | number;
+  remark?: string | number;
 };
 
 export enum ResolutionStatus {
@@ -1487,29 +1516,37 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType = 'java' | 'csharp' | 'objc' | 'cocoa' | 'native' | 'other';
+export type PlatformType =
+  | 'java'
+  | 'csharp'
+  | 'objc'
+  | 'cocoa'
+  | 'native'
+  | 'javascript'
+  | 'other';
 
 export type Frame = {
-  filename: string;
-  module: string;
-  map: string;
-  preventCollapse: () => void;
-  errors: Array<any>;
+  absPath: string | null;
+  colNo: number | null;
   context: Array<[number, string]>;
-  vars: {[key: string]: any};
+  errors: Array<any> | null;
+  filename: string | null;
+  function: string | null;
   inApp: boolean;
-  function?: string;
-  absPath?: string;
-  rawFunction?: string;
-  platform: PlatformType;
-  lineNo?: number;
-  colNo?: number;
-  package?: string;
-  origAbsPath?: string;
-  mapUrl?: string;
-  instructionAddr?: string;
-  trust?: string;
-  symbolicatorStatus?: SymbolicatorStatus;
+  instructionAddr: string | null;
+  lineNo: number | null;
+  module: string | null;
+  package: string | null;
+  platform: PlatformType | null;
+  rawFunction: string | null;
+  symbol: string | null;
+  symbolAddr: string | null;
+  symbolicatorStatus: SymbolicatorStatus;
+  trust: any | null;
+  vars: Record<string, any> | null;
+  origAbsPath?: string | null;
+  mapUrl?: string | null;
+  map?: string | null;
 };
 
 /**

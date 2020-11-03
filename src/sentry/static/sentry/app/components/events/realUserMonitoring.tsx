@@ -6,19 +6,14 @@ import {IconSize} from 'app/utils/theme';
 import {t} from 'app/locale';
 import {SectionHeading} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
-import {getDuration} from 'app/utils/formatters';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import {IconFire} from 'app/icons';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/realUserMonitoring/constants';
-
-// translate known short form names into their long forms
-const LONG_MEASUREMENT_NAMES = {
-  fid: 'First Input Delay',
-  fp: 'First Paint',
-  fcp: 'First Contentful Paint',
-  lcp: 'Largest Contentful Paint',
-};
+import {
+  WEB_VITAL_DETAILS,
+  LONG_WEB_VITAL_NAMES,
+} from 'app/views/performance/transactionVitals/constants';
+import {formattedValue} from 'app/utils/measurements/index';
 
 type Props = {
   organization: Organization;
@@ -56,18 +51,22 @@ class RealUserMonitoring extends React.Component<Props> {
 
       const failedThreshold = record ? value >= record.failureThreshold : false;
 
+      const currentValue = formattedValue(record, value);
+      const thresholdValue = formattedValue(record, record?.failureThreshold ?? 0);
+
+      if (!LONG_WEB_VITAL_NAMES.hasOwnProperty(name)) {
+        return null;
+      }
+
       return (
         <div key={name}>
           <StyledPanel failedThreshold={failedThreshold}>
-            <Name>{LONG_MEASUREMENT_NAMES[name] ?? name}</Name>
+            <Name>{LONG_WEB_VITAL_NAMES[name] ?? name}</Name>
             <ValueRow>
               {failedThreshold ? (
                 <WarningIconContainer size="sm">
                   <Tooltip
-                    title={`${getDuration(value / 1000, 3)} >= ${getDuration(
-                      record!.failureThreshold / 1000,
-                      3
-                    )}`}
+                    title={t('Fails threshold at %s.', thresholdValue)}
                     position="top"
                     containerDisplayMode="inline-block"
                   >
@@ -75,9 +74,7 @@ class RealUserMonitoring extends React.Component<Props> {
                   </Tooltip>
                 </WarningIconContainer>
               ) : null}
-              <Value failedThreshold={failedThreshold}>
-                {getDuration(value / 1000, 3)}
-              </Value>
+              <Value failedThreshold={failedThreshold}>{currentValue}</Value>
             </ValueRow>
           </StyledPanel>
         </div>

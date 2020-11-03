@@ -96,7 +96,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     container_name = _relay_server_container_name()
     _remove_container_if_exists(docker_client, container_name)
     options = {
-        "image": "us.gcr.io/sentryio/relay:latest",
+        "image": "us.gcr.io/sentryio/relay:nightly",
         "ports": {"%s/tcp" % relay_port: relay_port},
         "network": network,
         "detach": True,
@@ -192,5 +192,13 @@ def get_relay_minidump_url(relay_server):
 def get_relay_unreal_url(relay_server):
     def inner(project_id, key):
         return "{}/api/{}/unreal/{}/".format(relay_server["url"], project_id, key)
+
+    return inner
+
+
+@pytest.fixture
+def get_relay_attachments_url(relay_server):
+    def inner(project_id, event_id):
+        return "{}/api/{}/events/{}/attachments/".format(relay_server["url"], project_id, event_id)
 
     return inner

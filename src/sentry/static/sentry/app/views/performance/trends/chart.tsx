@@ -14,11 +14,16 @@ import EventView from 'app/utils/discover/eventView';
 import {OrganizationSummary, EventsStatsData} from 'app/types';
 import LineChart from 'app/components/charts/lineChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import {Series} from 'app/types/echarts';
+import {Series, SeriesDataUnit} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 
-import {trendToColor, getIntervalRatio, getCurrentTrendFunction} from './utils';
+import {
+  getCurrentTrendFunction,
+  getIntervalRatio,
+  smoothTrend,
+  trendToColor,
+} from './utils';
 import {TrendChangeType, TrendsStats, NormalizedTrendsTransaction} from './types';
 
 const QUERY_KEYS = [
@@ -55,7 +60,41 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
   ];
 }
 
-function getLegend() {
+function transformEventStatsSmoothed(data: Series[], seriesName?: string) {
+  let minValue = Number.MAX_SAFE_INTEGER;
+  let maxValue = 0;
+  const currentData = data[0].data;
+  const resultData: SeriesDataUnit[] = [];
+
+  const smoothed = smoothTrend(currentData.map(({name, value}) => [Number(name), value]));
+
+  for (let i = 0; i < smoothed.length; i++) {
+    const point = smoothed[i] as any;
+    const value = point.y;
+    resultData.push({
+      name: point.x,
+      value,
+    });
+    if (!isNaN(value)) {
+      const rounded = Math.round(value);
+      minValue = Math.min(rounded, minValue);
+      maxValue = Math.max(rounded, maxValue);
+    }
+  }
+
+  return {
+    minValue,
+    maxValue,
+    smoothedResults: [
+      {
+        seriesName: seriesName || 'Current',
+        data: resultData,
+      },
+    ],
+  };
+}
+
+function getLegend(trendFunction: string) {
   const legend = {
     right: 10,
     top: 0,
@@ -74,6 +113,10 @@ function getLegend() {
       },
       {
         name: 'Releases',
+        icon: 'line',
+      },
+      {
+        name: trendFunction,
         icon: 'line',
       },
     ],
@@ -215,6 +258,10 @@ class Chart extends React.Component<Props> {
 
     const trendFunction = getCurrentTrendFunction(location);
     const results = transformEventStats(data, trendFunction.chartLabel);
+    const {smoothedResults, minValue, maxValue} = transformEventStatsSmoothed(
+      results,
+      trendFunction.chartLabel
+    );
 
     const start = props.start ? getUtcToLocalDateObject(props.start) : undefined;
 
@@ -222,16 +269,33 @@ class Chart extends React.Component<Props> {
     const utc = decodeScalar(router.location.query.utc);
 
     const intervalRatio = getIntervalRatio(router.location);
-    const legend = getLegend();
+    const legend = getLegend(trendFunction.chartLabel);
 
     const loading = isLoading;
     const reloading = isLoading;
 
+    const yMax = Math.max(
+      maxValue,
+      transaction?.aggregate_range_2 || 0,
+      transaction?.aggregate_range_1 || 0
+    );
+    const yMin = Math.min(
+      minValue,
+      transaction?.aggregate_range_1 || Number.MAX_SAFE_INTEGER,
+      transaction?.aggregate_range_2 || Number.MAX_SAFE_INTEGER
+    );
+    const yDiff = yMax - yMin;
+    const yMargin = yDiff * 0.1;
+
     const chartOptions = {
       tooltip: {
-        valueFormatter: tooltipFormatter,
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(value, seriesName);
+        },
       },
       yAxis: {
+        min: Math.max(0, yMin - yMargin),
+        max: yMax + yMargin,
         axisLabel: {
           color: theme.gray400,
           // p50() coerces the axis to be time based
@@ -249,12 +313,12 @@ class Chart extends React.Component<Props> {
           environments={environment}
         >
           {zoomRenderProps => {
-            const series = results
-              ? results
+            const smoothedSeries = smoothedResults
+              ? smoothedResults
                   .map(values => {
                     return {
                       ...values,
-                      color: lineColor,
+                      color: lineColor.default,
                       lineStyle: {
                         opacity: 1,
                       },
@@ -263,7 +327,11 @@ class Chart extends React.Component<Props> {
                   .reverse()
               : [];
 
-            const intervalSeries = getIntervalLine(series, intervalRatio, transaction);
+            const intervalSeries = getIntervalLine(
+              smoothedResults,
+              intervalRatio,
+              transaction
+            );
 
             return (
               <ReleaseSeries
@@ -282,7 +350,11 @@ class Chart extends React.Component<Props> {
                         <LineChart
                           {...zoomRenderProps}
                           {...chartOptions}
-                          series={[...series, ...releaseSeries, ...intervalSeries]}
+                          series={[
+                            ...smoothedSeries,
+                            ...releaseSeries,
+                            ...intervalSeries,
+                          ]}
                           seriesOptions={{
                             showSymbol: false,
                           }}

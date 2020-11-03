@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
 import styled from '@emotion/styled';
@@ -11,6 +10,7 @@ import {queryToObj, objToQuery, QueryObj} from 'app/utils/stream';
 import {t} from 'app/locale';
 import {Tag, TagCollection} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 
 import {TagValueLoader} from './types';
 import IssueListTagFilter from './tagFilter';
@@ -18,11 +18,10 @@ import IssueListTagFilter from './tagFilter';
 type DefaultProps = {
   tags: TagCollection;
   query: string;
-  onQueryChange: () => void;
+  onQueryChange: (query: string) => void;
 };
 
 type Props = DefaultProps & {
-  orgId: string;
   tagValueLoader: TagValueLoader;
   loading?: boolean;
 };
@@ -32,31 +31,25 @@ type State = {
   textFilter: string;
 };
 
-const IssueListSidebar = createReactClass<Props, State>({
-  displayName: 'IssueListSidebar',
-
-  propTypes: {
-    orgId: PropTypes.string.isRequired,
+class IssueListSidebar extends React.Component<Props, State> {
+  static propTypes: any = {
     tags: PropTypes.objectOf(SentryTypes.Tag).isRequired,
     query: PropTypes.string,
     onQueryChange: PropTypes.func.isRequired,
     loading: PropTypes.bool,
     tagValueLoader: PropTypes.func.isRequired,
-  },
+  };
 
-  defaultProps: {
+  static defaultProps: DefaultProps = {
     tags: {},
     query: '',
     onQueryChange: function () {},
-  },
+  };
 
-  getInitialState() {
-    const queryObj = queryToObj(this.props.query);
-    return {
-      queryObj,
-      textFilter: queryObj.__text,
-    };
-  },
+  state: State = {
+    queryObj: queryToObj(this.props.query),
+    textFilter: queryToObj(this.props.query).__text,
+  };
 
   componentWillReceiveProps(nextProps: Props) {
     // If query was updated by another source (e.g. SearchBar),
@@ -70,9 +63,9 @@ const IssueListSidebar = createReactClass<Props, State>({
         textFilter: queryObj.__text,
       });
     }
-  },
+  }
 
-  onSelectTag(tag: Tag, value: string) {
+  onSelectTag = (tag: Tag, value: string | null) => {
     const newQuery = {...this.state.queryObj};
     if (value) {
       newQuery[tag.key] = value;
@@ -86,13 +79,13 @@ const IssueListSidebar = createReactClass<Props, State>({
       },
       this.onQueryChange
     );
-  },
+  };
 
-  onTextChange: function (evt: React.ChangeEvent<HTMLInputElement>) {
+  onTextChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({textFilter: evt.target.value});
-  },
+  };
 
-  onTextFilterSubmit(evt: React.ChangeEvent<HTMLInputElement>) {
+  onTextFilterSubmit = (evt?: React.FormEvent<HTMLFormElement>) => {
     evt && evt.preventDefault();
 
     const newQueryObj = {
@@ -106,32 +99,32 @@ const IssueListSidebar = createReactClass<Props, State>({
       },
       this.onQueryChange
     );
-  },
+  };
 
-  onQueryChange() {
+  onQueryChange = () => {
     const query = objToQuery(this.state.queryObj);
     this.props.onQueryChange && this.props.onQueryChange(query);
-  },
+  };
 
-  onClearSearch() {
+  onClearSearch = () => {
     this.setState(
       {
         textFilter: '',
       },
       this.onTextFilterSubmit
     );
-  },
+  };
 
   render() {
-    const {loading, orgId, tagValueLoader, tags} = this.props;
+    const {loading, tagValueLoader, tags} = this.props;
     return (
-      <div className="stream-sidebar">
+      <StreamSidebar>
         {loading ? (
           <LoadingIndicator />
         ) : (
-          <div>
-            <div className="stream-tag-filter">
-              <h6 className="nav-header">{t('Text')}</h6>
+          <React.Fragment>
+            <StreamTagFilter>
+              <StyledHeader>{t('Text')}</StyledHeader>
               <form onSubmit={this.onTextFilterSubmit}>
                 <input
                   className="form-control"
@@ -143,8 +136,8 @@ const IssueListSidebar = createReactClass<Props, State>({
                   <StyledIconClose size="xs" onClick={this.onClearSearch} />
                 )}
               </form>
-              <hr />
-            </div>
+              <StyledHr />
+            </StreamTagFilter>
 
             {map(tags, tag => (
               <IssueListTagFilter
@@ -152,16 +145,23 @@ const IssueListSidebar = createReactClass<Props, State>({
                 key={tag.key}
                 tag={tag}
                 onSelect={this.onSelectTag}
-                orgId={orgId}
                 tagValueLoader={tagValueLoader}
               />
             ))}
-          </div>
+          </React.Fragment>
         )}
-      </div>
+      </StreamSidebar>
     );
-  },
-});
+  }
+}
+
+export default IssueListSidebar;
+
+const StreamSidebar = styled('div')`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+`;
 
 const StyledIconClose = styled(IconClose)`
   cursor: pointer;
@@ -175,4 +175,15 @@ const StyledIconClose = styled(IconClose)`
   }
 `;
 
-export default IssueListSidebar;
+const StyledHeader = styled('h6')`
+  color: ${p => p.theme.gray600};
+  margin-bottom: ${space(1)};
+`;
+
+const StreamTagFilter = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+const StyledHr = styled('hr')`
+  margin: ${space(2)} 0 0;
+`;
