@@ -1,5 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import {OrganizationSummary} from 'app/types';
@@ -55,17 +56,42 @@ const YAXIS_VALUES = [
 ];
 
 class TrendChart extends React.Component<Props> {
+  handleLegendSelectChanged = legendChange => {
+    const {location} = this.props;
+    const {selected} = legendChange;
+    const unselected = Object.keys(selected).filter(key => !selected[key]);
+
+    const to = {
+      ...location,
+      query: {
+        ...location.query,
+        trendsUnselectedSeries: unselected,
+      },
+    };
+    browserHistory.push(to);
+  };
+
   render() {
     const {
       api,
       project,
       environment,
+      location,
       organization,
       query,
       statsPeriod,
       router,
       trendDisplay,
     } = this.props;
+
+    const unselectedSeries = location.query.trendsUnselectedSeries ?? [];
+    const unselectedMetrics = Array.isArray(unselectedSeries)
+      ? unselectedSeries
+      : [unselectedSeries];
+    const seriesSelection = unselectedMetrics.reduce((selection, metric) => {
+      selection[metric] = false;
+      return selection;
+    }, {});
 
     const start = this.props.start
       ? getUtcToLocalDateObject(this.props.start)
@@ -87,6 +113,7 @@ class TrendChart extends React.Component<Props> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
+      selected: seriesSelection,
     };
 
     const datetimeSelection = {
@@ -110,6 +137,7 @@ class TrendChart extends React.Component<Props> {
         valueFormatter: value => tooltipFormatter(value, 'p50()'),
       },
       yAxis: {
+        min: 0,
         axisLabel: {
           color: theme.gray400,
           // p50() coerces the axis to be time based
@@ -214,6 +242,7 @@ class TrendChart extends React.Component<Props> {
                               {...zoomRenderProps}
                               {...chartOptions}
                               legend={legend}
+                              onLegendSelectChanged={this.handleLegendSelectChanged}
                               series={[...series, ...smoothedSeries, ...releaseSeries]}
                             />
                           ),
