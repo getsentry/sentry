@@ -20,7 +20,6 @@ import LineSeries from './series/lineSeries';
 import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
-import highlightedSinglePoint from './highlightedSinglePoint';
 
 // If dimension is a number convert it to pixels, otherwise use dimension without transform
 const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
@@ -201,10 +200,10 @@ type Props = {
    */
   bucketSize?: number;
   /**
-   * If true and there's only one datapoint in series.data, we add a more prominent markPoint to the chart to increase the visibility.
-   * Especially useful with line / area charts, because you can't draw line with single data point.
+   * If true and there's only one datapoint in series.data, we show a stacked bar chart to increase the visibility.
+   * Especially useful with line / area charts, because you can't draw line with single data point and one alone point is hard to spot.
    */
-  highlightSingleDatapoint?: boolean;
+  transformSinglePointToBar?: boolean;
   /**
    * Inline styles
    */
@@ -229,7 +228,7 @@ class BaseChart extends React.Component<Props, State> {
     xAxis: {},
     yAxis: {},
     isGroupedByDate: false,
-    highlightSingleDatapoint: false,
+    transformSinglePointToBar: false,
   };
 
   state: State = {
@@ -296,13 +295,20 @@ class BaseChart extends React.Component<Props, State> {
   }
 
   getSeries() {
-    const {previousPeriod, series, highlightSingleDatapoint} = this.props;
+    const {previousPeriod, series, transformSinglePointToBar} = this.props;
+
+    const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
+      s => Array.isArray(s.data) && s.data.length <= 1
+    );
 
     const transformedSeries =
-      (highlightSingleDatapoint
-        ? (series as EChartOption.SeriesLine[] | undefined)?.map(s =>
-            s.data?.length === 1 ? {...s, ...highlightedSinglePoint} : s
-          )
+      (hasSinglePoints && transformSinglePointToBar
+        ? (series as EChartOption.SeriesLine[] | undefined)?.map(s => ({
+            ...s,
+            type: 'bar',
+            stack: 'bar',
+            barWidth: 40,
+          }))
         : series) ?? [];
 
     const transformedPreviousPeriod =

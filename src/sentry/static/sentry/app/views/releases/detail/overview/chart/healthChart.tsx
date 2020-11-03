@@ -97,7 +97,7 @@ class HealthChart extends React.Component<Props> {
     }
   };
 
-  configureYAxis = () => {
+  configureYAxis() {
     const {yAxis} = this.props;
     switch (yAxis) {
       case YAxis.CRASH_FREE:
@@ -122,9 +122,9 @@ class HealthChart extends React.Component<Props> {
       default:
         return undefined;
     }
-  };
+  }
 
-  getChart = () => {
+  getChart() {
     const {yAxis} = this.props;
     switch (yAxis) {
       case YAxis.SESSION_DURATION:
@@ -136,7 +136,7 @@ class HealthChart extends React.Component<Props> {
       default:
         return LineChart;
     }
-  };
+  }
 
   render() {
     const {utc, timeseriesData, zoomRenderProps, location} = this.props;
@@ -153,7 +153,7 @@ class HealthChart extends React.Component<Props> {
 
     const legend = {
       right: 22,
-      top: 12,
+      top: 10,
       icon: 'circle',
       itemHeight: 8,
       itemWidth: 8,
@@ -187,7 +187,7 @@ class HealthChart extends React.Component<Props> {
         yAxis={this.configureYAxis()}
         tooltip={{valueFormatter: this.formatTooltipValue}}
         onLegendSelectChanged={this.handleLegendSelectChanged}
-        highlightSingleDatapoint
+        transformSinglePointToBar
       />
     );
   }
