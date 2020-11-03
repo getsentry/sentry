@@ -54,9 +54,7 @@ class Thread extends React.Component {
               <li className="frame missing-frame">
                 <div className="title">
                   <span className="informal">
-                    {data.crashed
-                      ? t('Thread Errored')
-                      : t('No or unknown stacktrace')}
+                    {data.crashed ? t('Thread Errored') : t('No or unknown stacktrace')}
                   </span>
                 </div>
               </li>
