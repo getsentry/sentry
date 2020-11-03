@@ -49,15 +49,12 @@ import {
   getSelectedQueryKey,
   getCurrentTrendFunction,
   getCurrentConfidenceLevel,
-  getTrendBaselinesForTransaction,
-  getIntervalRatio,
   StyledIconArrow,
   getTrendProjectId,
   trendCursorNames,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
-import {getTransactionComparisonUrl} from '../utils';
 
 type Props = {
   api: Client;
@@ -466,7 +463,6 @@ function TrendsListItem(props: TrendsListItemProps) {
           />
         }
       >
-        <CompareLink {...props} />
         <MenuItem
           onClick={() =>
             handleFilterDuration(
@@ -524,42 +520,6 @@ function TrendsListItem(props: TrendsListItemProps) {
 }
 
 type CompareLinkProps = TrendsListItemProps & {};
-
-const CompareLink = (props: CompareLinkProps) => {
-  const {organization, trendView: eventView, transaction, api, location} = props;
-  const intervalRatio = getIntervalRatio(location);
-
-  async function onLinkClick() {
-    const baselines = await getTrendBaselinesForTransaction(
-      api,
-      organization,
-      eventView,
-      intervalRatio,
-      transaction
-    );
-    if (baselines) {
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.trends.compare_baselines',
-        eventName: 'Performance Views: Comparing baselines',
-        organization_id: parseInt(organization.id, 10),
-      });
-
-      const {previousPeriod, currentPeriod} = baselines;
-
-      const target = getTransactionComparisonUrl({
-        organization,
-        baselineEventSlug: `${previousPeriod.project}:${previousPeriod.id}`,
-        regressionEventSlug: `${currentPeriod.project}:${currentPeriod.id}`,
-        transaction: transaction.transaction,
-        query: location.query,
-      });
-
-      browserHistory.push(target);
-    }
-  }
-
-  return <MenuItem onClick={onLinkClick}>{t('Compare baselines')}</MenuItem>;
-};
 
 const CompareDurations = (props: CompareLinkProps) => {
   const {transaction, currentTrendFunction} = props;
