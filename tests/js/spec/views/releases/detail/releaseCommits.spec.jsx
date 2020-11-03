@@ -4,10 +4,10 @@ import {mount} from 'sentry-test/enzyme';
 
 import ReleaseCommits from 'app/views/releases/detail/releaseCommits';
 
-describe('ReleaseCommits', function() {
+describe('ReleaseCommits', function () {
   let wrapper, projectMockResponse, organizationMockResponse;
 
-  beforeEach(function() {
+  beforeEach(function () {
     projectMockResponse = MockApiClient.addMockResponse({
       url: '/projects/123/456/releases/10.0/commits/',
       body: [TestStubs.Commit()],
@@ -19,11 +19,11 @@ describe('ReleaseCommits', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('project release commits', function() {
+  it('project release commits', function () {
     wrapper = mount(
       <ReleaseCommits
         params={{orgId: '123', projectId: '456', release: '10.0'}}
@@ -36,7 +36,7 @@ describe('ReleaseCommits', function() {
     expect(organizationMockResponse).not.toHaveBeenCalled();
   });
 
-  it('organization release commits', function() {
+  it('organization release commits', function () {
     wrapper = mount(
       <ReleaseCommits params={{orgId: '123', release: '10.0'}} location={{}} />
     );

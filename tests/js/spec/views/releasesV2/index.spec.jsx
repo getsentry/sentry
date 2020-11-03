@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ReleasesV2Container from 'app/views/releasesV2';
 
-describe('ReleasesV2Container', function() {
-  it('it displays no access message', function() {
+describe('ReleasesV2Container', function () {
+  it('it displays no access message', function () {
     const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
     const wrapper = mountWithTheme(
       <ReleasesV2Container />,

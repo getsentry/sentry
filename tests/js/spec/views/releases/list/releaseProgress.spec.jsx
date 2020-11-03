@@ -5,13 +5,13 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {ReleaseProgress} from 'app/views/releases/list/releaseProgress';
 
-describe('ReleaseProgress', function() {
+describe('ReleaseProgress', function () {
   let wrapper, organization, project, getPromptsMock, putMock, routerContext;
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     organization = TestStubs.Organization();
     project = TestStubs.Project();
     routerContext = TestStubs.routerContext();
@@ -37,7 +37,7 @@ describe('ReleaseProgress', function() {
     });
   });
 
-  it('does not render if steps complete', function() {
+  it('does not render if steps complete', function () {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/completion/',
       body: [
@@ -55,38 +55,25 @@ describe('ReleaseProgress', function() {
     expect(wrapper.find('PanelItem').exists()).toBe(false);
   });
 
-  it('renders with next step suggestion', function() {
+  it('renders with next step suggestion', function () {
     wrapper = mountWithTheme(
       <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
 
-    expect(
-      wrapper
-        .find('span')
-        .first()
-        .text()
-    ).toBe('Next step: Link to a repo');
+    expect(wrapper.find('span').first().text()).toBe('Next step: Link to a repo');
     expect(getPromptsMock).toHaveBeenCalled();
   });
 
-  it('hides when snoozed', function() {
+  it('hides when snoozed', function () {
     wrapper = mountWithTheme(
       <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
-    expect(
-      wrapper
-        .find('span')
-        .first()
-        .text()
-    ).toBe('Next step: Link to a repo');
+    expect(wrapper.find('span').first().text()).toBe('Next step: Link to a repo');
     expect(wrapper.find('PanelItem')).toHaveLength(1);
 
-    wrapper
-      .find('[data-test-id="snoozed"]')
-      .first()
-      .simulate('click');
+    wrapper.find('[data-test-id="snoozed"]').first().simulate('click');
 
     expect(putMock).toHaveBeenCalledWith(
       '/promptsactivity/',
@@ -104,10 +91,8 @@ describe('ReleaseProgress', function() {
     expect(wrapper.find('PanelItem').exists()).toBe(false);
   });
 
-  it('does not render when snoozed', function() {
-    const snoozed_ts = moment()
-      .subtract(1, 'day')
-      .unix();
+  it('does not render when snoozed', function () {
+    const snoozed_ts = moment().subtract(1, 'day').unix();
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -123,10 +108,8 @@ describe('ReleaseProgress', function() {
     expect(wrapper.find('PanelItem').exists()).toBe(false);
   });
 
-  it('renders when snoozed more than 7 days ago', function() {
-    const snoozed_ts = moment()
-      .subtract(9, 'day')
-      .unix();
+  it('renders when snoozed more than 7 days ago', function () {
+    const snoozed_ts = moment().subtract(9, 'day').unix();
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -142,16 +125,13 @@ describe('ReleaseProgress', function() {
     expect(wrapper.find('PanelItem').exists()).toBe(true);
   });
 
-  it('hides when dismissed', function() {
+  it('hides when dismissed', function () {
     wrapper = mountWithTheme(
       <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
 
-    wrapper
-      .find('[data-test-id="dismissed"]')
-      .first()
-      .simulate('click');
+    wrapper.find('[data-test-id="dismissed"]').first().simulate('click');
 
     expect(putMock).toHaveBeenCalledWith(
       '/promptsactivity/',
@@ -169,7 +149,7 @@ describe('ReleaseProgress', function() {
     expect(wrapper.find('PanelItem').exists()).toBe(false);
   });
 
-  it('does not render when dismissed', function() {
+  it('does not render when dismissed', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/promptsactivity/',

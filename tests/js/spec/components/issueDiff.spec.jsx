@@ -6,12 +6,12 @@ import {IssueDiff} from 'app/components/issueDiff';
 
 jest.mock('app/api');
 
-describe('IssueDiff', function() {
+describe('IssueDiff', function () {
   const entries = TestStubs.Entries();
   const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/issues/target/events/latest/',
       body: {
@@ -27,11 +27,11 @@ describe('IssueDiff', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('is loading when initially rendering', function() {
+  it('is loading when initially rendering', function () {
     const wrapper = mountWithTheme(
       <IssueDiff
         api={api}
@@ -45,7 +45,7 @@ describe('IssueDiff', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('can dynamically import SplitDiff', async function() {
+  it('can dynamically import SplitDiff', async function () {
     // Need `mount` because of componentDidMount in <IssueDiff>
     const wrapper = mountWithTheme(
       <IssueDiff
@@ -65,7 +65,7 @@ describe('IssueDiff', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('can diff message', async function() {
+  it('can diff message', async function () {
     MockApiClient.addMockResponse({
       url: '/issues/target/events/latest/',
       body: {

@@ -29,8 +29,8 @@ function initializeData() {
   return initialData;
 }
 
-describe('Performance > TransactionSummary', function() {
-  beforeEach(function() {
+describe('Performance > TransactionSummary', function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -121,12 +121,12 @@ describe('Performance > TransactionSummary', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', async function() {
+  it('renders basic UI elements', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
       <TransactionSummary
@@ -161,7 +161,7 @@ describe('Performance > TransactionSummary', function() {
     expect(wrapper.find('CreateAlertButton')).toHaveLength(0);
   });
 
-  it('renders feature flagged UI elements', async function() {
+  it('renders feature flagged UI elements', async function () {
     const initialData = initializeData();
     initialData.organization.features.push('incidents');
     const wrapper = mountWithTheme(
@@ -178,7 +178,7 @@ describe('Performance > TransactionSummary', function() {
     expect(wrapper.find('CreateAlertButton')).toHaveLength(1);
   });
 
-  it('triggers a navigation on search', async function() {
+  it('triggers a navigation on search', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
       <TransactionSummary
@@ -208,7 +208,7 @@ describe('Performance > TransactionSummary', function() {
     });
   });
 
-  it('can mark a transaction as key', async function() {
+  it('can mark a transaction as key', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
       <TransactionSummary
@@ -233,7 +233,7 @@ describe('Performance > TransactionSummary', function() {
     expect(mockUpdate).toHaveBeenCalled();
   });
 
-  it('triggers a navigation on transaction filter', async function() {
+  it('triggers a navigation on transaction filter', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
       <TransactionSummary

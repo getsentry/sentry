@@ -15,15 +15,15 @@ const mockResponse = mocks => {
   );
 };
 
-describe('IntegrationListDirectory', function() {
-  beforeEach(function() {
+describe('IntegrationListDirectory', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
   const {org, routerContext} = initializeOrg();
   let wrapper;
 
-  describe('Renders view', function() {
+  describe('Renders view', function () {
     beforeEach(() => {
       mockResponse([
         [`/organizations/${org.slug}/config/integrations/`, TestStubs.ProviderList()],
@@ -44,7 +44,7 @@ describe('IntegrationListDirectory', function() {
       );
     });
 
-    it('shows installed integrations at the top in order of weight', async function() {
+    it('shows installed integrations at the top in order of weight', async function () {
       expect(wrapper.find('SearchBar').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
       expect(wrapper.find('IntegrationRow')).toHaveLength(14);
@@ -65,22 +65,17 @@ describe('IntegrationListDirectory', function() {
         'amazon-sqs',
         'la-croix-monitor',
       ].map((name, index) =>
-        expect(
-          wrapper
-            .find('IntegrationRow')
-            .at(index)
-            .props().slug
-        ).toEqual(name)
+        expect(wrapper.find('IntegrationRow').at(index).props().slug).toEqual(name)
       );
     });
 
-    it('does not show legacy plugin that has a First Party Integration if not installed', async function() {
+    it('does not show legacy plugin that has a First Party Integration if not installed', async function () {
       wrapper.find('IntegrationRow').forEach(node => {
         expect(node.props().displayName).not.toEqual('Github (Legacy)');
       });
     });
 
-    it('shows legacy plugin that has a First Party Integration if installed', async function() {
+    it('shows legacy plugin that has a First Party Integration if installed', async function () {
       const legacyPluginRow = wrapper
         .find('IntegrationRow')
         .filterWhere(node => node.props().displayName === 'PagerDuty (Legacy)');

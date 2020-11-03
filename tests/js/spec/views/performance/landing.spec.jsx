@@ -24,8 +24,8 @@ function initializeData(projects, query) {
   return initialData;
 }
 
-describe('Performance > Landing', function() {
-  beforeEach(function() {
+describe('Performance > Landing', function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -90,12 +90,12 @@ describe('Performance > Landing', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', async function() {
+  it('renders basic UI elements', async function () {
     const projects = [TestStubs.Project({firstTransactionEvent: true})];
     const data = initializeData(projects, {});
 
@@ -117,7 +117,7 @@ describe('Performance > Landing', function() {
     expect(wrapper.find('Table')).toHaveLength(1);
   });
 
-  it('renders onboarding state when the selected project has no events', async function() {
+  it('renders onboarding state when the selected project has no events', async function () {
     const projects = [
       TestStubs.Project({id: 1, firstTransactionEvent: false}),
       TestStubs.Project({id: 2, firstTransactionEvent: true}),
@@ -142,7 +142,7 @@ describe('Performance > Landing', function() {
     expect(wrapper.find('Table')).toHaveLength(0);
   });
 
-  it('does not render onboarding for "my projects"', async function() {
+  it('does not render onboarding for "my projects"', async function () {
     const projects = [
       TestStubs.Project({id: '1', firstTransactionEvent: false}),
       TestStubs.Project({id: '2', firstTransactionEvent: true}),
@@ -162,7 +162,7 @@ describe('Performance > Landing', function() {
     expect(wrapper.find('Onboarding')).toHaveLength(0);
   });
 
-  it('forwards conditions to transaction summary', async function() {
+  it('forwards conditions to transaction summary', async function () {
     const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 

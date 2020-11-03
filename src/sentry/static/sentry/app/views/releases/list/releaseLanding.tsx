@@ -13,24 +13,26 @@ function Illustration({children}: {children: React.ReactNode}) {
   return <React.Suspense fallback={<Placeholder />}>{children}</React.Suspense>;
 }
 
-const IllustrationContributors = React.lazy(() =>
-  import(
-    /* webpackChunkName: "IllustrationContributors" */ './illustrations/contributors'
-  )
+const IllustrationContributors = React.lazy(
+  () =>
+    import(
+      /* webpackChunkName: "IllustrationContributors" */ './illustrations/contributors'
+    )
 );
-const IllustrationSuggestedAssignees = React.lazy(() =>
-  import(
-    /* webpackChunkName: "IllustrationSuggestedAssignees" */ './illustrations/suggestedAssignees'
-  )
+const IllustrationSuggestedAssignees = React.lazy(
+  () =>
+    import(
+      /* webpackChunkName: "IllustrationSuggestedAssignees" */ './illustrations/suggestedAssignees'
+    )
 );
-const IllustrationIssues = React.lazy(() =>
-  import(/* webpackChunkName: "IllustrationIssues" */ './illustrations/issues')
+const IllustrationIssues = React.lazy(
+  () => import(/* webpackChunkName: "IllustrationIssues" */ './illustrations/issues')
 );
-const IllustrationMinified = React.lazy(() =>
-  import(/* webpackChunkName: "IllustrationMinified" */ './illustrations/minified')
+const IllustrationMinified = React.lazy(
+  () => import(/* webpackChunkName: "IllustrationMinified" */ './illustrations/minified')
 );
-const IllustrationEmails = React.lazy(() =>
-  import(/* webpackChunkName: "IllustrationEmails" */ './illustrations/emails')
+const IllustrationEmails = React.lazy(
+  () => import(/* webpackChunkName: "IllustrationEmails" */ './illustrations/emails')
 );
 
 const cards = [

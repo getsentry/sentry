@@ -4,9 +4,9 @@ import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
 
-describe('HttpRenderer', function() {
-  describe('render()', function() {
-    it('should work', function() {
+describe('HttpRenderer', function () {
+  describe('render()', function () {
+    it('should work', function () {
       const httpRendererWrapper = shallow(
         <HttpRenderer
           breadcrumb={{
@@ -35,7 +35,7 @@ describe('HttpRenderer', function() {
       ).toEqual(' [0]');
     });
 
-    it("shouldn't blow up if crumb.data is missing", function() {
+    it("shouldn't blow up if crumb.data is missing", function () {
       const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
           breadcrumb={{
@@ -48,7 +48,7 @@ describe('HttpRenderer', function() {
       expect(httpRendererWrapper.find('CrumbCategory').text()).toEqual('xhr');
     });
 
-    it("shouldn't blow up if url is not a string", function() {
+    it("shouldn't blow up if url is not a string", function () {
       const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
           breadcrumb={{

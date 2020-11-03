@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import {ReleaseArtifacts} from 'app/views/releases/detail/releaseArtifacts';
 
-describe('ReleaseArtifacts', function() {
+describe('ReleaseArtifacts', function () {
   let wrapper;
   let wrapperWithPermission;
   const api = new Client();
@@ -13,7 +13,7 @@ describe('ReleaseArtifacts', function() {
   let organizationMock;
   let deleteMock;
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const mockResponse = [
       {
         id: '1',
@@ -63,22 +63,22 @@ describe('ReleaseArtifacts', function() {
     await tick();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('render()', function() {
-    it('should render a row for each file', function() {
+  describe('render()', function () {
+    it('should render a row for each file', function () {
       expect(wrapper.find('PanelItem')).toHaveLength(2);
     });
 
-    it('should have no permission to download', function() {
+    it('should have no permission to download', function () {
       const buttons = wrapper.find('Button[data-test-id="artifact-download"]');
       expect(buttons).toHaveLength(2);
       expect(buttons.first().props().disabled).toBe(true);
     });
 
-    it('should have permission to download', function() {
+    it('should have permission to download', function () {
       wrapper = wrapperWithPermission;
       wrapper.setState({
         loading: false,
@@ -102,8 +102,8 @@ describe('ReleaseArtifacts', function() {
     });
   });
 
-  describe('handleRemove()', function() {
-    it('should remove the file from the file list', async function() {
+  describe('handleRemove()', function () {
+    it('should remove the file from the file list', async function () {
       wrapper.instance().handleRemove('1');
       expect(deleteMock).toHaveBeenCalled();
 
@@ -112,8 +112,8 @@ describe('ReleaseArtifacts', function() {
     });
   });
 
-  describe('fetchData()', function() {
-    it('fetches data for project releases', function() {
+  describe('fetchData()', function () {
+    it('fetches data for project releases', function () {
       wrapper.instance().fetchData();
 
       expect(projectMock).toHaveBeenCalledWith(
@@ -126,7 +126,7 @@ describe('ReleaseArtifacts', function() {
       );
     });
 
-    it('fetches data for organization releases', function() {
+    it('fetches data for organization releases', function () {
       wrapper.setProps({params: {orgId: '123', release: 'abcdef'}});
       wrapper.instance().fetchData();
 

@@ -11,14 +11,14 @@ const childContextTypes = {
   location: PropTypes.object,
 };
 
-describe('OrganizationRepositoriesContainer', function() {
-  beforeEach(function() {
+describe('OrganizationRepositoriesContainer', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
-  describe('render()', function() {
-    describe('without any providers', function() {
-      beforeEach(function() {
+  describe('render()', function () {
+    describe('without any providers', function () {
+      beforeEach(function () {
         Client.addMockResponse({
           url: '/organizations/org-slug/repos/',
           body: [],
@@ -29,7 +29,7 @@ describe('OrganizationRepositoriesContainer', function() {
         });
       });
 
-      it('is loading when initially rendering', function() {
+      it('is loading when initially rendering', function () {
         const wrapper = mountWithTheme(
           <OrganizationRepositoriesContainer params={{orgId: 'org-slug'}} />,
           {

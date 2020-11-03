@@ -5,10 +5,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ReleaseDetails from 'app/views/releases/detail/';
 import ProjectsStore from 'app/stores/projectsStore';
 
-describe('ReleaseDetails', function() {
+describe('ReleaseDetails', function () {
   let deleteMock;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -35,7 +35,7 @@ describe('ReleaseDetails', function() {
     });
   });
 
-  it('shows release details', async function() {
+  it('shows release details', async function () {
     const organization = TestStubs.Organization({slug: 'acme'});
     const params = {
       orgId: 'acme',
@@ -63,18 +63,12 @@ describe('ReleaseDetails', function() {
     wrapper.update();
 
     // Click delete button
-    wrapper
-      .find('button[aria-label="Delete"]')
-      .first()
-      .simulate('click');
+    wrapper.find('button[aria-label="Delete"]').first().simulate('click');
 
     wrapper.update();
 
     // Click on ok button which is at index 2
-    wrapper
-      .find('Modal Button')
-      .at(1)
-      .simulate('click');
+    wrapper.find('Modal Button').at(1).simulate('click');
 
     expect(deleteMock).toHaveBeenCalled();
   });

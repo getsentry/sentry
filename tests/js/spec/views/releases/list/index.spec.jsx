@@ -5,12 +5,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectsStore from 'app/stores/projectsStore';
 import ReleaseList from 'app/views/releases/list/';
 
-describe('ReleaseList', function() {
+describe('ReleaseList', function () {
   let organization;
   let props;
   let wrapper;
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     organization = TestStubs.Organization({
       projects: [TestStubs.Project()],
       features: ['global-views'],
@@ -55,18 +55,18 @@ describe('ReleaseList', function() {
     wrapper.update();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders list', function() {
+  it('renders list', function () {
     const content = wrapper.find('PageContent');
     const releases = content.find('Version');
     expect(releases).toHaveLength(2);
     expect(releases.map(item => item.text())).toEqual(['abc', 'def']);
   });
 
-  it('renders no query state if selected project has a release', function() {
+  it('renders no query state if selected project has a release', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],
@@ -80,7 +80,7 @@ describe('ReleaseList', function() {
     expect(content.text()).toContain('Sorry, no releases match your filters');
   });
 
-  it('renders no query state if any member project has a release and "All projects" is selected', function() {
+  it('renders no query state if any member project has a release and "All projects" is selected', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],
@@ -95,7 +95,7 @@ describe('ReleaseList', function() {
     expect(content.text()).toContain('Sorry, no releases match your filters');
   });
 
-  it('renders landing state if project does not have a release', function() {
+  it('renders landing state if project does not have a release', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],

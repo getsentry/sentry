@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs/breadcrumbs';
 
-describe('BreadcrumbsInterface', function() {
+describe('BreadcrumbsInterface', function () {
   let PROPS;
 
   beforeEach(() => {
@@ -38,8 +38,8 @@ describe('BreadcrumbsInterface', function() {
     };
   });
 
-  describe('filterCrumbs', function() {
-    it('should filter crumbs based on crumb message', function() {
+  describe('filterCrumbs', function () {
+    it('should filter crumbs based on crumb message', function () {
       const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
       const breadcrumbSearhInput = breadcrumbs.find('[id="id-breadcumber-search"]');
 
@@ -52,7 +52,7 @@ describe('BreadcrumbsInterface', function() {
       expect(breadcrumbs.state().filteredBreadcrumbs).toHaveLength(13);
     });
 
-    it('should filter crumbs based on crumb level', function() {
+    it('should filter crumbs based on crumb level', function () {
       const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
       const breadcrumbSearhInput = breadcrumbs.find('[id="id-breadcumber-search"]');
 
@@ -61,7 +61,7 @@ describe('BreadcrumbsInterface', function() {
       expect(breadcrumbs.state().filteredBreadcrumbs).toHaveLength(16);
     });
 
-    it('should filter crumbs based on crumb category', function() {
+    it('should filter crumbs based on crumb category', function () {
       const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
       const breadcrumbSearhInput = breadcrumbs.find('[id="id-breadcumber-search"]');
 
@@ -71,15 +71,15 @@ describe('BreadcrumbsInterface', function() {
     });
   });
 
-  describe('render', function() {
-    it('should display the correct number of crumbs with no filter', function() {
+  describe('render', function () {
+    it('should display the correct number of crumbs with no filter', function () {
       const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
       expect(breadcrumbs.find('[data-test-id="breadcrumb"]').hostNodes()).toHaveLength(
         10
       );
     });
 
-    it('should display the correct number of crumbs with a filter', function() {
+    it('should display the correct number of crumbs with a filter', function () {
       const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
       const breadcrumbSearhInput = breadcrumbs.find('[id="id-breadcumber-search"]');
 

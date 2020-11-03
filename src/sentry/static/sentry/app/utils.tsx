@@ -133,10 +133,7 @@ export function isUrl(str: any): boolean {
 }
 
 export function escape(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export function percent(value: number, totalValue: number): number {

@@ -76,7 +76,7 @@ class ReleaseCommits extends React.Component {
 
   getCommitsByRepository() {
     const {commitList} = this.state;
-    const commitsByRepository = commitList.reduce(function(cbr, commit) {
+    const commitsByRepository = commitList.reduce(function (cbr, commit) {
       const {repository} = commit;
       if (!cbr.hasOwnProperty(repository.name)) {
         cbr[repository.name] = [];

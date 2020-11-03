@@ -29,7 +29,7 @@ function looksLikeMultiLineString(value) {
 }
 
 function padNumbersInString(string) {
-  return string.replace(/(\d+)/g, function(num) {
+  return string.replace(/(\d+)/g, function (num) {
     let isNegative = false;
     num = parseInt(num, 10);
     if (num < 0) {

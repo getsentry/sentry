@@ -12,7 +12,7 @@ import GroupStore from 'app/stores/groupStore';
 jest.mock('app/views/organizationGroupDetails/header', () => jest.fn(() => null));
 jest.unmock('app/utils/recreateRoute');
 
-describe('groupDetails', function() {
+describe('groupDetails', function () {
   let wrapper;
   const group = TestStubs.Group();
   const {organization, project, router, routerContext} = initializeOrg({
@@ -59,7 +59,7 @@ describe('groupDetails', function() {
   };
 
   let issueDetailsMock;
-  beforeEach(function() {
+  beforeEach(function () {
     ProjectsStore.loadInitialData(organization.projects);
     MockComponent = jest.fn(() => null);
     issueDetailsMock = MockApiClient.addMockResponse({
@@ -75,7 +75,7 @@ describe('groupDetails', function() {
       body: [],
     });
   });
-  afterEach(async function() {
+  afterEach(async function () {
     if (wrapper) {
       wrapper.unmount();
     }
@@ -88,7 +88,7 @@ describe('groupDetails', function() {
     await tick();
   });
 
-  it('renders', async function() {
+  it('renders', async function () {
     ProjectsStore.reset();
     await tick();
 
@@ -117,7 +117,7 @@ describe('groupDetails', function() {
     expect(issueDetailsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('renders error when issue is not found', async function() {
+  it('renders error when issue is not found', async function () {
     issueDetailsMock = MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       statusCode: 404,
@@ -135,7 +135,7 @@ describe('groupDetails', function() {
     );
   });
 
-  it('renders error message when failing to retrieve issue details and can retry request', async function() {
+  it('renders error message when failing to retrieve issue details and can retry request', async function () {
     issueDetailsMock = MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       statusCode: 403,
@@ -157,7 +157,7 @@ describe('groupDetails', function() {
     expect(issueDetailsMock).toHaveBeenCalledTimes(2);
   });
 
-  it('fetches issue details for a given environment', async function() {
+  it('fetches issue details for a given environment', async function () {
     const props = initializeOrg({
       project: TestStubs.Project(),
       router: {
@@ -207,7 +207,7 @@ describe('groupDetails', function() {
   /**
    * This is legacy code that I'm not even sure still happens
    */
-  it('redirects to new issue if params id !== id returned from API request', async function() {
+  it('redirects to new issue if params id !== id returned from API request', async function () {
     issueDetailsMock = MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {...group, id: 'new-id'},

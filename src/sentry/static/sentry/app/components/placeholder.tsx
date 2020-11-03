@@ -33,7 +33,7 @@ const Placeholder = styled((props: Props) => {
   justify-content: center;
 
   background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundAccent)};
-${p => p.error && `color: ${p.theme.red200};`}
+  ${p => p.error && `color: ${p.theme.red200};`}
   width: ${p => p.width};
   height: ${p => p.height};
   ${p => (p.shape === 'circle' ? 'border-radius: 100%;' : '')}

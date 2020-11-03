@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GroupSimilar from 'app/views/organizationGroupDetails/groupSimilar';
 
-describe('Issues Similar View', function() {
+describe('Issues Similar View', function () {
   let mock;
 
   const project = TestStubs.Project({
@@ -35,14 +35,14 @@ describe('Issues Similar View', function() {
     similar: TestStubs.Groups().map((issue, i) => [issue, scores[i]]),
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     mock = MockApiClient.addMockResponse({
       url: '/issues/group-id/similar/?limit=50&version=1',
       body: mockData.similar,
     });
   });
 
-  it('renders initially with loading component', function() {
+  it('renders initially with loading component', function () {
     const component = mountWithTheme(
       <GroupSimilar
         project={project}
@@ -55,7 +55,7 @@ describe('Issues Similar View', function() {
     expect(component).toSnapshot();
   });
 
-  it('renders with mocked data', async function() {
+  it('renders with mocked data', async function () {
     const wrapper = mountWithTheme(
       <GroupSimilar
         project={project}
@@ -73,7 +73,7 @@ describe('Issues Similar View', function() {
     expect(wrapper.find('GroupGroupingView')).toSnapshot();
   });
 
-  it('can merge and redirect to new parent', async function() {
+  it('can merge and redirect to new parent', async function () {
     const wrapper = mountWithTheme(
       <GroupSimilar
         project={project}
@@ -94,10 +94,7 @@ describe('Issues Similar View', function() {
     await tick();
     wrapper.update();
 
-    wrapper
-      .find('[data-test-id="similar-item-row"]')
-      .first()
-      .simulate('click');
+    wrapper.find('[data-test-id="similar-item-row"]').first().simulate('click');
 
     await tick();
     wrapper.update();

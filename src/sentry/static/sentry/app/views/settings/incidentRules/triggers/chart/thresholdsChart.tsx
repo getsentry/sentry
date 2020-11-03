@@ -39,18 +39,9 @@ const CHART_GRID = {
 
 // Colors to use for trigger thresholds
 const COLOR = {
-  RESOLUTION_FILL: color(theme.green300)
-    .alpha(0.1)
-    .rgb()
-    .string(),
-  CRITICAL_FILL: color(theme.red300)
-    .alpha(0.25)
-    .rgb()
-    .string(),
-  WARNING_FILL: color(theme.yellow200)
-    .alpha(0.1)
-    .rgb()
-    .string(),
+  RESOLUTION_FILL: color(theme.green300).alpha(0.1).rgb().string(),
+  CRITICAL_FILL: color(theme.red300).alpha(0.25).rgb().string(),
+  WARNING_FILL: color(theme.yellow200).alpha(0.1).rgb().string(),
 };
 
 /**

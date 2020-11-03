@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
 
-describe('DropdownAutoCompleteMenu', function() {
+describe('DropdownAutoCompleteMenu', function () {
   const routerContext = TestStubs.routerContext();
   const items = [
     {
@@ -20,7 +20,7 @@ describe('DropdownAutoCompleteMenu', function() {
       label: <div>Corn</div>,
     },
   ];
-  it('renders without a group', function() {
+  it('renders without a group', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu isOpen items={items}>
         {() => 'Click Me!'}
@@ -30,7 +30,7 @@ describe('DropdownAutoCompleteMenu', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('renders with a group', function() {
+  it('renders with a group', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu
         isOpen
@@ -59,7 +59,7 @@ describe('DropdownAutoCompleteMenu', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('selects', function() {
+  it('selects', function () {
     const mock = jest.fn();
 
     const wrapper = mountWithTheme(
@@ -88,14 +88,11 @@ describe('DropdownAutoCompleteMenu', function() {
       routerContext
     );
 
-    wrapper
-      .find('AutoCompleteItem')
-      .last()
-      .simulate('click');
+    wrapper.find('AutoCompleteItem').last().simulate('click');
     expect(mock).toMatchSnapshot();
   });
 
-  it('shows empty message when there are no items', function() {
+  it('shows empty message when there are no items', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu
         emptyHidesInput
@@ -115,7 +112,7 @@ describe('DropdownAutoCompleteMenu', function() {
     expect(wrapper.find('StyledInput')).toHaveLength(0);
   });
 
-  it('shows default empty results message when there are no items found in search', function() {
+  it('shows default empty results message when there are no items found in search', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu isOpen items={items} emptyMessage="No items!">
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
@@ -128,7 +125,7 @@ describe('DropdownAutoCompleteMenu', function() {
     expect(wrapper.find('EmptyMessage').text()).toBe('No items! found');
   });
 
-  it('overrides default empty results message', function() {
+  it('overrides default empty results message', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu
         isOpen
@@ -145,7 +142,7 @@ describe('DropdownAutoCompleteMenu', function() {
     expect(wrapper.find('EmptyMessage').text()).toBe('No search results');
   });
 
-  it('hides filter with `hideInput` prop', function() {
+  it('hides filter with `hideInput` prop', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu isOpen items={items} hideInput>
         {() => 'Click Me!'}
@@ -156,7 +153,7 @@ describe('DropdownAutoCompleteMenu', function() {
     expect(wrapper.find('StyledInput')).toHaveLength(0);
   });
 
-  it('filters using a value from prop instead of input', function() {
+  it('filters using a value from prop instead of input', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu isOpen items={items} filterValue="Apple">
         {() => 'Click Me!'}

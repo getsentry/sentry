@@ -38,9 +38,7 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
             <DeviceName
               value={`${data.model} ${data?.model_id ? `(${data.model_id})` : ''}`}
             />
-          ) : (
-            undefined
-          ),
+          ) : undefined,
       };
     case DeviceKnownDataType.RENDERED_MODEL:
       return {

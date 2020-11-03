@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import EventCause from 'app/components/events/eventCause';
 
-describe('EventCause', function() {
+describe('EventCause', function () {
   const event = TestStubs.Event();
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
@@ -16,11 +16,11 @@ describe('EventCause', function() {
     group: TestStubs.Group(),
   };
 
-  afterEach(function() {
+  afterEach(function () {
     Client.clearMockResponses();
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     Client.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -64,7 +64,7 @@ describe('EventCause', function() {
     });
   });
 
-  it('renders', async function() {
+  it('renders', async function () {
     const wrapper = mountWithTheme(
       <EventCause event={event} orgId={organization.slug} projectId={project.slug} />,
       {
@@ -80,7 +80,7 @@ describe('EventCause', function() {
     expect(wrapper.find('Hovercard').exists()).toBe(false);
   });
 
-  it('expands', async function() {
+  it('expands', async function () {
     const wrapper = mountWithTheme(
       <EventCause event={event} orgId={organization.slug} projectId={project.slug} />,
       {
@@ -101,7 +101,7 @@ describe('EventCause', function() {
     expect(wrapper.find('CommitRow')).toHaveLength(1);
   });
 
-  it('shows unassociated email warning', async function() {
+  it('shows unassociated email warning', async function () {
     Client.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,

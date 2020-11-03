@@ -14,11 +14,11 @@ type Props = {
   error?: React.ReactNode;
 };
 
-const Sparklines = React.lazy(() =>
-  import(/* webpackChunkName: "Sparklines" */ 'app/components/sparklines')
+const Sparklines = React.lazy(
+  () => import(/* webpackChunkName: "Sparklines" */ 'app/components/sparklines')
 );
-const SparklinesLine = React.lazy(() =>
-  import(/* webpackChunkName: "SparklinesLine" */ 'app/components/sparklines/line')
+const SparklinesLine = React.lazy(
+  () => import(/* webpackChunkName: "SparklinesLine" */ 'app/components/sparklines/line')
 );
 
 class SparkLine extends React.Component<Props> {

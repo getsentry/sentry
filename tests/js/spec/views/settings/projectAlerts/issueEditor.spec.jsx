@@ -12,7 +12,7 @@ import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/actionCreators/onboardingTasks');
 
-describe('ProjectAlerts -> IssueEditor', function() {
+describe('ProjectAlerts -> IssueEditor', function () {
   const projectAlertRuleDetailsRoutes = [
     {
       path: '/',
@@ -52,7 +52,7 @@ describe('ProjectAlerts -> IssueEditor', function() {
     {path: ':ruleId/', name: 'Edit Alert Rule'},
   ];
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url:
@@ -69,7 +69,7 @@ describe('ProjectAlerts -> IssueEditor', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
@@ -93,10 +93,10 @@ describe('ProjectAlerts -> IssueEditor', function() {
       project,
     };
   };
-  describe('Edit Rule', function() {
+  describe('Edit Rule', function () {
     let mock;
     const endpoint = '/projects/org-slug/project-slug/rules/1/';
-    beforeEach(async function() {
+    beforeEach(async function () {
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'PUT',
@@ -104,7 +104,7 @@ describe('ProjectAlerts -> IssueEditor', function() {
       });
     });
 
-    it('deletes rule', async function() {
+    it('deletes rule', async function () {
       const deleteMock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'DELETE',
@@ -121,7 +121,7 @@ describe('ProjectAlerts -> IssueEditor', function() {
       );
     });
 
-    it('sends correct environment value', function() {
+    it('sends correct environment value', function () {
       const {wrapper} = createWrapper();
       selectByValue(wrapper, 'production', {name: 'environment'});
       wrapper.find('form').simulate('submit');
@@ -134,7 +134,7 @@ describe('ProjectAlerts -> IssueEditor', function() {
       );
     });
 
-    it('strips environment value if "All environments" is selected', async function() {
+    it('strips environment value if "All environments" is selected', async function () {
       const {wrapper} = createWrapper();
       selectByValue(wrapper, '__all_environments__', {name: 'environment'});
       wrapper.find('form').simulate('submit');
@@ -148,7 +148,7 @@ describe('ProjectAlerts -> IssueEditor', function() {
       );
     });
 
-    it('updates the alert onboarding task', async function() {
+    it('updates the alert onboarding task', async function () {
       const {wrapper} = createWrapper();
       wrapper.find('form').simulate('submit');
 
@@ -156,19 +156,19 @@ describe('ProjectAlerts -> IssueEditor', function() {
     });
   });
 
-  describe('Edit Rule: Slack Channel Look Up', function() {
+  describe('Edit Rule: Slack Channel Look Up', function () {
     const uuid = 'xxxx-xxxx-xxxx';
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       jest.useFakeTimers();
     });
 
-    afterEach(function() {
+    afterEach(function () {
       jest.clearAllTimers();
       MockApiClient.clearMockResponses();
     });
 
-    it('pending status keeps loading true', async function() {
+    it('pending status keeps loading true', async function () {
       const endpoint = `/projects/org-slug/project-slug/rule-task/${uuid}/`;
       MockApiClient.addMockResponse({
         url: endpoint,
@@ -189,7 +189,7 @@ describe('ProjectAlerts -> IssueEditor', function() {
       expect(ruleEditor.state('loading')).toBe(true);
     });
 
-    it('failed status renders error message', async function() {
+    it('failed status renders error message', async function () {
       const endpoint = `/projects/org-slug/project-slug/rule-task/${uuid}/`;
       MockApiClient.addMockResponse({
         url: endpoint,
@@ -212,7 +212,7 @@ describe('ProjectAlerts -> IssueEditor', function() {
       expect(ruleEditor.state('detailedError')).toEqual({actions: ['An error occurred']});
     });
 
-    it('success status updates the rule', async function() {
+    it('success status updates the rule', async function () {
       const endpoint = `/projects/org-slug/project-slug/rule-task/${uuid}/`;
       MockApiClient.addMockResponse({
         url: endpoint,

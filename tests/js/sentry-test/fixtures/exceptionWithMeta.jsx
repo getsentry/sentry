@@ -17,7 +17,7 @@ function ExceptionWithMeta(props = {}) {
     _meta: {
       exception: {
         values: {
-          '0': {
+          0: {
             value: {
               '': {
                 len: 29,

@@ -133,9 +133,7 @@ const generateButton = alias => ({
 
     border: alias.secondaryButton,
     borderActive: alias.secondaryButton,
-    focusShadow: color(colors.gray200)
-      .alpha(0.5)
-      .string(),
+    focusShadow: color(colors.gray200).alpha(0.5).string(),
   },
   primary: {
     color: colors.white,
@@ -144,9 +142,7 @@ const generateButton = alias => ({
     backgroundActive: '#4e3fb4',
     border: colors.purple300,
     borderActive: colors.purple300,
-    focusShadow: color(colors.purple300)
-      .alpha(0.4)
-      .string(),
+    focusShadow: color(colors.purple300).alpha(0.4).string(),
   },
   success: {
     color: colors.white,
@@ -155,9 +151,7 @@ const generateButton = alias => ({
     backgroundActive: colors.green300,
     border: '#7ccca5',
     borderActive: '#7ccca5',
-    focusShadow: color(colors.green300)
-      .alpha(0.5)
-      .string(),
+    focusShadow: color(colors.green300).alpha(0.5).string(),
   },
   danger: {
     color: colors.white,
@@ -166,9 +160,7 @@ const generateButton = alias => ({
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
     borderActive: '#7d1c13',
-    focusShadow: color(colors.red300)
-      .alpha(0.5)
-      .string(),
+    focusShadow: color(colors.red300).alpha(0.5).string(),
   },
   link: {
     color: alias.linkColor,

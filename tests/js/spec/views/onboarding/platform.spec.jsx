@@ -8,8 +8,8 @@ import TeamStore from 'app/stores/teamStore';
 
 jest.mock('app/actionCreators/projects');
 
-describe('OnboardingWelcome', function() {
-  it('calls onUpdate when setting the platform', function() {
+describe('OnboardingWelcome', function () {
+  it('calls onUpdate when setting the platform', function () {
     const onUpdate = jest.fn();
 
     const wrapper = mountWithTheme(
@@ -17,15 +17,12 @@ describe('OnboardingWelcome', function() {
       TestStubs.routerContext()
     );
 
-    wrapper
-      .find('[data-test-id="platform-csharp"]')
-      .first()
-      .simulate('click');
+    wrapper.find('[data-test-id="platform-csharp"]').first().simulate('click');
 
     expect(onUpdate).toHaveBeenCalled();
   });
 
-  it('calls onReturnToStep when clearing the platform', function() {
+  it('calls onReturnToStep when clearing the platform', function () {
     const onUpdate = jest.fn();
     const onReturnToStep = jest.fn();
 
@@ -38,15 +35,12 @@ describe('OnboardingWelcome', function() {
       TestStubs.routerContext()
     );
 
-    wrapper
-      .find('ClearButton')
-      .first()
-      .simulate('click');
+    wrapper.find('ClearButton').first().simulate('click');
 
     expect(onReturnToStep).toHaveBeenCalled();
   });
 
-  it('creates a project when no project exists', async function() {
+  it('creates a project when no project exists', async function () {
     const onComplete = jest.fn();
 
     const wrapper = mountWithTheme(
@@ -83,7 +77,7 @@ describe('OnboardingWelcome', function() {
     expect(onComplete).toHaveBeenCalled();
   });
 
-  it('does not create a project if one already exists', async function() {
+  it('does not create a project if one already exists', async function () {
     createProject.mockReset();
     const onComplete = jest.fn();
 

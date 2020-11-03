@@ -78,7 +78,7 @@ class VersionHoverCard extends React.Component<Props, State> {
     }
 
     const {lastCommit} = release;
-    const recentDeploysByEnvironment = deploys.reduce(function(dbe, deploy) {
+    const recentDeploysByEnvironment = deploys.reduce(function (dbe, deploy) {
       const {dateFinished, environment} = deploy;
       if (!dbe.hasOwnProperty(environment)) {
         dbe[environment] = dateFinished;

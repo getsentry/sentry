@@ -13,7 +13,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 jest.unmock('app/utils/recreateRoute');
 
-describe('ProjectAlertsCreate', function() {
+describe('ProjectAlertsCreate', function () {
   const projectAlertRuleDetailsRoutes = [
     {
       path: '/organizations/:orgId/alerts/',
@@ -72,7 +72,7 @@ describe('ProjectAlertsCreate', function() {
     },
   ];
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     browserHistory.replace = jest.fn();
     memberActionCreators.fetchOrgMembers = jest.fn();
     MockApiClient.addMockResponse({
@@ -94,7 +94,7 @@ describe('ProjectAlertsCreate', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
@@ -124,9 +124,9 @@ describe('ProjectAlertsCreate', function() {
     };
   };
 
-  describe('Issue Alert', function() {
-    describe('With Metric Alerts', function() {
-      beforeEach(function() {
+  describe('Issue Alert', function () {
+    describe('With Metric Alerts', function () {
+      beforeEach(function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/tags/',
           body: [],
@@ -147,7 +147,7 @@ describe('ProjectAlertsCreate', function() {
           body: TestStubs.EventsStats(),
         });
       });
-      it('forces user to select Metric or Issue alert', async function() {
+      it('forces user to select Metric or Issue alert', async function () {
         const {wrapper} = createWrapper({
           organization: {features: ['incidents']},
         });
@@ -172,8 +172,8 @@ describe('ProjectAlertsCreate', function() {
       });
     });
 
-    describe('Without Metric Alerts', function() {
-      it('loads default values', function() {
+    describe('Without Metric Alerts', function () {
+      it('loads default values', function () {
         const {wrapper} = createWrapper();
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(
@@ -185,7 +185,7 @@ describe('ProjectAlertsCreate', function() {
         expect(wrapper.find('SelectControl[name="frequency"]').prop('value')).toBe('30');
       });
 
-      it('updates values and saves', async function() {
+      it('updates values and saves', async function () {
         const {wrapper} = createWrapper();
         const mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',

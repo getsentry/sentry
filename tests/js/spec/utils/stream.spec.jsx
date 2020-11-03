@@ -1,8 +1,8 @@
 import {queryToObj, objToQuery} from 'app/utils/stream';
 
-describe('utils/stream', function() {
-  describe('queryToObj()', function() {
-    it('should convert a basic query string to a query object', function() {
+describe('utils/stream', function () {
+  describe('queryToObj()', function () {
+    it('should convert a basic query string to a query object', function () {
       expect(queryToObj('is:unresolved')).toEqual({
         __text: '',
         is: 'unresolved',
@@ -21,7 +21,7 @@ describe('utils/stream', function() {
       });
     });
 
-    it('should convert separate query tokens into a single __text property', function() {
+    it('should convert separate query tokens into a single __text property', function () {
       expect(queryToObj('python    exception')).toEqual({
         __text: 'python exception',
       });
@@ -34,8 +34,8 @@ describe('utils/stream', function() {
     });
   });
 
-  describe('objToQuery()', function() {
-    it('should convert a query object to a query string', function() {
+  describe('objToQuery()', function () {
+    it('should convert a query object to a query string', function () {
       expect(
         objToQuery({
           is: 'unresolved',
@@ -57,7 +57,7 @@ describe('utils/stream', function() {
       ).toEqual('is:unresolved python exception');
     });
 
-    it('should quote query values that contain spaces', function() {
+    it('should quote query values that contain spaces', function () {
       expect(
         objToQuery({
           browser: 'Chrome 36',

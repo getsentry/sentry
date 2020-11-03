@@ -18,7 +18,7 @@ import {IS_CI} from 'app/constants';
  */
 const testableTransition = !IS_CI
   ? (t?: Transition) => t
-  : function(transition?: Transition): Transition {
+  : function (transition?: Transition): Transition {
       return {
         ...transition,
         delay: 0,

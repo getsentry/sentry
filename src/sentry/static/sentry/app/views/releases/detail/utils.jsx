@@ -25,7 +25,7 @@ export function deleteRelease(orgId, version) {
  * @returns {Object} Object grouped by repository and file name
  */
 export function getFilesByRepository(fileList) {
-  return fileList.reduce(function(fbr, file) {
+  return fileList.reduce(function (fbr, file) {
     const {filename, repoName, author, type} = file;
     if (!fbr.hasOwnProperty(repoName)) {
       fbr[repoName] = {};
