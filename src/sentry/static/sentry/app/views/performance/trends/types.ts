@@ -7,11 +7,13 @@ import {EventQuery} from 'app/actionCreators/events';
 export type TrendView = EventView & {
   orderby?: string;
   trendFunction?: string;
+  trendType?: string;
 };
 
 export type TrendsQuery = EventQuery &
   LocationQuery & {
     trendFunction?: string;
+    trendType?: string;
     intervalRatio?: number;
     interval?: string;
   };
@@ -80,28 +82,24 @@ type BaseTrendsTransaction = {
 
   count_range_1: number;
   count_range_2: number;
-  percentage_count_range_2_count_range_1: number;
+  trend_percentage: number;
+  trend_difference: number;
+  count_percentage: number;
 };
 
 export type TrendsPercentileTransaction = BaseTrendsTransaction & {
   percentile_range_1: number;
   percentile_range_2: number;
-  percentage_percentile_range_2_percentile_range_1: number;
-  minus_percentile_range_2_percentile_range_1: number;
 };
 
 export type TrendsAvgTransaction = BaseTrendsTransaction & {
   avg_range_1: number;
   avg_range_2: number;
-  percentage_avg_range_2_avg_range_1: number;
-  minus_avg_range_2_avg_range_1: number;
 };
 
 export type TrendsUserMiseryTransaction = BaseTrendsTransaction & {
   user_misery_range_1: number;
   user_misery_range_2: number;
-  percentage_user_misery_range_2_user_misery_range_1: number;
-  minus_user_misery_range_2_user_misery_range_1: number;
 };
 
 export type TrendsTransaction =

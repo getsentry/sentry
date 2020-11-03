@@ -10,8 +10,6 @@ import {
   DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
   CONFIDENCE_LEVELS,
-  getTrendAliasedFieldPercentage,
-  getTrendAliasedMinus,
 } from 'app/views/performance/trends/utils';
 import {TrendFunctionField} from 'app/views/performance/trends/types';
 import {getUtcDateString} from 'app/utils/dates';
@@ -632,12 +630,10 @@ describe('Performance > Trends', function () {
       expect(trendsMock).toHaveBeenCalledTimes(2);
       expect(trendsStatsMock).toHaveBeenCalledTimes(2);
 
-      const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
-
       const sort =
         trendFunction.field === TrendFunctionField.USER_MISERY
-          ? getTrendAliasedMinus(trendFunction.alias)
-          : aliasedFieldDivide;
+          ? 'trend_difference()'
+          : 'trend_percentage()';
 
       const defaultTrendsFields = ['project'];
 
@@ -655,7 +651,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort,
-            query: expect.stringContaining('trend_percentage():<1'),
+            query: expect.stringContaining('trend_percentage():>0%'),
             interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
@@ -671,7 +667,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort,
-            query: expect.stringContaining('trend_percentage():<1'),
+            query: expect.stringContaining('trend_percentage():>0%'),
             interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
@@ -687,7 +683,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort: '-' + sort,
-            query: expect.stringContaining('trend_percentage():>1'),
+            query: expect.stringContaining('trend_percentage():>0%'),
             interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
@@ -703,7 +699,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort: '-' + sort,
-            query: expect.stringContaining('trend_percentage():>1'),
+            query: expect.stringContaining('trend_percentage():>0%'),
             interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
