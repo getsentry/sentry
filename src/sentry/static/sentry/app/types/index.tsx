@@ -382,6 +382,8 @@ type SentryEventBase = {
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
 
   measurements?: Record<string, Measurement>;
+
+  release?: ReleaseData;
 };
 
 export type SentryTransactionEvent = {

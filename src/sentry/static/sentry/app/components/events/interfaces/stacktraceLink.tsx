@@ -49,16 +49,17 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, frame} = this.props;
+    const {organization, frame, event} = this.props;
     const project = this.project;
     if (!project) {
       throw new Error('Unable to find project');
     }
+    const commitId = event.release?.lastCommit?.id;
     return [
       [
         'match',
         `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-        {query: {file: frame.filename}},
+        {query: {file: frame.filename, commitId}},
       ],
     ];
   }
@@ -75,6 +76,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     return <OpenInContainer columnQuantity={2}>No Match</OpenInContainer>;
   }
   renderMatchWithUrl(config: RepositoryProjectPathConfig, url: string) {
+    url = `${url}#L${this.props.frame.lineNo}`;
     return (
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>

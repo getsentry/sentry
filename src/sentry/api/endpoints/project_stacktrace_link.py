@@ -48,6 +48,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 continue
 
             version = commitId or config.default_branch
+            print("version", version)
 
             link = get_link(config, filepath, version)
 
