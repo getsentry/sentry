@@ -43,6 +43,8 @@ class ThreadInterface extends React.Component {
     hideGuide: false,
   };
 
+  state = this.getInitialState();
+
   getInitialState() {
     const {data, event} = this.props;
     const thread = defined(data.values) ? findBestThread(data.values) : undefined;
