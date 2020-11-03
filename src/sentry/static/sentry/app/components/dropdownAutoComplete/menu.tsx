@@ -25,7 +25,6 @@ type EventHandles = {
 
 type MenuProps = Omit<EventHandles, 'onKeyDown'> & {
   className?: string;
-  style?: React.CSSProperties;
 };
 
 // Props for the "actor" element of `<DropdownMenu>`
