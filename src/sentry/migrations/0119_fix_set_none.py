@@ -26,45 +26,82 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0118_backfill_snuba_query_event_types'),
+        ("sentry", "0118_backfill_snuba_query_event_types"),
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name='activity',
-            name='user',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AlterField(
-            model_name='alertruleactivity',
-            name='user',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AlterField(
-            model_name='auditlogentry',
-            name='actor',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='audit_actors', to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AlterField(
-            model_name='auditlogentry',
-            name='target_user',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='audit_targets', to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AlterField(
-            model_name='organizationmember',
-            name='inviter',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='sentry_inviter_set', to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AlterField(
-            model_name='organizationonboardingtask',
-            name='user',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AlterField(
-            model_name='ruleactivity',
-            name='user',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
-        ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterField(
+                    model_name="activity",
+                    name="user",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name="alertruleactivity",
+                    name="user",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name="auditlogentry",
+                    name="actor",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="audit_actors",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name="auditlogentry",
+                    name="target_user",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="audit_targets",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name="organizationmember",
+                    name="inviter",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="sentry_inviter_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name="organizationonboardingtask",
+                    name="user",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name="ruleactivity",
+                    name="user",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+            ]
+        )
     ]

@@ -166,7 +166,7 @@ class ProjectTeams extends AsyncView<Props, State> {
 
 const StyledTeamsLabel = styled('div')`
   font-size: 0.875em;
-  padding: ${space(0.5)};
+  padding: ${space(0.5)} 0px;
   text-transform: uppercase;
 `;
 
