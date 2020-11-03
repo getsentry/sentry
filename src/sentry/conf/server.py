@@ -1988,13 +1988,7 @@ SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
 # process_event might backlog and affect events from other platforms.
 SYMBOLICATOR_POLL_TIMEOUT = 4
 
-SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
-    "sentry.web.api",
-    "sentry.web.frontend",
-    "sentry.api.endpoints",
-    "sentry.data_export.endpoints",
-    "sentry.discover.endpoints",
-    "sentry.incidents.endpoints",
+SENTRY_REQUEST_METRIC_ALLOWED_PATHS = ( "sentry.web.api", "sentry.web.frontend", "sentry.api.endpoints", "sentry.data_export.endpoints", "sentry.discover.endpoints", "sentry.incidents.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
