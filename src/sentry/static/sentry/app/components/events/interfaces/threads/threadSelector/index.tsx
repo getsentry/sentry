@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {Thread} from 'app/types/events';
+import {ThreadType} from 'app/types/events';
 import {Event, EntryTypeData} from 'app/types';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
@@ -16,16 +16,16 @@ import SelectedOption from './selectedOption';
 import Header from './header';
 
 type Props = {
-  threads: Array<Thread>;
-  activeThread: Thread;
+  threads: Array<ThreadType>;
+  activeThread: ThreadType;
   event: Event;
-  onChange?: (thread: Thread) => void;
+  onChange?: (thread: ThreadType) => void;
 };
 
 const DROPDOWN_MAX_HEIGHT = 400;
 
 const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
-  const getDropDownItem = (thread: Thread) => {
+  const getDropDownItem = (thread: ThreadType) => {
     const threadInfo = filterThreadInfo(thread, event);
 
     const dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`;
@@ -56,7 +56,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     return [...crashed, ...notCrashed].map(getDropDownItem);
   };
 
-  const handleChange = (thread: Thread) => {
+  const handleChange = (thread: ThreadType) => {
     if (onChange) {
       onChange(thread);
     }

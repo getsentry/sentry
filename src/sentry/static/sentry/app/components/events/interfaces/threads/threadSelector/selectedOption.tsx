@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 import {tct, t} from 'app/locale';
 
 type Props = {
-  id: string;
+  id: number;
   details: ThreadInfo;
 };
 

@@ -14,14 +14,13 @@ import {Client} from 'app/api';
 
 type Props = {
   projectId: Project['id'];
-  values: Array<ExceptionType>;
   api: Client;
   type: 'original' | 'minified';
   platform: PlatformType;
   eventId: Event['id'];
   // XXX: Organization is NOT available for Shared Issues!
   organization: Organization;
-};
+} & Pick<ExceptionType, 'values'>;
 
 type State = {
   loading: boolean;
@@ -153,6 +152,10 @@ class RawExceptionContent extends React.Component<Props, State> {
   render() {
     const {values} = this.props;
     const isNative = this.isNative();
+
+    if (!values) {
+      return null;
+    }
 
     return (
       <React.Fragment>

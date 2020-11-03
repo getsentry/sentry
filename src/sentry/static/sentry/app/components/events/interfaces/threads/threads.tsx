@@ -1,26 +1,46 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import {Event, Project} from 'app/types';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import EventDataSection from 'app/components/events/eventDataSection';
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
 import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
-import SentryTypes from 'app/sentryTypes';
+import {ThreadType} from 'app/types/events';
 
 import ThreadSelector from './threadSelector';
 import getThreadStacktrace from './threadSelector/getThreadStacktrace';
 import getThreadException from './threadSelector/getThreadException';
 import Thread from './thread';
 
-function getIntendedStackView(thread, event) {
+const defaultProps = {
+  hideGuide: false,
+};
+
+type Props = {
+  event: Event;
+  projectId: Project['id'];
+  type: string;
+  data: {
+    values?: Array<ThreadType>;
+  };
+} & typeof defaultProps;
+
+type State = {
+  activeThread: ThreadType;
+  stackView: STACK_VIEW;
+  stackType: STACK_TYPE;
+  newestFirst: boolean;
+};
+
+function getIntendedStackView(thread: ThreadType, event: Event) {
   const stacktrace = getThreadStacktrace(thread, event, false);
   return stacktrace && stacktrace.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
-function findBestThread(threads) {
+function findBestThread(threads: Array<ThreadType>) {
   // Search the entire threads list for a crashed thread with stack
   // trace.
   return (
@@ -30,20 +50,10 @@ function findBestThread(threads) {
   );
 }
 
-class ThreadInterface extends React.Component {
-  static propTypes = {
-    event: SentryTypes.Event.isRequired,
-    projectId: PropTypes.string.isRequired,
-    type: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired,
-    hideGuide: PropTypes.bool,
-  };
+class ThreadInterface extends React.Component<Props, State> {
+  static defaultProps = defaultProps;
 
-  static defaultProps = {
-    hideGuide: false,
-  };
-
-  state = this.getInitialState();
+  state: State = this.getInitialState();
 
   getInitialState() {
     const {data, event} = this.props;
@@ -53,10 +63,10 @@ class ThreadInterface extends React.Component {
       stackView: thread ? getIntendedStackView(thread, event) : undefined,
       stackType: STACK_TYPE.ORIGINAL,
       newestFirst: isStacktraceNewestFirst(),
-    };
+    } as State;
   }
 
-  handleSelectNewThread = thread => {
+  handleSelectNewThread = (thread: ThreadType) => {
     this.setState(prevState => ({
       activeThread: thread,
       stackView:
@@ -67,7 +77,7 @@ class ThreadInterface extends React.Component {
     }));
   };
 
-  handleChangeNewestFirst = ({newestFirst}) => {
+  handleChangeNewestFirst = ({newestFirst}: Pick<State, 'newestFirst'>) => {
     this.setState({newestFirst});
   };
 

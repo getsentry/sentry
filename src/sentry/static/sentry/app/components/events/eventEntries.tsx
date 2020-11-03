@@ -38,7 +38,7 @@ import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
 import {DataSection} from 'app/components/events/styles';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import {Event, AvatarProject, Group, Organization} from 'app/types';
+import {Event, AvatarProject, Group, EntryType, Organization} from 'app/types';
 
 export const INTERFACES = {
   exception: ExceptionInterface,
@@ -148,7 +148,7 @@ class EventEntries extends React.Component<Props> {
       return null;
     }
 
-    return entries.map((entry, entryIdx) => {
+    return (entries as Array<EntryType>).map((entry, entryIdx) => {
       try {
         const Component = INTERFACES[entry.type];
         if (!Component) {

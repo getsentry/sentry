@@ -11,7 +11,7 @@ import {IconFire} from 'app/icons';
 import {Grid, GridCell} from './styles';
 
 type Props = {
-  id: string;
+  id: number;
   details: ThreadInfo;
   crashedInfo?: EntryTypeData;
   name?: string | null;

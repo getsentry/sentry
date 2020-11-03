@@ -276,7 +276,7 @@ export type EventAttachment = {
 
 export type EntryTypeData = Record<string, any | Array<any>>;
 
-type EntryType = {
+export type EntryType = {
   data: EntryTypeData;
   type: string;
 };
@@ -387,19 +387,32 @@ type SentryEventBase = {
   release?: ReleaseData;
 };
 
-export type SentryTransactionEvent = {
-  type: 'transaction';
-  title?: string;
+export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
   entries: SpanEntry[];
   startTimestamp: number;
   endTimestamp: number;
+  type: 'transaction';
+  title?: string;
   contexts?: {
     trace?: TraceContextType;
   };
-} & SentryEventBase;
+};
+
+export type ExceptionEntry = {
+  type: 'exception';
+  data: ExceptionType;
+};
+
+export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
+  entries: ExceptionEntry[];
+  type: 'error';
+};
 
 // This type is incomplete
-export type Event = ({type: string} & SentryEventBase) | SentryTransactionEvent;
+export type Event =
+  | SentryErrorEvent
+  | SentryTransactionEvent
+  | ({type: string} & SentryEventBase);
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -1602,12 +1615,18 @@ export type FilesByRepository = {
   };
 };
 
-export type ExceptionType = {
+export type ExceptionValue = {
   type: string;
   value: string;
+  threadId: number | null;
   stacktrace: StacktraceType;
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  threadId: number | null;
+};
+
+export type ExceptionType = {
+  excOmitted: any | null;
+  hasSystemFrames: boolean;
+  values?: Array<ExceptionValue>;
 };
