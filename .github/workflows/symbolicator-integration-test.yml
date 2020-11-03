@@ -59,7 +59,7 @@ jobs:
             -v $PWD/config/symbolicator/:/etc/symbolicator \
             --network host \
             --name symbolicator \
-            us.gcr.io/sentryio/symbolicator:latest \
+            us.gcr.io/sentryio/symbolicator:nightly \
             run -c /etc/symbolicator/config.yml
           docker ps -a
 

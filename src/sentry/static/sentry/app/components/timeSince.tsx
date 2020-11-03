@@ -6,6 +6,7 @@ import moment from 'moment-timezone';
 
 import ConfigStore from 'app/stores/configStore';
 import {t} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import Tooltip from './tooltip';
 
@@ -96,13 +97,16 @@ class TimeSince extends React.PureComponent<Props, State> {
     const dateObj = getDateObj(date);
     const user = ConfigStore.get('user');
     const options = user ? user.options : null;
-    const format = options?.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
+    const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : 'LLL z';
+    const tooltip = getDynamicText({
+      fixed: options?.clock24Hours
+        ? 'November 3, 2020 08:57 UTC'
+        : 'November 3, 2020 8:58 AM UTC',
+      value: moment.tz(dateObj, options?.timezone ?? '').format(format),
+    });
 
     return (
-      <Tooltip
-        title={moment.tz(dateObj, options?.timezone ?? '').format(format)}
-        disabled={disabledAbsoluteTooltip}
-      >
+      <Tooltip title={tooltip} disabled={disabledAbsoluteTooltip}>
         <time dateTime={dateObj.toISOString()} className={className} {...props}>
           {this.state.relative}
         </time>
