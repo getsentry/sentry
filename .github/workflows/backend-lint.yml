@@ -39,6 +39,8 @@ jobs:
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         if: steps.changes.outputs.backend == 'true'
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: on
         with:
           python-version: ${{ steps.python-version.outputs.python-version }}
 
