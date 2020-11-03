@@ -12,7 +12,7 @@ import {IconDelete, IconStack} from 'app/icons';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 import accountEmailsFields from 'app/data/forms/accountEmails';
 import space from 'app/styles/space';
 import ButtonBar from 'app/components/buttonBar';
@@ -51,8 +51,8 @@ class EmailRow extends React.Component {
       <EmailItem>
         <EmailTags>
           {email}
-          {!isVerified && <Tag priority="warning">{t('Unverified')}</Tag>}
-          {isPrimary && <Tag priority="success">{t('Primary')}</Tag>}
+          {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
+          {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
         </EmailTags>
         <ButtonBar gap={1}>
           {!isPrimary && isVerified && (
