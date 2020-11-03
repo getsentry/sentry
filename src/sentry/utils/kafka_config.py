@@ -49,7 +49,7 @@ def _get_kafka_cluster_options(
                     configuration_key=configuration_key
                 )
             )
-    if not isinstance(options["bootstrap.servers"], six.str):
+    if not isinstance(options["bootstrap.servers"], six.string_types):
         raise ValueError("bootstrap.servers must be a comma separated string")
     if override_params:
         options.update(override_params)
