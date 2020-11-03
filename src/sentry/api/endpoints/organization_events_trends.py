@@ -44,7 +44,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         "variance": "variance_range(transaction.duration, {start}, {end}, {query_alias})",
         "count_range": "count_range({start}, {end}, {query_alias})",
         "percentage": "percentage({alias}_2, {alias}_1, {query_alias})",
-        "difference": "minus({alias}_2,{alias}1, {query_alias})",
+        "difference": "minus({alias}_2,{alias}_1, {query_alias})",
         "t_test": "t_test({avg}_1, {avg}_2, variance_range_1, variance_range_2, count_range_1, count_range_2)",
     }
 
