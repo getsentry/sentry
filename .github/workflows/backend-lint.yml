@@ -14,10 +14,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          # This may save additional git fetch roundtrip if
-          # merge-base is found within latest 20 commits
-          fetch-depth: 20
 
       # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
       # creates a status check in the "pending" state. This means that the workflow needs to run
@@ -80,7 +76,7 @@ jobs:
           # Therefore we specify we are only interested in added or modified files.
           filters: |
             all:
-              - added|modified: '*'
+              - added|modified: '**'
 
       - name: Run pre-commit on changed files
         if: steps.changes.outputs.backend == 'true'
