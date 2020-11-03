@@ -15,7 +15,6 @@ import space from 'app/styles/space';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {decodeScalar} from 'app/utils/queryString';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import Alert from 'app/components/alert';
 import {IconInfo} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
@@ -32,7 +31,6 @@ import {
   getSelectedQueryKey,
 } from './utils';
 import ChangedTransactions from './changedTransactions';
-import ChangedProjects from './changedProjects';
 import {FilterViews} from '../landing';
 
 type Props = {
@@ -46,12 +44,6 @@ type Props = {
 type State = {
   previousTrendFunction?: TrendFunctionField;
 };
-
-function hasMultipleProjects(selection: GlobalSelection) {
-  const myProjectsSelected = selection.projects.length === 0;
-  const allProjectsSelected = selection.projects[0] === ALL_ACCESS_PROJECTS;
-  return myProjectsSelected || allProjectsSelected || selection.projects.length > 1;
-}
 
 class TrendsContent extends React.Component<Props, State> {
   state: State = {};
@@ -128,7 +120,7 @@ class TrendsContent extends React.Component<Props, State> {
   };
 
   render() {
-    const {organization, eventView, selection, location, setError} = this.props;
+    const {organization, eventView, location, setError} = this.props;
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
@@ -140,7 +132,6 @@ class TrendsContent extends React.Component<Props, State> {
     const currentTrendFunction = getCurrentTrendFunction(location);
     const currentConfidenceLevel = getCurrentConfidenceLevel(location);
     const query = getTransactionSearchQuery(location);
-    const showChangedProjects = hasMultipleProjects(selection);
 
     return (
       <Feature features={['trends']}>
@@ -199,22 +190,6 @@ class TrendsContent extends React.Component<Props, State> {
             </TrendsDropdown>
           </StyledSearchContainer>
           <TrendsLayoutContainer>
-            {showChangedProjects && (
-              <ChangedProjects
-                trendChangeType={TrendChangeType.IMPROVED}
-                previousTrendFunction={previousTrendFunction}
-                trendView={trendView}
-                location={location}
-              />
-            )}
-            {showChangedProjects && (
-              <ChangedProjects
-                trendChangeType={TrendChangeType.REGRESSION}
-                previousTrendFunction={previousTrendFunction}
-                trendView={trendView}
-                location={location}
-              />
-            )}
             <ChangedTransactions
               trendChangeType={TrendChangeType.IMPROVED}
               previousTrendFunction={previousTrendFunction}
