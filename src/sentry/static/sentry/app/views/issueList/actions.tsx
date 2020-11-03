@@ -10,13 +10,7 @@ import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
 import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
 import {Client} from 'app/api';
-import {
-  GlobalSelection,
-  Group,
-  Organization,
-  Project,
-  UpdateResolutionStatus,
-} from 'app/types';
+import {GlobalSelection, Group, Project, UpdateResolutionStatus} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
@@ -33,7 +27,6 @@ import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
-import QuestionTooltip from 'app/components/questionTooltip';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -154,7 +147,6 @@ const ExtraDescription = ({all, query, queryCount}: ExtraDescriptionProps) => {
 type Props = {
   api: Client;
   allResultsVisible: boolean;
-  organization: Organization;
   orgId: string;
   selection: GlobalSelection;
   groupIds: string[];
@@ -182,7 +174,6 @@ const IssueListActions = createReactClass<Props, State>({
   propTypes: {
     api: PropTypes.object,
     allResultsVisible: PropTypes.bool,
-    organization: SentryTypes.Organization.isRequired,
     orgId: PropTypes.string.isRequired,
     selection: SentryTypes.GlobalSelection.isRequired,
     groupIds: PropTypes.instanceOf(Array).isRequired,
@@ -413,7 +404,6 @@ const IssueListActions = createReactClass<Props, State>({
   render() {
     const {
       allResultsVisible,
-      organization,
       orgId,
       queryCount,
       query,
@@ -432,7 +422,6 @@ const IssueListActions = createReactClass<Props, State>({
     } = this.state;
     const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
     const label = getLabel(numIssues, allInQuerySelected);
-    const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
 
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
@@ -603,52 +592,18 @@ const IssueListActions = createReactClass<Props, State>({
               >
                 {t('24h')}
               </GraphToggle>
-              {hasDynamicIssueCounts ? (
-                <GraphToggle
-                  active={statsPeriod === 'auto'}
-                  onClick={this.handleSelectStatsPeriod.bind(this, 'auto')}
-                >
-                  {selection.datetime.period || t('Custom')}
-                </GraphToggle>
-              ) : (
-                <GraphToggle
-                  active={statsPeriod === '14d'}
-                  onClick={this.handleSelectStatsPeriod.bind(this, '14d')}
-                >
-                  {t('14d')}
-                </GraphToggle>
-              )}
+              <GraphToggle
+                active={statsPeriod === 'auto'}
+                onClick={this.handleSelectStatsPeriod.bind(this, 'auto')}
+              >
+                {selection.datetime.period || t('Custom')}
+              </GraphToggle>
             </GraphHeader>
           </GraphHeaderWrapper>
-          {hasDynamicIssueCounts ? (
-            <React.Fragment>
-              <EventsOrUsersLabel className="align-right">
-                {t('Events')}
-              </EventsOrUsersLabel>
-              <EventsOrUsersLabel className="align-right">
-                {t('Users')}
-              </EventsOrUsersLabel>
-            </React.Fragment>
-          ) : (
-            <React.Fragment>
-              <EventsOrUsersLabel className="align-right">
-                {t('Events')}
-                <StyledQuestionTooltip
-                  title={t('Number of events since the issue was created')}
-                  size="xs"
-                  position="top"
-                />
-              </EventsOrUsersLabel>
-              <EventsOrUsersLabel className="align-right">
-                {t('Users')}
-                <StyledQuestionTooltip
-                  title={t('Unique users affected since the issue was created')}
-                  size="xs"
-                  position="top"
-                />
-              </EventsOrUsersLabel>
-            </React.Fragment>
-          )}
+          <React.Fragment>
+            <EventsOrUsersLabel className="align-right">{t('Events')}</EventsOrUsersLabel>
+            <EventsOrUsersLabel className="align-right">{t('Users')}</EventsOrUsersLabel>
+          </React.Fragment>
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
@@ -764,12 +719,6 @@ const GraphToggle = styled('a')<{active: boolean}>`
   &:focus,
   &:active {
     color: ${p => (p.active ? p.theme.gray700 : p.theme.disabled)};
-  }
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
   }
 `;
 

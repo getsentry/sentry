@@ -912,8 +912,6 @@ SENTRY_FEATURES = {
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
-    # Enable dynamic issue counts and user counts in the issue stream
-    "organizations:dynamic-issue-counts": True,
     # Enable inbox support in the issue stream
     "organizations:inbox": False,
     # Return unhandled information on the issue level
