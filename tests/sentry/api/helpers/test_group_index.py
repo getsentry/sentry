@@ -104,7 +104,8 @@ class UpdateGroupsTest(TestCase):
         unresolved_group.refresh_from_db()
 
         assert unresolved_group.status == GroupStatus.RESOLVED
-        assert not GroupInbox.objects.filter(group=unresolved_group).exists()
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
 
     @patch("sentry.signals.issue_ignored.send_robust")
