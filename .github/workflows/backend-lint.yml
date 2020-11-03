@@ -78,7 +78,7 @@ jobs:
           # Therefore we specify we are only interested in added or modified files.
           filters: |
             all:
-              - added|modified: '**'
+              - added|modified: '**/*.py'
 
       - name: Run pre-commit on changed files
         if: steps.changes.outputs.backend == 'true'
