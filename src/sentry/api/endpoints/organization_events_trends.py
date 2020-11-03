@@ -79,9 +79,9 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 lambda aggregate_filter: [
                     "trend_percentage",
                     NEGATION_MAP[aggregate_filter.operator]
-                    if trend_type == "improvement"
+                    if trend_type == "improved"
                     else aggregate_filter.operator,
-                    1 + (aggregate_filter.value.value * (-1 if trend_type == "improvement" else 1)),
+                    1 + (aggregate_filter.value.value * (-1 if trend_type == "improved" else 1)),
                 ],
                 ["percentage", "transaction.duration"],
             ),
@@ -89,10 +89,10 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 lambda aggregate_filter: [
                     "trend_difference",
                     NEGATION_MAP[aggregate_filter.operator]
-                    if trend_type == "improvement"
+                    if trend_type == "improved"
                     else aggregate_filter.operator,
                     -1 * aggregate_filter.value.value
-                    if trend_type == "improvement"
+                    if trend_type == "improved"
                     else aggregate_filter.value.value,
                 ],
                 ["minus", "transaction.duration"],
@@ -186,7 +186,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             )
 
         trend_type = request.GET.get("trendType", "regression")
-        if trend_type not in ["regression", "improvement"]:
+        if trend_type not in ["regression", "improved"]:
             raise ParseError(detail=u"{} is not a supported trend type".format(trend_type))
 
         params["aliases"] = self.get_function_aliases(trend_type)

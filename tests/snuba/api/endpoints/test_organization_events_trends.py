@@ -181,8 +181,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         queries = [
             ("trend_percentage():>0%", "regression", 1),
             ("trend_percentage():392%", "regression", 1),
-            ("trend_percentage():>0%", "improvement", 0),
-            ("trend_percentage():392%", "improvement", 0),
+            ("trend_percentage():>0%", "improved", 0),
+            ("trend_percentage():392%", "improved", 0),
         ]
         for query_data in queries:
             with self.feature("organizations:trends"):
@@ -210,8 +210,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         queries = [
             ("trend_difference():>7s", "regression", 1),
             ("trend_difference():7.84s", "regression", 1),
-            ("trend_difference():>7s", "improvement", 0),
-            ("trend_difference():7.84s", "improvement", 0),
+            ("trend_difference():>7s", "improved", 0),
+            ("trend_difference():7.84s", "improved", 0),
         ]
         for query_data in queries:
             with self.feature("organizations:trends"):
@@ -754,8 +754,8 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
 
 class OrganizationEventsTrendsAliasTest(TestCase):
     def setUp(self):
-        self.improvement_aliases = OrganizationEventsTrendsEndpointBase.get_function_aliases(
-            "improvement"
+        self.improved_aliases = OrganizationEventsTrendsEndpointBase.get_function_aliases(
+            "improved"
         )
         self.regression_aliases = OrganizationEventsTrendsEndpointBase.get_function_aliases(
             "regression"
@@ -763,7 +763,7 @@ class OrganizationEventsTrendsAliasTest(TestCase):
 
     def test_simple(self):
         result = get_filter(
-            "trend_percentage():>0% trend_difference():>0", {"aliases": self.improvement_aliases}
+            "trend_percentage():>0% trend_difference():>0", {"aliases": self.improved_aliases}
         )
 
         assert result.having == [
@@ -783,7 +783,7 @@ class OrganizationEventsTrendsAliasTest(TestCase):
     def test_and_query(self):
         result = get_filter(
             "trend_percentage():>0% AND trend_percentage():<100%",
-            {"aliases": self.improvement_aliases},
+            {"aliases": self.improved_aliases},
         )
 
         assert result.having == [["trend_percentage", "<", 1.0], ["trend_percentage", ">", 0.0]]
@@ -798,7 +798,7 @@ class OrganizationEventsTrendsAliasTest(TestCase):
     def test_or_query(self):
         result = get_filter(
             "trend_percentage():>0% OR trend_percentage():<100%",
-            {"aliases": self.improvement_aliases},
+            {"aliases": self.improved_aliases},
         )
 
         assert result.having == [
@@ -829,7 +829,7 @@ class OrganizationEventsTrendsAliasTest(TestCase):
         ]
 
     def test_greater_than(self):
-        result = get_filter("trend_difference():>=0", {"aliases": self.improvement_aliases})
+        result = get_filter("trend_difference():>=0", {"aliases": self.improved_aliases})
 
         assert result.having == [["trend_difference", "<=", 0.0]]
 
@@ -838,7 +838,7 @@ class OrganizationEventsTrendsAliasTest(TestCase):
         assert result.having == [["trend_difference", ">=", 0.0]]
 
     def test_negation(self):
-        result = get_filter("!trend_difference():>=0", {"aliases": self.improvement_aliases})
+        result = get_filter("!trend_difference():>=0", {"aliases": self.improved_aliases})
 
         assert result.having == [["trend_difference", ">", 0.0]]
 
