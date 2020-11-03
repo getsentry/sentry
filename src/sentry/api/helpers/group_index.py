@@ -29,7 +29,6 @@ from sentry.models import (
     Group,
     GroupAssignee,
     GroupHash,
-    GroupInbox,
     GroupInboxReason,
     GroupLink,
     GroupStatus,
@@ -42,6 +41,7 @@ from sentry.models import (
     GroupSubscription,
     GroupSubscriptionReason,
     Release,
+    remove_group_from_inbox,
     Repository,
     TOMBSTONE_FIELDS_FROM_GROUP,
     Team,
@@ -687,6 +687,7 @@ def update_groups(request, projects, organization_id, search_fn):
 
                 group.status = GroupStatus.RESOLVED
                 group.resolved_at = now
+                remove_group_from_inbox(group)
 
                 assigned_to = self_subscribe_and_assign_issue(acting_user, group)
                 if assigned_to is not None:
@@ -731,6 +732,8 @@ def update_groups(request, projects, organization_id, search_fn):
 
             if new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
+                for group in group_ids:
+                    remove_group_from_inbox(group)
 
                 ignore_duration = (
                     statusDetails.pop("ignoreDuration", None)
@@ -993,7 +996,9 @@ def update_groups(request, projects, organization_id, search_fn):
             for group in group_list:
                 add_group_to_inbox(group, GroupInboxReason.MANUAL)
         elif not inbox:
-            GroupInbox.objects.filter(group__in=group_ids).delete()
+            # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+            # GroupInbox.objects.filter(group__in=group_ids).delete()
+            pass
         result["inbox"] = inbox
 
     return Response(result)

@@ -65,7 +65,7 @@ describe('DateTime', () => {
 
     it('renders a date', () => {
       const wrapper = mount(<DateTime date={new Date()} />);
-      expect(wrapper.text()).toBe('October 16 2017 19:41:20 PDT');
+      expect(wrapper.text()).toBe('Oct 16, 2017 19:41');
     });
 
     it('renders timeonly', () => {
@@ -75,7 +75,7 @@ describe('DateTime', () => {
 
     it('renders date with forced utc', () => {
       const wrapper = mount(<DateTime date={new Date()} utc />);
-      expect(wrapper.text()).toBe('October 17 2017 02:41:20 UTC');
+      expect(wrapper.text()).toBe('Oct 17, 2017 02:41');
     });
   });
 });

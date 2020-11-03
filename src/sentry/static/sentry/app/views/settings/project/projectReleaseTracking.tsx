@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import {WithRouterProps} from 'react-router';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -13,29 +13,41 @@ import Field from 'app/views/settings/components/forms/field';
 import {IconFlag} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginList from 'app/components/pluginList';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import getDynamicText from 'app/utils/getDynamicText';
 import withPlugins from 'app/utils/withPlugins';
 import routeTitleGen from 'app/utils/routeTitle';
+import {Organization, Project, Plugin} from 'app/types';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
 
-class ProjectReleaseTracking extends AsyncView {
-  static propTypes = {
-    organization: PropTypes.object,
-    project: PropTypes.object,
-    plugins: SentryTypes.PluginsStore,
-  };
+type Props = {
+  organization: Organization;
+  project: Project;
+  plugins: {plugins: Plugin[]; loading: boolean};
+} & WithRouterProps<{orgId: string; projectId: string}, {}>;
 
+type State = {
+  data: {
+    token: string;
+    webhookUrl: string;
+  } | null;
+} & AsyncView['state'];
+
+const placeholderData = {
+  token: TOKEN_PLACEHOLDER,
+  webhookUrl: WEBHOOK_PLACEHOLDER,
+};
+
+class ProjectReleaseTracking extends AsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
     return routeTitleGen(t('Releases'), projectId, false);
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
 
     // Allow 403s
@@ -56,8 +68,10 @@ class ProjectReleaseTracking extends AsyncView {
       data: {project: projectId},
       success: data => {
         this.setState({
-          token: data.token,
-          webhookUrl: data.webhookUrl,
+          data: {
+            token: data.token,
+            webhookUrl: data.webhookUrl,
+          },
         });
         addSuccessMessage(
           t(
@@ -72,7 +86,7 @@ class ProjectReleaseTracking extends AsyncView {
   };
 
   getReleaseWebhookIntructions() {
-    const {webhookUrl} = this.state.data || {webhookUrl: WEBHOOK_PLACEHOLDER};
+    const {webhookUrl} = this.state.data || placeholderData;
     return (
       'curl ' +
       webhookUrl +
@@ -95,17 +109,13 @@ class ProjectReleaseTracking extends AsyncView {
     }
 
     const pluginList = plugins.plugins.filter(
-      p => p.type === 'release-tracking' && p.hasConfiguration
+      (p: Plugin) => p.type === 'release-tracking' && p.hasConfiguration
     );
 
-    let {token, webhookUrl} = this.state.data || {
-      token: TOKEN_PLACEHOLDER,
-      webhookUrl: WEBHOOK_PLACEHOLDER,
-    };
+    let {token, webhookUrl} = this.state.data || placeholderData;
 
-    token = token && getDynamicText({value: token, fixed: '__TOKEN__'});
-    webhookUrl =
-      webhookUrl && getDynamicText({value: webhookUrl, fixed: '__WEBHOOK_URL__'});
+    token = getDynamicText({value: token, fixed: '__TOKEN__'});
+    webhookUrl = getDynamicText({value: webhookUrl, fixed: '__WEBHOOK_URL__'});
 
     return (
       <div>

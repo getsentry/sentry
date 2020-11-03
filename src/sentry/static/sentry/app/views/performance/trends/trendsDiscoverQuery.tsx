@@ -25,6 +25,7 @@ type ChildrenProps = Omit<GenericChildrenProps<TrendsData>, 'tableData'> & {
 };
 
 type Props = RequestProps & {
+  setError?: (msg: string | undefined) => void;
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
