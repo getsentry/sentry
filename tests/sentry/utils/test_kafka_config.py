@@ -35,12 +35,13 @@ def test_get_kafka_producer_cluster_options():
         KAFKA_CLUSTERS={
             "default": {
                 "producers": {"bootstrap.servers": "my.server:9092"},
+                "bootstrap.servers": "my.legacy.server:9092",
                 "security.protocol": "plain",  # legacy config
             }
         }
     ):
         cluster_options = get_kafka_producer_cluster_options("default")
-        assert cluster_options["bootstrap.servers"] == "my.server:9092"
+        assert cluster_options["bootstrap.servers"] == "my.legacy.server:9092"
         assert cluster_options["security.protocol"] == "plain"
 
 
