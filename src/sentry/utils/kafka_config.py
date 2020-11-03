@@ -6,6 +6,7 @@ SUPPORTED_KAFKA_CONFIGURATION = (
     # Check https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
     # for the full list of available options
     "bootstrap.servers",
+    "compression.type",
     "sasl.mechanism",
     "sasl.username",
     "sasl.password",
