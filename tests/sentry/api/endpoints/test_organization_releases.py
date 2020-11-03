@@ -245,6 +245,39 @@ class OrganizationReleaseListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_archive_release(self):
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-organization-releases",
+            kwargs={"organization_slug": self.organization.slug},
+        )
+
+        self.release.save()
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        (release_data,) = response.data
+
+        response = self.client.post(
+            url,
+            format="json",
+            data={
+                "version": release_data["version"],
+                "projects": [x["slug"] for x in release_data["projects"]],
+                "status": "archived",
+            },
+        )
+        assert response.status_code == 208, response.content
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+        response = self.client.get(url + "?archived=1", format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
 
 class OrganizationReleaseStatsTest(APITestCase):
     def setUp(self):
@@ -1291,6 +1324,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
                 "headCommits",
                 "refs",
                 "projects",
+                "status",
             ]
         )
         result = serializer.validated_data

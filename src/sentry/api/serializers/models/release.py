@@ -16,6 +16,7 @@ from sentry.models import (
     Deploy,
     ProjectPlatform,
     Release,
+    ReleaseStatus,
     ReleaseProject,
     ReleaseProjectEnvironment,
     User,
@@ -416,6 +417,7 @@ class ReleaseSerializer(Serializer):
 
         d = {
             "version": obj.version,
+            "status": ReleaseStatus.to_string(obj.status),
             "shortVersion": obj.version,
             "versionInfo": expose_version_info(obj.version_info),
             "ref": obj.ref,

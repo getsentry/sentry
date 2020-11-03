@@ -10,6 +10,7 @@ from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from django.utils.functional import cached_property
+from django.utils.translation import ugettext_lazy as _
 from time import time
 
 from sentry.app import locks
@@ -60,6 +61,29 @@ class ReleaseProject(Model):
         unique_together = (("project", "release"),)
 
 
+class ReleaseStatus(object):
+    OPEN = 0
+    ARCHIVED = 1
+
+    @classmethod
+    def from_string(cls, value):
+        if value == "open":
+            return cls.OPEN
+        elif value == "archived":
+            return cls.ARCHIVED
+        else:
+            raise ValueError()
+
+    @classmethod
+    def to_string(cls, value):
+        if value == ReleaseStatus.OPEN:
+            return "open"
+        elif value == ReleaseStatus.ARCHIVED:
+            return "archived"
+        else:
+            raise ValueError()
+
+
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a
@@ -74,6 +98,11 @@ class Release(Model):
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
     )
+    status = BoundedPositiveIntegerField(
+        default=0,
+        choices=((ReleaseStatus.OPEN, _("Open")), (ReleaseStatus.ARCHIVED, _("Archived")),),
+    )
+
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=DB_VERSION_LENGTH)

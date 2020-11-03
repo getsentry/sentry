@@ -5,7 +5,7 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.api.fields.user import UserField
 from sentry.constants import COMMIT_RANGE_DELIMITER, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
-from sentry.models import Release
+from sentry.models import Release, ReleaseStatus
 
 
 class ReleaseHeadCommitSerializerDeprecated(serializers.Serializer):
@@ -64,9 +64,16 @@ class ReleaseWithVersionSerializer(ReleaseSerializer):
     version = serializers.CharField(
         max_length=MAX_VERSION_LENGTH, trim_whitespace=False, required=True
     )
+    status = serializers.CharField(required=False, allow_null=False)
     owner = UserField(required=False)
 
     def validate_version(self, value):
         if not Release.is_valid_version(value):
             raise serializers.ValidationError("Release with name %s is not allowed" % value)
         return value
+
+    def validate_status(self, value):
+        try:
+            return ReleaseStatus.from_string(value)
+        except ValueError:
+            raise serializers.ValidationError("Invalid status %s" % value)
