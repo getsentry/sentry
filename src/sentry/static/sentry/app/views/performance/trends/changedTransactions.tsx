@@ -242,12 +242,6 @@ function ChangedTransactions(props: Props) {
       setError={setError}
     >
       {({isLoading, trendsData, pageLinks}) => {
-        if (isLoading) {
-          return null;
-        }
-        if (!trendsData) {
-          return null;
-        }
         const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
           (trendsData && trendsData.events && trendsData.events.data) || [],
@@ -259,7 +253,7 @@ function ChangedTransactions(props: Props) {
           events
         );
 
-        const statsData = trendsData?.stats;
+        const statsData = trendsData?.stats || {};
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
         const currentTrendFunction =
