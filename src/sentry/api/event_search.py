@@ -1216,7 +1216,7 @@ def get_filter(query=None, params=None):
         "project_ids": [],
         "group_ids": [],
         "condition_aggregates": [],
-        "aliases": params.get("aliases", {}),
+        "aliases": params.get("aliases", {}) if params is not None else {},
     }
 
     projects_to_filter = []
@@ -1248,7 +1248,6 @@ def get_filter(query=None, params=None):
             kwargs["group_ids"].extend(list(set(group_ids)))
     else:
         for term in parsed_terms:
-            aliased_term = term.key.name in params.get("aliases", [])
             if isinstance(term, SearchFilter):
                 conditions, found_project_to_filter, group_ids = format_search_filter(term, params)
                 if len(conditions) > 0:
@@ -1257,7 +1256,7 @@ def get_filter(query=None, params=None):
                     projects_to_filter = [found_project_to_filter]
                 if group_ids is not None:
                     kwargs["group_ids"].extend(group_ids)
-            elif isinstance(term, AggregateFilter) or aliased_term:
+            elif isinstance(term, AggregateFilter) or term.key.name in params.get("aliases", []):
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
                 kwargs["condition_aggregates"].append(term.key.name)
                 if converted_filter:
