@@ -632,7 +632,7 @@ const ListItemContainer = styled('div')`
   grid-template-columns: 24px auto 100px 30px;
   grid-template-rows: repeat(2, auto);
   grid-column-gap: ${space(1)};
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
 `;
 
