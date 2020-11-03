@@ -13,11 +13,10 @@ import {Sort, Field} from 'app/utils/discover/fields';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
-import {Organization, Project} from 'app/types';
+import {Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {Client} from 'app/api';
-import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
 import {IconArrow} from 'app/icons';
+import {Series, SeriesDataUnit} from 'app/types/echarts';
 
 import {
   TrendFunction,
@@ -27,10 +26,7 @@ import {
   TrendsTransaction,
   NormalizedTrendsTransaction,
   TrendFunctionField,
-  ProjectTrend,
-  NormalizedProjectTrend,
 } from './types';
-import {BaselineQueryResults} from '../transactionSummary/baselineQuery';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
 export const DEFAULT_MAX_DURATION = '15min';
@@ -104,6 +100,11 @@ export const trendSelectedQueryKeys = {
   [TrendChangeType.REGRESSION]: 'regressionSelected',
 };
 
+export const trendUnselectedSeries = {
+  [TrendChangeType.IMPROVED]: 'improvedUnselectedSeries',
+  [TrendChangeType.REGRESSION]: 'regressionUnselectedSeries',
+};
+
 export const trendCursorNames = {
   [TrendChangeType.IMPROVED]: 'improvedCursor',
   [TrendChangeType.REGRESSION]: 'regressionCursor',
@@ -164,7 +165,7 @@ export function transformDeltaSpread(
 }
 
 export function getTrendProjectId(
-  trend: NormalizedTrendsTransaction | NormalizedProjectTrend,
+  trend: NormalizedTrendsTransaction,
   projects?: Project[]
 ): string | undefined {
   if (!trend.project || !projects) {
@@ -228,74 +229,6 @@ export function modifyTrendsViewDefaultPeriod(eventView: EventView, location: Lo
   return eventView;
 }
 
-export async function getTrendBaselinesForTransaction(
-  api: Client,
-  organization: Organization,
-  eventView: EventView,
-  intervalRatio: number,
-  transaction: NormalizedTrendsTransaction
-) {
-  const orgSlug = organization.slug;
-  const url = `/organizations/${orgSlug}/event-baseline/`;
-
-  const scopeQueryToTransaction = ` transaction:${transaction.transaction}`;
-
-  const globalSelectionQuery = eventView.getGlobalSelectionQuery();
-  const statsPeriod = eventView.statsPeriod;
-
-  delete globalSelectionQuery.statsPeriod;
-  const baseApiPayload = {
-    ...globalSelectionQuery,
-    query: eventView.query + scopeQueryToTransaction,
-  };
-
-  const hasStartEnd = eventView.start && eventView.end;
-
-  let seriesStart = moment(eventView.start);
-  let seriesEnd = moment(eventView.end);
-
-  if (!hasStartEnd) {
-    seriesEnd = transaction.received_at;
-    seriesStart = seriesEnd
-      .clone()
-      .subtract(parsePeriodToHours(statsPeriod || DEFAULT_TRENDS_STATS_PERIOD), 'hours');
-  }
-
-  const startTime = seriesStart.toDate().getTime();
-  const endTime = seriesEnd.toDate().getTime();
-
-  const seriesSplit = moment(startTime + (endTime - startTime) * intervalRatio);
-
-  const previousPeriodPayload = {
-    ...baseApiPayload,
-    start: getUtcDateString(seriesStart),
-    end: getUtcDateString(seriesSplit),
-    baselineValue: transaction.aggregate_range_1,
-  };
-  const currentPeriodPayload = {
-    ...baseApiPayload,
-    start: getUtcDateString(seriesSplit),
-    end: getUtcDateString(seriesEnd),
-    baselineValue: transaction.aggregate_range_2,
-  };
-
-  const dataPreviousPeriodPromise = api.requestPromise(url, {
-    method: 'GET',
-    query: previousPeriodPayload,
-  });
-  const dataCurrentPeriodPromise = api.requestPromise(url, {
-    method: 'GET',
-    query: currentPeriodPayload,
-  });
-
-  const previousPeriod = (await dataPreviousPeriodPromise) as BaselineQueryResults;
-  const currentPeriod = (await dataCurrentPeriodPromise) as BaselineQueryResults;
-  return {
-    currentPeriod,
-    previousPeriod,
-  };
-}
-
 function getQueryInterval(location: Location, eventView: TrendView) {
   const intervalFromQueryParam = decodeScalar(location?.query?.interval);
   const {start, end, statsPeriod} = eventView;
@@ -345,35 +278,23 @@ export function transformValueDelta(
  */
 export function normalizeTrends(
   data: Array<TrendsTransaction>
-): Array<NormalizedTrendsTransaction>;
-
-export function normalizeTrends(data: Array<ProjectTrend>): Array<NormalizedProjectTrend>;
-
-export function normalizeTrends(
-  data: Array<TrendsTransaction | ProjectTrend>
-): Array<NormalizedTrendsTransaction | NormalizedProjectTrend> {
+): Array<NormalizedTrendsTransaction> {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
-    const normalized = {
+    return {
       ...row,
       received_at,
-    };
-
-    if ('transaction' in row) {
-      return {
-        ...normalized,
-        transaction: row.transaction,
-      } as NormalizedTrendsTransaction;
-    } else {
-      return {
-        ...normalized,
-      } as NormalizedProjectTrend;
-    }
+      transaction: row.transaction,
+    } as NormalizedTrendsTransaction;
   });
 }
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
   return trendSelectedQueryKeys[trendChangeType];
+}
+
+export function getUnselectedSeries(trendChangeType: TrendChangeType) {
+  return trendUnselectedSeries[trendChangeType];
 }
 
 export function movingAverage(data, index, size) {
@@ -425,6 +346,47 @@ function getLimitTransactionItems(
 export const smoothTrend = (data: [number, number][], resolution = 100) => {
   return ASAP(data, resolution);
 };
+
+export function transformEventStatsSmoothed(data?: Series[], seriesName?: string) {
+  let minValue = Number.MAX_SAFE_INTEGER;
+  let maxValue = 0;
+  if (!data) {
+    return {
+      maxValue,
+      minValue,
+      smoothedResults: undefined,
+    };
+  }
+  const currentData = data[0].data;
+  const resultData: SeriesDataUnit[] = [];
+
+  const smoothed = smoothTrend(currentData.map(({name, value}) => [Number(name), value]));
+
+  for (let i = 0; i < smoothed.length; i++) {
+    const point = smoothed[i] as any;
+    const value = point.y;
+    resultData.push({
+      name: point.x,
+      value,
+    });
+    if (!isNaN(value)) {
+      const rounded = Math.round(value);
+      minValue = Math.min(rounded, minValue);
+      maxValue = Math.max(rounded, maxValue);
+    }
+  }
+
+  return {
+    minValue,
+    maxValue,
+    smoothedResults: [
+      {
+        seriesName: seriesName || 'Current',
+        data: resultData,
+      },
+    ],
+  };
+}
 
 export const StyledIconArrow = styled(IconArrow)`
   margin: 0 ${space(1)};

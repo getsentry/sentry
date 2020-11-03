@@ -49,15 +49,13 @@ import {
   getSelectedQueryKey,
   getCurrentTrendFunction,
   getCurrentConfidenceLevel,
-  getTrendBaselinesForTransaction,
-  getIntervalRatio,
   StyledIconArrow,
   getTrendProjectId,
   trendCursorNames,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
-import {getTransactionComparisonUrl} from '../utils';
+import {DisplayModes} from '../transactionSummary/charts';
 
 type Props = {
   api: Client;
@@ -67,6 +65,7 @@ type Props = {
   trendView: TrendView;
   location: Location;
   projects: Project[];
+  setError: (msg: string | undefined) => void;
 };
 
 type TrendsCursorQuery = {
@@ -221,6 +220,7 @@ function ChangedTransactions(props: Props) {
     previousTrendFunction,
     organization,
     projects,
+    setError,
   } = props;
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
@@ -237,14 +237,9 @@ function ChangedTransactions(props: Props) {
       trendChangeType={trendChangeType}
       cursor={cursor}
       limit={5}
+      setError={setError}
     >
       {({isLoading, trendsData, pageLinks}) => {
-        if (isLoading) {
-          return null;
-        }
-        if (!trendsData) {
-          return null;
-        }
         const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
           (trendsData && trendsData.events && trendsData.events.data) || []
@@ -255,7 +250,7 @@ function ChangedTransactions(props: Props) {
           events
         );
 
-        const statsData = trendsData?.stats;
+        const statsData = trendsData?.stats || {};
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
         const currentTrendFunction =
@@ -462,7 +457,6 @@ function TrendsListItem(props: TrendsListItemProps) {
           />
         }
       >
-        <CompareLink {...props} />
         <MenuItem
           onClick={() =>
             handleFilterDuration(
@@ -521,42 +515,6 @@ function TrendsListItem(props: TrendsListItemProps) {
 
 type CompareLinkProps = TrendsListItemProps & {};
 
-const CompareLink = (props: CompareLinkProps) => {
-  const {organization, trendView: eventView, transaction, api, location} = props;
-  const intervalRatio = getIntervalRatio(location);
-
-  async function onLinkClick() {
-    const baselines = await getTrendBaselinesForTransaction(
-      api,
-      organization,
-      eventView,
-      intervalRatio,
-      transaction
-    );
-    if (baselines) {
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.trends.compare_baselines',
-        eventName: 'Performance Views: Comparing baselines',
-        organization_id: parseInt(organization.id, 10),
-      });
-
-      const {previousPeriod, currentPeriod} = baselines;
-
-      const target = getTransactionComparisonUrl({
-        organization,
-        baselineEventSlug: `${previousPeriod.project}:${previousPeriod.id}`,
-        regressionEventSlug: `${currentPeriod.project}:${currentPeriod.id}`,
-        transaction: transaction.transaction,
-        query: location.query,
-      });
-
-      browserHistory.push(target);
-    }
-  }
-
-  return <MenuItem onClick={onLinkClick}>{t('Compare baselines')}</MenuItem>;
-};
-
 const CompareDurations = (props: CompareLinkProps) => {
   const {transaction, currentTrendFunction} = props;
 
@@ -574,7 +532,14 @@ const CompareDurations = (props: CompareLinkProps) => {
 type TransactionSummaryLinkProps = TrendsListItemProps & {};
 
 const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
-  const {organization, trendView: eventView, transaction, projects, location} = props;
+  const {
+    organization,
+    trendView: eventView,
+    transaction,
+    projects,
+    location,
+    currentTrendFunction,
+  } = props;
   const confidenceLevel = getCurrentConfidenceLevel(location).label;
 
   const summaryView = eventView.clone();
@@ -584,6 +549,8 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     transaction: String(transaction.transaction),
     query: summaryView.generateQueryStringObject(),
     projectID,
+    display: DisplayModes.TREND,
+    trendDisplay: currentTrendFunction,
   });
 
   return (

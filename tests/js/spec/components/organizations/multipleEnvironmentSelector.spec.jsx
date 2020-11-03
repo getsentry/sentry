@@ -65,7 +65,7 @@ describe('MultipleEnvironmentSelector', function () {
         .simulate('click', {});
     });
     expect(onChange).toHaveBeenCalledTimes(3);
-    expect(onChange).toHaveBeenLastCalledWith(envs, expect.anything());
+    expect(onChange).toHaveBeenLastCalledWith(envs);
 
     wrapper
       .find('MultipleSelectorSubmitRow button[aria-label="Apply"]')
@@ -81,16 +81,13 @@ describe('MultipleEnvironmentSelector', function () {
       .at(0)
       .simulate('click');
 
-    expect(onChange).toHaveBeenLastCalledWith(['production'], expect.anything());
+    expect(onChange).toHaveBeenLastCalledWith(['production']);
 
     wrapper
       .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxHitbox')
       .at(1)
       .simulate('click');
-    expect(onChange).toHaveBeenLastCalledWith(
-      ['production', 'staging'],
-      expect.anything()
-    );
+    expect(onChange).toHaveBeenLastCalledWith(['production', 'staging']);
 
     wrapper.find('MultipleEnvironmentSelector StyledChevron').simulate('click');
     expect(onUpdate).toHaveBeenCalledWith();
