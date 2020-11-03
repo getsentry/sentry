@@ -108,10 +108,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         except InvalidParams as e:
             raise ParseError(detail=six.text_type(e))
 
-        has_dynamic_issue_counts = features.has(
-            "organizations:dynamic-issue-counts", organization, actor=request.user
-        )
-
         include_inbox = features.has(
             "organizations:inbox", organization, actor=request.user
         ) and "inbox" in request.GET.getlist("expand", [])
@@ -119,7 +115,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
-            # default if no dynamic-issue-counts
+            # default
             stats_period = "24h"
         elif stats_period == "":
             # disable stats
@@ -214,21 +210,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
-        if has_dynamic_issue_counts:
-            context = serialize(
-                results,
-                request.user,
-                serializer(
-                    start=start,
-                    end=end,
-                    search_filters=query_kwargs["search_filters"]
-                    if "search_filters" in query_kwargs
-                    else None,
-                    has_dynamic_issue_counts=True,
-                ),
-            )
-        else:
-            context = serialize(results, request.user, serializer())
+        context = serialize(
+            results,
+            request.user,
+            serializer(
+                start=start,
+                end=end,
+                search_filters=query_kwargs["search_filters"]
+                if "search_filters" in query_kwargs
+                else None,
+            ),
+        )
 
         # HACK: remove auto resolved entries
         # TODO: We should try to integrate this into the search backend, since

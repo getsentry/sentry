@@ -226,12 +226,7 @@ class StreamGroup extends React.Component<Props, State> {
       withChart,
       statsPeriod,
       selection,
-      organization,
     } = this.props;
-
-    const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
-
-    const hasDynamicGuideAnchor = hasDynamicIssueCounts && hasGuideAnchor;
 
     const {period, start, end} = selection.datetime || {};
     const summary =
@@ -239,17 +234,13 @@ class StreamGroup extends React.Component<Props, State> {
         ? 'time range'
         : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
-    const primaryCount =
-      data.filtered && hasDynamicIssueCounts ? data.filtered.count : data.count;
-    const secondaryCount =
-      data.filtered && hasDynamicIssueCounts ? data.count : undefined;
-    const primaryUserCount =
-      data.filtered && hasDynamicIssueCounts ? data.filtered.userCount : data.userCount;
-    const secondaryUserCount =
-      data.filtered && hasDynamicIssueCounts ? data.userCount : undefined;
+    const primaryCount = data.filtered ? data.filtered.count : data.count;
+    const secondaryCount = data.filtered ? data.count : undefined;
+    const primaryUserCount = data.filtered ? data.filtered.userCount : data.userCount;
+    const secondaryUserCount = data.filtered ? data.userCount : undefined;
 
     const showSecondaryPoints = Boolean(
-      withChart && data && data.filtered && hasDynamicIssueCounts && statsPeriod
+      withChart && data && data.filtered && statsPeriod
     );
 
     return (
@@ -274,7 +265,6 @@ class StreamGroup extends React.Component<Props, State> {
             <GroupChart
               statsPeriod={statsPeriod!}
               data={data}
-              hasDynamicIssueCounts={hasDynamicIssueCounts}
               showSecondaryPoints={showSecondaryPoints}
             />
           </Box>
@@ -284,11 +274,11 @@ class StreamGroup extends React.Component<Props, State> {
             {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
               const topLevelCx = classNames('dropdown', {
                 'anchor-middle': true,
-                open: isOpen && hasDynamicIssueCounts,
+                open: isOpen,
               });
 
               return (
-                <GuideAnchor target="dynamic_counts" disabled={!hasDynamicGuideAnchor}>
+                <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
                   <span
                     {...getRootProps({
                       className: topLevelCx,
@@ -339,7 +329,7 @@ class StreamGroup extends React.Component<Props, State> {
             {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
               const topLevelCx = classNames('dropdown', {
                 'anchor-middle': true,
-                open: isOpen && hasDynamicIssueCounts,
+                open: isOpen,
               });
 
               return (
