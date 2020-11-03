@@ -15,8 +15,8 @@ type Props = {
   isAbsolute: boolean;
   isFoundByStackScanning: boolean;
   isInlineFrame: boolean;
-  relativeAddressMaxlength: number;
-  onToggle: (event: React.MouseEvent<SVGElement>) => void;
+  relativeAddressMaxlength?: number;
+  onToggle?: (event: React.MouseEvent<SVGElement>) => void;
 };
 
 const TogglableAddress = ({

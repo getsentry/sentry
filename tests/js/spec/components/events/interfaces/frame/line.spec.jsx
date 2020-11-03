@@ -21,7 +21,7 @@ describe('Frame - Line', function () {
     });
 
     it('should render the source map information as a HTML string', function () {
-      const frame = mountWithTheme(<Line data={data} components={[]} />);
+      const frame = mountWithTheme(<Line data={data} registers={{}} components={[]} />);
 
       expect(frame.find('Tooltip')).toSnapshot();
     });
@@ -37,7 +37,9 @@ describe('Frame - Line', function () {
         ],
       };
 
-      const frame = mountWithTheme(<Line data={data} components={[]} isExpanded />);
+      const frame = mountWithTheme(
+        <Line data={data} registers={{}} components={[]} isExpanded />
+      );
       expect(frame.find('ContextLine')).toSnapshot();
     });
 
@@ -94,7 +96,9 @@ describe('Frame - Line', function () {
         },
       };
 
-      const frame = mountWithTheme(<Line data={data} components={[]} isExpanded />);
+      const frame = mountWithTheme(
+        <Line data={data} registers={{}} components={[]} isExpanded />
+      );
       expect(frame.find('FrameVariables').prop('data')).toEqual(data.vars);
     });
   });
