@@ -55,6 +55,7 @@ import {
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
+import {DisplayModes} from '../transactionSummary/charts';
 
 type Props = {
   api: Client;
@@ -538,7 +539,14 @@ const CompareDurations = (props: CompareLinkProps) => {
 type TransactionSummaryLinkProps = TrendsListItemProps & {};
 
 const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
-  const {organization, trendView: eventView, transaction, projects, location} = props;
+  const {
+    organization,
+    trendView: eventView,
+    transaction,
+    projects,
+    location,
+    currentTrendFunction,
+  } = props;
   const confidenceLevel = getCurrentConfidenceLevel(location).label;
 
   const summaryView = eventView.clone();
@@ -548,6 +556,8 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     transaction: String(transaction.transaction),
     query: summaryView.generateQueryStringObject(),
     projectID,
+    display: DisplayModes.TREND,
+    trendDisplay: currentTrendFunction,
   });
 
   return (

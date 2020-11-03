@@ -14,15 +14,15 @@ import EventView from 'app/utils/discover/eventView';
 import {OrganizationSummary, EventsStatsData, Project} from 'app/types';
 import LineChart from 'app/components/charts/lineChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import {Series, SeriesDataUnit} from 'app/types/echarts';
+import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 
 import {
   getCurrentTrendFunction,
   getIntervalRatio,
+  transformEventStatsSmoothed,
   getUnselectedSeries,
-  smoothTrend,
   trendToColor,
 } from './utils';
 import {TrendChangeType, TrendsStats, NormalizedTrendsTransaction} from './types';
@@ -60,40 +60,6 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
       })),
     },
   ];
-}
-
-function transformEventStatsSmoothed(data: Series[], seriesName?: string) {
-  let minValue = Number.MAX_SAFE_INTEGER;
-  let maxValue = 0;
-  const currentData = data[0].data;
-  const resultData: SeriesDataUnit[] = [];
-
-  const smoothed = smoothTrend(currentData.map(({name, value}) => [Number(name), value]));
-
-  for (let i = 0; i < smoothed.length; i++) {
-    const point = smoothed[i] as any;
-    const value = point.y;
-    resultData.push({
-      name: point.x,
-      value,
-    });
-    if (!isNaN(value)) {
-      const rounded = Math.round(value);
-      minValue = Math.min(rounded, minValue);
-      maxValue = Math.max(rounded, maxValue);
-    }
-  }
-
-  return {
-    minValue,
-    maxValue,
-    smoothedResults: [
-      {
-        seriesName: seriesName || 'Current',
-        data: resultData,
-      },
-    ],
-  };
 }
 
 function getLegend(trendFunction: string) {
@@ -270,7 +236,7 @@ class Chart extends React.Component<Props> {
       location,
       projects,
     } = props;
-    const lineColor = trendToColor[trendChangeType];
+    const lineColor = trendToColor[trendChangeType || ''];
 
     const events =
       statsData && transaction?.project && transaction?.transaction
@@ -362,7 +328,7 @@ class Chart extends React.Component<Props> {
               : [];
 
             const intervalSeries = getIntervalLine(
-              smoothedResults,
+              smoothedResults || [],
               intervalRatio,
               transaction
             );
