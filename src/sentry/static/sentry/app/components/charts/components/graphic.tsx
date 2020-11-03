@@ -1,3 +1,4 @@
+import 'echarts/lib/component/graphic';
 import {EChartOption} from 'echarts';
 
 /**
