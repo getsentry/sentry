@@ -96,5 +96,5 @@ def test_bootstrap_format():
     with override_settings(
         KAFKA_CLUSTERS={"default": {"bootstrap.servers": ["I", "am", "a", "list"]}}
     ):
-        cluster_options = get_kafka_consumer_cluster_options("default")
+        cluster_options = get_kafka_producer_cluster_options("default")
         assert cluster_options["bootstrap.servers"] == "I,am,a,list"
