@@ -757,7 +757,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     name = aggregate_filter.key.name
     value = aggregate_filter.value.value
 
-    if name in params.get("aliases", {}):
+    if params is not None and name in params.get("aliases", {}):
         return params["aliases"][name].converter(aggregate_filter)
 
     value = (
@@ -1256,7 +1256,7 @@ def get_filter(query=None, params=None):
                     projects_to_filter = [found_project_to_filter]
                 if group_ids is not None:
                     kwargs["group_ids"].extend(group_ids)
-            elif isinstance(term, AggregateFilter) or term.key.name in params.get("aliases", []):
+            elif isinstance(term, AggregateFilter):
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
                 kwargs["condition_aggregates"].append(term.key.name)
                 if converted_filter:

@@ -2608,7 +2608,7 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_minus(self):
         fields = [
-            "user_misery_range(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, user_misery_range-1)",
+            "user_misery_range(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, user_misery_range_1)",
             "user_misery_range(300, 2020-05-03T06:48:57, 2020-05-05T01:12:34, user_misery_range_2)",
             "minus(user_misery_range_1, user_misery_range_2, misery_difference)",
         ]
