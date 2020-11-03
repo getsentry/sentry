@@ -7,6 +7,11 @@ import django.db.models.deletion
 import sentry.db.models.fields.foreignkey
 
 
+def obliterate_group_inbox(apps, schema_editor):
+    GroupInbox = apps.get_model("sentry", "GroupInbox")
+    GroupInbox.objects.all().delete()
+
+
 class Migration(migrations.Migration):
     # This flag is used to mark that a migration shouldn't be automatically run in
     # production. We set this to True for operations that we think are risky and want
@@ -31,6 +36,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(obliterate_group_inbox, migrations.RunPython.noop),
         migrations.AddField(
             model_name='groupinbox',
             name='organization',
