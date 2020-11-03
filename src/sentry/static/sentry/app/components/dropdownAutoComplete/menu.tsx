@@ -192,7 +192,6 @@ type Props = {
    */
   rootClassName?: string;
 
-  zIndex?: number;
   css?: any;
 } & Pick<
   ListProps,

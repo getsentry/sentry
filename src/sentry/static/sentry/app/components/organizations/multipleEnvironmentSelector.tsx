@@ -253,13 +253,11 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
               display: flex;
               left: -1px;
             `}
-            zIndex={theme.zIndex.dropdown}
             inputProps={{style: {padding: 8, paddingLeft: 14}}}
             emptyMessage={t('You have no environments')}
             noResultsMessage={t('No environments found')}
             virtualizedHeight={theme.headerSelectorRowHeight}
             emptyHidesInput
-            menuProps={{style: {position: 'relative'}}}
             menuFooter={({actions}) =>
               this.state.hasChanges ? (
                 <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
