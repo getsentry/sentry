@@ -366,7 +366,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
 
-          if (!shouldDisplay) {
+          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
             return null;
           }
 
@@ -374,10 +374,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
           return (
             <MeasurementsManager.Consumer key={String(timestamp)}>
-              {({hoveringMeasurement, notHovering, currentHoveredMeasurement}) => {
+              {({hoveringMeasurement, notHovering}) => {
                 return (
                   <MeasurementMarker
-                    hovering={currentHoveredMeasurement === measurementName}
                     style={{
                       left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
                     }}
@@ -1027,8 +1026,7 @@ export const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
 export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-    ${p => p.theme.borderDark};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
   position: absolute;
   top: 0;
 
@@ -1036,7 +1034,7 @@ export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boo
     content: '';
     height: 1px;
     border-bottom: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-      ${p => p.theme.borderDark};
+      ${p => p.theme.border};
 
     width: 100%;
     position: absolute;
@@ -1058,8 +1056,7 @@ export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boo
 export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
 
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-    ${p => p.theme.borderDark};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
   top: -5px;
   position: absolute;
 `;
@@ -1078,7 +1075,7 @@ const getTogglerTheme = ({
   if (disabled) {
     return `
     background: ${buttonTheme.background};
-    border: 1px solid ${theme.borderDark};
+    border: 1px solid ${theme.border};
     color: ${buttonTheme.color};
     cursor: default;
   `;
@@ -1086,7 +1083,7 @@ const getTogglerTheme = ({
 
   return `
     background: ${buttonTheme.background};
-    border: 1px solid ${theme.borderDark};
+    border: 1px solid ${theme.border};
     color: ${buttonTheme.color};
   `;
 };
@@ -1166,29 +1163,16 @@ export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   ${p => getHatchPattern(p, '#dedae3', '#f4f2f7')}
 `;
 
-const MeasurementMarker = styled('div')<{hovering: boolean}>`
+const MeasurementMarker = styled('div')`
   position: absolute;
   top: 0;
   height: ${SPAN_ROW_HEIGHT}px;
-  width: 1px;
   user-select: none;
-  background-color: ${p => p.theme.gray800};
-
-  transition: opacity 125ms ease-in-out;
+  width: 1px;
+  background: repeating-linear-gradient(to bottom, transparent 0 4px, black 4px 8px) 80%/2px
+    100% no-repeat;
   z-index: ${zIndex.dividerLine};
-
-  /* enhanced hit-box */
-  &:after {
-    content: '';
-    z-index: -1;
-    position: absolute;
-    left: -2px;
-    top: 0;
-    width: 9px;
-    height: 100%;
-  }
-
-  opacity: ${({hovering}) => (hovering ? '1' : '0.25')};
+  color: ${p => p.theme.gray700};
 `;
 
 const StyledIconWarning = styled(IconWarning)`
