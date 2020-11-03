@@ -746,6 +746,19 @@ export type GroupTombstone = {
   metadata: EventMetadata;
 };
 
+export type ProcessingIssueItem = {
+  id: string;
+  type: string;
+  checksum: string;
+  numEvents: number;
+  data: {
+    _scope: string;
+    image_uuid: string;
+    image_path: string;
+  }; // TODO(ts)
+  lastSeen: string;
+};
+
 export type ProcessingIssue = {
   project: string;
   numIssues: number;
@@ -755,6 +768,7 @@ export type ProcessingIssue = {
   hasIssues: boolean;
   issuesProcessing: number;
   resolveableIssues: number;
+  issues?: ProcessingIssueItem[];
 };
 
 /**

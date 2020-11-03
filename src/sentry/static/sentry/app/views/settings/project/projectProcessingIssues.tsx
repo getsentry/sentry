@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {WithRouterProps} from 'react-router';
 
 import {IconQuestion, IconSettings} from 'app/icons';
 import {Panel, PanelAlert, PanelTable} from 'app/components/panels';
@@ -15,13 +15,14 @@ import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
 import formGroups from 'app/data/forms/processingIssues';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {Client} from 'app/api';
+import {Organization, ProcessingIssue, ProcessingIssueItem} from 'app/types';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -48,19 +49,30 @@ const HELP_LINKS = {
   native_missing_symbol: 'https://docs.sentry.io/server/dsym/',
 };
 
-class ProjectProcessingIssues extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-  };
+type Props = {
+  api: Client;
+  organization: Organization;
+} & WithRouterProps<{orgId: string; projectId: string}, {}>;
 
-  state = {
+type State = {
+  formData: object;
+  loading: boolean;
+  reprocessing: boolean;
+  expected: number;
+  error: boolean;
+  processingIssues: null | ProcessingIssue;
+  pageLinks: null | undefined | string;
+};
+
+class ProjectProcessingIssues extends React.Component<Props, State> {
+  state: State = {
     formData: {},
     loading: true,
     reprocessing: false,
     expected: 0,
     error: false,
     processingIssues: null,
+    pageLinks: null,
   };
 
   componentDidMount() {
@@ -101,7 +113,7 @@ class ProjectProcessingIssues extends React.Component {
             error: false,
             loading: expected > 0,
             processingIssues: data,
-            pageLinks: jqXHR.getResponseHeader('Link'),
+            pageLinks: jqXHR && jqXHR.getResponseHeader('Link'),
           });
         },
         error: () => {
@@ -199,16 +211,17 @@ class ProjectProcessingIssues extends React.Component {
     });
   };
 
-  renderDebugTable = () => {
-    let body;
+  renderDebugTable() {
+    let body: React.ReactNode;
     if (this.state.loading) {
       body = this.renderLoading();
     } else if (this.state.error) {
       body = <LoadingError onRetry={this.fetchData} />;
     } else if (
-      this.state.processingIssues.hasIssues ||
-      this.state.processingIssues.resolveableIssues ||
-      this.state.processingIssues.issuesProcessing
+      this.state.processingIssues &&
+      (this.state.processingIssues.hasIssues ||
+        this.state.processingIssues.resolveableIssues ||
+        this.state.processingIssues.issuesProcessing)
     ) {
       body = this.renderResults();
     } else {
@@ -216,33 +229,37 @@ class ProjectProcessingIssues extends React.Component {
     }
 
     return body;
-  };
+  }
 
-  renderLoading = () => (
-    <div className="box">
-      <LoadingIndicator />
-    </div>
-  );
+  renderLoading() {
+    return (
+      <div className="box">
+        <LoadingIndicator />
+      </div>
+    );
+  }
 
-  renderEmpty = () => (
-    <Panel>
-      <EmptyStateWarning>
-        <p>{t('Good news! There are no processing issues.')}</p>
-      </EmptyStateWarning>
-    </Panel>
-  );
+  renderEmpty() {
+    return (
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('Good news! There are no processing issues.')}</p>
+        </EmptyStateWarning>
+      </Panel>
+    );
+  }
 
-  getProblemDescription = item => {
+  getProblemDescription(item: ProcessingIssueItem) {
     const msg = MESSAGES[item.type];
-    return msg || item.message || 'Unknown Error';
-  };
+    return msg || 'Unknown Error';
+  }
 
-  getImageName = path => {
+  getImageName(path: string) {
     const pathSegments = path.split(/^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/');
     return pathSegments[pathSegments.length - 1];
-  };
+  }
 
-  renderProblem = item => {
+  renderProblem(item: ProcessingIssueItem) {
     const description = this.getProblemDescription(item);
     const helpLink = HELP_LINKS[item.type];
     return (
@@ -255,12 +272,12 @@ class ProjectProcessingIssues extends React.Component {
         )}
       </div>
     );
-  };
+  }
 
-  renderDetails = item => {
-    let dsymUUID = null;
-    let dsymName = null;
-    let dsymArch = null;
+  renderDetails(item) {
+    let dsymUUID: React.ReactNode = null;
+    let dsymName: React.ReactNode = null;
+    let dsymArch: React.ReactNode = null;
 
     if (item.data._scope === 'native') {
       if (item.data.image_uuid) {
@@ -281,9 +298,9 @@ class ProjectProcessingIssues extends React.Component {
         {dsymName && <span> (for {dsymName})</span>}
       </span>
     );
-  };
+  }
 
-  renderResolveButton = () => {
+  renderResolveButton() {
     const issues = this.state.processingIssues;
     if (issues === null || this.state.reprocessing) {
       return null;
@@ -301,14 +318,13 @@ class ProjectProcessingIssues extends React.Component {
         Pro Tip: <a onClick={this.sendReprocessing}>{fixButton}</a>
       </div>
     );
-  };
+  }
 
-  renderResults = () => {
-    const fixLink = this.state.processingIssues
-      ? this.state.processingIssues.signedLink
-      : false;
+  renderResults() {
+    const {processingIssues} = this.state;
+    const fixLink = processingIssues ? processingIssues.signedLink : false;
 
-    let fixLinkBlock = null;
+    let fixLinkBlock: React.ReactNode = null;
     if (fixLink) {
       fixLinkBlock = (
         <div className="panel panel-info">
@@ -330,14 +346,14 @@ class ProjectProcessingIssues extends React.Component {
         </div>
       );
     }
-    let processingRow = null;
-    if (this.state.processingIssues.issuesProcessing > 0) {
+    let processingRow: React.ReactNode = null;
+    if (processingIssues && processingIssues.issuesProcessing > 0) {
       processingRow = (
         <StyledPanelAlert type="info" icon={<IconSettings size="sm" />}>
           {tn(
             'Reprocessing %s event …',
             'Reprocessing %s events …',
-            this.state.processingIssues.issuesProcessing
+            processingIssues.issuesProcessing
           )}
         </StyledPanelAlert>
       );
@@ -363,7 +379,7 @@ class ProjectProcessingIssues extends React.Component {
         </h3>
         <PanelTable headers={[t('Problem'), t('Details'), t('Events'), t('Last seen')]}>
           {processingRow}
-          {this.state.processingIssues.issues.map((item, idx) => (
+          {processingIssues?.issues?.map((item, idx) => (
             <React.Fragment key={idx}>
               <div>{this.renderProblem(item)}</div>
               <div>{this.renderDetails(item)}</div>
@@ -376,9 +392,9 @@ class ProjectProcessingIssues extends React.Component {
         </PanelTable>
       </div>
     );
-  };
+  }
 
-  renderReprocessingSettings = () => {
+  renderReprocessingSettings() {
     const access = new Set(this.props.organization.access);
     if (this.state.loading) {
       return this.renderLoading();
@@ -409,7 +425,7 @@ class ProjectProcessingIssues extends React.Component {
         />
       </Form>
     );
-  };
+  }
 
   render() {
     const {projectId} = this.props.params;
