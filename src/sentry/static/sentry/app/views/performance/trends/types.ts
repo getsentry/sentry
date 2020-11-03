@@ -55,17 +55,7 @@ export type TrendsStats = {
   [transaction: string]: TrendStat;
 };
 
-export type TrendsDataEvents = {
-  data: TrendsTransaction[];
-  meta: any;
-};
-
-export type TrendsData = {
-  events: TrendsDataEvents;
-  stats: TrendsStats;
-};
-
-type BaseTrendsTransaction = {
+export type TrendsTransaction = {
   transaction: string;
   project: string;
   count: number;
@@ -79,6 +69,16 @@ type BaseTrendsTransaction = {
   count_percentage: number;
 };
 
-export type NormalizedTrendsTransaction = BaseTrendsTransaction & {
+export type TrendsDataEvents = {
+  data: TrendsTransaction[];
+  meta: any;
+};
+
+export type TrendsData = {
+  events: TrendsDataEvents;
+  stats: TrendsStats;
+};
+
+export type NormalizedTrendsTransaction = TrendsTransaction & {
   received_at: Readonly<moment.Moment>;
 };
