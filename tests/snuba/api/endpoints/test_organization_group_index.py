@@ -551,151 +551,142 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
     def test_seen_stats(self):
-        with self.feature("organizations:dynamic-issue-counts"):
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=500)),
-                    "fingerprint": ["group-1"],
-                },
-                project_id=self.project.id,
-            )
-            before_now_300_seconds = iso_format(before_now(seconds=300))
-            before_now_350_seconds = iso_format(before_now(seconds=350))
-            event2 = self.store_event(
-                data={"timestamp": before_now_300_seconds, "fingerprint": ["group-2"]},
-                project_id=self.project.id,
-            )
-            group2 = event2.group
-            group2.first_seen = before_now_350_seconds
-            group2.times_seen = 55
-            group2.save()
-            before_now_250_seconds = iso_format(before_now(seconds=250))
-            self.store_event(
-                data={
-                    "timestamp": before_now_250_seconds,
-                    "fingerprint": ["group-2"],
-                    "tags": {"server": "example.com", "trace": "meow", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-1"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
-            before_now_150_seconds = iso_format(before_now(seconds=150))
-            self.store_event(
-                data={
-                    "timestamp": before_now_150_seconds,
-                    "fingerprint": ["group-2"],
-                    "tags": {"trace": "ribbit", "server": "example.com"},
-                },
-                project_id=self.project.id,
-            )
-            before_now_100_seconds = iso_format(before_now(seconds=100))
-            self.store_event(
-                data={
-                    "timestamp": before_now_100_seconds,
-                    "fingerprint": ["group-2"],
-                    "tags": {"message": "foo", "trace": "meow"},
-                },
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        before_now_300_seconds = iso_format(before_now(seconds=300))
+        before_now_350_seconds = iso_format(before_now(seconds=350))
+        event2 = self.store_event(
+            data={"timestamp": before_now_300_seconds, "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        group2 = event2.group
+        group2.first_seen = before_now_350_seconds
+        group2.times_seen = 55
+        group2.save()
+        before_now_250_seconds = iso_format(before_now(seconds=250))
+        self.store_event(
+            data={
+                "timestamp": before_now_250_seconds,
+                "fingerprint": ["group-2"],
+                "tags": {"server": "example.com", "trace": "meow", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=200)),
+                "fingerprint": ["group-1"],
+                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
+        before_now_150_seconds = iso_format(before_now(seconds=150))
+        self.store_event(
+            data={
+                "timestamp": before_now_150_seconds,
+                "fingerprint": ["group-2"],
+                "tags": {"trace": "ribbit", "server": "example.com"},
+            },
+            project_id=self.project.id,
+        )
+        before_now_100_seconds = iso_format(before_now(seconds=100))
+        self.store_event(
+            data={
+                "timestamp": before_now_100_seconds,
+                "fingerprint": ["group-2"],
+                "tags": {"message": "foo", "trace": "meow"},
+            },
+            project_id=self.project.id,
+        )
 
-            self.login_as(user=self.user)
-            response = self.get_response(sort_by="date", limit=10, query="server:example.com")
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query="server:example.com")
 
-            assert response.status_code == 200
-            assert len(response.data) == 2
-            assert int(response.data[0]["id"]) == group2.id
-            assert response.data[0]["lifetime"] is not None
-            assert response.data[0]["filtered"] is not None
-            assert response.data[0]["filtered"]["stats"] is not None
-            assert response.data[0]["lifetime"]["stats"] is None
-            assert response.data[0]["filtered"]["stats"] != response.data[0]["stats"]
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == group2.id
+        assert response.data[0]["lifetime"] is not None
+        assert response.data[0]["filtered"] is not None
+        assert response.data[0]["filtered"]["stats"] is not None
+        assert response.data[0]["lifetime"]["stats"] is None
+        assert response.data[0]["filtered"]["stats"] != response.data[0]["stats"]
 
-            assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
-                before_now_350_seconds  # Should match overridden value, not event value
-            ).replace(tzinfo=timezone.utc)
-            assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
-                before_now_100_seconds
-            ).replace(tzinfo=timezone.utc)
-            assert response.data[0]["lifetime"]["count"] == "55"
+        assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
+            before_now_350_seconds  # Should match overridden value, not event value
+        ).replace(tzinfo=timezone.utc)
+        assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
+            before_now_100_seconds
+        ).replace(tzinfo=timezone.utc)
+        assert response.data[0]["lifetime"]["count"] == "55"
 
-            assert response.data[0]["filtered"]["count"] == "2"
-            assert response.data[0]["filtered"]["firstSeen"] == parse_datetime(
-                before_now_250_seconds
-            ).replace(tzinfo=timezone.utc)
-            assert response.data[0]["filtered"]["lastSeen"] == parse_datetime(
-                before_now_150_seconds
-            ).replace(tzinfo=timezone.utc)
+        assert response.data[0]["filtered"]["count"] == "2"
+        assert response.data[0]["filtered"]["firstSeen"] == parse_datetime(
+            before_now_250_seconds
+        ).replace(tzinfo=timezone.utc)
+        assert response.data[0]["filtered"]["lastSeen"] == parse_datetime(
+            before_now_150_seconds
+        ).replace(tzinfo=timezone.utc)
 
-            # Empty filter test:
-            response = self.get_response(sort_by="date", limit=10, query="")
-            assert response.status_code == 200
-            assert len(response.data) == 2
-            assert int(response.data[0]["id"]) == group2.id
-            assert response.data[0]["lifetime"] is not None
-            assert response.data[0]["filtered"] is None
-            assert response.data[0]["lifetime"]["stats"] is None
+        # Empty filter test:
+        response = self.get_response(sort_by="date", limit=10, query="")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == group2.id
+        assert response.data[0]["lifetime"] is not None
+        assert response.data[0]["filtered"] is None
+        assert response.data[0]["lifetime"]["stats"] is None
 
-            assert response.data[0]["lifetime"]["count"] == "55"
-            assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
-                before_now_350_seconds  # Should match overridden value, not event value
-            ).replace(tzinfo=timezone.utc)
-            assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
-                before_now_100_seconds
-            ).replace(tzinfo=timezone.utc)
+        assert response.data[0]["lifetime"]["count"] == "55"
+        assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
+            before_now_350_seconds  # Should match overridden value, not event value
+        ).replace(tzinfo=timezone.utc)
+        assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
+            before_now_100_seconds
+        ).replace(tzinfo=timezone.utc)
 
     def test_aggregate_stats_regression_test(self):
-        with self.feature("organizations:dynamic-issue-counts"):
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=500)),
-                    "fingerprint": ["group-1"],
-                },
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
 
-            self.login_as(user=self.user)
-            response = self.get_response(
-                sort_by="date", limit=10, query="times_seen:>0 last_seen:-1h date:-1h"
-            )
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="times_seen:>0 last_seen:-1h date:-1h"
+        )
 
-            assert response.status_code == 200
-            assert len(response.data) == 1
+        assert response.status_code == 200
+        assert len(response.data) == 1
 
     def test_skipped_fields(self):
-        with self.feature("organizations:dynamic-issue-counts"):
-            event = self.store_event(
-                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-1"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=200)),
+                "fingerprint": ["group-1"],
+                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
 
-            query = u"server:example.com"
-            query += u" status:unresolved"
-            query += u" active_at:" + iso_format(before_now(seconds=350))
-            query += u" first_seen:" + iso_format(before_now(seconds=500))
+        query = u"server:example.com"
+        query += u" status:unresolved"
+        query += u" active_at:" + iso_format(before_now(seconds=350))
+        query += u" first_seen:" + iso_format(before_now(seconds=500))
 
-            self.login_as(user=self.user)
-            response = self.get_response(sort_by="date", limit=10, query=query)
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query=query)
 
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
-            assert response.data[0]["lifetime"] is not None
-            assert response.data[0]["filtered"] is not None
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["lifetime"] is not None
+        assert response.data[0]["filtered"] is not None
 
     def test_inbox_fields(self):
         # TODO: Chris F.: This is temporarily removed while we perform some migrations.

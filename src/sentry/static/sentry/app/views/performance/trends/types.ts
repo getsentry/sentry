@@ -26,7 +26,7 @@ export type TrendFunction = {
 
 export type ConfidenceLevel = {
   label: string;
-  min: number;
+  min?: number;
   max?: number;
 };
 

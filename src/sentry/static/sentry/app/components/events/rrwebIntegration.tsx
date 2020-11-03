@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -6,16 +5,22 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import {Panel} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
 import LazyLoad from 'app/components/lazyLoad';
+import space from 'app/styles/space';
+import {Event, Organization, Project, EventAttachment} from 'app/types';
+import {t} from 'app/locale';
 
-export default class RRWebIntegration extends AsyncComponent {
-  static propTypes = {
-    ...AsyncComponent.propTypes,
-    event: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-  };
+type Props = {
+  event: Event;
+  orgId: Organization['id'];
+  projectId: Project['id'];
+} & AsyncComponent['props'];
 
-  getEndpoints() {
+type State = {
+  attachmentList: Array<EventAttachment> | null;
+} & AsyncComponent['state'];
+
+class RRWebIntegration extends AsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectId, event} = this.props;
     return [
       [
@@ -33,16 +38,16 @@ export default class RRWebIntegration extends AsyncComponent {
 
   renderBody() {
     const {attachmentList} = this.state;
-    if (!attachmentList.length) {
+
+    if (!attachmentList?.length) {
       return null;
     }
 
     const attachment = attachmentList[0];
     const {orgId, projectId, event} = this.props;
-    const url = `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`;
 
     return (
-      <EventDataSection key="context-replay" type="context-replay" title="Replay">
+      <EventDataSection type="context-replay" title={t('Replay')}>
         <StyledPanel>
           <LazyLoad
             component={() =>
@@ -50,7 +55,7 @@ export default class RRWebIntegration extends AsyncComponent {
                 mod => mod.default
               )
             }
-            url={url}
+            url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
           />
         </StyledPanel>
       </EventDataSection>
@@ -60,5 +65,7 @@ export default class RRWebIntegration extends AsyncComponent {
 
 const StyledPanel = styled(Panel)`
   overflow: hidden;
-  margin-bottom: 30px;
+  margin-bottom: ${space(3)};
 `;
+
+export default RRWebIntegration;

@@ -67,6 +67,7 @@ type Props = {
   trendView: TrendView;
   location: Location;
   projects: Project[];
+  setError: (msg: string | undefined) => void;
 };
 
 type TrendsCursorQuery = {
@@ -221,6 +222,7 @@ function ChangedTransactions(props: Props) {
     previousTrendFunction,
     organization,
     projects,
+    setError,
   } = props;
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
@@ -237,14 +239,9 @@ function ChangedTransactions(props: Props) {
       trendChangeType={trendChangeType}
       cursor={cursor}
       limit={5}
+      setError={setError}
     >
       {({isLoading, trendsData, pageLinks}) => {
-        if (isLoading) {
-          return null;
-        }
-        if (!trendsData) {
-          return null;
-        }
         const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
           (trendsData && trendsData.events && trendsData.events.data) || [],
@@ -256,7 +253,7 @@ function ChangedTransactions(props: Props) {
           events
         );
 
-        const statsData = trendsData?.stats;
+        const statsData = trendsData?.stats || {};
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
         const currentTrendFunction =
@@ -638,7 +635,7 @@ const ListItemContainer = styled('div')`
   grid-template-columns: 24px auto 100px 30px;
   grid-template-rows: repeat(2, auto);
   grid-column-gap: ${space(1)};
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
 `;
 
