@@ -185,3 +185,4 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+          threshold: 0
