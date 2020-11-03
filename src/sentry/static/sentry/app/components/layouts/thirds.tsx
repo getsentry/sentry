@@ -99,7 +99,7 @@ export const Header = styled('div')`
   margin: 0;
 
   background-color: transparent;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(2)} ${space(2)} 0 ${space(2)};
