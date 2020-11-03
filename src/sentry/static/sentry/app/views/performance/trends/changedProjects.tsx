@@ -26,13 +26,7 @@ import {
   TrendView,
   NormalizedProjectTrend,
 } from './types';
-import {
-  modifyTrendView,
-  normalizeTrends,
-  trendToColor,
-  getTrendProjectId,
-  getCurrentTrendFunction,
-} from './utils';
+import {modifyTrendView, normalizeTrends, trendToColor, getTrendProjectId} from './utils';
 import {HeaderTitleLegend} from '../styles';
 
 type Props = {
@@ -141,8 +135,7 @@ function ChangedProjects(props: Props) {
     >
       {({isLoading, projectTrendsData}) => {
         const trends = projectTrendsData?.data || [];
-        const trendFunction = getCurrentTrendFunction(location);
-        const events = normalizeTrends(trends, trendFunction);
+        const events = normalizeTrends(trends);
 
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
         const projectTrend = transactionsList[0];

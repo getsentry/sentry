@@ -344,43 +344,18 @@ export function transformValueDelta(
  * To minimize extra renders with missing results.
  */
 export function normalizeTrends(
-  data: Array<TrendsTransaction>,
-  trendFunction: TrendFunction
+  data: Array<TrendsTransaction>
 ): Array<NormalizedTrendsTransaction>;
 
-export function normalizeTrends(
-  data: Array<ProjectTrend>,
-  trendFunction: TrendFunction
-): Array<NormalizedProjectTrend>;
+export function normalizeTrends(data: Array<ProjectTrend>): Array<NormalizedProjectTrend>;
 
 export function normalizeTrends(
-  data: Array<TrendsTransaction | ProjectTrend>,
-  trendFunction: TrendFunction
+  data: Array<TrendsTransaction | ProjectTrend>
 ): Array<NormalizedTrendsTransaction | NormalizedProjectTrend> {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
-    const {
-      project,
-      count_range_1,
-      count_range_2,
-      trend_percentage,
-      trend_difference,
-      count_percentage,
-    } = row;
-
-    const aliasedFields = {} as NormalizedTrendsTransaction;
-    aliasedFields.aggregate_range_1 = row[`${trendFunction.alias}_1`];
-    aliasedFields.aggregate_range_2 = row[`${trendFunction.alias}_2`];
-
     const normalized = {
-      ...aliasedFields,
-      project,
-
-      count_range_1,
-      count_range_2,
-      trend_percentage,
-      trend_difference,
-      count_percentage,
+      ...row,
       received_at,
     };
 

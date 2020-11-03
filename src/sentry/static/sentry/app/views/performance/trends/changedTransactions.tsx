@@ -247,8 +247,7 @@ function ChangedTransactions(props: Props) {
         }
         const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
-          (trendsData && trendsData.events && trendsData.events.data) || [],
-          trendFunction
+          (trendsData && trendsData.events && trendsData.events.data) || []
         );
         const selectedTransaction = getSelectedTransaction(
           location,

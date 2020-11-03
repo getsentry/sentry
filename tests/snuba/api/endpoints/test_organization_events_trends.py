@@ -78,8 +78,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "percentile_range_1": 2000,
-                "percentile_range_2": 2000,
+                "aggregate_range_1": 2000,
+                "aggregate_range_2": 2000,
                 "count_percentage": 3.0,
                 "trend_difference": 0.0,
                 "trend_percentage": 1.0,
@@ -108,8 +108,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "percentile_range_1": 2000,
-                "percentile_range_2": 6000,
+                "aggregate_range_1": 2000,
+                "aggregate_range_2": 6000,
                 "count_percentage": 3.0,
                 "trend_difference": 4000.0,
                 "trend_percentage": 3.0,
@@ -138,8 +138,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "percentile_range_1": 2000,
-                "percentile_range_2": 9200,
+                "aggregate_range_1": 2000,
+                "aggregate_range_2": 9200,
                 "count_percentage": 3.0,
                 "trend_difference": 7200.0,
                 "trend_percentage": 4.6,
@@ -168,8 +168,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "percentile_range_1": 2000,
-                "percentile_range_2": 9840,
+                "aggregate_range_1": 2000,
+                "aggregate_range_2": 9840,
                 "count_percentage": 3.0,
                 "trend_difference": 7840.0,
                 "trend_percentage": 4.92,
@@ -256,8 +256,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "avg_range_1": 2000,
-                "avg_range_2": 4000,
+                "aggregate_range_1": 2000,
+                "aggregate_range_2": 4000,
                 "count_percentage": 3.0,
                 "trend_difference": 2000.0,
                 "trend_percentage": 2.0,
@@ -286,8 +286,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "user_misery_range_1": 1,
-                "user_misery_range_2": 2,
+                "aggregate_range_1": 1,
+                "aggregate_range_2": 2,
                 "count_percentage": 3.0,
                 "trend_difference": 1.0,
                 "trend_percentage": 2.0,
@@ -334,8 +334,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
             {
                 "count_range_2": 4,
                 "count_range_1": 0,
-                "percentile_range_1": 0,
-                "percentile_range_2": 2000.0,
+                "aggregate_range_1": 0,
+                "aggregate_range_2": 2000.0,
                 "count_percentage": None,
                 "trend_difference": 0,
                 "trend_percentage": None,
@@ -368,8 +368,8 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
             {
                 "count_range_2": 4,
                 "count_range_1": 0,
-                "percentile_range_1": 0,
-                "percentile_range_2": 2000.0,
+                "aggregate_range_1": 0,
+                "aggregate_range_2": 2000.0,
                 "count_percentage": None,
                 "trend_difference": 0,
                 "trend_percentage": None,
@@ -407,8 +407,8 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "percentile_range_1": 2000,
-                "percentile_range_2": 2000,
+                "aggregate_range_1": 2000,
+                "aggregate_range_2": 2000,
                 "count_percentage": 3.0,
                 "trend_difference": 0.0,
                 "trend_percentage": 1.0,
@@ -444,8 +444,8 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "percentile_range_1": 2000,
-                "percentile_range_2": 6000,
+                "aggregate_range_1": 2000,
+                "aggregate_range_2": 6000,
                 "count_percentage": 3.0,
                 "trend_difference": 4000.0,
                 "trend_percentage": 3.0,
@@ -481,8 +481,8 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "percentile_range_1": 2000,
-                "percentile_range_2": 9200,
+                "aggregate_range_1": 2000,
+                "aggregate_range_2": 9200,
                 "count_percentage": 3.0,
                 "trend_difference": 7200.0,
                 "trend_percentage": 4.6,
@@ -518,8 +518,8 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "percentile_range_1": 2000,
-                "percentile_range_2": 9840,
+                "aggregate_range_1": 2000,
+                "aggregate_range_2": 9840,
                 "count_percentage": 3.0,
                 "trend_difference": 7840.0,
                 "trend_percentage": 4.92,
@@ -555,8 +555,8 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "avg_range_1": 2000,
-                "avg_range_2": 4000,
+                "aggregate_range_1": 2000,
+                "aggregate_range_2": 4000,
                 "count_percentage": 3.0,
                 "trend_difference": 2000.0,
                 "trend_percentage": 2.0,
@@ -592,8 +592,8 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         assert len(events["data"]) == 1
         self.expected_data.update(
             {
-                "user_misery_range_1": 1,
-                "user_misery_range_2": 2,
+                "aggregate_range_1": 1,
+                "aggregate_range_2": 2,
                 "count_percentage": 3.0,
                 "trend_difference": 1.0,
                 "trend_percentage": 2.0,
@@ -647,8 +647,8 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             {
                 "count_range_2": 4,
                 "count_range_1": 0,
-                "percentile_range_1": 0,
-                "percentile_range_2": 2000.0,
+                "aggregate_range_1": 0,
+                "aggregate_range_2": 2000.0,
                 "count_percentage": None,
                 "trend_difference": 0,
                 "trend_percentage": None,

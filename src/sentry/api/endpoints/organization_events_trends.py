@@ -32,39 +32,27 @@ NEGATION_MAP = {
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     trend_columns = {
         "p50": {
-            "format": "percentile_range(transaction.duration, 0.5, {start}, {end}, {index})",
-            "alias": "percentile_range_",
+            "format": "percentile_range(transaction.duration, 0.5, {start}, {end}, {query_alias})"
         },
         "p75": {
-            "format": "percentile_range(transaction.duration, 0.75, {start}, {end}, {index})",
-            "alias": "percentile_range_",
+            "format": "percentile_range(transaction.duration, 0.75, {start}, {end}, {query_alias})"
         },
         "p95": {
-            "format": "percentile_range(transaction.duration, 0.95, {start}, {end}, {index})",
-            "alias": "percentile_range_",
+            "format": "percentile_range(transaction.duration, 0.95, {start}, {end}, {query_alias})"
         },
         "p99": {
-            "format": "percentile_range(transaction.duration, 0.99, {start}, {end}, {index})",
-            "alias": "percentile_range_",
+            "format": "percentile_range(transaction.duration, 0.99, {start}, {end}, {query_alias})"
         },
-        "avg": {
-            "format": "avg_range(transaction.duration, {start}, {end}, {index})",
-            "alias": "avg_range_",
-        },
-        "user_misery": {
-            "format": "user_misery_range({}, {start}, {end}, {index})",
-            "alias": "user_misery_range_",
-        },
+        "avg": {"format": "avg_range(transaction.duration, {start}, {end}, {query_alias})"},
+        "user_misery": {"format": "user_misery_range({}, {start}, {end}, {query_alias})"},
         "variance": {
-            "format": "variance_range(transaction.duration, {start}, {end}, {index})",
-            "alias": "variance_range_",
+            "format": "variance_range(transaction.duration, {start}, {end}, variance_range_{index})"
         },
-        "count_range": {"format": "count_range({start}, {end}, {index})", "alias": "count_range_"},
+        "count_range": {"format": "count_range({start}, {end}, count_range_{index})"},
         "percentage": {"format": "percentage({alias}2, {alias}1, {query_alias})"},
         "difference": {"format": "minus({alias}2,{alias}1, {query_alias})"},
         "t_test": {
-            "format": "t_test({avg}1, {avg}2, {variance}1, {variance}2, {count}1, {count}2)",
-            "query_alias": "t_test()",
+            "format": "t_test({avg}1, {avg}2, variance_range_1, variance_range_2, count_range_1, count_range_2)"
         },
     }
 
@@ -132,34 +120,39 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         t_test_columns = [
             variance_column["format"].format(start=start, end=middle, index="1"),
             variance_column["format"].format(start=middle, end=end, index="2"),
-            self.trend_columns["t_test"]["format"].format(
-                avg=avg_column["alias"],
-                variance=variance_column["alias"],
-                count=count_column["alias"],
-            ),
         ]
         # Only add average when its not the baseline
         if baseline_function != "avg":
             t_test_columns.extend(
                 [
-                    avg_column["format"].format(start=start, end=middle, index="1"),
-                    avg_column["format"].format(start=middle, end=end, index="2"),
+                    avg_column["format"].format(start=start, end=middle, query_alias="avg_range_1"),
+                    avg_column["format"].format(start=middle, end=end, query_alias="avg_range_2"),
                 ]
             )
+            avg_alias = "avg_range_"
+        # avg will be added as the baseline
+        else:
+            avg_alias = "aggregate_range_"
+
+        t_test_columns.append(self.trend_columns["t_test"]["format"].format(avg=avg_alias,))
 
         return t_test_columns + [
-            trend_column["format"].format(*columns, start=start, end=middle, index="1"),
-            trend_column["format"].format(*columns, start=middle, end=end, index="2"),
+            trend_column["format"].format(
+                *columns, start=start, end=middle, query_alias="aggregate_range_1"
+            ),
+            trend_column["format"].format(
+                *columns, start=middle, end=end, query_alias="aggregate_range_2"
+            ),
             percentage_column["format"].format(
-                alias=trend_column["alias"], query_alias="trend_percentage"
+                alias="aggregate_range_", query_alias="trend_percentage"
             ),
             self.trend_columns["difference"]["format"].format(
-                alias=trend_column["alias"], query_alias="trend_difference"
+                alias="aggregate_range_", query_alias="trend_difference"
             ),
             count_column["format"].format(start=start, end=middle, index="1"),
             count_column["format"].format(start=middle, end=end, index="2"),
             percentage_column["format"].format(
-                alias=count_column["alias"], query_alias="count_percentage"
+                alias="count_range_", query_alias="count_percentage"
             ),
         ]
 
