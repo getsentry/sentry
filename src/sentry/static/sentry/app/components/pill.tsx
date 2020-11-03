@@ -11,9 +11,10 @@ type Props = {
   name?: React.ReactNode;
   value?: string | boolean | null;
   children?: React.ReactNode;
+  className?: string;
 };
 
-const Pill = React.memo(({name, value, children, type}: Props) => {
+const Pill = React.memo(({name, value, children, type, className}: Props) => {
   const getTypeAndValue = (): Partial<{valueType: PillType; renderValue: string}> => {
     if (value === undefined) {
       return {};
@@ -49,7 +50,7 @@ const Pill = React.memo(({name, value, children, type}: Props) => {
   const {valueType, renderValue} = getTypeAndValue();
 
   return (
-    <StyledPill type={type ?? valueType}>
+    <StyledPill type={type ?? valueType} className={className}>
       <PillName>{name}</PillName>
       <PillValue>{children ?? renderValue}</PillValue>
     </StyledPill>
