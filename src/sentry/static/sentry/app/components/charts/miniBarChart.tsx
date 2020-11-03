@@ -75,6 +75,9 @@ class MiniBarChart extends React.Component<Props> {
       series,
       ...props
     } = this.props;
+
+    const {ref: _ref, ...barChartProps} = props;
+
     let chartSeries: BarChartSeries[] = [];
 
     // Ensure bars overlap and that empty values display as we're disabling the axis lines.
@@ -202,7 +205,7 @@ class MiniBarChart extends React.Component<Props> {
         animation: false,
       },
     };
-    return <BarChart series={chartSeries} {...chartOptions} />;
+    return <BarChart series={chartSeries} {...chartOptions} {...barChartProps} />;
   }
 }
 
