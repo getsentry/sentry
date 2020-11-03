@@ -1,0 +1,89 @@
+name: backend lint
+on:
+  push:
+    branches:
+      - master
+      - releases/**
+  pull_request:
+
+jobs:
+  lint:
+    name: backend lint
+    runs-on: ubuntu-16.04
+    timeout-minutes: 3
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
+      # creates a status check in the "pending" state. This means that the workflow needs to run
+      # for every PR in order to update the status checks.
+      #
+      # In order to optimize CI usage, we want the tests to only run when python files change,
+      # since frontend changes should have no effect on these test suites. We cannot use GH workflow
+      # path filters because entire workflow would be skipped vs skipping individual jobs which
+      # would still allow this status check to pass.
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: Set python version output
+        id: python-version
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        if: steps.changes.outputs.backend == 'true'
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: on
+        with:
+          python-version: ${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        if: steps.changes.outputs.backend == 'true'
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        if: steps.changes.outputs.backend == 'true'
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup pre-commit
+        if: steps.changes.outputs.backend == 'true'
+        env:
+          SENTRY_NO_VIRTUALENV_CREATION: 1
+        run: |
+          make setup-git
+
+      - uses: getsentry/paths-filter@v2
+        id: files
+        with:
+          # Enable listing of files matching each filter.
+          # Paths to files will be available in `${FILTER_NAME}_files` output variable.
+          # Paths will be escaped and space-delimited.
+          # Output is usable as command line argument list in linux shell
+          list-files: shell
+
+          # It doesn't make sense to lint deleted files.
+          # Therefore we specify we are only interested in added or modified files.
+          filters: |
+            all:
+              - added|modified: '**/*.py'
+
+      - name: Run pre-commit on changed files
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
+          # XXX: there is a very small chance that it'll expand to exceed Linux's limits
+          #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
+          pre-commit run --files ${{ steps.files.outputs.all_files }}
