@@ -204,6 +204,7 @@ export type Project = {
   subjectTemplate: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
+  environments: string[];
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
