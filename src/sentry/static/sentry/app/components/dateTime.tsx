@@ -66,7 +66,7 @@ class DateTime extends React.Component<Props> {
 
     // Oct 26, 2017 11:30
     if (clock24Hours) {
-      return 'MMM DD, YYYY HH:mm';
+      return 'MMM D, YYYY HH:mm';
     }
 
     // Oct 26, 2017 11:30:30 AM
