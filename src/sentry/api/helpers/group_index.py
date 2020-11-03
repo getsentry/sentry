@@ -29,7 +29,6 @@ from sentry.models import (
     Group,
     GroupAssignee,
     GroupHash,
-    GroupInbox,
     GroupInboxReason,
     GroupLink,
     GroupStatus,
@@ -997,7 +996,9 @@ def update_groups(request, projects, organization_id, search_fn):
             for group in group_list:
                 add_group_to_inbox(group, GroupInboxReason.MANUAL)
         elif not inbox:
-            GroupInbox.objects.filter(group__in=group_ids).delete()
+            # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+            # GroupInbox.objects.filter(group__in=group_ids).delete()
+            pass
         result["inbox"] = inbox
 
     return Response(result)
