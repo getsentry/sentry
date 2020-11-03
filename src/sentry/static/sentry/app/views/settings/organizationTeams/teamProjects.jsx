@@ -204,6 +204,7 @@ class TeamProjects extends React.Component {
                   onChange={this.handleQueryUpdate}
                   onSelect={this.handleProjectSelected}
                   emptyMessage={t('No projects')}
+                  alignMenu="right"
                 >
                   {({isOpen}) => (
                     <DropdownButton isOpen={isOpen} size="xsmall">

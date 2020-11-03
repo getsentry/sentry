@@ -111,6 +111,7 @@ class TeamSelect extends React.Component {
         emptyMessage={t('No teams')}
         menuHeader={menuHeader}
         disabled={isDisabled}
+        alignMenu="right"
       >
         {({isOpen}) => (
           <DropdownButton
