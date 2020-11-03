@@ -165,6 +165,34 @@ describe('ReleaseSeries', function () {
     }
   });
 
+  it('doest not refetch releases with memoize enabled', async function () {
+    const originalPeriod = '14d';
+    const updatedPeriod = '7d';
+    const wrapper = mount(
+      <ReleaseSeries period={originalPeriod} memoized>
+        {renderFunc}
+      </ReleaseSeries>,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(releasesMock).toHaveBeenCalledTimes(1);
+
+    wrapper.setProps({period: updatedPeriod});
+    wrapper.update();
+    await tick();
+
+    expect(releasesMock).toHaveBeenCalledTimes(2);
+
+    wrapper.setProps({period: originalPeriod});
+    wrapper.update();
+    await tick();
+
+    expect(releasesMock).toHaveBeenCalledTimes(2);
+  });
+
   it('generates an eCharts `markLine` series from releases', async function () {
     const wrapper = mount(<ReleaseSeries>{renderFunc}</ReleaseSeries>, routerContext);
 

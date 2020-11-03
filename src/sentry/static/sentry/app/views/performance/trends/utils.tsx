@@ -103,6 +103,11 @@ export const trendSelectedQueryKeys = {
   [TrendChangeType.REGRESSION]: 'regressionSelected',
 };
 
+export const trendUnselectedSeries = {
+  [TrendChangeType.IMPROVED]: 'improvedUnselectedSeries',
+  [TrendChangeType.REGRESSION]: 'regressionUnselectedSeries',
+};
+
 export const trendCursorNames = {
   [TrendChangeType.IMPROVED]: 'improvedCursor',
   [TrendChangeType.REGRESSION]: 'regressionCursor',
@@ -403,6 +408,10 @@ export function getTrendAliasedMinus(alias: string) {
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
   return trendSelectedQueryKeys[trendChangeType];
+}
+
+export function getUnselectedSeries(trendChangeType: TrendChangeType) {
+  return trendUnselectedSeries[trendChangeType];
 }
 
 export function movingAverage(data, index, size) {
