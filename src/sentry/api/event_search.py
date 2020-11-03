@@ -2184,7 +2184,8 @@ FUNCTIONS = {
                 FunctionArg("denominator"),
                 FunctionArg("query_alias"),
             ],
-            # aggregate and not a column since it needs to act on aggregates itself
+            # Since percentage is only used on aggregates, it needs to be an aggregate and not a column
+            # This is because as a column it will be added to the `WHERE` clause instead of the `HAVING` clause
             aggregate=[
                 u"if(greater({denominator},0),divide({numerator},{denominator}),null)",
                 None,
