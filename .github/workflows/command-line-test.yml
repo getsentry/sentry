@@ -52,3 +52,6 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         run: |
           make test-cli
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts

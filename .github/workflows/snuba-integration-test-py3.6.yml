@@ -76,3 +76,6 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         run: |
           make travis-test-snuba
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts

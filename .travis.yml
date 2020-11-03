@@ -100,12 +100,6 @@ after_failure:
   - dmesg | tail -n 100
 
 after_script:
-  - |
-    coverage_files=$(ls .artifacts/*coverage.xml || true)
-    if [[ -n "$coverage_files" || -f .artifacts/coverage/cobertura-coverage.xml ]]; then
-      pip install -U codecov
-      codecov -e TEST_SUITE
-    fi
   - *install_volta
 
 base_postgres: &postgres_default

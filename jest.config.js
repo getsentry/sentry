@@ -7,8 +7,8 @@ module.exports = {
     'tests/js/spec/**/*.{js,jsx,tsx}',
     'src/sentry/static/sentry/app/**/*.{js,jsx,ts,tsx}',
   ],
-  coverageReporters: ['html', 'lcov', 'cobertura'],
-  coverageDirectory: '.artifacts/coverage/',
+  coverageReporters: ['html', 'cobertura'],
+  coverageDirectory: '.artifacts/coverage',
   snapshotSerializers: ['enzyme-to-json/serializer'],
   moduleNameMapper: {
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',

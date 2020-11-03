@@ -1,0 +1,13 @@
+name: 'Sentry Artifacts'
+description: 'Handles uploading coverage/test artifacts to codecov and zeus'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Upload to codecov
+      shell: bash
+      run: |
+        coverage_files=$(ls .artifacts/*coverage.xml || true)
+        if [[ -n "$coverage_files" || -f .artifacts/coverage/cobertura-coverage.xml ]]; then
+          bash <(curl -s https://codecov.io/bash) -v
+        fi

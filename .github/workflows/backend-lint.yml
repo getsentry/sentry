@@ -87,3 +87,6 @@ jobs:
           # XXX: there is a very small chance that it'll expand to exceed Linux's limits
           #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
           pre-commit run --files ${{ steps.files.outputs.all_files }}
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
