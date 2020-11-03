@@ -157,7 +157,7 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    outputType: 'duration',
+    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
@@ -170,7 +170,7 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    outputType: 'duration',
+    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
@@ -183,7 +183,7 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    outputType: 'duration',
+    outputType: null,
     type: [],
     isSortable: true,
     multiPlotType: 'line',
@@ -197,7 +197,7 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    outputType: 'duration',
+    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
@@ -206,10 +206,11 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: validateForNumericAggregate(['duration', 'number']),
+        defaultValue: 'transaction.duration',
         required: false,
       },
     ],
-    outputType: 'duration',
+    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
@@ -626,19 +627,50 @@ export function aggregateOutputType(field: string): AggregationOutputType {
   if (!matches) {
     return 'number';
   }
-  const funcName = matches[1];
-  const aggregate = AGGREGATIONS[funcName];
-  // Attempt to use the function's outputType. If the function
-  // is an inherit type it will have a field as the first parameter
-  // and we can use that to get the type.
-  if (aggregate && aggregate.outputType) {
-    return aggregate.outputType;
-  } else if (matches[2] && FIELDS.hasOwnProperty(matches[2])) {
-    return FIELDS[matches[2]];
-  } else if (matches[2] && isMeasurement(matches[2])) {
-    return measurementType(matches[2]);
+  const outputType = aggregateFunctionOutputType(matches[1], matches[2]);
+  if (outputType === null) {
+    return 'number';
   }
-  return 'number';
+  return outputType;
+}
+
+/**
+ * Converts a function string and its first argument into its output type.
+ * - If the function has a fixed output type, that will be the result.
+ * - If the function does not define an output type, the output type will be equal to
+ *   the type of its first argument.
+ * - If the function has an optional first argument, and it was not defined, make sure
+ *   to use the default argument as the first argument.
+ * - If the type could not be determined, return null.
+ */
+export function aggregateFunctionOutputType(
+  funcName: string,
+  firstArg: string | undefined
+): AggregationOutputType | null {
+  const aggregate = AGGREGATIONS[funcName];
+
+  // Attempt to use the function's outputType.
+  if (aggregate?.outputType) {
+    return aggregate.outputType;
+  }
+
+  // If the first argument is undefined and it is not required,
+  // then we attempt to get the default value.
+  if (!firstArg && aggregate?.parameters?.[0]) {
+    if (aggregate.parameters[0].required === false) {
+      firstArg = aggregate.parameters[0].defaultValue;
+    }
+  }
+
+  // If the function is an inherit type it will have a field as
+  // the first parameter and we can use that to get the type.
+  if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
+    return FIELDS[firstArg];
+  } else if (firstArg && isMeasurement(firstArg)) {
+    return measurementType(firstArg);
+  }
+
+  return null;
 }
 
 /**
