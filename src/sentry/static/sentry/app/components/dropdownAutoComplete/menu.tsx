@@ -12,7 +12,7 @@ import List from './list';
 import {ItemsBeforeFilter, Item} from './types';
 import autoCompleteFilter from './autoCompleteFilter';
 
-type MenuFooterChildProps = {
+export type MenuFooterChildProps = {
   actions: Actions;
 };
 
