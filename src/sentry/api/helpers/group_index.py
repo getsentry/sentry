@@ -42,6 +42,7 @@ from sentry.models import (
     GroupSubscription,
     GroupSubscriptionReason,
     Release,
+    remove_group_from_inbox,
     Repository,
     TOMBSTONE_FIELDS_FROM_GROUP,
     Team,
@@ -731,6 +732,8 @@ def update_groups(request, projects, organization_id, search_fn):
 
             if new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
+                for group in group_ids:
+                    remove_group_from_inbox(group)
 
                 ignore_duration = (
                     statusDetails.pop("ignoreDuration", None)

@@ -57,7 +57,6 @@ const DEFAULT_SORT = 'date';
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
-const STATS_PERIODS = new Set(['14d', '24h']);
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 
 type Params = {
@@ -261,10 +260,7 @@ class IssueListOverview extends React.Component<Props, State> {
       typeof this.props.location.query?.groupStatsPeriod === 'string'
         ? this.props.location.query?.groupStatsPeriod
         : DEFAULT_GRAPH_STATS_PERIOD;
-    return (this.props.organization.features.includes('dynamic-issue-counts')
-      ? DYNAMIC_COUNTS_STATS_PERIODS
-      : STATS_PERIODS
-    ).has(currentPeriod)
+    return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
       : DEFAULT_GRAPH_STATS_PERIOD;
   }
@@ -701,7 +697,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
           <Panel>
             <IssueListActions
-              organization={organization}
               orgId={organization.slug}
               selection={selection}
               query={query}
