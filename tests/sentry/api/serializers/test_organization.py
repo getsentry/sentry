@@ -6,9 +6,12 @@ import six
 
 from django.conf import settings
 
+from sentry import features
 from sentry.auth import access
 from sentry.api.serializers import serialize, DetailedOrganizationSerializer
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
+from sentry.features.base import OrganizationFeature
 
 
 class OrganizationSerializerTest(TestCase):
@@ -42,6 +45,24 @@ class OrganizationSerializerTest(TestCase):
                 "discover-query",
             ]
         )
+
+    @mock.patch("sentry.features.batch_has")
+    def test_organization_batch_has(self, mock_batch):
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+
+        features.add("organizations:test-feature", OrganizationFeature)
+        features.add("organizations:disabled-feature", OrganizationFeature)
+        mock_batch.return_value = {
+            "organization:{}".format(organization.id): {
+                "organizations:test-feature": True,
+                "organizations:disabled-feature": False,
+            }
+        }
+
+        result = serialize(organization, user)
+        assert "test-feature" in result["features"]
+        assert "disabled-feature" not in result["features"]
 
 
 class DetailedOrganizationSerializerTest(TestCase):
