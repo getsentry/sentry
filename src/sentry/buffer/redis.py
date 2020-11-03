@@ -309,6 +309,17 @@ class RedisBuffer(Buffer):
                 elif k == "s":
                     signal_only = bool(int(v))  # Should be 1 if set
 
-            super(RedisBuffer, self).process(model, incr_values, filters, extra_values, signal_only)
+            self.process_model(
+                model=model,
+                columns=incr_values,
+                filters=filters,
+                extra=extra_values,
+                signal_only=signal_only,
+            )
         finally:
             client.delete(lock_key)
+
+    def process_model(self, model, columns, filters, extra=None, signal_only=None):
+        return super(RedisBuffer, self).process(
+            model=model, columns=columns, filters=filters, extra=extra, signal_only=signal_only
+        )

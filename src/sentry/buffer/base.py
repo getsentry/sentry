@@ -55,6 +55,11 @@ class Buffer(Service):
     def process_pending(self, partition=None):
         return []
 
+    def process_model(self, model, columns, filters, extra=None, signal_only=None):
+        return self.process(
+            model=model, columns=columns, filters=filters, extra=extra, signal_only=signal_only
+        )
+
     def process(self, model, columns, filters, extra=None, signal_only=None):
         from sentry.models import Group
         from sentry.event_manager import ScoreClause
