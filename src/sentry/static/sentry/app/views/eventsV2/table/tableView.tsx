@@ -370,6 +370,7 @@ class TableView extends React.Component<TableViewProps> {
       title,
       eventView,
       isLoading,
+      error,
       tableData,
       location,
       onChangeShowTags,
@@ -380,6 +381,7 @@ class TableView extends React.Component<TableViewProps> {
       <TableActions
         title={title}
         isLoading={isLoading}
+        errored={error !== null}
         organization={organization}
         eventView={eventView}
         onEdit={this.handleEditColumns}

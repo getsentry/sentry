@@ -18,6 +18,7 @@ import {downloadAsCsv} from '../utils';
 
 type Props = {
   isLoading: boolean;
+  errored: boolean;
   title: string;
   organization: OrganizationSummary;
   eventView: EventView;
@@ -71,8 +72,8 @@ renderBrowserExportButton.propTypes = {
 };
 
 function renderAsyncExportButton(canEdit: boolean, props: Props) {
-  const {isLoading, location} = props;
-  const disabled = isLoading || canEdit === false;
+  const {isLoading, errored, location} = props;
+  const disabled = isLoading || errored || canEdit === false;
   return (
     <DataExport
       payload={{
@@ -89,6 +90,7 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
 // Placate eslint proptype checking
 renderAsyncExportButton.propTypes = {
   isLoading: PropTypes.bool,
+  errored: PropTypes.bool,
 };
 
 function renderEditButton(canEdit: boolean, props: Props) {
