@@ -58,7 +58,7 @@ type Props = Omit<ChartProps, 'series'> &
      */
     emphasisColors?: string[];
 
-    series: BarChartProps['series'];
+    series?: BarChartProps['series'];
   };
 
 class MiniBarChart extends React.Component<Props> {
