@@ -67,6 +67,7 @@ type Props = {
   trendView: TrendView;
   location: Location;
   projects: Project[];
+  setError: (msg: string | undefined) => void;
 };
 
 type TrendsCursorQuery = {
@@ -221,6 +222,7 @@ function ChangedTransactions(props: Props) {
     previousTrendFunction,
     organization,
     projects,
+    setError,
   } = props;
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
@@ -237,6 +239,7 @@ function ChangedTransactions(props: Props) {
       trendChangeType={trendChangeType}
       cursor={cursor}
       limit={5}
+      setError={setError}
     >
       {({isLoading, trendsData, pageLinks}) => {
         if (isLoading) {
