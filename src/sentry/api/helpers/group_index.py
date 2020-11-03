@@ -688,6 +688,7 @@ def update_groups(request, projects, organization_id, search_fn):
 
                 group.status = GroupStatus.RESOLVED
                 group.resolved_at = now
+                remove_group_from_inbox(group)
 
                 assigned_to = self_subscribe_and_assign_issue(acting_user, group)
                 if assigned_to is not None:
