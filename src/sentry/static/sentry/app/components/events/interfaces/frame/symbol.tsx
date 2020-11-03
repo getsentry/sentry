@@ -13,8 +13,8 @@ import {getFrameHint} from './utils';
 
 type Props = {
   frame: Frame;
-  onFunctionNameToggle: (event: React.MouseEvent<SVGElement>) => void;
   showCompleteFunctionName: boolean;
+  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
 };
 
 const Symbol = ({frame, onFunctionNameToggle, showCompleteFunctionName}: Props) => {
