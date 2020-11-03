@@ -104,11 +104,7 @@ class OrganizationMember(Model):
         "sentry.Team", blank=True, through="sentry.OrganizationMemberTeam"
     )
     inviter = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        related_name="sentry_inviter_set",
-        on_delete=models.SET_NULL,
+        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_inviter_set"
     )
     invite_status = models.PositiveSmallIntegerField(
         choices=(
