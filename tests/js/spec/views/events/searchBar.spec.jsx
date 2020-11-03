@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import SearchBar from 'app/views/events/searchBar';
 import TagStore from 'app/stores/tagStore';
@@ -34,13 +35,15 @@ const setQuery = async (el, query) => {
 describe('SearchBar', function () {
   let options;
   let tagValuesMock;
-  const organization = TestStubs.Organization();
-  const props = {
-    organization,
-    projectIds: [1, 2],
-  };
+  let organization;
+  let props;
 
   beforeEach(function () {
+    organization = TestStubs.Organization();
+    props = {
+      organization,
+      projectIds: [1, 2],
+    };
     TagStore.reset();
     TagStore.onLoadTagsSuccess([
       {count: 3, key: 'gpu', name: 'Gpu'},
@@ -69,6 +72,26 @@ describe('SearchBar', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+  });
+
+  it('autocompletes measurement names', async function () {
+    const initializationObj = initializeOrg({
+      organization: {
+        features: ['measurements'],
+      },
+    });
+    props.organization = initializationObj.organization;
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    await tick();
+    setQuery(wrapper, 'fcp');
+
+    await tick();
+    await wrapper.update();
+
+    expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('fcp');
+    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
+      'measurements.fcp:'
+    );
   });
 
   it('autocompletes has suggestions correctly', async function () {
