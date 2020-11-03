@@ -24,6 +24,8 @@ NEGATION_MAP = {
     ">=": "<=",
     "<": ">",
     "<=": ">=",
+    "=": "=",
+    "!=": "!=",
 }
 
 
@@ -66,27 +68,32 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         },
     }
 
-    def get_function_aliases(self, trend_type):
+    @staticmethod
+    def get_function_aliases(trend_type):
+        """ Construct the dict of aliases
+
+            trend_percentage and trend_difference behave differently depending on the trend type
+        """
         return {
             "trend_percentage()": Alias(
                 lambda aggregate_filter: [
                     "trend_percentage",
-                    aggregate_filter.operator
+                    NEGATION_MAP[aggregate_filter.operator]
                     if trend_type == "improvement"
-                    else NEGATION_MAP[aggregate_filter.operator],
-                    aggregate_filter.value.value + 1,
+                    else aggregate_filter.operator,
+                    1 + (aggregate_filter.value.value * (-1 if trend_type == "improvement" else 1)),
                 ],
                 ["percentage", "transaction.duration"],
             ),
             "trend_difference()": Alias(
                 lambda aggregate_filter: [
                     "trend_difference",
-                    aggregate_filter.operator
+                    NEGATION_MAP[aggregate_filter.operator]
                     if trend_type == "improvement"
-                    else NEGATION_MAP[aggregate_filter.operator],
-                    aggregate_filter.value.value
+                    else aggregate_filter.operator,
+                    -1 * aggregate_filter.value.value
                     if trend_type == "improvement"
-                    else -1 * aggregate_filter.value.value,
+                    else aggregate_filter.value.value,
                 ],
                 ["minus", "transaction.duration"],
             ),
@@ -181,6 +188,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         trend_type = request.GET.get("trendType", "regression")
         if trend_type not in ["regression", "improvement"]:
             raise ParseError(detail=u"{} is not a supported trend type".format(trend_type))
+
         params["aliases"] = self.get_function_aliases(trend_type)
 
         trend_function = request.GET.get("trendFunction", "p50()")
