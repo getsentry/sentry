@@ -82,3 +82,18 @@ def test_get_kafka_consumer_cluster_options_invalid():
     with override_settings(KAFKA_CLUSTERS={"default": {"common": {"invalid.setting": "value"}}}):
         with pytest.raises(ValueError):
             get_kafka_consumer_cluster_options("default")
+
+
+def test_bootstrap_format():
+    with override_settings(
+        KAFKA_CLUSTERS={"default": {"common": {"bootstrap.servers": ["I", "am", "a", "list"]}}}
+    ):
+        with pytest.raises(ValueError):
+            get_kafka_consumer_cluster_options("default")
+
+    # legacy should not raise an error
+    with override_settings(
+        KAFKA_CLUSTERS={"default": {"bootstrap.servers": ["I", "am", "a", "list"]}}
+    ):
+        cluster_options = get_kafka_consumer_cluster_options("default")
+        assert cluster_options["bootstrap.servers"] == "I,am,a,list"
