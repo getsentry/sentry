@@ -128,6 +128,6 @@ const WidgetHeader = styled('div')`
   padding: ${space(1)} ${space(2)};
 `;
 const WidgetFooter = styled(WidgetHeader)`
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   padding: 0;
 `;
