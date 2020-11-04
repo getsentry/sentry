@@ -219,10 +219,9 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     } else if (error) {
       body = <LoadingError onRetry={this.fetchData} />;
     } else if (
-      processingIssues &&
-      (processingIssues.hasIssues ||
-        processingIssues.resolveableIssues ||
-        processingIssues.issuesProcessing)
+      processingIssues?.hasIssues ||
+        processingIssues?.resolveableIssues ||
+        processingIssues?.issuesProcessing
     ) {
       body = this.renderResults();
     } else {
