@@ -106,7 +106,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
     def _get_organization_slug(self, request):
         organization_slug = request.json_body.get("organization")
         if not organization_slug or not isinstance(organization_slug, string_types):
-            error_message = """
+            error_message = u"""
                 Please provide a valid value for the 'organization' field.
             """
             raise ValidationError({"organization": to_single_line_str(error_message)})
@@ -116,7 +116,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         try:
             return Organization.objects.get(slug=organization_slug)
         except Organization.DoesNotExist:
-            error_message = """
+            error_message = u"""
                 Organization '{}' does not exist.
             """.format(
                 organization_slug
@@ -127,7 +127,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         try:
             return user.get_orgs().get(slug=organization_slug)
         except Organization.DoesNotExist:
-            error_message = """
+            error_message = u"""
                 User does not belong to the '{}' organization.
             """.format(
                 organization_slug
