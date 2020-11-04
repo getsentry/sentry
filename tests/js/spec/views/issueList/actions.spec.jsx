@@ -324,9 +324,9 @@ describe('IssueListActions', function () {
       );
     });
 
-    it('should disable resolve picker', function () {
+    it('should disable resolve dropdown but not resolve action', function () {
       const resolve = wrapper.find('ResolveActions').first();
-      expect(resolve.props().disabled).toBe(true);
+      expect(resolve.props().disabled).toBe(false);
       expect(resolve.props().disableDropdown).toBe(true);
     });
 
