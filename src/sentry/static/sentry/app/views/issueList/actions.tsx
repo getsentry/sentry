@@ -256,7 +256,7 @@ class IssueListActions extends React.Component<Props, State> {
       this.props.api.bulkUpdate(
         {
           orgId: this.props.orgId,
-          itemIds: itemIds?.map(itemId => Number(itemId)),
+          itemIds,
           data,
           query: this.props.query,
           environment: selection.environments,
@@ -281,7 +281,7 @@ class IssueListActions extends React.Component<Props, State> {
       this.props.api.bulkDelete(
         {
           orgId: this.props.orgId,
-          itemIds: itemIds?.map(itemId => Number(itemId)),
+          itemIds,
           query: this.props.query,
           project: selection.projects,
           environment: selection.environments,
@@ -305,7 +305,7 @@ class IssueListActions extends React.Component<Props, State> {
       this.props.api.merge(
         {
           orgId: this.props.orgId,
-          itemIds: itemIds?.map(itemId => Number(itemId)),
+          itemIds,
           query: this.props.query,
           project: selection.projects,
           environment: selection.environments,
