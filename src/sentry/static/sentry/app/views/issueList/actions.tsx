@@ -371,7 +371,9 @@ class IssueListActions extends React.Component<Props, State> {
     // resolve requires a single project to be active in an org context
     // projectId is null when 0 or >1 projects are selected.
     const resolveDisabled = Boolean(!anySelected || projectFetchError);
-    const resolveDropdownDisabled = Boolean(!anySelected || !projectId || loadingProjects || projectFetchError);
+    const resolveDropdownDisabled = Boolean(
+      !anySelected || !projectId || loadingProjects || projectFetchError
+    );
 
     return (
       <ResolveActions
