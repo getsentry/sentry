@@ -22,6 +22,9 @@ export default class LineChart extends React.Component {
             ...options,
             name: seriesName,
             data: dataArray || data.map(({value, name}) => [name, value]),
+            animation: false,
+            animationThreshold: 1,
+            animationDuration: 0,
           })
         )}
       />

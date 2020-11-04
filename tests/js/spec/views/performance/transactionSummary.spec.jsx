@@ -7,11 +7,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectsStore from 'app/stores/projectsStore';
 import TransactionSummary from 'app/views/performance/transactionSummary';
 
-function initializeData({hasTrendsFeature} = {}) {
-  const features = ['discover-basic', 'performance-view'];
-  if (hasTrendsFeature) {
-    features.push('trends');
-  }
+function initializeData({features: additionalFeatures = []} = {}) {
+  const features = ['discover-basic', 'performance-view', ...additionalFeatures];
+  // if (hasTrendsFeature) {
+  //   features.push('trends');
+  // }
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
@@ -360,7 +360,7 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('Show trend display with beta feature', async function () {
-    const initialData = initializeData({hasTrendsFeature: true});
+    const initialData = initializeData({features: ['trends']});
     const wrapper = mountWithTheme(
       <TransactionSummary
         organization={initialData.organization}
@@ -381,6 +381,46 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('Do not show trend display without beta feature', async function () {
+    const initialData = initializeData();
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const displayDropdown = wrapper.find('ChartControls OptionSelector');
+    expect(displayDropdown).toHaveLength(1);
+
+    const displayItems = displayDropdown.find('DropdownItem');
+    expect(displayItems).toHaveLength(3);
+  });
+
+  it('shows web vital display with feature', async function () {
+    const initialData = initializeData({features: ['measurements']});
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const displayDropdown = wrapper.find('ChartControls OptionSelector');
+    expect(displayDropdown).toHaveLength(1);
+
+    const displayItems = displayDropdown.find('DropdownItem');
+    expect(displayItems).toHaveLength(4);
+
+    expect(displayItems.at(3).text()).toEqual('Web Vitals');
+  });
+
+  it('shows not web vital display without feature', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
       <TransactionSummary
