@@ -49,15 +49,13 @@ import {
   getSelectedQueryKey,
   getCurrentTrendFunction,
   getCurrentConfidenceLevel,
-  getTrendBaselinesForTransaction,
-  getIntervalRatio,
   StyledIconArrow,
   getTrendProjectId,
   trendCursorNames,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
-import {getTransactionComparisonUrl} from '../utils';
+import {DisplayModes} from '../transactionSummary/charts';
 
 type Props = {
   api: Client;
@@ -244,8 +242,7 @@ function ChangedTransactions(props: Props) {
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
-          (trendsData && trendsData.events && trendsData.events.data) || [],
-          trendFunction
+          (trendsData && trendsData.events && trendsData.events.data) || []
         );
         const selectedTransaction = getSelectedTransaction(
           location,
@@ -376,13 +373,10 @@ function TrendsListItem(props: TrendsListItemProps) {
   const currentPeriodValue = transaction.aggregate_range_2;
   const previousPeriodValue = transaction.aggregate_range_1;
 
-  const percentChange = formatPercentage(
-    transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
-    0
-  );
+  const percentChange = formatPercentage(transaction.trend_percentage - 1, 0);
 
   const absolutePercentChange = formatPercentage(
-    Math.abs(transaction.percentage_aggregate_range_2_aggregate_range_1 - 1),
+    Math.abs(transaction.trend_percentage - 1),
     0
   );
 
@@ -440,7 +434,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
             <React.Fragment>
               {transformValueDelta(
-                transaction.minus_aggregate_range_2_aggregate_range_1,
+                transaction.trend_difference,
                 trendChangeType,
                 currentTrendFunction
               )}
@@ -448,10 +442,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           ) : (
             <React.Fragment>
               {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
-              {formatPercentage(
-                transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
-                0
-              )}
+              {formatPercentage(transaction.trend_percentage - 1, 0)}
             </React.Fragment>
           )}
         </Tooltip>
@@ -466,7 +457,6 @@ function TrendsListItem(props: TrendsListItemProps) {
           />
         }
       >
-        <CompareLink {...props} />
         <MenuItem
           onClick={() =>
             handleFilterDuration(
@@ -512,7 +502,7 @@ function TrendsListItem(props: TrendsListItemProps) {
         ) : (
           <React.Fragment>
             {transformValueDelta(
-              transaction.minus_aggregate_range_2_aggregate_range_1,
+              transaction.trend_difference,
               trendChangeType,
               currentTrendFunction
             )}
@@ -524,42 +514,6 @@ function TrendsListItem(props: TrendsListItemProps) {
 }
 
 type CompareLinkProps = TrendsListItemProps & {};
-
-const CompareLink = (props: CompareLinkProps) => {
-  const {organization, trendView: eventView, transaction, api, location} = props;
-  const intervalRatio = getIntervalRatio(location);
-
-  async function onLinkClick() {
-    const baselines = await getTrendBaselinesForTransaction(
-      api,
-      organization,
-      eventView,
-      intervalRatio,
-      transaction
-    );
-    if (baselines) {
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.trends.compare_baselines',
-        eventName: 'Performance Views: Comparing baselines',
-        organization_id: parseInt(organization.id, 10),
-      });
-
-      const {previousPeriod, currentPeriod} = baselines;
-
-      const target = getTransactionComparisonUrl({
-        organization,
-        baselineEventSlug: `${previousPeriod.project}:${previousPeriod.id}`,
-        regressionEventSlug: `${currentPeriod.project}:${currentPeriod.id}`,
-        transaction: transaction.transaction,
-        query: location.query,
-      });
-
-      browserHistory.push(target);
-    }
-  }
-
-  return <MenuItem onClick={onLinkClick}>{t('Compare baselines')}</MenuItem>;
-};
 
 const CompareDurations = (props: CompareLinkProps) => {
   const {transaction, currentTrendFunction} = props;
@@ -578,7 +532,14 @@ const CompareDurations = (props: CompareLinkProps) => {
 type TransactionSummaryLinkProps = TrendsListItemProps & {};
 
 const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
-  const {organization, trendView: eventView, transaction, projects, location} = props;
+  const {
+    organization,
+    trendView: eventView,
+    transaction,
+    projects,
+    location,
+    currentTrendFunction,
+  } = props;
   const confidenceLevel = getCurrentConfidenceLevel(location).label;
 
   const summaryView = eventView.clone();
@@ -588,6 +549,8 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     transaction: String(transaction.transaction),
     query: summaryView.generateQueryStringObject(),
     projectID,
+    display: DisplayModes.TREND,
+    trendDisplay: currentTrendFunction,
   });
 
   return (
