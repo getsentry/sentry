@@ -21,6 +21,13 @@ _DEFAULT_DAEMONS = {
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "server": ["sentry", "run", "web"],
     "storybook": ["yarn", "storybook"],
+    "subscription-consumer": [
+        "sentry",
+        "run",
+        "query-subscription-consumer",
+        "--commit-batch-size",
+        "1",
+    ],
 }
 
 
@@ -203,6 +210,9 @@ def devserver(
 
         if eventstream.requires_post_process_forwarder():
             daemons += [_get_daemon("post-process-forwarder")]
+
+        if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
+            daemons += [_get_daemon("subscription-consumer")]
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
