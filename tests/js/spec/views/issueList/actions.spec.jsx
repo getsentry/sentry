@@ -301,8 +301,12 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('missing projectId prop', function () {
+  describe('multiple groups from different project', function () {
     beforeEach(function () {
+      jest
+        .spyOn(SelectedGroupStore, 'getSelectedIds')
+        .mockImplementation(() => new Set([1, 2, 3]));
+
       wrapper = mountWithTheme(
         <IssueListActions
           api={new MockApiClient()}
