@@ -826,7 +826,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "percentile_range(transaction.duration, 0.5, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+                "percentile_range(transaction.duration, 0.5, 2020-05-02T13:45:01, 2020-05-02T14:45:01, percentile_range_1)",
             ],
             query="",
             params={"project_id": [self.project.id]},
@@ -878,7 +878,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "avg_range(transaction.duration, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+                "avg_range(transaction.duration, 2020-05-02T13:45:01, 2020-05-02T14:45:01, avg_range_1)",
             ],
             query="",
             params={"project_id": [self.project.id]},
@@ -930,7 +930,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "user_misery_range(300, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+                "user_misery_range(300, 2020-05-02T13:45:01, 2020-05-02T14:45:01, user_misery_range_1)",
             ],
             query="",
             params={"project_id": [self.project.id]},

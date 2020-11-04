@@ -242,8 +242,7 @@ function ChangedTransactions(props: Props) {
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
-          (trendsData && trendsData.events && trendsData.events.data) || [],
-          trendFunction
+          (trendsData && trendsData.events && trendsData.events.data) || []
         );
         const selectedTransaction = getSelectedTransaction(
           location,
@@ -374,13 +373,10 @@ function TrendsListItem(props: TrendsListItemProps) {
   const currentPeriodValue = transaction.aggregate_range_2;
   const previousPeriodValue = transaction.aggregate_range_1;
 
-  const percentChange = formatPercentage(
-    transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
-    0
-  );
+  const percentChange = formatPercentage(transaction.trend_percentage - 1, 0);
 
   const absolutePercentChange = formatPercentage(
-    Math.abs(transaction.percentage_aggregate_range_2_aggregate_range_1 - 1),
+    Math.abs(transaction.trend_percentage - 1),
     0
   );
 
@@ -438,7 +434,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
             <React.Fragment>
               {transformValueDelta(
-                transaction.minus_aggregate_range_2_aggregate_range_1,
+                transaction.trend_difference,
                 trendChangeType,
                 currentTrendFunction
               )}
@@ -446,10 +442,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           ) : (
             <React.Fragment>
               {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
-              {formatPercentage(
-                transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
-                0
-              )}
+              {formatPercentage(transaction.trend_percentage - 1, 0)}
             </React.Fragment>
           )}
         </Tooltip>
@@ -509,7 +502,7 @@ function TrendsListItem(props: TrendsListItemProps) {
         ) : (
           <React.Fragment>
             {transformValueDelta(
-              transaction.minus_aggregate_range_2_aggregate_range_1,
+              transaction.trend_difference,
               trendChangeType,
               currentTrendFunction
             )}

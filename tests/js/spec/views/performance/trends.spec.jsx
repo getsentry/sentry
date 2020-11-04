@@ -10,8 +10,6 @@ import {
   DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
   CONFIDENCE_LEVELS,
-  getTrendAliasedFieldPercentage,
-  getTrendAliasedMinus,
 } from 'app/views/performance/trends/utils';
 import {TrendFunctionField} from 'app/views/performance/trends/types';
 
@@ -114,11 +112,11 @@ describe('Performance > Trends', function () {
           meta: {
             count_range_1: 'integer',
             count_range_2: 'integer',
-            percentage_count_range_2_count_range_1: 'percentage',
-            percentage_percentile_range_2_percentile_range_1: 'percentage',
-            minus_percentile_range_2_percentile_range_1: 'number',
-            percentile_range_1: 'duration',
-            percentile_range_2: 'duration',
+            count_percentage: 'percentage',
+            trend_percentage: 'percentage',
+            trend_difference: 'number',
+            aggregate_range_1: 'duration',
+            aggregate_range_2: 'duration',
             transaction: 'string',
           },
           data: [
@@ -127,11 +125,11 @@ describe('Performance > Trends', function () {
               project: 'internal',
               count_range_1: 2,
               count_range_2: 6,
-              percentage_count_range_2_count_range_1: 3,
-              percentage_percentile_range_2_percentile_range_1: 1.9235225955967554,
-              minus_percentile_range_2_percentile_range_1: 797,
-              percentile_range_1: 863,
-              percentile_range_2: 1660,
+              count_percentage: 3,
+              trend_percentage: 1.9235225955967554,
+              trend_difference: 797,
+              aggregate_range_1: 863,
+              aggregate_range_2: 1660,
               transaction: '/organizations/:orgId/performance/',
             },
             {
@@ -139,11 +137,11 @@ describe('Performance > Trends', function () {
               project: 'internal',
               count_range_1: 20,
               count_range_2: 40,
-              percentage_count_range_2_count_range_1: 2,
-              percentage_percentile_range_2_percentile_range_1: 1.204968944099379,
-              minus_percentile_range_2_percentile_range_1: 66,
-              percentile_range_1: 322,
-              percentile_range_2: 388,
+              count_percentage: 2,
+              trend_percentage: 1.204968944099379,
+              trend_difference: 66,
+              aggregate_range_1: 322,
+              aggregate_range_2: 388,
               transaction: '/api/0/internal/health/',
             },
           ],
@@ -434,12 +432,10 @@ describe('Performance > Trends', function () {
 
       expect(trendsStatsMock).toHaveBeenCalledTimes(2);
 
-      const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
-
       const sort =
         trendFunction.field === TrendFunctionField.USER_MISERY
-          ? getTrendAliasedMinus(trendFunction.alias)
-          : aliasedFieldDivide;
+          ? 'trend_difference()'
+          : 'trend_percentage()';
 
       const defaultTrendsFields = ['project'];
 
@@ -457,7 +453,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort,
-            query: expect.stringContaining('trend_percentage():<1'),
+            query: expect.stringContaining('trend_percentage():>0%'),
             interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
@@ -473,7 +469,7 @@ describe('Performance > Trends', function () {
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
             sort: '-' + sort,
-            query: expect.stringContaining('trend_percentage():>1'),
+            query: expect.stringContaining('trend_percentage():>0%'),
             interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
