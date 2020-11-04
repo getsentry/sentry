@@ -308,6 +308,27 @@ describe('getExpandedResults()', function () {
       {field: 'custom_tag'},
       {field: 'title'},
     ]);
+
+    // transforms pXX functions with optional arguments properly
+    view = new EventView({
+      ...state,
+      fields: [
+        {field: 'p50(transaction.duration)'},
+        {field: 'p75(measurements.foo)'},
+        {field: 'p95(measurements.bar)'},
+        {field: 'p99(measurements.fcp)'},
+        {field: 'p100(measurements.lcp)'},
+      ],
+    });
+
+    result = getExpandedResults(view, {}, {});
+    expect(result.fields).toEqual([
+      {field: 'transaction.duration', width: -1},
+      {field: 'measurements.foo', width: -1},
+      {field: 'measurements.bar', width: -1},
+      {field: 'measurements.fcp', width: -1},
+      {field: 'measurements.lcp', width: -1},
+    ]);
   });
 
   it('applies provided additional conditions', () => {

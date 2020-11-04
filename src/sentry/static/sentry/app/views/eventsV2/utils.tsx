@@ -179,17 +179,21 @@ const TRANSFORM_AGGREGATES = {
   failure_rate: '',
 } as const;
 
-function transformAggregate(fieldName: string): string {
+function transformAggregate(fieldName: string, argument?: string): string {
   // test if a field name is a percentile field name. for example: p50
   if (/^p\d+$/.test(fieldName)) {
-    return 'transaction.duration';
+    // These fields can have an optional argument. If they do contain the
+    // optional argument, then there is nothing to transform to. But if it
+    // does not contain the optional argument, then we want to transform
+    // it to `transaction.duration`.
+    return argument ? '' : 'transaction.duration';
   }
 
   return TRANSFORM_AGGREGATES[fieldName] || '';
 }
 
-function isTransformAggregate(fieldName: string): boolean {
-  return transformAggregate(fieldName) !== '';
+function isTransformAggregate(fieldName: string, argument?: string): boolean {
+  return transformAggregate(fieldName, argument) !== '';
 }
 
 /**
@@ -222,7 +226,10 @@ export function getExpandedResults(
     const exploded = explodeFieldString(currentField.field);
 
     let fieldNameAlias: string = '';
-    if (exploded.kind === 'function' && isTransformAggregate(exploded.function[0])) {
+    if (
+      exploded.kind === 'function' &&
+      isTransformAggregate(exploded.function[0], exploded.function[1])
+    ) {
       fieldNameAlias = exploded.function[0];
     } else if (exploded.kind === 'field' && exploded.field !== 'id') {
       // Skip id fields as they are implicitly part of all non-aggregate results.
