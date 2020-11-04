@@ -6,11 +6,13 @@ from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
 from sentry.models import (
+    add_group_to_inbox,
     Activity,
     Commit,
     CommitAuthor,
     Group,
     GroupAssignee,
+    GroupInboxReason,
     GroupLink,
     GroupStatus,
     GroupSubscription,
@@ -40,16 +42,21 @@ class ResolvedInCommitTest(TestCase):
         assert Group.objects.filter(
             id=group.id, status=GroupStatus.RESOLVED, resolved_at__isnull=False
         ).exists()
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=group).exists()
 
     def assertNotResolvedFromCommit(self, group, commit):
         assert not GroupLink.objects.filter(
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
         ).exists()
         assert not Group.objects.filter(id=group.id, status=GroupStatus.RESOLVED).exists()
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert GroupInbox.objects.filter(group=group).exists()
 
     # TODO(dcramer): pull out short ID matching and expand regexp tests
     def test_simple_no_author(self):
         group = self.create_group()
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
@@ -64,6 +71,7 @@ class ResolvedInCommitTest(TestCase):
 
     def test_updating_commit(self):
         group = self.create_group()
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
@@ -82,6 +90,7 @@ class ResolvedInCommitTest(TestCase):
 
     def test_updating_commit_with_existing_grouplink(self):
         group = self.create_group()
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
@@ -101,6 +110,7 @@ class ResolvedInCommitTest(TestCase):
 
     def test_removes_group_link_when_message_changes(self):
         group = self.create_group()
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
@@ -116,6 +126,7 @@ class ResolvedInCommitTest(TestCase):
         commit.message = "no groups here"
         commit.save()
 
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
         self.assertNotResolvedFromCommit(group, commit)
 
     def test_no_matching_group(self):
@@ -134,6 +145,7 @@ class ResolvedInCommitTest(TestCase):
 
     def test_matching_author_with_assignment(self):
         group = self.create_group()
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
         email = UserEmail.get_primary_email(user=user)
         email.is_verified = True
@@ -168,6 +180,7 @@ class ResolvedInCommitTest(TestCase):
 
     def test_matching_author_without_assignment(self):
         group = self.create_group()
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
         email = UserEmail.get_primary_email(user=user)
         email.is_verified = True

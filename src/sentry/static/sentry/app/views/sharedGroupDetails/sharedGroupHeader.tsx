@@ -30,7 +30,7 @@ export default SharedGroupHeader;
 
 const Wrapper = styled('div')`
   padding: ${space(3)} ${space(4)} ${space(3)} ${space(4)};
-  border-bottom: ${p => `1px solid ${p.theme.borderLight}`};
+  border-bottom: ${p => `1px solid ${p.theme.border}`};
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.03);
   position: relative;
   margin: 0 0 ${space(3)};
