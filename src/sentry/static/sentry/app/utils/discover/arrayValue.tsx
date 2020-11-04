@@ -30,12 +30,14 @@ class ArrayValue extends React.Component<Props, State> {
         {expanded &&
           value
             .slice(0, value.length - 1)
-            .map(item => <ArrayItem key={item}>{item}</ArrayItem>)}
+            .map((item, i) => <ArrayItem key={`${i}:${item}`}>{item}</ArrayItem>)}
         <span>
           {value.slice(-1)[0]}
-          <button onClick={this.handleToggle}>
-            {expanded ? t('[collapse]') : t('[+%s more]', value.length - 1)}
-          </button>
+          {value.length > 1 ? (
+            <button onClick={this.handleToggle}>
+              {expanded ? t('[collapse]') : t('[+%s more]', value.length - 1)}
+            </button>
+          ) : null}
         </span>
       </ArrayContainer>
     );
