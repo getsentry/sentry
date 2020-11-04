@@ -35,6 +35,6 @@ const Wrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     border: 0;
     padding: ${space(0.5)} 0px 0px 64px;
-    min-height: auto;
+  min-height: 48px;
   }
 `;
