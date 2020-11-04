@@ -1,6 +1,6 @@
-import {Link} from 'react-router';
-import PropTypes from 'prop-types';
+import {Link, WithRouterProps} from 'react-router';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {
@@ -17,61 +17,61 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import Switch from 'app/components/switch';
 import Truncate from 'app/components/truncate';
 import {IconAdd, IconFlag} from 'app/icons';
+import {ServiceHook} from 'app/types';
 
-class ServiceHookRow extends React.Component {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    hook: PropTypes.object.isRequired,
-    onToggleActive: PropTypes.func.isRequired,
-  };
+type RowProps = {
+  orgId: string;
+  projectId: string;
+  hook: ServiceHook;
+  onToggleActive: () => void;
+};
 
-  state = {
-    loading: false,
-    error: false,
-  };
-
-  render() {
-    const {orgId, projectId, hook} = this.props;
-    return (
-      <Field
-        label={
-          <Link to={`/settings/${orgId}/projects/${projectId}/hooks/${hook.id}/`}>
-            <Truncate value={hook.url} />
-          </Link>
-        }
-        help={
-          hook.events && hook.events.length !== 0 ? (
-            <small>{hook.events.join(', ')}</small>
-          ) : (
-            <small>
-              <em>no events configured</em>
-            </small>
-          )
-        }
-      >
-        <Switch
-          isActive={hook.status === 'active'}
-          size="lg"
-          toggle={this.props.onToggleActive}
-        />
-      </Field>
-    );
-  }
+function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
+  return (
+    <Field
+      label={
+        <Link to={`/settings/${orgId}/projects/${projectId}/hooks/${hook.id}/`}>
+          <Truncate value={hook.url} />
+        </Link>
+      }
+      help={
+        hook.events && hook.events.length !== 0 ? (
+          <small>{hook.events.join(', ')}</small>
+        ) : (
+          <small>
+            <em>no events configured</em>
+          </small>
+        )
+      }
+    >
+      <Switch isActive={hook.status === 'active'} size="lg" toggle={onToggleActive} />
+    </Field>
+  );
 }
 
-export default class ProjectServiceHooks extends AsyncView {
+type Props = WithRouterProps<{orgId: string; projectId: string}, {}>;
+
+type State = {
+  hookList: null | ServiceHook[];
+} & AsyncView['state'];
+
+export default class ProjectServiceHooks extends AsyncView<Props, State> {
   static contextTypes = {
+    router: PropTypes.object,
     organization: PropTypes.object.isRequired,
   };
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [['hookList', `/projects/${orgId}/${projectId}/hooks/`]];
   }
 
-  onToggleActive = hook => {
+  onToggleActive = (hook: ServiceHook) => {
     const {orgId, projectId} = this.props.params;
+    const {hookList} = this.state;
+    if (!hookList) {
+      return;
+    }
 
     addLoadingMessage(t('Saving changes\u2026'));
 
@@ -82,16 +82,17 @@ export default class ProjectServiceHooks extends AsyncView {
       },
       success: data => {
         clearIndicators();
-        const hookList = this.state.hookList.map(h => {
-          if (h.id === data.id) {
-            return {
-              ...h,
-              ...data,
-            };
-          }
-          return h;
+        this.setState({
+          hookList: hookList.map(h => {
+            if (h.id === data.id) {
+              return {
+                ...h,
+                ...data,
+              };
+            }
+            return h;
+          }),
         });
-        this.setState({hookList});
       },
       error: () => {
         addErrorMessage(t('Unable to remove application. Please try again.'));
@@ -119,7 +120,7 @@ export default class ProjectServiceHooks extends AsyncView {
               'Service Hooks are an early adopter preview feature and will change in the future.'
             )}
           </PanelAlert>
-          {this.state.hookList.map(hook => (
+          {this.state.hookList?.map(hook => (
             <ServiceHookRow
               key={hook.id}
               orgId={orgId}
@@ -134,12 +135,9 @@ export default class ProjectServiceHooks extends AsyncView {
   }
 
   renderBody() {
-    let body;
-    if (this.state.hookList.length > 0) {
-      body = this.renderResults();
-    } else {
-      body = this.renderEmpty();
-    }
+    const {hookList} = this.state;
+    const body =
+      hookList && hookList.length > 0 ? this.renderResults() : this.renderEmpty();
 
     const {orgId, projectId} = this.props.params;
     const access = new Set(this.context.organization.access);
