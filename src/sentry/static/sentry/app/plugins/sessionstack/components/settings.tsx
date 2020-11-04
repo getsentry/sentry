@@ -5,18 +5,24 @@ import {Form, FormState} from 'app/components/forms';
 import DefaultSettings from 'app/plugins/components/settings';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
-class Settings extends DefaultSettings {
-  constructor(props) {
-    super(props);
+type Props = DefaultSettings['props'];
 
-    this.REQUIRED_FIELDS = ['account_email', 'api_token', 'website_id'];
-    this.ON_PREMISES_FIELDS = ['api_url', 'player_url'];
+type State = DefaultSettings['state'] & {
+  showOnPremisesConfiguration?: boolean;
+};
+
+class Settings extends DefaultSettings<Props, State> {
+  REQUIRED_FIELDS = ['account_email', 'api_token', 'website_id'];
+  ON_PREMISES_FIELDS = ['api_url', 'player_url'];
+
+  constructor(props: Props, context: any) {
+    super(props, context);
 
     this.toggleOnPremisesConfiguration = this.toggleOnPremisesConfiguration.bind(this);
   }
 
-  renderFields(fields) {
-    return fields.map(f =>
+  renderFields(fields: State['fieldList']) {
+    return fields?.map(f =>
       this.renderField({
         config: f,
         formData: this.state.formData,
@@ -26,8 +32,8 @@ class Settings extends DefaultSettings {
     );
   }
 
-  filterFields(fields, fieldNames) {
-    return fields.filter(field => fieldNames.includes(field.name));
+  filterFields(fields: State['fieldList'], fieldNames: string[]) {
+    return fields?.filter(field => fieldNames.includes(field.name)) ?? [];
   }
 
   toggleOnPremisesConfiguration() {
