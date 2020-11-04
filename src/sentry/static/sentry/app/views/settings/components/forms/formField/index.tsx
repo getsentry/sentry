@@ -74,7 +74,7 @@ type ObserverOrValue<T> = T | ObserverReducerFn<T>;
 
 type Props = {
   name: string;
-  style?: object;
+  style?: React.CSSProperties;
   saveOnBlur?: boolean;
   saveMessage?: React.ReactNode | Function;
   saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
