@@ -51,11 +51,9 @@ const colors = {
   green400: '#4DC771',
   green500: '#1C8952',
 
-  pink100: '#FFE1ED',
-  pink200: '#FFCEE4',
-  pink300: '#FF99BC',
-  pink400: '#E1567C',
-  pink500: '#902D4C',
+  pink100: '#FDC9D7',
+  pink200: '#FA93AB',
+  pink300: '#F05781',
 } as const;
 
 const aliases = {
@@ -210,7 +208,7 @@ const badge = {
     indicatorColor: colors.orange400,
   },
   beta: {
-    background: `linear-gradient(90deg, ${colors.pink400}, ${colors.purple400})`,
+    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple400})`,
     indicatorColor: colors.purple400,
   },
   new: {

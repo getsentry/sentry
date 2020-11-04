@@ -200,5 +200,5 @@ const HighlightMarker = styled('mark')`
   padding: 0;
   background: transparent;
   font-weight: bold;
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.active};
 `;

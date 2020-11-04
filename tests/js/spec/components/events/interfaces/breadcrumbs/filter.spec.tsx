@@ -24,7 +24,7 @@ const options: React.ComponentProps<typeof Filter>['options'] = [
       type: BreadcrumbType.TRANSACTION,
       description: 'Transaction',
       levels: [BreadcrumbLevelType.ERROR],
-      symbol: <Icon color="pink400" icon={IconSpan} size="xs" />,
+      symbol: <Icon color="pink300" icon={IconSpan} size="xs" />,
       isChecked: true,
     },
     {
