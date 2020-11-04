@@ -61,7 +61,7 @@ type State = {
   expected: number;
   error: boolean;
   processingIssues: null | ProcessingIssue;
-  pageLinks: null | undefined | string;
+  pageLinks: null | string;
 };
 
 class ProjectProcessingIssues extends React.Component<Props, State> {
@@ -113,7 +113,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
             error: false,
             loading: expected > 0,
             processingIssues: data,
-            pageLinks: jqXHR?.getResponseHeader('Link'),
+            pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
           });
         },
         error: () => {
@@ -213,15 +213,16 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
 
   renderDebugTable() {
     let body: React.ReactNode;
-    if (this.state.loading) {
+    const {loading, error, processingIssues} = this.state;
+    if (loading) {
       body = this.renderLoading();
-    } else if (this.state.error) {
+    } else if (error) {
       body = <LoadingError onRetry={this.fetchData} />;
     } else if (
-      this.state.processingIssues &&
-      (this.state.processingIssues.hasIssues ||
-        this.state.processingIssues.resolveableIssues ||
-        this.state.processingIssues.issuesProcessing)
+      processingIssues &&
+      (processingIssues.hasIssues ||
+        processingIssues.resolveableIssues ||
+        processingIssues.issuesProcessing)
     ) {
       body = this.renderResults();
     } else {
@@ -251,7 +252,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
 
   getProblemDescription(item: ProcessingIssueItem) {
     const msg = MESSAGES[item.type];
-    return msg || 'Unknown Error';
+    return msg || t('Unknown Error');
   }
 
   getImageName(path: string) {

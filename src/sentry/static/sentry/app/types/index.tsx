@@ -752,10 +752,12 @@ export type ProcessingIssueItem = {
   checksum: string;
   numEvents: number;
   data: {
+    // TODO(ts) This type is likely incomplete, but this is what
+    // project processing issues settings uses.
     _scope: string;
     image_uuid: string;
     image_path: string;
-  }; // TODO(ts)
+  };
   lastSeen: string;
 };
 
