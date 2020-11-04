@@ -220,8 +220,8 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
       body = <LoadingError onRetry={this.fetchData} />;
     } else if (
       processingIssues?.hasIssues ||
-        processingIssues?.resolveableIssues ||
-        processingIssues?.issuesProcessing
+      processingIssues?.resolveableIssues ||
+      processingIssues?.issuesProcessing
     ) {
       body = this.renderResults();
     } else {
