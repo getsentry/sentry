@@ -113,7 +113,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
             error: false,
             loading: expected > 0,
             processingIssues: data,
-            pageLinks: jqXHR && jqXHR.getResponseHeader('Link'),
+            pageLinks: jqXHR?.getResponseHeader('Link'),
           });
         },
         error: () => {
@@ -274,7 +274,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     );
   }
 
-  renderDetails(item) {
+  renderDetails(item: ProcessingIssueItem) {
     let dsymUUID: React.ReactNode = null;
     let dsymName: React.ReactNode = null;
     let dsymArch: React.ReactNode = null;
