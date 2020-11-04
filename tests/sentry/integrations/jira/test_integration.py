@@ -516,6 +516,7 @@ class JiraIntegrationTest(APITestCase):
                     "name": "issuetype",
                     "label": "Issue Type",
                     "updatesForm": True,
+                    "required": True,
                 },
                 {
                     "required": False,
