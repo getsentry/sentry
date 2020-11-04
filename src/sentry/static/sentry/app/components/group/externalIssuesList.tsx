@@ -111,7 +111,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   async updateIntegrations(onSuccess = () => {}, onError = () => {}) {
     try {
       const {group} = this.props;
-      let integrations = await this.api.requestPromise(
+      const integrations = await this.api.requestPromise(
         `/groups/${group.id}/integrations/`
       );
       this.setState({integrations}, () => onSuccess());
@@ -131,7 +131,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       string,
       GroupIntegration[]
     > = activeIntegrations.reduce((acc, curr) => {
-      let items = acc.get(curr.provider.key);
+      const items = acc.get(curr.provider.key);
 
       if (!!items) {
         acc.set(curr.provider.key, [...items, curr]);

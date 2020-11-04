@@ -12,7 +12,7 @@ describe('ExternalIssueActions', function () {
     const configurations = [integration];
     const wrapper = mountWithTheme(
       <ExternalIssueActions
-        key={'github'}
+        key="github"
         group={group}
         configurations={configurations}
         onChange={() => {}}
@@ -31,7 +31,7 @@ describe('ExternalIssueActions', function () {
     });
 
     it('should not have `+` icon', function () {
-      let container = wrapper.find('IssueSyncListElementContainer').first();
+      const container = wrapper.find('IssueSyncListElementContainer').first();
       expect(container.contains('StyledIcon')).toBe(false);
     });
 
