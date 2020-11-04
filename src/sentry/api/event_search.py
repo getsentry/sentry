@@ -2229,6 +2229,14 @@ FUNCTIONS = {
         ),
     ]
 }
+# In Performance TPM is used as an alias to EPM
+FUNCTION_ALIASES = {
+    "tpm": "epm",
+    "tps": "eps",
+}
+for alias, name in FUNCTION_ALIASES.items():
+    FUNCTIONS[alias] = deepcopy(FUNCTIONS[name])
+    FUNCTIONS[alias].name = alias
 
 
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))

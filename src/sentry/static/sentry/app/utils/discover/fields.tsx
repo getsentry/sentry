@@ -535,7 +535,8 @@ const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
 
 export function generateAggregateFields(
   organization: LightWeightOrganization,
-  eventFields: readonly Field[] | Field[]
+  eventFields: readonly Field[] | Field[],
+  excludeFields?: readonly string[] = []
 ): Field[] {
   const functions = Object.keys(AGGREGATIONS);
   const fields = Object.values(eventFields).map(field => field.field);
@@ -555,7 +556,7 @@ export function generateAggregateFields(
       const newField = `${func}(${parameters
         .map(param => param.defaultValue)
         .join(',')})`;
-      if (fields.indexOf(newField) === -1) {
+      if (fields.indexOf(newField) === -1 && excludeFields.indexOf(newField) === -1) {
         fields.push(newField);
       }
     }

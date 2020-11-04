@@ -2243,6 +2243,18 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == []
 
+    def test_tpm_function_alias(self):
+        """ TPM should be functionally identical to EPM except in name """
+        fields = ["tpm()"]
+        result = resolve_field_list(
+            fields, eventstore.Filter(start=before_now(hours=2), end=before_now(hours=1))
+        )
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["divide(count(), divide(3600, 60))", None, "tpm"],
+        ]
+        assert result["groupby"] == []
+
     def test_absolute_delta_function(self):
         fields = ["absolute_delta(transaction.duration,100)", "id"]
         result = resolve_field_list(fields, eventstore.Filter())

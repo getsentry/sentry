@@ -33,7 +33,7 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
     },
     {
       tooltip: getTermHelp(organization, 'tpm'),
-      value: 'epm()',
+      value: 'tpm()',
       label: t('Transactions Per Minute'),
     },
     {
@@ -114,7 +114,7 @@ export function generatePerformanceEventView(
       ...keyTransactionFields,
       'transaction',
       'project',
-      'epm()',
+      'tpm()',
       'p50()',
       'p95()',
       'failure_rate()',
@@ -128,7 +128,7 @@ export function generatePerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-epm';
+  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
 
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
