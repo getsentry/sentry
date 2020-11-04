@@ -35,8 +35,9 @@ from sentry.utils.compat import mock
 
 class ProjectSerializerTest(TestCase):
     def setUp(self):
+        super(ProjectSerializerTest, self).setUp()
         self.user = self.create_user()
-        self.organization = self.create_organization(owner=self.user)
+        self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(teams=[self.team], organization=self.organization)
 
