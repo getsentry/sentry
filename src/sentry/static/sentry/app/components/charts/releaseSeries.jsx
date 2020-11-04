@@ -157,6 +157,7 @@ class ReleaseSeries extends React.Component {
       seriesName: 'Releases',
       data: [],
       markLine: MarkLine({
+        animation: false,
         lineStyle: {
           normal: {
             color: theme.purple400,
