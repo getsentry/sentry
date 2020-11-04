@@ -2488,50 +2488,6 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "start argument invalid: today is in the wrong format" in six.text_type(err)
 
-    def test_user_misery_range(self):
-        fields = [
-            "user_misery_range(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, user_misery_range_1)"
-        ]
-        result = resolve_field_list(fields, eventstore.Filter())
-        assert result["aggregations"] == [
-            [
-                "uniqIf",
-                [
-                    "user",
-                    [
-                        "and",
-                        [
-                            ["greater", ["duration", 1200]],
-                            [
-                                "and",
-                                [
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                                    ],
-                                    [
-                                        "greater",
-                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-                u"user_misery_range_1",
-            ]
-        ]
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["user_misery_range(300, 2020-05-01T01:12:34, tomorrow, 1)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert "end argument invalid: tomorrow is in the wrong format" in six.text_type(err)
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["user_misery_range(300, today, 2020-05-03T06:48:57, 1)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert "start argument invalid: today is in the wrong format" in six.text_type(err)
-
     def test_absolute_correlation(self):
         fields = ["absolute_correlation()"]
         result = resolve_field_list(fields, eventstore.Filter())
@@ -2545,132 +2501,96 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_percentage(self):
         fields = [
-            "user_misery_range(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, user_misery_range_1)",
-            "user_misery_range(300, 2020-05-03T06:48:57, 2020-05-05T01:12:34, user_misery_range_2)",
-            "percentage(user_misery_range_2, user_misery_range_1, misery_percentage)",
+            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57, percentile_range_1)",
+            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34, percentile_range_2)",
+            "percentage(percentile_range_2, percentile_range_1, trend_percentage)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                "uniqIf",
+                "quantileIf(0.95)",
                 [
-                    "user",
+                    "transaction.duration",
                     [
                         "and",
                         [
-                            ["greater", ["duration", 1200]],
                             [
-                                "and",
-                                [
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                                    ],
-                                    [
-                                        "greater",
-                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                                    ],
-                                ],
+                                "lessOrEquals",
+                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
                             ],
+                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
                         ],
                     ],
                 ],
-                "user_misery_range_1",
+                "percentile_range_1",
             ],
             [
-                "uniqIf",
+                "quantileIf(0.95)",
                 [
-                    "user",
+                    "transaction.duration",
                     [
                         "and",
                         [
-                            ["greater", ["duration", 1200]],
                             [
-                                "and",
-                                [
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                                    ],
-                                    [
-                                        "greater",
-                                        [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"],
-                                    ],
-                                ],
+                                "lessOrEquals",
+                                [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
                             ],
+                            ["greater", [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"]],
                         ],
                     ],
                 ],
-                "user_misery_range_2",
+                "percentile_range_2",
             ],
             [
-                "if(greater(user_misery_range_1,0),divide(user_misery_range_2,user_misery_range_1),null)",
+                "if(greater(percentile_range_1,0),divide(percentile_range_2,percentile_range_1),null)",
                 None,
-                "misery_percentage",
+                "trend_percentage",
             ],
         ]
 
     def test_minus(self):
         fields = [
-            "user_misery_range(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, user_misery_range_1)",
-            "user_misery_range(300, 2020-05-03T06:48:57, 2020-05-05T01:12:34, user_misery_range_2)",
-            "minus(user_misery_range_1, user_misery_range_2, misery_difference)",
+            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57, percentile_range_1)",
+            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34, percentile_range_2)",
+            "minus(percentile_range_2, percentile_range_1, trend_difference)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                "uniqIf",
+                "quantileIf(0.95)",
                 [
-                    "user",
+                    "transaction.duration",
                     [
                         "and",
                         [
-                            ["greater", ["duration", 1200]],
                             [
-                                "and",
-                                [
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                                    ],
-                                    [
-                                        "greater",
-                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                                    ],
-                                ],
+                                "lessOrEquals",
+                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
                             ],
+                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
                         ],
                     ],
                 ],
-                "user_misery_range_1",
+                "percentile_range_1",
             ],
             [
-                "uniqIf",
+                "quantileIf(0.95)",
                 [
-                    "user",
+                    "transaction.duration",
                     [
                         "and",
                         [
-                            ["greater", ["duration", 1200]],
                             [
-                                "and",
-                                [
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                                    ],
-                                    [
-                                        "greater",
-                                        [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"],
-                                    ],
-                                ],
+                                "lessOrEquals",
+                                [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
                             ],
+                            ["greater", [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"]],
                         ],
                     ],
                 ],
-                "user_misery_range_2",
+                "percentile_range_2",
             ],
-            ["minus", ["user_misery_range_1", "user_misery_range_2"], "misery_difference"],
+            ["minus", ["percentile_range_2", "percentile_range_1"], "trend_difference"],
         ]
 
     def test_percentile_shortcuts(self):

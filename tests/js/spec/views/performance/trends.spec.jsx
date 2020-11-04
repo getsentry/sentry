@@ -11,7 +11,6 @@ import {
   TRENDS_FUNCTIONS,
   CONFIDENCE_LEVELS,
 } from 'app/views/performance/trends/utils';
-import {TrendFunctionField} from 'app/views/performance/trends/types';
 
 const trendsViewQuery = {
   view: 'TRENDS',
@@ -432,10 +431,7 @@ describe('Performance > Trends', function () {
 
       expect(trendsStatsMock).toHaveBeenCalledTimes(2);
 
-      const sort =
-        trendFunction.field === TrendFunctionField.USER_MISERY
-          ? 'trend_difference()'
-          : 'trend_percentage()';
+      const sort = 'trend_percentage()';
 
       const defaultTrendsFields = ['project'];
 
