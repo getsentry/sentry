@@ -77,15 +77,7 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
       is: {
         key: 'is',
         name: 'Status',
-        values: [
-          'resolved',
-          'unresolved',
-          'ignored',
-          // TODO(dcramer): remove muted once data is migrated and 9.0+
-          'muted',
-          'assigned',
-          'unassigned',
-        ],
+        values: ['resolved', 'unresolved', 'ignored', 'assigned', 'unassigned'],
         predefined: true,
       },
       has: {
