@@ -6,6 +6,7 @@ import {Location} from 'history';
 import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
+import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {defined} from 'app/utils';
@@ -128,6 +129,12 @@ class HealthChart extends React.Component<Props> {
     const {timeseriesData, zoomRenderProps} = this.props;
 
     if (timeseriesData.every(s => s.data.length === 1)) {
+      if (zoomRenderProps.period) {
+        const {start, end} = parseStatsPeriod(zoomRenderProps.period);
+
+        return {min: start, max: end};
+      }
+
       return {
         min: zoomRenderProps.start,
         max: zoomRenderProps.end,
