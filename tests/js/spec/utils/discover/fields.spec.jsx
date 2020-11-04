@@ -129,6 +129,11 @@ describe('aggregateOutputType', function () {
     expect(aggregateOutputType('p95()')).toEqual('duration');
     expect(aggregateOutputType('p99()')).toEqual('duration');
     expect(aggregateOutputType('p100()')).toEqual('duration');
+    expect(aggregateOutputType('p50(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p75(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p95(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p99(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p100(transaction.duration)')).toEqual('duration');
     expect(aggregateOutputType('percentile(transaction.duration, 0.51)')).toEqual(
       'duration'
     );
@@ -171,6 +176,11 @@ describe('aggregateOutputType', function () {
     expect(aggregateOutputType('max(measurements.bar)')).toEqual('number');
     expect(aggregateOutputType('avg(measurements.bar)')).toEqual('number');
     expect(aggregateOutputType('percentile(measurements.bar, 0.5)')).toEqual('number');
+    expect(aggregateOutputType('p50(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p75(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p95(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p99(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p100(measurements.bar)')).toEqual('number');
   });
 });
 

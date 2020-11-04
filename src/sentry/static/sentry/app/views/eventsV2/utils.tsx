@@ -19,6 +19,7 @@ import {
   ColumnType,
   AGGREGATIONS,
   FIELDS,
+  aggregateFunctionOutputType,
   explodeFieldString,
   getAggregateAlias,
   TRACING_FIELDS,
@@ -64,14 +65,11 @@ export function decodeColumnOrder(
     if (col.kind === 'function') {
       // Aggregations can have a strict outputType or they can inherit from their field.
       // Otherwise use the FIELDS data to infer types.
-      const aggregate = AGGREGATIONS[col.function[0]];
-      if (aggregate && aggregate.outputType) {
-        column.type = aggregate.outputType;
-      } else if (FIELDS.hasOwnProperty(col.function[1])) {
-        column.type = FIELDS[col.function[1]];
-      } else if (isMeasurement(col.function[1])) {
-        column.type = measurementType(col.function[1]);
+      const outputType = aggregateFunctionOutputType(col.function[0], col.function[1]);
+      if (outputType !== null) {
+        column.type = outputType;
       }
+      const aggregate = AGGREGATIONS[col.function[0]];
       column.isSortable = aggregate && aggregate.isSortable;
     } else if (col.kind === 'field') {
       if (FIELDS.hasOwnProperty(col.field)) {
