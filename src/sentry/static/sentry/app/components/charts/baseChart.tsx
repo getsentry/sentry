@@ -200,7 +200,7 @@ type Props = {
    */
   bucketSize?: number;
   /**
-   * If true and there's only one datapoint in series.data, we show a stacked bar chart to increase the visibility.
+   * If true and there's only one datapoint in series.data, we show a bar chart to increase the visibility.
    * Especially useful with line / area charts, because you can't draw line with single data point and one alone point is hard to spot.
    */
   transformSinglePointToBar?: boolean;
@@ -306,8 +306,8 @@ class BaseChart extends React.Component<Props, State> {
         ? (series as EChartOption.SeriesLine[] | undefined)?.map(s => ({
             ...s,
             type: 'bar',
-            stack: 'bar',
             barWidth: 40,
+            barGap: 0,
           }))
         : series) ?? [];
 
