@@ -437,10 +437,7 @@ class SearchVisitor(NodeVisitor):
 
         if self.is_numeric_key(search_key.name):
             try:
-                if is_measurement(search_key.name):
-                    search_value = SearchValue(float(search_value.text))
-                else:
-                    search_value = SearchValue(int(search_value.text))
+                search_value = SearchValue(float(search_value.text))
             except ValueError:
                 raise InvalidSearchQuery(u"Invalid numeric query: {}".format(search_key))
             return SearchFilter(search_key, operator, search_value)
