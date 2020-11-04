@@ -408,6 +408,54 @@ class PostSentryAppsTest(SentryAppsTest):
             "organization": "Organization 'some-non-existent-org' does not exist.",
         }
 
+    def test_internal_sentry_app_cannot_create_app(self):
+        self.create_project(organization=self.internal_org)
+        sentry_app = self.internal_app
+        body = {
+            "name": sentry_app.name,
+            "organization": self.internal_org.slug,
+        }
+        token = ApiToken.objects.get(application=sentry_app.application)
+        response = self._post_with_token(token, **body)
+        assert response.status_code == 403
+        assert response.data["detail"].startswith("You do not have permission")
+
+    def test_internal_sentry_app_cannot_create_app_without_organization(self):
+        self.create_project(organization=self.internal_org)
+        sentry_app = self.internal_app
+        body = {
+            "name": sentry_app.name,
+            "organization": None,
+        }
+        token = ApiToken.objects.get(application=sentry_app.application)
+        response = self._post_with_token(token, **body)
+        assert response.status_code == 403
+        assert response.data["detail"].startswith("You do not have permission")
+
+    def test_internal_sentry_app_cannot_create_app_in_alien_organization(self):
+        self.create_project(organization=self.super_org)
+        sentry_app = self.internal_app
+        body = {
+            "name": sentry_app.name,
+            "organization": self.super_org.slug,
+        }
+        token = ApiToken.objects.get(application=sentry_app.application)
+        response = self._post_with_token(token, **body)
+        assert response.status_code == 403
+        assert response.data["detail"].startswith("You do not have permission")
+
+    def test_internal_sentry_app_cannot_create_app_in_nonexistent_organization(self):
+        self.create_project(organization=self.org)
+        sentry_app = self.internal_app
+        body = {
+            "name": sentry_app.name,
+            "organization": "some-non-existent-org",
+        }
+        token = ApiToken.objects.get(application=sentry_app.application)
+        response = self._post_with_token(token, **body)
+        assert response.status_code == 403
+        assert response.data["detail"].startswith("You do not have permission")
+
     def test_long_name_internal_integration(self):
         self.create_project(organization=self.org)
         self.login_as(user=self.user)
@@ -681,3 +729,14 @@ class PostSentryAppsTest(SentryAppsTest):
         body = self._default_body()
         body.update(**kwargs)
         return self.client.post(self.url, body, headers={"Content-Type": "application/json"})
+
+    def _post_with_token(self, token, **kwargs):
+        body = self._default_body()
+        body.update(**kwargs)
+        authorization = "Bearer {}".format(token.token)
+        return self.client.post(
+            self.url,
+            body,
+            HTTP_AUTHORIZATION=authorization,
+            headers={"Content-Type": "application/json"},
+        )
