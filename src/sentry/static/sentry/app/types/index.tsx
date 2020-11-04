@@ -694,19 +694,19 @@ export type EventOrGroupType =
 // TODO(ts): incomplete
 export type Group = {
   id: string;
-  activity: any[]; // TODO(ts)
+  activity: Activity[];
   annotations: string[];
   assignedTo: User;
   count: string;
   culprit: string;
-  firstRelease: any; // TODO(ts)
+  firstRelease: Release;
   firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  lastRelease: any; // TODO(ts)
+  lastRelease: Release;
   lastSeen: string;
   level: Level;
   logger: string;
@@ -1089,6 +1089,18 @@ type BaseRelease = {
   version: string;
   shortVersion: string;
   ref: string;
+};
+
+export type CurrentRelease = {
+  environment: string;
+  firstSeen: string;
+  lastSeen: string;
+  release: Release;
+  stats: {
+    // 24h/30d is hardcoded in GroupReleaseWithStatsSerializer
+    '24h': TimeseriesValue[];
+    '30d': TimeseriesValue[];
+  };
 };
 
 export type ReleaseProject = {

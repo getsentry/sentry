@@ -7,7 +7,7 @@ import SeenInfo from 'app/components/group/seenInfo';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import {Environment, Group, Organization, Project} from 'app/types';
+import {CurrentRelease, Environment, Group, Organization, Project} from 'app/types';
 
 type Props = {
   organization: Organization;
@@ -15,7 +15,7 @@ type Props = {
   environments: Environment[];
   allEnvironments: Group | undefined;
   group: Group | undefined;
-  currentRelease: any | null | undefined; // TODO(ts)
+  currentRelease: CurrentRelease | undefined;
 };
 
 const GroupReleaseStats = ({
@@ -58,8 +58,8 @@ const GroupReleaseStats = ({
               group={allEnvironments}
               environment={environmentLabel}
               environmentStats={group.stats}
-              release={currentRelease?.release ?? null}
-              releaseStats={currentRelease?.stats ?? null}
+              release={currentRelease?.release}
+              releaseStats={currentRelease?.stats}
               statsPeriod="24h"
               title={t('Last 24 Hours')}
               firstSeen={group.firstSeen}
@@ -69,8 +69,8 @@ const GroupReleaseStats = ({
               group={allEnvironments}
               environment={environmentLabel}
               environmentStats={group.stats}
-              release={currentRelease?.release ?? null}
-              releaseStats={currentRelease?.stats ?? null}
+              release={currentRelease?.release}
+              releaseStats={currentRelease?.stats}
               statsPeriod="30d"
               title={t('Last 30 Days')}
               className="bar-chart-small"

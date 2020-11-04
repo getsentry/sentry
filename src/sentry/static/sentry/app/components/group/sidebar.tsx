@@ -17,6 +17,7 @@ import LoadingError from 'app/components/loadingError';
 import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import withApi from 'app/utils/withApi';
 import {
+  CurrentRelease,
   Event,
   Environment,
   Group,
@@ -36,7 +37,7 @@ type Props = {
 
 type State = {
   environments: Environment[];
-  currentRelease?: object | null;
+  currentRelease?: CurrentRelease;
   participants: Group['participants'];
   allEnvironmentsGroupData?: Group;
   tagsWithTopValues?: Record<string, TagWithTopValues>;
