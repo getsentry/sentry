@@ -638,6 +638,15 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_numeric_filter_with_decimals(self):
+        assert parse_search_query("transaction.duration:>3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="transaction.duration"),
+                operator=">",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
