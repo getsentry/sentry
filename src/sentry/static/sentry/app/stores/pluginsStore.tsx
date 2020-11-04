@@ -27,6 +27,7 @@ const PluginStoreConfig: Reflux.StoreDefinition & PluginStoreInterface = {
   updating: new Map(),
 
   reset() {
+    //reset our state
     this.plugins = null;
     this.state = {...defaultState};
     this.updating = new Map();
