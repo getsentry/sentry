@@ -71,6 +71,13 @@ class ThreadInterface extends React.Component {
     this.setState({newestFirst});
   };
 
+  handleChangeStackView = ({stackView, stackType}) => {
+    this.setState(prevState => ({
+      stackView: stackView ?? prevState.stackView,
+      stackType: stackType ?? prevState.stackType,
+    }));
+  };
+
   render() {
     const {data, event, projectId, hideGuide, type} = this.props;
 
@@ -125,6 +132,7 @@ class ThreadInterface extends React.Component {
             stackType={stackType}
             thread={hasThreads ? activeThread : undefined}
             exception={hasThreads ? exception : undefined}
+            onChange={this.handleChangeStackView}
           />
         }
         showPermalink={!hasThreads}
