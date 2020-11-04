@@ -71,7 +71,7 @@ type FetchPluginsOptions = {
 export function fetchPlugins(
   {orgId, projectId}: Pick<Slugs, 'orgId' | 'projectId'>,
   options?: FetchPluginsOptions
-) {
+): Promise<Plugin[]> {
   const path = `/projects/${orgId}/${projectId}/plugins/`;
 
   // Make sure we throttle fetches

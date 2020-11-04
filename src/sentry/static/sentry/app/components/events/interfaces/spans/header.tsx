@@ -485,7 +485,7 @@ const TimeAxis = styled('div')`
   position: absolute;
   left: 0;
   bottom: 0;
-  border-top: 1px solid ${p => p.theme.borderDark};
+  border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.white};
   color: ${p => p.theme.gray500};
@@ -579,7 +579,7 @@ const HeaderContainer = styled('div')`
   top: 0;
   z-index: ${zIndex.minimapContainer};
   background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
 `;
 
@@ -606,6 +606,12 @@ const ViewHandleContainer = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
 `;
 
+const ViewHandleLine = styled('div')`
+  height: ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px;
+  width: 2px;
+  background-color: ${p => p.theme.gray800};
+`;
+
 const ViewHandle = styled('div')<{isDragging: boolean}>`
   position: absolute;
   background-color: ${p => p.theme.gray800};
@@ -613,7 +619,7 @@ const ViewHandle = styled('div')<{isDragging: boolean}>`
   width: 8px;
   height: ${VIEW_HANDLE_HEIGHT}px;
   bottom: 0;
-  left: -4px;
+  left: -3px;
 `;
 
 const Fog = styled('div')`
@@ -658,22 +664,7 @@ const Handle = ({
       left: toPercent(left),
     }}
   >
-    <svg
-      width={1}
-      height={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
-      fill="none"
-      style={{width: '1px', overflow: 'visible'}}
-    >
-      <line
-        x1="0"
-        x2="0"
-        y1="0"
-        y2={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
-        strokeWidth="1"
-        strokeDasharray="5 3"
-        style={{stroke: '#302839'}}
-      />
-    </svg>
+    <ViewHandleLine />
     <ViewHandle
       data-ignore="true"
       onMouseDown={onMouseDown}
