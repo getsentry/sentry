@@ -7,7 +7,6 @@ import {getFormattedDate} from 'app/utils/dates';
 import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
 import {truncationFormatter} from './utils';
-import XAxis from './components/xAxis';
 import Tooltip from './components/tooltip';
 
 type Marker = {
@@ -180,7 +179,7 @@ class MiniBarChart extends React.Component<Props> {
         left: markers ? 4 : 0,
         right: markers ? 4 : 0,
       },
-      xAxis: XAxis({
+      xAxis: {
         axisLine: {
           show: false,
         },
@@ -192,7 +191,7 @@ class MiniBarChart extends React.Component<Props> {
           show: false,
         },
         axisPointer: {
-          type: 'line',
+          type: 'line' as const,
           label: {
             show: false,
           },
@@ -200,7 +199,7 @@ class MiniBarChart extends React.Component<Props> {
             width: 0,
           },
         },
-      }),
+      },
       options: {
         animation: false,
       },
