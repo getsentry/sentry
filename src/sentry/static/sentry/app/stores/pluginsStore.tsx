@@ -14,24 +14,21 @@ type PluginStoreInterface = {
   updating: Map<string, Plugin>;
 };
 
+const defaultState = {
+  loading: true,
+  plugins: [],
+  error: null,
+  pageLinks: null,
+};
+
 const PluginStoreConfig: Reflux.StoreDefinition & PluginStoreInterface = {
   plugins: null,
-  state: {
-    loading: true,
-    plugins: [],
-    error: null,
-    pageLinks: null,
-  },
+  state: {...defaultState},
   updating: new Map(),
 
   reset() {
     this.plugins = null;
-    this.state = {
-      loading: true,
-      plugins: [],
-      error: null,
-      pageLinks: null,
-    };
+    this.state = {...defaultState};
     this.updating = new Map();
     return this.state;
   },
