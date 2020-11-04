@@ -16,7 +16,7 @@ export const CardSection = styled('div')`
 
 export const CardSummary = styled(CardSection)`
   position: relative;
-  border-right: 1px solid ${p => p.theme.borderLight};
+  border-right: 1px solid ${p => p.theme.border};
   grid-column: 1/1;
   display: flex;
   flex-direction: column;

@@ -212,5 +212,5 @@ const PanelAction = styled('div')`
   grid-gap: ${space(1)};
   grid-template-columns: auto auto;
   justify-content: flex-end;
-  border-top: 1px solid ${p => p.theme.borderDark};
+  border-top: 1px solid ${p => p.theme.border};
 `;
