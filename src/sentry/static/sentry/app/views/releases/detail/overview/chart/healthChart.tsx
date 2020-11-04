@@ -124,6 +124,19 @@ class HealthChart extends React.Component<Props> {
     }
   }
 
+  configureXAxis() {
+    const {timeseriesData, zoomRenderProps} = this.props;
+
+    if (timeseriesData.every(s => s.data.length === 1)) {
+      return {
+        min: zoomRenderProps.start,
+        max: zoomRenderProps.end,
+      };
+    }
+
+    return undefined;
+  }
+
   getChart() {
     const {yAxis} = this.props;
     switch (yAxis) {
@@ -185,6 +198,7 @@ class HealthChart extends React.Component<Props> {
           bottom: '12px',
         }}
         yAxis={this.configureYAxis()}
+        xAxis={this.configureXAxis()}
         tooltip={{valueFormatter: this.formatTooltipValue}}
         onLegendSelectChanged={this.handleLegendSelectChanged}
         transformSinglePointToBar
