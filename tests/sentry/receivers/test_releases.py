@@ -12,7 +12,6 @@ from sentry.models import (
     CommitAuthor,
     Group,
     GroupAssignee,
-    GroupInbox,
     GroupInboxReason,
     GroupLink,
     GroupStatus,
@@ -43,14 +42,16 @@ class ResolvedInCommitTest(TestCase):
         assert Group.objects.filter(
             id=group.id, status=GroupStatus.RESOLVED, resolved_at__isnull=False
         ).exists()
-        assert not GroupInbox.objects.filter(group=group).exists()
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=group).exists()
 
     def assertNotResolvedFromCommit(self, group, commit):
         assert not GroupLink.objects.filter(
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
         ).exists()
         assert not Group.objects.filter(id=group.id, status=GroupStatus.RESOLVED).exists()
-        assert GroupInbox.objects.filter(group=group).exists()
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert GroupInbox.objects.filter(group=group).exists()
 
     # TODO(dcramer): pull out short ID matching and expand regexp tests
     def test_simple_no_author(self):
