@@ -1314,7 +1314,7 @@ describe('IssueList', function () {
 
   describe('processingIssues', function () {
     beforeEach(function () {
-      wrapper = shallow(<IssueListOverview {...props} />);
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
     });
 
     it('fetches and displays processing issues', async function () {
@@ -1633,6 +1633,14 @@ describe('IssueList', function () {
       });
 
       expect(wrapper.find(ErrorRobot)).toHaveLength(0);
+    });
+  });
+
+  describe('with inbox feature', function () {
+    it('renders inbox layout', function () {
+      organization.features = ['inbox'];
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
     });
   });
 });

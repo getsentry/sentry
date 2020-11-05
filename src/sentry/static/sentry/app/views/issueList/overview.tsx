@@ -8,9 +8,11 @@ import * as qs from 'query-string';
 import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import {Client} from 'app/api';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {tct} from 'app/locale';
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics, metric} from 'app/utils/analytics';
 import {defined} from 'app/utils';
@@ -36,6 +38,7 @@ import {
   SavedSearch,
   TagCollection,
 } from 'app/types';
+import QueryCount from 'app/components/queryCount';
 import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
 import parseApiError from 'app/utils/parseApiError';
@@ -46,9 +49,13 @@ import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
 import withIssueTags from 'app/utils/withIssueTags';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import space from 'app/styles/space';
+import {PageContent} from 'app/styles/organization';
+import Feature from 'app/components/acl/feature';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
+import IssueListHeader from './header';
 import IssueListSidebar from './sidebar';
 import NoGroupsHandler from './noGroupsHandler';
 
@@ -103,7 +110,7 @@ type EndpointParams = Partial<GlobalSelection['datetime']> & {
 };
 
 class IssueListOverview extends React.Component<Props, State> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     const realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -641,6 +648,10 @@ class IssueListOverview extends React.Component<Props, State> {
     });
   };
 
+  handleTabClick = (query: string) => {
+    this.transitionTo({query}, null);
+  };
+
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getGlobalSearchProjectIds().map(id => id.toString());
@@ -671,69 +682,109 @@ class IssueListOverview extends React.Component<Props, State> {
       groupIds,
       queryMaxCount,
     } = this.state;
-    const {organization, savedSearch, savedSearches, tags, selection} = this.props;
+    const {
+      organization,
+      savedSearch,
+      savedSearches,
+      tags,
+      selection,
+      location,
+    } = this.props;
     const query = this.getQuery();
+    const queryPageInt = parseInt(location.query.page, 10);
+    const page = isNaN(queryPageInt) ? 0 : queryPageInt;
+    const pageCount = page * MAX_ITEMS + groupIds?.length;
 
     return (
-      <StreamRow>
-        <StreamContent showSidebar={isSidebarVisible}>
-          <IssueListFilters
-            organization={organization}
-            query={query}
-            savedSearch={savedSearch}
-            sort={this.getSort()}
-            queryCount={queryCount}
-            queryMaxCount={queryMaxCount}
-            onSortChange={this.onSortChange}
-            onSearch={this.onSearch}
-            onSavedSearchSelect={this.onSavedSearchSelect}
-            onSavedSearchDelete={this.onSavedSearchDelete}
-            onSidebarToggle={this.onSidebarToggle}
-            isSearchDisabled={isSidebarVisible}
-            savedSearchList={savedSearches}
-            tagValueLoader={this.tagValueLoader}
-            tags={tags}
-          />
-
-          <Panel>
-            <IssueListActions
-              orgId={organization.slug}
-              selection={selection}
-              query={query}
-              queryCount={queryCount}
-              onSelectStatsPeriod={this.onSelectStatsPeriod}
-              onRealtimeChange={this.onRealtimeChange}
-              realtimeActive={realtimeActive}
-              statsPeriod={this.getGroupStatsPeriod()}
-              groupIds={groupIds}
-              allResultsVisible={this.allResultsVisible()}
-            />
-            <PanelBody>
-              <ProcessingIssueList
-                organization={organization}
-                projectIds={selection?.projects?.map(p => p.toString())}
-                showProject
+      <Feature organization={organization} features={['organizations:inbox']}>
+        {({hasFeature}) => (
+          <React.Fragment>
+            {hasFeature && (
+              <IssueListHeader
+                query={query}
+                queryCount={queryCount}
+                queryMaxCount={queryMaxCount}
+                onTabChange={this.handleTabClick}
               />
-              {this.renderStreamBody()}
-            </PanelBody>
-          </Panel>
-          <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
-        </StreamContent>
+            )}
+            <StyledPageContent isInbox={hasFeature}>
+              <StreamContent showSidebar={isSidebarVisible}>
+                <IssueListFilters
+                  organization={organization}
+                  query={query}
+                  savedSearch={savedSearch}
+                  sort={this.getSort()}
+                  queryCount={queryCount}
+                  queryMaxCount={queryMaxCount}
+                  onSortChange={this.onSortChange}
+                  onSearch={this.onSearch}
+                  onSavedSearchSelect={this.onSavedSearchSelect}
+                  onSavedSearchDelete={this.onSavedSearchDelete}
+                  onSidebarToggle={this.onSidebarToggle}
+                  isSearchDisabled={isSidebarVisible}
+                  savedSearchList={savedSearches}
+                  tagValueLoader={this.tagValueLoader}
+                  tags={tags}
+                />
 
-        <SidebarContainer showSidebar={isSidebarVisible}>
-          {/* Avoid rendering sidebar until first accessed */}
-          {renderSidebar && (
-            <IssueListSidebar
-              loading={tagsLoading}
-              tags={tags}
-              query={query}
-              onQueryChange={this.onIssueListSidebarSearch}
-              orgId={organization.slug}
-              tagValueLoader={this.tagValueLoader}
-            />
-          )}
-        </SidebarContainer>
-      </StreamRow>
+                <Panel>
+                  <IssueListActions
+                    orgId={organization.slug}
+                    selection={selection}
+                    query={query}
+                    queryCount={queryCount}
+                    onSelectStatsPeriod={this.onSelectStatsPeriod}
+                    onRealtimeChange={this.onRealtimeChange}
+                    realtimeActive={realtimeActive}
+                    statsPeriod={this.getGroupStatsPeriod()}
+                    groupIds={groupIds}
+                    allResultsVisible={this.allResultsVisible()}
+                  />
+                  <PanelBody>
+                    <ProcessingIssueList
+                      organization={organization}
+                      projectIds={selection?.projects?.map(p => p.toString())}
+                      showProject
+                    />
+                    {this.renderStreamBody()}
+                  </PanelBody>
+                </Panel>
+                <PaginationWrapper>
+                  {hasFeature && groupIds?.length > 0 && (
+                    <div>
+                      {/* total includes its own space */}
+                      {tct('Showing [count] of[total] issues', {
+                        count: <React.Fragment>{pageCount}</React.Fragment>,
+                        total: (
+                          <QueryCount hideParens count={queryCount} max={queryMaxCount} />
+                        ),
+                      })}
+                    </div>
+                  )}
+                  <StyledPagination
+                    pageLinks={pageLinks}
+                    onCursor={this.onCursorChange}
+                  />
+                </PaginationWrapper>
+              </StreamContent>
+
+              <SidebarContainer showSidebar={isSidebarVisible}>
+                {/* Avoid rendering sidebar until first accessed */}
+                {renderSidebar && (
+                  <IssueListSidebar
+                    loading={tagsLoading}
+                    tags={tags}
+                    query={query}
+                    onQueryChange={this.onIssueListSidebarSearch}
+                    orgId={organization.slug}
+                    tagValueLoader={this.tagValueLoader}
+                  />
+                )}
+              </SidebarContainer>
+            </StyledPageContent>
+          </React.Fragment>
+        )}
+      </Feature>
     );
   }
 }
@@ -746,9 +797,20 @@ export default withApi(
 
 export {IssueListOverview};
 
-const StreamRow = styled('div')`
+// TODO(workflow): Replace PageContent with thirds body
+const StyledPageContent = styled(PageContent)<{isInbox: boolean}>`
   display: flex;
   flex-direction: row;
+  ${p =>
+    p.isInbox &&
+    css`
+      background-color: ${p.theme.background};
+    `}
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    /* Matches thirds layout */
+    padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  }
 `;
 
 const StreamContent = styled('div')<{showSidebar: boolean}>`
@@ -771,4 +833,16 @@ const SidebarContainer = styled('div')<{showSidebar: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
+`;
+
+const PaginationWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+  margin-left: ${space(2)};
 `;
