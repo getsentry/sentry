@@ -99,7 +99,7 @@ export const Header = styled('div')`
   margin: 0;
 
   background-color: transparent;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(2)} ${space(2)} 0 ${space(2)};
@@ -116,11 +116,17 @@ export const Header = styled('div')`
 export const HeaderNavTabs = styled(NavTabs)`
   margin: 0;
   border-bottom: 0 !important;
+
   li {
-    margin-right: ${space(0.5)};
+    margin-right: ${space(3)};
   }
   li > a {
-    padding: ${space(1)} ${space(2)};
+    padding: ${space(1)} 0;
+    font-size: ${p => p.theme.fontSizeLarge};
+    margin-bottom: 4px;
+  }
+  li.active > a {
+    margin-bottom: 0;
   }
 `;
 

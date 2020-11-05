@@ -62,6 +62,10 @@ type Props<T, P> = RequestProps<P> &
      * A hook to modify data into the correct output after data has been received
      */
     afterFetch?: (data: any, props: Props<T, P>) => T;
+    /**
+     * A callback to set an error so that the error can be rendered in parent components
+     */
+    setError?: (msg: string | undefined) => void;
   };
 
 type State<T> = {
@@ -135,6 +139,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       route,
       limit,
       cursor,
+      setError,
     } = this.props;
 
     if (!eventView.isValid()) {
@@ -146,6 +151,8 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     const apiPayload: Partial<EventQuery & LocationQuery> = this.getPayload(this.props);
 
     this.setState({isLoading: true, tableFetchID});
+
+    setError?.(undefined);
 
     if (limit) {
       apiPayload.per_page = limit;
@@ -182,12 +189,16 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
         }));
       })
       .catch(err => {
+        const error = err?.responseJSON?.detail ?? null;
         this.setState({
           isLoading: false,
           tableFetchID: undefined,
-          error: err?.responseJSON?.detail ?? null,
+          error,
           tableData: null,
         });
+        if (setError) {
+          setError(error);
+        }
       });
   };
 

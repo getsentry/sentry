@@ -30,11 +30,11 @@ const ClickTargetStyled = styled('div')`
   &:hover ${SubmitButton} {
     background: #fff;
     box-shadow: ${p => p.theme.dropShadowLight};
-    border: 1px solid ${p => p.theme.borderLight};
+    border: 1px solid ${p => p.theme.border};
   }
 `;
 
-const returnButton = props => (
+const ReturnButton = props => (
   <ClickTargetStyled {...props}>
     <Tooltip title={t('Save')}>
       <SubmitButton>
@@ -44,4 +44,4 @@ const returnButton = props => (
   </ClickTargetStyled>
 );
 
-export default returnButton;
+export default ReturnButton;

@@ -148,21 +148,26 @@ class IssueDefaultTest(TestCase):
     def test_store_issue_last_defaults_partial_update(self):
         assert "project" in self.installation.get_persisted_default_config_fields()
         assert "issueType" in self.installation.get_persisted_default_config_fields()
-        self.installation.store_issue_last_defaults(1, {"project": "xyz", "issueType": "BUG"})
-        self.installation.store_issue_last_defaults(1, {"issueType": "FEATURE"})
+        self.installation.store_issue_last_defaults(
+            self.project, self.user, {"project": "xyz", "issueType": "BUG"}
+        )
+        self.installation.store_issue_last_defaults(
+            self.project, self.user, {"issueType": "FEATURE"}
+        )
         # {} is commonly triggered by "link issue" flow
-        self.installation.store_issue_last_defaults(1, {})
-        assert self.installation.get_project_defaults(1) == {
+        self.installation.store_issue_last_defaults(self.project, self.user, {})
+        assert self.installation.get_project_defaults(self.project.id) == {
             "project": "xyz",
             "issueType": "FEATURE",
         }
 
     def test_store_issue_last_defaults_multiple_projects(self):
         assert "project" in self.installation.get_persisted_default_config_fields()
-        self.installation.store_issue_last_defaults(1, {"project": "xyz"})
-        self.installation.store_issue_last_defaults(2, {"project": "abc"})
-        assert self.installation.get_project_defaults(1) == {"project": "xyz"}
-        assert self.installation.get_project_defaults(2) == {"project": "abc"}
+        other_project = self.create_project(name="Foo", slug="foo", teams=[self.team])
+        self.installation.store_issue_last_defaults(self.project, self.user, {"project": "xyz"})
+        self.installation.store_issue_last_defaults(other_project, self.user, {"project": "abc"})
+        assert self.installation.get_project_defaults(self.project.id) == {"project": "xyz"}
+        assert self.installation.get_project_defaults(other_project.id) == {"project": "abc"}
 
     def test_annotations(self):
         label = self.installation.get_issue_display_name(self.external_issue)

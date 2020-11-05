@@ -23,8 +23,6 @@ class GroupInbox(Model):
     __core__ = False
 
     group = FlexibleForeignKey("sentry.Group", unique=True, db_constraint=False)
-    project = FlexibleForeignKey("sentry.Project", null=True)
-    organization = FlexibleForeignKey("sentry.Organization", null=True)
 
     reason = models.PositiveSmallIntegerField(null=False, default=GroupInboxReason.NEW.value)
     reason_details = JSONField(null=True)
@@ -49,8 +47,10 @@ def add_group_to_inbox(group, reason, reason_details=None):
 
 
 def remove_group_from_inbox(group):
-    try:
-        group_inbox = GroupInbox.objects.get(group=group)
-        group_inbox.delete()
-    except GroupInbox.DoesNotExist:
-        pass
+    # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+    return None
+    # try:
+    #     group_inbox = GroupInbox.objects.get(group=group)
+    #     group_inbox.delete()
+    # except GroupInbox.DoesNotExist:
+    #     pass
