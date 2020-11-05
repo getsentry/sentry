@@ -19,7 +19,7 @@ import Hovercard from 'app/components/hovercard';
 import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
-  externalIssueLink: string | null;
+  externalIssueLink?: string | null;
   externalIssueId?: string | null;
   externalIssueKey?: string | null;
   externalIssueDisplayName?: string | null;
@@ -49,6 +49,14 @@ class IssueSyncListElement extends React.Component<Props> {
 
   handleDelete = (): void => {
     callIfFunction(this.props.onClose, this.props.externalIssueId);
+  };
+
+  handleIconClick = () => {
+    if (this.isLinked()) {
+      this.handleDelete();
+    } else if (this.props.onOpen) {
+      this.props.onOpen();
+    }
   };
 
   getIcon(): React.ReactNode {
@@ -133,9 +141,9 @@ class IssueSyncListElement extends React.Component<Props> {
             </Hovercard>
           )}
         </ClassNames>
-        {this.props.onOpen && this.props.onClose && (
-          <StyledIcon onClick={this.isLinked() ? this.handleDelete : this.props.onOpen}>
-            {this.isLinked() ? <IconClose /> : <IconAdd />}
+        {(this.props.onClose || this.props.onOpen) && (
+          <StyledIcon onClick={this.handleIconClick}>
+            {this.isLinked() ? <IconClose /> : this.props.onOpen ? <IconAdd /> : null}
           </StyledIcon>
         )}
       </IssueSyncListElementContainer>
