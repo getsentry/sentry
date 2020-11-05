@@ -293,7 +293,8 @@ describe('getExpandedResults()', function () {
         {field: 'p9001()'}, // it's over 9000
         {field: 'foobar()'}, // unknown function with no parameter
         {field: 'custom_tag'},
-        {field: 'title'}, // not expected to be dropped
+        {field: 'transaction.duration'}, // should be dropped
+        {field: 'title'}, // should be dropped
         {field: 'unique_count(id)'},
         {field: 'apdex(300)'}, // should be dropped
         {field: 'user_misery(300)'}, // should be dropped
@@ -306,7 +307,6 @@ describe('getExpandedResults()', function () {
       {field: 'title'},
       {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
-      {field: 'title'},
     ]);
 
     // transforms pXX functions with optional arguments properly

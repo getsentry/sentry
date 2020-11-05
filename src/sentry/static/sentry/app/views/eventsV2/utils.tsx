@@ -199,7 +199,7 @@ function drilldownAggregate(
     } else if (!column && parameter.required === false) {
       // The parameter was not given for a non-required parameter,
       // so we fall back to the default.
-      column = aggregation.parameters[0].defaultValue;
+      column = parameter.defaultValue;
     }
   } else {
     // The aggregation does not exist or does not have any parameters,
@@ -225,28 +225,23 @@ export function getExpandedResults(
   // Mark any column as null to remove it.
   const expandedColumns: (Column | null)[] = eventView.fields.map((field: Field) => {
     const exploded = explodeFieldString(field.field);
-    switch (exploded.kind) {
-      case 'function':
-        const column = drilldownAggregate(field, exploded);
+    const column =
+      exploded.kind === 'function' ? drilldownAggregate(field, exploded) : exploded;
 
-        if (
-          // if expanding the function failed
-          column === null ||
-          // id is implicitly a part of all non-aggregate results
-          column.field === 'id' ||
-          // the new column is already present
-          fieldSet.has(column.field)
-        ) {
-          return null;
-        }
-
-        fieldSet.add(column.field);
-
-        return column;
-      default:
-        // we do not dedupe columns
-        return exploded;
+    if (
+      // if expanding the function failed
+      column === null ||
+      // id is implicitly a part of all non-aggregate results
+      column.field === 'id' ||
+      // the new column is already present
+      fieldSet.has(column.field)
+    ) {
+      return null;
     }
+
+    fieldSet.add(column.field);
+
+    return column;
   });
 
   // update the columns according the the expansion above
