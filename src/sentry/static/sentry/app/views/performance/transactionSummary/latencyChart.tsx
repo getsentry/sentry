@@ -156,7 +156,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
       return null;
     }
     const xAxis = {
-      type: 'category',
+      type: 'category' as const,
       truncate: true,
       axisLabel: {
         margin: 20,
@@ -166,7 +166,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
         alignWithLabel: true,
       },
     };
-    const colors = theme.charts.getColorPalette(1);
+    const colors = [...theme.charts.getColorPalette(1)];
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.
