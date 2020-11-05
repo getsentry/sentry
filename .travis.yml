@@ -278,21 +278,6 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
-    # Deploy 'storybook' (component & style guide)
-    - name: 'Storybook Deploy'
-      language: generic
-      env: STORYBOOK_BUILD=1
-      before_install:
-        # travis pyenv will attempt to use .python-version, but the appropriate python version won't be installed.
-        # since we don't need python here, we have to remove this.
-        - rm .python-version
-        - *install_volta
-      install:
-        - *install_node_dependencies
-      script: yarn run storybook-build
-      after_success: .travis/deploy-storybook.sh
-      after_failure: skip
-
 notifications:
   webhooks:
     urls:
