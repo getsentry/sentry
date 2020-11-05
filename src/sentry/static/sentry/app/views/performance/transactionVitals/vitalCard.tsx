@@ -469,11 +469,8 @@ class VitalCard extends React.Component<Props, State> {
           {x: topRightPixel.x, y: topRightPixel.y},
           {x: topRightPixel.x, y: failurePixel.y},
         ] as any,
-        // bottom
-        [
-          {x: topRightPixel.x, y: failurePixel.y},
-          {x: failurePixel.x, y: failurePixel.y},
-        ] as any,
+        // We do not draw the bottom line of the the box because it
+        // partially obscures possible outliers.
       ],
       label: {
         show: false,
