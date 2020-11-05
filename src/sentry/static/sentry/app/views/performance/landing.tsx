@@ -225,10 +225,10 @@ class PerformanceLanding extends React.Component<Props, State> {
     if (viewKey === FilterViews.TRENDS) {
       const modifiedConditions = new QueryResults([]);
 
-      if (conditions.hasTag('epm()')) {
-        modifiedConditions.setTagValues('epm()', conditions.getTagValues('epm()'));
+      if (conditions.hasTag('tpm()')) {
+        modifiedConditions.setTagValues('tpm()', conditions.getTagValues('tpm()'));
       } else {
-        modifiedConditions.setTagValues('epm()', ['>0.01']);
+        modifiedConditions.setTagValues('tpm()', ['>0.01']);
       }
       if (conditions.hasTag('transaction.duration')) {
         modifiedConditions.setTagValues(
@@ -248,7 +248,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
     if (isNavigatingAwayFromTrends) {
       // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
-      conditions.removeTag('epm()');
+      conditions.removeTag('tpm()');
       conditions.removeTag('transaction.duration');
 
       newQuery.query = stringifyQueryObject(conditions);
@@ -362,7 +362,11 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     projectIds={eventView.project}
                     query={filterString}
-                    fields={generateAggregateFields(organization, eventView.fields)}
+                    fields={generateAggregateFields(
+                      organization,
+                      [...eventView.fields, {field: 'tps()'}],
+                      ['epm()', 'eps()']
+                    )}
                     onSearch={this.handleSearch}
                   />
                   <Charts
