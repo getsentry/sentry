@@ -110,6 +110,16 @@ class VitalsChart extends React.Component<Props> {
         fontFamily: 'Rubik',
       },
       selected: seriesSelection,
+      formatter: seriesName => {
+        const arg = getAggregateArg(seriesName);
+        if (arg !== null) {
+          const slug = getMeasurementSlug(arg);
+          if (slug !== null) {
+            seriesName = slug.toUpperCase();
+          }
+        }
+        return seriesName;
+      },
     };
 
     const datetimeSelection = {
@@ -190,23 +200,10 @@ class VitalsChart extends React.Component<Props> {
                 // We need to flip it at the end to ensure the series stack right.
                 const series = results
                   ? results
-                      .map((values, i: number) => {
-                        let {seriesName} = values;
-
-                        const arg = getAggregateArg(seriesName);
-                        if (arg !== null) {
-                          const slug = getMeasurementSlug(arg);
-                          if (slug !== null) {
-                            seriesName = slug.toUpperCase();
-                          }
-                        }
-
-                        return {
-                          ...values,
-                          seriesName,
-                          color: colors[i],
-                        };
-                      })
+                      .map((values, i: number) => ({
+                        ...values,
+                        color: colors[i],
+                      }))
                       .reverse()
                   : [];
 
