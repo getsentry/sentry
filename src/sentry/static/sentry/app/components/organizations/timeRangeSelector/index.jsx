@@ -318,7 +318,7 @@ class TimeRangeSelector extends React.PureComponent {
     const isAbsoluteSelected = !!start && !!end;
 
     const summary = isAbsoluteSelected ? (
-      <DateSummary utc={this.state.utc} start={start} end={end} />
+      <DateSummary start={start} end={end} />
     ) : (
       getRelativeSummary(relative || defaultPeriod)
     );

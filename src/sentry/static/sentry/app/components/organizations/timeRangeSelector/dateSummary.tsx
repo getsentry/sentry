@@ -1,7 +1,6 @@
 /**
  * Displays and formats absolute DateTime ranges
  */
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
@@ -10,39 +9,26 @@ import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'app/utils/dates';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-class DateSummary extends React.Component {
-  static propTypes = {
-    /**
-     * Start date value for absolute date selector
-     * Accepts a JS Date or a moment object
-     *
-     * React does not support `instanceOf` with null values
-     */
-    start: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+type Props = {
+  start: Date;
+  end: Date;
+};
 
-    /**
-     * End date value for absolute date selector
-     * Accepts a JS Date or a moment object
-     *
-     * React does not support `instanceOf` with null values
-     */
-    end: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-  };
-
-  getFormattedDate(date, format) {
+class DateSummary extends React.Component<Props> {
+  getFormattedDate(date: Date, format: string) {
     return moment(date).local().format(format);
   }
 
-  formatDate(date) {
+  formatDate(date: Date) {
     return this.getFormattedDate(date, 'll');
   }
 
-  formatTime(date, withSeconds = false) {
+  formatTime(date: Date, withSeconds = false) {
     return this.getFormattedDate(date, `HH:mm${withSeconds ? ':ss' : ''}`);
   }
 
   render() {
-    const {className, start, end} = this.props;
+    const {start, end} = this.props;
     const startTimeFormatted = this.formatTime(start, true);
     const endTimeFormatted = this.formatTime(end, true);
 
@@ -52,7 +38,7 @@ class DateSummary extends React.Component {
       endTimeFormatted !== DEFAULT_DAY_END_TIME;
 
     return (
-      <DateGroupWrapper className={className} hasTime={shouldShowTimes}>
+      <DateGroupWrapper hasTime={shouldShowTimes}>
         <DateGroup>
           <Date hasTime={shouldShowTimes}>
             {this.formatDate(start)}
@@ -74,7 +60,7 @@ class DateSummary extends React.Component {
   }
 }
 
-const DateGroupWrapper = styled('div')`
+const DateGroupWrapper = styled('div')<{hasTime: boolean}>`
   display: flex;
   align-items: center;
   transform: translateY(${p => (p.hasTime ? '-5px' : '0')});
@@ -87,7 +73,7 @@ const DateGroup = styled('div')`
   min-width: 110px;
 `;
 
-const Date = styled('div')`
+const Date = styled('div')<{hasTime: boolean}>`
   ${p => p.hasTime && 'margin-top: 9px'};
   display: flex;
   flex-direction: column;
