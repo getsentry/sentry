@@ -504,7 +504,7 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   color: ${p => (p.status === 'error' ? p.theme.red400 : p.theme.gray600)};
 
   > :first-child {
-    ${p => p.status === 'success' && `color: ${p.theme.green400}`};
+    ${p => p.status === 'success' && `color: ${p.theme.green300}`};
   }
 `;
 

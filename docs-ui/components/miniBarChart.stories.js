@@ -103,7 +103,7 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
             {
               name: 'Last Seen',
               value: (startTime + interval * 23) * 1000,
-              color: theme.green400,
+              color: theme.green300,
             },
           ]}
         />

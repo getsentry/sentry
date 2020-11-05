@@ -41,7 +41,7 @@ const StyledDelta = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p =>
     p.direction > 0
-      ? p.theme.green400
+      ? p.theme.green300
       : p.direction < 0
       ? p.theme.red400
       : p.theme.gray500};

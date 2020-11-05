@@ -119,7 +119,7 @@ WaitingIndicator.defaultProps = {
 
 const ReceivedIndicator = styled(IconCheckmark)`
   color: #fff;
-  background: ${p => p.theme.green400};
+  background: ${p => p.theme.green300};
   border-radius: 50%;
   padding: 5px;
   margin: 0 2px;

@@ -59,7 +59,7 @@ export default class MonitorStats extends AsyncComponent {
       success.data.push({name: timestamp, value: p.ok});
       failed.data.push({name: timestamp, value: p.error});
     });
-    const colors = [theme.green400, theme.red500];
+    const colors = [theme.green300, theme.red500];
 
     return (
       <Panel>

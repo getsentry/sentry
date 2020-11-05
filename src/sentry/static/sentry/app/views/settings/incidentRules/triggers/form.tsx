@@ -231,7 +231,7 @@ const WarningIndicator = styled(CircleIndicator)`
 `;
 
 const ResolvedIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.green400};
+  background: ${p => p.theme.green300};
   margin-right: ${space(1)};
 `;
 
