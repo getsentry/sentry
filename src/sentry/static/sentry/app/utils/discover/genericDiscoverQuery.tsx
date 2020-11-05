@@ -152,6 +152,8 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
 
     this.setState({isLoading: true, tableFetchID});
 
+    setError?.(undefined);
+
     if (limit) {
       apiPayload.per_page = limit;
     }
