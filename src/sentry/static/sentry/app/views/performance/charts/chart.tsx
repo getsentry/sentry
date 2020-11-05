@@ -87,11 +87,11 @@ class Chart extends React.Component<Props> {
       xAxes: [
         {
           gridIndex: 0,
-          type: 'time',
+          type: 'time' as const,
         },
         {
           gridIndex: 1,
-          type: 'time',
+          type: 'time' as const,
         },
       ],
       yAxes: [
@@ -121,9 +121,11 @@ class Chart extends React.Component<Props> {
       utc,
       isGroupedByDate: true,
       showTimeInTooltip: true,
-      colors: [colors[0], colors[1]],
+      colors: [colors[0], colors[1]] as string[],
       tooltip: {
-        valueFormatter: tooltipFormatter,
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(value, seriesName);
+        },
         nameFormatter(value: string) {
           return value === 'epm()' ? 'tpm()' : value;
         },
