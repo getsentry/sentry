@@ -565,6 +565,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "type": "select",
                     "choices": issue_type_choices,
                     "updatesForm": True,
+                    "required": bool(issue_type_choices),  # required if we have any type choices
                 }
             ]
         )

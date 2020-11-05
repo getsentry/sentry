@@ -34,6 +34,7 @@ function getTrendsRequestPayload(props: RequestProps) {
   const apiPayload: TrendsQuery = eventView?.getEventsAPIPayload(props.location);
   const trendFunction = getCurrentTrendFunction(props.location);
   apiPayload.trendFunction = trendFunction.field;
+  apiPayload.trendType = eventView?.trendType;
   apiPayload.interval = eventView?.interval;
   return apiPayload;
 }
