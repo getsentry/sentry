@@ -5,8 +5,7 @@ import logging
 from django import forms
 
 from sentry.rules.actions.base import IntegrationEventAction
-
-from sentry.models.integration import Integration
+from sentry.models import ExternalIssue
 
 logger = logging.getLogger("sentry.rules")
 
@@ -25,8 +24,8 @@ class JiraNotifyServiceForm(forms.Form):
         self.fields["jira_project"].choices = projects_list
         self.fields["jira_project"].widget.choices = self.fields["jira_project"].choices
 
-        self.fields["issue_type"].choices = HARDCODED_ISSUE_TYPES
-        self.fields["issue_type"].widget.choices = self.fields["issue_type"].choices
+        self.fields["issuetype"].choices = HARDCODED_ISSUE_TYPES
+        self.fields["issuetype"].widget.choices = self.fields["issuetype"].choices
 
     def clean(self):
         return super(JiraNotifyServiceForm, self).clean()
@@ -42,10 +41,10 @@ HARDCODED_ISSUE_TYPES = [
 
 class JiraCreateTicketAction(IntegrationEventAction):
     form_cls = JiraNotifyServiceForm
-    label = u"TODO Create a {jira_integration} {jira_project} Jira ticket, name: {name} type: {issue_type}!"
+    label = u"TODO Create a {jira_integration} {jira_project} Jira ticket, name: {name} type: {issuetype}!"
     prompt = "Create a Jira ticket"
     provider = "jira"
-    integration_key = "jira_project"
+    integration_key = "jira_integration"
 
     def __init__(self, *args, **kwargs):
         super(JiraCreateTicketAction, self).__init__(*args, **kwargs)
@@ -65,7 +64,7 @@ class JiraCreateTicketAction(IntegrationEventAction):
                 "default": integration_choices[0][0],
                 "updatesForm": True,
             },
-            "issue_type": {
+            "issuetype": {
                 "type": "choice",
                 "choices": HARDCODED_ISSUE_TYPES,
                 "default": HARDCODED_ISSUE_TYPES[0][0],
@@ -82,30 +81,37 @@ class JiraCreateTicketAction(IntegrationEventAction):
         )
 
     def after(self, event, state):
-        """Create the Jira ticket for a given event"""
-
-        MOCK_DATA = {
-            "priority": "1",
-            "labels": "fuzzy",
-            "description": "Sentry Issue: [GOODGIRLHB-1|https://meowlificent.ngrok.io/organizations/sentry/issues/506/?referrer=jira_integration]\n\n{code}\nTypeError: Object [object Object] has no method 'updateFrom'\n  at poll (../../sentry/scripts/views.js:389:46)\n  at merge (../../sentry/scripts/views.js:268:16)\n  at member (../../sentry/scripts/views.js:283:50)\n\nThis is an example JavaScript exception\n{code}",
-            u"title": u"TypeError: Object [object Object] has no method 'updateFrom'",
-            "reporter": "5ab0069933719f2a50168cab",
-            "fixVersions": "",
-            "project": "10000",
-            "assignee": "5ab0069933719f2a50168cab",
-            "components": "",
-            "issuetype": "10002",
-        }
+        # MOCK_DATA = {
+        #     "priority": "1",
+        #     "labels": "fuzzy",
+        #     "description": "here is some stuff",
+        #     u"title": u"make a different issue",
+        #     "reporter": "5ab0069933719f2a50168cab",
+        #     "fixVersions": "",
+        #     "project": "10000",
+        #     "assignee": "5ab0069933719f2a50168cab",
+        #     "components": "",
+        #     "issuetype": "10002",
+        # }
+        # print("event:", dir(event.group))
+        # form data in event actions?
+        # state is just the state of the event's issue like 'has_reappeared', 'is_new', 'is_new_group_environment', 'is_regression'
         # TODO replace mock data with data we get from the form
-
-        # integration = self.get_integration()
-        integration = Integration.objects.get(
-            provider="jira"
-        )  # this is obviously brittle but get_integration wasn't finding it TODO make this less stupid
+        # print("data: ", self.data)
+        integration = self.get_integration()
         installation = integration.get_installation(self.project.organization.id)
-        # call integration.py's create_issue given the form field data
-        # this fn takes the form data and cleans it up into the format Jira wants
-        # then hits the API to create an issue
 
-        # TODO check if a Jira ticket already exists for the given event's issue. if it does, skip creating it
-        return installation.create_issue(MOCK_DATA)
+        def create_issue(event, futures):
+            """Create the Jira ticket for a given event"""
+
+            # TODO check if a Jira ticket already exists for the given event's issue. if it does, skip creating it
+            resp = installation.create_issue(self.data)  # MOCK_DATA
+            ExternalIssue.objects.create(
+                organization_id=self.project.organization.id,
+                integration_id=integration.id,
+                key=resp["key"],
+            )
+            return
+
+        key = u"jira:{}".format(integration.id)
+        yield self.future(create_issue, key=key)
