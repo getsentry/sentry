@@ -12,10 +12,8 @@ function OrganizationSettingsLayout(props: Props) {
   return (
     <SettingsLayout
       {...props}
-      renderNavigation={() => <OrganizationSettingsNavigation {...props} />}
-    >
-      {props.children}
-    </SettingsLayout>
+      renderNavigation={() => <OrganizationSettingsNavigation />}
+    />
   );
 }
 
