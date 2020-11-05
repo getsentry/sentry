@@ -14,7 +14,7 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {getInterval} from 'app/components/charts/utils';
+import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
@@ -80,15 +80,6 @@ class VitalsChart extends React.Component<Props> {
       router,
     } = this.props;
 
-    const unselectedSeries = location.query.unselectedSeries ?? [];
-    const unselectedMetrics = Array.isArray(unselectedSeries)
-      ? unselectedSeries
-      : [unselectedSeries];
-    const seriesSelection = unselectedMetrics.reduce((selection, metric) => {
-      selection[metric] = false;
-      return selection;
-    }, {});
-
     const start = this.props.start
       ? getUtcToLocalDateObject(this.props.start)
       : undefined;
@@ -109,7 +100,7 @@ class VitalsChart extends React.Component<Props> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      selected: seriesSelection,
+      selected: getSeriesSelection(location),
       formatter: seriesName => {
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
@@ -197,14 +188,11 @@ class VitalsChart extends React.Component<Props> {
                   (results && theme.charts.getColorPalette(results.length - 2)) || [];
 
                 // Create a list of series based on the order of the fields,
-                // We need to flip it at the end to ensure the series stack right.
                 const series = results
-                  ? results
-                      .map((values, i: number) => ({
-                        ...values,
-                        color: colors[i],
-                      }))
-                      .reverse()
+                  ? results.map((values, i: number) => ({
+                      ...values,
+                      color: colors[i],
+                    }))
                   : [];
 
                 // Stack the toolbox under the legend.

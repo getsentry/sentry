@@ -9,9 +9,6 @@ import TransactionSummary from 'app/views/performance/transactionSummary';
 
 function initializeData({features: additionalFeatures = []} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  // if (hasTrendsFeature) {
-  //   features.push('trends');
-  // }
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
