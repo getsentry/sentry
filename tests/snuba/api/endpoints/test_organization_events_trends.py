@@ -540,12 +540,6 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             [{"count": 4000}],
         ]
 
-        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
-        assert [attrs for time, attrs in stats["data"]] == [
-            [{"count": 1}],
-            [{"count": 2}],
-        ]
-
     def test_invalid_trend_function(self):
         with self.feature("organizations:trends"):
             response = self.client.get(
