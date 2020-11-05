@@ -1609,9 +1609,10 @@ export type ExceptionType = {
 };
 
 /**
- * Identity is used in Account Identities
+ * Identity is used in Account Identities for SocialAuths
  */
 export type Identity = {
   id: string;
+  provider: IntegrationProvider;
   providerLabel: string;
 };
