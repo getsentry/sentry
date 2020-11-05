@@ -7,7 +7,6 @@ from django.db import migrations, models
 BATCH_SIZE=100
 
 def obliterate_group_inbox(apps, schema_editor):
-    print("Running obliterate_group_inbox")
     GroupInbox = apps.get_model("sentry.GroupInbox")
     remaining_count = GroupInbox.objects.all().count();
     print("Obliterating GroupInbox. Total: ", GroupInbox.objects.all().count())
