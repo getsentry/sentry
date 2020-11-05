@@ -17,6 +17,7 @@ import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
   formatFloat,
@@ -27,7 +28,7 @@ import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-import {NUM_BUCKETS} from './constants';
+import {NUM_BUCKETS, PERCENTILE} from './constants';
 import {Card, CardSummary, CardSectionHeading, StatNumber, Description} from './styles';
 import {HistogramData, Vital, Rectangle} from './types';
 import {findNearestBucketIndex, getRefRect, asPixelRect, mapPoint} from './utils';
@@ -134,22 +135,28 @@ class VitalCard extends React.Component<Props, State> {
     const newEventView = eventView
       .withColumns([
         {kind: 'field', field: 'transaction'},
-        {kind: 'field', field: 'user.display'},
-        {kind: 'field', field: column},
+        {kind: 'function', function: ['percentile', column, PERCENTILE.toString()]},
+        {kind: 'function', function: ['count', '', '']},
       ])
-      .withSorts([{kind: 'desc', field: column}]);
+      .withSorts([
+        {
+          kind: 'desc',
+          field: getAggregateAlias(`percentile(${column},${PERCENTILE.toString()})`),
+        },
+      ]);
 
+    const query = tokenizeSearch(newEventView.query ?? '');
+    query.addTagValues('has', [column]);
     // add in any range constraints if any
     if (min !== undefined || max !== undefined) {
-      const query = tokenizeSearch(newEventView.query ?? '');
       if (min !== undefined) {
         query.addTagValues(column, [`>=${min}`]);
       }
       if (max !== undefined) {
         query.addTagValues(column, [`<=${max}`]);
       }
-      newEventView.query = stringifyQueryObject(query);
     }
+    newEventView.query = stringifyQueryObject(query);
 
     return (
       <CardSummary>
