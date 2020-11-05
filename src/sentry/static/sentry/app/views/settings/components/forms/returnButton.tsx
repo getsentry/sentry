@@ -34,7 +34,7 @@ const ClickTargetStyled = styled('div')`
   }
 `;
 
-const returnButton = props => (
+const ReturnButton = props => (
   <ClickTargetStyled {...props}>
     <Tooltip title={t('Save')}>
       <SubmitButton>
@@ -44,4 +44,4 @@ const returnButton = props => (
   </ClickTargetStyled>
 );
 
-export default returnButton;
+export default ReturnButton;
