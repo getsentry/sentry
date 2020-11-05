@@ -1,8 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 
-import {Frame, SentryAppComponent} from 'app/types';
+import {Frame, SentryAppComponent, Event, Organization} from 'app/types';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 import ClippedBox from 'app/components/clippedBox';
@@ -14,10 +13,14 @@ import {IconFlag} from 'app/icons';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import {parseAssembly} from 'app/components/events/interfaces/utils';
 import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
+import StacktraceLink from 'app/components/events/interfaces/stacktraceLink';
+import withOrganization from 'app/utils/withOrganization';
 import space from 'app/styles/space';
 
 type Props = {
   frame: Frame;
+  event: Event;
+  organization: Organization;
   registers: {[key: string]: string};
   components: Array<SentryAppComponent>;
   isExpanded?: boolean;
@@ -40,6 +43,8 @@ const Context = ({
   registers,
   components,
   frame,
+  event,
+  organization,
 }: Props) => {
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
@@ -74,24 +79,7 @@ const Context = ({
           const isActive = frame.lineNo === line[0];
           const hasComponents = isActive && components.length > 0;
           return (
-            <ContextLine
-              key={index}
-              line={line}
-              isActive={isActive}
-              css={
-                hasComponents
-                  ? css`
-                      background: inherit;
-                      padding: 0;
-                      text-indent: 20px;
-                      z-index: 1000;
-                    `
-                  : css`
-                      background: inherit;
-                      padding: 0 20px;
-                    `
-              }
-            >
+            <StyledContextLine key={index} line={line} isActive={isActive}>
               {hasComponents && (
                 <ErrorBoundary mini>
                   <OpenInContextLine
@@ -102,7 +90,19 @@ const Context = ({
                   />
                 </ErrorBoundary>
               )}
-            </ContextLine>
+              {organization.features.includes('integrations-stacktrace-link') &&
+                isActive &&
+                isExpanded && (
+                  <ErrorBoundary mini>
+                    <StacktraceLink
+                      key={index}
+                      lineNo={line[0]}
+                      frame={frame}
+                      event={event}
+                    />
+                  </ErrorBoundary>
+                )}
+            </StyledContextLine>
           );
         })}
 
@@ -120,7 +120,7 @@ const Context = ({
   );
 };
 
-export default Context;
+export default withOrganization(Context);
 
 const StyledClippedBox = styled(ClippedBox)`
   margin-left: 0;
@@ -142,4 +142,11 @@ const StyledClippedBox = styled(ClippedBox)`
 
 const StyledIconFlag = styled(IconFlag)`
   margin-right: ${space(1)};
+`;
+
+const StyledContextLine = styled(ContextLine)`
+  background: inherit;
+  padding: 0;
+  text-indent: 20px;
+  z-index: 1000;
 `;

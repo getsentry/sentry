@@ -43,11 +43,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         # the ordering is deterministic
         configs = RepositoryProjectPathConfig.objects.filter(project=project)
 
-        # we only want to attempt the stack trace linking IF the user
-        # has a configuration set up, otherwise we don't care
-        if not configs:
-            return Response(result)
-
         for config in configs:
             if not filepath.startswith(config.stack_root):
                 continue
@@ -60,6 +55,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             # it's possible for the link to be None, and in that
             # case it means we could not find a match for the
             # configuration
-            result["source_url"] = link
+            result["sourceUrl"] = link
+
+            # if we found a match, we can break
+            break
 
         return Response(result)
