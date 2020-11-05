@@ -4,17 +4,31 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 
-BATCH_SIZE=100
+BATCH_SIZE = 500
 
 def obliterate_group_inbox(apps, schema_editor):
+    import progressbar
     GroupInbox = apps.get_model("sentry.GroupInbox")
-    remaining_count = GroupInbox.objects.all().count();
-    print("Obliterating GroupInbox. Total: ", remaining_count)
-    while GroupInbox.objects.all().exists():
-        batch = GroupInbox.objects.all()[:BATCH_SIZE]
-        GroupInbox.objects.filter(id__in=batch).delete()
-        remaining_count -= BATCH_SIZE
-        print("Batch deleted. Remaining: ", remaining_count)
+
+    total = GroupInbox.objects.all().count()
+    widgets = [
+        "GroupInbox: ",
+        progressbar.Percentage(),
+        " ",
+        progressbar.Bar(),
+        " ",
+        progressbar.ETA(),
+    ]
+    bar = progressbar.ProgressBar(widgets=widgets, maxval=total)
+    bar.start()
+    progress = 0
+    while True:
+        deleted, _ = GroupInbox.objects.filter(id__in=GroupInbox.objects.all()[:BATCH_SIZE]).delete()
+        progress += deleted
+        bar.update(min(progress, total))
+        if not deleted:
+            bar.finish()
+            break
 
 
 class Migration(migrations.Migration):
