@@ -7,7 +7,6 @@ import {getFormattedDate} from 'app/utils/dates';
 import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
 import {truncationFormatter} from './utils';
-import Tooltip from './components/tooltip';
 
 type Marker = {
   name: string;
@@ -157,9 +156,9 @@ class MiniBarChart extends React.Component<Props> {
         };
 
     const chartOptions = {
-      tooltip: Tooltip({
-        trigger: 'axis',
-      }),
+      tooltip: {
+        trigger: 'axis' as const,
+      },
       yAxis: {
         max(value) {
           // This keeps small datasets from looking 'scary'
