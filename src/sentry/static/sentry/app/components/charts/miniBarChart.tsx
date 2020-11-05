@@ -6,6 +6,8 @@ import {getFormattedDate} from 'app/utils/dates';
 
 import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
+// Import to ensure echarts components are loaded.
+import './components/markPoint';
 import {truncationFormatter} from './utils';
 
 type Marker = {

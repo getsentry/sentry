@@ -11,11 +11,10 @@ import {
   TRENDS_FUNCTIONS,
   CONFIDENCE_LEVELS,
 } from 'app/views/performance/trends/utils';
-import {TrendFunctionField} from 'app/views/performance/trends/types';
 
 const trendsViewQuery = {
   view: 'TRENDS',
-  query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+  query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
 jest.mock('moment', () => {
@@ -251,7 +250,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION} !transaction:/organizations/:orgId/performance/`,
+        query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION} !transaction:/organizations/:orgId/performance/`,
         view: 'TRENDS',
       }),
     });
@@ -319,7 +318,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<=863',
+        query: 'tpm():>0.01 transaction.duration:>0 transaction.duration:<=863',
         view: 'TRENDS',
       }),
     });
@@ -353,7 +352,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: `epm():>0.01 transaction.duration:<${DEFAULT_MAX_DURATION} transaction.duration:>=863`,
+        query: `tpm():>0.01 transaction.duration:<${DEFAULT_MAX_DURATION} transaction.duration:>=863`,
         view: 'TRENDS',
       }),
     });
@@ -432,10 +431,7 @@ describe('Performance > Trends', function () {
 
       expect(trendsStatsMock).toHaveBeenCalledTimes(2);
 
-      const sort =
-        trendFunction.field === TrendFunctionField.USER_MISERY
-          ? 'trend_difference()'
-          : 'trend_percentage()';
+      const sort = 'trend_percentage()';
 
       const defaultTrendsFields = ['project'];
 

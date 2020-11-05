@@ -43,7 +43,6 @@ export enum TrendFunctionField {
   P95 = 'p95()',
   P99 = 'p99()',
   AVG = 'avg(transaction.duration)',
-  USER_MISERY = 'user_misery(300)',
 }
 
 export type TrendStat = {
