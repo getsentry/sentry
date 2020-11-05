@@ -1607,3 +1607,11 @@ export type ExceptionType = {
   module: string | null;
   threadId: number | null;
 };
+
+/**
+ * Identity is used in Account Identities
+ */
+export type Identity = {
+  id: string;
+  providerLabel: string;
+};

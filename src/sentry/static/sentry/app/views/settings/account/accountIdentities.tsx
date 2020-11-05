@@ -1,29 +1,38 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
 import {disconnectIdentity} from 'app/actionCreators/account';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import {Identity} from 'app/types';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/social-identities/';
 
-class AccountIdentities extends AsyncView {
-  getEndpoints() {
+type Props = RouteComponentProps<{}, {}>;
+
+type State = {
+  identities: Identity[];
+} & AsyncView['state'];
+
+class AccountIdentities extends AsyncView<Props, State> {
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
+      identities: [],
+    };
+  }
+
+  getEndpoints(): [string, string][] {
     return [['identities', ENDPOINT]];
   }
 
   getTitle() {
     return 'Identities';
-  }
-
-  getDefaultState() {
-    return {
-      identities: [],
-    };
   }
 
   handleDisconnect = identity => {
