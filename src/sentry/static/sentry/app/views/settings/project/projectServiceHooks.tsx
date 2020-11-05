@@ -35,13 +35,13 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
         </Link>
       }
       help={
-        hook.events && hook.events.length !== 0 ? (
-          <small>{hook.events.join(', ')}</small>
-        ) : (
-          <small>
-            <em>no events configured</em>
-          </small>
-        )
+        <small>
+          {hook.events && hook.events.length !== 0 ? (
+            hook.events.join(', ')
+          ) : (
+            <em>{t('no events configured')}</em>
+          )}
+        </small>
       }
     >
       <Switch isActive={hook.status === 'active'} size="lg" toggle={onToggleActive} />
