@@ -265,36 +265,6 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-    def test_misery_trend_function(self):
-        with self.feature("organizations:trends"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "start": iso_format(self.day_ago),
-                    "field": ["project", "transaction"],
-                    "query": "event.type:transaction",
-                    "trendFunction": "user_misery(300)",
-                    "project": [self.project.id],
-                },
-            )
-        assert response.status_code == 200, response.content
-
-        events = response.data
-
-        assert len(events["data"]) == 1
-        self.expected_data.update(
-            {
-                "aggregate_range_1": 1,
-                "aggregate_range_2": 2,
-                "count_percentage": 3.0,
-                "trend_difference": 1.0,
-                "trend_percentage": 2.0,
-            }
-        )
-        self.assert_event(events["data"][0])
-
     def test_invalid_trend_function(self):
         with self.feature("organizations:trends"):
             response = self.client.get(
@@ -568,43 +538,6 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         assert [attrs for time, attrs in stats["data"]] == [
             [{"count": 2000}],
             [{"count": 4000}],
-        ]
-
-    def test_misery_trend_function(self):
-        with self.feature("organizations:trends"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "start": iso_format(self.day_ago),
-                    "field": ["project", "transaction"],
-                    "query": "event.type:transaction",
-                    "trendFunction": "user_misery(300)",
-                    "project": [self.project.id],
-                },
-            )
-        assert response.status_code == 200, response.content
-
-        events = response.data["events"]
-        result_stats = response.data["stats"]
-
-        assert len(events["data"]) == 1
-        self.expected_data.update(
-            {
-                "aggregate_range_1": 1,
-                "aggregate_range_2": 2,
-                "count_percentage": 3.0,
-                "trend_difference": 1.0,
-                "trend_percentage": 2.0,
-            }
-        )
-        self.assert_event(events["data"][0])
-
-        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
-        assert [attrs for time, attrs in stats["data"]] == [
-            [{"count": 1}],
-            [{"count": 2}],
         ]
 
     def test_invalid_trend_function(self):
