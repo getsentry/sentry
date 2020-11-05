@@ -695,6 +695,11 @@ class IssueListOverview extends React.Component<Props, State> {
     const page = isNaN(queryPageInt) ? 0 : queryPageInt;
     const pageCount = page * MAX_ITEMS + groupIds?.length;
 
+    // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
+    if (organization.features.includes('inbox') && !tags?.is?.values?.includes('inbox')) {
+      tags?.is?.values?.push('inbox');
+    }
+
     return (
       <Feature organization={organization} features={['organizations:inbox']}>
         {({hasFeature}) => (
