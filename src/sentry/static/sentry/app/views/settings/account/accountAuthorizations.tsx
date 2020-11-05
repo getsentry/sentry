@@ -28,7 +28,7 @@ type State = {
 } & AsyncView['state'];
 
 class AccountAuthorizations extends AsyncView<Props, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['data', '/api-authorizations/']];
   }
 
