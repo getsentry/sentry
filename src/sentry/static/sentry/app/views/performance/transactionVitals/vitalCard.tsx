@@ -7,7 +7,6 @@ import isEqual from 'lodash/isEqual';
 import {Organization} from 'app/types';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
-import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
@@ -213,10 +212,10 @@ class VitalCard extends React.Component<Props, State> {
   handleDataZoomCancelled = () => {};
 
   renderHistogram() {
-    const {location, isLoading, colors, vital, precision = 0} = this.props;
+    const {location, isLoading, error, colors, vital, precision = 0} = this.props;
     const {slug} = vital;
 
-    const series = this.getTransformedData();
+    const series = this.getSeries();
 
     const xAxis = {
       type: 'category' as const,
@@ -241,6 +240,18 @@ class VitalCard extends React.Component<Props, State> {
       },
     };
 
+    const allSeries = [series];
+    if (!isLoading && !error) {
+      const baselineSeries = this.getBaselineSeries();
+      if (baselineSeries !== null) {
+        allSeries.push(baselineSeries);
+      }
+      const failureSeries = this.getFailureSeries();
+      if (failureSeries !== null) {
+        allSeries.push(failureSeries);
+      }
+    }
+
     return (
       <BarChartZoom
         minZoomWidth={10 ** -precision * NUM_BUCKETS}
@@ -255,12 +266,13 @@ class VitalCard extends React.Component<Props, State> {
           <Container>
             <TransparentLoadingMask visible={isLoading} />
             <BarChart
-              series={[series]}
+              series={allSeries}
               xAxis={xAxis}
               yAxis={yAxis}
               colors={colors}
               onRendered={this.handleRendered}
               grid={{left: space(3), right: space(3), top: space(3), bottom: space(1.5)}}
+              stacked
               {...zoomRenderProps}
             />
           </Container>
@@ -290,8 +302,8 @@ class VitalCard extends React.Component<Props, State> {
     });
   }
 
-  getTransformedData() {
-    const {chartData, vital, isLoading, error} = this.props;
+  getSeries() {
+    const {chartData, vital} = this.props;
     const bucketWidth = this.bucketWidth();
 
     const seriesData = chartData.map(item => {
@@ -312,28 +324,21 @@ class VitalCard extends React.Component<Props, State> {
       };
     });
 
-    const series = {
+    return {
       seriesName: t('Count'),
       data: seriesData,
     };
-
-    if (!isLoading && !error) {
-      this.drawBaselineValue(series);
-      this.drawFailRegion(series);
-    }
-
-    return series;
   }
 
-  drawBaselineValue(series) {
+  getBaselineSeries() {
     const {chartData, summary} = this.props;
     if (summary === null || this.state.refPixelRect === null) {
-      return;
+      return null;
     }
 
     const summaryBucket = findNearestBucketIndex(chartData, this.bucketWidth(), summary);
     if (summaryBucket === null || summaryBucket === -1) {
-      return;
+      return null;
     }
 
     const thresholdPixelBottom = mapPoint(
@@ -346,7 +351,7 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refPixelRect!
     );
     if (thresholdPixelBottom === null) {
-      return;
+      return null;
     }
 
     const thresholdPixelTop = mapPoint(
@@ -359,10 +364,10 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refPixelRect!
     );
     if (thresholdPixelTop === null) {
-      return;
+      return null;
     }
 
-    series.markLine = MarkLine({
+    const markLine = MarkLine({
       animationDuration: 200,
       data: [[thresholdPixelBottom, thresholdPixelTop] as any],
       label: {
@@ -377,7 +382,7 @@ class VitalCard extends React.Component<Props, State> {
     // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
     // if we add it in the constructor. So we opt to add it here so typescript
     // doesn't complain.
-    series.markLine.tooltip = {
+    (markLine as any).tooltip = {
       formatter: () => {
         return [
           '<div class="tooltip-series tooltip-series-solo">',
@@ -389,13 +394,19 @@ class VitalCard extends React.Component<Props, State> {
         ].join('');
       },
     };
+
+    return {
+      seriesName: t('Baseline'),
+      data: [],
+      markLine,
+    };
   }
 
-  drawFailRegion(series) {
+  getFailureSeries() {
     const {chartData, vital, failureRate} = this.props;
     const {failureThreshold, type} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
-      return;
+      return null;
     }
 
     let failureBucket = findNearestBucketIndex(
@@ -404,7 +415,7 @@ class VitalCard extends React.Component<Props, State> {
       failureThreshold
     );
     if (failureBucket === null) {
-      return;
+      return null;
     }
     failureBucket = failureBucket === -1 ? 0 : failureBucket;
 
@@ -421,29 +432,64 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refPixelRect!
     );
     if (failurePixel === null) {
-      return;
+      return null;
     }
 
-    series.markArea = MarkArea({
-      animationDuration: 200,
+    const topRightPixel = mapPoint(
+      {
+        // subtract 0.5 to get on the right side of the right most bar
+        x: chartData.length - 0.5,
+        y: Math.max(...chartData.map(data => data.count)) || 1,
+      },
+      this.state.refDataRect!,
+      this.state.refPixelRect!
+    );
+    if (topRightPixel === null) {
+      return null;
+    }
+
+    // Using a MarkArea means that hovering over the interior of the area
+    // will trigger the tooltip for the MarkArea, making it impossible to
+    // see outliers with the tooltip. So we get around this using lines.
+    const markLine = MarkLine({
+      animation: false,
       data: [
+        // left
         [
-          {x: failurePixel.x, yAxis: 0},
-          {x: 'max', y: 'max'},
+          {x: failurePixel.x, y: failurePixel.y},
+          {x: failurePixel.x, y: topRightPixel.y},
         ] as any,
+        // top
+        [
+          {x: failurePixel.x, y: topRightPixel.y},
+          {x: topRightPixel.x, y: topRightPixel.y},
+        ] as any,
+        // right
+        [
+          {x: topRightPixel.x, y: topRightPixel.y},
+          {x: topRightPixel.x, y: failurePixel.y},
+        ] as any,
+        // We do not draw the bottom line of the the box because it
+        // partially obscures possible outliers.
       ],
-      itemStyle: {
-        color: 'transparent',
-        borderColor: theme.red400,
-        borderWidth: 1.5,
-        borderType: 'dashed',
+      label: {
+        show: false,
+      },
+      lineStyle: {
+        color: theme.red400,
+        type: 'dashed',
+        width: 1.5,
+        // prevent each individual line from looking emphasized
+        // by styling it the same as the unemphasized line
+        emphasis: {
+          color: theme.red400,
+          type: 'dashed',
+          width: 1.5,
+        },
       },
     });
 
-    // TODO(tonyx): This conflicts with the types declaration of `MarkArea`
-    // if we add it in the constructor. So we opt to add it here so typescript
-    // doesn't complain.
-    series.markArea.tooltip = {
+    (markLine as any).tooltip = {
       formatter: () =>
         [
           '<div class="tooltip-series tooltip-series-solo">',
@@ -462,20 +508,7 @@ class VitalCard extends React.Component<Props, State> {
         ].join(''),
     };
 
-    const topRightPixel = mapPoint(
-      {
-        // subtract 0.5 to get on the right side of the right most bar
-        x: chartData.length - 0.5,
-        y: Math.max(...chartData.map(data => data.count)) || 1,
-      },
-      this.state.refDataRect!,
-      this.state.refPixelRect!
-    );
-    if (topRightPixel === null) {
-      return;
-    }
-
-    series.markPoint = MarkPoint({
+    const markPoint = MarkPoint({
       animationDuration: 200,
       data: [{x: topRightPixel.x - 16, y: topRightPixel.y + 16}] as any,
       itemStyle: {color: theme.red400},
@@ -488,6 +521,13 @@ class VitalCard extends React.Component<Props, State> {
         position: 'left',
       },
     });
+
+    return {
+      seriesName: t('Failure Region'),
+      data: [],
+      markLine,
+      markPoint,
+    };
   }
 
   render() {
