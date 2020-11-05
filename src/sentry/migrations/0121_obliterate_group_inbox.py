@@ -9,7 +9,7 @@ BATCH_SIZE=100
 def obliterate_group_inbox(apps, schema_editor):
     GroupInbox = apps.get_model("sentry.GroupInbox")
     remaining_count = GroupInbox.objects.all().count();
-    print("Obliterating GroupInbox. Total: ", GroupInbox.objects.all().count())
+    print("Obliterating GroupInbox. Total: ", remaining_count)
     while GroupInbox.objects.all().exists():
         batch = GroupInbox.objects.all()[:BATCH_SIZE]
         GroupInbox.objects.filter(id__in=batch).delete()
