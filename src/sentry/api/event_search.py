@@ -2119,43 +2119,6 @@ FUNCTIONS = {
             default_result_type="duration",
         ),
         Function(
-            "user_misery_range",
-            required_args=[
-                NumberRange("satisfaction", 0, None),
-                DateArg("start"),
-                DateArg("end"),
-                FunctionArg("query_alias"),
-            ],
-            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            aggregate=[
-                u"uniqIf",
-                [
-                    "user",
-                    [
-                        "and",
-                        [
-                            # Currently, the column resolution on aggregates doesn't recurse, so we use
-                            # `duration` (snuba name) rather than `transaction.duration` (sentry name).
-                            ["greater", ["duration", ArgValue("tolerated")]],
-                            [
-                                "and",
-                                [
-                                    # see `percentile_range` for why the conditions are backwards
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", [ArgValue("start")]], "timestamp"],
-                                    ],
-                                    ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-                "{query_alias}",
-            ],
-            default_result_type="duration",
-        ),
-        Function(
             "count_range",
             required_args=[DateArg("start"), DateArg("end"), FunctionArg("query_alias")],
             aggregate=[
