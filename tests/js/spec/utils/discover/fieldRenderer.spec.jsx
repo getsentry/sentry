@@ -151,12 +151,12 @@ describe('getFieldRenderer', function () {
       context.routerContext
     );
 
-    const value = wrapper.find('IconStar');
+    const value = wrapper.find('StyledKey');
     expect(value).toHaveLength(1);
     expect(value.props().isSolid).toBeTruthy();
 
     // Since there is not project column, it's not clickable
-    expect(wrapper.find('Button')).toHaveLength(0);
+    expect(wrapper.find('KeyColumn')).toHaveLength(0);
   });
 
   it('can render key transaction as a clickable star', async function () {
@@ -171,23 +171,23 @@ describe('getFieldRenderer', function () {
 
     let value;
 
-    value = wrapper.find('IconStar');
+    value = wrapper.find('StyledKey');
     expect(value).toHaveLength(1);
     expect(value.props().isSolid).toBeTruthy();
 
-    wrapper.find('Button').simulate('click');
+    wrapper.find('KeyColumn').simulate('click');
     await tick();
     wrapper.update();
 
-    value = wrapper.find('IconStar');
+    value = wrapper.find('StyledKey');
     expect(value).toHaveLength(1);
     expect(value.props().isSolid).toBeFalsy();
 
-    wrapper.find('Button').simulate('click');
+    wrapper.find('KeyColumn').simulate('click');
     await tick();
     wrapper.update();
 
-    value = wrapper.find('IconStar');
+    value = wrapper.find('StyledKey');
     expect(value).toHaveLength(1);
     expect(value.props().isSolid).toBeTruthy();
   });
