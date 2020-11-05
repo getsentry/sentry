@@ -6,6 +6,7 @@ import {
   explodeField,
   aggregateOutputType,
   aggregateMultiPlotType,
+  generateAggregateFields,
 } from 'app/utils/discover/fields';
 
 describe('getAggregateAlias', function () {
@@ -192,5 +193,24 @@ describe('aggregateMultiPlotType', function () {
   it('handles known functions', function () {
     expect(aggregateMultiPlotType('sum(transaction.duration)')).toBe('area');
     expect(aggregateMultiPlotType('p95()')).toBe('line');
+  });
+});
+
+describe('generateAggregateFields', function () {
+  const organization = TestStubs.Organization();
+  it('gets default aggregates', function () {
+    expect(generateAggregateFields(organization, [])).toContainEqual({field: 'count()'});
+  });
+
+  it('includes fields from eventFields', function () {
+    expect(
+      generateAggregateFields(organization, [{field: 'not_real_aggregate()'}])
+    ).toContainEqual({field: 'not_real_aggregate()'});
+  });
+
+  it('excludes fields from aggregates', function () {
+    expect(generateAggregateFields(organization, [], ['count()'])).not.toContainEqual({
+      field: 'count()',
+    });
   });
 });
