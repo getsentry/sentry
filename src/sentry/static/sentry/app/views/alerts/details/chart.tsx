@@ -5,18 +5,12 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Trigger} from 'app/views/settings/incidentRules/types';
-import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import MarkLine from 'app/components/charts/components/markLine';
 
 import closedSymbol from './closedSymbol';
 import startedSymbol from './startedSymbol';
-
-type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T;
-
-function truthy<T>(value: T): value is Truthy<T> {
-  return !!value;
-}
 
 type Data = [number, {count: number}[]];
 /**
@@ -104,107 +98,6 @@ const Chart = (props: Props) => {
     })
   );
 
-  const lineSeries: LineChartSeries[] = [
-    {
-      // e.g. Events or Users
-      seriesName,
-      dataArray: chartData,
-      markPoint: MarkPoint({
-        data: [
-          {
-            labelForValue: seriesName,
-            seriesName,
-            symbol: `image://${startedSymbol}`,
-            name: t('Alert Triggered'),
-            coord: startedCoordinate,
-          },
-          ...(closedTs
-            ? [
-                {
-                  labelForValue: seriesName,
-                  seriesName,
-                  symbol: `image://${closedSymbol}`,
-                  symbolSize: 24,
-                  name: t('Alert Resolved'),
-                  coord: closedCoordinate,
-                },
-              ]
-            : []),
-        ] as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
-      }),
-      data: [],
-    },
-    warningTrigger &&
-      warningTriggerAlertThreshold && {
-        seriesName: 'Warning Alert',
-        type: 'line',
-        markLine: MarkLine({
-          silent: true,
-          lineStyle: {color: theme.yellow400},
-          data: [
-            {
-              yAxis: warningTriggerAlertThreshold,
-            } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
-          ],
-          precision: marklinePrecision,
-          label: {
-            show: true,
-            position: 'insideEndTop',
-            formatter: 'WARNING',
-            color: theme.yellow400,
-            fontSize: 10,
-          } as any, // TODO(ts): Color is not an exposed option for label,
-        }),
-        data: [],
-      },
-    criticalTrigger &&
-      criticalTriggerAlertThreshold && {
-        seriesName: 'Critical Alert',
-        type: 'line',
-        markLine: MarkLine({
-          silent: true,
-          lineStyle: {color: theme.red300},
-          data: [
-            {
-              yAxis: criticalTriggerAlertThreshold,
-            } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
-          ],
-          precision: marklinePrecision,
-          label: {
-            show: true,
-            position: 'insideEndTop',
-            formatter: 'CRITICAL',
-            color: theme.red400,
-            fontSize: 10,
-          } as any, // TODO(ts): Color is not an exposed option for label,
-        }),
-        data: [],
-      },
-    criticalTrigger &&
-      alertResolveThreshold && {
-        seriesName: 'Critical Resolve',
-        type: 'line',
-        markLine: MarkLine({
-          silent: true,
-          lineStyle: {color: theme.gray400},
-          data: [
-            {
-              yAxis: alertResolveThreshold,
-            } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
-          ],
-          precision: marklinePrecision,
-          label: {
-            show: true,
-            position: 'insideEndBottom',
-            formatter: 'CRITICAL RESOLUTION',
-            color: theme.gray400,
-            fontSize: 10,
-          } as any, // TODO(ts): Color is not an option for label,
-        }),
-        data: [],
-      },
-  ].filter(truthy);
-
   return (
     <LineChart
       isGroupedByDate
@@ -215,7 +108,105 @@ const Chart = (props: Props) => {
         top: space(2),
         bottom: 0,
       }}
-      series={lineSeries}
+      series={[
+        {
+          // e.g. Events or Users
+          seriesName,
+          dataArray: chartData,
+          markPoint: MarkPoint({
+            data: [
+              {
+                labelForValue: seriesName,
+                seriesName,
+                symbol: `image://${startedSymbol}`,
+                name: t('Alert Triggered'),
+                coord: startedCoordinate,
+              },
+              ...(closedTs
+                ? [
+                    {
+                      labelForValue: seriesName,
+                      seriesName,
+                      symbol: `image://${closedSymbol}`,
+                      symbolSize: 24,
+                      name: t('Alert Resolved'),
+                      coord: closedCoordinate,
+                    },
+                  ]
+                : []),
+            ] as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
+          }),
+        },
+        warningTrigger &&
+          warningTriggerAlertThreshold && {
+            name: 'Warning Alert',
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.yellow400},
+              data: [
+                {
+                  yAxis: warningTriggerAlertThreshold,
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
+              ],
+              precision: marklinePrecision,
+              label: {
+                show: true,
+                position: 'insideEndTop',
+                formatter: 'WARNING',
+                color: theme.yellow400,
+                fontSize: 10,
+              } as any, // TODO(ts): Color is not an exposed option for label,
+            }),
+            data: [],
+          },
+        criticalTrigger &&
+          criticalTriggerAlertThreshold && {
+            name: 'Critical Alert',
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.red300},
+              data: [
+                {
+                  yAxis: criticalTriggerAlertThreshold,
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
+              ],
+              precision: marklinePrecision,
+              label: {
+                show: true,
+                position: 'insideEndTop',
+                formatter: 'CRITICAL',
+                color: theme.red400,
+                fontSize: 10,
+              } as any, // TODO(ts): Color is not an exposed option for label,
+            }),
+            data: [],
+          },
+        criticalTrigger &&
+          alertResolveThreshold && {
+            name: 'Critical Resolve',
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.gray400},
+              data: [
+                {
+                  yAxis: alertResolveThreshold,
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
+              ],
+              precision: marklinePrecision,
+              label: {
+                show: true,
+                position: 'insideEndBottom',
+                formatter: 'CRITICAL RESOLUTION',
+                color: theme.gray400,
+                fontSize: 10,
+              } as any, // TODO(ts): Color is not an option for label,
+            }),
+            data: [],
+          },
+      ].filter(Boolean)}
     />
   );
 };
