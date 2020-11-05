@@ -17,7 +17,7 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
  */
 export function parseStatsPeriod(
   statsPeriod: string,
-  outputFormat = DATE_TIME_FORMAT
+  outputFormat: string | null = DATE_TIME_FORMAT
 ): {start: string; end: string} {
   const statsPeriodRegex = /^(\d+)([smhd]{1})$/;
 
@@ -35,9 +35,10 @@ export function parseStatsPeriod(
     m: 'minutes',
   }[result[2]];
 
+  const format = outputFormat === null ? undefined : outputFormat;
   return {
-    start: moment().subtract(value, unit).format(outputFormat),
-    end: moment().format(outputFormat),
+    start: moment().subtract(value, unit).format(format),
+    end: moment().format(format),
   };
 }
 
