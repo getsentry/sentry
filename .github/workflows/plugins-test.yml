@@ -47,6 +47,7 @@ jobs:
         id: setup
         if: steps.changes.outputs.backend == 'true'
         with:
+          snuba: true
           python: 2
 
       - name: yarn cache
