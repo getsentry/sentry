@@ -1,4 +1,5 @@
 import {EChartOption} from 'echarts';
+import 'echarts/lib/chart/line';
 
 import theme from 'app/utils/theme';
 

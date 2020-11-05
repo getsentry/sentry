@@ -1,4 +1,5 @@
 import {EChartOption} from 'echarts';
+import 'echarts/lib/component/tooltip';
 import moment from 'moment';
 
 import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
