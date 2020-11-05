@@ -155,7 +155,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
 
     integration_cls = ExampleIntegration
 
-    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
+    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
 
     def get_pipeline_views(self):
         return [ExampleSetupView()]

@@ -817,8 +817,7 @@ export type RepositoryProjectPathConfig = {
   repoId: string;
   repoName: string;
   integrationId: string;
-  provider: string;
-  providerName: string;
+  provider: BaseIntegrationProvider;
   stackRoot: string;
   sourceRoot: string;
   defaultBranch?: string;

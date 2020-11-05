@@ -81,8 +81,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
         <OpenInLink href={url} openInNewTab>
-          {getIntegrationIcon(config.provider)}
-          <OpenInName>{config.providerName}</OpenInName>
+          {getIntegrationIcon(config.provider.key)}
+          <OpenInName>{config.provider.name}</OpenInName>
         </OpenInLink>
       </OpenInContainer>
     );
