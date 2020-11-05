@@ -4,15 +4,16 @@ import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import {DATA_SOURCE_LABELS} from 'app/views/alerts/utils';
 import {Environment, Organization} from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import SearchBar from 'app/views/events/searchBar';
-import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import SelectField from 'app/views/settings/components/forms/selectField';
+import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import Tooltip from 'app/components/tooltip';
@@ -39,7 +40,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
-  thresholdChart: React.ReactNode;
+  thresholdChart: React.ReactElement;
   onFilterSearch: (query: string) => void;
 };
 
@@ -96,136 +97,198 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
     );
     environmentList.unshift([null, anyEnvironmentLabel]);
 
+    const formElemBaseStyle = {
+      padding: `${space(0.5)}`,
+      border: 'none',
+    };
+
+    const selectLabel = (label: string) => ({
+      ':before': {
+        content: `"${label}"`,
+        color: theme.gray500,
+        fontWeight: 600,
+      },
+    });
+
     return (
       <StyledPanel>
-        <PanelHeader>{t('Alert Conditions')}</PanelHeader>
         <PanelBody>
-          <Feature requireAll features={['organizations:performance-view']}>
-            <FormField required name="dataset" label="Data source">
-              {({onChange, onBlur, value, model, label}) => (
-                <RadioGroup
-                  orientInline
-                  disabled={disabled}
-                  value={value}
-                  label={label}
-                  onChange={(id, e) => {
-                    onChange(id, e);
-                    onBlur(id, e);
-                    // Reset the aggregate to the default (which works across
-                    // datatypes), otherwise we may send snuba an invalid query
-                    // (transaction aggregate on events datasource = bad).
-                    model.setValue('aggregate', DEFAULT_AGGREGATE);
+          <List symbol="colored-numeric">
+            <StyledListItem>{t('Select the events you want to alert on')}</StyledListItem>
+            <FormRow>
+              <SelectField
+                name="environment"
+                placeholder={t('All Environments')}
+                style={{
+                  ...formElemBaseStyle,
+                  minWidth: 250,
+                  flex: 2,
+                }}
+                styles={{
+                  singleValue: (base: any) => ({
+                    ...base,
+                    ...selectLabel(t('Env: ')),
+                    '.all-environment-note': {display: 'none'},
+                  }),
+                  placeholder: (base: any) => ({
+                    ...base,
+                    ...selectLabel(t('Env: ')),
+                  }),
+                  option: (base: any, state: any) => ({
+                    ...base,
+                    '.all-environment-note': {
+                      ...(!state.isSelected && !state.isFocused
+                        ? {color: theme.gray600}
+                        : {}),
+                      fontSize: theme.fontSizeSmall,
+                    },
+                  }),
+                }}
+                choices={environmentList}
+                isDisabled={disabled || this.state.environments === null}
+                isClearable
+                inline={false}
+                flexibleControlStateSize
+              />
+              <Feature requireAll features={['organizations:performance-view']}>
+                <FormField
+                  name="dataset"
+                  inline={false}
+                  style={{
+                    ...formElemBaseStyle,
+                    minWidth: 250,
+                    flex: 3,
                   }}
-                  choices={[
-                    [Dataset.ERRORS, DATA_SOURCE_LABELS[Dataset.ERRORS]],
-                    [Dataset.TRANSACTIONS, DATA_SOURCE_LABELS[Dataset.TRANSACTIONS]],
-                  ]}
-                />
-              )}
-            </FormField>
-          </Feature>
-          <SelectField
-            name="environment"
-            label={t('Environment')}
-            placeholder={t('All Environments')}
-            help={t('Choose which environment events must match')}
-            styles={{
-              singleValue: (base: any) => ({
-                ...base,
-                '.all-environment-note': {display: 'none'},
-              }),
-              option: (base: any, state: any) => ({
-                ...base,
-                '.all-environment-note': {
-                  ...(!state.isSelected && !state.isFocused
-                    ? {color: theme.gray600}
-                    : {}),
-                  fontSize: theme.fontSizeSmall,
-                },
-              }),
-            }}
-            choices={environmentList}
-            isDisabled={disabled || this.state.environments === null}
-            isClearable
-          />
-          <FormField name="query" inline={false}>
-            {({onChange, onBlur, onKeyDown, initialData, model}) => (
-              <SearchContainer>
-                <SearchLabel>{t('Filter')}</SearchLabel>
-                <StyledSearchBar
-                  defaultQuery={initialData?.query ?? ''}
-                  inlineLabel={
-                    <Tooltip
-                      title={t(
-                        'Metric alerts are automatically filtered to your data source'
-                      )}
-                    >
-                      <SearchEventTypeNote>
-                        {DATASET_EVENT_TYPE_FILTERS[model.getValue('dataset')]}
-                      </SearchEventTypeNote>
-                    </Tooltip>
-                  }
-                  omitTags={['event.type']}
-                  disabled={disabled}
-                  useFormWrapper={false}
-                  organization={organization}
-                  placeholder={
-                    model.getValue('dataset') === 'events'
-                      ? t('Filter events by level, message, or other properties...')
-                      : t('Filter transactions by URL, tags, and other properties...')
-                  }
-                  onChange={onChange}
-                  onKeyDown={e => {
-                    /**
-                     * Do not allow enter key to submit the alerts form since it is unlikely
-                     * users will be ready to create the rule as this sits above required fields.
-                     */
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }
-
-                    onKeyDown?.(e);
-                  }}
-                  onBlur={query => {
-                    onFilterSearch(query);
-                    onBlur(query);
-                  }}
-                  onSearch={query => {
-                    onFilterSearch(query);
-                    onChange(query, {});
-                  }}
-                />
-              </SearchContainer>
-            )}
-          </FormField>
-          <MetricField
-            name="aggregate"
-            label={t('Metric')}
-            organization={organization}
-            disabled={disabled}
-            required
-          />
-          <SelectField
-            name="timeWindow"
-            label={t('Time Window')}
-            help={
-              <React.Fragment>
-                <div>{t('The time window over which the Metric is evaluated')}</div>
-                <div>
-                  {t(
-                    'Note: Triggers are evaluated every minute regardless of this value.'
+                  flexibleControlStateSize
+                >
+                  {({onChange, onBlur, model, value}) => (
+                    <SelectControl
+                      value={value}
+                      // placeholder={t('Errors')}
+                      styles={{
+                        singleValue: (base: any) => ({
+                          ...base,
+                          ...selectLabel(t('Data Source: ')),
+                        }),
+                        placeholder: (base: any) => ({
+                          ...base,
+                          ...selectLabel(t('Data Source: ')),
+                        }),
+                      }}
+                      onChange={optionObj => {
+                        const optionValue = optionObj.value;
+                        onChange(optionValue, {});
+                        onBlur(optionValue, {});
+                        // Reset the aggregate to the default (which works across
+                        // datatypes), otherwise we may send snuba an invalid query
+                        // (transaction aggregate on events datasource = bad).
+                        model.setValue('aggregate', DEFAULT_AGGREGATE);
+                      }}
+                      choices={[
+                        [Dataset.ERRORS, DATA_SOURCE_LABELS[Dataset.ERRORS]],
+                        [Dataset.TRANSACTIONS, DATA_SOURCE_LABELS[Dataset.TRANSACTIONS]],
+                      ]}
+                      isDisabled={disabled}
+                      required
+                    />
                   )}
-                </div>
-              </React.Fragment>
-            }
-            choices={Object.entries(TIME_WINDOW_MAP)}
-            required
-            isDisabled={disabled}
-            getValue={value => Number(value)}
-            setValue={value => `${value}`}
-          />
-          {this.props.thresholdChart}
+                </FormField>
+              </Feature>
+              <FormField
+                name="query"
+                inline={false}
+                style={{
+                  ...formElemBaseStyle,
+                  flex: 6,
+                  minWidth: 400,
+                }}
+                flexibleControlStateSize
+              >
+                {({onChange, onBlur, onKeyDown, initialData, model}) => (
+                  <SearchContainer>
+                    <StyledSearchBar
+                      defaultQuery={initialData?.query ?? ''}
+                      inlineLabel={
+                        <Tooltip
+                          title={t(
+                            'Metric alerts are automatically filtered to your data source'
+                          )}
+                        >
+                          <SearchEventTypeNote>
+                            {DATASET_EVENT_TYPE_FILTERS[model.getValue('dataset')]}
+                          </SearchEventTypeNote>
+                        </Tooltip>
+                      }
+                      omitTags={['event.type']}
+                      disabled={disabled}
+                      useFormWrapper={false}
+                      organization={organization}
+                      placeholder={
+                        model.getValue('dataset') === 'events'
+                          ? t('Filter events by level, message, or other properties...')
+                          : t('Filter transactions by URL, tags, and other properties...')
+                      }
+                      onChange={onChange}
+                      onKeyDown={e => {
+                        /**
+                         * Do not allow enter key to submit the alerts form since it is unlikely
+                         * users will be ready to create the rule as this sits above required fields.
+                         */
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+
+                        onKeyDown?.(e);
+                      }}
+                      onBlur={query => {
+                        onFilterSearch(query);
+                        onBlur(query);
+                      }}
+                      onSearch={query => {
+                        onFilterSearch(query);
+                        onChange(query, {});
+                      }}
+                    />
+                  </SearchContainer>
+                )}
+              </FormField>
+            </FormRow>
+            <StyledListItem>{t('Choose a metric')}</StyledListItem>
+            <FormRow>
+              <MetricField
+                name="aggregate"
+                help={null}
+                organization={organization}
+                disabled={disabled}
+                style={{
+                  ...formElemBaseStyle,
+                  flex: 6,
+                  minWidth: 300,
+                }}
+                inline={false}
+                flexibleControlStateSize
+                required
+              />
+              <FormRowText>over</FormRowText>
+              <SelectField
+                name="timeWindow"
+                style={{
+                  ...formElemBaseStyle,
+                  flex: 1,
+                  minWidth: 150,
+                }}
+                choices={Object.entries(TIME_WINDOW_MAP)}
+                required
+                isDisabled={disabled}
+                getValue={value => Number(value)}
+                setValue={value => `${value}`}
+                inline={false}
+                flexibleControlStateSize
+              />
+            </FormRow>
+            {this.props.thresholdChart}
+          </List>
         </PanelBody>
       </StyledPanel>
     );
@@ -234,16 +297,11 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
 
 const StyledPanel = styled(Panel)`
   /* Sticky graph panel cannot have margin-bottom */
-  margin-top: ${space(2)};
+  padding: ${space(1)};
 `;
 
 const SearchContainer = styled('div')`
   display: flex;
-`;
-
-const SearchLabel = styled(FieldLabel)`
-  align-items: center;
-  margin-right: ${space(1)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
@@ -258,6 +316,24 @@ const SearchEventTypeNote = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};
   margin: 0 ${space(0.5)} 0 ${space(1)};
   user-select: none;
+`;
+
+const StyledListItem = styled(ListItem)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin: ${space(2)} ${space(2)} 0 ${space(2)};
+`;
+
+const FormRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+  padding: ${space(1.5)};
+  align-items: flex-end;
+  flex-wrap: wrap;
+`;
+
+const FormRowText = styled('div')`
+  padding: ${space(0.5)};
+  line-height: 38px;
 `;
 
 export default RuleConditionsFormWithGuiFilters;

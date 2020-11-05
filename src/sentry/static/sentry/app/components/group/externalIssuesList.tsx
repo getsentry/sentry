@@ -23,7 +23,6 @@ import {IconGeneric} from 'app/icons';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -43,13 +42,6 @@ type State = AsyncComponent['state'] & {
 
 class ExternalIssueList extends AsyncComponent<Props, State> {
   unsubscribables: any[] = [];
-
-  static propTypes = {
-    group: SentryTypes.Group.isRequired,
-    project: SentryTypes.Project.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    event: SentryTypes.Event,
-  };
 
   getEndpoints(): [string, string][] {
     const {group} = this.props;
@@ -116,6 +108,18 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     }
   }
 
+  async updateIntegrations(onSuccess = () => {}, onError = () => {}) {
+    try {
+      const {group} = this.props;
+      const integrations = await this.api.requestPromise(
+        `/groups/${group.id}/integrations/`
+      );
+      this.setState({integrations}, () => onSuccess());
+    } catch (error) {
+      onError();
+    }
+  }
+
   renderIntegrationIssues(integrations: GroupIntegration[] = []) {
     const {group} = this.props;
 
@@ -123,12 +127,27 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       integration => integration.status === 'active'
     );
 
+    const activeIntegrationsByProvider: Map<
+      string,
+      GroupIntegration[]
+    > = activeIntegrations.reduce((acc, curr) => {
+      const items = acc.get(curr.provider.key);
+
+      if (!!items) {
+        acc.set(curr.provider.key, [...items, curr]);
+      } else {
+        acc.set(curr.provider.key, [curr]);
+      }
+      return acc;
+    }, new Map());
+
     return activeIntegrations.length
-      ? activeIntegrations.map(integration => (
+      ? [...activeIntegrationsByProvider.entries()].map(([provider, configurations]) => (
           <ExternalIssueActions
-            key={integration.id}
-            integration={integration}
+            key={provider}
+            configurations={configurations}
             group={group}
+            onChange={this.updateIntegrations.bind(this)}
           />
         ))
       : null;
@@ -195,7 +214,6 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     const integrationIssues = this.renderIntegrationIssues(this.state.integrations);
     const pluginIssues = this.renderPluginIssues();
     const pluginActions = this.renderPluginActions();
-
     if (!sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions) {
       return (
         <React.Fragment>

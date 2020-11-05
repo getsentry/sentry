@@ -128,6 +128,15 @@ class TrendsContent extends React.Component<Props, State> {
       {
         field: 'absolute_correlation()',
       },
+      {
+        field: 'trend_percentage()',
+      },
+      {
+        field: 'trend_difference()',
+      },
+      {
+        field: 'count_percentage()',
+      },
     ]);
     const currentTrendFunction = getCurrentTrendFunction(location);
     const currentConfidenceLevel = getCurrentConfidenceLevel(location);
