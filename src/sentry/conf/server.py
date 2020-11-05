@@ -907,8 +907,6 @@ SENTRY_FEATURES = {
     "organizations:sso-migration": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
-    # Enable trends view for performance.
-    "organizations:trends": False,
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
