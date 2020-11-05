@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import PropTypes from 'prop-types';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -13,12 +13,22 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
 
-class AuthorizationRow extends React.Component {
-  static propTypes = {
-    authorization: PropTypes.object.isRequired,
-    onRevoke: PropTypes.func.isRequired,
-  };
+type Application = {
+  name: string;
+};
 
+type Authorization = {
+  application: Application;
+  homepageUrl: string;
+  scopes: string[];
+};
+
+type RowProps = {
+  authorization: Authorization;
+  onRevoke: (authorization: Authorization) => void;
+};
+
+class AuthorizationRow extends React.Component<RowProps> {
   handleRevoke = () => {
     const {authorization} = this.props;
     this.props.onRevoke(authorization);
@@ -44,8 +54,12 @@ class AuthorizationRow extends React.Component {
   }
 }
 
-class AccountAuthorizations extends AsyncView {
-  getEndpoints() {
+type Props = RouteComponentProps<{}, {}>;
+
+type State = {} & AsyncView['state'];
+
+class AccountAuthorizations extends AsyncView<Props, State> {
+  getEndpoints(): [string, string][] {
     return [['data', '/api-authorizations/']];
   }
 
