@@ -10,6 +10,7 @@ type Props = {
   hideIfEmpty?: boolean;
   inline?: boolean;
   className?: string;
+  hideParens?: boolean;
 };
 
 /**
@@ -25,6 +26,7 @@ const QueryCount = ({
   max,
   hideIfEmpty = true,
   inline = true,
+  hideParens = false,
 }: Props) => {
   const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
   const cx = classNames('query-count', className, {
@@ -37,9 +39,9 @@ const QueryCount = ({
 
   return (
     <div className={cx}>
-      <span>(</span>
+      {!hideParens && <span>(</span>}
       <span className="query-count-value">{countOrMax}</span>
-      <span>)</span>
+      {!hideParens && <span>)</span>}
     </div>
   );
 };
@@ -49,6 +51,7 @@ QueryCount.propTypes = {
   max: PropTypes.number,
   hideIfEmpty: PropTypes.bool,
   inline: PropTypes.bool,
+  hideParens: PropTypes.bool,
 };
 
 export default QueryCount;

@@ -1,6 +1,7 @@
 import React from 'react';
+import 'zrender/lib/svg/svg';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import {EChartOption, ECharts} from 'echarts/lib/echarts';
+import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
 import styled from '@emotion/styled';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
@@ -9,11 +10,11 @@ import {
   EChartEventHandler,
   EChartChartReadyHandler,
   EChartDataZoomHandler,
+  ReactEchartsRef,
 } from 'app/types/echarts';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import LoadingPanel from './loadingPanel';
 import Grid from './components/grid';
 import Legend from './components/legend';
 import LineSeries from './series/lineSeries';
@@ -38,13 +39,14 @@ type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
 
 /**
- * Used for soem properties that can be truncated
+ * Used for some properties that can be truncated
  */
 type Truncateable = {
   /**
-   * Truncate the label / value some number of characters
+   * Truncate the label / value some number of characters.
+   * If true is passed, it will use truncate based on a default length.
    */
-  truncate?: number;
+  truncate?: number | boolean;
 };
 
 type Props = {
@@ -64,7 +66,7 @@ type Props = {
    *
    * Additionally a `truncate` option
    */
-  xAxis?: EChartOption.XAxis & Truncateable;
+  xAxis?: (EChartOption.XAxis & Truncateable) | null;
   /**
    * Must be explicitly `null` to disable yAxis
    */
@@ -84,7 +86,7 @@ type Props = {
    */
   tooltip?: EChartOption.Tooltip &
     Truncateable & {
-      filter?: (value: number) => number;
+      filter?: (value: number) => boolean;
       formatAxisLabel?: (
         value: number,
         isTimestamp: boolean,
@@ -201,16 +203,17 @@ type Props = {
    */
   bucketSize?: number;
   /**
+   * If true and there's only one datapoint in series.data, we show a bar chart to increase the visibility.
+   * Especially useful with line / area charts, because you can't draw line with single data point and one alone point is hard to spot.
+   */
+  transformSinglePointToBar?: boolean;
+  /**
    * Inline styles
    */
   style?: React.CSSProperties;
 };
 
-type State = {
-  chartDeps: any;
-};
-
-class BaseChart extends React.Component<Props, State> {
+class BaseChart extends React.Component<Props> {
   static defaultProps = {
     height: 200,
     width: 'auto',
@@ -224,31 +227,8 @@ class BaseChart extends React.Component<Props, State> {
     xAxis: {},
     yAxis: {},
     isGroupedByDate: false,
+    transformSinglePointToBar: false,
   };
-
-  state: State = {
-    chartDeps: undefined,
-  };
-
-  componentDidMount() {
-    this.loadEcharts();
-    this._isMounted = true;
-  }
-
-  componentWillUnmount() {
-    this._isMounted = false;
-  }
-
-  async loadEcharts() {
-    const chartDeps = await import(
-      /* webpackChunkName: "echarts" */ 'app/components/charts/libs'
-    );
-    if (this._isMounted) {
-      this.setState({chartDeps});
-    }
-  }
-
-  private _isMounted: boolean = false;
 
   getEventsMap: ReactEchartProps['onEvents'] = {
     click: (props, instance) => {
@@ -290,6 +270,45 @@ class BaseChart extends React.Component<Props, State> {
     return (palette as unknown) as string[];
   }
 
+  getSeries() {
+    const {previousPeriod, series, transformSinglePointToBar} = this.props;
+
+    const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
+      s => Array.isArray(s.data) && s.data.length === 1
+    );
+
+    const transformedSeries =
+      (hasSinglePoints && transformSinglePointToBar
+        ? (series as EChartOption.SeriesLine[] | undefined)?.map(s => ({
+            ...s,
+            type: 'bar',
+            barWidth: 40,
+            barGap: 0,
+          }))
+        : series) ?? [];
+
+    const transformedPreviousPeriod =
+      previousPeriod?.map(previous =>
+        LineSeries({
+          name: previous.seriesName,
+          data: previous.data.map(({name, value}) => [name, value]),
+          lineStyle: {
+            color: theme.gray400,
+            type: 'dotted',
+          },
+          itemStyle: {
+            color: theme.gray400,
+          },
+        })
+      ) ?? [];
+
+    if (!previousPeriod) {
+      return transformedSeries;
+    }
+
+    return [...transformedSeries, ...transformedPreviousPeriod];
+  }
+
   render() {
     const {
       options,
@@ -308,7 +327,6 @@ class BaseChart extends React.Component<Props, State> {
       isGroupedByDate,
       showTimeInTooltip,
       useShortDate,
-      previousPeriod,
       start,
       end,
       period,
@@ -326,16 +344,6 @@ class BaseChart extends React.Component<Props, State> {
       forwardedRef,
       onChartReady,
     } = this.props;
-    const {chartDeps} = this.state;
-
-    if (typeof chartDeps === 'undefined') {
-      return (
-        <LoadingPanel
-          height={height ? `${height}px` : undefined}
-          data-test-id="basechart-loading"
-        />
-      );
-    }
 
     const yAxisOrCustom = !yAxes
       ? yAxis !== null
@@ -372,9 +380,9 @@ class BaseChart extends React.Component<Props, State> {
 
     return (
       <ChartContainer>
-        <chartDeps.ReactEchartsCore
+        <ReactEchartsCore
           ref={forwardedRef}
-          echarts={chartDeps.echarts}
+          echarts={echarts}
           notMerge={notMerge}
           lazyUpdate={lazyUpdate}
           theme={this.props.theme}
@@ -410,24 +418,7 @@ class BaseChart extends React.Component<Props, State> {
             legend: legend ? Legend({...legend}) : undefined,
             yAxis: yAxisOrCustom,
             xAxis: xAxisOrCustom,
-            series: !previousPeriod
-              ? series
-              : [
-                  ...series,
-                  ...previousPeriod.map(previous =>
-                    LineSeries({
-                      name: previous.seriesName,
-                      data: previous.data.map(({name, value}) => [name, value]),
-                      lineStyle: {
-                        color: theme.gray400,
-                        type: 'dotted',
-                      },
-                      itemStyle: {
-                        color: theme.gray400,
-                      },
-                    })
-                  ),
-                ],
+            series: this.getSeries(),
             axisPointer,
             dataZoom,
             toolbox: toolBox,
@@ -492,7 +483,7 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const BaseChartRef = React.forwardRef<ReactEchartsCore, Props>((props, ref) => (
+const BaseChartRef = React.forwardRef<ReactEchartsRef, Props>((props, ref) => (
   <BaseChart forwardedRef={ref} {...props} />
 ));
 BaseChartRef.displayName = 'forwardRef(BaseChart)';

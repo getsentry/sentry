@@ -1,10 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 
 type Props = {
   sort: string;
@@ -37,15 +35,13 @@ const IssueListSortOptions = ({onSelect, sort}: Props) => {
   );
 
   return (
-    <Container>
-      <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
-        {getMenuItem('priority')}
-        {getMenuItem('date')}
-        {getMenuItem('new')}
-        {getMenuItem('freq')}
-        {getMenuItem('user')}
-      </DropdownControl>
-    </Container>
+    <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
+      {getMenuItem('priority')}
+      {getMenuItem('date')}
+      {getMenuItem('new')}
+      {getMenuItem('freq')}
+      {getMenuItem('user')}
+    </DropdownControl>
   );
 };
 
@@ -53,9 +49,5 @@ IssueListSortOptions.propTypes = {
   sort: PropTypes.string.isRequired,
   onSelect: PropTypes.func.isRequired,
 };
-
-const Container = styled('div')`
-  margin-right: ${space(0.5)};
-`;
 
 export default IssueListSortOptions;

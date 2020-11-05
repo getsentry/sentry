@@ -157,9 +157,6 @@ class MiniGraph extends React.Component<Props> {
                 bottom: 0,
                 containLabel: false,
               }}
-              options={{
-                hoverAnimation: false,
-              }}
             />
           );
         }}

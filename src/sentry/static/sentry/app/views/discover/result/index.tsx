@@ -43,7 +43,7 @@ type ResultProps = {
   savedQuery: SavedQuery | null; // Provided if it's a saved search
   onFetchPage: (nextOrPrev: string) => void;
   onToggleEdit: () => void;
-  utc: boolean | null;
+  utc?: boolean | null;
 };
 
 type ResultState = {
@@ -215,7 +215,7 @@ class Result extends React.Component<ResultProps, ResultState> {
 
     const legendData = byDayChartData
       ? {data: byDayChartData.map((entry: any) => entry.seriesName), truncate: 80}
-      : null;
+      : undefined;
 
     const tooltipOptions = {
       filter: (value: any) => value !== null,
@@ -273,7 +273,7 @@ class Result extends React.Component<ResultProps, ResultState> {
                 legend={legendData}
                 renderer="canvas"
                 isGroupedByDate
-                utc={utc}
+                utc={utc ?? undefined}
               />
               {this.renderNote()}
             </ChartWrapper>
@@ -288,7 +288,7 @@ class Result extends React.Component<ResultProps, ResultState> {
                 legend={legendData}
                 renderer="canvas"
                 isGroupedByDate
-                utc={utc}
+                utc={utc !== null && utc !== undefined ? utc : undefined}
                 options={{animation: false}}
               />
               {this.renderNote()}
