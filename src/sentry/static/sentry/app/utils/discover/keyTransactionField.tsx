@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {toggleKeyTransaction} from 'app/actionCreators/performance';
 import {Client} from 'app/api';
@@ -69,8 +70,7 @@ class KeyTransactionField extends React.Component<Props, State> {
 
     const star = (
       <IconStar
-        size="xs"
-        color={isKeyTransaction ? 'yellow500' : 'gray500'}
+        color={isKeyTransaction ? 'yellow400' : 'gray400'}
         isSolid={isKeyTransaction}
         data-test-id="key-transaction-column"
       />
@@ -89,7 +89,7 @@ class KeyTransactionField extends React.Component<Props, State> {
     }
 
     return (
-      <Button
+      <StyledKey
         size="zero"
         borderless
         icon={star}
@@ -98,5 +98,10 @@ class KeyTransactionField extends React.Component<Props, State> {
     );
   }
 }
+
+const StyledKey = styled(Button)`
+  width: 16px;
+  vertical-align: middle;
+`;
 
 export default withApi(withProjects(KeyTransactionField));
