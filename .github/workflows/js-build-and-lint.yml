@@ -66,6 +66,13 @@ jobs:
         run: |
           yarn tsc -p config/tsconfig.build.json
 
+      - name: storybook
+        if: steps.changes.outputs.frontend == 'true'
+        env:
+          STORYBOOK_BUILD: 1
+        run: |
+          yarn storybook-build
+
   webpack:
     runs-on: ubuntu-16.04
     steps:
