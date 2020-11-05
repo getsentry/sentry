@@ -53,7 +53,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
         <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
           <IconChat
             size="xs"
-            color={subscriptionDetails?.reason === 'mentioned' ? 'green400' : undefined}
+            color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
           />
           <span>{numComments}</span>
         </CommentsLink>
