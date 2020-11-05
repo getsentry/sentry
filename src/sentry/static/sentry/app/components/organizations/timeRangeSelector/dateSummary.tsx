@@ -10,20 +10,20 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 type Props = {
-  start: Date;
-  end: Date;
+  start: moment.MomentInput;
+  end: moment.MomentInput;
 };
 
 class DateSummary extends React.Component<Props> {
-  getFormattedDate(date: Date, format: string) {
+  getFormattedDate(date: moment.MomentInput, format: string) {
     return moment(date).local().format(format);
   }
 
-  formatDate(date: Date) {
+  formatDate(date: moment.MomentInput) {
     return this.getFormattedDate(date, 'll');
   }
 
-  formatTime(date: Date, withSeconds = false) {
+  formatTime(date: moment.MomentInput, withSeconds = false) {
     return this.getFormattedDate(date, `HH:mm${withSeconds ? ':ss' : ''}`);
   }
 
