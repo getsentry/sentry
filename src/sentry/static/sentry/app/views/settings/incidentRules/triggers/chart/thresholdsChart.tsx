@@ -7,8 +7,7 @@ import flatten from 'lodash/flatten';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import Graphic from 'app/components/charts/components/graphic';
-import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
-import Legend from 'app/components/charts/components/legend';
+import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -231,12 +230,10 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
   render() {
     const {data, triggers, period} = this.props;
-    const dataWithoutRecentBucket: LineChartSeries[] = data?.map(
-      ({data: eventData, ...restOfData}) => ({
-        ...restOfData,
-        data: eventData.slice(0, -1),
-      })
-    );
+    const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => ({
+      ...restOfData,
+      data: eventData.slice(0, -1),
+    }));
 
     // Disable all lines by default but the 1st one
     const selected: Record<string, boolean> = dataWithoutRecentBucket.reduce(
@@ -246,7 +243,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       },
       {}
     );
-    const legend = Legend({
+    const legend = {
       right: 10,
       top: 0,
       icon: 'circle',
@@ -260,7 +257,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         fontFamily: 'Rubik',
       },
       selected,
-    });
+    };
 
     return (
       <LineChart
@@ -270,7 +267,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
         yAxis={{
-          max: this.state.yAxisMax ?? undefined,
+          max: this.state.yAxisMax,
         }}
         legend={legend}
         graphic={Graphic({
