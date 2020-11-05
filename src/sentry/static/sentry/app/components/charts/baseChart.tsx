@@ -202,6 +202,11 @@ type Props = {
    */
   bucketSize?: number;
   /**
+   * If true and there's only one datapoint in series.data, we show a bar chart to increase the visibility.
+   * Especially useful with line / area charts, because you can't draw line with single data point and one alone point is hard to spot.
+   */
+  transformSinglePointToBar?: boolean;
+  /**
    * Inline styles
    */
   style?: React.CSSProperties;
@@ -225,6 +230,7 @@ class BaseChart extends React.Component<Props, State> {
     xAxis: {},
     yAxis: {},
     isGroupedByDate: false,
+    transformSinglePointToBar: false,
   };
 
   state: State = {
@@ -291,6 +297,45 @@ class BaseChart extends React.Component<Props, State> {
     return (palette as unknown) as string[];
   }
 
+  getSeries() {
+    const {previousPeriod, series, transformSinglePointToBar} = this.props;
+
+    const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
+      s => Array.isArray(s.data) && s.data.length === 1
+    );
+
+    const transformedSeries =
+      (hasSinglePoints && transformSinglePointToBar
+        ? (series as EChartOption.SeriesLine[] | undefined)?.map(s => ({
+            ...s,
+            type: 'bar',
+            barWidth: 40,
+            barGap: 0,
+          }))
+        : series) ?? [];
+
+    const transformedPreviousPeriod =
+      previousPeriod?.map(previous =>
+        LineSeries({
+          name: previous.seriesName,
+          data: previous.data.map(({name, value}) => [name, value]),
+          lineStyle: {
+            color: theme.gray400,
+            type: 'dotted',
+          },
+          itemStyle: {
+            color: theme.gray400,
+          },
+        })
+      ) ?? [];
+
+    if (!previousPeriod) {
+      return transformedSeries;
+    }
+
+    return [...transformedSeries, ...transformedPreviousPeriod];
+  }
+
   render() {
     const {
       options,
@@ -309,7 +354,6 @@ class BaseChart extends React.Component<Props, State> {
       isGroupedByDate,
       showTimeInTooltip,
       useShortDate,
-      previousPeriod,
       start,
       end,
       period,
@@ -411,24 +455,7 @@ class BaseChart extends React.Component<Props, State> {
             legend: legend ? Legend({...legend}) : undefined,
             yAxis: yAxisOrCustom,
             xAxis: xAxisOrCustom,
-            series: !previousPeriod
-              ? series
-              : [
-                  ...series,
-                  ...previousPeriod.map(previous =>
-                    LineSeries({
-                      name: previous.seriesName,
-                      data: previous.data.map(({name, value}) => [name, value]),
-                      lineStyle: {
-                        color: theme.gray400,
-                        type: 'dotted',
-                      },
-                      itemStyle: {
-                        color: theme.gray400,
-                      },
-                    })
-                  ),
-                ],
+            series: this.getSeries(),
             axisPointer,
             dataZoom,
             toolbox: toolBox,
