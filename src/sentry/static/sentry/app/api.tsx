@@ -45,7 +45,7 @@ type QueryArgs =
       project?: Array<number>;
     }
   | {
-      id: Array<number>;
+      id: Array<number> | Array<string>;
       environment?: string | Array<string>;
       project?: Array<number>;
     }
