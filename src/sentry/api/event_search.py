@@ -1674,6 +1674,12 @@ class Function(object):
     def args(self):
         return self.required_args + self.optional_args
 
+    def alias_as(self, name):
+        """ Create a copy of this function to be used as an alias """
+        alias = deepcopy(self)
+        alias.name = name
+        return alias
+
     def add_default_arguments(self, field, columns, params):
         # make sure to validate the argument count first to
         # ensure the right number of arguments have been passed
@@ -2235,8 +2241,7 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 for alias, name in FUNCTION_ALIASES.items():
-    FUNCTIONS[alias] = deepcopy(FUNCTIONS[name])
-    FUNCTIONS[alias].name = alias
+    FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
 
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))

@@ -285,6 +285,12 @@ export const AGGREGATIONS = {
   },
 } as const;
 
+// TPM and TPS are aliases that are only used in Performance
+export const ALIASES = {
+  tpm: 'epm',
+  tps: 'eps',
+};
+
 assert(AGGREGATIONS as Readonly<{[key in keyof typeof AGGREGATIONS]: Aggregation}>);
 
 export type AggregationKey = keyof typeof AGGREGATIONS | '';
@@ -648,7 +654,7 @@ export function aggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
-  const aggregate = AGGREGATIONS[funcName];
+  const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
 
   // Attempt to use the function's outputType.
   if (aggregate?.outputType) {
