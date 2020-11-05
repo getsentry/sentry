@@ -455,7 +455,7 @@ class VstsIssueFormTest(VstsIssueBase):
     def test_default_project(self):
         self.mock_categories("project-2-id")
         self.update_issue_defaults({"project": "project-2-id"})
-        fields = self.integration.get_create_issue_config(self.group)
+        fields = self.integration.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(
             fields, "project-2-id", [("project-1-id", "project_1"), ("project-2-id", "project_2")]
@@ -465,7 +465,7 @@ class VstsIssueFormTest(VstsIssueBase):
     def test_default_project_and_category(self):
         self.mock_categories("project-2-id")
         self.update_issue_defaults({"project": "project-2-id", "work_item_type": "Task"})
-        fields = self.integration.get_create_issue_config(self.group)
+        fields = self.integration.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(
             fields, "project-2-id", [("project-1-id", "project_1"), ("project-2-id", "project_2")]
@@ -491,7 +491,7 @@ class VstsIssueFormTest(VstsIssueBase):
             json={"id": "project-3-id", "name": "project_3"},
         )
         self.update_issue_defaults({"project": "project-3-id"})
-        fields = self.integration.get_create_issue_config(self.group)
+        fields = self.integration.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(
             fields,
@@ -511,7 +511,7 @@ class VstsIssueFormTest(VstsIssueBase):
             status=404,
         )
         self.update_issue_defaults({"project": "project-3-id"})
-        fields = self.integration.get_create_issue_config(self.group)
+        fields = self.integration.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(
             fields, None, [("project-1-id", "project_1"), ("project-2-id", "project_2")]
@@ -525,7 +525,7 @@ class VstsIssueFormTest(VstsIssueBase):
         )
 
         with pytest.raises(IntegrationError):
-            self.integration.get_create_issue_config(self.group)
+            self.integration.get_create_issue_config(self.group, self.user)
 
     @responses.activate
     def test_default_project_no_projects(self):
@@ -535,6 +535,6 @@ class VstsIssueFormTest(VstsIssueBase):
             "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",
             json={"value": [], "count": 0},
         )
-        fields = self.integration.get_create_issue_config(self.group)
+        fields = self.integration.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(fields, None, [])
