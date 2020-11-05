@@ -658,6 +658,25 @@ describe('SmartSearchBar', function () {
       expect(searchBar.state.query).toEqual('event.type:error id:12345 ');
     });
 
+    it('triggers onChange', function () {
+      const onChange = jest.fn();
+      const props = {
+        query: 'event.type:error id:',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(
+        <SmartSearchBar {...props} onChange={onChange} />,
+        options
+      ).instance();
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      searchBar.onAutoComplete('12345', {type: 'tag-value'});
+      expect(onChange).toHaveBeenCalledWith(
+        'event.type:error id:12345 ',
+        expect.anything()
+      );
+    });
+
     it('keeps the negation operator is present', function () {
       const props = {
         query: '',
