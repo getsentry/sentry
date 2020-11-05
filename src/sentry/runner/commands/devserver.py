@@ -31,8 +31,12 @@ _DEFAULT_DAEMONS = {
 }
 
 
-def _get_daemon(name):
-    return (name, _DEFAULT_DAEMONS[name])
+def _get_daemon(name, *args, **kwargs):
+    display_name = name
+    if "suffix" in kwargs:
+        display_name = "{}-{}".format(name, kwargs["suffix"])
+
+    return (display_name, _DEFAULT_DAEMONS[name] + list(args))
 
 
 @click.command()
@@ -212,7 +216,8 @@ def devserver(
             daemons += [_get_daemon("post-process-forwarder")]
 
         if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
-            daemons += [_get_daemon("subscription-consumer")]
+            for name, topic in settings.KAFKA_SUBSCRIPTION_RESULT_TOPICS.items():
+                daemons += [_get_daemon("subscription-consumer", "--topic", topic, suffix=name)]
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
