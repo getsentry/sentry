@@ -523,7 +523,7 @@ export type PluginNoProject = {
   metadata: any; // TODO(ts)
   contexts: any[]; // TODO(ts)
   status: string;
-  assets: any[]; // TODO(ts)
+  assets: Array<{url: string}>;
   doc: string;
   features: string[];
   featureDescriptions: IntegrationFeature[];

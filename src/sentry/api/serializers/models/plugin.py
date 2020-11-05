@@ -44,7 +44,6 @@ class PluginSerializer(Serializer):
             "metadata": obj.get_metadata(),
             "contexts": contexts,
             "status": obj.get_status(),
-            # TODO: remove assets since they are unused
             "assets": [
                 {"url": absolute_uri(get_asset_url(obj.asset_key or obj.slug, asset))}
                 for asset in obj.get_assets()
