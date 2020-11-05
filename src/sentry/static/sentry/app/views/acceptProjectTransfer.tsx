@@ -1,4 +1,5 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncView from 'app/views/asyncView';
@@ -7,9 +8,21 @@ import NarrowLayout from 'app/components/narrowLayout';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {t, tct} from 'app/locale';
+import {Organization, Project} from 'app/types';
 
-class AcceptProjectTransfer extends AsyncView {
-  getEndpoints() {
+type Props = RouteComponentProps<{}, {}>;
+
+type TransferDetails = {
+  organizations: Organization[];
+  project: Project;
+};
+
+type State = {
+  transferDetails: TransferDetails;
+} & AsyncView['state'];
+
+class AcceptProjectTransfer extends AsyncView<Props, State> {
+  getEndpoints(): [string, string, any][] {
     const query = this.props.location.query;
     return [['transferDetails', '/accept-transfer/', {query}]];
   }
@@ -45,7 +58,7 @@ class AcceptProjectTransfer extends AsyncView {
   };
 
   renderError(error) {
-    let disableLog = false;
+    let disableLog: boolean = false;
     // Check if there is an error message with `transferDetails` endpoint
     // If so, show as toast and ignore, otherwise log to sentry
     if (error && error.responseJSON && typeof error.responseJSON.detail === 'string') {
@@ -53,12 +66,12 @@ class AcceptProjectTransfer extends AsyncView {
       disableLog = true;
     }
 
-    super.renderError(error, disableLog);
+    return super.renderError(error, disableLog);
   }
 
   renderBody() {
     const {transferDetails} = this.state;
-    const choices = [];
+    const choices: [string, string][] = [];
 
     transferDetails.organizations.forEach(org => {
       choices.push([org.slug, org.slug]);
