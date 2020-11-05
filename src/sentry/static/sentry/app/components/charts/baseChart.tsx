@@ -10,6 +10,7 @@ import {
   EChartEventHandler,
   EChartChartReadyHandler,
   EChartDataZoomHandler,
+  ReactEchartsRef,
 } from 'app/types/echarts';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -482,7 +483,7 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const BaseChartRef = React.forwardRef<ReactEchartsCore, Props>((props, ref) => (
+const BaseChartRef = React.forwardRef<ReactEchartsRef, Props>((props, ref) => (
   <BaseChart forwardedRef={ref} {...props} />
 ));
 BaseChartRef.displayName = 'forwardRef(BaseChart)';

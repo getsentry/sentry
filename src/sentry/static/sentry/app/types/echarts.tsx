@@ -1,4 +1,5 @@
 import {ECharts, EChartOption} from 'echarts';
+import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 export type SeriesDataUnit = {
   value: number;
@@ -20,7 +21,7 @@ export type Series = {
   lineStyle?: EChartOption.LineStyle;
 };
 
-export type ReactEchartsRef = {
+export type ReactEchartsRef = ReactEchartsCore & {
   getEchartsInstance: () => ECharts;
 };
 
