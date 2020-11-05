@@ -236,6 +236,38 @@ SelectFieldMultiple.story = {
   name: 'SelectField multiple',
 };
 
+export const SelectFieldGrouped = withInfo({
+  text: 'Select Control w/ Groups',
+  propTablesExclude: [Form],
+})(() => (
+  <Form>
+    <SelectField
+      name="select"
+      label="Grouped Select"
+      options={[
+        {
+          label: 'Group 1',
+          options: [
+            {value: 'choice_one', label: 'Choice One'},
+            {value: 'choice_two', label: 'Choice Two'},
+          ],
+        },
+        {
+          label: 'Group 2',
+          options: [
+            {value: 'choice_three', label: 'Choice Three'},
+            {value: 'choice_four', label: 'Choice Four'},
+          ],
+        },
+      ]}
+    />
+  </Form>
+));
+
+SelectFieldGrouped.story = {
+  name: 'SelectField grouped',
+};
+
 export const NonInlineField = withInfo({
   text: 'Radio Group used w/ FormField',
   propTablesExclude: [Form],

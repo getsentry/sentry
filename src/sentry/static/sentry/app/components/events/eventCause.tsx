@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import uniqBy from 'lodash/uniqBy';
 import flatMap from 'lodash/flatMap';
@@ -12,21 +11,27 @@ import withApi from 'app/utils/withApi';
 import withCommitters from 'app/utils/withCommitters';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {Event, Group, Organization, AvatarProject, Committer} from 'app/types';
+import {Client} from 'app/api';
 
-const ExpandButton = styled('button')`
-  display: flex;
-  align-items: center;
-  & > svg {
-    margin-left: ${space(0.5)};
-  }
-`;
+type Props = {
+  // injected by HoC
+  committers: Committer[];
+  api: Client;
 
-class EventCause extends React.Component {
-  static propTypes = {
-    committers: PropTypes.array.isRequired,
-  };
+  // needed by HoC
+  organization: Organization;
+  project: AvatarProject;
+  event: Event;
+  group?: Group;
+};
 
-  state = {
+type State = {
+  expanded: boolean;
+};
+
+class EventCause extends React.Component<Props, State> {
+  state: State = {
     expanded: false,
   };
 
@@ -43,6 +48,7 @@ class EventCause extends React.Component {
 
     // Remove duplicate commits
     const uniqueCommitsWithAuthors = uniqBy(commitsWithAuthors, commit => commit.id);
+
     return uniqueCommitsWithAuthors;
   }
 
@@ -85,5 +91,13 @@ class EventCause extends React.Component {
     );
   }
 }
+
+const ExpandButton = styled('button')`
+  display: flex;
+  align-items: center;
+  & > svg {
+    margin-left: ${space(0.5)};
+  }
+`;
 
 export default withApi(withCommitters(EventCause));

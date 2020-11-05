@@ -10,11 +10,15 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
  * and end date, with the end date as the current time and the start date as the
  * time that is the current time less the statsPeriod.
  *
- * @param {String} statsPeriod Relative stats period
- * @return {Object} Object containing start and end date as YYYY-MM-DDTHH:mm:ss
+ * @param statsPeriod Relative stats period
+ * @param outputFormat Format of outputed start/end date
+ * @return Object containing start and end date as YYYY-MM-DDTHH:mm:ss
  *
  */
-export function parseStatsPeriod(statsPeriod) {
+export function parseStatsPeriod(
+  statsPeriod: string,
+  outputFormat: string | null = DATE_TIME_FORMAT
+): {start: string; end: string} {
   const statsPeriodRegex = /^(\d+)([smhd]{1})$/;
 
   const result = statsPeriodRegex.exec(statsPeriod);
@@ -31,9 +35,10 @@ export function parseStatsPeriod(statsPeriod) {
     m: 'minutes',
   }[result[2]];
 
+  const format = outputFormat === null ? undefined : outputFormat;
   return {
-    start: moment().subtract(value, unit).format(DATE_TIME_FORMAT),
-    end: moment().format(DATE_TIME_FORMAT),
+    start: moment().subtract(value, unit).format(format),
+    end: moment().format(format),
   };
 }
 
@@ -42,10 +47,10 @@ export function parseStatsPeriod(statsPeriod) {
  * is a default stats period. Otherwise if it's a valid period (can be any number
  * followed by a single character s|m|h|d) display "Other" or "Invalid period" if invalid
  *
- * @param {String} relative Relative stats period
- * @return {String} Returns either one of the default "Last x days" string, "Other" if period is valid on the backend, or "Invalid period" otherwise
+ * @param relative Relative stats period
+ * @return either one of the default "Last x days" string, "Other" if period is valid on the backend, or "Invalid period" otherwise
  */
-export function getRelativeSummary(relative) {
+export function getRelativeSummary(relative: string): string {
   const defaultRelativePeriodString = DEFAULT_RELATIVE_PERIODS[relative];
 
   if (!defaultRelativePeriodString) {

@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 import re
 import six
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 from django.db.models import Q
 from django.db.models.functions import Coalesce
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, APIException
 
 from sentry import analytics
 
@@ -308,26 +308,21 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 # release creation is idempotent to simplify user
                 # experiences
                 try:
-                    with transaction.atomic():
-                        release, created = (
-                            Release.objects.create(
-                                organization_id=organization.id,
-                                version=result["version"],
-                                ref=result.get("ref"),
-                                url=result.get("url"),
-                                owner=result.get("owner"),
-                                date_released=result.get("dateReleased"),
-                            ),
-                            True,
-                        )
-                except IntegrityError:
-                    release, created = (
-                        Release.objects.get(
-                            organization_id=organization.id, version=result["version"]
-                        ),
-                        False,
+                    release, created = Release.objects.get_or_create(
+                        organization_id=organization.id,
+                        version=result["version"],
+                        defaults={
+                            "ref": result.get("ref"),
+                            "url": result.get("url"),
+                            "owner": result.get("owner"),
+                            "date_released": result.get("dateReleased"),
+                        },
                     )
-                else:
+                except IntegrityError:
+                    raise APIException(
+                        "Could not create the release it conflicts with existing data", 409
+                    )
+                if created:
                     release_created.send_robust(release=release, sender=self.__class__)
 
                 new_projects = []

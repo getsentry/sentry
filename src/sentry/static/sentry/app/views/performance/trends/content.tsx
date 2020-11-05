@@ -124,11 +124,30 @@ class TrendsContent extends React.Component<Props, State> {
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
-    const fields = generateAggregateFields(organization, [
-      {
-        field: 'absolute_correlation()',
-      },
-    ]);
+    const fields = generateAggregateFields(
+      organization,
+      [
+        {
+          field: 'absolute_correlation()',
+        },
+        {
+          field: 'trend_percentage()',
+        },
+        {
+          field: 'trend_difference()',
+        },
+        {
+          field: 'count_percentage()',
+        },
+        {
+          field: 'tpm()',
+        },
+        {
+          field: 'tps()',
+        },
+      ],
+      ['epm()', 'eps()']
+    );
     const currentTrendFunction = getCurrentTrendFunction(location);
     const currentConfidenceLevel = getCurrentConfidenceLevel(location);
     const query = getTransactionSearchQuery(location);
@@ -229,7 +248,7 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     if (queryString || this.hasPushedDefaults) {
       return <React.Fragment>{children}</React.Fragment>;
     } else {
-      conditions.setTagValues('epm()', ['>0.01']);
+      conditions.setTagValues('tpm()', ['>0.01']);
       conditions.setTagValues('transaction.duration', ['>0', `<${DEFAULT_MAX_DURATION}`]);
     }
 

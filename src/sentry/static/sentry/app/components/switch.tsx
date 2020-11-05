@@ -98,7 +98,7 @@ const Toggle = styled('span')<StyleProps>`
   transform: translateX(${getTranslateX}px);
   width: ${getToggleSize}px;
   height: ${getToggleSize}px;
-  background: ${p => (p.isActive ? p.theme.green400 : p.theme.gray400)};
+  background: ${p => (p.isActive ? p.theme.green300 : p.theme.gray400)};
   opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
 

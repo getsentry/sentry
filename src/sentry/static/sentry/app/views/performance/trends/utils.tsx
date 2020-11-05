@@ -7,11 +7,11 @@ import {ASAP} from 'downsample/methods/ASAP';
 import theme from 'app/utils/theme';
 import {getInterval} from 'app/components/charts/utils';
 import {decodeScalar} from 'app/utils/queryString';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import Duration from 'app/components/duration';
 import {Sort, Field} from 'app/utils/discover/fields';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Count from 'app/components/count';
 import {Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {IconArrow} from 'app/icons';
@@ -85,8 +85,8 @@ export const CONFIDENCE_LEVELS: ConfidenceLevel[] = [
 
 export const trendToColor = {
   [TrendChangeType.IMPROVED]: {
-    lighter: theme.green300,
-    default: theme.green400,
+    lighter: theme.green200,
+    default: theme.green300,
   },
   [TrendChangeType.REGRESSION]: {
     lighter: theme.red300,
@@ -134,25 +134,11 @@ export function getIntervalRatio(location: Location): number {
   return intervalFromLocation ? parseFloat(intervalFromLocation) : 0.5;
 }
 
-export function transformDeltaSpread(
-  from: number,
-  to: number,
-  trendFunctionField: TrendFunctionField
-) {
+export function transformDeltaSpread(from: number, to: number) {
   const fromSeconds = from / 1000;
   const toSeconds = to / 1000;
 
   const showDigits = from > 1000 || to > 1000 || from < 10 || to < 10; // Show digits consistently if either has them
-
-  if (trendFunctionField === TrendFunctionField.USER_MISERY) {
-    return (
-      <span>
-        <Count value={from} />
-        <StyledIconArrow direction="right" size="xs" />
-        <Count value={to} /> {t('miserable users')}
-      </span>
-    );
-  }
 
   return (
     <span>
@@ -189,14 +175,11 @@ export function modifyTrendView(
   })) as Field[];
 
   const trendSort = {
-    field: `percentage_${trendFunction.alias}_2_${trendFunction.alias}_1`,
+    field: 'trend_percentage()',
     kind: 'asc',
   } as Sort;
 
-  if (trendFunction && trendFunction.field === TrendFunctionField.USER_MISERY) {
-    trendSort.field = `minus_${trendFunction.alias}_2_${trendFunction.alias}_1`;
-  }
-
+  trendView.trendType = trendsType;
   if (trendsType === TrendChangeType.REGRESSION) {
     trendSort.kind = 'desc';
   }
@@ -204,8 +187,11 @@ export function modifyTrendView(
   if (trendFunction) {
     trendView.trendFunction = trendFunction.field;
   }
-  const limitTrendResult = getLimitTransactionItems(trendsType, confidenceLevel);
-  trendView.query += ' ' + limitTrendResult;
+  trendView.query = getLimitTransactionItems(
+    trendView.query,
+    trendsType,
+    confidenceLevel
+  );
 
   trendView.interval = getQueryInterval(location, trendView);
 
@@ -239,21 +225,9 @@ function getQueryInterval(location: Location, eventView: TrendView) {
   return intervalFromQueryParam || intervalFromSmoothing;
 }
 
-export function transformValueDelta(
-  value: number,
-  trendType: TrendChangeType,
-  trendFunctionField: TrendFunctionField
-) {
+export function transformValueDelta(value: number, trendType: TrendChangeType) {
   const absoluteValue = Math.abs(value);
 
-  if (trendFunctionField === TrendFunctionField.USER_MISERY) {
-    const changeLabel = trendType === TrendChangeType.REGRESSION ? t('more') : t('less');
-    return (
-      <span>
-        <Count value={absoluteValue} /> {changeLabel}
-      </span>
-    );
-  }
   const changeLabel =
     trendType === TrendChangeType.REGRESSION ? t('slower') : t('faster');
 
@@ -271,52 +245,17 @@ export function transformValueDelta(
  * This will normalize the trends transactions while the current trend function and current data are out of sync
  * To minimize extra renders with missing results.
  */
-
 export function normalizeTrends(
-  data: Array<TrendsTransaction>,
-  trendFunction: TrendFunction
+  data: Array<TrendsTransaction>
 ): Array<NormalizedTrendsTransaction> {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
-    const {
-      project,
-      count_range_1,
-      count_range_2,
-      percentage_count_range_2_count_range_1,
-    } = row;
-
-    const aliasedFields = {} as NormalizedTrendsTransaction;
-    const alias = trendFunction.alias;
-    aliasedFields.aggregate_range_1 = row[`${alias}_1`];
-    aliasedFields.aggregate_range_2 = row[`${alias}_2`];
-    aliasedFields.percentage_aggregate_range_2_aggregate_range_1 =
-      row[getTrendAliasedFieldPercentage(alias)];
-    aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
-      row[getTrendAliasedMinus(alias)];
-
-    const normalized = {
-      ...aliasedFields,
-      project,
-
-      count_range_1,
-      count_range_2,
-      percentage_count_range_2_count_range_1,
-      received_at,
-    };
-
     return {
-      ...normalized,
+      ...row,
+      received_at,
       transaction: row.transaction,
     } as NormalizedTrendsTransaction;
   });
-}
-
-export function getTrendAliasedFieldPercentage(alias: string) {
-  return `percentage_${alias}_2_${alias}_1`;
-}
-
-export function getTrendAliasedMinus(alias: string) {
-  return `minus_${alias}_2_${alias}_1`;
 }
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
@@ -337,32 +276,40 @@ export function movingAverage(data, index, size) {
 }
 
 /**
- * This function applies a query to limit the results based on the trend type to being greater or less than 100% (depending on the type)
+ * This function applies defaults for trend and count percentage, and adds the confidence limit to the query
  */
 function getLimitTransactionItems(
+  query: string,
   trendChangeType: TrendChangeType,
   confidenceLevel: ConfidenceLevel
 ) {
-  let limitQuery =
-    'percentage(count_range_2,count_range_1):>0.25 percentage(count_range_2,count_range_1):<4';
-  if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery += ' trend_percentage():>1';
-    limitQuery += confidenceLevel.hasOwnProperty('min')
-      ? ` t_test():<-${confidenceLevel.min}`
-      : '';
-    limitQuery += confidenceLevel.hasOwnProperty('max')
-      ? ` t_test():>=-${confidenceLevel.max}`
-      : '';
-  } else {
-    limitQuery += ' trend_percentage():<1';
-    limitQuery += confidenceLevel.hasOwnProperty('min')
-      ? ` t_test():>${confidenceLevel.min}`
-      : '';
-    limitQuery += confidenceLevel.hasOwnProperty('max')
-      ? ` t_test():<=${confidenceLevel.max}`
-      : '';
+  const limitQuery = tokenizeSearch(query);
+  if (!limitQuery.hasTag('count_percentage()')) {
+    limitQuery.addTagValues('count_percentage()', ['>0.25', '<4']);
   }
-  return limitQuery;
+  if (!limitQuery.hasTag('trend_percentage()')) {
+    limitQuery.addTagValues('trend_percentage()', ['>0%']);
+  }
+  if (!limitQuery.hasTag('t_test()')) {
+    const tagValues: string[] = [];
+    if (trendChangeType === TrendChangeType.REGRESSION) {
+      if (confidenceLevel.hasOwnProperty('min')) {
+        tagValues.push(`<-${confidenceLevel.min}`);
+      }
+      if (confidenceLevel.hasOwnProperty('max')) {
+        tagValues.push(`>=-${confidenceLevel.max}`);
+      }
+    } else {
+      if (confidenceLevel.hasOwnProperty('min')) {
+        tagValues.push(`>${confidenceLevel.min}`);
+      }
+      if (confidenceLevel.hasOwnProperty('max')) {
+        tagValues.push(`<=${confidenceLevel.max}`);
+      }
+    }
+    limitQuery.addTagValues('t_test()', tagValues);
+  }
+  return limitQuery.formatString();
 }
 
 export const smoothTrend = (data: [number, number][], resolution = 100) => {

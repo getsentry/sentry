@@ -242,8 +242,7 @@ function ChangedTransactions(props: Props) {
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
-          (trendsData && trendsData.events && trendsData.events.data) || [],
-          trendFunction
+          (trendsData && trendsData.events && trendsData.events.data) || []
         );
         const selectedTransaction = getSelectedTransaction(
           location,
@@ -374,13 +373,8 @@ function TrendsListItem(props: TrendsListItemProps) {
   const currentPeriodValue = transaction.aggregate_range_2;
   const previousPeriodValue = transaction.aggregate_range_1;
 
-  const percentChange = formatPercentage(
-    transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
-    0
-  );
-
   const absolutePercentChange = formatPercentage(
-    Math.abs(transaction.percentage_aggregate_range_2_aggregate_range_1 - 1),
+    Math.abs(transaction.trend_percentage - 1),
     0
   );
 
@@ -435,23 +429,10 @@ function TrendsListItem(props: TrendsListItemProps) {
       <TransactionSummaryLink {...props} />
       <ItemTransactionPercentage>
         <Tooltip title={percentChangeExplanation}>
-          {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
-            <React.Fragment>
-              {transformValueDelta(
-                transaction.minus_aggregate_range_2_aggregate_range_1,
-                trendChangeType,
-                currentTrendFunction
-              )}
-            </React.Fragment>
-          ) : (
-            <React.Fragment>
-              {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
-              {formatPercentage(
-                transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
-                0
-              )}
-            </React.Fragment>
-          )}
+          <React.Fragment>
+            {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
+            {formatPercentage(transaction.trend_percentage - 1, 0)}
+          </React.Fragment>
         </Tooltip>
       </ItemTransactionPercentage>
       <DropdownLink
@@ -501,20 +482,9 @@ function TrendsListItem(props: TrendsListItemProps) {
         <CompareDurations {...props} />
       </ItemTransactionDurationChange>
       <ItemTransactionStatus color={color}>
-        {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
-          <React.Fragment>
-            {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
-            {percentChange}
-          </React.Fragment>
-        ) : (
-          <React.Fragment>
-            {transformValueDelta(
-              transaction.minus_aggregate_range_2_aggregate_range_1,
-              trendChangeType,
-              currentTrendFunction
-            )}
-          </React.Fragment>
-        )}
+        <React.Fragment>
+          {transformValueDelta(transaction.trend_difference, trendChangeType)}
+        </React.Fragment>
       </ItemTransactionStatus>
     </ListItemContainer>
   );
@@ -523,15 +493,11 @@ function TrendsListItem(props: TrendsListItemProps) {
 type CompareLinkProps = TrendsListItemProps & {};
 
 const CompareDurations = (props: CompareLinkProps) => {
-  const {transaction, currentTrendFunction} = props;
+  const {transaction} = props;
 
   return (
     <DurationChange>
-      {transformDeltaSpread(
-        transaction.aggregate_range_1,
-        transaction.aggregate_range_2,
-        currentTrendFunction
-      )}
+      {transformDeltaSpread(transaction.aggregate_range_1, transaction.aggregate_range_2)}
     </DurationChange>
   );
 };

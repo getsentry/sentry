@@ -5,18 +5,31 @@ import PropTypes from 'prop-types';
 
 const ASPECT_RATIO = 16 / 9;
 
-class SessionStackContextType extends React.Component {
+type Props = {
+  data: {
+    session_url?: string;
+  };
+};
+
+type State = {
+  showIframe: boolean;
+  width?: number;
+  height?: number;
+};
+
+class SessionStackContextType extends React.Component<Props, State> {
   propTypes = {
     data: PropTypes.object.isRequired,
   };
 
-  state = {
+  state: State = {
     showIframe: false,
   };
 
   componentDidMount() {
     // eslint-disable-next-line react/no-find-dom-node
-    this.parentNode = ReactDOM.findDOMNode(this).parentNode;
+    const domNode = ReactDOM.findDOMNode(this) as HTMLElement;
+    this.parentNode = domNode.parentNode;
     window.addEventListener('resize', () => this.setIframeSize(), false);
     this.setIframeSize();
   }
@@ -24,9 +37,12 @@ class SessionStackContextType extends React.Component {
   componentWillUnmount() {
     window.removeEventListener('resize', () => this.setIframeSize(), false);
   }
+  parentNode?: HTMLElement['parentNode'];
+
+  getTitle = () => 'SessionStack';
 
   setIframeSize() {
-    if (!this.showIframe) {
+    if (!this.state.showIframe && this.parentNode) {
       const parentWidth = $(this.parentNode).width();
 
       this.setState({
@@ -73,7 +89,5 @@ class SessionStackContextType extends React.Component {
     );
   }
 }
-
-SessionStackContextType.getTitle = () => 'SessionStack';
 
 export default SessionStackContextType;
