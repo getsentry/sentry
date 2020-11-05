@@ -1008,6 +1008,15 @@ export type SentryAppWebhookRequest = {
   errorUrl?: string;
 };
 
+export type ServiceHook = {
+  id: string;
+  events: string[];
+  dateCreated: string;
+  secret: string;
+  status: string;
+  url: string;
+};
+
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
 
 export type Permissions = {
