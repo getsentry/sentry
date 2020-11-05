@@ -19,7 +19,7 @@ const getIcon = (percent: number) => {
     return <IconWarning color="yellow400" />;
   }
 
-  return <IconCheckmark isCircled color="green400" />;
+  return <IconCheckmark isCircled color="green300" />;
 };
 
 type Props = {
