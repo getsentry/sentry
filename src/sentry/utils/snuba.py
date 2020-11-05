@@ -173,6 +173,12 @@ class QueryIllegalTypeOfArgument(QueryExecutionError):
     """
 
 
+class QueryMissingColumn(QueryExecutionError):
+    """
+    Exception raised when a column is missing.
+    """
+
+
 class QueryTooManySimultaneous(QueryExecutionError):
     """
     Exception raised when a query is rejected due to too many simultaneous
@@ -208,7 +214,9 @@ class QueryConnectionFailed(QueryExecutionError):
 
 
 clickhouse_error_codes_map = {
+    10: QueryMissingColumn,
     43: QueryIllegalTypeOfArgument,
+    47: QueryMissingColumn,
     62: QuerySizeExceeded,
     160: QueryExecutionTimeMaximum,
     202: QueryTooManySimultaneous,
