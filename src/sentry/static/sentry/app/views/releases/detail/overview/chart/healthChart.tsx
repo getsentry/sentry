@@ -130,7 +130,7 @@ class HealthChart extends React.Component<Props> {
 
     if (timeseriesData.every(s => s.data.length === 1)) {
       if (zoomRenderProps.period) {
-        const {start, end} = parseStatsPeriod(zoomRenderProps.period, null);
+        const {start, end} = parseStatsPeriod(zoomRenderProps.period);
 
         return {min: start, max: end};
       }
