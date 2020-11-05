@@ -81,23 +81,6 @@ class JiraCreateTicketAction(IntegrationEventAction):
         )
 
     def after(self, event, state):
-        # MOCK_DATA = {
-        #     "priority": "1",
-        #     "labels": "fuzzy",
-        #     "description": "here is some stuff",
-        #     u"title": u"make a different issue",
-        #     "reporter": "5ab0069933719f2a50168cab",
-        #     "fixVersions": "",
-        #     "project": "10000",
-        #     "assignee": "5ab0069933719f2a50168cab",
-        #     "components": "",
-        #     "issuetype": "10002",
-        # }
-        # print("event:", dir(event.group))
-        # form data in event actions?
-        # state is just the state of the event's issue like 'has_reappeared', 'is_new', 'is_new_group_environment', 'is_regression'
-        # TODO replace mock data with data we get from the form
-        # print("data: ", self.data)
         integration = self.get_integration()
         installation = integration.get_installation(self.project.organization.id)
 
@@ -105,7 +88,7 @@ class JiraCreateTicketAction(IntegrationEventAction):
             """Create the Jira ticket for a given event"""
 
             # TODO check if a Jira ticket already exists for the given event's issue. if it does, skip creating it
-            resp = installation.create_issue(self.data)  # MOCK_DATA
+            resp = installation.create_issue(self.data)
             ExternalIssue.objects.create(
                 organization_id=self.project.organization.id,
                 integration_id=integration.id,
