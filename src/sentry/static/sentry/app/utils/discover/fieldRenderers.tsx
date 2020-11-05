@@ -19,6 +19,7 @@ import Projects from 'app/utils/projects';
 import {getShortEventId} from 'app/utils/events';
 
 import KeyTransactionField from './keyTransactionField';
+import ArrayValue from './arrayValue';
 import {
   BarContainer,
   Container,
@@ -62,6 +63,7 @@ type FieldFormatters = {
   number: FieldFormatter;
   percentage: FieldFormatter;
   string: FieldFormatter;
+  array: FieldFormatter;
 };
 
 export type FieldTypes = keyof FieldFormatters;
@@ -145,6 +147,13 @@ const FIELD_FORMATTERS: FieldFormatters = {
         ? data[field]
         : emptyValue;
       return <Container>{value}</Container>;
+    },
+  },
+  array: {
+    isSortable: true,
+    renderFunc: (field, data) => {
+      const value = Array.isArray(data[field]) ? data[field] : [data[field]];
+      return <ArrayValue value={value} />;
     },
   },
 };
