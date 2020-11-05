@@ -746,6 +746,22 @@ export type GroupTombstone = {
   metadata: EventMetadata;
 };
 
+export type ProcessingIssueItem = {
+  id: string;
+  type: string;
+  checksum: string;
+  numEvents: number;
+  data: {
+    // TODO(ts) This type is likely incomplete, but this is what
+    // project processing issues settings uses.
+    _scope: string;
+    image_arch: string;
+    image_uuid: string;
+    image_path: string;
+  };
+  lastSeen: string;
+};
+
 export type ProcessingIssue = {
   project: string;
   numIssues: number;
@@ -755,6 +771,7 @@ export type ProcessingIssue = {
   hasIssues: boolean;
   issuesProcessing: number;
   resolveableIssues: number;
+  issues?: ProcessingIssueItem[];
 };
 
 /**
