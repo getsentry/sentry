@@ -138,7 +138,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
             data["linkIssueConfig"] = config
 
         if self.action == "create":
-            config = installation.get_create_issue_config(self.group, params=self.params)
+            config = installation.get_create_issue_config(self.group, user, params=self.params)
             data["createIssueConfig"] = config
 
         return data

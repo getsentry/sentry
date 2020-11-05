@@ -11,10 +11,14 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
  * time that is the current time less the statsPeriod.
  *
  * @param statsPeriod Relative stats period
+ * @param outputFormat Format of outputed start/end date
  * @return Object containing start and end date as YYYY-MM-DDTHH:mm:ss
  *
  */
-export function parseStatsPeriod(statsPeriod: string): {start: string; end: string} {
+export function parseStatsPeriod(
+  statsPeriod: string,
+  outputFormat = DATE_TIME_FORMAT
+): {start: string; end: string} {
   const statsPeriodRegex = /^(\d+)([smhd]{1})$/;
 
   const result = statsPeriodRegex.exec(statsPeriod);
@@ -32,8 +36,8 @@ export function parseStatsPeriod(statsPeriod: string): {start: string; end: stri
   }[result[2]];
 
   return {
-    start: moment().subtract(value, unit).format(DATE_TIME_FORMAT),
-    end: moment().format(DATE_TIME_FORMAT),
+    start: moment().subtract(value, unit).format(outputFormat),
+    end: moment().format(outputFormat),
   };
 }
 
