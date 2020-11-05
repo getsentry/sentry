@@ -14,7 +14,7 @@ import {t} from 'app/locale';
 import {
   Group,
   Integration,
-  PlatformExternalIssue,
+  IntegrationExternalIssue,
   IntegrationIssueConfig,
   IssueConfigField,
 } from 'app/types';
@@ -33,7 +33,10 @@ type Props = {
   group: Group;
   integration: Integration;
   action: 'create' | 'link';
-  onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
+  onSubmitSuccess: (
+    externalIssue: IntegrationExternalIssue,
+    onSucess: () => void
+  ) => void;
 } & AsyncComponent['props'];
 
 type State = {
@@ -82,9 +85,10 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
     this.submitTransaction = this.startTransaction('submit');
   };
 
-  onSubmitSuccess = (data: PlatformExternalIssue) => {
-    addSuccessMessage(MESSAGES_BY_ACTION[this.props.action]);
-    this.props.onSubmitSuccess(data);
+  onSubmitSuccess = (data: IntegrationExternalIssue) => {
+    this.props.onSubmitSuccess(data, () =>
+      addSuccessMessage(MESSAGES_BY_ACTION[this.props.action])
+    );
     this.submitTransaction?.finish();
   };
 
@@ -224,7 +228,6 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
       // TODO(jess): figure out why this is breaking and fix
       initialData[field.name] = field.multiple ? '' : field.default;
     });
-
     return (
       <Form
         apiEndpoint={`/groups/${group.id}/integrations/${integration.id}/`}

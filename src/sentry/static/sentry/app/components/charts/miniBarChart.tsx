@@ -1,13 +1,13 @@
 import React from 'react';
-import {EChartOption} from 'echarts';
 import set from 'lodash/set';
 
 import theme from 'app/utils/theme';
 import {getFormattedDate} from 'app/utils/dates';
 
-import BarChart from './barChart';
+import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
 import {truncationFormatter} from './utils';
+import Tooltip from './components/tooltip';
 
 type Marker = {
   name: string;
@@ -35,7 +35,11 @@ const defaultProps = {
   stacked: false,
 };
 
-type Props = React.ComponentProps<typeof BaseChart> &
+type ChartProps = React.ComponentProps<typeof BaseChart>;
+
+type BarChartProps = React.ComponentProps<typeof BarChart>;
+
+type Props = Omit<ChartProps, 'series'> &
   typeof defaultProps & {
     /**
      * A list of series to be rendered as markLine components on the chart
@@ -52,6 +56,8 @@ type Props = React.ComponentProps<typeof BaseChart> &
      * You can use this prop to also shift colors on hover.
      */
     emphasisColors?: string[];
+
+    series?: BarChartProps['series'];
   };
 
 class MiniBarChart extends React.Component<Props> {
@@ -68,7 +74,10 @@ class MiniBarChart extends React.Component<Props> {
       series,
       ...props
     } = this.props;
-    let chartSeries: EChartOption.SeriesBar[] = [];
+
+    const {ref: _ref, ...barChartProps} = props;
+
+    let chartSeries: BarChartSeries[] = [];
 
     // Ensure bars overlap and that empty values display as we're disabling the axis lines.
     if (series && series.length) {
@@ -77,7 +86,7 @@ class MiniBarChart extends React.Component<Props> {
           ...original,
           cursor: 'normal',
           type: 'bar',
-        } as EChartOption.SeriesBar;
+        } as BarChartSeries;
 
         if (i === 0) {
           updated.barMinHeight = 1;
@@ -148,9 +157,9 @@ class MiniBarChart extends React.Component<Props> {
         };
 
     const chartOptions = {
-      tooltip: {
+      tooltip: Tooltip({
         trigger: 'axis',
-      },
+      }),
       yAxis: {
         max(value) {
           // This keeps small datasets from looking 'scary'
@@ -182,7 +191,7 @@ class MiniBarChart extends React.Component<Props> {
           show: false,
         },
         axisPointer: {
-          type: 'line',
+          type: 'line' as const,
           label: {
             show: false,
           },
@@ -195,7 +204,7 @@ class MiniBarChart extends React.Component<Props> {
         animation: false,
       },
     };
-    return <BarChart series={chartSeries} {...chartOptions} {...props} />;
+    return <BarChart series={chartSeries} {...chartOptions} {...barChartProps} />;
   }
 }
 

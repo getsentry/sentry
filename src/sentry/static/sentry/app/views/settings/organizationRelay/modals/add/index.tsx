@@ -64,8 +64,8 @@ const StyledList = styled(List)`
 `;
 
 const CredentialsLink = styled(ExternalLink)`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.active};
   :hover {
-    color: ${p => p.theme.pink400};
+    color: ${p => p.theme.active};
   }
 `;
