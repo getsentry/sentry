@@ -71,11 +71,8 @@ class AcceptProjectTransfer extends AsyncView<Props, State> {
 
   renderBody() {
     const {transferDetails} = this.state;
-    const choices: [string, string][] = [];
+    const choices = transferDetails.organizations.map(org => [org.slug, org.slug]);
 
-    transferDetails.organizations.forEach(org => {
-      choices.push([org.slug, org.slug]);
-    });
     return (
       <NarrowLayout>
         <SettingsPageHeader title={t('Approve Transfer Project Request')} />
