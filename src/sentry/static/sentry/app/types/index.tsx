@@ -383,6 +383,8 @@ type SentryEventBase = {
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
 
   measurements?: Record<string, Measurement>;
+
+  release?: ReleaseData;
 };
 
 export type SentryTransactionEvent = {
@@ -831,7 +833,8 @@ export type RepositoryProjectPathConfig = {
   projectSlug: string;
   repoId: string;
   repoName: string;
-  organizationIntegrationId: string;
+  integrationId: string;
+  provider: BaseIntegrationProvider;
   stackRoot: string;
   sourceRoot: string;
   defaultBranch?: string;
