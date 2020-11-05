@@ -131,7 +131,7 @@ class SettingsIndex extends React.Component<Props> {
                       />
                     </AvatarContainer>
                   ) : (
-                    <HomeIcon color="green400">
+                    <HomeIcon color="green300">
                       <IconStack size="lg" />
                     </HomeIcon>
                   )}

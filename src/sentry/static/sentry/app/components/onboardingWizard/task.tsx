@@ -247,7 +247,7 @@ StatusIndicator.defaultProps = {
 const CompleteIndicator = styled(IconCheckmark)``;
 CompleteIndicator.defaultProps = {
   isCircled: true,
-  color: 'green400',
+  color: 'green300',
 };
 
 const SkippedIndicator = styled(IconClose)``;

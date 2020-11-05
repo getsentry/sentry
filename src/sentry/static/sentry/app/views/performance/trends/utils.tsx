@@ -85,8 +85,8 @@ export const CONFIDENCE_LEVELS: ConfidenceLevel[] = [
 
 export const trendToColor = {
   [TrendChangeType.IMPROVED]: {
-    lighter: theme.green300,
-    default: theme.green400,
+    lighter: theme.green200,
+    default: theme.green300,
   },
   [TrendChangeType.REGRESSION]: {
     lighter: theme.red300,

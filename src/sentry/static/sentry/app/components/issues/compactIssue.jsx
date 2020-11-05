@@ -40,7 +40,7 @@ class CompactIssueHeader extends React.Component {
 
     const commentColor =
       data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned'
-        ? 'green400'
+        ? 'green300'
         : 'currentColor';
 
     return (

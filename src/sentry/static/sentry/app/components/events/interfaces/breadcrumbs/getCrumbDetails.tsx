@@ -28,7 +28,7 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.NAVIGATION:
       return {
-        color: 'green500',
+        color: 'green300',
         icon: IconLocation,
         description: t('Navigation'),
       };
@@ -56,7 +56,7 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.HTTP:
       return {
-        color: 'green400',
+        color: 'green300',
         icon: IconSwitch,
         description: t('HTTP request'),
       };

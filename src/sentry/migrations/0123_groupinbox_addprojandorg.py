@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0121_obliterate_group_inbox'),
+        ('sentry', '0122_add_release_status'),
     ]
 
     operations = [
