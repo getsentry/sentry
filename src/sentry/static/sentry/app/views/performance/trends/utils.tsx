@@ -12,7 +12,6 @@ import Duration from 'app/components/duration';
 import {Sort, Field} from 'app/utils/discover/fields';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Count from 'app/components/count';
 import {Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {IconArrow} from 'app/icons';
@@ -135,25 +134,11 @@ export function getIntervalRatio(location: Location): number {
   return intervalFromLocation ? parseFloat(intervalFromLocation) : 0.5;
 }
 
-export function transformDeltaSpread(
-  from: number,
-  to: number,
-  trendFunctionField: TrendFunctionField
-) {
+export function transformDeltaSpread(from: number, to: number) {
   const fromSeconds = from / 1000;
   const toSeconds = to / 1000;
 
   const showDigits = from > 1000 || to > 1000 || from < 10 || to < 10; // Show digits consistently if either has them
-
-  if (trendFunctionField === TrendFunctionField.USER_MISERY) {
-    return (
-      <span>
-        <Count value={from} />
-        <StyledIconArrow direction="right" size="xs" />
-        <Count value={to} /> {t('miserable users')}
-      </span>
-    );
-  }
 
   return (
     <span>
@@ -193,10 +178,6 @@ export function modifyTrendView(
     field: 'trend_percentage()',
     kind: 'asc',
   } as Sort;
-
-  if (trendFunction && trendFunction.field === TrendFunctionField.USER_MISERY) {
-    trendSort.field = `minus_${trendFunction.alias}_2_${trendFunction.alias}_1`;
-  }
 
   trendView.trendType = trendsType;
   if (trendsType === TrendChangeType.REGRESSION) {
@@ -244,21 +225,9 @@ function getQueryInterval(location: Location, eventView: TrendView) {
   return intervalFromQueryParam || intervalFromSmoothing;
 }
 
-export function transformValueDelta(
-  value: number,
-  trendType: TrendChangeType,
-  trendFunctionField: TrendFunctionField
-) {
+export function transformValueDelta(value: number, trendType: TrendChangeType) {
   const absoluteValue = Math.abs(value);
 
-  if (trendFunctionField === TrendFunctionField.USER_MISERY) {
-    const changeLabel = trendType === TrendChangeType.REGRESSION ? t('more') : t('less');
-    return (
-      <span>
-        <Count value={absoluteValue} /> {changeLabel}
-      </span>
-    );
-  }
   const changeLabel =
     trendType === TrendChangeType.REGRESSION ? t('slower') : t('faster');
 
