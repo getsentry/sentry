@@ -1,4 +1,4 @@
-name: plugins test
+name: plugins
 on:
   push:
     branches:
@@ -14,6 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - uses: volta-cli/action@v1
+
       - name: Check for python file changes
         uses: getsentry/paths-filter@v2
         id: changes
@@ -23,7 +25,6 @@ jobs:
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
-        if: steps.changes.outputs.backend == 'true'
         with:
           python-version: 2.7.17
 
@@ -47,6 +48,19 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         with:
           python: 2
+
+      - name: yarn cache
+        uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.setup.outputs.yarn-cache-dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install Javascript Dependencies
+        run: |
+          yarn install --frozen-lockfile
 
       - name: Run test
         if: steps.changes.outputs.backend == 'true'
