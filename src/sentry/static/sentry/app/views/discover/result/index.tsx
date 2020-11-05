@@ -273,7 +273,7 @@ class Result extends React.Component<ResultProps, ResultState> {
                 legend={legendData}
                 renderer="canvas"
                 isGroupedByDate
-                utc={utc ?? undefined}
+                utc={utc}
               />
               {this.renderNote()}
             </ChartWrapper>
