@@ -18,6 +18,7 @@ export default class SelectField extends React.Component {
   static propTypes = {
     ...InputField.propTypes,
     choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]),
+    options: PropTypes.arrayOf(PropTypes.object),
     allowClear: PropTypes.bool,
     allowEmpty: PropTypes.bool,
     multiple: PropTypes.bool,
