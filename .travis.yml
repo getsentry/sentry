@@ -107,14 +107,6 @@ after_script:
       codecov -e TEST_SUITE
     fi
   - *install_volta
-  - volta install @zeus-ci/cli
-  - zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
-  - zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
-  - zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
-  - zeus upload -t "text/html+pytest" .artifacts/*pytest.html
-  - zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
-  - zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
-  - zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
 
 base_postgres: &postgres_default
   python: 2.7
@@ -281,8 +273,6 @@ matrix:
 notifications:
   webhooks:
     urls:
-      - https://zeus.ci/hooks/fa079cf6-8e6b-11e7-9155-0a580a28081c/public/provider/travis/webhook
-
       # This is to capture travis metrics
       # Repo for this webhook is https://github.com/getsentry/sentry-development-metrics
       # Hosted on GCP
