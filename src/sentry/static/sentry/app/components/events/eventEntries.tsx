@@ -38,7 +38,7 @@ import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
 import {DataSection} from 'app/components/events/styles';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import {Event, AvatarProject, Group} from 'app/types';
+import {Event, AvatarProject, Group, Organization} from 'app/types';
 
 export const INTERFACES = {
   exception: ExceptionInterface,
@@ -220,7 +220,7 @@ class EventEntries extends React.Component<Props> {
             <EventCauseEmpty organization={organization} project={project} />
           ) : (
             <EventCause
-              organization={organization}
+              organization={organization as Organization}
               project={project}
               event={event}
               group={group}
