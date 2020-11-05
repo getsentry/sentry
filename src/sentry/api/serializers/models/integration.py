@@ -17,7 +17,7 @@ def serialize_provider(provider):
         "name": provider.name,
         "canAdd": provider.can_add,
         "canDisable": provider.can_disable,
-        "features": [f.value for f in provider.features],
+        "features": sorted([f.value for f in provider.features]),
         "aspects": provider.metadata.aspects,
     }
 
