@@ -11,6 +11,7 @@ import {ParagraphOverflow} from 'app/components/textOverflow';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
+import Item from './item';
 
 type Props = {
   data: Data;
@@ -59,14 +60,13 @@ const ContextSummaryGPU = ({data}: Props) => {
   const versionElement = getVersionElement();
 
   return (
-    <div className={`context-item ${className}`}>
-      <span className="context-item-icon" />
+    <Item className={className} icon={<span className="context-item-icon" />}>
       <h3>{renderName()}</h3>
       <ParagraphOverflow>
         <Subject>{versionElement.subject}</Subject>
         <AnnotatedText value={versionElement.value} meta={versionElement.meta} />
       </ParagraphOverflow>
-    </div>
+    </Item>
   );
 };
 
