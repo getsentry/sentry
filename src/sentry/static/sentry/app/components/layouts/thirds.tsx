@@ -116,11 +116,17 @@ export const Header = styled('div')`
 export const HeaderNavTabs = styled(NavTabs)`
   margin: 0;
   border-bottom: 0 !important;
+
   li {
-    margin-right: ${space(0.5)};
+    margin-right: ${space(3)};
   }
   li > a {
-    padding: ${space(1)} ${space(2)};
+    padding: ${space(1)} 0;
+    font-size: ${p => p.theme.fontSizeLarge};
+    margin-bottom: 4px;
+  }
+  li.active > a {
+    margin-bottom: 0;
   }
 `;
 

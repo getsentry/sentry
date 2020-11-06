@@ -16,17 +16,17 @@ type DefaultProps = {
 
 type Props = {
   icon: React.ReactElement;
-  lockedMessage: React.ReactNode;
-  settingsLink: string;
-  hint?: string;
   hasChanges: boolean;
   hasSelected: boolean;
   isOpen: boolean;
   locked: boolean;
   loading: boolean;
+  hint?: string;
+  settingsLink?: string;
+  lockedMessage?: React.ReactNode;
   forwardRef?: React.Ref<HTMLDivElement>;
-  onClear: () => void;
-} & DefaultProps &
+  onClear?: () => void;
+} & Partial<DefaultProps> &
   React.HTMLAttributes<HTMLDivElement>;
 
 class HeaderItem extends React.Component<Props> {
@@ -48,7 +48,7 @@ class HeaderItem extends React.Component<Props> {
 
   handleClear = e => {
     e.stopPropagation();
-    this.props.onClear();
+    this.props.onClear?.();
   };
 
   render() {

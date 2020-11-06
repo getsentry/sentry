@@ -77,8 +77,8 @@ const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
     case 'positive':
       return `
         background: ${theme.green100};
-        border: 1px solid ${theme.green400};
-        border-left-color: ${theme.green400};
+        border: 1px solid ${theme.green300};
+        border-left-color: ${theme.green300};
         font-family: ${theme.text.familyMono};
         margin: -1px;
       `;

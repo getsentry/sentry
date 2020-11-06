@@ -19,6 +19,7 @@ from sentry.models import Project
 from sentry.models.group import Group
 from sentry.search.utils import (
     parse_duration,
+    parse_percentage,
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
@@ -146,7 +147,7 @@ numeric_filter       = search_key sep operator? numeric_value
 # Boolean comparison filter
 boolean_filter       = negation? search_key sep boolean_value
 # Aggregate numeric filter
-aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format)
+aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format / percentage_format)
 aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
@@ -171,6 +172,7 @@ date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?
 alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|\)|$)"
 rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|\)|$)"
 duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|\)|$)"
+percentage_format    = ~r"([0-9\.]+)%"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -287,6 +289,7 @@ class SearchVisitor(NodeVisitor):
     # <target_name>: [<list of source names>],
     key_mappings = {}
     duration_keys = set(["transaction.duration"])
+    percentage_keys = set(["percentage"])
     numeric_keys = set(
         [
             "project_id",
@@ -320,8 +323,9 @@ class SearchVisitor(NodeVisitor):
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
-    def __init__(self, allow_boolean=True):
+    def __init__(self, allow_boolean=True, params=None):
         self.allow_boolean = allow_boolean
+        self.params = params if params is not None else {}
         super(SearchVisitor, self).__init__()
 
     @cached_property
@@ -368,6 +372,9 @@ class SearchVisitor(NodeVisitor):
 
     def is_duration_key(self, key):
         return key in self.duration_keys or is_duration_measurement(key)
+
+    def is_percentage_key(self, key):
+        return key in self.percentage_keys
 
     def visit_search(self, node, children):
         return self.flatten(children)
@@ -430,10 +437,7 @@ class SearchVisitor(NodeVisitor):
 
         if self.is_numeric_key(search_key.name):
             try:
-                if is_measurement(search_key.name):
-                    search_value = SearchValue(float(search_value.text))
-                else:
-                    search_value = SearchValue(int(search_value.text))
+                search_value = SearchValue(float(search_value.text))
             except ValueError:
                 raise InvalidSearchQuery(u"Invalid numeric query: {}".format(search_key))
             return SearchFilter(search_key, operator, search_value)
@@ -456,12 +460,20 @@ class SearchVisitor(NodeVisitor):
 
         try:
             aggregate_value = None
-            if search_value.expr_name == "duration_format":
+            if search_value.expr_name in ["duration_format", "percentage_format"]:
                 # Even if the search value matches duration format, only act as duration for certain columns
-                function = resolve_field(search_key.name, functions_acl=FUNCTIONS.keys())
+                function = resolve_field(
+                    search_key.name, self.params, functions_acl=FUNCTIONS.keys()
+                )
                 if function.aggregate is not None:
+                    if search_value.expr_name == "percentage_format" and self.is_percentage_key(
+                        function.aggregate[0]
+                    ):
+                        aggregate_value = parse_percentage(*search_value.match.groups())
                     # Extract column and function name out so we can check if we should parse as duration
-                    if self.is_duration_key(function.aggregate[1]):
+                    elif search_value.expr_name == "duration_format" and self.is_duration_key(
+                        function.aggregate[1]
+                    ):
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
@@ -722,7 +734,7 @@ class SearchVisitor(NodeVisitor):
         return children or node
 
 
-def parse_search_query(query, allow_boolean=True):
+def parse_search_query(query, allow_boolean=True, params=None):
     try:
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
@@ -735,12 +747,15 @@ def parse_search_query(query, allow_boolean=True):
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
-    return SearchVisitor(allow_boolean).visit(tree)
+    return SearchVisitor(allow_boolean, params=params).visit(tree)
 
 
 def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     name = aggregate_filter.key.name
     value = aggregate_filter.value.value
+
+    if params is not None and name in params.get("aliases", {}):
+        return params["aliases"][name].converter(aggregate_filter)
 
     value = (
         int(to_timestamp(value)) if isinstance(value, datetime) and name != "timestamp" else value
@@ -1182,7 +1197,7 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query, allow_boolean=True)
+            parsed_terms = parse_search_query(query, allow_boolean=True, params=params)
         except ParseError as e:
             raise InvalidSearchQuery(
                 u"Parse error: {} (column {:d})".format(e.expr.name, e.column())
@@ -1198,6 +1213,7 @@ def get_filter(query=None, params=None):
         "project_ids": [],
         "group_ids": [],
         "condition_aggregates": [],
+        "aliases": params.get("aliases", {}) if params is not None else {},
     }
 
     projects_to_filter = []
@@ -1658,6 +1674,12 @@ class Function(object):
     def args(self):
         return self.required_args + self.optional_args
 
+    def alias_as(self, name):
+        """ Create a copy of this function to be used as an alias """
+        alias = deepcopy(self)
+        alias.name = name
+        return alias
+
     def add_default_arguments(self, field, columns, params):
         # make sure to validate the argument count first to
         # ensure the right number of arguments have been passed
@@ -2016,7 +2038,7 @@ FUNCTIONS = {
                 NumberRange("percentile", 0, 1),
                 DateArg("start"),
                 DateArg("end"),
-                NumberRange("index", 1, None),
+                FunctionArg("query_alias"),
             ],
             aggregate=[
                 u"quantileIf({percentile:.2f})",
@@ -2048,7 +2070,7 @@ FUNCTIONS = {
                         ],
                     ],
                 ],
-                "percentile_range_{index:g}",
+                "{query_alias}",
             ],
             default_result_type="duration",
         ),
@@ -2058,7 +2080,7 @@ FUNCTIONS = {
                 DurationColumnNoLookup("column"),
                 DateArg("start"),
                 DateArg("end"),
-                NumberRange("index", 1, None),
+                FunctionArg("query_alias"),
             ],
             aggregate=[
                 u"avgIf",
@@ -2073,7 +2095,7 @@ FUNCTIONS = {
                         ],
                     ],
                 ],
-                "avg_range_{index:g}",
+                "{query_alias}",
             ],
             default_result_type="duration",
         ),
@@ -2083,7 +2105,7 @@ FUNCTIONS = {
                 DurationColumnNoLookup("column"),
                 DateArg("start"),
                 DateArg("end"),
-                NumberRange("index", 1, None),
+                FunctionArg("query_alias"),
             ],
             aggregate=[
                 u"varSampIf",
@@ -2098,50 +2120,13 @@ FUNCTIONS = {
                         ],
                     ],
                 ],
-                "variance_range_{index:g}",
-            ],
-            default_result_type="duration",
-        ),
-        Function(
-            "user_misery_range",
-            required_args=[
-                NumberRange("satisfaction", 0, None),
-                DateArg("start"),
-                DateArg("end"),
-                NumberRange("index", 1, None),
-            ],
-            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            aggregate=[
-                u"uniqIf",
-                [
-                    "user",
-                    [
-                        "and",
-                        [
-                            # Currently, the column resolution on aggregates doesn't recurse, so we use
-                            # `duration` (snuba name) rather than `transaction.duration` (sentry name).
-                            ["greater", ["duration", ArgValue("tolerated")]],
-                            [
-                                "and",
-                                [
-                                    # see `percentile_range` for why the conditions are backwards
-                                    [
-                                        "lessOrEquals",
-                                        [["toDateTime", [ArgValue("start")]], "timestamp"],
-                                    ],
-                                    ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-                "user_misery_range_{index:g}",
+                "{query_alias}",
             ],
             default_result_type="duration",
         ),
         Function(
             "count_range",
-            required_args=[DateArg("start"), DateArg("end"), NumberRange("index", 1, None)],
+            required_args=[DateArg("start"), DateArg("end"), FunctionArg("query_alias")],
             aggregate=[
                 u"countIf",
                 [
@@ -2154,17 +2139,23 @@ FUNCTIONS = {
                         ],
                     ],
                 ],
-                "count_range_{index:g}",
+                "{query_alias}",
             ],
             default_result_type="integer",
         ),
         Function(
             "percentage",
-            required_args=[FunctionArg("numerator"), FunctionArg("denominator")],
+            required_args=[
+                FunctionArg("numerator"),
+                FunctionArg("denominator"),
+                FunctionArg("query_alias"),
+            ],
+            # Since percentage is only used on aggregates, it needs to be an aggregate and not a column
+            # This is because as a column it will be added to the `WHERE` clause instead of the `HAVING` clause
             aggregate=[
                 u"if(greater({denominator},0),divide({numerator},{denominator}),null)",
                 None,
-                None,
+                "{query_alias}",
             ],
             default_result_type="percentage",
         ),
@@ -2188,8 +2179,12 @@ FUNCTIONS = {
         ),
         Function(
             "minus",
-            required_args=[FunctionArg("minuend"), FunctionArg("subtrahend")],
-            aggregate=[u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
+            required_args=[
+                FunctionArg("minuend"),
+                FunctionArg("subtrahend"),
+                FunctionArg("query_alias"),
+            ],
+            aggregate=[u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], "{query_alias}"],
             default_result_type="duration",
         ),
         Function(
@@ -2203,6 +2198,13 @@ FUNCTIONS = {
         ),
     ]
 }
+# In Performance TPM is used as an alias to EPM
+FUNCTION_ALIASES = {
+    "tpm": "epm",
+    "tps": "eps",
+}
+for alias, name in FUNCTION_ALIASES.items():
+    FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
 
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
@@ -2257,6 +2259,11 @@ ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")
 
 
 def resolve_function(field, match=None, params=None, functions_acl=False):
+    if params is not None and field in params.get("aliases", {}):
+        alias = params["aliases"][field]
+        return ResolvedFunction(
+            FunctionDetails(field, FUNCTIONS["percentage"], []), None, alias.aggregate,
+        )
     function_name, columns = parse_function(field, match)
     function = FUNCTIONS[function_name]
     if not function.is_accessible(functions_acl):
@@ -2297,11 +2304,16 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
     elif function.column is not None:
         # These can be very nested functions, so we need to iterate through all the layers
         addition = deepcopy(function.column)
-        format_column_arguments(addition[1], arguments)
+        addition[0] = addition[0].format(**arguments)
+        if isinstance(addition[1], (list, tuple)):
+            format_column_arguments(addition[1], arguments)
         if len(addition) < 3:
             addition.append(get_function_alias_with_columns(function.name, columns))
-        elif len(addition) == 3 and addition[2] is None:
-            addition[2] = get_function_alias_with_columns(function.name, columns)
+        elif len(addition) == 3:
+            if addition[2] is None:
+                addition[2] = get_function_alias_with_columns(function.name, columns)
+            else:
+                addition[2] = addition[2].format(**arguments)
         return ResolvedFunction(details, addition, None)
 
 
@@ -2424,11 +2436,14 @@ def resolve_field_list(
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
-            function = resolve_field(agg, snuba_filter.params, functions_acl)
-            if function.aggregate is not None and function.aggregate not in aggregations:
-                aggregations.append(function.aggregate)
-                if function.details is not None and isinstance(function.aggregate, (list, tuple)):
-                    functions[function.aggregate[-1]] = function.details
+            if agg not in snuba_filter.aliases:
+                function = resolve_field(agg, snuba_filter.params, functions_acl)
+                if function.aggregate is not None and function.aggregate not in aggregations:
+                    aggregations.append(function.aggregate)
+                    if function.details is not None and isinstance(
+                        function.aggregate, (list, tuple)
+                    ):
+                        functions[function.aggregate[-1]] = function.details
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
