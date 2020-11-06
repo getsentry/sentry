@@ -84,6 +84,9 @@ class JiraCreateTicketAction(IntegrationEventAction):
         integration = self.get_integration()
         installation = integration.get_installation(self.project.organization.id)
 
+        self.data["title"] = event.title
+        self.data["description"] = installation.get_group_description(event.group, event)
+
         def create_issue(event, futures):
             """Create the Jira ticket for a given event"""
 
