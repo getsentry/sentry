@@ -228,7 +228,7 @@ const tag = {
   },
   warning: {
     background: colors.yellow100,
-    iconColor: colors.yellow400,
+    iconColor: colors.yellow300,
   },
   success: {
     background: colors.green100,
