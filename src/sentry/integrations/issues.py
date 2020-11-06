@@ -16,7 +16,6 @@ from sentry.utils.compat import filter
 logger = logging.getLogger("sentry.integrations.issues")
 
 
-# TODO MARCOS FIRST this might be the best place to start
 class IssueBasicMixin(object):
     def should_sync(self, attribute):
         return False
