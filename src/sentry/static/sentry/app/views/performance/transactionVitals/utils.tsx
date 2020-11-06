@@ -1,5 +1,8 @@
 import {Query} from 'history';
 import {ECharts} from 'echarts';
+import * as Sentry from '@sentry/react';
+
+import {SentryTransactionEvent} from 'app/types';
 
 import {HistogramData, Rectangle, Point} from './types';
 
@@ -153,4 +156,48 @@ export function mapPoint(
     x: destRect.point1.x + (destRect.point2.x - destRect.point1.x) * xPercentage,
     y: destRect.point1.y + (destRect.point2.y - destRect.point1.y) * yPercentage,
   };
+}
+
+export function isTrustworthyVital(
+  event: SentryTransactionEvent,
+  vitalName: string,
+  shouldSend: boolean = false,
+  threshold: number = 0.5
+): boolean {
+  const {startTimestamp, measurements = {}} = event;
+  const markName = `mark.${vitalName}`;
+
+  if (!measurements.hasOwnProperty(vitalName) || !measurements.hasOwnProperty(markName)) {
+    return false;
+  }
+
+  const {value: vitalValue} = measurements[vitalName];
+  const {value: markTimestamp} = measurements[markName];
+  const delta = markTimestamp - startTimestamp;
+  const displayable = delta >= 0 && Math.abs(delta - vitalValue / 1000) <= threshold;
+
+  // track the occurence in sentry
+  if (!displayable && shouldSend) {
+    const {eventID, sdk} = event;
+    Sentry.withScope(scope => {
+      scope.setTag('vital', vitalName);
+      if (sdk?.name) {
+        scope.setTag('sdk.name', sdk.name);
+      }
+      if (sdk?.version) {
+        scope.setTag('sdk.version', sdk.version);
+      }
+      scope.setContext('event', {
+        eventID,
+        vital: vitalName,
+        startTimestamp,
+        markTimestamp,
+        vitalValue,
+        ...sdk,
+      });
+      Sentry.captureException(new Error('Untrustworthy vital data found'));
+    });
+  }
+
+  return displayable;
 }

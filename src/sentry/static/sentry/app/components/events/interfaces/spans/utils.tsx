@@ -6,6 +6,7 @@ import isNumber from 'lodash/isNumber';
 import {SentryTransactionEvent} from 'app/types';
 import {assert} from 'app/types/utils';
 import CHART_PALETTE from 'app/constants/chartPalette';
+import {isTrustworthyVital} from 'app/views/performance/transactionVitals/utils';
 
 import {
   ParsedTraceType,
@@ -622,28 +623,39 @@ export function getMeasurements(event: SentryTransactionEvent): Map<number, stri
     return new Map();
   }
 
-  const measurements = Object.keys(event.measurements)
+  const {measurements = {}} = event;
+
+  const displaybleMarks = Object.keys(measurements)
     .filter(name => name.startsWith('mark.'))
+    .filter(markName => {
+      const vitalName = markName.slice('mark.'.length);
+      if (!measurements.hasOwnProperty(vitalName)) {
+        // These marks do not have a corresponding vital,
+        // so just let them through.
+        return false;
+      }
+      return isTrustworthyVital(event, vitalName);
+    })
     .map(name => {
       return {
         name,
-        timestamp: event.measurements![name].value,
+        timestamp: measurements[name].value,
       };
     });
 
   const mergedMeasurements = new Map<number, string[]>();
 
-  measurements.forEach(measurement => {
-    const name = measurement.name.slice('mark.'.length);
+  displaybleMarks.forEach(mark => {
+    const name = mark.name.slice('mark.'.length);
 
-    if (mergedMeasurements.has(measurement.timestamp)) {
-      const names = mergedMeasurements.get(measurement.timestamp) as string[];
+    if (mergedMeasurements.has(mark.timestamp)) {
+      const names = mergedMeasurements.get(mark.timestamp) as string[];
       names.push(name);
-      mergedMeasurements.set(measurement.timestamp, names);
+      mergedMeasurements.set(mark.timestamp, names);
       return;
     }
 
-    mergedMeasurements.set(measurement.timestamp, [name]);
+    mergedMeasurements.set(mark.timestamp, [name]);
   });
 
   return mergedMeasurements;

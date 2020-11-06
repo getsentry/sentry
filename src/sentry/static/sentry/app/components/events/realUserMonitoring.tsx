@@ -9,16 +9,15 @@ import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import {IconFire} from 'app/icons';
-import {
-  WEB_VITAL_DETAILS,
-  LONG_WEB_VITAL_NAMES,
-} from 'app/views/performance/transactionVitals/constants';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {isTrustworthyVital} from 'app/views/performance/transactionVitals/utils';
 import {formattedValue} from 'app/utils/measurements/index';
 
 type Props = {
   organization: Organization;
   event: Event;
 };
+
 class RealUserMonitoring extends React.Component<Props> {
   hasMeasurements() {
     const {event} = this.props;
@@ -30,69 +29,80 @@ class RealUserMonitoring extends React.Component<Props> {
     return Object.keys(event.measurements).length > 0;
   }
 
-  renderMeasurements() {
-    const {event} = this.props;
+  getDisplayableMeasurements(event) {
+    const {measurements = {}} = event;
 
-    if (!event.measurements) {
+    return Object.keys(measurements)
+      .filter(name => !name.startsWith('mark.'))
+      .filter(vitalName => {
+        const markName = `mark.${vitalName}`;
+        if (!measurements.hasOwnProperty(markName)) {
+          // These measurements do not have a corresponding mark,
+          // so just let them through
+          return true;
+        }
+        return isTrustworthyVital(event, vitalName, true);
+      })
+      .sort();
+  }
+
+  renderMeasurement(measurement, {value}) {
+    const record = Object.values(WEB_VITAL_DETAILS).find(
+      vital => vital.slug === measurement
+    );
+    if (record === undefined) {
       return null;
     }
 
-    const measurementNames = Object.keys(event.measurements)
-      .filter(name => {
-        // ignore marker measurements
-        return !name.startsWith('mark.');
-      })
-      .sort();
+    const {name, failureThreshold} = record;
+    const failed = value >= failureThreshold;
+    const currentValue = formattedValue(record, value);
+    const thresholdValue = formattedValue(record, failureThreshold);
 
-    return measurementNames.map(name => {
-      const value = event.measurements![name].value;
-
-      const record = Object.values(WEB_VITAL_DETAILS).find(vital => vital.slug === name);
-
-      const failedThreshold = record ? value >= record.failureThreshold : false;
-
-      const currentValue = formattedValue(record, value);
-      const thresholdValue = formattedValue(record, record?.failureThreshold ?? 0);
-
-      if (!LONG_WEB_VITAL_NAMES.hasOwnProperty(name)) {
-        return null;
-      }
-
-      return (
-        <div key={name}>
-          <StyledPanel failedThreshold={failedThreshold}>
-            <Name>{LONG_WEB_VITAL_NAMES[name] ?? name}</Name>
-            <ValueRow>
-              {failedThreshold ? (
-                <WarningIconContainer size="sm">
-                  <Tooltip
-                    title={t('Fails threshold at %s.', thresholdValue)}
-                    position="top"
-                    containerDisplayMode="inline-block"
-                  >
-                    <IconFire size="sm" />
-                  </Tooltip>
-                </WarningIconContainer>
-              ) : null}
-              <Value failedThreshold={failedThreshold}>{currentValue}</Value>
-            </ValueRow>
-          </StyledPanel>
-        </div>
-      );
-    });
+    return (
+      <StyledPanel failed={failed}>
+        <Name>{name}</Name>
+        <ValueRow>
+          {failed ? (
+            <WarningIconContainer size="sm">
+              <Tooltip
+                title={t('Fails threshold at %s.', thresholdValue)}
+                position="top"
+                containerDisplayMode="inline-block"
+              >
+                <IconFire size="sm" />
+              </Tooltip>
+            </WarningIconContainer>
+          ) : null}
+          <Value failed={failed}>{currentValue}</Value>
+        </ValueRow>
+      </StyledPanel>
+    );
   }
 
   render() {
-    const {organization} = this.props;
+    const {organization, event} = this.props;
 
-    if (!organization.features.includes('measurements') || !this.hasMeasurements()) {
+    if (!organization.features.includes('measurements')) {
+      return null;
+    }
+
+    const measurements = this.getDisplayableMeasurements(event);
+
+    if (measurements.length <= 0) {
       return null;
     }
 
     return (
       <Container>
         <SectionHeading>{t('Web Vitals')}</SectionHeading>
-        <Measurements>{this.renderMeasurements()}</Measurements>
+        <Measurements>
+          {measurements.map(name => (
+            <div key={name}>
+              {this.renderMeasurement(name, event.measurements![name])}
+            </div>
+          ))}
+        </Measurements>
       </Container>
     );
   }
@@ -109,19 +119,10 @@ const Container = styled('div')`
   margin-bottom: ${space(4)};
 `;
 
-const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
+const StyledPanel = styled(Panel)<{failed: boolean}>`
   padding: ${space(1)} ${space(1.5)};
   margin-bottom: ${space(1)};
-
-  ${p => {
-    if (!p.failedThreshold) {
-      return null;
-    }
-
-    return `
-      border: 1px solid ${p.theme.red300};
-    `;
-  }};
+  ${p => p.failed && `border: 1px solid ${p.theme.red300};`}
 `;
 
 const Name = styled('div')``;
@@ -139,17 +140,9 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   color: ${p => p.theme.red300};
 `;
 
-const Value = styled('span')<{failedThreshold: boolean}>`
+const Value = styled('span')<{failed: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  ${p => {
-    if (!p.failedThreshold) {
-      return null;
-    }
-
-    return `
-      color: ${p.theme.red300};
-    `;
-  }};
+  ${p => p.failed && `color: ${p.theme.red300};`}
 `;
 
 export default RealUserMonitoring;
