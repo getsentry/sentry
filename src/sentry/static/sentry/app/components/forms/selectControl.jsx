@@ -240,6 +240,7 @@ const SelectControl = props => {
       isMulti={props.multiple || props.multi}
       isDisabled={props.isDisabled || props.disabled}
       options={choicesOrOptions}
+      openMenuOnFocus={props.openMenuOnFocus === undefined ? true : props.openMenuOnFocus}
       {...rest}
     />
   );
