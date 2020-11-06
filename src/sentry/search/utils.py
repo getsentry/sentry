@@ -436,6 +436,8 @@ def parse_query(projects, query, user, environments):
                     results["unassigned"] = True
                 elif value == "assigned":
                     results["unassigned"] = False
+                elif value == "inbox":
+                    results["inbox"] = True
                 else:
                     try:
                         results["status"] = STATUS_CHOICES[value]
