@@ -12,8 +12,9 @@ logger = logging.getLogger("sentry.rules")
 
 
 class AzureDevopsNotifyServiceForm(forms.Form):
-    # TODO 2.0 Add form fields.
     def __init__(self, *args, **kwargs):
+        integrations = kwargs.pop("integrations")
+
         super(AzureDevopsNotifyServiceForm, self).__init__(*args, **kwargs)
 
     def clean(self):

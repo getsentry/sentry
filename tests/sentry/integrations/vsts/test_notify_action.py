@@ -32,9 +32,9 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase):
             idp=IdentityProvider.objects.create(type="vsts", config={}),
             user=self.user,
             external_id="vsts",
-            data={"access_token": "123456789", "expires": time() + 1234567},
+            data={"access_token": "123456789", "expires": time() w+ 1234567},
         )
-        model.add_organization(self.organization, self.user, identity.id)
+        model.add_organization(self.organization, se<<lf.user, identity.id)
         self.integration = VstsIntegration(model, self.organization.id)
 
     @responses.activate

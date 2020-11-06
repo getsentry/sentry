@@ -5,22 +5,19 @@ from django.utils.translation import ugettext_lazy as _
 from django.db import transaction
 
 from sentry import options
-
+from sentry.integrations.base import (
+    FeatureDescription,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
+)
+from sentry.models import OrganizationIntegration, PagerDutyService
+from sentry.pipeline import PipelineView
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
-from sentry.integrations.base import (
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationMetadata,
-    IntegrationProvider,
-    FeatureDescription,
-)
-from sentry.shared_integrations.exceptions import IntegrationError
-
-from sentry.models import OrganizationIntegration, PagerDutyService
-
-from sentry.pipeline import PipelineView
 from .client import PagerDutyClient
 
 DESCRIPTION = """

@@ -245,6 +245,7 @@ class GroupManager(BaseManager):
             project__organization_id__in=integration.organizations.values_list("id", flat=True),
         )
 
+
 # TODO MARCOS group model
 class Group(Model):
     """
