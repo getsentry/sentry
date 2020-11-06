@@ -10,7 +10,14 @@ from django.utils import timezone
 
 from sentry import quotas
 from sentry.api.event_search import InvalidSearchQuery
-from sentry.models import Release, GroupEnvironment, Group, GroupStatus, GroupSubscription
+from sentry.models import (
+    Release,
+    GroupEnvironment,
+    Group,
+    GroupInbox,
+    GroupStatus,
+    GroupSubscription,
+)
 from sentry.search.base import SearchBackend
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 
@@ -62,6 +69,18 @@ def first_release_all_environments_filter(version, projects):
         # seen in.
         id__in=GroupEnvironment.objects.filter(first_release_id=release_id).values_list("group_id")
     )
+
+
+def inbox_filter(inbox, projects):
+    organization_id = projects[0].organization_id
+    query = Q(
+        id__in=GroupInbox.objects.filter(
+            organization_id=organization_id, project_id__in=[p.id for p in projects]
+        ).values_list("group_id", flat=True)
+    )
+    if not inbox:
+        query = ~query
+    return query
 
 
 class Condition(object):
@@ -277,6 +296,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 )
             ),
             "active_at": ScalarCondition("active_at"),
+            "inbox": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
         }
 
         if environments is not None:
