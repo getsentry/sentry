@@ -162,10 +162,10 @@ const aliases = {
 } as const;
 
 const warning = {
-  background: colors.yellow500,
+  background: colors.yellow100,
   backgroundLight: colors.yellow100,
-  border: colors.yellow400,
-  iconColor: colors.yellow500,
+  border: colors.yellow300,
+  iconColor: colors.yellow300,
 } as const;
 
 const alert = {
