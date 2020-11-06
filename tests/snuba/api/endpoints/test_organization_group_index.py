@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models import (
+    add_group_to_inbox,
     Activity,
     ApiToken,
     ExternalIssue,
@@ -17,6 +18,7 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupHash,
+    GroupInboxReason,
     GroupLink,
     GroupSeen,
     GroupShare,

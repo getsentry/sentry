@@ -72,10 +72,11 @@ def first_release_all_environments_filter(version, projects):
 
 
 def inbox_filter(inbox, projects):
+    organization_id = projects[0].organization_id
     query = Q(
-        id__in=GroupInbox.objects.filter(project_id__in=[p.id for p in projects]).values_list(
-            "group_id", flat=True
-        )
+        id__in=GroupInbox.objects.filter(
+            organization_id=organization_id, project_id__in=[p.id for p in projects]
+        ).values_list("group_id", flat=True)
     )
     if not inbox:
         query = ~query
