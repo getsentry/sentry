@@ -171,7 +171,7 @@ const alert = {
   },
   info: {
     background: colors.blue300,
-    backgroundLight: colors.blue100,
+    backgroundLight: color(colors.blue100).alpha(0.3).string(),
     border: colors.blue200,
     iconColor: colors.blue300,
   },
