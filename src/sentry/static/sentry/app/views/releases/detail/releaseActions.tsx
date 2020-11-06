@@ -33,7 +33,7 @@ const ReleaseActions = ({orgId, release, refetchData}: Props) => {
       <StyledDropdownLink
         caret={false}
         anchorRight
-        title={<StyledButton icon={<IconEllipsis />} label={t('Actions')} />}
+        title={<ActionsButton icon={<IconEllipsis />} label={t('Actions')} />}
       >
         {isReleaseArchived(release) ? (
           <Confirm
@@ -79,7 +79,7 @@ const Wrapper = styled('div')`
   }
 `;
 
-const StyledButton = styled(Button)`
+const ActionsButton = styled(Button)`
   width: 40px;
   height: 40px;
   padding: 0;

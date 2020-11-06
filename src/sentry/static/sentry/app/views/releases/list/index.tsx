@@ -27,6 +27,8 @@ import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleaseLanding from './releaseLanding';
 import IntroBanner from './introBanner';
 import ReleaseCard from './releaseCard';
+import ReleaseListDisplayOptions from './releaseListDisplayOptions';
+import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 
 type RouteParams = {
   orgId: string;
@@ -53,6 +55,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const {organization, location} = this.props;
     const {statsPeriod} = location.query;
     const sort = this.getSort();
+    const display = this.getDisplay();
 
     const query = {
       ...pick(location.query, [
@@ -68,6 +71,7 @@ class ReleasesList extends AsyncView<Props, State> {
       per_page: 25,
       health: 1,
       flatten: sort === 'date' ? 0 : 1,
+      archived: display === 'archived' ? 1 : 0,
     };
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
@@ -130,6 +134,12 @@ class ReleasesList extends AsyncView<Props, State> {
     return typeof sort === 'string' ? sort : 'date';
   }
 
+  getDisplay() {
+    const {display} = this.props.location.query;
+
+    return typeof display === 'string' ? display : 'active';
+  }
+
   handleSearch = (query: string) => {
     const {location, router} = this.props;
 
@@ -145,6 +155,15 @@ class ReleasesList extends AsyncView<Props, State> {
     router.push({
       ...location,
       query: {...location.query, cursor: undefined, sort},
+    });
+  };
+
+  handleDisplay = (display: string) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, cursor: undefined, display},
     });
   };
 
@@ -240,6 +259,10 @@ class ReleasesList extends AsyncView<Props, State> {
             <StyledPageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
               <SortAndFilterWrapper>
+                <ReleaseListDisplayOptions
+                  selected={this.getDisplay()}
+                  onSelect={this.handleDisplay}
+                />
                 <ReleaseListSortOptions
                   selected={this.getSort()}
                   onSelect={this.handleSort}
@@ -253,6 +276,8 @@ class ReleasesList extends AsyncView<Props, State> {
             </StyledPageHeader>
 
             <IntroBanner />
+
+            {this.getDisplay() === 'archived' && <ReleaseArchivedNotice multi />}
 
             {this.renderInnerBody()}
 
@@ -269,17 +294,18 @@ const StyledPageHeader = styled(PageHeader)`
   margin-bottom: 0;
   ${PageHeading} {
     margin-bottom: ${space(2)};
+    margin-right: ${space(2)};
   }
 `;
 const SortAndFilterWrapper = styled('div')`
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto auto 1fr;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
     grid-template-columns: none;
-    grid-template-rows: 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
     margin-bottom: ${space(4)};
   }
 `;
