@@ -273,7 +273,7 @@ const ToggleIcon = styled('a')`
 
   background: ${p => (p.isOpen ? p.theme.gray500 : p.theme.blue300)};
   &:hover {
-    background: ${p => (p.isOpen ? p.theme.gray600 : p.theme.blue300)};
+    background: ${p => (p.isOpen ? p.theme.gray600 : p.theme.blue200)};
   }
 `;
 
