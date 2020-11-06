@@ -24,7 +24,7 @@ export const Default = withInfo('Description')(() => {
         enabled={!enabled}
       />
 
-      <CircleIndicator size={number('Size', 14)} enabled={enabled} color="purple400" />
+      <CircleIndicator size={number('Size', 14)} enabled={enabled} color="purple300" />
     </React.Fragment>
   );
 });

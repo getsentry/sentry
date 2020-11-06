@@ -154,8 +154,8 @@ const Pattern = styled('div')`
     content: '';
     background-image: linear-gradient(
       to right,
-      ${p => p.theme.purple300} 0%,
-      ${p => p.theme.purple400} 100%
+      ${p => p.theme.purple200} 0%,
+      ${p => p.theme.purple300} 100%
     );
     background-repeat: repeat-y;
   }

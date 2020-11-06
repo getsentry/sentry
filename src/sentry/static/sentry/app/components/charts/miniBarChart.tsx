@@ -21,7 +21,7 @@ const defaultProps = {
   /**
    * Colors to use on the chart.
    */
-  colors: [theme.gray400, theme.purple400, theme.purple500] as string[],
+  colors: [theme.gray400, theme.purple300, theme.purple300] as string[],
   /**
    * Show max/min values on yAxis
    */

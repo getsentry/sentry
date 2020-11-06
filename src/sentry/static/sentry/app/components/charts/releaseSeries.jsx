@@ -160,7 +160,7 @@ class ReleaseSeries extends React.Component {
         animation: false,
         lineStyle: {
           normal: {
-            color: theme.purple400,
+            color: theme.purple300,
             opacity: 0.3,
             type: 'solid',
           },

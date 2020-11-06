@@ -193,7 +193,7 @@ class TrendChart extends React.Component<Props> {
                       .map(values => {
                         return {
                           ...values,
-                          color: theme.purple400,
+                          color: theme.purple300,
                           lineStyle: {
                             opacity: 0.75,
                             width: 1,
@@ -212,7 +212,7 @@ class TrendChart extends React.Component<Props> {
                   ? smoothedResults.map(values => {
                       return {
                         ...values,
-                        color: theme.purple500,
+                        color: theme.purple300,
                         lineStyle: {
                           opacity: 1,
                         },

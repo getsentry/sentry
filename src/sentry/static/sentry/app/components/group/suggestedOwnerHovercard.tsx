@@ -136,7 +136,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
 
 const tagColors = {
   url: theme.green200,
-  path: theme.purple400,
+  path: theme.purple300,
   tag: theme.blue300,
 };
 

@@ -163,7 +163,7 @@ class VitalCard extends React.Component<Props, State> {
         <CardSectionHeading>
           {`${name} (${slug.toUpperCase()})`}
           {summary === null ? null : summary < failureThreshold ? (
-            <StyledTag color={theme.purple500}>{t('pass')}</StyledTag>
+            <StyledTag color={theme.purple300}>{t('pass')}</StyledTag>
           ) : (
             <StyledTag color={theme.red400}>{t('fail')}</StyledTag>
           )}

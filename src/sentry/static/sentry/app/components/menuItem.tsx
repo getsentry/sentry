@@ -193,7 +193,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     return `
       ${common}
       color: ${props.theme.white};
-      background: ${props.theme.purple400};
+      background: ${props.theme.purple300};
     `;
   }
 
