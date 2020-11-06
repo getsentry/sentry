@@ -1,8 +1,10 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {objectIsEmpty} from 'app/utils';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 
 import ContextSummaryUser from './contextSummaryUser';
 import ContextSummaryGeneric from './contextSummaryGeneric';
@@ -82,8 +84,20 @@ class ContextSummary extends React.Component {
       );
     }
 
-    return <div className="context-summary">{contexts}</div>;
+    return <Wrapper className="context-summary">{contexts}</Wrapper>;
   }
 }
 
 export default ContextSummary;
+
+const Wrapper = styled('div')`
+  border-top: 1px solid ${p => p.theme.gray300};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, auto);
+    grid-gap: ${space(4)};
+    padding: 25px ${space(4)} 25px 40px;
+  }
+`;
