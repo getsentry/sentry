@@ -5,9 +5,14 @@ import styled from '@emotion/styled';
 import 'prismjs/themes/prism-tomorrow.css';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {performance as performancePlatforms} from 'app/data/platformCategories';
 import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import Feature from 'app/components/acl/feature';
+import {IconInfo} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
@@ -80,6 +85,7 @@ class ProjectInstallPlatform extends React.Component {
     }
 
     const issueStreamLink = `/organizations/${orgId}/issues/`;
+    const performanceOverviewLink = `/organizations/${orgId}/performance/`;
     const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
 
     return (
@@ -133,26 +139,63 @@ class ProjectInstallPlatform extends React.Component {
             >
               {({projects, initiallyLoaded, fetching, fetchError}) => {
                 const projectsLoading = !initiallyLoaded && fetching;
-                const issueStreamLinkQuery =
+                const projectFilter =
                   !projectsLoading && !fetchError && projects.length
                     ? {
                         project: projects[0].id,
                       }
                     : {};
+                const showPerformancePrompt = performancePlatforms.includes(platform.id);
 
                 return (
-                  <Button
-                    priority="primary"
-                    busy={projectsLoading}
-                    to={{
-                      pathname: issueStreamLink,
-                      query: issueStreamLinkQuery,
-                      hash: '#welcome',
-                    }}
-                    style={{marginTop: 20}}
-                  >
-                    {t('Got it! Take me to the Issue Stream.')}
-                  </Button>
+                  <React.Fragment>
+                    {showPerformancePrompt && (
+                      <Feature
+                        features={['organization:performance-view']}
+                        hookName="feature-disabled:performance-new-project"
+                      >
+                        {({hasFeature}) => {
+                          if (hasFeature) {
+                            return null;
+                          }
+                          return (
+                            <Alert type="info" icon={<IconInfo />}>
+                              {t(
+                                `Your selected platform supports performance, but your organization does not have performance enabled.`
+                              )}
+                            </Alert>
+                          );
+                        }}
+                      </Feature>
+                    )}
+
+                    <ButtonContainer>
+                      <ButtonBar gap={1}>
+                        <Button
+                          key="issues"
+                          priority="primary"
+                          busy={projectsLoading}
+                          to={{
+                            pathname: issueStreamLink,
+                            query: projectFilter,
+                            hash: '#welcome',
+                          }}
+                        >
+                          {t('Take me to Issues')}
+                        </Button>
+                        <Button
+                          key="performance"
+                          busy={projectsLoading}
+                          to={{
+                            pathname: performanceOverviewLink,
+                            query: projectFilter,
+                          }}
+                        >
+                          {t('Take me to Performance')}
+                        </Button>
+                      </ButtonBar>
+                    </ButtonContainer>
+                  </React.Fragment>
                 );
               }}
             </Projects>
@@ -190,6 +233,11 @@ const Actions = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-gap: ${space(1)};
+`;
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  margin-top: ${space(3)};
 `;
 
 export {ProjectInstallPlatform};
