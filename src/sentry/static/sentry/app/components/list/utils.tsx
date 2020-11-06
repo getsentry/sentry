@@ -40,7 +40,7 @@ const numericStyle = (theme: Theme, isSolid = false) => css`
           height: 24px;
           font-weight: 500;
           font-size: ${theme.fontSizeSmall};
-          background-color: ${theme.yellow400};
+          background-color: ${theme.yellow300};
         `
       : css`
           top: 3px;

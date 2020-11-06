@@ -226,7 +226,7 @@ const CriticalIndicator = styled(CircleIndicator)`
 `;
 
 const WarningIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.yellow400};
+  background: ${p => p.theme.yellow300};
   margin-right: ${space(1)};
 `;
 

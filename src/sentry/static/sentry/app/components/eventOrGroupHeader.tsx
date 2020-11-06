@@ -201,7 +201,7 @@ const GroupLevel = styled('div')<{level: Level}>`
       case 'info':
         return p.theme.blue400;
       case 'warning':
-        return p.theme.yellow400;
+        return p.theme.yellow300;
       case 'error':
         return p.theme.orange400;
       case 'fatal':

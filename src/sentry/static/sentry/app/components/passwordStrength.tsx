@@ -37,7 +37,7 @@ type Props = {
 const PasswordStrength = ({
   value,
   labels = ['Very Weak', 'Very Weak', 'Weak', 'Strong', 'Very Strong'],
-  colors = [theme.red400, theme.red400, theme.yellow400, theme.green300, theme.green300],
+  colors = [theme.red400, theme.red400, theme.yellow300, theme.green300, theme.green300],
 }: Props) => {
   if (value === '') {
     return null;

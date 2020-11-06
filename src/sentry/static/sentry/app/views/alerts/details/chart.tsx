@@ -143,7 +143,7 @@ const Chart = (props: Props) => {
             type: 'line',
             markLine: MarkLine({
               silent: true,
-              lineStyle: {color: theme.yellow400},
+              lineStyle: {color: theme.yellow300},
               data: [
                 {
                   yAxis: warningTriggerAlertThreshold,
@@ -154,7 +154,7 @@ const Chart = (props: Props) => {
                 show: true,
                 position: 'insideEndTop',
                 formatter: 'WARNING',
-                color: theme.yellow400,
+                color: theme.yellow300,
                 fontSize: 10,
               } as any, // TODO(ts): Color is not an exposed option for label,
             }),
