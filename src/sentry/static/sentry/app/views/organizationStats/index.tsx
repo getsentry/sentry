@@ -230,7 +230,7 @@ class OrganizationStatsContainer extends React.Component<Props, State> {
     };
     const orgRejected: Series = {
       seriesName: t('Rate limited'),
-      color: theme.red400,
+      color: theme.red300,
       data: [],
     };
     const orgFiltered: Series = {

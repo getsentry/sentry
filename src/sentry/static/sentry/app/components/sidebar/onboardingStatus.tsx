@@ -120,7 +120,7 @@ const Remaining = styled('div')`
 `;
 
 const PendingSeenIndicator = styled('div')`
-  background: ${p => p.theme.red400};
+  background: ${p => p.theme.red300};
   border-radius: 50%;
   height: 7px;
   width: 7px;

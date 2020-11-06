@@ -165,7 +165,7 @@ class VitalCard extends React.Component<Props, State> {
           {summary === null ? null : summary < failureThreshold ? (
             <StyledTag color={theme.purple300}>{t('pass')}</StyledTag>
           ) : (
-            <StyledTag color={theme.red400}>{t('fail')}</StyledTag>
+            <StyledTag color={theme.red300}>{t('fail')}</StyledTag>
           )}
         </CardSectionHeading>
         <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
@@ -476,13 +476,13 @@ class VitalCard extends React.Component<Props, State> {
         show: false,
       },
       lineStyle: {
-        color: theme.red400,
+        color: theme.red300,
         type: 'dashed',
         width: 1.5,
         // prevent each individual line from looking emphasized
         // by styling it the same as the unemphasized line
         emphasis: {
-          color: theme.red400,
+          color: theme.red300,
           type: 'dashed',
           width: 1.5,
         },
@@ -511,7 +511,7 @@ class VitalCard extends React.Component<Props, State> {
     const markPoint = MarkPoint({
       animationDuration: 200,
       data: [{x: topRightPixel.x - 16, y: topRightPixel.y + 16}] as any,
-      itemStyle: {color: theme.red400},
+      itemStyle: {color: theme.red300},
       silent: true,
       symbol: `path://${FIRE_SVG_PATH}`,
       symbolKeepAspect: true,

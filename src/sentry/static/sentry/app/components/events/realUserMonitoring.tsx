@@ -119,7 +119,7 @@ const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
     }
 
     return `
-      border: 1px solid ${p.theme.red400};
+      border: 1px solid ${p.theme.red300};
     `;
   }};
 `;
@@ -136,7 +136,7 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   margin-right: ${space(0.5)};
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.red300};
 `;
 
 const Value = styled('span')<{failedThreshold: boolean}>`
@@ -147,7 +147,7 @@ const Value = styled('span')<{failedThreshold: boolean}>`
     }
 
     return `
-      color: ${p.theme.red400};
+      color: ${p.theme.red300};
     `;
   }};
 `;

@@ -50,7 +50,7 @@ const Icon = styled('div', {shouldForwardProp: p => p !== 'type'})<{type: string
     display: block;
   }
 
-  color: ${p => (p.type === 'success' ? p.theme.green300 : p.theme.red400)};
+  color: ${p => (p.type === 'success' ? p.theme.green300 : p.theme.red300)};
 `;
 
 const Message = styled('div')`

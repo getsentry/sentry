@@ -34,7 +34,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
   }
 
   if (issue.numIssues > 0) {
-    icon = <IconWarning size="sm" color="red400" />;
+    icon = <IconWarning size="sm" color="red300" />;
     text = tn(
       'There is %s issue blocking event processing',
       'There are %s issues blocking event processing',

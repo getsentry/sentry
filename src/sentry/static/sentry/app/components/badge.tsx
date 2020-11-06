@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 const priorityColors = {
-  new: theme.red400,
+  new: theme.red300,
   strong: theme.blue400,
   highlight: theme.green300,
 } as const;

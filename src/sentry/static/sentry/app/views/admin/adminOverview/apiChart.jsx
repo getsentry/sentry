@@ -107,7 +107,7 @@ class ApiChart extends React.Component {
       {
         seriesName: '5xx',
         data: this.processRawSeries(rawData['client-api.all-versions.responses.5xx']),
-        color: theme.red300,
+        color: theme.red200,
       },
     ];
   }

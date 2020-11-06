@@ -315,7 +315,7 @@ const getNoteInputErrorStyles = p => {
       height: 0;
       border-top: 7px solid transparent;
       border-bottom: 7px solid transparent;
-      border-right: 7px solid ${p.theme.red400};
+      border-right: 7px solid ${p.theme.red300};
       position: absolute;
       left: -7px;
       top: 12px;

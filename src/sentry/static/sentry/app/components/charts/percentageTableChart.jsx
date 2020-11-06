@@ -43,7 +43,7 @@ const StyledDelta = styled('div')`
     p.direction > 0
       ? p.theme.green300
       : p.direction < 0
-      ? p.theme.red400
+      ? p.theme.red300
       : p.theme.gray500};
 `;
 

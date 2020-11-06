@@ -103,7 +103,7 @@ const getAddresstextBorderBottom = (
   p: Pick<Partial<Props>, 'isFoundByStackScanning' | 'isInlineFrame'> & {theme: Theme}
 ) => {
   if (p.isFoundByStackScanning) {
-    return `1px dashed ${p.theme.red400}`;
+    return `1px dashed ${p.theme.red300}`;
   }
 
   if (p.isInlineFrame) {

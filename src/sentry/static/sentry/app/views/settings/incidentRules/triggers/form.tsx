@@ -221,7 +221,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
 }
 
 const CriticalIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.red400};
+  background: ${p => p.theme.red300};
   margin-right: ${space(1)};
 `;
 

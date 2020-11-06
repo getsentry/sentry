@@ -52,7 +52,7 @@ const options: React.ComponentProps<typeof Filter>['options'] = [
       type: BreadcrumbType.ERROR,
       description: 'Error',
       levels: [BreadcrumbLevelType.ERROR],
-      symbol: <Icon color="red400" icon={IconFire} size="xs" />,
+      symbol: <Icon color="red300" icon={IconFire} size="xs" />,
       isChecked: true,
     },
   ],
