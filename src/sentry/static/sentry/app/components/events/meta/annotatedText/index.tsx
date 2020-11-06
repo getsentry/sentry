@@ -72,7 +72,7 @@ const AnnotatedText = ({value, meta, ...props}: Props) => {
 
     return (
       <StyledTooltipError title={getTooltipTitle(errors)}>
-        <StyledIconWarning color="red500" />
+        <StyledIconWarning color="red300" />
       </StyledTooltipError>
     );
   };

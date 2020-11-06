@@ -35,11 +35,9 @@ const colors = {
   orange400: '#FF7738',
   orange500: '#BA4A23',
 
-  red100: '#FFECF0',
-  red200: '#F4B1BB',
-  red300: '#EA7282',
-  red400: '#FA4747',
-  red500: '#AC1025',
+  red100: '#FCC6C8',
+  red200: '#FD918F',
+  red300: '#F55459',
 
   green100: '#B6ECDF',
   green200: '#7DD6BE',
@@ -99,9 +97,9 @@ const aliases = {
   /**
    * A color that denotes an error, or something that is wrong
    */
-  error: colors.red400, // TODO(dark): colors.red300,
+  error: colors.red300, // TODO(dark): colors.red300,
 
-  /**
+  /**red200
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    */
@@ -183,15 +181,15 @@ const alert = {
   warn: warning,
   success: {
     background: colors.green300,
-    backgroundLight: colors.green100,
+    backgroundLight: color(colors.green100).alpha(0.3).string(),
     border: colors.green200,
     iconColor: colors.green300,
   },
   error: {
-    background: colors.red400,
-    backgroundLight: colors.red100,
+    background: colors.red300,
+    backgroundLight: color(colors.red100).alpha(0.3).string(),
     border: colors.red200,
-    iconColor: colors.red400,
+    iconColor: colors.red300,
     textLight: colors.red200,
   },
 } as const;
@@ -234,7 +232,7 @@ const tag = {
   },
   error: {
     background: colors.red100,
-    iconColor: colors.red400,
+    iconColor: colors.red300,
   },
   info: {
     background: colors.blue100,
@@ -279,11 +277,11 @@ const generateButtonTheme = alias => ({
   danger: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.red400,
+    background: colors.red300,
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
     borderActive: '#7d1c13',
-    focusShadow: color(colors.red400).alpha(0.5).string(),
+    focusShadow: color(colors.red300).alpha(0.5).string(),
   },
   link: {
     color: colors.blue400,

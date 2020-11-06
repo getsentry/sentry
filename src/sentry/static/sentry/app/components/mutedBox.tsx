@@ -62,7 +62,7 @@ class MutedBox extends React.PureComponent<Props> {
   render = () => (
     <BannerContainer priority="default">
       <BannerSummary>
-        <IconMute color="red400" size="sm" />
+        <IconMute color="red300" size="sm" />
         <span>
           {this.renderReason()}&nbsp;&mdash;&nbsp;
           {t(

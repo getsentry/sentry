@@ -68,10 +68,10 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
                 })}
                 position="top"
               >
-                <IconFire color="red400" />
+                <IconFire color="red300" />
               </Tooltip>
             ) : (
-              <IconFire color="red400" />
+              <IconFire color="red300" />
             )}
           </InnerCell>
         )}

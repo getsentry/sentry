@@ -63,7 +63,7 @@ const getPillStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
       return `
         background: ${theme.red100};
         background: ${theme.red100};
-        border: 1px solid ${theme.red400};
+        border: 1px solid ${theme.red300};
       `;
     default:
       return `
@@ -84,16 +84,16 @@ const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
       `;
     case 'error':
       return `
-        border-left-color: ${theme.red400};
+        border-left-color: ${theme.red300};
         background: ${theme.red100};
-        border: 1px solid ${theme.red400};
+        border: 1px solid ${theme.red300};
         margin: -1px;
       `;
     case 'negative':
       return `
-        border-left-color: ${theme.red400};
+        border-left-color: ${theme.red300};
         background: ${theme.red100};
-        border: 1px solid ${theme.red400};
+        border: 1px solid ${theme.red300};
         font-family: ${theme.text.familyMono};
         margin: -1px;
       `;

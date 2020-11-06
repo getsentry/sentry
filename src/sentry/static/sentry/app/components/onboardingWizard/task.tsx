@@ -111,7 +111,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color="red400" />
+      <IconLock size="xs" color="red300" />
     </Tooltip>
   );
 

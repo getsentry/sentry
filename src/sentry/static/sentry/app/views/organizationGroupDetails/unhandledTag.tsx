@@ -24,7 +24,7 @@ const UnhandledTag = styled((props: React.ComponentProps<typeof Tag>) => (
       <Tooltip title={t('An unhandled error was detected in this Issue.')}>
         <Tag
           priority="error"
-          icon={<IconSubtract size="xs" color="red300" isCircled />}
+          icon={<IconSubtract size="xs" color="red200" isCircled />}
           {...props}
         >
           {t('Unhandled')}
