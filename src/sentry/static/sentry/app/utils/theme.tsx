@@ -181,13 +181,13 @@ const alert = {
   warn: warning,
   success: {
     background: colors.green300,
-    backgroundLight: colors.green100,
+    backgroundLight: color(colors.green100).alpha(0.3).string(),
     border: colors.green200,
     iconColor: colors.green300,
   },
   error: {
     background: colors.red300,
-    backgroundLight: colors.red100,
+    backgroundLight: color(colors.red100).alpha(0.3).string(),
     border: colors.red200,
     iconColor: colors.red300,
     textLight: colors.red200,
