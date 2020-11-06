@@ -112,7 +112,7 @@ class MiniBarChart extends React.Component<Props> {
         show: true,
         trigger: 'item',
         formatter: ({data}) => {
-          const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
+          const time = getFormattedDate(data.coord[0], 'MMM D, YYYY LT', {
             local: !this.props.utc,
           });
           const name = truncationFormatter(data.name, props?.xAxis?.truncate);
