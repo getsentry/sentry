@@ -301,8 +301,12 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('missing projectId prop', function () {
+  describe('multiple groups from different project', function () {
     beforeEach(function () {
+      jest
+        .spyOn(SelectedGroupStore, 'getSelectedIds')
+        .mockImplementation(() => new Set([1, 2, 3]));
+
       wrapper = mountWithTheme(
         <IssueListActions
           api={new MockApiClient()}
@@ -324,9 +328,9 @@ describe('IssueListActions', function () {
       );
     });
 
-    it('should disable resolve picker', function () {
+    it('should disable resolve dropdown but not resolve action', function () {
       const resolve = wrapper.find('ResolveActions').first();
-      expect(resolve.props().disabled).toBe(true);
+      expect(resolve.props().disabled).toBe(false);
       expect(resolve.props().disableDropdown).toBe(true);
     });
 

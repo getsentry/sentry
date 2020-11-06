@@ -1405,6 +1405,7 @@ export type ChunkType = {
 export enum ResolutionStatus {
   RESOLVED = 'resolved',
   UNRESOLVED = 'unresolved',
+  IGNORED = 'ignored',
 }
 export type ResolutionStatusDetails = {
   actor?: AvatarUser;
