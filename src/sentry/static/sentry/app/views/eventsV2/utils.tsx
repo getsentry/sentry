@@ -171,7 +171,7 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 }
 
 const ALIASED_AGGREGATES_COLUMN = {
-  'last_seen()': 'timestamp',
+  last_seen: 'timestamp',
 };
 
 /**
@@ -179,17 +179,16 @@ const ALIASED_AGGREGATES_COLUMN = {
  * The result is null if the drilldown results in the aggregate being removed.
  */
 function drilldownAggregate(
-  field: Field,
   func: Extract<Column, {kind: 'function'}>
 ): Extract<Column, {kind: 'field'}> | null {
   const key = func.function[0];
   const aggregation = AGGREGATIONS[key];
   let column = func.function[1];
 
-  if (ALIASED_AGGREGATES_COLUMN.hasOwnProperty(field.field)) {
+  if (ALIASED_AGGREGATES_COLUMN.hasOwnProperty(key)) {
     // Some aggregates are just shortcuts to other aggregates with
     // predefined arguments so we can directly map them to the result.
-    column = ALIASED_AGGREGATES_COLUMN[field.field];
+    column = ALIASED_AGGREGATES_COLUMN[key];
   } else if (aggregation?.parameters?.[0]) {
     const parameter = aggregation.parameters[0];
     if (parameter.kind !== 'column') {
@@ -225,8 +224,7 @@ export function getExpandedResults(
   // Mark any column as null to remove it.
   const expandedColumns: (Column | null)[] = eventView.fields.map((field: Field) => {
     const exploded = explodeFieldString(field.field);
-    const column =
-      exploded.kind === 'function' ? drilldownAggregate(field, exploded) : exploded;
+    const column = exploded.kind === 'function' ? drilldownAggregate(exploded) : exploded;
 
     if (
       // if expanding the function failed
