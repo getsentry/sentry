@@ -163,7 +163,7 @@ const aliases = {
 
 const warning = {
   background: colors.yellow100,
-  backgroundLight: colors.yellow100,
+  backgroundLight: color(colors.yellow100).alpha(0.3).string(),
   border: colors.yellow300,
   iconColor: colors.yellow300,
 } as const;
