@@ -57,6 +57,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
           inline: false,
           placeholder: t('Choose repo'),
           options: repoChoices,
+          deprecatedSelectControl: false,
         },
         {
           name: 'defaultBranch',
