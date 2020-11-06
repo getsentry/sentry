@@ -600,13 +600,19 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         dynamic_fields = list(issue_type_meta["fields"].keys())
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
 
+        # Only get the organization in the DB if there are dynamic_fields.
+        slug = None
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
                 # don't overwrite the fixed fields for the form.
                 continue
 
-            mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
+            # TODO Organization can be null?
+            if not slug:
+                slug = Organization.objects.get(id=self.organization_id).name
+
+            mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], slug)
             if mb_field:
                 mb_field["name"] = field
                 fields.append(mb_field)
