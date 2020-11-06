@@ -251,6 +251,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         self.model.save()
 
+    # TODO MARCOS need to decide LINK or CREATE
     def get_link_issue_config(self, group, **kwargs):
         fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
         org = group.organization
@@ -330,10 +331,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             self.raise_error(e)
 
     def make_choices(self, values):
-        if not values:
-            return []
+        """
+        TODO DESCRIBE
+
+        :param values:
+        :return:
+        """
         results = []
-        for item in values:
+        for item in values or []:
             key = item.get("id", None)
             if "name" in item:
                 value = item["name"]
@@ -499,6 +504,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return self.get_create_issue_config(None, None, params={})
 
     def get_create_issue_config(self, group, user, **kwargs):
+        """
+        TODO DESCRIBE
+
+        params:
+            * project
+            * issuetype
+
+        :returns An array of configs TODO
+        """
+
         kwargs["link_referrer"] = "jira_integration"
         params = kwargs.get("params", {})
         fields = []
