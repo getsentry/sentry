@@ -60,7 +60,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
       issue.issuesProcessing
     );
   } else if (issue.resolveableIssues > 0) {
-    icon = <IconSettings size="sm" color="yellow400" />;
+    icon = <IconSettings size="sm" color="yellow300" />;
     alertType = 'warning';
     text = tn(
       'There is %s event pending reprocessing.',

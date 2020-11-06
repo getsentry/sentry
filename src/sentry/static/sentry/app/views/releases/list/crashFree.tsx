@@ -16,7 +16,7 @@ const getIcon = (percent: number) => {
   }
 
   if (percent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning color="yellow400" />;
+    return <IconWarning color="yellow300" />;
   }
 
   return <IconCheckmark isCircled color="green300" />;

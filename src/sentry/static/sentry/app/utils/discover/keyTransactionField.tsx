@@ -69,7 +69,7 @@ class KeyTransactionField extends React.Component<Props, State> {
 
     const star = (
       <StyledKey
-        color={isKeyTransaction ? 'yellow400' : 'gray400'}
+        color={isKeyTransaction ? 'yellow300' : 'gray400'}
         isSolid={isKeyTransaction}
         data-test-id="key-transaction-column"
       />

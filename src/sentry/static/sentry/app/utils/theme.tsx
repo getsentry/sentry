@@ -15,11 +15,9 @@ const colors = {
   gray700: '#4A3E56',
   gray800: '#302839',
 
-  yellow100: '#FFF9DF',
-  yellow200: '#FFF8C4',
-  yellow300: '#FFF492',
-  yellow400: '#FFC227',
-  yellow500: '#E2A301',
+  yellow100: '#FDE8b4',
+  yellow200: '#FFD577',
+  yellow300: '#FFC227',
 
   purple100: '#F5E9FF',
   purple200: '#E7D3FF',
