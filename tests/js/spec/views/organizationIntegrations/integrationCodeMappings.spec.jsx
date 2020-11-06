@@ -131,6 +131,7 @@ describe('IntegrationCodeMappings', function () {
       })
     );
   });
+  
   it('edit existing config', async () => {
     const url = `/organizations/${org.slug}/integrations/${integration.id}/repo-project-path-configs/${pathConfig1.id}/`;
     const editMock = Client.addMockResponse({
