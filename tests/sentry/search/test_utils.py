@@ -407,8 +407,6 @@ class ParseQueryTest(TestCase):
     def test_is_inbox(self):
         result = self.parse_query("is:inbox")
         assert result == {"inbox": True, "tags": {}, "query": ""}
-        result = self.parse_query("!is:inbox")
-        assert result == {"inbox": False, "tags": {}, "query": ""}
 
     def test_age_from(self):
         result = self.parse_query("age:-24h")
