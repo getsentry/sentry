@@ -35,19 +35,21 @@ class GroupInbox(Model):
 
 
 def add_group_to_inbox(group, reason, reason_details=None):
-    # TODO: Chris F.: This is temporarily removed while we perform some migrations.
-    # group_inbox, created = GroupInbox.objects.get_or_create(
-    # group=group, defaults={"reason": reason.value, "reason_details": reason_details}
-    # )
-    # return group_inbox
-    return None
+    group_inbox, created = GroupInbox.objects.get_or_create(
+        group=group,
+        defaults={
+            "project": group.project,
+            "organization_id": group.project.organization_id,
+            "reason": reason.value,
+            "reason_details": reason_details,
+        },
+    )
+    return group_inbox
 
 
 def remove_group_from_inbox(group):
-    # TODO: Chris F.: This is temporarily removed while we perform some migrations.
-    return None
-    # try:
-    #     group_inbox = GroupInbox.objects.get(group=group)
-    #     group_inbox.delete()
-    # except GroupInbox.DoesNotExist:
-    #     pass
+    try:
+        group_inbox = GroupInbox.objects.get(group=group)
+        group_inbox.delete()
+    except GroupInbox.DoesNotExist:
+        pass

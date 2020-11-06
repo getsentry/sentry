@@ -8,6 +8,8 @@ from django.utils import timezone
 from sentry.eventstore.processing import event_processing_store
 from sentry.models import (
     Group,
+    GroupInbox,
+    GroupInboxReason,
     GroupSnooze,
     GroupStatus,
     ProjectOwnership,
@@ -194,9 +196,8 @@ class PostProcessGroupTest(TestCase):
             cache_key=cache_key,
             group_id=event.group_id,
         )
-        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
-        # assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
-        # GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
+        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
+        GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
 
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
@@ -216,9 +217,9 @@ class PostProcessGroupTest(TestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
-        # assert GroupInbox.objects.filter(
-        # group=group, reason=GroupInboxReason.UNIGNORED.value
-        # ).exists()
+        assert GroupInbox.objects.filter(
+            group=group, reason=GroupInboxReason.UNIGNORED.value
+        ).exists()
         assert send_robust.called
 
     @patch("sentry.rules.processor.RuleProcessor")
