@@ -81,7 +81,10 @@ class ThreadInterface extends React.Component<Props, State> {
     this.setState({newestFirst});
   };
 
-  handleChangeStackView = ({stackView, stackType}) => {
+  handleChangeStackView = ({
+    stackView,
+    stackType,
+  }: Partial<Pick<State, 'stackType' | 'stackView'>>) => {
     this.setState(prevState => ({
       stackView: stackView ?? prevState.stackView,
       stackType: stackType ?? prevState.stackType,

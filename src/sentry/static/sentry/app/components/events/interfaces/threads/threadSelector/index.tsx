@@ -2,8 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {ThreadType} from 'app/types/events';
-import {Event, EntryTypeData} from 'app/types';
+import {Thread} from 'app/types/events';
+import {Event, EntryData} from 'app/types';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import theme from 'app/utils/theme';
@@ -16,20 +16,20 @@ import SelectedOption from './selectedOption';
 import Header from './header';
 
 type Props = {
-  threads: Array<ThreadType>;
-  activeThread: ThreadType;
+  threads: Array<Thread>;
+  activeThread: Thread;
   event: Event;
-  onChange?: (thread: ThreadType) => void;
+  onChange?: (thread: Thread) => void;
 };
 
 const DROPDOWN_MAX_HEIGHT = 400;
 
 const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
-  const getDropDownItem = (thread: ThreadType) => {
+  const getDropDownItem = (thread: Thread) => {
     const threadInfo = filterThreadInfo(thread, event);
 
     const dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`;
-    let crashedInfo: undefined | EntryTypeData;
+    let crashedInfo: undefined | EntryData;
 
     if (thread.crashed) {
       crashedInfo = getThreadException(thread, event);
@@ -56,7 +56,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     return [...crashed, ...notCrashed].map(getDropDownItem);
   };
 
-  const handleChange = (thread: ThreadType) => {
+  const handleChange = (thread: Thread) => {
     if (onChange) {
       onChange(thread);
     }

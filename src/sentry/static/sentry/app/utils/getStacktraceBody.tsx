@@ -25,7 +25,7 @@ export default function getStacktraceBody(event: Event) {
     return [];
   }
 
-  // TODO(ts): This should be verified when EntryTypeData has the correct type
+  // TODO(ts): This should be verified when EntryData has the correct type
   return exc.data.values
     .filter(value => !!value.stacktrace)
     .map(value => rawStacktraceContent(value.stacktrace, event.platform, value))

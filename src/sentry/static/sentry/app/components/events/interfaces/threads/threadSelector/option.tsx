@@ -5,7 +5,7 @@ import {Color} from 'app/utils/theme';
 import {t, tct} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
 import TextOverflow from 'app/components/textOverflow';
-import {EntryTypeData} from 'app/types';
+import {EntryData} from 'app/types';
 import {IconFire} from 'app/icons';
 
 import {Grid, GridCell} from './styles';
@@ -13,7 +13,7 @@ import {Grid, GridCell} from './styles';
 type Props = {
   id: number;
   details: ThreadInfo;
-  crashedInfo?: EntryTypeData;
+  crashedInfo?: EntryData;
   name?: string | null;
   crashed?: boolean;
 };

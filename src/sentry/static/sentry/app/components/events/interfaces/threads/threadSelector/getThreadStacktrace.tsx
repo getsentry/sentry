@@ -1,11 +1,11 @@
-import {ThreadType} from 'app/types/events';
+import {Thread} from 'app/types/events';
 import {Event} from 'app/types';
 import {StacktraceType} from 'app/types/stacktrace';
 
 import getThreadException from './getThreadException';
 
 // TODO(ts): define raw type
-function getThreadStacktrace(thread: ThreadType, event: Event, raw?: any) {
+function getThreadStacktrace(thread: Thread, event: Event, raw?: any) {
   const exc = getThreadException(thread, event);
   if (exc) {
     let rv: StacktraceType | undefined = undefined;

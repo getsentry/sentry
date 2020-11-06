@@ -1,4 +1,4 @@
-import {ThreadType} from 'app/types/events';
+import {Thread} from 'app/types/events';
 import {Event, Frame} from 'app/types';
 import {trimPackage} from 'app/components/events/interfaces/frame/utils';
 
@@ -11,7 +11,7 @@ type ThreadInfo = {
   filename?: string;
 };
 
-function filterThreadInfo(thread: ThreadType, event: Event): ThreadInfo {
+function filterThreadInfo(thread: Thread, event: Event): ThreadInfo {
   const stacktrace = getThreadStacktrace(thread, event, false);
   const threadInfo: ThreadInfo = {};
 
