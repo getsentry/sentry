@@ -15,15 +15,16 @@ from six.moves.urllib.parse import (
     urlunsplit,
 )
 
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.jira.utils import get_issue_type_meta
 from sentry.models import GroupMeta
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint, PluginError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
 
 from sentry_plugins.base import CorePluginMixin
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry_plugins.jira.client import JiraClient
 from sentry_plugins.utils import get_secret_field_config
-from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 # A list of common builtin custom field types for JIRA for easy reference.
 JIRA_CUSTOM_FIELD_TYPES = {
@@ -126,19 +127,6 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_issue_type_meta(self, issue_type, meta):
-        issue_types = meta["issuetypes"]
-        issue_type_meta = None
-        if issue_type:
-            matching_type = [t for t in issue_types if t["id"] == issue_type]
-            issue_type_meta = matching_type[0] if len(matching_type) > 0 else None
-
-        # still no issue type? just use the first one.
-        if not issue_type_meta:
-            issue_type_meta = issue_types[0]
-
-        return issue_type_meta
-
     def get_new_issue_fields(self, request, group, event, **kwargs):
         fields = super(JiraPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
 
@@ -174,7 +162,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         if issue_type is None:
             issue_type = self.get_option("default_issue_type", group.project)
 
-        issue_type_meta = self.get_issue_type_meta(issue_type, meta)
+        issue_type_meta = get_issue_type_meta(issue_type, meta)
 
         issue_type_choices = self.make_choices(meta["issuetypes"])
 
@@ -421,7 +409,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         if not meta:
             raise PluginError("Something went wrong. Check your plugin configuration.")
 
-        issue_type_meta = self.get_issue_type_meta(form_data["issuetype"], meta)
+        issue_type_meta = get_issue_type_meta(form_data["issuetype"], meta)
 
         fs = issue_type_meta["fields"]
         for field in fs.keys():

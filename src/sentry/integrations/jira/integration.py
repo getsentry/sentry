@@ -30,7 +30,7 @@ from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
 from .client import JiraApiClient, JiraCloud
-from .utils import build_user_choice
+from .utils import build_user_choice, get_issue_type_meta
 
 logger = logging.getLogger("sentry.integrations.jira")
 
@@ -430,19 +430,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_issue_type_meta(self, issue_type, meta):
-        issue_types = meta["issuetypes"]
-        issue_type_meta = None
-        if issue_type:
-            matching_type = [t for t in issue_types if t["id"] == issue_type]
-            issue_type_meta = matching_type[0] if len(matching_type) > 0 else None
-
-        # still no issue type? just use the first one.
-        if not issue_type_meta:
-            issue_type_meta = issue_types[0]
-
-        return issue_type_meta
-
     def get_issue_create_meta(self, client, project_id, jira_projects):
         if project_id:
             return self.fetch_issue_create_meta(client, project_id)
@@ -547,7 +534,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         # check if the issuetype was passed as a parameter
         issue_type = params.get("issuetype", defaults.get("issuetype"))
-        issue_type_meta = self.get_issue_type_meta(issue_type, meta)
+        issue_type_meta = get_issue_type_meta(issue_type, meta)
         issue_type_choices = self.make_choices(meta["issuetypes"])
 
         # make sure default issue type is actually
@@ -661,7 +648,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if not meta:
             raise IntegrationError("Could not fetch issue create configuration from Jira.")
 
-        issue_type_meta = self.get_issue_type_meta(data["issuetype"], meta)
+        issue_type_meta = get_issue_type_meta(data["issuetype"], meta)
         user_id_field = client.user_id_field()
 
         fs = issue_type_meta["fields"]
