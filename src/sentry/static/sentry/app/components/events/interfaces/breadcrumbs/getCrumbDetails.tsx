@@ -21,7 +21,7 @@ function getCrumbDetails(type: BreadcrumbType) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
       return {
-        color: 'purple400',
+        color: 'purple300',
         icon: IconUser,
         description: t('User Action'),
       };
@@ -35,7 +35,7 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.DEBUG:
       return {
-        color: 'purple500',
+        color: 'purple300',
         icon: IconFix,
         description: t('Debug'),
       };

@@ -307,7 +307,7 @@ const SpanBars = (props: {
         <SpanBarContainer>
           <SpanBarRectangle
             style={{
-              backgroundColor: theme.purple300,
+              backgroundColor: theme.purple200,
               width: generateCSSWidth(bounds.regression),
               position: 'absolute',
               height: '16px',

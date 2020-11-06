@@ -187,7 +187,7 @@ class DateRange extends React.Component {
     return (
       <div className={className} data-test-id="date-range">
         <StyledDateRangePicker
-          rangeColors={[theme.purple400]}
+          rangeColors={[theme.purple300]}
           ranges={[
             {
               startDate: moment(start).local(),

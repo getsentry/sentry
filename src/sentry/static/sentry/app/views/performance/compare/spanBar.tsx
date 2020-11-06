@@ -313,7 +313,7 @@ class SpanBar extends React.Component<Props, State> {
         return {
           background: {
             // regression
-            color: theme.purple300,
+            color: theme.purple200,
             width: normalizePadding(generateCSSWidth(bounds.background)),
           },
           foreground: {
@@ -327,7 +327,7 @@ class SpanBar extends React.Component<Props, State> {
       case 'regression': {
         return {
           background: {
-            color: theme.purple300,
+            color: theme.purple200,
             width: normalizePadding(generateCSSWidth(bounds.background)),
           },
           foreground: undefined,
@@ -518,7 +518,7 @@ const ComparisonSpanBarRectangle = styled(SpanBarRectangle)<{spanBarHatch: boole
   position: absolute;
   left: 0;
   height: 16px;
-  ${p => getHatchPattern(p, theme.purple300, theme.gray700)}
+  ${p => getHatchPattern(p, theme.purple200, theme.gray700)}
 `;
 
 const ComparisonLabel = styled('div')`
