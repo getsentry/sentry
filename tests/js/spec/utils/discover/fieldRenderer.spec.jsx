@@ -91,6 +91,29 @@ describe('getFieldRenderer', function () {
     expect(wrapper.text()).toEqual('n/a');
   });
 
+  it('can render error.handled values', function () {
+    const renderer = getFieldRenderer('error.handled', {'error.handled': 'boolean'});
+
+    // Should render the last value.
+    let wrapper = mount(renderer({'error.handled': [0, 1]}, {location, organization}));
+    expect(wrapper.text()).toEqual('true');
+
+    wrapper = mount(renderer({'error.handled': [0, 0]}, {location, organization}));
+    expect(wrapper.text()).toEqual('false');
+
+    // null = true for error.handled data.
+    wrapper = mount(renderer({'error.handled': [null]}, {location, organization}));
+    expect(wrapper.text()).toEqual('true');
+
+    // Default events won't have error.handled and will return an empty list.
+    wrapper = mount(renderer({'error.handled': []}, {location, organization}));
+    expect(wrapper.text()).toEqual('n/a');
+
+    // Transactions will have null for error.handled as the 'tag' won't be set.
+    wrapper = mount(renderer({'error.handled': null}, {location, organization}));
+    expect(wrapper.text()).toEqual('n/a');
+  });
+
   it('can render user fields with aliased user', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
