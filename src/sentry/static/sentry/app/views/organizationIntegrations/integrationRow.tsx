@@ -141,7 +141,7 @@ const Container = styled('div')`
 
 const IntegrationName = styled(Link)`
   font-weight: bold;
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.blue300};
 `;
 
 const IntegrationDetails = styled('div')`

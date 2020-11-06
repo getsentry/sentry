@@ -80,7 +80,7 @@ const ListItem = styled('li')<{isChecked?: boolean}>`
   }
 
   &:hover span {
-    color: ${p => p.theme.blue400};
+    color: ${p => p.theme.blue300};
     text-decoration: underline;
   }
 `;

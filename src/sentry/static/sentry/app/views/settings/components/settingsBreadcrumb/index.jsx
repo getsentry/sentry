@@ -99,7 +99,7 @@ const CrumbLink = styled(Link)`
 
   &.focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue400} 0 2px 0;
+    box-shadow: ${p => p.theme.blue300} 0 2px 0;
   }
 
   color: ${p => p.theme.gray600};

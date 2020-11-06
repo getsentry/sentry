@@ -100,7 +100,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   }
 
   &:hover {
-    color: ${theme.blue500};
+    color: ${theme.blue300};
   }
   & > svg {
     margin-right: ${space(1)};

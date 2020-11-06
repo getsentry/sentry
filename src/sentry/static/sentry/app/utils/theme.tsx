@@ -23,11 +23,9 @@ const colors = {
   purple200: '#A396DA',
   purple300: '#6C5FC7',
 
-  blue100: '#E9F2FF',
-  blue200: '#AFC7EE',
-  blue300: '#7199DD',
-  blue400: '#3D74DB',
-  blue500: '#194591',
+  blue100: '#D2DFF7',
+  blue200: '#92A8EA',
+  blue300: '#3D74DB',
 
   orange100: '#FFF1ED',
   orange200: '#F9C7B9',
@@ -172,10 +170,10 @@ const alert = {
     iconColor: 'inherit',
   },
   info: {
-    background: colors.blue400,
+    background: colors.blue300,
     backgroundLight: colors.blue100,
     border: colors.blue200,
-    iconColor: colors.blue400,
+    iconColor: colors.blue300,
   },
   warning,
   warn: warning,
@@ -236,7 +234,7 @@ const tag = {
   },
   info: {
     background: colors.blue100,
-    iconColor: colors.blue400,
+    iconColor: colors.blue300,
   },
   white: {
     background: colors.white,
@@ -284,8 +282,8 @@ const generateButtonTheme = alias => ({
     focusShadow: color(colors.red300).alpha(0.5).string(),
   },
   link: {
-    color: colors.blue400,
-    colorActive: colors.blue400,
+    color: colors.blue300,
+    colorActive: colors.blue300,
     background: 'transparent',
     border: false,
     borderActive: false,

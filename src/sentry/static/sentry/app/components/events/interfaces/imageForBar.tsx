@@ -44,12 +44,12 @@ const Wrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   font-weight: 700;
   code {
-    color: ${p => p.theme.blue500};
+    color: ${p => p.theme.blue300};
     font-size: ${p => p.theme.fontSizeSmall};
     background: ${p => p.theme.gray100};
   }
   a {
-    color: ${p => p.theme.blue500};
+    color: ${p => p.theme.blue300};
     &:hover {
       text-decoration: underline;
     }
