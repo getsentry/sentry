@@ -89,6 +89,7 @@ describe('IntegrationCodeMappings', function () {
     await tick();
     expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(1);
   });
+  
   it('create new config', async () => {
     const url = `/organizations/${org.slug}/integrations/${integration.id}/repo-project-path-configs/`;
     const createMock = Client.addMockResponse({
