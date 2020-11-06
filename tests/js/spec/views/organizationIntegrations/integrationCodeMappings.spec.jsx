@@ -81,25 +81,28 @@ describe('IntegrationCodeMappings', function () {
   it('shows the paths', () => {
     expect(wrapper.find('RepoName').length).toEqual(2);
     expect(wrapper.find('RepoName').at(0).text()).toEqual(repos[0].name);
-    expect(wrapper.find('RepoName').at(1).text()).toEqual(repos[1]. name);
+    expect(wrapper.find('RepoName').at(1).text()).toEqual(repos[1].name);
   });
-  
+
   it('opens modal', async () => {
     expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(0);
     wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
     await tick();
     expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(1);
   });
-  
+
   it('create new config', async () => {
+    const stackRoot = 'my/root';
+    const sourceRoot = 'hey/dude';
+    const defaultBranch = 'release';
     const url = `/organizations/${org.slug}/integrations/${integration.id}/repo-project-path-configs/`;
     const createMock = Client.addMockResponse({
       url,
       method: 'POST',
       body: TestStubs.RepositoryProjectPathConfig(projects[1], repos[1], integration, {
-        stackRoot: 'my/root',
-        sourceRoot: 'hey/dude',
-        defaultBranch: 'release',
+        stackRoot,
+        sourceRoot,
+        defaultBranch,
       }),
     });
     wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
@@ -109,13 +112,13 @@ describe('IntegrationCodeMappings', function () {
 
     wrapper
       .find('input[name="stackRoot"]')
-      .simulate('change', {target: {value: 'my/root'}});
+      .simulate('change', {target: {value: stackRoot}});
     wrapper
       .find('input[name="sourceRoot"]')
-      .simulate('change', {target: {value: 'hey/dude'}});
+      .simulate('change', {target: {value: sourceRoot}});
     wrapper
       .find('input[name="defaultBranch"]')
-      .simulate('change', {target: {value: 'release'}});
+      .simulate('change', {target: {value: defaultBranch}});
     wrapper.find('form').simulate('submit');
 
     expect(createMock).toHaveBeenCalledWith(
@@ -124,39 +127,42 @@ describe('IntegrationCodeMappings', function () {
         data: {
           projectId: projects[1].id,
           repositoryId: repos[1].id,
-          stackRoot: 'my/root',
-          sourceRoot: 'hey/dude',
-          defaultBranch: 'release',
+          stackRoot,
+          sourceRoot,
+          defaultBranch,
         },
       })
     );
   });
-  
+
   it('edit existing config', async () => {
+    const stackRoot = 'new/root';
+    const sourceRoot = 'source/root';
+    const defaultBranch = 'master';
     const url = `/organizations/${org.slug}/integrations/${integration.id}/repo-project-path-configs/${pathConfig1.id}/`;
     const editMock = Client.addMockResponse({
       url,
       method: 'PUT',
       body: TestStubs.RepositoryProjectPathConfig(projects[0], repos[0], integration, {
-        stackRoot: 'new/root',
-        sourceRoot: 'source/root',
-        defaultBranch: 'master',
+        stackRoot,
+        sourceRoot,
+        defaultBranch,
       }),
     });
     wrapper.find('button[aria-label="edit"]').first().simulate('click');
     wrapper
       .find('input[name="stackRoot"]')
-      .simulate('change', {target: {value: 'new/root'}});
+      .simulate('change', {target: {value: stackRoot}});
     wrapper.find('form').simulate('submit');
     expect(editMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
         data: {
-          defaultBranch: 'master',
+          defaultBranch,
           projectId: '2',
           repositoryId: '4',
-          sourceRoot: 'source/root',
-          stackRoot: 'new/root',
+          sourceRoot,
+          stackRoot,
         },
       })
     );
