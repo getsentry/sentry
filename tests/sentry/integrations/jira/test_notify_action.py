@@ -6,7 +6,7 @@ from sentry.utils import json
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.jira.notify_action import JiraCreateTicketAction
-from sentry.models import ExternalIssue
+from sentry.models import ExternalIssue, Rule
 
 from test_integration import SAMPLE_CREATE_META_RESPONSE, SAMPLE_GET_ISSUE_RESPONSE
 
@@ -31,7 +31,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
     @responses.activate
     def test_creates_issue(self):
         event = self.get_event()
-        rule = self.get_rule(
+        jira_rule = self.get_rule(
             data={
                 "title": "example summary",
                 "description": "example bug report",
@@ -45,6 +45,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
                 "issue_type": "Bug",
             }
         )
+        jira_rule.rule = Rule.objects.create(project=self.project, label="test rule",)
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/issue/createmeta",
@@ -53,11 +54,11 @@ class JiraCreateTicketActionTest(RuleTestCase):
             match_querystring=False,
         )
 
-        rule.data["key"] = "APP-123"
+        jira_rule.data["key"] = "APP-123"
         responses.add(
             method=responses.POST,
             url="https://example.atlassian.net/rest/api/2/issue",
-            json=rule.data,
+            json=jira_rule.data,
             status=202,
             content_type="application/json",
         )
@@ -69,7 +70,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
             match_querystring=False,
         )
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(jira_rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
 
         # Trigger rule callback
