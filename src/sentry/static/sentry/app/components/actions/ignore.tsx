@@ -145,7 +145,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
           windowChoices={IGNORE_WINDOWS}
         />
         <div className="btn-group">
-          <ActionLink
+          <StyledActionLink
             {...actionLinkProps}
             title={t('Ignore')}
             className={linkClassName}
@@ -153,9 +153,9 @@ export default class IgnoreActions extends React.Component<Props, State> {
           >
             <StyledIconNot size="xs" />
             {t('Ignore')}
-          </ActionLink>
+          </StyledActionLink>
 
-          <DropdownLink
+          <StyledDropdownLink
             caret
             className={linkClassName}
             title=""
@@ -290,7 +290,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 </MenuItem>
               </DropdownLink>
             </li>
-          </DropdownLink>
+          </StyledDropdownLink>
         </div>
       </div>
     );
@@ -310,4 +310,13 @@ const StyledIconNot = styled(IconNot)`
 const SoloIconNot = styled(IconNot)`
   position: relative;
   top: 1px;
+`;
+
+const StyledActionLink = styled(ActionLink)`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledDropdownLink = styled(DropdownLink)`
+  transition: none;
 `;
