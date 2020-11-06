@@ -246,6 +246,7 @@ const StyledIconCheckmark = styled(IconCheckmark)`
 const StyledActionLink = styled(ActionLink)`
   display: flex;
   align-items: center;
+  transition: none;
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`

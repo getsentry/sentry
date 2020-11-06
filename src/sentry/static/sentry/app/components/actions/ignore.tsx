@@ -315,6 +315,7 @@ const SoloIconNot = styled(IconNot)`
 const StyledActionLink = styled(ActionLink)`
   display: flex;
   align-items: center;
+  transition: none;
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
