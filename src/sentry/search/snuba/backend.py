@@ -72,7 +72,6 @@ def first_release_all_environments_filter(version, projects):
 
 
 def inbox_filter(inbox, projects):
-    # TODO this should probably take projects for perf reasons...should I add extra stuff to filter on to the GroupInbox model?
     query = Q(
         id__in=GroupInbox.objects.filter(project_id__in=[p.id for p in projects]).values_list(
             "group_id", flat=True
