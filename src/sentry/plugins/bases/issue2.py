@@ -70,7 +70,7 @@ class IssueTrackingPlugin2(Plugin):
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def get_group_title(self, request, group, event):
+    def get_group_title(self, event):
         return event.title
 
     def is_configured(self, request, project, **kwargs):
@@ -125,7 +125,7 @@ class IssueTrackingPlugin2(Plugin):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.get_group_title(request, group, event),
+                "default": self.get_group_title(event),
                 "type": "text",
             },
             {

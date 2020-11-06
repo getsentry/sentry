@@ -20,7 +20,7 @@ class IssueBasicMixin(object):
     def should_sync(self, attribute):
         return False
 
-    def get_group_title(self, group, event, **kwargs):
+    def get_group_title(self, event):
         return event.title
 
     def get_issue_url(self, key):
@@ -67,7 +67,7 @@ class IssueBasicMixin(object):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.get_group_title(group, event, **kwargs),
+                "default": self.get_group_title(event),
                 "type": "string",
                 "required": True,
             },
