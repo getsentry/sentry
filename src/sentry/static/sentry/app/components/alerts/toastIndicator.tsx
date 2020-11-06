@@ -73,7 +73,7 @@ const Undo = styled('div')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   .loading-indicator {
     border-color: ${p => p.theme.gray700};
-    border-left-color: ${p => p.theme.purple400};
+    border-left-color: ${p => p.theme.purple300};
   }
 `;
 

@@ -21,11 +21,9 @@ const colors = {
   yellow400: '#FFC227',
   yellow500: '#E2A301',
 
-  purple100: '#F5E9FF',
-  purple200: '#E7D3FF',
-  purple300: '#B9A2FD',
-  purple400: '#6C5FC7',
-  purple500: '#3E2C73',
+  purple100: '#D4D1EC',
+  purple200: '#A396DA',
+  purple300: '#6C5FC7',
 
   blue100: '#E9F2FF',
   blue200: '#AFC7EE',
@@ -124,12 +122,12 @@ const aliases = {
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: colors.purple300,
+  linkColor: colors.purple200,
 
   /**
    * ...
    */
-  secondaryButton: colors.purple300,
+  secondaryButton: colors.purple200,
 
   /**
    * Gradient for sidebar
@@ -206,8 +204,8 @@ const badge = {
     indicatorColor: colors.orange400,
   },
   beta: {
-    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple400})`,
-    indicatorColor: colors.purple400,
+    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple300})`,
+    indicatorColor: colors.purple300,
   },
   new: {
     background: `linear-gradient(90deg, ${colors.green300}, ${colors.green300})`,
@@ -218,7 +216,7 @@ const badge = {
 const tag = {
   default: {
     background: colors.gray200,
-    iconColor: colors.purple400,
+    iconColor: colors.purple300,
   },
   promotion: {
     background: colors.orange100,
@@ -226,7 +224,7 @@ const tag = {
   },
   highlight: {
     background: colors.purple100,
-    iconColor: colors.purple400,
+    iconColor: colors.purple300,
   },
   warning: {
     background: colors.yellow100,
@@ -265,11 +263,11 @@ const generateButtonTheme = alias => ({
   primary: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.purple400,
+    background: colors.purple300,
     backgroundActive: '#4e3fb4',
     border: '#3d328e',
     borderActive: '#352b7b',
-    focusShadow: color(colors.purple400).alpha(0.4).string(),
+    focusShadow: color(colors.purple300).alpha(0.4).string(),
   },
   success: {
     color: colors.white,

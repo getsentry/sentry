@@ -10,7 +10,7 @@ function getLevelColor({level = '', theme}) {
     info: theme.blue400,
     warning: theme.orange300,
     fatal: theme.red400,
-    sample: theme.purple400,
+    sample: theme.purple300,
   };
 
   return `background-color: ${COLORS[level] || theme.orange400};`;

@@ -111,7 +111,7 @@ const Content = ({
                             size={20}
                             thickness={5}
                             radius={0}
-                            palette={Array(10).fill(theme.purple500)}
+                            palette={Array(10).fill(theme.purple300)}
                           />
                         </Tooltip>
                         <TextOverflow>

@@ -203,7 +203,7 @@ export const ButtonSpinner = styled('div')`
   border-top: 2px solid ${p => p.theme.border};
   border-right: 2px solid ${p => p.theme.border};
   border-bottom: 2px solid ${p => p.theme.border};
-  border-left: 2px solid ${p => p.theme.purple400};
+  border-left: 2px solid ${p => p.theme.purple300};
   margin-left: 4px;
 `;
 
