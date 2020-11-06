@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import PropTypes from 'prop-types';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -11,41 +11,24 @@ import Button from 'app/components/button';
 import {IconDelete} from 'app/icons';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {ApiApplication} from 'app/types';
 import space from 'app/styles/space';
 
-class AuthorizationRow extends React.Component {
-  static propTypes = {
-    authorization: PropTypes.object.isRequired,
-    onRevoke: PropTypes.func.isRequired,
-  };
+type Authorization = {
+  application: ApiApplication;
+  homepageUrl: string;
+  id: string;
+  scopes: string[];
+};
 
-  handleRevoke = () => {
-    const {authorization} = this.props;
-    this.props.onRevoke(authorization);
-  };
+type Props = RouteComponentProps<{}, {}>;
 
-  render() {
-    const authorization = this.props.authorization;
+type State = {
+  data: Authorization[];
+} & AsyncView['state'];
 
-    return (
-      <PanelItemCenter>
-        <ApplicationDetails>
-          <ApplicationName>{authorization.application.name}</ApplicationName>
-          {authorization.homepageUrl && (
-            <Url>
-              <a href={authorization.homepageUrl}>{authorization.homepageUrl}</a>
-            </Url>
-          )}
-          <Scopes>{authorization.scopes.join(', ')}</Scopes>
-        </ApplicationDetails>
-        <Button size="small" onClick={this.handleRevoke} icon={<IconDelete />} />
-      </PanelItemCenter>
-    );
-  }
-}
-
-class AccountAuthorizations extends AsyncView {
-  getEndpoints() {
+class AccountAuthorizations extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['data', '/api-authorizations/']];
   }
 
@@ -103,11 +86,24 @@ class AccountAuthorizations extends AsyncView {
             {!isEmpty && (
               <div>
                 {data.map(authorization => (
-                  <AuthorizationRow
-                    key={authorization.id}
-                    authorization={authorization}
-                    onRevoke={this.handleRevoke}
-                  />
+                  <PanelItemCenter key={authorization.id}>
+                    <ApplicationDetails>
+                      <ApplicationName>{authorization.application.name}</ApplicationName>
+                      {authorization.homepageUrl && (
+                        <Url>
+                          <a href={authorization.homepageUrl}>
+                            {authorization.homepageUrl}
+                          </a>
+                        </Url>
+                      )}
+                      <Scopes>{authorization.scopes.join(', ')}</Scopes>
+                    </ApplicationDetails>
+                    <Button
+                      size="small"
+                      onClick={() => this.handleRevoke(authorization)}
+                      icon={<IconDelete />}
+                    />
+                  </PanelItemCenter>
                 ))}
               </div>
             )}
