@@ -15,11 +15,9 @@ const colors = {
   gray700: '#4A3E56',
   gray800: '#302839',
 
-  yellow100: '#FFF9DF',
-  yellow200: '#FFF8C4',
-  yellow300: '#FFF492',
-  yellow400: '#FFC227',
-  yellow500: '#E2A301',
+  yellow100: '#FDE8b4',
+  yellow200: '#FFD577',
+  yellow300: '#FFC227',
 
   purple100: '#D4D1EC',
   purple200: '#A396DA',
@@ -162,10 +160,10 @@ const aliases = {
 } as const;
 
 const warning = {
-  background: colors.yellow500,
-  backgroundLight: colors.yellow100,
-  border: colors.yellow400,
-  iconColor: colors.yellow500,
+  background: colors.yellow100,
+  backgroundLight: color(colors.yellow100).alpha(0.3).string(),
+  border: colors.yellow300,
+  iconColor: colors.yellow300,
 } as const;
 
 const alert = {
@@ -228,7 +226,7 @@ const tag = {
   },
   warning: {
     background: colors.yellow100,
-    iconColor: colors.yellow400,
+    iconColor: colors.yellow300,
   },
   success: {
     background: colors.green100,
