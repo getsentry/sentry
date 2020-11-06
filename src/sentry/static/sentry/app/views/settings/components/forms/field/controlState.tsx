@@ -49,7 +49,7 @@ const ControlStateWrapper = styled('div')`
 `;
 
 const FieldIsSaved = styled('div')`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.green300};
   animation: ${fadeOut} 0.3s ease 2s 1 forwards;
   position: absolute;
   top: 0;

@@ -45,11 +45,9 @@ const colors = {
   red400: '#FA4747',
   red500: '#AC1025',
 
-  green100: '#E4F9F0',
-  green200: '#C0F3DD',
-  green300: '#8FE7BF',
-  green400: '#4DC771',
-  green500: '#1C8952',
+  green100: '#B6ECDF',
+  green200: '#7DD6BE',
+  green300: '#33BF9E',
 
   pink100: '#FDC9D7',
   pink200: '#FA93AB',
@@ -100,7 +98,7 @@ const aliases = {
   /**
    * A color that denotes a "success", or something good
    */
-  success: colors.green400, // TODO(dark): colors.green300,
+  success: colors.green300, // TODO(dark): colors.green200,
 
   /**
    * A color that denotes an error, or something that is wrong
@@ -188,10 +186,10 @@ const alert = {
   warning,
   warn: warning,
   success: {
-    background: colors.green400,
+    background: colors.green300,
     backgroundLight: colors.green100,
-    border: colors.green300,
-    iconColor: colors.green500,
+    border: colors.green200,
+    iconColor: colors.green300,
   },
   error: {
     background: colors.red400,
@@ -212,8 +210,8 @@ const badge = {
     indicatorColor: colors.purple400,
   },
   new: {
-    background: `linear-gradient(90deg, ${colors.green400}, ${colors.green500})`,
-    indicatorColor: colors.green400,
+    background: `linear-gradient(90deg, ${colors.green300}, ${colors.green300})`,
+    indicatorColor: colors.green300,
   },
 };
 
@@ -236,7 +234,7 @@ const tag = {
   },
   success: {
     background: colors.green100,
-    iconColor: colors.green400,
+    iconColor: colors.green300,
   },
   error: {
     background: colors.red100,
@@ -277,10 +275,10 @@ const generateButtonTheme = alias => ({
     color: colors.white,
     colorActive: colors.white,
     background: '#3fa372',
-    backgroundActive: colors.green400,
+    backgroundActive: colors.green300,
     border: '#7ccca5',
     borderActive: '#7ccca5',
-    focusShadow: color(colors.green400).alpha(0.5).string(),
+    focusShadow: color(colors.green300).alpha(0.5).string(),
   },
   danger: {
     color: colors.white,

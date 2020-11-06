@@ -117,6 +117,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
   render() {
     const {
       data,
+      event,
       newestFirst,
       expandFirstFrame,
       platform,
@@ -190,6 +191,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
         frames.push(
           <Line
             key={frameIdx}
+            event={event}
             data={frame}
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
             emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
