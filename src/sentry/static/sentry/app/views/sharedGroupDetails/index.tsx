@@ -29,6 +29,7 @@ type State = {
 
 class SharedGroupDetails extends React.Component<Props, State> {
   state: State = this.getInitialState();
+
   getInitialState() {
     return {
       group: null,
