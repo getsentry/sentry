@@ -7,20 +7,20 @@ import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
-import {ThreadType} from 'app/types/events';
+import {Thread} from 'app/types/events';
 
 type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
 type Props = {
   event: Event;
   projectId: Project['id'];
-  data: ThreadType;
+  data: Thread;
   stackView: STACK_VIEW;
   stackType: STACK_TYPE;
   newestFirst: boolean;
 } & Pick<CrashContentProps, 'exception' | 'stacktrace'>;
 
-const Thread = ({
+const Content = ({
   event,
   projectId,
   data,
@@ -73,4 +73,4 @@ const Thread = ({
   );
 };
 
-export default Thread;
+export default Content;

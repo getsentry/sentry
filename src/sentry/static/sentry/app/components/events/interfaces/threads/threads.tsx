@@ -8,12 +8,12 @@ import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktra
 import EventDataSection from 'app/components/events/eventDataSection';
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
 import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
-import {ThreadType} from 'app/types/events';
+import {Thread} from 'app/types/events';
 
 import ThreadSelector from './threadSelector';
+import Content from './content';
 import getThreadStacktrace from './threadSelector/getThreadStacktrace';
 import getThreadException from './threadSelector/getThreadException';
-import Thread from './thread';
 
 const defaultProps = {
   hideGuide: false,
@@ -24,23 +24,23 @@ type Props = {
   projectId: Project['id'];
   type: string;
   data: {
-    values?: Array<ThreadType>;
+    values?: Array<Thread>;
   };
 } & typeof defaultProps;
 
 type State = {
-  activeThread: ThreadType;
+  activeThread: Thread;
   stackView: STACK_VIEW;
   stackType: STACK_TYPE;
   newestFirst: boolean;
 };
 
-function getIntendedStackView(thread: ThreadType, event: Event) {
+function getIntendedStackView(thread: Thread, event: Event) {
   const stacktrace = getThreadStacktrace(thread, event, false);
   return stacktrace && stacktrace.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
-function findBestThread(threads: Array<ThreadType>) {
+function findBestThread(threads: Array<Thread>) {
   // Search the entire threads list for a crashed thread with stack
   // trace.
   return (
@@ -66,7 +66,7 @@ class ThreadInterface extends React.Component<Props, State> {
     } as State;
   }
 
-  handleSelectNewThread = (thread: ThreadType) => {
+  handleSelectNewThread = (thread: Thread) => {
     this.setState(prevState => ({
       activeThread: thread,
       stackView:
@@ -148,7 +148,7 @@ class ThreadInterface extends React.Component<Props, State> {
         showPermalink={!hasThreads}
         wrapTitle={false}
       >
-        <Thread
+        <Content
           data={activeThread}
           exception={exception}
           stackView={stackView}

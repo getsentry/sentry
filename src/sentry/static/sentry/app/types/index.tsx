@@ -274,10 +274,10 @@ export type EventAttachment = {
   event_id: string;
 };
 
-export type EntryTypeData = Record<string, any | Array<any>>;
+export type EntryData = Record<string, any | Array<any>>;
 
-export type EntryType = {
-  data: EntryTypeData;
+export type Entry = {
+  data: EntryData;
   type: string;
 };
 
@@ -349,7 +349,7 @@ type SentryEventBase = {
   platform?: PlatformKey;
   dateReceived?: string;
   endTimestamp?: number;
-  entries: EntryType[];
+  entries: Entry[];
   errors: any[];
 
   previousEventID?: string;

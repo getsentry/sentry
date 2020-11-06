@@ -1,6 +1,6 @@
 import {StacktraceType, RawStacktrace} from './stacktrace';
 
-export interface ThreadType {
+export interface Thread {
   id: number;
   crashed: boolean;
   current: boolean;
