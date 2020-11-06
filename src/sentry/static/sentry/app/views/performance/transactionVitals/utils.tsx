@@ -173,29 +173,31 @@ export function isTrustworthyVital(
 
   const {value: vitalValue} = measurements[vitalName];
   const {value: markTimestamp} = measurements[markName];
-  const delta = markTimestamp - startTimestamp;
-  const displayable = delta >= 0 && Math.abs(delta - vitalValue / 1000) <= threshold;
+  const derivedVitalValue = markTimestamp - startTimestamp;
+  const delta = derivedVitalValue - vitalValue / 1000;
+  const displayable = derivedVitalValue >= 0 && Math.abs(delta) <= threshold;
 
   // track the occurence in sentry
   if (!displayable && shouldSend) {
     const {eventID, sdk} = event;
     Sentry.withScope(scope => {
-      scope.setTag('vital', vitalName);
+      scope.setLevel(Sentry.Severity.Warning);
+      scope.setTag('origin.event.id', eventID);
+      scope.setTag('origin.vital', vitalName);
       if (sdk?.name) {
-        scope.setTag('sdk.name', sdk.name);
+        scope.setTag('origin.sdk.name', sdk.name);
       }
       if (sdk?.version) {
-        scope.setTag('sdk.version', sdk.version);
+        scope.setTag('origin.sdk.version', sdk.version);
       }
-      scope.setContext('event', {
-        eventID,
-        vital: vitalName,
+      scope.setContext('origin event', {
         startTimestamp,
         markTimestamp,
-        vitalValue,
-        ...sdk,
+        vitalValue: vitalValue / 1000,
+        derivedVitalValue,
+        delta,
       });
-      Sentry.captureException(new Error('Untrustworthy vital data found'));
+      Sentry.captureMessage('Untrustworthy vital data found');
     });
   }
 

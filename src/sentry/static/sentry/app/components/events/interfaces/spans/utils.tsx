@@ -625,7 +625,7 @@ export function getMeasurements(event: SentryTransactionEvent): Map<number, stri
 
   const {measurements = {}} = event;
 
-  const displaybleMarks = Object.keys(measurements)
+  const displayableMarks = Object.keys(measurements)
     .filter(name => name.startsWith('mark.'))
     .filter(markName => {
       const vitalName = markName.slice('mark.'.length);
@@ -645,7 +645,7 @@ export function getMeasurements(event: SentryTransactionEvent): Map<number, stri
 
   const mergedMeasurements = new Map<number, string[]>();
 
-  displaybleMarks.forEach(mark => {
+  displayableMarks.forEach(mark => {
     const name = mark.name.slice('mark.'.length);
 
     if (mergedMeasurements.has(mark.timestamp)) {

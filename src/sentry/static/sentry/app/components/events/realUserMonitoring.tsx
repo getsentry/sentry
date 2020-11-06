@@ -98,9 +98,9 @@ class RealUserMonitoring extends React.Component<Props> {
         <SectionHeading>{t('Web Vitals')}</SectionHeading>
         <Measurements>
           {measurements.map(name => (
-            <div key={name}>
+            <React.Fragment key={name}>
               {this.renderMeasurement(name, event.measurements![name])}
-            </div>
+            </React.Fragment>
           ))}
         </Measurements>
       </Container>
