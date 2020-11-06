@@ -49,7 +49,7 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.ERROR:
       return {
-        color: 'red400',
+        color: 'red300',
         icon: IconFire,
         description: t('Error'),
       };

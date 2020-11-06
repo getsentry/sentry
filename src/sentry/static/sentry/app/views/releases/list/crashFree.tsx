@@ -12,7 +12,7 @@ const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
 const getIcon = (percent: number) => {
   if (percent < CRASH_FREE_DANGER_THRESHOLD) {
-    return <IconFire color="red400" />;
+    return <IconFire color="red300" />;
   }
 
   if (percent < CRASH_FREE_WARNING_THRESHOLD) {
