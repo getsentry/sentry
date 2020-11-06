@@ -4,19 +4,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import {
-  IconClose,
-  IconBitbucket,
-  IconGeneric,
-  IconGithub,
-  IconGitlab,
-  IconJira,
-  IconAdd,
-  IconVsts,
-} from 'app/icons';
+import {IconAdd, IconClose} from 'app/icons';
 import space from 'app/styles/space';
 import Hovercard from 'app/components/hovercard';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import {getIntegrationIcon} from 'app/utils/integrationUtil';
 
 type Props = {
   externalIssueLink?: string | null;
@@ -60,23 +52,7 @@ class IssueSyncListElement extends React.Component<Props> {
   };
 
   getIcon(): React.ReactNode {
-    switch (this.props.integrationType) {
-      case 'bitbucket':
-        return <IconBitbucket size="md" />;
-      case 'gitlab':
-        return <IconGitlab size="md" />;
-      case 'github':
-        return <IconGithub size="md" />;
-      case 'github_enterprise':
-        return <IconGithub size="md" />;
-      case 'jira':
-      case 'jira_server':
-        return <IconJira size="md" />;
-      case 'vsts':
-        return <IconVsts size="md" />;
-      default:
-        return <IconGeneric size="md" />;
-    }
+    return getIntegrationIcon(this.props.integrationType);
   }
 
   getPrettyName(): string {

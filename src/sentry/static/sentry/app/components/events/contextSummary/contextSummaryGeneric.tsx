@@ -9,6 +9,7 @@ import {ParagraphOverflow} from 'app/components/textOverflow';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
+import Item from './item';
 
 type Props = {
   data: Data;
@@ -33,14 +34,13 @@ const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
   const className = generateClassName(data.name);
 
   return (
-    <div className={`context-item ${className}`}>
-      <span className="context-item-icon" />
+    <Item className={className} icon={<span className="context-item-icon" />}>
       <h3>{renderValue('name')}</h3>
       <ParagraphOverflow>
         <Subject>{t('Version:')}</Subject>
         {!data.version ? t('Unknown') : renderValue('version')}
       </ParagraphOverflow>
-    </div>
+    </Item>
   );
 };
 

@@ -40,7 +40,6 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         "p95": "percentile_range(transaction.duration, 0.95, {start}, {end}, {query_alias})",
         "p99": "percentile_range(transaction.duration, 0.99, {start}, {end}, {query_alias})",
         "avg": "avg_range(transaction.duration, {start}, {end}, {query_alias})",
-        "user_misery": "user_misery_range({}, {start}, {end}, {query_alias})",
         "variance": "variance_range(transaction.duration, {start}, {end}, {query_alias})",
         "count_range": "count_range({start}, {end}, {query_alias})",
         "percentage": "percentage({alias}_2, {alias}_1, {query_alias})",

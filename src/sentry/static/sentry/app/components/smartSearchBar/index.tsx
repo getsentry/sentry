@@ -1034,6 +1034,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       // then update the autocomplete box with new contextTypes
       this.updateAutoCompleteItems();
+      this.props.onChange?.(newQuery, new MouseEvent('click') as any);
     });
   };
 

@@ -383,6 +383,8 @@ type SentryEventBase = {
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
 
   measurements?: Record<string, Measurement>;
+
+  release?: ReleaseData;
 };
 
 export type SentryTransactionEvent = {
@@ -523,7 +525,7 @@ export type PluginNoProject = {
   metadata: any; // TODO(ts)
   contexts: any[]; // TODO(ts)
   status: string;
-  assets: any[]; // TODO(ts)
+  assets: Array<{url: string}>;
   doc: string;
   features: string[];
   featureDescriptions: IntegrationFeature[];
@@ -746,6 +748,22 @@ export type GroupTombstone = {
   metadata: EventMetadata;
 };
 
+export type ProcessingIssueItem = {
+  id: string;
+  type: string;
+  checksum: string;
+  numEvents: number;
+  data: {
+    // TODO(ts) This type is likely incomplete, but this is what
+    // project processing issues settings uses.
+    _scope: string;
+    image_arch: string;
+    image_uuid: string;
+    image_path: string;
+  };
+  lastSeen: string;
+};
+
 export type ProcessingIssue = {
   project: string;
   numIssues: number;
@@ -755,6 +773,7 @@ export type ProcessingIssue = {
   hasIssues: boolean;
   issuesProcessing: number;
   resolveableIssues: number;
+  issues?: ProcessingIssueItem[];
 };
 
 /**
@@ -814,7 +833,8 @@ export type RepositoryProjectPathConfig = {
   projectSlug: string;
   repoId: string;
   repoName: string;
-  organizationIntegrationId: string;
+  integrationId: string;
+  provider: BaseIntegrationProvider;
   stackRoot: string;
   sourceRoot: string;
   defaultBranch?: string;
@@ -1006,6 +1026,15 @@ export type SentryAppWebhookRequest = {
   };
   responseCode: number;
   errorUrl?: string;
+};
+
+export type ServiceHook = {
+  id: string;
+  events: string[];
+  dateCreated: string;
+  secret: string;
+  status: string;
+  url: string;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
@@ -1376,6 +1405,7 @@ export type ChunkType = {
 export enum ResolutionStatus {
   RESOLVED = 'resolved',
   UNRESOLVED = 'unresolved',
+  IGNORED = 'ignored',
 }
 export type ResolutionStatusDetails = {
   actor?: AvatarUser;

@@ -285,6 +285,12 @@ export const AGGREGATIONS = {
   },
 } as const;
 
+// TPM and TPS are aliases that are only used in Performance
+export const ALIASES = {
+  tpm: 'epm',
+  tps: 'eps',
+};
+
 assert(AGGREGATIONS as Readonly<{[key in keyof typeof AGGREGATIONS]: Aggregation}>);
 
 export type AggregationKey = keyof typeof AGGREGATIONS | '';
@@ -551,7 +557,8 @@ export function getAggregateArg(field: string): string | null {
 
 export function generateAggregateFields(
   organization: LightWeightOrganization,
-  eventFields: readonly Field[] | Field[]
+  eventFields: readonly Field[] | Field[],
+  excludeFields: readonly string[] = []
 ): Field[] {
   const functions = Object.keys(AGGREGATIONS);
   const fields = Object.values(eventFields).map(field => field.field);
@@ -571,7 +578,7 @@ export function generateAggregateFields(
       const newField = `${func}(${parameters
         .map(param => param.defaultValue)
         .join(',')})`;
-      if (fields.indexOf(newField) === -1) {
+      if (fields.indexOf(newField) === -1 && excludeFields.indexOf(newField) === -1) {
         fields.push(newField);
       }
     }
@@ -663,7 +670,7 @@ export function aggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
-  const aggregate = AGGREGATIONS[funcName];
+  const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
 
   // Attempt to use the function's outputType.
   if (aggregate?.outputType) {

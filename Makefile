@@ -184,8 +184,6 @@ test-acceptance: node-version-check
 	make run-acceptance
 
 test-plugins:
-	@echo "--> Building static assets"
-	@$(WEBPACK)
 	@echo "--> Running plugin tests"
 	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
 	@echo ""
