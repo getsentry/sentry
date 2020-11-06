@@ -48,10 +48,8 @@ def add_group_to_inbox(group, reason, reason_details=None):
 
 
 def remove_group_from_inbox(group):
-    # TODO: Chris F.: This is temporarily removed while we perform some migrations.
-    return None
-    # try:
-    #     group_inbox = GroupInbox.objects.get(group=group)
-    #     group_inbox.delete()
-    # except GroupInbox.DoesNotExist:
-    #     pass
+    try:
+        group_inbox = GroupInbox.objects.get(group=group)
+        group_inbox.delete()
+    except GroupInbox.DoesNotExist:
+        pass
