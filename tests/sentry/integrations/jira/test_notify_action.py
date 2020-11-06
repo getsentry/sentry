@@ -2,11 +2,10 @@ from __future__ import absolute_import
 
 import responses
 
-from sentry.utils import json
-from sentry.models import Integration
-from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.jira.notify_action import JiraCreateTicketAction
-from sentry.models import ExternalIssue, Rule
+from sentry.models import Integration, ExternalIssue, Rule
+from sentry.testutils.cases import RuleTestCase
+from sentry.utils import json
 
 from .test_integration import SAMPLE_CREATE_META_RESPONSE, SAMPLE_GET_ISSUE_RESPONSE
 
@@ -76,8 +75,46 @@ class JiraCreateTicketActionTest(RuleTestCase):
         # Trigger rule callback
         results[0].callback(event, futures=[])
         data = json.loads(responses.calls[2].response.text)
-        assert data["fields"]["summary"] == "example summary"
-        assert data["fields"]["description"] == "example bug report"
+        assert data["title"] == "example summary"
+        assert data["description"] == "example bug report"
 
         external_issue = ExternalIssue.objects.get(key="APP-123")
         assert external_issue
+
+    def test_render_label(self):
+        rule = self.get_rule(
+            data={
+                "jira_integration": self.integration.id,
+                "issuetype": "1",
+                "issue_type": "Bug",
+                "jira_project": "Example",
+                "project": "10000",
+            }
+        )
+
+        assert (
+            rule.render_label()
+            == """Create a Jira ticket in the Jira Cloud account and Example project of type Bug"""
+        )
+
+    def test_render_label_without_integration(self):
+        deleted_id = self.integration.id
+        self.integration.delete()
+
+        rule = self.get_rule(data={"jira_integration": deleted_id})
+
+        assert rule.render_label() == "Create a Jira ticket in the [removed] account"
+
+    @responses.activate
+    def test_invalid_integration(self):
+        rule = self.get_rule(data={"jira_integration": self.integration.id})
+
+        form = rule.get_form_instance()
+        assert form.is_valid()
+
+    @responses.activate
+    def test_invalid_project(self):
+        rule = self.get_rule(data={"jira_integration": self.integration.id})
+
+        form = rule.get_form_instance()
+        assert form.is_valid()
