@@ -5,14 +5,14 @@ import getDisplayName from 'app/utils/getDisplayName';
 import {Organization, LightWeightOrganization} from 'app/types';
 
 type InjectedOrganizationProps = {
-  organization: Organization | LightWeightOrganization;
+  organization?: Organization | LightWeightOrganization;
 };
 
 const withOrganization = <P extends InjectedOrganizationProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
   class extends React.Component<
-    Omit<P, keyof InjectedOrganizationProps> & Partial<InjectedOrganizationProps>
+    Omit<P, keyof InjectedOrganizationProps> & InjectedOrganizationProps
   > {
     static displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
     static contextTypes = {
