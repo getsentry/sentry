@@ -83,6 +83,7 @@ describe('IntegrationCodeMappings', function () {
     expect(wrapper.find('RepoName').at(0).text()).toEqual('example/repo-name');
     expect(wrapper.find('RepoName').at(1).text()).toEqual(repos[1]. name);
   });
+  
   it('opens modal', async () => {
     expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(0);
     wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
