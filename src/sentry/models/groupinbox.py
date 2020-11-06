@@ -39,7 +39,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
         group=group,
         defaults={
             "project": group.project,
-            "organization": group.project.organization,
+            "organization_id": group.project.organization_id,
             "reason": reason.value,
             "reason_details": reason_details,
         },
