@@ -52,7 +52,7 @@ class EventOrGroupHeader extends React.Component<Props> {
         )}
         {!hideIcons && status === 'ignored' && (
           <IconWrapper>
-            <IconMute color="red400" />
+            <IconMute color="red300" />
           </IconWrapper>
         )}
         {!hideIcons && isBookmarked && (
@@ -205,7 +205,7 @@ const GroupLevel = styled('div')<{level: Level}>`
       case 'error':
         return p.theme.orange400;
       case 'fatal':
-        return p.theme.red400;
+        return p.theme.red300;
       default:
         return p.theme.gray500;
     }

@@ -34,11 +34,11 @@ const STAT_OPS = {
   'error-message': {title: t('Error Message'), color: theme.purple300},
   'discarded-hash': {title: t('Discarded Issue'), color: theme.gray300},
   'invalid-csp': {title: t('Invalid CSP'), color: theme.blue300},
-  'ip-address': {title: t('IP Address'), color: theme.red300},
+  'ip-address': {title: t('IP Address'), color: theme.red200},
   'legacy-browsers': {title: t('Legacy Browser'), color: theme.gray300},
   localhost: {title: t('Localhost'), color: theme.blue400},
   'release-version': {title: t('Release'), color: theme.purple200},
-  'web-crawlers': {title: t('Web Crawler'), color: theme.red400},
+  'web-crawlers': {title: t('Web Crawler'), color: theme.red300},
 };
 
 class ProjectFiltersChart extends React.Component<Props, State> {

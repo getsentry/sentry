@@ -18,7 +18,7 @@ const pulsingIndicatorStyles = (p: {theme: Theme}) => css`
   height: 10px;
   width: 10px;
   border-radius: 50%;
-  background: ${p.theme.red400};
+  background: ${p.theme.red300};
   position: relative;
 
   &:before {
@@ -30,7 +30,7 @@ const pulsingIndicatorStyles = (p: {theme: Theme}) => css`
     border-radius: 50%;
     top: -45px;
     left: -45px;
-    border: 4px solid ${p.theme.red400};
+    border: 4px solid ${p.theme.red300};
     transform-origin: center;
     animation: ${pulse} 3s ease-out infinite;
   }

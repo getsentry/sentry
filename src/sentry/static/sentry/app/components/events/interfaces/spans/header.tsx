@@ -646,7 +646,7 @@ const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: ${p => p.theme.red400};
+  background-color: ${p => p.theme.red300};
   transform: translateX(-50%);
 `;
 
