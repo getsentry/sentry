@@ -14,6 +14,7 @@ import NotFound from 'app/components/errors/notFound';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
 import Link from 'app/components/links/link';
+import SentryTypes from 'app/sentryTypes';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
@@ -28,6 +29,10 @@ type State = {
 };
 
 class SharedGroupDetails extends React.Component<Props, State> {
+  static childContextTypes = {
+    group: SentryTypes.Group,
+  };
+
   state: State = this.getInitialState();
 
   getInitialState() {
