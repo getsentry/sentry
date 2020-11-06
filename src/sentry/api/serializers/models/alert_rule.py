@@ -13,6 +13,7 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
 )
 from sentry.incidents.logic import translate_aggregate_field
+from sentry.snuba.models import SnubaQueryEventType
 
 from sentry.models import Rule
 from sentry.utils.compat import zip
@@ -94,13 +95,25 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         for alert_rule_id, project_slug in AlertRuleExcludedProjects.objects.filter(
             alert_rule__in=item_list
         ).values_list("alert_rule_id", "project__slug"):
-            exclusions = result[alert_rules[alert_rule_id]].setdefault("excludedProjects", [])
+            exclusions = result[alert_rules[alert_rule_id]].setdefault("excluded_projects", [])
             exclusions.append(project_slug)
+
+        query_to_alert_rule = {ar.snuba_query_id: ar for ar in item_list}
+
+        for event_type in SnubaQueryEventType.objects.filter(
+            snuba_query_id__in=[item.snuba_query_id for item in item_list]
+        ):
+            event_types = result[query_to_alert_rule[event_type.snuba_query_id]].setdefault(
+                "event_types", []
+            )
+            event_types.append(SnubaQueryEventType.EventType(event_type.type).name.lower())
+
         return result
 
     def serialize(self, obj, attrs, user):
         data = super(DetailedAlertRuleSerializer, self).serialize(obj, attrs, user)
-        data["excludedProjects"] = sorted(attrs.get("excludedProjects", []))
+        data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
+        data["eventTypes"] = sorted(attrs.get("event_types", []))
         return data
 
 
