@@ -544,6 +544,52 @@ class JiraIntegrationTest(APITestCase):
                 },
             ]
 
+    def test_get_create_issue_config_with_ignored_fields(self):
+        org = self.organization
+        self.login_as(self.user)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        installation = self.integration.get_installation(org.id)
+
+        def get_client():
+            return MockJiraApiClient()
+
+        with mock.patch.object(installation, "get_client", get_client):
+            # Initially all fields are present
+            fields = installation.get_create_issue_config(group, self.user)
+            field_names = [field["name"] for field in fields]
+            assert field_names == [
+                "project",
+                "title",
+                "description",
+                "issuetype",
+                "labels",
+                "customfield_10200",
+                "customfield_10300",
+            ]
+
+            installation.org_integration.config = {"issues_ignored_fields": ["customfield_10200"]}
+            # After ignoring "customfield_10200", it no longer shows up
+            installation.org_integration.save()
+            fields = installation.get_create_issue_config(group, self.user)
+            field_names = [field["name"] for field in fields]
+            assert field_names == [
+                "project",
+                "title",
+                "description",
+                "issuetype",
+                "labels",
+                "customfield_10300",
+            ]
+
     def test_get_create_issue_config_with_default_and_param(self):
         org = self.organization
         self.login_as(self.user)
@@ -913,7 +959,7 @@ class JiraIntegrationTest(APITestCase):
         assert assign_issue_response.status_code == 200
         assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
 
-    def test_update_organization_config(self):
+    def test_update_organization_config_sync_keys(self):
         org = self.organization
         self.login_as(self.user)
 
@@ -1028,6 +1074,43 @@ class JiraIntegrationTest(APITestCase):
             == 0
         )
 
+    def test_update_organization_config_issues_keys(self):
+        org = self.organization
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration.add_organization(org, self.user)
+
+        installation = integration.get_installation(org.id)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert "issues_ignored_fields" not in org_integration.config
+
+        # Parses user-supplied CSV
+        installation.update_organization_config(
+            {"issues_ignored_fields": "\nhello world ,,\ngoodnight\nmoon , ,"}
+        )
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config.get("issues_ignored_fields") == [
+            "hello world",
+            "goodnight",
+            "moon",
+        ]
+
+        # No-ops if updated value is not specified
+        installation.update_organization_config({})
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config.get("issues_ignored_fields") == [
+            "hello world",
+            "goodnight",
+            "moon",
+        ]
+
     def test_get_config_data(self):
         org = self.organization
         self.login_as(self.user)
@@ -1063,7 +1146,33 @@ class JiraIntegrationTest(APITestCase):
             "sync_reverse_assignment": True,
             "sync_status_reverse": True,
             "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
+            "issues_ignored_fields": "",
         }
+
+    def test_get_config_data_issues_keys(self):
+        org = self.organization
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration.add_organization(org, self.user)
+
+        installation = integration.get_installation(org.id)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+
+        # If config has not be configured yet, uses empty string fallback
+        assert "issues_ignored_fields" not in org_integration.config
+        assert installation.get_config_data().get("issues_ignored_fields") == ""
+
+        # List is serialized as comma-separated list
+        org_integration.config["issues_ignored_fields"] = ["hello world", "goodnight", "moon"]
+        org_integration.save()
+        installation = integration.get_installation(org.id)
+        assert (
+            installation.get_config_data().get("issues_ignored_fields")
+            == "hello world, goodnight, moon"
+        )
 
     def test_create_comment(self):
         org = self.organization
