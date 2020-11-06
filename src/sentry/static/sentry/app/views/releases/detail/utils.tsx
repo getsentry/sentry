@@ -1,24 +1,63 @@
 import {Location} from 'history';
 import pick from 'lodash/pick';
+import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {CommitFile, Commit, FilesByRepository, Repository} from 'app/types';
 import {t} from 'app/locale';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 
 export type CommitsByRepository = {
   [key: string]: Commit[];
 };
 
-export const deleteRelease = (orgId: string, version: string) => {
+export const archiveRelease = async (orgId: string, version: string) => {
   const api = new Client();
+  addLoadingMessage(t('Archiving Release...'));
+  try {
+    // TODO: chagne once API is finished
+    await api.requestPromise(
+      `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
+      {
+        method: 'DELETE',
+      }
+    );
+    addSuccessMessage(t('Release was successfully archived.'));
+    browserHistory.push(`/organizations/${orgId}/releases/`);
+  } catch (error) {
+    const errorMessage =
+      error.responseJSON?.detail ?? t('Release could not be be archived.');
+    addErrorMessage(errorMessage);
+  }
+};
 
-  return api.requestPromise(
-    `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
-    {
-      method: 'DELETE',
-    }
-  );
+export const restoreRelease = async (
+  orgId: string,
+  version: string,
+  onSuccess?: () => void
+) => {
+  const api = new Client();
+  addLoadingMessage(t('Restoring Release...'));
+  try {
+    // TODO: chagne once API is finished
+    await api.requestPromise(
+      `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
+      {
+        method: 'DELETE',
+      }
+    );
+    addSuccessMessage(t('Release was successfully restored.'));
+    onSuccess?.();
+  } catch (error) {
+    const errorMessage =
+      error.responseJSON?.detail ?? t('Release could not be be archived.');
+    addErrorMessage(errorMessage);
+  }
 };
 
 /**

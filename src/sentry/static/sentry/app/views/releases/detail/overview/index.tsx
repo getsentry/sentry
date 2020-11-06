@@ -22,8 +22,10 @@ import OtherProjects from './otherProjects';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 import Deploys from './deploys';
 import ReleaseStatsRequest from './releaseStatsRequest';
+import ReleaseArchivedNotice from './releaseArchivedNotice';
 import {YAxis} from './chart/releaseChartControls';
 import {ReleaseContext} from '..';
+import {isReleaseArchived} from '../../utils';
 
 type RouteParams = {
   orgId: string;
@@ -74,7 +76,7 @@ class ReleaseOverview extends AsyncView<Props> {
 
     return (
       <ReleaseContext.Consumer>
-        {({release, project, deploys, releaseMeta}) => {
+        {({release, project, deploys, releaseMeta, refetchData}) => {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
@@ -95,6 +97,10 @@ class ReleaseOverview extends AsyncView<Props> {
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <StyledBody>
                   <Main>
+                    {isReleaseArchived(release) && (
+                      <ReleaseArchivedNotice onRestore={refetchData} />
+                    )}
+
                     {(hasDiscover || hasHealthData) && (
                       <ReleaseChart
                         {...releaseStatsProps}

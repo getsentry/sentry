@@ -1,6 +1,7 @@
 import round from 'lodash/round';
 
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
+import {Release, ReleaseStatus} from 'app/types';
 
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);
@@ -50,3 +51,6 @@ export const getReleaseNewIssuesUrl = (
     },
   };
 };
+
+export const isReleaseArchived = (release: Release) =>
+  release.status === ReleaseStatus.Archived;
