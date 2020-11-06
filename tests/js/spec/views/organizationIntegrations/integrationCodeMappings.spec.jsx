@@ -80,7 +80,7 @@ describe('IntegrationCodeMappings', function () {
   });
   it('shows the paths', () => {
     expect(wrapper.find('RepoName').length).toEqual(2);
-    expect(wrapper.find('RepoName').at(0).text()).toEqual('example/repo-name');
+    expect(wrapper.find('RepoName').at(0).text()).toEqual(repos[0].name);
     expect(wrapper.find('RepoName').at(1).text()).toEqual(repos[1]. name);
   });
   
