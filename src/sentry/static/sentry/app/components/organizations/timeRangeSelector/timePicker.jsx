@@ -85,7 +85,7 @@ const TimePicker = styled(
     grid-column-gap: 4%;
     align-items: center;
     font-size: 0.875em;
-    color: ${p => p.theme.gray600};
+    color: ${p => p.theme.gray400};
     width: 70%;
     padding: 0;
   }
@@ -97,7 +97,7 @@ const Input = styled('input')`
     padding-left: 5%;
     background: ${p => p.theme.gray100};
     border: 1px solid ${p => p.theme.border};
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
     box-shadow: none;
   }
 `;

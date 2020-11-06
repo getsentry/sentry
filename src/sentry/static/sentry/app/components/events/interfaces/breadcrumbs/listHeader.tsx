@@ -43,7 +43,7 @@ const StyledGridCell = styled(GridCell)`
   top: 0;
   border-bottom: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   font-weight: 600;
   text-transform: uppercase;
   line-height: 1;
@@ -71,6 +71,6 @@ const Time = styled(StyledGridCell)`
 const StyledIconSwitch = styled(IconSwitch)`
   transition: 0.15s color;
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;

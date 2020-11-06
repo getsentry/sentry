@@ -561,7 +561,7 @@ const EmptyResultsContainer = styled('div')`
 const EmptyResultsBody = styled('div')`
   font-size: 16px;
   line-height: 28px;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding-bottom: ${space(2)};
 `;
 

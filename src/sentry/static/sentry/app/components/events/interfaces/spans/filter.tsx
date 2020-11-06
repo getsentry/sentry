@@ -214,7 +214,7 @@ const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: 
 const MenuContent = styled('div')`
   max-height: 250px;
   overflow-y: auto;
-  border-top: 1px solid ${p => p.theme.gray400};
+  border-top: 1px solid ${p => p.theme.gray200};
 `;
 
 const Header = styled('div')`
@@ -225,7 +225,7 @@ const Header = styled('div')`
 
   margin: 0;
   background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1)} ${space(2)};

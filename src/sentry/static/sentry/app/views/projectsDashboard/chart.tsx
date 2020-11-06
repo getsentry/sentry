@@ -35,10 +35,10 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
       xAxisIndex: 1,
       yAxisIndex: 1,
       itemStyle: {
-        color: theme.gray400,
+        color: theme.gray200,
         opacity: 0.8,
         emphasis: {
-          color: theme.gray400,
+          color: theme.gray200,
           opacity: 1.0,
         },
       },
@@ -132,7 +132,7 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
         margin: 2,
         showMaxLabel: true,
         showMinLabel: false,
-        color: theme.gray400,
+        color: theme.gray200,
         fontFamily: theme.text.family,
         inside: true,
         lineHeight: 12,

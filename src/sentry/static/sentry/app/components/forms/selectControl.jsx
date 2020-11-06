@@ -46,7 +46,7 @@ const defaultStyles = {
   control: (_, state) => ({
     height: '100%',
     fontSize: '15px',
-    color: theme.gray800,
+    color: theme.gray500,
     display: 'flex',
     background: '#fff',
     border: `1px solid ${theme.border}`,
@@ -70,7 +70,7 @@ const defaultStyles = {
     ...(state.isDisabled && {
       borderColor: theme.border,
       background: theme.gray100,
-      color: theme.gray500,
+      color: theme.gray300,
       cursor: 'not-allowed',
     }),
     ...(!state.isSearchable && {
@@ -99,12 +99,12 @@ const defaultStyles = {
       ? theme.white
       : theme.textColor,
     backgroundColor: state.isFocused
-      ? theme.gray200
+      ? theme.gray100
       : state.isSelected
       ? theme.purple300
       : 'transparent',
     '&:active': {
-      backgroundColor: theme.gray200,
+      backgroundColor: theme.gray100,
     },
   }),
   valueContainer: provided => ({
@@ -153,8 +153,8 @@ const defaultStyles = {
     ...provided,
     lineHeight: '1.5',
     fontWeight: '600',
-    backgroundColor: theme.gray200,
-    color: theme.gray700,
+    backgroundColor: theme.gray100,
+    color: theme.gray500,
     marginBottom: 0,
     padding: `${space(1)} ${space(1.5)}`,
   }),

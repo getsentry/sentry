@@ -130,7 +130,7 @@ const Subtitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
   line-height: 1.4;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin: 0;
 `;
 

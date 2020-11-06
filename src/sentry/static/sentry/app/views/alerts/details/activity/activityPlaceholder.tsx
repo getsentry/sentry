@@ -8,8 +8,8 @@ import theme from 'app/utils/theme';
 const ActivityPlaceholder = () => (
   <ActivityItem
     bubbleProps={{
-      backgroundColor: theme.gray200,
-      borderColor: theme.gray200,
+      backgroundColor: theme.gray100,
+      borderColor: theme.gray100,
     }}
   >
     {() => <Placeholder />}

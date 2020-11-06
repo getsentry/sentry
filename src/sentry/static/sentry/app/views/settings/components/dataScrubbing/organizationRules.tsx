@@ -95,7 +95,7 @@ const Header = styled('div')`
 `;
 
 const Wrapper = styled('div')<{isCollapsed?: boolean; contentHeight?: string}>`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   background: ${p => p.theme.gray100};
   ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};
   ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.border}`};

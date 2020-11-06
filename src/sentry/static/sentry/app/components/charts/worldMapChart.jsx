@@ -59,7 +59,7 @@ export default class WorldMapChart extends React.Component {
         center: [10.97, 9.71],
         itemStyle: {
           normal: {
-            areaColor: theme.gray400,
+            areaColor: theme.gray200,
             borderColor: theme.gray100,
           },
           emphasis: {

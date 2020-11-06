@@ -11,7 +11,7 @@ type Props = {
 
 const inputStyles = (props: Props) =>
   css`
-    color: ${props.disabled ? props.theme.disabled : props.theme.gray800};
+    color: ${props.disabled ? props.theme.disabled : props.theme.gray500};
     display: block;
     width: 100%;
     background: #fff;
@@ -41,12 +41,12 @@ const inputStyles = (props: Props) =>
     }
 
     &::placeholder {
-      color: ${props.theme.gray500};
+      color: ${props.theme.gray300};
     }
 
     &[disabled] {
       background: ${props.theme.gray100};
-      color: ${props.theme.gray500};
+      color: ${props.theme.gray300};
       border: 1px solid ${props.theme.border};
       cursor: not-allowed;
 

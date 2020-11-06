@@ -196,7 +196,7 @@ export const getBackgroundColor = ({
   }
 
   if (showDetail) {
-    return theme.gray800;
+    return theme.gray500;
   }
   return showStriping ? theme.gray100 : theme.white;
 };
@@ -932,7 +932,7 @@ export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
   user-select: none;
 
   &:hover > div[data-type='span-row-cell'] {
-    background-color: ${p => (p.showDetail ? p.theme.gray800 : p.theme.gray200)};
+    background-color: ${p => (p.showDetail ? p.theme.gray500 : p.theme.gray100)};
   }
 `;
 
@@ -946,7 +946,7 @@ const CursorGuide = styled('div')`
 `;
 
 export const DividerLine = styled('div')`
-  background-color: ${p => p.theme.gray400};
+  background-color: ${p => p.theme.gray200};
   position: absolute;
   height: 100%;
   width: 1px;
@@ -965,7 +965,7 @@ export const DividerLine = styled('div')`
   }
 
   &.hovering {
-    background-color: ${p => p.theme.gray800};
+    background-color: ${p => p.theme.gray500};
     width: 3px;
     transform: translateX(-1px);
     margin-right: -2px;
@@ -1043,7 +1043,7 @@ export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boo
 
   &:after {
     content: '';
-    background-color: ${p => p.theme.gray400};
+    background-color: ${p => p.theme.gray200};
     border-radius: 4px;
     height: 3px;
     width: 3px;
@@ -1126,7 +1126,7 @@ const getDurationPillAlignment = ({
     default:
       return `
         right: ${space(0.75)};
-        color: ${spanBarHatch === true ? theme.gray500 : theme.white};
+        color: ${spanBarHatch === true ? theme.gray300 : theme.white};
       `;
   }
 };
@@ -1143,7 +1143,7 @@ const DurationPill = styled('div')<{
   transform: translateY(-50%);
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => (p.showDetail === true ? p.theme.gray400 : p.theme.gray500)};
+  color: ${p => (p.showDetail === true ? p.theme.gray200 : p.theme.gray300)};
 
   ${getDurationPillAlignment}
 
@@ -1172,7 +1172,7 @@ const MeasurementMarker = styled('div')`
   background: repeating-linear-gradient(to bottom, transparent 0 4px, black 4px 8px) 80%/2px
     100% no-repeat;
   z-index: ${zIndex.dividerLine};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

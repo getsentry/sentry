@@ -67,7 +67,7 @@ class SelectField extends React.Component<Props> {
 export default SelectField;
 
 const Description = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const Wrapper = styled('div')<{isSelected?: boolean}>`

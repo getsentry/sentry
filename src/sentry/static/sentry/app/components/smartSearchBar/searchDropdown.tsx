@@ -131,7 +131,7 @@ const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -151,7 +151,7 @@ const SearchDropdownGroupTitle = styled('header')`
   align-items: center;
 
   background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
 

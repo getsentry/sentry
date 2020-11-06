@@ -7,13 +7,10 @@ const colors = {
   black: '#1D1127',
 
   gray100: '#FAF9FB',
-  gray200: '#F2F0F5',
-  gray300: '#E7E1EC',
-  gray400: '#C6BECF',
-  gray500: '#9585A3',
-  gray600: '#645574',
-  gray700: '#4A3E56',
-  gray800: '#302839',
+  gray200: '#C6BECF',
+  gray300: '#9386A0',
+  gray400: '#776589',
+  gray500: '#2B1D38',
 
   yellow100: '#FDE8b4',
   yellow200: '#FFD577',
@@ -50,12 +47,12 @@ const aliases = {
   /**
    * Primary text color
    */
-  textColor: colors.gray800, // TODO(dark): colors.gray500
+  textColor: colors.gray500, // TODO(dark): colors.gray300
 
   /**
    * Text that should not have as much emphasis
    */
-  subText: colors.gray400,
+  subText: colors.gray200,
 
   /**
    * Background for the main content area of a page?
@@ -80,12 +77,12 @@ const aliases = {
   /**
    * Primary border color
    */
-  border: colors.gray400,
+  border: colors.gray200,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: colors.gray300,
+  innerBorder: colors.gray200,
 
   /**
    * A color that denotes a "success", or something good
@@ -101,7 +98,7 @@ const aliases = {
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    */
-  disabled: colors.gray400, // TODO(dark): colors.gray200,
+  disabled: colors.gray200, // TODO(dark): colors.gray100,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -111,7 +108,7 @@ const aliases = {
   /**
    * Inactive
    */
-  inactive: colors.gray300,
+  inactive: colors.gray200,
 
   /**
    * Link color indicates that something is clickable
@@ -132,12 +129,12 @@ const aliases = {
   /**
    * Form placeholder text color
    */
-  formPlaceholder: colors.gray200,
+  formPlaceholder: colors.gray100,
 
   /**
    * Default form text color
    */
-  formText: colors.gray500,
+  formText: colors.gray300,
 
   /**
    *
@@ -147,12 +144,12 @@ const aliases = {
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
    */
-  chartLineColor: colors.gray200,
+  chartLineColor: colors.gray100,
 
   /**
    * Color for chart label text
    */
-  chartLabel: colors.gray300,
+  chartLabel: colors.gray200,
 } as const;
 
 const warning = {
@@ -164,7 +161,7 @@ const warning = {
 
 const alert = {
   muted: {
-    background: colors.gray400,
+    background: colors.gray200,
     backgroundLight: colors.gray100,
     border: aliases.border,
     iconColor: 'inherit',
@@ -209,7 +206,7 @@ const badge = {
 
 const tag = {
   default: {
-    background: colors.gray200,
+    background: colors.gray100,
     iconColor: colors.purple300,
   },
   promotion: {
@@ -238,7 +235,7 @@ const tag = {
   },
   white: {
     background: colors.white,
-    iconColor: colors.gray700,
+    iconColor: colors.gray500,
   },
 };
 
@@ -252,7 +249,7 @@ const generateButtonTheme = alias => ({
     backgroundActive: colors.white,
     border: '#d8d2de',
     borderActive: '#c9c0d1',
-    focusShadow: color(colors.gray300).alpha(0.5).string(),
+    focusShadow: color(colors.gray200).alpha(0.5).string(),
   },
   primary: {
     color: colors.white,
@@ -443,7 +440,7 @@ const theme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
-    previousPeriod: colors.gray400,
+    previousPeriod: colors.gray200,
     symbolSize: 6,
   },
 

@@ -239,7 +239,7 @@ const SummaryLinks = styled('div')`
   a {
     color: ${p => p.theme.formText};
     :hover {
-      color: ${p => p.theme.gray600};
+      color: ${p => p.theme.gray400};
     }
   }
   em {

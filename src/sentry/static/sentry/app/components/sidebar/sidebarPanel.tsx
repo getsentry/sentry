@@ -110,13 +110,13 @@ const SidebarPanelBody = styled('div')<{hasHeader: boolean}>`
 `;
 
 const PanelClose = styled(IconClose)`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   cursor: pointer;
   position: relative;
   padding: ${space(0.75)};
 
   &:hover {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
   }
 `;
 
