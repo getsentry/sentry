@@ -82,23 +82,23 @@ const aliases = {
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: colors.gray200,
+  innerBorder: '#e7e1ec',
 
   /**
    * A color that denotes a "success", or something good
    */
-  success: colors.green300, // TODO(dark): colors.green200,
+  success: colors.green200,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
-  error: colors.red300, // TODO(dark): colors.red300,
+  error: colors.red300,
 
-  /**red200
+  /**
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    */
-  disabled: colors.gray200, // TODO(dark): colors.gray100,
+  disabled: colors.gray100,
 
   /**
    * Indicates that something is "active" or "selected"
