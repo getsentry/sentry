@@ -235,7 +235,6 @@ export class RenderField extends React.Component<RenderProps, State> {
           <SelectControl
             placeholder={t('Sentry project\u2026')}
             name="project"
-            openMenuOnFocus
             options={projectOptions}
             components={{
               Option: customOptionProject,
@@ -247,7 +246,6 @@ export class RenderField extends React.Component<RenderProps, State> {
           <SelectControl
             placeholder={mappedValuePlaceholder}
             name="mappedDropdown"
-            openMenuOnFocus
             options={mappedItemsToShow}
             components={{
               Option: customOptionMappedValue,

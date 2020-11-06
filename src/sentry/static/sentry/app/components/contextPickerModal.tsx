@@ -261,7 +261,6 @@ class ContextPickerModal extends React.Component<Props> {
         }}
         placeholder={t('Select a Project')}
         name="project"
-        openMenuOnFocus
         options={projects.map(({slug}) => ({label: slug, value: slug}))}
         onChange={this.handleSelectProject}
         onMenuOpen={this.onProjectMenuOpen}
@@ -310,7 +309,6 @@ class ContextPickerModal extends React.Component<Props> {
               placeholder={t('Select an Organization')}
               name="organization"
               options={orgChoices}
-              openMenuOnFocus
               value={organization}
               onChange={this.handleSelectOrganization}
             />
