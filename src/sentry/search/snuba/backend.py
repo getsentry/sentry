@@ -71,9 +71,13 @@ def first_release_all_environments_filter(version, projects):
     )
 
 
-def inbox_filter(inbox):
+def inbox_filter(inbox, projects):
     # TODO this should probably take projects for perf reasons...should I add extra stuff to filter on to the GroupInbox model?
-    query = Q(id__in=GroupInbox.objects.all().values_list("group_id", flat=True))
+    query = Q(
+        id__in=GroupInbox.objects.filter(project_id__in=[p.id for p in projects]).values_list(
+            "group_id", flat=True
+        )
+    )
     if not inbox:
         query = ~query
     return query
@@ -292,7 +296,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 )
             ),
             "active_at": ScalarCondition("active_at"),
-            "inbox": QCallbackCondition(functools.partial(inbox_filter)),
+            "inbox": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
         }
 
         if environments is not None:
