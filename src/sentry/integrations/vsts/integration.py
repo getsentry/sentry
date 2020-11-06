@@ -13,7 +13,6 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models import (
     Integration as IntegrationModel,
-    IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
 )
@@ -251,45 +250,12 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         return fields
 
     def update_organization_config(self, data):
-        if "sync_status_forward" in data:
-            project_ids_and_statuses = data.pop("sync_status_forward")
-            if any(
-                not mapping["on_unresolve"] or not mapping["on_resolve"]
-                for mapping in project_ids_and_statuses.values()
-            ):
-                raise IntegrationError("Resolve and unresolve status are required.")
-
-            data["sync_status_forward"] = bool(project_ids_and_statuses)
-
-            IntegrationExternalProject.objects.filter(
-                organization_integration_id=self.org_integration.id
-            ).delete()
-
-            for project_id, statuses in project_ids_and_statuses.items():
-                IntegrationExternalProject.objects.create(
-                    organization_integration_id=self.org_integration.id,
-                    external_id=project_id,
-                    resolved_status=statuses["on_resolve"],
-                    unresolved_status=statuses["on_unresolve"],
-                )
-
-        config = self.org_integration.config
-        config.update(data)
-        self.org_integration.update(config=config)
+        self._sync_status_forward(data)
+        super(VstsIntegration, self).update_organization_config(data)
 
     def get_config_data(self):
-        config = self.org_integration.config
-        project_mappings = IntegrationExternalProject.objects.filter(
-            organization_integration_id=self.org_integration.id
-        )
-        sync_status_forward = {}
-        for pm in project_mappings:
-            sync_status_forward[pm.external_id] = {
-                "on_unresolve": pm.unresolved_status,
-                "on_resolve": pm.resolved_status,
-            }
-        config["sync_status_forward"] = sync_status_forward
-        return config
+        config = super(VstsIntegration, self).get_config_data()
+        return self._add_sync_status_forward(config)
 
     @property
     def instance(self):

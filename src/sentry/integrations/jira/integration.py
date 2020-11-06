@@ -17,17 +17,17 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
+from sentry.integrations.issues import IssueSyncMixin
+from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
 from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     ApiError,
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.integrations.issues import IssueSyncMixin
-from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
 from sentry.utils.compat import filter
-from sentry.utils.http import absolute_uri
 from sentry.utils.decorators import classproperty
+from sentry.utils.http import absolute_uri
 
 from .client import JiraApiClient, JiraCloud
 from .utils import build_user_choice
@@ -211,28 +211,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         """
         config = self.org_integration.config
 
-        if "sync_status_forward" in data:
-            project_mappings = data.pop("sync_status_forward")
-
-            if any(
-                not mapping["on_unresolve"] or not mapping["on_resolve"]
-                for mapping in project_mappings.values()
-            ):
-                raise IntegrationError("Resolve and unresolve status are required.")
-
-            data["sync_status_forward"] = bool(project_mappings)
-
-            IntegrationExternalProject.objects.filter(
-                organization_integration_id=self.org_integration.id
-            ).delete()
-
-            for project_id, statuses in project_mappings.items():
-                IntegrationExternalProject.objects.create(
-                    organization_integration_id=self.org_integration.id,
-                    external_id=project_id,
-                    resolved_status=statuses["on_resolve"],
-                    unresolved_status=statuses["on_unresolve"],
-                )
+        self._sync_status_forward(data)
 
         if self.issues_ignored_fields_key in data:
             ignored_fields_text = data.pop(self.issues_ignored_fields_key)
@@ -250,20 +229,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_config_data(self):
         config = self.org_integration.config
-        project_mappings = IntegrationExternalProject.objects.filter(
-            organization_integration_id=self.org_integration.id
-        )
-        sync_status_forward = {}
-        for pm in project_mappings:
-            sync_status_forward[pm.external_id] = {
-                "on_unresolve": pm.unresolved_status,
-                "on_resolve": pm.resolved_status,
-            }
-        config["sync_status_forward"] = sync_status_forward
-        config[self.issues_ignored_fields_key] = ", ".join(
-            config.get(self.issues_ignored_fields_key, "")
-        )
-        return config
+        return self._add_sync_status_forward(config)
 
     def sync_metadata(self):
         client = self.get_client()

@@ -5,6 +5,7 @@ import six
 from collections import defaultdict
 
 from sentry import features
+from sentry.models.integration import IntegrationExternalProject
 from sentry.models.useroption import UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
@@ -419,3 +420,43 @@ class IssueSyncMixin(IssueBasicMixin):
             self.update_group_status(
                 groups_to_unresolve, GroupStatus.UNRESOLVED, Activity.SET_UNRESOLVED
             )
+
+    def _sync_status_forward(self, data):
+        if "sync_status_forward" in data:
+            project_mappings = data.pop("sync_status_forward")
+
+            if any(
+                    not mapping["on_unresolve"] or not mapping["on_resolve"]
+                    for mapping in project_mappings.values()
+            ):
+                raise IntegrationError("Resolve and unresolve status are required.")
+
+            data["sync_status_forward"] = bool(project_mappings)
+
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            ).delete()
+
+            for project_id, statuses in project_mappings.items():
+                IntegrationExternalProject.objects.create(
+                    organization_integration_id=self.org_integration.id,
+                    external_id=project_id,
+                    resolved_status=statuses["on_resolve"],
+                    unresolved_status=statuses["on_unresolve"],
+                )
+
+    def _add_sync_status_forward(self, config):
+        project_mappings = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id
+        )
+        sync_status_forward = {}
+        for pm in project_mappings:
+            sync_status_forward[pm.external_id] = {
+                "on_unresolve": pm.unresolved_status,
+                "on_resolve": pm.resolved_status,
+            }
+        config["sync_status_forward"] = sync_status_forward
+        config[self.issues_ignored_fields_key] = ", ".join(
+            config.get(self.issues_ignored_fields_key, "")
+        )
+        return config
