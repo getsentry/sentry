@@ -271,9 +271,9 @@ const ToggleIcon = styled('a')`
   margin-left: 1px;
   border-radius: 2px;
 
-  background: ${p => (p.isOpen ? p.theme.gray500 : p.theme.blue400)};
+  background: ${p => (p.isOpen ? p.theme.gray500 : p.theme.blue300)};
   &:hover {
-    background: ${p => (p.isOpen ? p.theme.gray600 : p.theme.blue500)};
+    background: ${p => (p.isOpen ? p.theme.gray600 : p.theme.blue200)};
   }
 `;
 

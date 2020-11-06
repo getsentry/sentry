@@ -89,7 +89,7 @@ class OtherProjects extends React.Component<Props, State> {
 const Row = styled('div')`
   margin-bottom: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.blue300};
   ${overflowEllipsis}
 `;
 

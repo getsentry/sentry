@@ -36,7 +36,7 @@ const STAT_OPS = {
   'invalid-csp': {title: t('Invalid CSP'), color: theme.blue300},
   'ip-address': {title: t('IP Address'), color: theme.red200},
   'legacy-browsers': {title: t('Legacy Browser'), color: theme.gray300},
-  localhost: {title: t('Localhost'), color: theme.blue400},
+  localhost: {title: t('Localhost'), color: theme.blue300},
   'release-version': {title: t('Release'), color: theme.purple200},
   'web-crawlers': {title: t('Web Crawler'), color: theme.red300},
 };

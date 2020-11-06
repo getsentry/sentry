@@ -42,7 +42,7 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.INFO:
       return {
-        color: 'blue400',
+        color: 'blue300',
         icon: IconInfo,
         description: t('Info'),
       };
@@ -69,7 +69,7 @@ function getCrumbDetails(type: BreadcrumbType) {
       };
     case BreadcrumbType.QUERY:
       return {
-        color: 'blue500',
+        color: 'blue300',
         icon: IconStack,
         description: t('Query'),
       };

@@ -52,7 +52,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
     alertType = 'error';
     showButton = true;
   } else if (issue.issuesProcessing > 0) {
-    icon = <IconSettings size="sm" color="blue400" />;
+    icon = <IconSettings size="sm" color="blue300" />;
     alertType = 'info';
     text = tn(
       'Reprocessing %s event …',

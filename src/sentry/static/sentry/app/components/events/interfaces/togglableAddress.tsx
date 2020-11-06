@@ -107,7 +107,7 @@ const getAddresstextBorderBottom = (
   }
 
   if (p.isInlineFrame) {
-    return `1px dashed ${p.theme.blue400}`;
+    return `1px dashed ${p.theme.blue300}`;
   }
 
   return 'none';
