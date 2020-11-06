@@ -41,6 +41,7 @@ class JiraCreateTicketAction(TicketEventAction):
     integration_key = "jira_integration"
 
     def __init__(self, *args, **kwargs):
+        # TODO make sure the selected integration has permissions
         super(JiraCreateTicketAction, self).__init__(*args, **kwargs)
         integration_choices = [(i.id, i.name) for i in self.get_integrations()]
 
