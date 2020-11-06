@@ -20,7 +20,7 @@ import space from 'app/styles/space';
 type Props = {
   frame: Frame;
   event: Event;
-  organization: Organization;
+  organization: Organization; //TODO mark as not optional since it's undefined in the share issue view
   registers: {[key: string]: string};
   components: Array<SentryAppComponent>;
   isExpanded?: boolean;
@@ -90,7 +90,7 @@ const Context = ({
                   />
                 </ErrorBoundary>
               )}
-              {organization.features.includes('integrations-stacktrace-link') &&
+              {organization?.features.includes('integrations-stacktrace-link') &&
                 isActive &&
                 isExpanded && (
                   <ErrorBoundary mini>
