@@ -13,7 +13,6 @@ import {
   SectionValue,
 } from 'app/components/charts/styles';
 import {decodeScalar} from 'app/utils/queryString';
-import Feature from 'app/components/acl/feature';
 import OptionSelector from 'app/components/charts/optionSelector';
 
 import {ChartContainer} from '../styles';
@@ -36,10 +35,6 @@ const DISPLAY_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
   {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
   {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
-];
-
-const DISPLAY_OPTIONS_WITH_TRENDS: SelectValue<string>[] = [
-  ...DISPLAY_OPTIONS,
   {value: DisplayModes.TREND, label: t('Trends')},
 ];
 
@@ -150,16 +145,12 @@ class TransactionSummaryCharts extends React.Component<Props> {
                 onChange={this.handleTrendDisplayChange}
               />
             )}
-            <Feature features={['trends']}>
-              {({hasFeature}) => (
-                <OptionSelector
-                  title={t('Display')}
-                  selected={display}
-                  options={hasFeature ? DISPLAY_OPTIONS_WITH_TRENDS : DISPLAY_OPTIONS}
-                  onChange={this.handleDisplayChange}
-                />
-              )}
-            </Feature>
+            <OptionSelector
+              title={t('Display')}
+              selected={display}
+              options={DISPLAY_OPTIONS}
+              onChange={this.handleDisplayChange}
+            />
           </InlineContainer>
         </ChartControls>
       </Panel>

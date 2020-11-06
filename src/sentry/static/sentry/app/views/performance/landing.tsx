@@ -266,9 +266,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     if (!organization.features.includes('key-transactions')) {
       views.push(FilterViews.KEY_TRANSACTIONS);
     }
-    if (organization.features.includes('trends')) {
-      views.push(FilterViews.TRENDS);
-    }
+    views.push(FilterViews.TRENDS);
     return (
       <ButtonBar merged active={this.getCurrentView()}>
         {views.map(viewKey => (

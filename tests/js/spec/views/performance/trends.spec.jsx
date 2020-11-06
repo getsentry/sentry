@@ -48,7 +48,7 @@ function selectConfidenceLevel(wrapper, label) {
 }
 
 function initializeData(projects, query) {
-  const features = ['transaction-event', 'performance-view', 'trends'];
+  const features = ['transaction-event', 'performance-view'];
   const organization = TestStubs.Organization({
     features,
     projects,

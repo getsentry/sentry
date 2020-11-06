@@ -8,7 +8,6 @@ import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
-import Feature from 'app/components/acl/feature';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SearchBar from 'app/views/events/searchBar';
 import space from 'app/styles/space';
@@ -153,79 +152,77 @@ class TrendsContent extends React.Component<Props, State> {
     const query = getTransactionSearchQuery(location);
 
     return (
-      <Feature features={['trends']}>
-        <DefaultTrends location={location} eventView={eventView}>
-          <Alert type="info" icon={<IconInfo size="md" />}>
-            {t(
-              "Performance Trends is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
-            )}{' '}
-            <ExternalLink href="mailto:performance-feedback@sentry.io">
-              performance-feedback@sentry.io
-            </ExternalLink>
-          </Alert>
-          <StyledSearchContainer>
-            <StyledSearchBar
-              organization={organization}
-              projectIds={trendView.project}
-              query={query}
-              fields={fields}
-              onSearch={this.handleSearch}
-            />
-            <TrendsDropdown>
-              <DropdownControl
-                buttonProps={{prefix: t('Confidence')}}
-                label={currentConfidenceLevel.label}
-              >
-                {CONFIDENCE_LEVELS.map(({label}) => (
-                  <DropdownItem
-                    key={label}
-                    onSelect={this.handleConfidenceChange}
-                    eventKey={label}
-                    data-test-id={label}
-                    isActive={label === currentConfidenceLevel.label}
-                  >
-                    {label}
-                  </DropdownItem>
-                ))}
-              </DropdownControl>
-            </TrendsDropdown>
-            <TrendsDropdown>
-              <DropdownControl
-                buttonProps={{prefix: t('Display')}}
-                label={currentTrendFunction.label}
-              >
-                {TRENDS_FUNCTIONS.map(({label, field}) => (
-                  <DropdownItem
-                    key={field}
-                    onSelect={this.handleTrendFunctionChange}
-                    eventKey={field}
-                    data-test-id={field}
-                    isActive={field === currentTrendFunction.field}
-                  >
-                    {label}
-                  </DropdownItem>
-                ))}
-              </DropdownControl>
-            </TrendsDropdown>
-          </StyledSearchContainer>
-          <TrendsLayoutContainer>
-            <ChangedTransactions
-              trendChangeType={TrendChangeType.IMPROVED}
-              previousTrendFunction={previousTrendFunction}
-              trendView={trendView}
-              location={location}
-              setError={setError}
-            />
-            <ChangedTransactions
-              trendChangeType={TrendChangeType.REGRESSION}
-              previousTrendFunction={previousTrendFunction}
-              trendView={trendView}
-              location={location}
-              setError={setError}
-            />
-          </TrendsLayoutContainer>
-        </DefaultTrends>
-      </Feature>
+      <DefaultTrends location={location} eventView={eventView}>
+        <Alert type="info" icon={<IconInfo size="md" />}>
+          {t(
+            "Performance Trends is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
+          )}{' '}
+          <ExternalLink href="mailto:performance-feedback@sentry.io">
+            performance-feedback@sentry.io
+          </ExternalLink>
+        </Alert>
+        <StyledSearchContainer>
+          <StyledSearchBar
+            organization={organization}
+            projectIds={trendView.project}
+            query={query}
+            fields={fields}
+            onSearch={this.handleSearch}
+          />
+          <TrendsDropdown>
+            <DropdownControl
+              buttonProps={{prefix: t('Confidence')}}
+              label={currentConfidenceLevel.label}
+            >
+              {CONFIDENCE_LEVELS.map(({label}) => (
+                <DropdownItem
+                  key={label}
+                  onSelect={this.handleConfidenceChange}
+                  eventKey={label}
+                  data-test-id={label}
+                  isActive={label === currentConfidenceLevel.label}
+                >
+                  {label}
+                </DropdownItem>
+              ))}
+            </DropdownControl>
+          </TrendsDropdown>
+          <TrendsDropdown>
+            <DropdownControl
+              buttonProps={{prefix: t('Display')}}
+              label={currentTrendFunction.label}
+            >
+              {TRENDS_FUNCTIONS.map(({label, field}) => (
+                <DropdownItem
+                  key={field}
+                  onSelect={this.handleTrendFunctionChange}
+                  eventKey={field}
+                  data-test-id={field}
+                  isActive={field === currentTrendFunction.field}
+                >
+                  {label}
+                </DropdownItem>
+              ))}
+            </DropdownControl>
+          </TrendsDropdown>
+        </StyledSearchContainer>
+        <TrendsLayoutContainer>
+          <ChangedTransactions
+            trendChangeType={TrendChangeType.IMPROVED}
+            previousTrendFunction={previousTrendFunction}
+            trendView={trendView}
+            location={location}
+            setError={setError}
+          />
+          <ChangedTransactions
+            trendChangeType={TrendChangeType.REGRESSION}
+            previousTrendFunction={previousTrendFunction}
+            trendView={trendView}
+            location={location}
+            setError={setError}
+          />
+        </TrendsLayoutContainer>
+      </DefaultTrends>
     );
   }
 }

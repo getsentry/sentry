@@ -29,13 +29,12 @@ function initializeData(projects, query, features = FEATURES) {
 }
 
 function initializeTrendsData(query, addDefaultQuery = true) {
-  const features = [...FEATURES, 'trends'];
   const projects = [
     TestStubs.Project({id: '1', firstTransactionEvent: false}),
     TestStubs.Project({id: '2', firstTransactionEvent: true}),
   ];
   const organization = TestStubs.Organization({
-    features,
+    FEATURES,
     projects,
   });
 
@@ -248,7 +247,7 @@ describe('Performance > Landing', function () {
     wrapper.update();
 
     // Check number of rendered tab buttons
-    expect(wrapper.find('ButtonBar Button')).toHaveLength(2);
+    expect(wrapper.find('ButtonBar Button')).toHaveLength(3);
 
     // No onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(0);
@@ -547,7 +546,7 @@ describe('Performance > Landing', function () {
     wrapper.update();
 
     // Check number of rendered tab buttons
-    expect(wrapper.find('ButtonBar Button')).toHaveLength(2);
+    expect(wrapper.find('ButtonBar Button')).toHaveLength(3);
 
     // Check to see if the key transaction column is not there
     expect(wrapper.find('IconStar[data-test-id="key-transaction-header"]')).toHaveLength(
@@ -574,7 +573,7 @@ describe('Performance > Landing', function () {
     wrapper.update();
 
     // Check number of rendered tab buttons
-    expect(wrapper.find('ButtonBar Button')).toHaveLength(1);
+    expect(wrapper.find('ButtonBar Button')).toHaveLength(2);
 
     // Check to see if the key transaction column is there
     expect(wrapper.find('IconStar[data-test-id="key-transaction-header"]')).toHaveLength(
