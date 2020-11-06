@@ -8,7 +8,7 @@ import {Organization, Project} from 'app/types';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import {Client} from 'app/api';
 import {loadStatsForProject} from 'app/actionCreators/projects';
-import {tn} from 'app/locale';
+import {t, tn} from 'app/locale';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
@@ -17,10 +17,10 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import withApi from 'app/utils/withApi';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
+import QuestionTooltip from 'app/components/questionTooltip';
 
 import Chart from './chart';
 import Deploys from './deploys';
-import NoEvents from './noEvents';
 
 type Props = {
   api: Client;
@@ -55,7 +55,7 @@ class ProjectCard extends React.Component<Props> {
 
   render() {
     const {organization, project, hasProjectAccess} = this.props;
-    const {id, firstEvent, stats, slug, transactionStats} = project;
+    const {id, stats, slug, transactionStats} = project;
     const totalErrors =
       stats !== undefined
         ? formatAbbreviatedNumber(stats.reduce((sum, [_, value]) => sum + value, 0))
@@ -67,6 +67,8 @@ class ProjectCard extends React.Component<Props> {
             transactionStats.reduce((sum, [_, value]) => sum + value, 0)
           )
         : '\u2014';
+    const zeroTransactions = totalTransactions === '0';
+    const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
 
     return (
       <div data-test-id={slug}>
@@ -101,19 +103,32 @@ class ProjectCard extends React.Component<Props> {
                 {this.hasPerformance && (
                   <React.Fragment>
                     <em>|</em>
-                    <Link
+                    <TransactionsLink
                       data-test-id="project-transactions"
                       to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
                     >
                       {tn('%s transaction', '%s transactions', totalTransactions)}
-                    </Link>
+
+                      {zeroTransactions && (
+                        <QuestionTooltip
+                          title={t(
+                            'Click here to learn more about performance monitoring'
+                          )}
+                          position="top"
+                          size="xs"
+                        />
+                      )}
+                    </TransactionsLink>
                   </React.Fragment>
                 )}
               </SummaryLinks>
             </CardHeader>
             <ChartContainer>
-              <Chart stats={stats} transactionStats={transactionStats} />
-              {!firstEvent && <NoEvents />}
+              <Chart
+                firstEvent={hasFirstEvent}
+                stats={stats}
+                transactionStats={transactionStats}
+              />
             </ChartContainer>
             <Deploys project={project} />
           </StyledProjectCard>
@@ -181,7 +196,6 @@ const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
 const ChartContainer = styled('div')`
   position: relative;
   background: ${p => p.theme.gray100};
-  padding-top: ${space(1)};
 `;
 
 const CardHeader = styled('div')`
@@ -196,7 +210,7 @@ const HeaderRow = styled('div')`
 
 const StyledProjectCard = styled('div')`
   background-color: white;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLight};
 `;
@@ -204,7 +218,7 @@ const StyledProjectCard = styled('div')`
 const LoadingCard = styled('div')`
   border: 1px solid transparent;
   background-color: ${p => p.theme.gray100};
-  height: 265px;
+  height: 334px;
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -213,6 +227,9 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 const SummaryLinks = styled('div')`
+  display: flex;
+  align-items: center;
+
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -228,6 +245,16 @@ const SummaryLinks = styled('div')`
   em {
     font-style: normal;
     margin: 0 ${space(0.5)};
+  }
+`;
+
+const TransactionsLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  > span {
+    margin-left: ${space(0.5)};
   }
 `;
 

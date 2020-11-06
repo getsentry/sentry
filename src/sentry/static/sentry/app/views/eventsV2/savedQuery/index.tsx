@@ -394,7 +394,7 @@ const IconUpdate = styled('div')`
 
   margin-right: ${space(0.75)};
   border-radius: 5px;
-  background-color: ${p => p.theme.yellow400};
+  background-color: ${p => p.theme.yellow300};
 `;
 
 export default withProjects(withApi(SavedQueryButtonGroup));

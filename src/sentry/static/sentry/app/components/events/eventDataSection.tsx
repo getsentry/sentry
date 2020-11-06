@@ -172,7 +172,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   }
   & small > span {
     color: ${p => p.theme.gray700};
-    border-bottom: 1px dotted ${p => p.theme.borderDark};
+    border-bottom: 1px dotted ${p => p.theme.border};
     font-weight: normal;
   }
 

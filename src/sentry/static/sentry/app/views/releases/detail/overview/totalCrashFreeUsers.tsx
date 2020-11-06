@@ -78,7 +78,7 @@ const Timeline = styled('div')`
 
 const DOT_SIZE = 10;
 const Row = styled('div')`
-  border-left: 1px solid ${p => p.theme.borderLight};
+  border-left: 1px solid ${p => p.theme.border};
   padding-left: ${space(2)};
   padding-bottom: ${space(1)};
   margin-left: ${space(1)};
@@ -89,7 +89,7 @@ const Row = styled('div')`
     width: ${DOT_SIZE}px;
     height: ${DOT_SIZE}px;
     border-radius: 100%;
-    background-color: ${p => p.theme.purple400};
+    background-color: ${p => p.theme.purple300};
     position: absolute;
     top: 0;
     left: -${Math.floor(DOT_SIZE / 2)}px;

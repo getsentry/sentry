@@ -5,6 +5,7 @@ import MiniBarChart from 'app/components/charts/miniBarChart';
 import {t} from 'app/locale';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
+import {formatVersion} from 'app/utils/formatters';
 import {Series} from 'app/types/echarts';
 import {Group, TimeseriesValue, Release} from 'app/types';
 
@@ -68,7 +69,7 @@ function GroupReleaseChart(props: Props) {
 
   if (release && releaseStats) {
     series.push({
-      seriesName: t('Events in %s', release.version),
+      seriesName: t('Events in release %s', formatVersion(release.version)),
       data: releaseStats[statsPeriod].map(point => ({
         name: point[0] * 1000,
         value: point[1],
@@ -83,7 +84,7 @@ function GroupReleaseChart(props: Props) {
       markers.push({
         name: t('First seen'),
         value: firstSeenX,
-        color: theme.pink400,
+        color: theme.pink300,
       });
     }
   }
@@ -94,7 +95,7 @@ function GroupReleaseChart(props: Props) {
       markers.push({
         name: t('Last seen'),
         value: lastSeenX,
-        color: theme.green400,
+        color: theme.green300,
       });
     }
   }

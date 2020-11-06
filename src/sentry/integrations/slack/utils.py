@@ -197,10 +197,6 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     teams = get_team_assignees(group)
 
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-    color = (
-        LEVEL_TO_COLOR.get(event.get_tag("level"), "error") if event else LEVEL_TO_COLOR["error"]
-    )
-
     text = build_attachment_text(group, event) or ""
 
     if actions is None:
@@ -257,11 +253,19 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
         },
     ]
 
+    # If an event is unspecified, use the tags of the latest event (if one exists).
+    event_for_tags = event if event else group.get_latest_event()
+
+    fallback_color = LEVEL_TO_COLOR["error"]
+    color = (
+        LEVEL_TO_COLOR.get(event_for_tags.get_tag("level"), fallback_color)
+        if event_for_tags
+        else fallback_color
+    )
+
     fields = []
-
     if tags:
-        event_tags = event.tags if event else group.get_latest_event().tags
-
+        event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
             std_key = tagstore.get_standardized_key(key)
             if std_key not in tags:
@@ -435,7 +439,8 @@ def get_channel_id_with_timeout(integration, name, timeout):
             for c in items[result_name]:
                 # The "name" field is unique (this is the username for users)
                 # so we return immediately if we find a match.
-                if c["name"] == name:
+                # convert to lower case since all names in Slack are lowercase
+                if c["name"].lower() == name.lower():
                     return (prefix, c["id"], False)
                 # If we don't get a match on a unique identifier, we look through
                 # the users' display names, and error if there is a repeat.

@@ -1,5 +1,5 @@
 PIP := python -m pip --disable-pip-version-check
-WEBPACK := NODE_ENV=production yarn webpack
+WEBPACK := yarn build-acceptance
 
 # Currently, this is only required to install black via pre-commit.
 REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)
@@ -145,7 +145,7 @@ test-js-build: node-version-check
 	@echo "--> Running type check"
 	@yarn run tsc -p config/tsconfig.build.json
 	@echo "--> Building static assets"
-	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
+	@NODE_ENV=production yarn webpack-profile > .artifacts/webpack-stats.json
 
 test-js: node-version-check
 	@echo "--> Running JavaScript tests"
@@ -180,12 +180,10 @@ test-symbolicator:
 
 test-acceptance: node-version-check
 	@echo "--> Building static assets"
-	@$(WEBPACK) --display errors-only
+	@$(WEBPACK)
 	make run-acceptance
 
 test-plugins:
-	@echo "--> Building static assets"
-	@$(WEBPACK) --display errors-only
 	@echo "--> Running plugin tests"
 	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
 	@echo ""

@@ -261,7 +261,7 @@ const RowSplitter = styled('div')`
   flex-direction: row;
 
   > * + * {
-    border-left: 1px solid ${p => p.theme.borderDark};
+    border-left: 1px solid ${p => p.theme.border};
   }
 `;
 
@@ -307,7 +307,7 @@ const SpanBars = (props: {
         <SpanBarContainer>
           <SpanBarRectangle
             style={{
-              backgroundColor: theme.purple300,
+              backgroundColor: theme.purple200,
               width: generateCSSWidth(bounds.regression),
               position: 'absolute',
               height: '16px',

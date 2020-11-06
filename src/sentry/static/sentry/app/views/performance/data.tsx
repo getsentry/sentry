@@ -33,7 +33,7 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
     },
     {
       tooltip: getTermHelp(organization, 'tpm'),
-      value: 'epm()',
+      value: 'tpm()',
       label: t('Transactions Per Minute'),
     },
     {
@@ -101,6 +101,9 @@ export function generatePerformanceEventView(
 ): EventView {
   const {query} = location;
 
+  const keyTransactionsFeature = organization.features.includes('key-transactions');
+  const keyTransactionFields = keyTransactionsFeature ? ['key_transaction'] : [];
+
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
     id: undefined,
@@ -108,9 +111,10 @@ export function generatePerformanceEventView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
+      ...keyTransactionFields,
       'transaction',
       'project',
-      'epm()',
+      'tpm()',
       'p50()',
       'p95()',
       'failure_rate()',
@@ -124,7 +128,7 @@ export function generatePerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-epm';
+  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
 
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);

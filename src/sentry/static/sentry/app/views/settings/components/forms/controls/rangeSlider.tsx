@@ -288,7 +288,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.purple300};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -301,7 +301,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.purple300};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -314,7 +314,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.purple300};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;

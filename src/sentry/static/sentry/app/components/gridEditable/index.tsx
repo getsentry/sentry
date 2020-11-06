@@ -76,7 +76,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => void;
     renderPrependColumns?: (
       isHeader: boolean,
-      dataRow?: any,
+      dataRow?: DataRow,
       rowIndex?: number
     ) => React.ReactNode[];
     prependColumnWidths?: string[];
@@ -251,8 +251,7 @@ class GridEditable<
     const widths = columnOrder.map(item => {
       if (item.width === COL_WIDTH_UNDEFINED) {
         return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
-      }
-      if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
+      } else if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
         return `${item.width}px`;
       }
       return `${COL_WIDTH_MINIMUM}px`;

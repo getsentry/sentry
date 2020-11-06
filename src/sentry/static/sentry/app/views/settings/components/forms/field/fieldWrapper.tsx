@@ -45,7 +45,7 @@ const FieldWrapper = styled('div')<Props>`
   ${p =>
     !p.stacked &&
     css`
-      border-bottom: 1px solid ${p.theme.borderLight};
+      border-bottom: 1px solid ${p.theme.innerBorder};
     `}
 
   ${p =>
@@ -61,7 +61,7 @@ const FieldWrapper = styled('div')<Props>`
         left: -1px;
         right: -1px;
         bottom: -1px;
-        border: 1px solid ${p.theme.purple400};
+        border: 1px solid ${p.theme.purple300};
         pointer-events: none;
       }
     `}

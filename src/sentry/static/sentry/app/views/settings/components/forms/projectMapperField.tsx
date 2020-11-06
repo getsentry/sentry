@@ -235,7 +235,6 @@ export class RenderField extends React.Component<RenderProps, State> {
           <SelectControl
             placeholder={t('Sentry project\u2026')}
             name="project"
-            openMenuOnFocus
             options={projectOptions}
             components={{
               Option: customOptionProject,
@@ -247,7 +246,6 @@ export class RenderField extends React.Component<RenderProps, State> {
           <SelectControl
             placeholder={mappedValuePlaceholder}
             name="mappedDropdown"
-            openMenuOnFocus
             options={mappedItemsToShow}
             components={{
               Option: customOptionMappedValue,
@@ -321,7 +319,7 @@ const Item = styled('div')`
   padding: ${space(2)};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 
   display: grid;

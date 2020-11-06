@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import sentry_sdk
 import six
 from django.utils.http import urlquote
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import APIException, ParseError
 
 
 from sentry import features
@@ -124,7 +124,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
-                message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+                raise ParseError(
+                    detail="Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+                )
+            elif isinstance(error, (snuba.UnqualifiedQueryError)):
+                raise ParseError(detail=error.message)
             elif isinstance(
                 error,
                 (
@@ -133,13 +137,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     snuba.QueryExecutionError,
                     snuba.QuerySizeExceeded,
                     snuba.SchemaValidationError,
-                    snuba.UnqualifiedQueryError,
+                    snuba.QueryMissingColumn,
                 ),
             ):
                 sentry_sdk.capture_exception(error)
                 message = "Internal error. Your query failed to run."
-
-            raise ParseError(detail=message)
+            raise APIException(detail=message)
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):

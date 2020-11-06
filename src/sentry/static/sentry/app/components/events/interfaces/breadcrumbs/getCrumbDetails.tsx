@@ -21,21 +21,21 @@ function getCrumbDetails(type: BreadcrumbType) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
       return {
-        color: 'purple400',
+        color: 'purple300',
         icon: IconUser,
         description: t('User Action'),
       };
 
     case BreadcrumbType.NAVIGATION:
       return {
-        color: 'green500',
+        color: 'green300',
         icon: IconLocation,
         description: t('Navigation'),
       };
 
     case BreadcrumbType.DEBUG:
       return {
-        color: 'purple500',
+        color: 'purple300',
         icon: IconFix,
         description: t('Debug'),
       };
@@ -56,7 +56,7 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.HTTP:
       return {
-        color: 'green400',
+        color: 'green300',
         icon: IconSwitch,
         description: t('HTTP request'),
       };
@@ -75,7 +75,7 @@ function getCrumbDetails(type: BreadcrumbType) {
       };
     case BreadcrumbType.SYSTEM:
       return {
-        color: 'pink300',
+        color: 'pink200',
         icon: IconMobile,
         description: t('System'),
       };
@@ -87,7 +87,7 @@ function getCrumbDetails(type: BreadcrumbType) {
       };
     case BreadcrumbType.TRANSACTION:
       return {
-        color: 'pink400',
+        color: 'pink300',
         icon: IconSpan,
         description: t('Transaction'),
       };

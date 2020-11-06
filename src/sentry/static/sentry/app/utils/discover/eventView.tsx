@@ -912,7 +912,12 @@ class EventView {
       utc: decodeScalar(query.utc),
     });
 
-    const sort = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
+    const sort =
+      this.sorts.length <= 0
+        ? undefined
+        : this.sorts.length > 1
+        ? encodeSorts(this.sorts)
+        : encodeSort(this.sorts[0]);
     const fields = this.getFields();
     const project = this.project.map(proj => String(proj));
     const environment = this.environment as string[];

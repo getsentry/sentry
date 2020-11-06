@@ -52,7 +52,7 @@ class HealthStatsChart extends React.Component<Props> {
     }
 
     const colors = [theme.gray500];
-    const emphasisColors = [theme.purple400];
+    const emphasisColors = [theme.purple300];
     const series: Series[] = [
       {
         seriesName: this.getChartLabel(),

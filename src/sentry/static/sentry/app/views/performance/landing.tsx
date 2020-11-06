@@ -16,7 +16,6 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
-import Feature from 'app/components/acl/feature';
 import FeatureBadge from 'app/components/featureBadge';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
@@ -53,9 +52,6 @@ export enum FilterViews {
   KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
   TRENDS = 'TRENDS',
 }
-
-const VIEWS = Object.values(FilterViews).filter(view => view !== 'TRENDS');
-const VIEWS_WITH_TRENDS = Object.values(FilterViews);
 
 type Props = {
   api: Client;
@@ -229,10 +225,10 @@ class PerformanceLanding extends React.Component<Props, State> {
     if (viewKey === FilterViews.TRENDS) {
       const modifiedConditions = new QueryResults([]);
 
-      if (conditions.hasTag('epm()')) {
-        modifiedConditions.setTagValues('epm()', conditions.getTagValues('epm()'));
+      if (conditions.hasTag('tpm()')) {
+        modifiedConditions.setTagValues('tpm()', conditions.getTagValues('tpm()'));
       } else {
-        modifiedConditions.setTagValues('epm()', ['>0.01']);
+        modifiedConditions.setTagValues('tpm()', ['>0.01']);
       }
       if (conditions.hasTag('transaction.duration')) {
         modifiedConditions.setTagValues(
@@ -252,7 +248,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
     if (isNavigatingAwayFromTrends) {
       // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
-      conditions.removeTag('epm()');
+      conditions.removeTag('tpm()');
       conditions.removeTag('transaction.duration');
 
       newQuery.query = stringifyQueryObject(conditions);
@@ -265,44 +261,29 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   renderHeaderButtons() {
+    const {organization} = this.props;
+    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS];
+    if (!organization.features.includes('key-transactions')) {
+      views.push(FilterViews.KEY_TRANSACTIONS);
+    }
+    if (organization.features.includes('trends')) {
+      views.push(FilterViews.TRENDS);
+    }
     return (
-      <Feature features={['trends']}>
-        {({hasFeature}) =>
-          hasFeature ? (
-            <ButtonBar merged active={this.getCurrentView()}>
-              {VIEWS_WITH_TRENDS.map(viewKey => {
-                return (
-                  <Button
-                    key={viewKey}
-                    barId={viewKey}
-                    size="small"
-                    data-test-id={'landing-header-' + viewKey.toLowerCase()}
-                    onClick={() => this.handleViewChange(viewKey)}
-                  >
-                    {this.getViewLabel(viewKey)}
-                    {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="beta" />}
-                  </Button>
-                );
-              })}
-            </ButtonBar>
-          ) : (
-            <ButtonBar merged active={this.getCurrentView()}>
-              {VIEWS.map(viewKey => {
-                return (
-                  <Button
-                    key={viewKey}
-                    barId={viewKey}
-                    size="small"
-                    onClick={() => this.handleViewChange(viewKey)}
-                  >
-                    {this.getViewLabel(viewKey)}
-                  </Button>
-                );
-              })}
-            </ButtonBar>
-          )
-        }
-      </Feature>
+      <ButtonBar merged active={this.getCurrentView()}>
+        {views.map(viewKey => (
+          <Button
+            key={viewKey}
+            barId={viewKey}
+            size="small"
+            data-test-id={'landing-header-' + viewKey.toLowerCase()}
+            onClick={() => this.handleViewChange(viewKey)}
+          >
+            {this.getViewLabel(viewKey)}
+            {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="beta" />}
+          </Button>
+        ))}
+      </ButtonBar>
     );
   }
 
@@ -373,6 +354,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                   organization={organization}
                   location={location}
                   eventView={eventView}
+                  setError={this.setError}
                 />
               ) : (
                 <div>
@@ -380,7 +362,11 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     projectIds={eventView.project}
                     query={filterString}
-                    fields={generateAggregateFields(organization, eventView.fields)}
+                    fields={generateAggregateFields(
+                      organization,
+                      [...eventView.fields, {field: 'tps()'}],
+                      ['epm()', 'eps()']
+                    )}
                     onSearch={this.handleSearch}
                   />
                   <Charts

@@ -111,7 +111,7 @@ export const IconProps = withInfo('Props you can assign to the icon components')
 });
 
 const Highlight = styled('span')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.purple300};
   font-weight: 600;
 `;
 
@@ -132,7 +132,7 @@ const SwatchWrapper = styled('div')`
 `;
 
 const Swatches = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   padding: 24px;
 `;
 

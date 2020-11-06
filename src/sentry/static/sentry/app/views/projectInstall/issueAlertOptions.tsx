@@ -160,7 +160,6 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
             data-test-id="range-input"
           />
           <InlineSelectControl
-            openMenuOnFocus
             value={this.state.metric}
             choices={this.getAvailableMetricChoices()}
             onChange={metric => this.setStateAndUpdateParents({metric: metric.value})}
@@ -169,7 +168,6 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           {t('a unique error in')}
           <InlineSelectControl
             value={this.state.interval}
-            openMenuOnFocus
             choices={this.state.intervalChoices}
             onChange={interval =>
               this.setStateAndUpdateParents({interval: interval.value})

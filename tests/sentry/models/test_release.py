@@ -9,10 +9,12 @@ from sentry.utils.compat.mock import patch
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.models import (
+    add_group_to_inbox,
     Commit,
     CommitAuthor,
     Environment,
     Group,
+    GroupInboxReason,
     GroupRelease,
     GroupResolution,
     GroupLink,
@@ -167,6 +169,9 @@ class SetCommitsTestCase(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.#
+        # assert GroupInbox.objects.filter(group=group).exists()
 
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
         commit = Commit.objects.create(
@@ -214,11 +219,16 @@ class SetCommitsTestCase(TestCase):
             release_id=release.id, commit_id=commit.id, repository_id=repo.id
         ).exists()
 
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=group).exists()
+
     def test_backfilling_commits(self):
         org = self.create_organization()
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
-
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert GroupInbox.objects.filter(group=group).exists()
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
 
         commit = Commit.objects.create(repository_id=repo.id, organization_id=org.id, key="b" * 40)
@@ -297,6 +307,8 @@ class SetCommitsTestCase(TestCase):
         assert release.commit_count == 3
         assert release.authors == [six.text_type(author.id)]
         assert release.last_commit_id == latest_commit.id
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=group).exists()
 
     @freeze_time()
     def test_using_saved_data(self):
@@ -373,7 +385,9 @@ class SetCommitsTestCase(TestCase):
         org = self.create_organization(owner=self.user)
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
-
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert GroupInbox.objects.filter(group=group).exists()
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
         author = CommitAuthor.objects.create(
             organization_id=org.id, name="Foo Bar", email=self.user.email
@@ -409,12 +423,16 @@ class SetCommitsTestCase(TestCase):
         assert resolution.actor_id == self.user.id
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=group).exists()
 
     def test_resolution_support_without_author(self):
         org = self.create_organization()
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
-
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert GroupInbox.objects.filter(group=group).exists()
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
         commit = Commit.objects.create(
             organization_id=org.id,
@@ -437,6 +455,8 @@ class SetCommitsTestCase(TestCase):
         assert resolution.actor_id is None
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     def test_resolution_support_with_integration(self, mock_sync_status_outbound):
@@ -457,7 +477,9 @@ class SetCommitsTestCase(TestCase):
         )
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
-
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert GroupInbox.objects.filter(group=group).exists()
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id, integration_id=integration.id, key="APP-%s" % group.id
         )[0]
@@ -497,6 +519,8 @@ class SetCommitsTestCase(TestCase):
         assert resolution.actor_id is None
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=group).exists()
 
     def test_long_email(self):
         org = self.create_organization()

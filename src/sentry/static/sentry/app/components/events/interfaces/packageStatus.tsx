@@ -14,7 +14,7 @@ const PackageStatus = ({status, tooltip}: Props) => {
   const getIcon = () => {
     switch (status) {
       case 'success':
-        return <IconCheckmark isCircled color="green500" size="xs" />;
+        return <IconCheckmark isCircled color="green300" size="xs" />;
       case 'empty':
         return <IconCircle size="xs" />;
       case 'error':

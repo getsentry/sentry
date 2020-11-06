@@ -98,12 +98,12 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
               barGap: '-100%',
               name: 'First Seen',
               value: (startTime + interval) * 1000,
-              color: theme.pink400,
+              color: theme.pink300,
             },
             {
               name: 'Last Seen',
               value: (startTime + interval * 23) * 1000,
-              color: theme.green400,
+              color: theme.green300,
             },
           ]}
         />
@@ -116,7 +116,7 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
           height={24}
           isGroupedByDate
           showTimeInTooltip
-          emphasisColors={[theme.purple400]}
+          emphasisColors={[theme.purple300]}
           series={[
             {
               seriesName: 'Events',

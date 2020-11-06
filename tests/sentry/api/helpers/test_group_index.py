@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.utils.compat.mock import patch, Mock
 from django.http import QueryDict
 
-from sentry.models import GroupStatus
+from sentry.models import add_group_to_inbox, GroupInboxReason, GroupStatus
 from sentry.api.helpers.group_index import (
     validate_search_filter_permissions,
     ValidationError,
@@ -90,6 +90,7 @@ class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_unresolved_group(self, send_robust):
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
+        add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
 
         request = self.make_request(user=self.user, method="GET")
@@ -103,11 +104,14 @@ class UpdateGroupsTest(TestCase):
         unresolved_group.refresh_from_db()
 
         assert unresolved_group.status == GroupStatus.RESOLVED
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
 
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_ignoring_group(self, send_robust):
         group = self.create_group()
+        add_group_to_inbox(group, GroupInboxReason.NEW)
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
@@ -121,6 +125,8 @@ class UpdateGroupsTest(TestCase):
 
         assert group.status == GroupStatus.IGNORED
         assert send_robust.called
+        # TODO: Chris F.: This is temporarily removed while we perform some migrations.
+        # assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_unignored.send_robust")
     def test_unignoring_group(self, send_robust):

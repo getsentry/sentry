@@ -154,7 +154,7 @@ describe('groupDetails', function () {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
     expect(issueDetailsMock).toHaveBeenCalledTimes(1);
     expect(MockComponent).not.toHaveBeenCalled();
-    expect(wrapper.find('Alert').text()).toEqual(
+    expect(wrapper.find('[data-test-id="loading-error-message"]').text()).toEqual(
       'The issue you were looking for was not found.'
     );
   });

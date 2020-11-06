@@ -66,7 +66,7 @@ const SwitchButton = styled('button')<StyleProps>`
   display: inline-block;
   background: none;
   padding: 0;
-  border: 1px solid ${p => (p.isActive ? p.theme.borderDark : p.theme.borderLight)};
+  border: 1px solid ${p => p.theme.border};
   position: relative;
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
   transition: 0.15s border ease;
@@ -79,7 +79,7 @@ const SwitchButton = styled('button')<StyleProps>`
   &:hover,
   &:focus {
     outline: none;
-    border-color: ${p => p.theme.borderDark};
+    border-color: ${p => p.theme.border};
   }
 
   &:focus,
@@ -98,7 +98,7 @@ const Toggle = styled('span')<StyleProps>`
   transform: translateX(${getTranslateX}px);
   width: ${getToggleSize}px;
   height: ${getToggleSize}px;
-  background: ${p => (p.isActive ? p.theme.green400 : p.theme.gray400)};
+  background: ${p => (p.isActive ? p.theme.green300 : p.theme.gray400)};
   opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
 

@@ -15,8 +15,8 @@ type Props = {
   isAbsolute: boolean;
   isFoundByStackScanning: boolean;
   isInlineFrame: boolean;
-  relativeAddressMaxlength: number;
-  onToggle: (event: React.MouseEvent<SVGElement>) => void;
+  relativeAddressMaxlength?: number;
+  onToggle?: (event: React.MouseEvent<SVGElement>) => void;
 };
 
 const TogglableAddress = ({
@@ -69,7 +69,7 @@ const TogglableAddress = ({
           title={isAbsolute ? t('Switch to absolute') : t('Switch to relative')}
           containerDisplayMode="inline-flex"
         >
-          <AddressToggleIcon onClick={onToggle} size="xs" color="purple400" />
+          <AddressToggleIcon onClick={onToggle} size="xs" color="purple300" />
         </AddressIconTooltip>
       )}
       <Tooltip title={tooltipTitle} disabled={!(isFoundByStackScanning || isInlineFrame)}>
