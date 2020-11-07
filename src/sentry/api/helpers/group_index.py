@@ -730,8 +730,11 @@ def update_groups(request, projects, organization_id, search_fn):
             happened = queryset.exclude(status=new_status).update(status=new_status)
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
-
-            if new_status == GroupStatus.IGNORED:
+            if new_status == GroupStatus.UNRESOLVED:
+                for group in group_list:
+                    add_group_to_inbox(group, GroupInboxReason.UNIGNORED)
+                result["statusDetails"] = {}
+            elif new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
                 for group in group_ids:
                     remove_group_from_inbox(group)
