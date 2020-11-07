@@ -87,7 +87,7 @@ const aliases = {
   /**
    * A color that denotes a "success", or something good
    */
-  success: colors.green200,
+  success: colors.green300,
 
   /**
    * A color that denotes an error, or something that is wrong
