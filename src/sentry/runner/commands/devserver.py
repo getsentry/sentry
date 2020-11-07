@@ -34,7 +34,7 @@ _DEFAULT_DAEMONS = {
 def _get_daemon(name, *args, **kwargs):
     display_name = name
     if "suffix" in kwargs:
-        display_name = "{}-{}".format(name, kwargs["suffix"])
+        display_name = u"{}-{}".format(name, kwargs["suffix"])
 
     return (display_name, _DEFAULT_DAEMONS[name] + list(args))
 
@@ -216,6 +216,11 @@ def devserver(
             daemons += [_get_daemon("post-process-forwarder")]
 
         if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
+            if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
+                raise click.ClickException(
+                    "`SENTRY_DEV_PROCESS_SUBSCRIPTIONS` can only be used when "
+                    "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
+                )
             for name, topic in settings.KAFKA_SUBSCRIPTION_RESULT_TOPICS.items():
                 daemons += [_get_daemon("subscription-consumer", "--topic", topic, suffix=name)]
 
