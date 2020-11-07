@@ -57,13 +57,7 @@ export default class ApiNewToken extends React.Component {
               submitLabel={t('Create Token')}
             >
               <PanelBody>
-                <FormField
-                  name="scopes"
-                  choices={API_CHOICES}
-                  label={t('Scopes')}
-                  inline={false}
-                  required
-                >
+                <FormField name="scopes" label={t('Scopes')} inline={false} required>
                   {({value, onChange}) => (
                     <MultipleCheckbox
                       onChange={onChange}
