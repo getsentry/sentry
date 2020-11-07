@@ -643,7 +643,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 reporter_id = defaults.get("reporter", "")
                 if not reporter_id:
                     continue
-                reporter_info = client.get_user(reporter_id)
+                try:
+                    reporter_info = client.get_user(reporter_id)
+                except ApiError as exc:
+                    self.get_logger().exception(six.text_type(exc))
+                    continue
                 reporter_tuple = client.format_user(reporter_info)
                 if not reporter_tuple:
                     continue
