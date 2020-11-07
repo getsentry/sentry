@@ -102,10 +102,6 @@ class IssueBasicMixin(object):
         """
         return []
 
-    def _get_defaults_user_option_key(self):
-        provider = self.org_integration.integration.provider
-        return "issues:defaults:{}".format(provider)
-
     def store_issue_last_defaults(self, project, user, data):
         """
         Stores the last used field defaults on a per-project basis. This
@@ -131,26 +127,20 @@ class IssueBasicMixin(object):
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
         if user_persisted_fields:
-            user_defaults = {}
-            defaults_user_option_key = self._get_defaults_user_option_key()
-            user_defaults.update(
-                UserOption.objects.get_value(
-                    user=user, key=defaults_user_option_key, default={}, project=project
-                )
+            user_defaults = {k: v for k, v in six.iteritems(data) if k in user_persisted_fields}
+            user_option_key = dict(user=user, key="issue:defaults", project=project)
+            new_user_defaults = UserOption.objects.get_value(default={}, **user_option_key)
+            new_user_defaults.setdefault(self.org_integration.integration.provider).update(
+                user_defaults
             )
-            user_defaults.update(
-                {k: v for k, v in six.iteritems(data) if k in user_persisted_fields}
-            )
-            UserOption.objects.set_value(
-                user=user, key=defaults_user_option_key, value=user_defaults, project=project
-            )
+            UserOption.objects.set_value(value=new_user_defaults, **user_option_key)
 
     def get_defaults(self, project, user):
         project_defaults = self.get_project_defaults(project.id)
 
-        defaults_user_option_key = self._get_defaults_user_option_key()
-        user_defaults = UserOption.objects.get_value(
-            user=user, key=defaults_user_option_key, default={}, project=project
+        user_option_key = dict(user=user, key="issue:defaults", project=project)
+        user_defaults = UserOption.objects.get_value(default={}, **user_option_key).get(
+            self.org_integration.integration.provider, {}
         )
 
         defaults = {}
