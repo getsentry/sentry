@@ -55,7 +55,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                     "name": provider.name,
                     "canAdd": provider.can_add,
                     "canDisable": provider.can_disable,
-                    "features": sorted([f.value for f in provider.features]),
+                    "features": [f.value for f in provider.features],
                     "aspects": provider.metadata.aspects,
                 },
                 "linkIssueConfig": [
@@ -95,7 +95,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                     "name": provider.name,
                     "canAdd": provider.can_add,
                     "canDisable": provider.can_disable,
-                    "features": sorted([f.value for f in provider.features]),
+                    "features": [f.value for f in provider.features],
                     "aspects": provider.metadata.aspects,
                 },
                 "createIssueConfig": [
