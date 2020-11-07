@@ -141,7 +141,7 @@ class BitbucketIssueTest(APITestCase):
         }
         self.org_integration.save()
         installation = self.integration.get_installation(self.organization.id)
-        fields = installation.get_create_issue_config(self.group, self.user)
+        fields = installation.get_create_issue_config(self.group)
         for field in fields:
             if field["name"] == "repo":
                 repo_field = field
@@ -177,7 +177,7 @@ class BitbucketIssueTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
-        fields = installation.get_create_issue_config(self.group, self.user)
+        fields = installation.get_create_issue_config(self.group)
         repo_field = [field for field in fields if field["name"] == "repo"][0]
         assert repo_field["default"] == ""
         assert repo_field["choices"] == []
@@ -191,7 +191,7 @@ class BitbucketIssueTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
-        assert installation.get_create_issue_config(self.group, self.user) == [
+        assert installation.get_create_issue_config(self.group) == [
             {
                 "name": "repo",
                 "required": True,

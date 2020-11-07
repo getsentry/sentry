@@ -186,7 +186,7 @@ class GitHubIssueBasicTest(TestCase):
             },
         )
 
-        resp = self.integration.get_create_issue_config(group=event.group, user=self.user)
+        resp = self.integration.get_create_issue_config(group=event.group)
         assert resp[0]["choices"] == [(u"getsentry/sentry", u"sentry")]
 
         responses.add(
@@ -197,7 +197,7 @@ class GitHubIssueBasicTest(TestCase):
 
         # create an issue
         data = {"params": {"repo": "getsentry/hello"}}
-        resp = self.integration.get_create_issue_config(group=event.group, user=self.user, **data)
+        resp = self.integration.get_create_issue_config(group=event.group, **data)
         assert resp[0]["choices"] == [
             (u"getsentry/hello", u"hello"),
             (u"getsentry/sentry", u"sentry"),
@@ -298,7 +298,7 @@ class GitHubIssueBasicTest(TestCase):
             }
         }
         org_integration.save()
-        fields = self.integration.get_create_issue_config(group, self.user)
+        fields = self.integration.get_create_issue_config(group)
         for field in fields:
             if field["name"] == "repo":
                 repo_field = field
@@ -339,7 +339,7 @@ class GitHubIssueBasicTest(TestCase):
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
-        fields = self.integration.get_create_issue_config(event.group, self.user)
+        fields = self.integration.get_create_issue_config(event.group)
         repo_field = [field for field in fields if field["name"] == "repo"][0]
         assignee_field = [field for field in fields if field["name"] == "assignee"][0]
 

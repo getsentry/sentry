@@ -78,7 +78,6 @@ class JiraApiClient(ApiClient):
     SEARCH_URL = "/rest/api/2/search/"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"
     USERS_URL = "/rest/api/2/user/assignable/search"
-    USER_URL = "/rest/api/2/user"
     SERVER_INFO_URL = "/rest/api/2/serverInfo"
     ASSIGN_URL = "/rest/api/2/issue/%s/assignee"
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
@@ -199,10 +198,6 @@ class JiraApiClient(ApiClient):
             self.USERS_URL, params={"issueKey": issue_key, self.query_field(): email}
         )
 
-    def get_user(self, user_id):
-        user_id_field = self.user_id_field()
-        return self.get_cached(self.USER_URL, params={user_id_field: user_id})
-
     def create_issue(self, raw_form_data):
         data = {"fields": raw_form_data}
         return self.post(self.CREATE_URL, data=data)
@@ -226,20 +221,3 @@ class JiraApiClient(ApiClient):
     def get_email(self, account_id):
         user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
         return user.get("email")
-
-    def format_user(self, user_response):
-        user_id_field = self.user_id_field()
-        if user_id_field not in user_response:
-            return None
-
-        # The name field can be blank in jira-cloud, and the id_field varies by
-        # jira-cloud and jira-server
-        name = user_response.get("name", "")
-        email = user_response.get("emailAddress")
-
-        display = "%s %s%s" % (
-            user_response.get("displayName", name),
-            "- %s " % email if email else "",
-            "(%s)" % name if name else "",
-        )
-        return user_response[user_id_field], display.strip()
