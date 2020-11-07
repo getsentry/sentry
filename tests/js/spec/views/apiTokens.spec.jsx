@@ -17,6 +17,7 @@ describe('ApiTokens', function () {
   it('renders empty result', function () {
     Client.addMockResponse({
       url: '/api-tokens/',
+      body: null,
     });
 
     const wrapper = mountWithTheme(
