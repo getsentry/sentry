@@ -52,6 +52,12 @@ class JiraCloud(object):
         request_spec.update(dict(method=method, path=path, data=data, params=params))
         return request_spec
 
+    def user_id_param(self):
+        """
+        Jira-Cloud requires GDPR compliant API usage so we have to use accountId
+        """
+        return "accountId"
+
     def user_id_field(self):
         """
         Jira-Cloud requires GDPR compliant API usage so we have to use accountId
@@ -116,6 +122,9 @@ class JiraApiClient(ApiClient):
         # https://developer.atlassian.com/cloud/jira/platform/deprecation-notice-user-privacy-api-migration-guide
         request_spec["headers"]["x-atlassian-force-account-id"] = "true"
         return self._request(**request_spec)
+
+    def user_id_param(self):
+        return self.jira_style.user_id_param()
 
     def user_id_field(self):
         return self.jira_style.user_id_field()
@@ -200,8 +209,8 @@ class JiraApiClient(ApiClient):
         )
 
     def get_user(self, user_id):
-        user_id_field = self.user_id_field()
-        return self.get_cached(self.USER_URL, params={user_id_field: user_id})
+        user_id_param = self.user_id_param()
+        return self.get_cached(self.USER_URL, params={user_id_param: user_id})
 
     def create_issue(self, raw_form_data):
         data = {"fields": raw_form_data}

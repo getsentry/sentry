@@ -142,6 +142,15 @@ class JiraServer(object):
         request_spec.update(dict(method=method, path=path, data=data, params=params))
         return request_spec
 
+    def user_id_param(self):
+        """
+        Jira-Server doesn't required compliant API usage so we can use `username`
+
+        Note that Jira-Server is inconsistent where the endpoint is /rest/api/2/user?username=XYZ
+        while the returned user resource contains {"name": "XYZ"}.
+        """
+        return "username"
+
     def user_id_field(self):
         """
         Jira-Server doesn't require GDPR compliant API usage so we can use `name`
