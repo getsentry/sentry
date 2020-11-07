@@ -564,7 +564,7 @@ class JiraIntegrationTest(APITestCase):
 
         with mock.patch.object(installation, "get_client", get_client):
             # Initially all fields are present
-            fields = installation.get_create_issue_config(group, self.user)
+            fields = installation.get_create_issue_config(group)
             field_names = [field["name"] for field in fields]
             assert field_names == [
                 "project",
@@ -579,7 +579,7 @@ class JiraIntegrationTest(APITestCase):
             installation.org_integration.config = {"issues_ignored_fields": ["customfield_10200"]}
             # After ignoring "customfield_10200", it no longer shows up
             installation.org_integration.save()
-            fields = installation.get_create_issue_config(group, self.user)
+            fields = installation.get_create_issue_config(group)
             field_names = [field["name"] for field in fields]
             assert field_names == [
                 "project",
