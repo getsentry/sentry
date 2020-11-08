@@ -1,5 +1,5 @@
 name: 'Sentry Artifacts'
-description: 'Handles uploading coverage/test artifacts to codecov and zeus'
+description: 'Handles uploading coverage/test artifacts to codecov'
 
 runs:
   using: "composite"
