@@ -93,8 +93,22 @@ from sentry.stacktraces.functions import (
         ["<lambda_7156c3ceaa11256748687ab67e3ef4cd>::operator()", "<lambda>::operator()"],
     ],
 )
-def test_trim_function_name(input, output):
+def test_trim_native_function_name(input, output):
     assert trim_function_name(input, "native") == output
+
+
+@pytest.mark.parametrize(
+    "input,output",
+    [
+        ["UnityEngine.Events.InvokableCall.Invoke ()", "UnityEngine.Events.InvokableCall.Invoke"],
+        [
+            "UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor)",
+            "UnityEngine.EventSystems.ExecuteEvents.Execute[T]",
+        ],
+    ],
+)
+def test_trim_csharp_function_name(input, output):
+    assert trim_function_name(input, "csharp") == output
 
 
 def replace_group(value, start):
