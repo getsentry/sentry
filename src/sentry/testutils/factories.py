@@ -795,7 +795,11 @@ class Factories(object):
         group=None, service_type=None, display_name=None, web_url=None
     ):
         return PlatformExternalIssue.objects.create(
-            group_id=group.id, service_type=service_type, display_name=display_name, web_url=web_url
+            group_id=group.id,
+            project_id=group.project_id,
+            service_type=service_type,
+            display_name=display_name,
+            web_url=web_url,
         )
 
     @staticmethod
