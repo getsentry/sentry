@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import RepositoryProjectPathConfig
 from sentry.api.serializers import serialize
+from sentry.web.decorators import transaction_start
 
 
 def get_link(config, filepath, version):
@@ -12,7 +13,7 @@ def get_link(config, filepath, version):
     integration = oi.integration
     install = integration.get_installation(oi.organization_id)
 
-    formatted_path = filepath.replace(config.stack_root, config.source_root)
+    formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
     return install.get_stacktrace_link(config.repository, formatted_path, version)
 
@@ -29,6 +30,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     """
 
+    @transaction_start("GroupIntegrationDetailsEndpoint")
     def get(self, request, project):
         # should probably feature gate
         filepath = request.GET.get("file")
