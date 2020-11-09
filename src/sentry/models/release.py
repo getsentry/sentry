@@ -72,16 +72,20 @@ class ReleaseStatus(object):
         elif value == "archived":
             return cls.ARCHIVED
         else:
-            raise ValueError()
+            raise ValueError(repr(value))
 
     @classmethod
     def to_string(cls, value):
-        if value == ReleaseStatus.OPEN:
+        # XXX: Since the column is nullable we need to handle `null` here.
+        # However `null | undefined` in request payloads means "don't change
+        # status of release". This is why `from_string` does not consider
+        # `null` valid.
+        if value is None or value == ReleaseStatus.OPEN:
             return "open"
         elif value == ReleaseStatus.ARCHIVED:
             return "archived"
         else:
-            raise ValueError()
+            raise ValueError(repr(value))
 
 
 class Release(Model):
@@ -99,7 +103,7 @@ class Release(Model):
         "sentry.Project", related_name="releases", through=ReleaseProject
     )
     status = BoundedPositiveIntegerField(
-        default=0,
+        default=ReleaseStatus.OPEN,
         choices=((ReleaseStatus.OPEN, _("Open")), (ReleaseStatus.ARCHIVED, _("Archived")),),
     )
 
