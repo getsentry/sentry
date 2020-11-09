@@ -61,3 +61,6 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         run: |
           make test-relay-integration
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts

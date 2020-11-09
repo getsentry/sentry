@@ -105,4 +105,7 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
           USE_SNUBA: 1
 
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
       # TODO(joshuarli): snapshots, visual-diff needs py3-acceptance.
