@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 migrations.AddField(
                     model_name='release',
                     name='status',
-                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(choices=[(0, 'Open'), (1, 'Archived')], default=0),
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(choices=[(0, 'Open'), (1, 'Archived')], default=0, null=True),
                 ),
             ],
             database_operations=[]
