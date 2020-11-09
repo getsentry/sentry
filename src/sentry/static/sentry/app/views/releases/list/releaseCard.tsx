@@ -39,7 +39,7 @@ const ReleaseCard = ({
   selection,
   showHealthPlaceholders,
 }: Props) => {
-  const {version, commitCount, lastDeploy, authors, dateCreated} = release;
+  const {version, commitCount, lastDeploy, authors, dateCreated, versionInfo} = release;
 
   return (
     <StyledPanel reloading={reloading ? 1 : 0}>
@@ -49,6 +49,10 @@ const ReleaseCard = ({
             <VersionColumn>
               <ColumnTitle>{t('Release Version')}</ColumnTitle>
             </VersionColumn>
+
+            <PackageNameColumn>
+              <ColumnTitle>{t('Package Name')}</ColumnTitle>
+            </PackageNameColumn>
 
             <CreatedColumn>
               <ColumnTitle>
@@ -79,6 +83,12 @@ const ReleaseCard = ({
                 <Version version={version} tooltipRawVersion truncate anchor={false} />
               </VersionWrapper>
             </VersionColumn>
+
+            <PackageNameColumn>
+              <TextOverflow ellipsisDirection="left">
+                {versionInfo.package ?? <NotAvailable />}
+              </TextOverflow>
+            </PackageNameColumn>
 
             <CreatedColumn>
               <TextOverflow>
@@ -139,19 +149,19 @@ const StyledPanelItem = styled(PanelItem)`
 
 const Layout = styled('div')`
   display: grid;
-  /* 0fr a,b,c are here to match the health grid layout (offset because of gap on fewer columns) */
-  grid-template-areas: 'version created a b commits c new-issues';
-  grid-template-columns: 2fr 4.8fr 0fr 0fr 2.1fr 0fr 1.5fr;
+  /* a,b are here to match the health grid layout (offset because of gap on fewer columns) */
+  grid-template-areas: 'version package-name created commits a b new-issues';
+  grid-template-columns: 2fr 2fr 1.4fr 1.4fr 0fr 0fr 3.6fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-areas: 'version created a commits b new-issues';
-    grid-template-columns: 2fr 3.5fr 0fr 2.5fr 0fr 1fr;
+    grid-template-areas: 'version package-name created commits a new-issues';
+    grid-template-columns: 2fr 2fr 1.5fr 2.5fr 0fr 1fr;
   }
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-areas: 'version created a b new-issues';
-    grid-template-columns: 2fr 3fr 0fr 0fr 2fr;
+    grid-template-areas: 'version package-name created a new-issues';
+    grid-template-columns: 2fr 1.5fr 2.5fr 0fr 1fr;
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-areas: 'version created new-issues';
@@ -180,15 +190,30 @@ const VersionColumn = styled(Column)`
   align-items: center;
 `;
 
+const PackageNameColumn = styled(Column)`
+  grid-area: package-name;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
 const CommitsColumn = styled(Column)`
   grid-area: commits;
+  text-align: center;
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: none;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    text-align: left;
   }
 `;
 
 const CreatedColumn = styled(Column)`
   grid-area: created;
+  text-align: center;
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    text-align: left;
+  }
 `;
 
 const NewIssuesColumn = styled(RightAlignedColumn)`
