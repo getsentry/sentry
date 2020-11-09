@@ -1,11 +1,26 @@
 from __future__ import absolute_import
 
+import jsonschema
+
 from enum import Enum
 
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, JSONField
+
+INBOX_REASON_DETAILS = {
+    "type": ["object", "null"],
+    "properties": {
+        "until": {"type": "string", "format": "date-time"},
+        "count": {"type": "integer"},
+        "window": {"type": "integer"},
+        "user_count": {"type": "integer"},
+        "user_window": {"type": "integer"},
+    },
+    "required": [],
+    "additionalProperties": False,
+}
 
 
 class GroupInboxReason(Enum):
@@ -35,6 +50,13 @@ class GroupInbox(Model):
 
 
 def add_group_to_inbox(group, reason, reason_details=None):
+    from sentry.snuba.query_subscription_consumer import InvalidSchemaError
+
+    try:
+        jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
+    except jsonschema.ValidationError:
+        raise InvalidSchemaError("GroupInbox reason_details does not match schema")
+
     group_inbox, created = GroupInbox.objects.get_or_create(
         group=group,
         defaults={
