@@ -3,7 +3,13 @@ import pick from 'lodash/pick';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
-import {CommitFile, Commit, FilesByRepository, Repository} from 'app/types';
+import {
+  CommitFile,
+  Commit,
+  FilesByRepository,
+  Repository,
+  ReleaseStatus,
+} from 'app/types';
 import {t} from 'app/locale';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {
@@ -20,13 +26,15 @@ export const archiveRelease = async (orgId: string, version: string) => {
   const api = new Client();
   addLoadingMessage(t('Archiving Release...'));
   try {
-    // TODO: chagne once API is finished
-    await api.requestPromise(
-      `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
-      {
-        method: 'DELETE',
-      }
-    );
+    await api.requestPromise(`/organizations/${orgId}/releases/`, {
+      method: 'POST',
+      data: {
+        status: ReleaseStatus.Archived,
+        projects: [],
+        version,
+      },
+    });
+
     addSuccessMessage(t('Release was successfully archived.'));
     browserHistory.push(`/organizations/${orgId}/releases/`);
   } catch (error) {
@@ -44,13 +52,14 @@ export const restoreRelease = async (
   const api = new Client();
   addLoadingMessage(t('Restoring Release...'));
   try {
-    // TODO: chagne once API is finished
-    await api.requestPromise(
-      `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
-      {
-        method: 'DELETE',
-      }
-    );
+    await api.requestPromise(`/organizations/${orgId}/releases/`, {
+      method: 'POST',
+      data: {
+        status: ReleaseStatus.Active,
+        projects: [],
+        version,
+      },
+    });
     addSuccessMessage(t('Release was successfully restored.'));
     onSuccess?.();
   } catch (error) {

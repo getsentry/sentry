@@ -26,6 +26,7 @@ import ReleaseArchivedNotice from './releaseArchivedNotice';
 import {YAxis} from './chart/releaseChartControls';
 import {ReleaseContext} from '..';
 import {isReleaseArchived} from '../../utils';
+import {restoreRelease} from '../utils';
 
 type RouteParams = {
   orgId: string;
@@ -98,7 +99,11 @@ class ReleaseOverview extends AsyncView<Props> {
                 <StyledBody>
                   <Main>
                     {isReleaseArchived(release) && (
-                      <ReleaseArchivedNotice onRestore={refetchData} />
+                      <ReleaseArchivedNotice
+                        onRestore={() =>
+                          restoreRelease(organization.slug, release.version, refetchData)
+                        }
+                      />
                     )}
 
                     {(hasDiscover || hasHealthData) && (

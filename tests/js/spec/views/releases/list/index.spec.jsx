@@ -178,7 +178,7 @@ describe('ReleasesList', function () {
     expect(endpointMock).toHaveBeenLastCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
-        query: expect.objectContaining({archived: 1}),
+        query: expect.objectContaining({status: 'archived'}),
       })
     );
 

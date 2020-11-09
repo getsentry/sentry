@@ -7,7 +7,7 @@ import {forceCheck} from 'react-lazyload';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
-import {Organization, Release, GlobalSelection} from 'app/types';
+import {Organization, Release, GlobalSelection, ReleaseStatus} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
@@ -71,7 +71,7 @@ class ReleasesList extends AsyncView<Props, State> {
       per_page: 25,
       health: 1,
       flatten: sort === 'date' ? 0 : 1,
-      archived: display === 'archived' ? 1 : 0,
+      status: display === 'archived' ? ReleaseStatus.Archived : ReleaseStatus.Active,
     };
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
