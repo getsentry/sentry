@@ -30,7 +30,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     """
 
-    @transaction_start("GroupIntegrationDetailsEndpoint")
+    @transaction_start("ProjectStacktraceLinkEndpoint")
     def get(self, request, project):
         # should probably feature gate
         filepath = request.GET.get("file")
