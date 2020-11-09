@@ -21,6 +21,7 @@ describe('ReleasesList', function () {
         healthStatsPeriod: '24h',
         healthStat: 'sessions',
         somethingBad: 'XXX',
+        display: 'active',
       },
     },
   };
@@ -152,7 +153,7 @@ describe('ReleasesList', function () {
       })
     );
 
-    const sortDropdown = wrapper.find('DropdownControl').first();
+    const sortDropdown = wrapper.find('ReleaseListSortOptions').first();
     const sortOptions = sortDropdown.find('DropdownItem span');
     const sortByDateOption = sortOptions.at(0);
 
@@ -164,6 +165,49 @@ describe('ReleasesList', function () {
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         sort: 'date',
+      }),
+    });
+  });
+
+  it('displays archived releases', function () {
+    const archivedWrapper = mountWithTheme(
+      <ReleasesList {...props} location={{query: {display: 'archived'}}} />,
+      routerContext
+    );
+
+    expect(endpointMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/releases/',
+      expect.objectContaining({
+        query: expect.objectContaining({archived: 1}),
+      })
+    );
+
+    expect(archivedWrapper.find('ReleaseArchivedNotice').exists()).toBeTruthy();
+
+    const displayOptions = archivedWrapper
+      .find('ReleaseListDisplayOptions')
+      .first()
+      .find('DropdownItem span');
+    const displayActiveOption = displayOptions.at(0);
+    const displayArchivedOption = displayOptions.at(1);
+
+    expect(displayOptions).toHaveLength(2);
+    expect(displayActiveOption.text()).toEqual('Active');
+    expect(displayArchivedOption.text()).toEqual('Archived');
+
+    displayActiveOption.simulate('click');
+    expect(router.push).toHaveBeenLastCalledWith({
+      query: expect.objectContaining({
+        display: 'active',
+      }),
+    });
+
+    expect(wrapper.find('ReleaseArchivedNotice').exists()).toBeFalsy();
+
+    displayArchivedOption.simulate('click');
+    expect(router.push).toHaveBeenLastCalledWith({
+      query: expect.objectContaining({
+        display: 'archived',
       }),
     });
   });

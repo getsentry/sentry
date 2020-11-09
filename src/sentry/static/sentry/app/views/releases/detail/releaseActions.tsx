@@ -41,7 +41,7 @@ function ReleaseActions({orgId, release, refetchData}: Props) {
     return (
       <React.Fragment>
         {visibleProjects.map(project => (
-          <ProjectBadge key={project.id} project={project} avatarSize={18} />
+          <ProjectBadge key={project.slug} project={project} avatarSize={18} />
         ))}
         {numberOfCollapsedProjects > 0 && (
           <span>
