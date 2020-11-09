@@ -17,7 +17,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-pytestmark = pytest.mark.skip(reason="Deadlock on Travis")
+# pytestmark = pytest.mark.skip(reason="Deadlock on Travis")
 
 
 @pytest.fixture(autouse=True)
@@ -113,11 +113,9 @@ def test_basic(
     with burst_task_runner() as burst:
         reprocess_group(default_project.id, event.group_id)
 
-    burst()
+    burst(max_jobs=10)
 
-    new_events = get_event_by_processing_counter("x1")
-
-    (event,) = new_events
+    (event,) = get_event_by_processing_counter("x1")
 
     # Assert original data is used
     assert event.get_tag("processing_counter") == "x1"
@@ -130,11 +128,10 @@ def test_basic(
 
     assert event.group_id != old_event.group_id
 
-    assert event.get_tag("original_event_id") == old_event.event_id
+    assert event.event_id == old_event.event_id
     assert int(event.get_tag("original_group_id")) == old_event.group_id
 
     assert not Group.objects.filter(id=old_event.group_id).exists()
-    assert not eventstore.get_event_by_id(default_project.id, old_event.event_id)
 
     assert is_group_finished(old_event.group_id)
 

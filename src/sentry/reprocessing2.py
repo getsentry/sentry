@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import uuid
 import hashlib
 import logging
 import sentry_sdk
@@ -91,23 +90,19 @@ def reprocess_event(project_id, event_id, start_time):
 
     # Step 1: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
-    orig_event_id = data["event_id"]
-    set_tag(data, "original_event_id", orig_event_id)
+    event_id = data["event_id"]
 
-    event = eventstore.get_event_by_id(project_id, orig_event_id)
+    event = eventstore.get_event_by_id(project_id, event_id)
     if event is None:
         return
 
     set_tag(data, "original_group_id", event.group_id)
 
-    # XXX: reuse event IDs
-    event_id = data["event_id"] = uuid.uuid4().hex
-
     cache_key = event_processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache
     queryset = models.EventAttachment.objects.filter(
-        project_id=project_id, event_id=orig_event_id
+        project_id=project_id, event_id=event_id
     ).select_related("file")
 
     attachment_objects = []
@@ -170,14 +165,9 @@ def _copy_attachment_into_cache(attachment_id, attachment, cache_key, cache_time
 
 
 def is_reprocessed_event(data):
-    return bool(_get_original_event_id(data))
-
-
-def _get_original_event_id(data):
     from sentry.event_manager import get_tag
 
-    # XXX: Get rid of this tag once we reuse event IDs
-    return get_tag(data, "original_event_id")
+    return bool(get_tag(data, "original_group_id"))
 
 
 def _get_original_group_id(data):
