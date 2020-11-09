@@ -3,7 +3,7 @@ import {css} from '@emotion/core';
 import {Theme} from 'app/utils/theme';
 
 const commonSymbolStyle = css`
-  li {
+  & > li {
     padding-left: 34px;
     :before {
       border-radius: 50%;
@@ -14,7 +14,7 @@ const commonSymbolStyle = css`
 
 const bulletStyle = (theme: Theme) => css`
   ${commonSymbolStyle}
-  li:before {
+  & > li:before {
     content: '';
     width: 6px;
     height: 6px;
@@ -26,7 +26,7 @@ const bulletStyle = (theme: Theme) => css`
 
 const numericStyle = (theme: Theme, isSolid = false) => css`
   ${commonSymbolStyle}
-  li:before {
+  & > li:before {
     counter-increment: numberedList;
     content: counter(numberedList);
     display: flex;
