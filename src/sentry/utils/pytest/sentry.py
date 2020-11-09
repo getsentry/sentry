@@ -278,11 +278,11 @@ def pytest_collection_modifyitems(config, items):
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
-    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "file")
+    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "individual")
 
     accepted, keep, discard = [], [], []
 
-    for index, item in enumerate(items):
+    for item in enumerate(items):
         # XXX: For some reason tests in `tests/acceptance` are not being
         # marked as snuba, so deselect test cases not a subclass of SnubaTestCase
         if os.environ.get("RUN_SNUBA_TESTS_ONLY"):

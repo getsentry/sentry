@@ -96,7 +96,6 @@ jobs:
 
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
-      TEST_GROUP_STRATEGY: individual
 
     steps:
       - uses: actions/checkout@v2
