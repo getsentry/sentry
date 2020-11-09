@@ -2,7 +2,6 @@ import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
 import Link from 'app/components/links/link';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {SectionHeading} from 'app/components/charts/styles';
@@ -86,17 +85,15 @@ function UserStats({totals, location, organization, transactionName}: Props) {
         <SectionHeading>{t('Apdex Score')}</SectionHeading>
         <StatNumber>{apdex}</StatNumber>
       </div>
-      <Feature features={['measurements']} organization={organization}>
-        {vitalsPassRate !== null && (
-          <div>
-            <SectionHeading>{t('Web Vitals')}</SectionHeading>
-            <StatNumber>{vitalsPassRate}</StatNumber>
-            <Link to={webVitalsTarget}>
-              <SectionValue>{t('Passed')}</SectionValue>
-            </Link>
-          </div>
-        )}
-      </Feature>
+      {vitalsPassRate !== null && (
+        <div>
+          <SectionHeading>{t('Web Vitals')}</SectionHeading>
+          <StatNumber>{vitalsPassRate}</StatNumber>
+          <Link to={webVitalsTarget}>
+            <SectionValue>{t('Passed')}</SectionValue>
+          </Link>
+        </div>
+      )}
       <UserMiseryContainer>
         <SectionHeading>
           {t('User Misery')}
