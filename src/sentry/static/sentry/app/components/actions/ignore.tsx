@@ -4,7 +4,11 @@ import classNames from 'classnames';
 import styled from '@emotion/styled';
 
 import {IconNot} from 'app/icons';
-import {ResolutionStatusDetails} from 'app/types';
+import {
+  ResolutionStatus,
+  ResolutionStatusDetails,
+  UpdateResolutionStatus,
+} from 'app/types';
 import {t, tn} from 'app/locale';
 import MenuItem from 'app/components/menuItem';
 import DropdownLink from 'app/components/dropdownLink';
@@ -34,13 +38,8 @@ const defaultProps = {
   confirmLabel: t('Ignore'),
 };
 
-type UpdateParams = {
-  status: string;
-  statusDetails?: ResolutionStatusDetails;
-};
-
 type Props = {
-  onUpdate: (params: UpdateParams) => void;
+  onUpdate: (params: UpdateResolutionStatus) => void;
   disabled?: boolean;
   shouldConfirm?: boolean;
   confirmMessage?: React.ReactNode;
@@ -75,7 +74,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
 
   onIgnore(statusDetails: ResolutionStatusDetails) {
     return this.props.onUpdate({
-      status: 'ignored',
+      status: ResolutionStatus.IGNORED,
       statusDetails: statusDetails || {},
     });
   }
@@ -109,7 +108,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
             <a
               className={linkClassName}
               data-test-id="button-unresolve"
-              onClick={() => onUpdate({status: 'unresolved'})}
+              onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
             >
               <SoloIconNot size="xs" />
             </a>
@@ -146,17 +145,17 @@ export default class IgnoreActions extends React.Component<Props, State> {
           windowChoices={IGNORE_WINDOWS}
         />
         <div className="btn-group">
-          <ActionLink
+          <StyledActionLink
             {...actionLinkProps}
             title={t('Ignore')}
             className={linkClassName}
-            onAction={() => onUpdate({status: 'ignored'})}
+            onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
           >
             <StyledIconNot size="xs" />
             {t('Ignore')}
-          </ActionLink>
+          </StyledActionLink>
 
-          <DropdownLink
+          <StyledDropdownLink
             caret
             className={linkClassName}
             title=""
@@ -291,7 +290,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 </MenuItem>
               </DropdownLink>
             </li>
-          </DropdownLink>
+          </StyledDropdownLink>
         </div>
       </div>
     );
@@ -311,4 +310,14 @@ const StyledIconNot = styled(IconNot)`
 const SoloIconNot = styled(IconNot)`
   position: relative;
   top: 1px;
+`;
+
+const StyledActionLink = styled(ActionLink)`
+  display: flex;
+  align-items: center;
+  transition: none;
+`;
+
+const StyledDropdownLink = styled(DropdownLink)`
+  transition: none;
 `;

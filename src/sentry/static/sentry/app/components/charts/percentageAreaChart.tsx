@@ -1,27 +1,36 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
+import {EChartOption} from 'echarts';
+
+import {Series, SeriesDataUnit} from 'app/types/echarts';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
 
 const FILLER_NAME = '__filler';
 
+type ChartProps = React.ComponentProps<typeof BaseChart>;
+
+export type AreaChartSeries = Series & Omit<EChartOption.SeriesLine, 'data' | 'name'>;
+
+type DefaultProps = {
+  getDataItemName: ({name}: SeriesDataUnit) => SeriesDataUnit['name'];
+  getValue: ({value}: SeriesDataUnit, total?: number) => number;
+};
+
+type Props = Omit<ChartProps, 'series'> &
+  DefaultProps & {
+    stacked?: boolean;
+    series: AreaChartSeries[];
+  };
+
 /**
  * A stacked 100% column chart over time
  *
  * See https://exceljet.net/chart-type/100-stacked-bar-chart
  */
-export default class PercentageAreaChart extends React.Component {
-  static get defaultProps() {
-    // TODO(billyvg): Move these into BaseChart? or get rid completely
-    return {
-      getDataItemName: ({name}) => name,
-      getValue: ({value}, total) =>
-        !total ? 0 : Math.round((value / total) * 1000) / 10,
-    };
-  }
-
+export default class PercentageAreaChart extends React.Component<Props> {
   static propTypes = {
     ...BaseChart.propTypes,
 
@@ -29,26 +38,31 @@ export default class PercentageAreaChart extends React.Component {
     getValue: PropTypes.func,
   };
 
+  static defaultProps: DefaultProps = {
+    // TODO(billyvg): Move these into BaseChart? or get rid completely
+    getDataItemName: ({name}) => name,
+    getValue: ({value}, total) => (!total ? 0 : Math.round((value / total) * 1000) / 10),
+  };
+
   getSeries() {
     const {series, getDataItemName, getValue} = this.props;
 
-    const totalsArray = series.length
+    const totalsArray: [string | number, number][] = series.length
       ? series[0].data.map(({name}, i) => [
           name,
           series.reduce((sum, {data}) => sum + data[i].value, 0),
         ])
       : [];
-    const totals = new Map(totalsArray);
+    const totals = new Map<string | number, number>(totalsArray);
     return [
       ...series.map(({seriesName, data}) =>
         AreaSeries({
-          barCategoryGap: 0,
           name: seriesName,
           lineStyle: {width: 1},
           areaStyle: {opacity: 1},
           smooth: true,
           stack: 'percentageAreaChartStack',
-          data: data.map(dataObj => [
+          data: data.map((dataObj: SeriesDataUnit) => [
             getDataItemName(dataObj),
             getValue(dataObj, totals.get(dataObj.name)),
           ]),

@@ -12,14 +12,14 @@ const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
 const getIcon = (percent: number) => {
   if (percent < CRASH_FREE_DANGER_THRESHOLD) {
-    return <IconFire color="red400" />;
+    return <IconFire color="red300" />;
   }
 
   if (percent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning color="yellow400" />;
+    return <IconWarning color="yellow300" />;
   }
 
-  return <IconCheckmark isCircled color="green400" />;
+  return <IconCheckmark isCircled color="green300" />;
 };
 
 type Props = {

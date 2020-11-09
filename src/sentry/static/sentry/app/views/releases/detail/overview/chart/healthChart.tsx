@@ -6,6 +6,7 @@ import {Location} from 'history';
 import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
+import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {defined} from 'app/utils';
@@ -97,7 +98,7 @@ class HealthChart extends React.Component<Props> {
     }
   };
 
-  configureYAxis = () => {
+  configureYAxis() {
     const {yAxis} = this.props;
     switch (yAxis) {
       case YAxis.CRASH_FREE:
@@ -122,9 +123,28 @@ class HealthChart extends React.Component<Props> {
       default:
         return undefined;
     }
-  };
+  }
 
-  getChart = () => {
+  configureXAxis() {
+    const {timeseriesData, zoomRenderProps} = this.props;
+
+    if (timeseriesData.every(s => s.data.length === 1)) {
+      if (zoomRenderProps.period) {
+        const {start, end} = parseStatsPeriod(zoomRenderProps.period, null);
+
+        return {min: start, max: end};
+      }
+
+      return {
+        min: zoomRenderProps.start,
+        max: zoomRenderProps.end,
+      };
+    }
+
+    return undefined;
+  }
+
+  getChart() {
     const {yAxis} = this.props;
     switch (yAxis) {
       case YAxis.SESSION_DURATION:
@@ -136,7 +156,7 @@ class HealthChart extends React.Component<Props> {
       default:
         return LineChart;
     }
-  };
+  }
 
   render() {
     const {utc, timeseriesData, zoomRenderProps, location} = this.props;
@@ -153,7 +173,7 @@ class HealthChart extends React.Component<Props> {
 
     const legend = {
       right: 22,
-      top: 12,
+      top: 10,
       icon: 'circle',
       itemHeight: 8,
       itemWidth: 8,
@@ -185,8 +205,10 @@ class HealthChart extends React.Component<Props> {
           bottom: '12px',
         }}
         yAxis={this.configureYAxis()}
+        xAxis={this.configureXAxis()}
         tooltip={{valueFormatter: this.formatTooltipValue}}
         onLegendSelectChanged={this.handleLegendSelectChanged}
+        transformSinglePointToBar
       />
     );
   }

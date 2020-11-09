@@ -355,7 +355,7 @@ class CellAction extends React.Component<Props, State> {
           <Reference>
             {({ref}) => (
               <MenuButton ref={ref} onClick={this.handleMenuToggle}>
-                <IconEllipsis size="sm" data-test-id="cell-action" color="blue400" />
+                <IconEllipsis size="sm" data-test-id="cell-action" color="blue300" />
               </MenuButton>
             )}
           </Reference>

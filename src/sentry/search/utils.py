@@ -68,6 +68,15 @@ def parse_duration(value, interval):
     return delta.total_seconds() * 1000.0
 
 
+def parse_percentage(value):
+    try:
+        value = float(value)
+    except ValueError:
+        raise InvalidQuery(u"{} is not a valid percentage value".format(value))
+
+    return value / 100
+
+
 def parse_datetime_range(value):
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]
@@ -427,6 +436,8 @@ def parse_query(projects, query, user, environments):
                     results["unassigned"] = True
                 elif value == "assigned":
                     results["unassigned"] = False
+                elif value == "inbox":
+                    results["inbox"] = True
                 else:
                     try:
                         results["status"] = STATUS_CHOICES[value]

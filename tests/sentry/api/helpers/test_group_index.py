@@ -90,6 +90,7 @@ class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_unresolved_group(self, send_robust):
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
+        add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
 
         request = self.make_request(user=self.user, method="GET")
@@ -103,6 +104,7 @@ class UpdateGroupsTest(TestCase):
         unresolved_group.refresh_from_db()
 
         assert unresolved_group.status == GroupStatus.RESOLVED
+        assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
 
     @patch("sentry.signals.issue_ignored.send_robust")

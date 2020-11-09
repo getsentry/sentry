@@ -135,7 +135,7 @@ const EmailWarningIcon = styled('span')`
   line-height: 12px;
   border-radius: 50%;
   border: 1px solid ${p => p.theme.white};
-  background: ${p => p.theme.yellow300};
+  background: ${p => p.theme.yellow200};
   padding: 1px 2px 3px 2px;
 `;
 

@@ -34,7 +34,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
   }
 
   if (issue.numIssues > 0) {
-    icon = <IconWarning size="sm" color="red400" />;
+    icon = <IconWarning size="sm" color="red300" />;
     text = tn(
       'There is %s issue blocking event processing',
       'There are %s issues blocking event processing',
@@ -52,7 +52,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
     alertType = 'error';
     showButton = true;
   } else if (issue.issuesProcessing > 0) {
-    icon = <IconSettings size="sm" color="blue400" />;
+    icon = <IconSettings size="sm" color="blue300" />;
     alertType = 'info';
     text = tn(
       'Reprocessing %s event …',
@@ -60,7 +60,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
       issue.issuesProcessing
     );
   } else if (issue.resolveableIssues > 0) {
-    icon = <IconSettings size="sm" color="yellow400" />;
+    icon = <IconSettings size="sm" color="yellow300" />;
     alertType = 'warning';
     text = tn(
       'There is %s event pending reprocessing.',

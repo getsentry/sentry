@@ -6,6 +6,7 @@ import {
   explodeField,
   aggregateOutputType,
   aggregateMultiPlotType,
+  generateAggregateFields,
 } from 'app/utils/discover/fields';
 
 describe('getAggregateAlias', function () {
@@ -129,6 +130,11 @@ describe('aggregateOutputType', function () {
     expect(aggregateOutputType('p95()')).toEqual('duration');
     expect(aggregateOutputType('p99()')).toEqual('duration');
     expect(aggregateOutputType('p100()')).toEqual('duration');
+    expect(aggregateOutputType('p50(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p75(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p95(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p99(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p100(transaction.duration)')).toEqual('duration');
     expect(aggregateOutputType('percentile(transaction.duration, 0.51)')).toEqual(
       'duration'
     );
@@ -171,6 +177,11 @@ describe('aggregateOutputType', function () {
     expect(aggregateOutputType('max(measurements.bar)')).toEqual('number');
     expect(aggregateOutputType('avg(measurements.bar)')).toEqual('number');
     expect(aggregateOutputType('percentile(measurements.bar, 0.5)')).toEqual('number');
+    expect(aggregateOutputType('p50(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p75(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p95(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p99(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p100(measurements.bar)')).toEqual('number');
   });
 });
 
@@ -182,5 +193,24 @@ describe('aggregateMultiPlotType', function () {
   it('handles known functions', function () {
     expect(aggregateMultiPlotType('sum(transaction.duration)')).toBe('area');
     expect(aggregateMultiPlotType('p95()')).toBe('line');
+  });
+});
+
+describe('generateAggregateFields', function () {
+  const organization = TestStubs.Organization();
+  it('gets default aggregates', function () {
+    expect(generateAggregateFields(organization, [])).toContainEqual({field: 'count()'});
+  });
+
+  it('includes fields from eventFields', function () {
+    expect(
+      generateAggregateFields(organization, [{field: 'not_real_aggregate()'}])
+    ).toContainEqual({field: 'not_real_aggregate()'});
+  });
+
+  it('excludes fields from aggregates', function () {
+    expect(generateAggregateFields(organization, [], ['count()'])).not.toContainEqual({
+      field: 'count()',
+    });
   });
 });

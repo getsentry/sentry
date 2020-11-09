@@ -84,7 +84,7 @@ function GroupReleaseChart(props: Props) {
       markers.push({
         name: t('First seen'),
         value: firstSeenX,
-        color: theme.pink400,
+        color: theme.pink300,
       });
     }
   }
@@ -95,7 +95,7 @@ function GroupReleaseChart(props: Props) {
       markers.push({
         name: t('Last seen'),
         value: lastSeenX,
-        color: theme.green400,
+        color: theme.green300,
       });
     }
   }

@@ -23,7 +23,7 @@ export function getFrameHint(frame: Frame) {
   const func = frame.function || '<unknown>';
   // Custom color used to match adjacent text.
   const warningIcon = <IconQuestion size="xs" color={'#2c45a8' as any} />;
-  const errorIcon = <IconWarning size="xs" color="red400" />;
+  const errorIcon = <IconWarning size="xs" color="red300" />;
 
   if (func.match(/^@objc\s/)) {
     return [t('Objective-C -> Swift shim frame'), warningIcon];

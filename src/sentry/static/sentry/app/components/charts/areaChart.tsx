@@ -1,10 +1,22 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {EChartOption} from 'echarts';
+
+import {Series} from 'app/types/echarts';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
 
-class AreaChart extends React.Component {
+type ChartProps = React.ComponentProps<typeof BaseChart>;
+
+export type AreaChartSeries = Series & Omit<EChartOption.SeriesLine, 'data' | 'name'>;
+
+type Props = Omit<ChartProps, 'series'> & {
+  stacked?: boolean;
+  series: AreaChartSeries[];
+};
+
+class AreaChart extends React.Component<Props> {
   static propTypes = {
     ...BaseChart.propTypes,
     stacked: PropTypes.bool,
@@ -18,7 +30,7 @@ class AreaChart extends React.Component {
         {...props}
         series={series.map(({seriesName, data, ...otherSeriesProps}, i) =>
           AreaSeries({
-            stack: stacked ? 'area' : false,
+            stack: stacked ? 'area' : undefined,
             name: seriesName,
             data: data.map(({name, value}) => [name, value]),
             color: colors && colors[i],

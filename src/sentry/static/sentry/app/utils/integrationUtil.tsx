@@ -20,6 +20,14 @@ import {
 import {Hooks} from 'app/types/hooks';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
+import {
+  IconBitbucket,
+  IconGeneric,
+  IconGithub,
+  IconGitlab,
+  IconJira,
+  IconVsts,
+} from 'app/icons';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
 
@@ -332,5 +340,24 @@ export const safeGetQsParam = (param: string) => {
     return query[param];
   } catch {
     return undefined;
+  }
+};
+
+export const getIntegrationIcon = (integrationType?: string) => {
+  switch (integrationType) {
+    case 'bitbucket':
+      return <IconBitbucket size="md" />;
+    case 'gitlab':
+      return <IconGitlab size="md" />;
+    case 'github':
+    case 'github_enterprise':
+      return <IconGithub size="md" />;
+    case 'jira':
+    case 'jira_server':
+      return <IconJira size="md" />;
+    case 'vsts':
+      return <IconVsts size="md" />;
+    default:
+      return <IconGeneric size="md" />;
   }
 };

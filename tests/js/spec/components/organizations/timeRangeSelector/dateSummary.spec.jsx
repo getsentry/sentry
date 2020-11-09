@@ -12,7 +12,7 @@ describe('DateSummary', function () {
   const routerContext = TestStubs.routerContext();
 
   const createWrapper = (props = {}) =>
-    mount(<DateSummary utc start={start} end={end} {...props} />, routerContext);
+    mount(<DateSummary start={start} end={end} {...props} />, routerContext);
 
   it('renders', async function () {
     wrapper = createWrapper();

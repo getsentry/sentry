@@ -53,7 +53,7 @@ function Footer() {
 const FooterLink = styled(ExternalLink)`
   &.focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue400} 0 2px 0;
+    box-shadow: ${p => p.theme.blue300} 0 2px 0;
   }
 `;
 

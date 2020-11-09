@@ -115,7 +115,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
         response = self.do_request(query)
-        assert response.status_code == 400, response.content
+        assert response.status_code == 500, response.content
         assert response.data["detail"] == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QueryIllegalTypeOfArgument("test")

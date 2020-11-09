@@ -21,7 +21,7 @@ import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
 import {IconRefresh, IconChevron} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Frame, SentryAppComponent, PlatformType} from 'app/types';
+import {Frame, SentryAppComponent, PlatformType, Event} from 'app/types';
 import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
 
 import Context from './context';
@@ -31,6 +31,7 @@ import Symbol, {FunctionNameToggleIcon} from './symbol';
 
 type Props = {
   data: Frame;
+  event: Event;
   registers: Record<string, string>;
   components: Array<SentryAppComponent>;
   nextFrame?: Frame;
@@ -337,6 +338,7 @@ export class Line extends React.Component<Props, State> {
         {this.renderLine()}
         <Context
           frame={data}
+          event={this.props.event}
           registers={this.props.registers}
           components={this.props.components}
           hasContextSource={this.hasContextSource()}

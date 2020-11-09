@@ -41,7 +41,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 
   const otherTrendsQuery = addDefaultQuery
     ? {
-        query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+        query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
       }
     : {};
 
@@ -100,7 +100,7 @@ describe('Performance > Landing', function () {
             user: 'string',
             transaction: 'string',
             'project.id': 'integer',
-            epm: 'number',
+            tpm: 'number',
             p50: 'number',
             p95: 'number',
             failure_rate: 'number',
@@ -113,7 +113,7 @@ describe('Performance > Landing', function () {
               transaction: '/apple/cart',
               'project.id': 1,
               user: 'uhoh@example.com',
-              epm: 30,
+              tpm: 30,
               p50: 100,
               p95: 500,
               failure_rate: 0.1,
@@ -143,7 +143,7 @@ describe('Performance > Landing', function () {
             user: 'string',
             transaction: 'string',
             'project.id': 'integer',
-            epm: 'number',
+            tpm: 'number',
             p50: 'number',
             p95: 'number',
             failure_rate: 'number',
@@ -157,7 +157,7 @@ describe('Performance > Landing', function () {
               transaction: '/apple/cart',
               'project.id': 1,
               user: 'uhoh@example.com',
-              epm: 30,
+              tpm: 30,
               p50: 100,
               p95: 500,
               failure_rate: 0.1,
@@ -170,7 +170,7 @@ describe('Performance > Landing', function () {
               transaction: '/apple/checkout',
               'project.id': 1,
               user: 'uhoh@example.com',
-              epm: 30,
+              tpm: 30,
               p50: 100,
               p95: 500,
               failure_rate: 0.1,
@@ -346,7 +346,7 @@ describe('Performance > Landing', function () {
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
     const data = initializeTrendsData({
-      query: `epm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+      query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
       statsPeriod: '24h',
     });
 
@@ -368,7 +368,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: `epm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+          query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           statsPeriod: '24h',
           view: 'TRENDS',
         },
@@ -429,7 +429,7 @@ describe('Performance > Landing', function () {
       1,
       expect.objectContaining({
         query: {
-          query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           view: 'TRENDS',
         },
       })
@@ -487,7 +487,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           view: 'TRENDS',
         },
       })
@@ -498,7 +498,7 @@ describe('Performance > Landing', function () {
     const data = initializeTrendsData(
       {
         view: FilterViews.TRENDS,
-        query: `device.family:Mac epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+        query: `device.family:Mac tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
       },
       false
     );

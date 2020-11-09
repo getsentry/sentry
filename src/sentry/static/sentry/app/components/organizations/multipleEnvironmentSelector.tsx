@@ -13,53 +13,62 @@ import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import HeaderItem from 'app/components/organizations/headerItem';
 import Highlight from 'app/components/highlight';
 import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
-import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {IconWindow} from 'app/icons';
+import {Organization, Project} from 'app/types';
+import {Client} from 'app/api';
+import {MenuFooterChildProps} from 'app/components/dropdownAutoComplete/menu';
+import {Item} from 'app/components/dropdownAutoComplete/types';
+
+type DefaultProps = {
+  /**
+   * This component must be controlled using a value array
+   */
+  value: string[];
+};
+
+type Props = {
+  api: Client;
+  organization: Organization;
+  projects: Project[];
+  loadingProjects: boolean;
+  selectedProjects: number[];
+  /**
+   * Handler whenever selector values are changed
+   */
+  onChange: (environments: string[]) => void;
+  /**
+   * When menu is closed
+   */
+  onUpdate: () => void;
+} & DefaultProps;
+
+type State = {
+  hasChanges: boolean;
+  selectedEnvs: Set<string>;
+};
 
 /**
  * Environment Selector
  *
  * Note we only fetch environments when this component is mounted
  */
-class MultipleEnvironmentSelector extends React.PureComponent {
-  static propTypes = {
-    // Handler whenever selector values are changed
-    onChange: PropTypes.func.isRequired,
-
-    organization: SentryTypes.Organization,
-
-    projects: PropTypes.arrayOf(SentryTypes.Project),
-
-    loadingProjects: PropTypes.bool,
-
-    selectedProjects: PropTypes.arrayOf(PropTypes.number),
-
-    // This component must be controlled using a value array
-    value: PropTypes.array,
-
-    // When menu is closed
-    onUpdate: PropTypes.func,
-  };
-
+class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
   static contextTypes = {
     router: PropTypes.object,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     value: [],
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      selectedEnvs: new Set(props.value),
-      hasChanges: false,
-    };
-  }
+  state: State = {
+    selectedEnvs: new Set(this.props.value),
+    hasChanges: false,
+  };
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     // Need to sync state
     if (this.props.value !== prevProps.value) {
       this.syncSelectedStateFromProps();
@@ -72,8 +81,8 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   /**
    * If value in state is different than value from props, propagate changes
    */
-  doChange = (value, e) => {
-    this.props.onChange(value, e);
+  doChange = (environments: string[]) => {
+    this.props.onChange(environments);
   };
 
   /**
@@ -86,23 +95,23 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   /**
    * Toggle selected state of an environment
    */
-  toggleSelected = (env, e) => {
+  toggleSelected = (environment: string) => {
     this.setState(state => {
       const selectedEnvs = new Set(state.selectedEnvs);
 
-      if (selectedEnvs.has(env)) {
-        selectedEnvs.delete(env);
+      if (selectedEnvs.has(environment)) {
+        selectedEnvs.delete(environment);
       } else {
-        selectedEnvs.add(env);
+        selectedEnvs.add(environment);
       }
 
       analytics('environmentselector.toggle', {
-        action: selectedEnvs.has(env) ? 'added' : 'removed',
+        action: selectedEnvs.has(environment) ? 'added' : 'removed',
         path: getRouteStringFromRoutes(this.context.router.routes),
         org_id: parseInt(this.props.organization.id, 10),
       });
 
-      this.doChange(Array.from(selectedEnvs.values()), e);
+      this.doChange(Array.from(selectedEnvs.values()));
 
       return {
         selectedEnvs,
@@ -114,7 +123,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   /**
    * Calls "onUpdate" callback and closes the dropdown menu
    */
-  handleUpdate = actions => {
+  handleUpdate = (actions: MenuFooterChildProps['actions']) => {
     actions.close();
     this.doUpdate();
   };
@@ -158,17 +167,18 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   /**
    * Selects an environment, should close menu and initiate an update
    */
-  handleSelect = ({value: env}, e) => {
+  handleSelect = (item: Item) => {
+    const {value: environment} = item;
     analytics('environmentselector.direct_selection', {
       path: getRouteStringFromRoutes(this.context.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
 
     this.setState(() => {
-      this.doChange([env], e);
+      this.doChange([environment]);
 
       return {
-        selectedEnvs: new Set([env]),
+        selectedEnvs: new Set([environment]),
       };
     }, this.doUpdate);
   };
@@ -177,13 +187,13 @@ class MultipleEnvironmentSelector extends React.PureComponent {
    * Handler for when an environment is selected by the multiple select component
    * Does not initiate an "update"
    */
-  handleMultiSelect = (env, e) => {
-    this.toggleSelected(env, e);
+  handleMultiSelect = (environment: string) => {
+    this.toggleSelected(environment);
   };
 
   getEnvironments() {
     const {projects, selectedProjects} = this.props;
-    let environments = [];
+    let environments: Project['environments'] = [];
     projects.forEach(function (project) {
       const projectId = parseInt(project.id, 10);
 
@@ -219,6 +229,10 @@ class MultipleEnvironmentSelector extends React.PureComponent {
         data-test-id="global-header-environment-selector"
         icon={<IconWindow />}
         loading={loadingProjects}
+        hasChanges={false}
+        hasSelected={false}
+        isOpen={false}
+        locked={false}
       >
         {t('Loading\u2026')}
       </StyledHeaderItem>
@@ -239,17 +253,15 @@ class MultipleEnvironmentSelector extends React.PureComponent {
               display: flex;
               left: -1px;
             `}
-            zIndex={theme.zIndex.dropdown}
             inputProps={{style: {padding: 8, paddingLeft: 14}}}
             emptyMessage={t('You have no environments')}
             noResultsMessage={t('No environments found')}
             virtualizedHeight={theme.headerSelectorRowHeight}
             emptyHidesInput
-            menuProps={{style: {position: 'relative'}}}
             menuFooter={({actions}) =>
-              this.state.hasChanges && (
+              this.state.hasChanges ? (
                 <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
-              )
+              ) : null
             }
             items={environments.map(env => ({
               value: env,
@@ -257,7 +269,6 @@ class MultipleEnvironmentSelector extends React.PureComponent {
               label: ({inputValue}) => (
                 <EnvironmentSelectorItem
                   environment={env}
-                  multi
                   inputValue={inputValue}
                   isChecked={this.state.selectedEnvs.has(env)}
                   onMultiSelect={this.handleMultiSelect}
@@ -272,6 +283,9 @@ class MultipleEnvironmentSelector extends React.PureComponent {
                 isOpen={isOpen}
                 hasSelected={value && !!value.length}
                 onClear={this.handleClear}
+                hasChanges={false}
+                locked={false}
+                loading={false}
                 {...getActorProps()}
               >
                 {summary}
@@ -291,7 +305,7 @@ const StyledHeaderItem = styled(HeaderItem)`
 `;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
-  background: #fff;
+  background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   position: absolute;
   top: 100%;
@@ -301,22 +315,22 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   min-width: 100%;
 `;
 
-class EnvironmentSelectorItem extends React.PureComponent {
-  static propTypes = {
-    onMultiSelect: PropTypes.func.isRequired,
-    environment: PropTypes.string.isRequired,
-    inputValue: PropTypes.string,
-    isChecked: PropTypes.bool,
-  };
+type EnvironmentSelectorItemProps = {
+  environment: string;
+  inputValue: string;
+  isChecked: boolean;
+  onMultiSelect: (environment: string) => void;
+};
 
-  handleMultiSelect = e => {
+class EnvironmentSelectorItem extends React.PureComponent<EnvironmentSelectorItemProps> {
+  handleMultiSelect = () => {
     const {environment, onMultiSelect} = this.props;
-    onMultiSelect(environment, e);
+    onMultiSelect(environment);
   };
 
-  handleClick = e => {
+  handleClick = (e: React.MouseEvent<Element, MouseEvent>) => {
     e.stopPropagation();
-    this.handleMultiSelect(e);
+    this.handleMultiSelect();
   };
 
   render() {

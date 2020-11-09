@@ -78,12 +78,21 @@ class ProjectStacktraceLinkTest(APITestCase):
             "projectSlug": self.project.slug,
             "repoId": six.text_type(self.repo.id),
             "repoName": self.repo.name,
+            "provider": {
+                "aspects": {},
+                "features": ["commits", "issue-basic"],
+                "name": "Example",
+                "canDisable": False,
+                "key": "example",
+                "slug": "example",
+                "canAdd": True,
+            },
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "organizationIntegrationId": six.text_type(self.oi.id),
+            "integrationId": six.text_type(self.integration.id),
             "defaultBranch": None,
         }
-        assert not response.data["source_url"]
+        assert not response.data["sourceUrl"]
 
     def test_config_and_source_url(self):
         self.login_as(user=self.user)
@@ -100,9 +109,18 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "projectSlug": self.project.slug,
                 "repoId": six.text_type(self.repo.id),
                 "repoName": self.repo.name,
+                "provider": {
+                    "aspects": {},
+                    "features": ["commits", "issue-basic"],
+                    "name": "Example",
+                    "canDisable": False,
+                    "key": "example",
+                    "slug": "example",
+                    "canAdd": True,
+                },
                 "sourceRoot": self.config.source_root,
                 "stackRoot": self.config.stack_root,
-                "organizationIntegrationId": six.text_type(self.oi.id),
+                "integrationId": six.text_type(self.integration.id),
                 "defaultBranch": None,
             }
-            assert response.data["source_url"] == "https://sourceurl.com/"
+            assert response.data["sourceUrl"] == "https://sourceurl.com/"

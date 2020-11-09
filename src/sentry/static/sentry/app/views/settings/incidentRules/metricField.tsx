@@ -23,7 +23,7 @@ import {errorFieldConfig, transactionFieldConfig} from './constants';
 import {Dataset} from './types';
 import {PRESET_AGGREGATES} from './presets';
 
-type Props = Omit<FormField['props'], 'children' | 'help'> & {
+type Props = Omit<FormField['props'], 'children'> & {
   organization: Organization;
 };
 
