@@ -3,14 +3,22 @@ import React from 'react';
 import {Form, FormState} from 'app/components/forms';
 import DefaultIssueActions from 'app/plugins/components/issueActions';
 
+//taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
+type Writable<T> = {-readonly [K in keyof T]: T[K]};
+
 class IssueActions extends DefaultIssueActions {
-  changeField(action, name, value) {
-    const key = action + 'FormData';
+  changeField = (
+    action: DefaultIssueActions['props']['actionType'],
+    name: string,
+    value: any
+  ) => {
+    const key = this.getFormDataKey(action);
     const formData = {
       ...this.state[key],
       [name]: value,
     };
-    const state = {
+    const state: Pick<Writable<DefaultIssueActions['state']>, 'state' | typeof key> = {
+      ...this.state,
       [key]: formData,
     };
     if (name === 'issuetype') {
@@ -21,12 +29,12 @@ class IssueActions extends DefaultIssueActions {
           this.api.request(
             this.getPluginCreateEndpoint() + '?issuetype=' + encodeURIComponent(value),
             {
-              success: data => {
+              success: (data: DefaultIssueActions['state']['unlinkFieldList']) => {
                 // Try not to change things the user might have edited
                 // unless they're no longer valid
                 const oldData = this.state.createFormData;
                 const createFormData = {};
-                data.forEach(field => {
+                data?.forEach(field => {
                   let val;
                   if (
                     field.choices &&
@@ -41,7 +49,7 @@ class IssueActions extends DefaultIssueActions {
                 this.setState(
                   {
                     createFieldList: data,
-                    error: null,
+                    error: undefined,
                     loading: false,
                     createFormData,
                   },
@@ -56,10 +64,10 @@ class IssueActions extends DefaultIssueActions {
       return;
     }
     this.setState(state);
-  }
+  };
 
   renderForm() {
-    let form;
+    let form: JSX.Element | null = null;
 
     // For create form, split into required and optional fields
     if (this.props.actionType === 'create') {
