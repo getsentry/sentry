@@ -76,6 +76,9 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_default_config_fields(self):
         return ["project", "issueType"]
 
+    def get_persisted_user_default_config_fields(self):
+        return ["assignedTo", "reportedBy"]
+
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "example_integration"
         fields = super(ExampleIntegration, self).get_create_issue_config(group, user, **kwargs)
