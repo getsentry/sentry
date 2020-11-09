@@ -344,10 +344,11 @@ const GroupDetailsActions = createReactClass({
         )}
         <div className="btn-group">
           <BookmarkButton
-            isActive={group.isBookmarked}
             className={buttonClassName}
+            role="button"
+            isActive={group.isBookmarked}
             title={bookmarkTitle}
-            label={bookmarkTitle}
+            aria-label={bookmarkTitle}
             onClick={this.onToggleBookmark}
           >
             <IconWrapper>
