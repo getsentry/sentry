@@ -18,7 +18,7 @@ class VstsClient(AuthApiClient):
 
     def request(self, method, path, data=None, params=None):
         headers = {
-            u"Accept": "application/json; api-version={}".format(self.api_version),
+            u"Accept": u"application/json; api-version={}".format(self.api_version),
             "Content-Type": "application/json-patch+json"
             if method == "PATCH"
             else "application/json",
