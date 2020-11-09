@@ -5,12 +5,15 @@ from django.utils import timezone
 from collections import defaultdict
 
 from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
+from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
 class PlatformExternalIssue(Model):
     __core__ = False
 
     group_id = BoundedBigIntegerField()
+    project = FlexibleForeignKey("sentry.Project", null=True, db_constraint=False)
+
     # external service that's linked to the sentry issue
     service_type = models.CharField(max_length=64)
     display_name = models.TextField()
