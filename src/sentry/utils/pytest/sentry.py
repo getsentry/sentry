@@ -282,7 +282,7 @@ def pytest_collection_modifyitems(config, items):
 
     accepted, keep, discard = [], [], []
 
-    for item in enumerate(items):
+    for index, item in enumerate(items):
         # XXX: For some reason tests in `tests/acceptance` are not being
         # marked as snuba, so deselect test cases not a subclass of SnubaTestCase
         if os.environ.get("RUN_SNUBA_TESTS_ONLY"):
