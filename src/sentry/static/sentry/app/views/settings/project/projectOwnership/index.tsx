@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -9,28 +10,27 @@ import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Button from 'app/components/button';
+import {Organization, Project} from 'app/types';
 
-const CodeBlock = styled('pre')`
-  word-break: break-all;
-  white-space: pre-wrap;
-`;
+type Props = {
+  organization: Organization;
+  project: Project;
+} & RouteComponentProps<{}, {}>;
 
-class ProjectOwnership extends AsyncView {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
+type State = {
+  ownership: null | any;
+} & AsyncView['state'];
 
+class ProjectOwnership extends AsyncView<Props, State> {
   getTitle() {
     const {project} = this.props;
     return routeTitleGen(t('Issue Owners'), project.slug, false);
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, project} = this.props;
     return [['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`]];
   }
@@ -42,7 +42,7 @@ class ProjectOwnership extends AsyncView {
     const disabled = !organization.access.includes('project:write');
 
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader
           title={t('Issue Owners')}
           action={
@@ -157,7 +157,7 @@ class ProjectOwnership extends AsyncView {
             ]}
           />
         </Form>
-      </div>
+      </React.Fragment>
     );
   }
 }
@@ -166,4 +166,9 @@ export default ProjectOwnership;
 
 const Block = styled(TextBlock)`
   margin-bottom: 16px;
+`;
+
+const CodeBlock = styled('pre')`
+  word-break: break-all;
+  white-space: pre-wrap;
 `;
