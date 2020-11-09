@@ -77,7 +77,7 @@ describe('SearchBar', function () {
   it('autocompletes measurement names', async function () {
     const initializationObj = initializeOrg({
       organization: {
-        features: ['measurements'],
+        features: ['performance-view'],
       },
     });
     props.organization = initializationObj.organization;

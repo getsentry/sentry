@@ -94,13 +94,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   dragGhostRef = React.createRef<HTMLDivElement>();
 
   get fieldOptions() {
-    const {organization, measurementKeys} = this.props;
     return generateFieldOptions({
       organization: this.props.organization,
       tagKeys: this.props.tagKeys,
-      measurementKeys: organization.features.includes('measurements')
-        ? measurementKeys
-        : undefined,
+      measurementKeys: this.props.measurementKeys,
     });
   }
 

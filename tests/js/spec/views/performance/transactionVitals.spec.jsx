@@ -12,7 +12,7 @@ import {
 } from 'app/views/performance/transactionVitals/constants';
 
 function initialize({project, features, transaction, query} = {}) {
-  features = features || ['measurements'];
+  features = features || ['performance-view'];
   project = project || TestStubs.Project();
   query = query || {};
   const data = initializeOrg({
@@ -140,29 +140,6 @@ describe('Performance > Web Vitals', function () {
     wrapper.update();
 
     expect(wrapper.text()).toEqual("You don't have access to this feature");
-  });
-
-  it('redirects to transaction summary if possible', async function () {
-    const {organization, router} = initialize({
-      features: ['performance-view'],
-    });
-
-    const wrapper = mountWithTheme(
-      <TransactionVitals
-        organization={organization}
-        location={router.location}
-        router={router}
-      />
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(router.replace).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/performance/summary/',
-      })
-    );
   });
 
   it('renders the basic UI components', async function () {

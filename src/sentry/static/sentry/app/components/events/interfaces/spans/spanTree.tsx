@@ -368,11 +368,7 @@ class SpanTree extends React.Component<PropType> {
   };
 
   renderSecondaryPanel() {
-    const {organization, event} = this.props;
-
-    if (!organization.features.includes('measurements')) {
-      return null;
-    }
+    const {event} = this.props;
 
     const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
 

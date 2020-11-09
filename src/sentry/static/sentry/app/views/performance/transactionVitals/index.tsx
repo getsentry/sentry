@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
 import Feature from 'app/components/acl/feature';
-import Redirect from 'app/utils/redirect';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -23,7 +22,6 @@ import withProjects from 'app/utils/withProjects';
 import {PERCENTILE, WEB_VITAL_DETAILS, VITAL_GROUPS} from './constants';
 import RumContent from './content';
 import {getTransactionName} from '../utils';
-import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 type Props = {
   location: Location;
@@ -67,37 +65,7 @@ class TransactionVitals extends React.Component<Props> {
   }
 
   renderNoAccess = () => {
-    const {router, organization, location} = this.props;
-
-    const hasFeature = organization.features.includes('performance-view');
-    if (!hasFeature) {
-      return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
-    }
-
-    const transactionName = getTransactionName(this.props.location);
-    if (!transactionName) {
-      // If there is no transaction name, redirect to the Performance landing page
-
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/performance/`,
-        query: {
-          ...location.query,
-        },
-      });
-      return null;
-    }
-
-    return (
-      <Redirect
-        router={router}
-        to={transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
-          transaction: transactionName,
-          projectID: decodeScalar(location.query.project),
-          query: location.query,
-        })}
-      />
-    );
+    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
   };
 
   render() {
@@ -118,7 +86,7 @@ class TransactionVitals extends React.Component<Props> {
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
         <Feature
-          features={['measurements']}
+          features={['performance-view']}
           organization={organization}
           renderDisabled={this.renderNoAccess}
         >

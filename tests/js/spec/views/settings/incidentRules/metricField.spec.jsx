@@ -53,7 +53,7 @@ describe('MetricField', function () {
     selectByLabel(wrapper, 'avg(…)', {selector: 'QueryField'});
     openMenu(wrapper, {selector: 'QueryField', at: 1});
 
-    expect(wrapper.find('SelectControl').at(1).find('Option')).toHaveLength(1);
+    expect(wrapper.find('SelectControl').at(1).find('Option')).toHaveLength(8);
   });
 
   it('maps field value to selected presets', function () {

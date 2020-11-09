@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Organization, Event} from 'app/types';
+import {Event} from 'app/types';
 import {IconSize} from 'app/utils/theme';
 import {t} from 'app/locale';
 import {SectionHeading} from 'app/components/charts/styles';
@@ -16,9 +16,9 @@ import {
 import {formattedValue} from 'app/utils/measurements/index';
 
 type Props = {
-  organization: Organization;
   event: Event;
 };
+
 class RealUserMonitoring extends React.Component<Props> {
   hasMeasurements() {
     const {event} = this.props;
@@ -83,9 +83,7 @@ class RealUserMonitoring extends React.Component<Props> {
   }
 
   render() {
-    const {organization} = this.props;
-
-    if (!organization.features.includes('measurements') || !this.hasMeasurements()) {
+    if (!this.hasMeasurements()) {
       return null;
     }
 

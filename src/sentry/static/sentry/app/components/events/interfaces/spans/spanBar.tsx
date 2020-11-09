@@ -351,9 +351,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   renderMeasurements() {
-    const {organization, event, generateBounds} = this.props;
+    const {event, generateBounds} = this.props;
 
-    if (!organization.features.includes('measurements') || this.state.showDetail) {
+    if (this.state.showDetail) {
       return null;
     }
 
