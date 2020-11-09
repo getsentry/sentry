@@ -55,10 +55,10 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
       xAxisIndex: 0,
       yAxisIndex: 0,
       itemStyle: {
-        color: theme.purple500,
+        color: theme.purple300,
         opacity: 0.6,
         emphasis: {
-          color: theme.purple500,
+          color: theme.purple300,
           opacity: 0.8,
         },
       },

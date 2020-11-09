@@ -313,6 +313,10 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'error.handled',
     renderFunc: data => {
       const values = data['error.handled'];
+      // Transactions will have null, and default events have no handled attributes.
+      if (values === null || values?.length === 0) {
+        return <Container>{emptyValue}</Container>;
+      }
       const value = Array.isArray(values) ? values.slice(-1)[0] : values;
       return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
     },

@@ -127,7 +127,7 @@ class EventChart extends React.Component {
       {
         seriesName: t('Dropped'),
         data: stats.rejected,
-        color: theme.red300,
+        color: theme.red200,
       },
     ];
   }

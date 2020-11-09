@@ -89,7 +89,7 @@ const Row = styled('div')`
     width: ${DOT_SIZE}px;
     height: ${DOT_SIZE}px;
     border-radius: 100%;
-    background-color: ${p => p.theme.purple400};
+    background-color: ${p => p.theme.purple300};
     position: absolute;
     top: 0;
     left: -${Math.floor(DOT_SIZE / 2)}px;

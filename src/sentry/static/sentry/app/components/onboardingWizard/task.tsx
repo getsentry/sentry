@@ -111,7 +111,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color="red400" />
+      <IconLock size="xs" color="red300" />
     </Tooltip>
   );
 
@@ -212,7 +212,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 `;
 
 const CTA = styled('div')`
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.blue300};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
 `;

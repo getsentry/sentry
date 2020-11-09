@@ -116,7 +116,7 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
           height={24}
           isGroupedByDate
           showTimeInTooltip
-          emphasisColors={[theme.purple400]}
+          emphasisColors={[theme.purple300]}
           series={[
             {
               seriesName: 'Events',

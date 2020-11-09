@@ -172,7 +172,7 @@ const ExtraDetail = styled('div')`
 
 const BadgeDetail = styled('div')`
   line-height: 1.3;
-  color: ${p => (p.highlighted ? p.theme.purple500 : null)};
+  color: ${p => (p.highlighted ? p.theme.purple300 : null)};
 `;
 
 const Wrapper = styled('div')`

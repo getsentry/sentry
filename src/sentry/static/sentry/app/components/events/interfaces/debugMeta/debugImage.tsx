@@ -136,7 +136,7 @@ const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Pr
       default:
         return (
           <IconWrapper>
-            <IconFlag color="red400" />
+            <IconFlag color="red300" />
           </IconWrapper>
         );
     }

@@ -95,7 +95,7 @@ export const DocsSeparator = styled('div')`
 export const DocsLink = styled(ExternalLink)`
   color: ${p => p.theme.gray700};
   &:hover {
-    color: ${p => p.theme.blue400};
+    color: ${p => p.theme.blue300};
   }
 `;
 
@@ -203,7 +203,7 @@ export const ButtonSpinner = styled('div')`
   border-top: 2px solid ${p => p.theme.border};
   border-right: 2px solid ${p => p.theme.border};
   border-bottom: 2px solid ${p => p.theme.border};
-  border-left: 2px solid ${p => p.theme.purple400};
+  border-left: 2px solid ${p => p.theme.purple300};
   margin-left: 4px;
 `;
 
