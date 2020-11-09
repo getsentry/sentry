@@ -274,7 +274,11 @@ class OrganizationReleaseListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        response = self.client.get(url + "?archived=1", format="json")
+        response = self.client.get(url + "?status=archived", format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        response = self.client.get(url + "?status=", format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
 

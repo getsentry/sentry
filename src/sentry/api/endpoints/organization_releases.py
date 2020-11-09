@@ -144,7 +144,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         """
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
-        include_archived = request.GET.get("archived") == "1"
+        status_filter = request.GET.get("status", "open")
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
         health_stat = request.GET.get("healthStat") or "sessions"
@@ -173,8 +173,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
         queryset = Release.objects.filter(organization=organization)
 
-        if not include_archived:
-            queryset = queryset.filter(status=ReleaseStatus.OPEN)
+        if status_filter:
+            try:
+                queryset = queryset.filter(status=ReleaseStatus.from_string(status_filter))
+            except ValueError:
+                raise ParseError(detail="invalid value for status")
 
         queryset = queryset.select_related("owner").annotate(
             date=Coalesce("date_released", "date_added"),
