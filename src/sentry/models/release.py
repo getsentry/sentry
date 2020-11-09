@@ -76,10 +76,15 @@ class ReleaseStatus(object):
 
     @classmethod
     def to_string(cls, value):
-        # XXX: Since the column is nullable we need to handle `null` here.
+        # XXX(markus): Since the column is nullable we need to handle `null` here.
         # However `null | undefined` in request payloads means "don't change
         # status of release". This is why `from_string` does not consider
         # `null` valid.
+        #
+        # We could remove `0` as valid state and only have `null` but I think
+        # that would make things worse.
+        #
+        # Eventually we should backfill releasestatus to 0
         if value is None or value == ReleaseStatus.OPEN:
             return "open"
         elif value == ReleaseStatus.ARCHIVED:
@@ -104,6 +109,7 @@ class Release(Model):
     )
     status = BoundedPositiveIntegerField(
         default=ReleaseStatus.OPEN,
+        null=True,
         choices=((ReleaseStatus.OPEN, _("Open")), (ReleaseStatus.ARCHIVED, _("Archived")),),
     )
 

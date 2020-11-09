@@ -175,9 +175,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
         if status_filter:
             try:
-                queryset = queryset.filter(status=ReleaseStatus.from_string(status_filter))
+                status_int = ReleaseStatus.from_string(status_filter)
             except ValueError:
                 raise ParseError(detail="invalid value for status")
+
+            if status_int == ReleaseStatus.OPEN:
+                queryset = queryset.filter(Q(status=status_int) | Q(status=None))
+            else:
+                queryset = queryset.filter(status=status_int)
 
         queryset = queryset.select_related("owner").annotate(
             date=Coalesce("date_released", "date_added"),

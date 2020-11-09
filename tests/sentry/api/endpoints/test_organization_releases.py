@@ -252,6 +252,8 @@ class OrganizationReleaseListTest(APITestCase):
             kwargs={"organization_slug": self.organization.slug},
         )
 
+        # test legacy status value of None (=open)
+        self.release.status = None
         self.release.save()
 
         response = self.client.get(url, format="json")
