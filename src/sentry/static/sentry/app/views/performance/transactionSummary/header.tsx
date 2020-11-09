@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
+import FeatureBadge from 'app/components/featureBadge';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import ButtonBar from 'app/components/buttonBar';
@@ -153,6 +154,7 @@ class TransactionHeader extends React.Component<Props> {
                 isActive={() => currentTab === Tab.RealUserMonitoring}
               >
                 {t('Web Vitals')}
+                <FeatureBadge type="new" />
               </ListLink>
             )}
           </StyledNavTabs>
