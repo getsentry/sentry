@@ -14,6 +14,7 @@ class GroupExternalIssuesEndpointTest(APITestCase):
 
         PlatformExternalIssue.objects.create(
             group_id=group.id,
+            project_id=group.project.id,
             service_type="sentry-app",
             display_name="App#issue-1",
             web_url="https://example.com/app/issues/1",
