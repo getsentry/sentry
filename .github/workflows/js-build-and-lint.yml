@@ -18,7 +18,7 @@ jobs:
         with:
           # because we want to lint + fix + commit, we need to checkout the HEAD sha (otherwise
           # it checks out the merge commit and we will not be able to commit to it)
-          ref: ${{ github.event.pull_request.head.sha || 'master' }}
+          ref: ${{ github.event.pull_request.head.ref || 'master' }}
 
       - name: Check for frontend file changes
         uses: getsentry/paths-filter@v2
@@ -81,8 +81,8 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions@sentry.io"
           git add -A
-          git commit -m "chore: Automatic eslint fix ${GITHUB_SHA}" || exit 0
-          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          git commit -m "chore: Automatic eslint fix (${GITHUB_SHA})" || exit 0
+          git push origin
 
       - name: tsc
         if: steps.changes.outputs.frontend == 'true'
