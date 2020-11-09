@@ -64,7 +64,7 @@ export const restoreRelease = async (
     onSuccess?.();
   } catch (error) {
     const errorMessage =
-      error.responseJSON?.detail ?? t('Release could not be be archived.');
+      error.responseJSON?.detail ?? t('Release could not be be restored.');
     addErrorMessage(errorMessage);
   }
 };
