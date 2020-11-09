@@ -96,6 +96,7 @@ jobs:
 
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
+      # just testing
       TEST_GROUP_STRATEGY: individual
 
     steps:
