@@ -81,7 +81,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions@sentry.io"
           git add -A
-          git commit -m "style(): Auto eslint fix ${GITHUB_SHA}" || exit 0
+          git commit -m "chore: Automatic eslint fix ${GITHUB_SHA}" || exit 0
           git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
 
       - name: tsc
