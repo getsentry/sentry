@@ -47,12 +47,12 @@ const aliases = {
   /**
    * Primary text color
    */
-  textColor: colors.gray500, // TODO(dark): colors.gray300
+  textColor: colors.gray500,
 
   /**
    * Text that should not have as much emphasis
    */
-  subText: colors.gray200,
+  subText: colors.gray400,
 
   /**
    * Background for the main content area of a page?
@@ -98,7 +98,7 @@ const aliases = {
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    */
-  disabled: colors.gray100,
+  disabled: colors.gray200,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -113,12 +113,12 @@ const aliases = {
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: colors.purple200,
+  linkColor: colors.purple300,
 
   /**
    * ...
    */
-  secondaryButton: colors.purple200,
+  secondaryButton: colors.purple300,
 
   /**
    * Gradient for sidebar
@@ -129,12 +129,12 @@ const aliases = {
   /**
    * Form placeholder text color
    */
-  formPlaceholder: colors.gray100,
+  formPlaceholder: colors.gray200,
 
   /**
    * Default form text color
    */
-  formText: colors.gray300,
+  formText: colors.gray500,
 
   /**
    *
@@ -144,12 +144,12 @@ const aliases = {
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
    */
-  chartLineColor: colors.gray100,
+  chartLineColor: colors.gray200,
 
   /**
    * Color for chart label text
    */
-  chartLabel: colors.gray200,
+  chartLabel: colors.gray300,
 } as const;
 
 const warning = {
@@ -162,7 +162,7 @@ const warning = {
 const alert = {
   muted: {
     background: colors.gray200,
-    backgroundLight: colors.gray100,
+    backgroundLight: aliases.backgroundSecondary,
     border: aliases.border,
     iconColor: 'inherit',
   },
