@@ -182,6 +182,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
     const activeSort = this.getSort();
+    const display = this.getDisplay();
 
     if (searchQuery && searchQuery.length) {
       return (
@@ -207,6 +208,14 @@ class ReleasesList extends AsyncView<Props, State> {
       return (
         <EmptyStateWarning small>
           {`${t('There are no releases with data in the')} ${relativePeriod}.`}
+        </EmptyStateWarning>
+      );
+    }
+
+    if (display === 'archived') {
+      return (
+        <EmptyStateWarning small>
+          {t('There are no archived releases.')}
         </EmptyStateWarning>
       );
     }
@@ -245,7 +254,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {releasesPageLinks} = this.state;
+    const {releasesPageLinks, releases} = this.state;
 
     return (
       <GlobalSelectionHeader
@@ -277,7 +286,9 @@ class ReleasesList extends AsyncView<Props, State> {
 
             <IntroBanner />
 
-            {this.getDisplay() === 'archived' && <ReleaseArchivedNotice multi />}
+            {this.getDisplay() === 'archived' && releases?.length > 0 && (
+              <ReleaseArchivedNotice multi />
+            )}
 
             {this.renderInnerBody()}
 
