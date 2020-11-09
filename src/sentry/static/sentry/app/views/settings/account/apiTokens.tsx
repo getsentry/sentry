@@ -7,6 +7,7 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
+import {InternalAppApiToken, Organization} from 'app/types';
 import AlertLink from 'app/components/alertLink';
 import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
 import AsyncView from 'app/views/asyncView';
@@ -16,30 +17,37 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import withOrganization from 'app/utils/withOrganization';
 
-export class ApiTokens extends AsyncView {
+type Props = {
+  organization: Organization;
+} & AsyncView['props'];
+
+type State = {
+  tokenList: InternalAppApiToken[] | null;
+} & AsyncView['state'];
+
+export class ApiTokens extends AsyncView<Props, State> {
   getTitle() {
     return t('API Tokens');
   }
 
   getDefaultState() {
     return {
-      loading: true,
-      error: false,
+      ...super.getDefaultState(),
       tokenList: [],
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['tokenList', '/api-tokens/']];
   }
 
-  handleRemoveToken = token => {
+  handleRemoveToken = (token: InternalAppApiToken) => {
     addLoadingMessage();
     const oldTokenList = this.state.tokenList;
 
     this.setState(
       state => ({
-        tokenList: state.tokenList.filter(tk => tk.token !== token.token),
+        tokenList: state.tokenList?.filter(tk => tk.token !== token.token) ?? [],
       }),
       async () => {
         try {
@@ -63,7 +71,7 @@ export class ApiTokens extends AsyncView {
     const {organization} = this.props;
     const {tokenList} = this.state;
 
-    const isEmpty = tokenList.length === 0;
+    const isEmpty = !Array.isArray(tokenList) || tokenList.length === 0;
 
     const action = (
       <Button
@@ -80,9 +88,7 @@ export class ApiTokens extends AsyncView {
       <div>
         <SettingsPageHeader title="Auth Tokens" action={action} />
         <AlertLink
-          to={`/settings/${
-            (organization && organization.slug) || ''
-          }/developer-settings/new-internal`}
+          to={`/settings/${organization?.slug ?? ''}/developer-settings/new-internal`}
         >
           {t(
             "Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using internal integrations to create/manage tokens tied to the organization instead."
@@ -117,14 +123,13 @@ export class ApiTokens extends AsyncView {
               </EmptyMessage>
             )}
 
-            {!isEmpty &&
-              tokenList.map(token => (
-                <ApiTokenRow
-                  key={token.token}
-                  token={token}
-                  onRemove={this.handleRemoveToken}
-                />
-              ))}
+            {tokenList?.map(token => (
+              <ApiTokenRow
+                key={token.token}
+                token={token}
+                onRemove={this.handleRemoveToken}
+              />
+            ))}
           </PanelBody>
         </Panel>
       </div>
