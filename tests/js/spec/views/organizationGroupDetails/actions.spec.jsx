@@ -106,7 +106,7 @@ describe('GroupActions', function () {
           })}
         />
       );
-      const btn = wrapper.find('.group-bookmark');
+      const btn = wrapper.find('BookmarkButton');
       btn.simulate('click');
 
       expect(issuesApi).toHaveBeenCalledWith(

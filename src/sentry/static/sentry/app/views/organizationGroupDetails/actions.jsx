@@ -280,10 +280,7 @@ const GroupDetailsActions = createReactClass({
     const projectFeatures = new Set(project.features);
 
     const buttonClassName = 'btn btn-default btn-sm';
-    let bookmarkClassName = `group-bookmark ${buttonClassName}`;
-    if (group.isBookmarked) {
-      bookmarkClassName += ' active';
-    }
+    const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
 
     const hasRelease = new Set(project.features).has('releases');
 
@@ -346,15 +343,17 @@ const GroupDetailsActions = createReactClass({
           </div>
         )}
         <div className="btn-group">
-          <div
-            className={bookmarkClassName}
-            title={t('Bookmark')}
+          <BookmarkButton
+            isActive={group.isBookmarked}
+            className={buttonClassName}
+            title={bookmarkTitle}
+            label={bookmarkTitle}
             onClick={this.onToggleBookmark}
           >
             <IconWrapper>
               <IconStar isSolid size="xs" />
             </IconWrapper>
-          </div>
+          </BookmarkButton>
         </div>
         <SubscribeAction group={group} onClick={this.onToggleSubscribe} />
       </div>
@@ -365,6 +364,17 @@ const GroupDetailsActions = createReactClass({
 const IconWrapper = styled('span')`
   position: relative;
   top: 1px;
+`;
+
+const BookmarkButton = styled('div')`
+  ${p =>
+    p.isActive &&
+    `
+  background: ${p.theme.yellow100};
+  color: ${p.theme.yellow300};
+  border-color: ${p.theme.yellow300};
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+  `}
 `;
 
 export {GroupDetailsActions};
