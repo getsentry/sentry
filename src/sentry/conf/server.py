@@ -880,8 +880,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable measurements-based product features.
-    "organizations:measurements": False,
     # Enable key transactions as a column in performance
     "organizations:key-transactions": False,
     # Enable org-wide saved searches and user pinned search
