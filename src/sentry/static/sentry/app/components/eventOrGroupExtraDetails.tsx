@@ -2,7 +2,7 @@ import React from 'react';
 import {Link, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Event, Group} from 'app/types';
+import {Event, Group, Organization} from 'app/types';
 import {IconChat} from 'app/icons';
 import {tct} from 'app/locale';
 import EventAnnotation from 'app/components/events/eventAnnotation';
@@ -10,13 +10,16 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import ShortId from 'app/components/shortId';
 import Times from 'app/components/group/times';
 import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
+import UnhandledTag from 'app/views/organizationGroupDetails/unhandledTag';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
   showAssignee?: boolean;
+  organization: Organization;
 };
 
-function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
+function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Props) {
   const {
     id,
     lastSeen,
@@ -29,12 +32,16 @@ function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
     shortId,
     project,
     lifetime,
+    isUnhandled,
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
+  const orgFeatures = new Set(organization.features);
+  const hasInbox = orgFeatures.has('inbox');
 
   return (
     <GroupExtra>
+      {isUnhandled && hasInbox && <UnhandledTag />}
       {shortId && (
         <GroupShortId
           shortId={shortId}
@@ -45,10 +52,12 @@ function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
           }}
         />
       )}
-      <StyledTimes
-        lastSeen={lifetime?.lastSeen || lastSeen}
-        firstSeen={lifetime?.firstSeen || firstSeen}
-      />
+      {!hasInbox && (
+        <StyledTimes
+          lastSeen={lifetime?.lastSeen || lastSeen}
+          firstSeen={lifetime?.firstSeen || firstSeen}
+        />
+      )}
       {numComments > 0 && (
         <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
           <IconChat
@@ -133,4 +142,4 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.gray500};
 `;
 
-export default withRouter(EventOrGroupExtraDetails);
+export default withRouter(withOrganization(EventOrGroupExtraDetails));

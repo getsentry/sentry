@@ -752,6 +752,7 @@ export type Group = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
+  inbox?: {reason?: number; reasonDetails?: string};
 };
 
 export type GroupTombstone = {

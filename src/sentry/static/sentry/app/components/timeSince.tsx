@@ -35,6 +35,11 @@ type Props = DefaultProps & {
    */
   disabledAbsoluteTooltip?: boolean;
 
+  /**
+   * For relative time shortens minutes to min, day to d etc.
+   */
+  shorten?: boolean;
+
   className?: string;
 } & TimeProps;
 
@@ -60,7 +65,7 @@ class TimeSince extends React.PureComponent<Props, State> {
   // See: https://github.com/emotion-js/emotion/pull/1514
   static getDerivedStateFromProps(props) {
     return {
-      relative: getRelativeDate(props.date, props.suffix),
+      relative: getRelativeDate(props.date, props.suffix, props.shorten),
     };
   }
 
@@ -80,7 +85,7 @@ class TimeSince extends React.PureComponent<Props, State> {
   setRelativeDateTicker = () => {
     this.ticker = window.setTimeout(() => {
       this.setState({
-        relative: getRelativeDate(this.props.date, this.props.suffix),
+        relative: getRelativeDate(this.props.date, this.props.suffix, this.props.shorten),
       });
       this.setRelativeDateTicker();
     }, ONE_MINUTE_IN_MS);
@@ -92,6 +97,7 @@ class TimeSince extends React.PureComponent<Props, State> {
       suffix: _suffix,
       disabledAbsoluteTooltip,
       className,
+      shorten: _shorten,
       ...props
     } = this.props;
     const dateObj = getDateObj(date);
@@ -124,8 +130,52 @@ function getDateObj(date: RelaxedDateType): Date {
   return date;
 }
 
-function getRelativeDate(currentDateTime: RelaxedDateType, suffix?: string): string {
+function getRelativeDate(
+  currentDateTime: RelaxedDateType,
+  suffix?: string,
+  shorten?: boolean
+): string {
   const date = getDateObj(currentDateTime);
+
+  if (shorten) {
+    moment.updateLocale('en', {
+      relativeTime: {
+        future: 'in %s',
+        past: '%s ago',
+        s: 'few s',
+        ss: '%ds',
+        m: '1 min',
+        mm: '%d min',
+        h: '1h',
+        hh: '%dh',
+        d: '1d',
+        dd: '%dd',
+        M: '1m',
+        MM: '%dm',
+        y: '1y',
+        yy: '%dy',
+      },
+    });
+  } else {
+    moment.updateLocale('en', {
+      relativeTime: {
+        future: 'in %s',
+        past: '%s ago',
+        s: 'a few seconds',
+        ss: '%d seconds',
+        m: 'a minute',
+        mm: '%d minutes',
+        h: 'an hour',
+        hh: '%d hours',
+        d: 'a day',
+        dd: '%d days',
+        M: 'a month',
+        MM: '%d months',
+        y: 'a year',
+        yy: '%d years',
+      },
+    });
+  }
 
   if (!suffix) {
     return moment(date).fromNow(true);
