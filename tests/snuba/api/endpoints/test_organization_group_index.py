@@ -650,6 +650,47 @@ class GroupListTest(APITestCase, SnubaTestCase):
             before_now_100_seconds
         ).replace(tzinfo=timezone.utc)
 
+    def test_inbox_search(self):
+        with self.feature("organizations:inbox"):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            event = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-2"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-3"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            add_group_to_inbox(event.group, GroupInboxReason.NEW)
+
+            self.login_as(user=self.user)
+            response = self.get_response(
+                sort_by="date", limit=10, query="is:inbox is:unresolved", expand=["inbox"]
+            )
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["inbox"] is not None
+            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+
     def test_aggregate_stats_regression_test(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
