@@ -278,7 +278,7 @@ def pytest_collection_modifyitems(config, items):
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
-    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "individual")
+    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "file")
 
     accepted, keep, discard = [], [], []
 

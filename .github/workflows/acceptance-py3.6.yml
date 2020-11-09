@@ -18,6 +18,7 @@ jobs:
 
     env:
       MIGRATIONS_TEST_MIGRATE: 1
+      TEST_GROUP_STRATEGY: individual
 
     steps:
       - uses: actions/checkout@v2
