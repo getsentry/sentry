@@ -101,8 +101,7 @@ export function generatePerformanceEventView(
 ): EventView {
   const {query} = location;
 
-  const keyTransactionsFeature = organization.features.includes('key-transactions');
-  const keyTransactionFields = keyTransactionsFeature ? ['key_transaction'] : [];
+  const keyTransactionFields = ['key_transaction'];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
