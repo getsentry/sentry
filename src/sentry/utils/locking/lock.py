@@ -57,3 +57,9 @@ class Lock(object):
             self.backend.release(self.key, self.routing_key)
         except Exception as error:
             logger.warning("Failed to release %r due to error: %r", self, error, exc_info=True)
+
+    def locked(self):
+        """
+        See if the lock has been taken somewhere else.
+        """
+        return self.backend.locked(self.key, self.routing_key)

@@ -9,6 +9,7 @@ import pytz
 from django.core.urlresolvers import reverse
 from exam import fixture
 
+from sentry.app import locks
 from sentry.api.endpoints.organization_releases import (
     ReleaseHeadCommitSerializer,
     ReleaseSerializerWithProjects,
@@ -733,6 +734,36 @@ class OrganizationReleaseCreateTest(APITestCase):
             }
         )
         assert response.status_code == 201
+
+    def test_commits_lock_conflict(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        # Simulate a concurrent request by using an existing release
+        # that has its commit lock taken out.
+        release = self.create_release(project, self.user, version="1.2.1")
+        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10)
+        lock.acquire()
+
+        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        response = self.client.post(
+            url,
+            data={
+                "version": release.version,
+                "commits": [{"id": "a" * 40}, {"id": "b" * 40}],
+                "projects": [project.slug],
+            },
+        )
+        assert response.status_code == 409, (response.status_code, response.content)
+        assert "Release commits" in response.content
 
     def test_bad_project_slug(self):
         user = self.create_user(is_staff=False, is_superuser=False)
