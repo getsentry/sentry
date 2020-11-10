@@ -7,7 +7,7 @@ const colors = {
   black: '#1D1127',
 
   gray100: '#FAF9FB',
-  gray200: '#C6BECF',
+  gray200: '#F2F0F5',
   gray300: '#9386A0',
   gray400: '#776589',
   gray500: '#2B1D38',
@@ -43,6 +43,8 @@ const colors = {
   pink300: '#F05781',
 } as const;
 
+const backgroundSecondary = '#FAF9FB';
+
 const aliases = {
   /**
    * Primary text color
@@ -57,7 +59,7 @@ const aliases = {
   /**
    * Background for the main content area of a page?
    */
-  bodyBackground: colors.gray100,
+  bodyBackground: backgroundSecondary,
 
   /**
    * Primary background color
@@ -67,7 +69,7 @@ const aliases = {
   /**
    * Secondary background color used as a slight contrast against primary background
    */
-  backgroundSecondary: colors.gray100,
+  backgroundSecondary,
 
   /**
    * Background for the header of a page
@@ -139,7 +141,7 @@ const aliases = {
   /**
    *
    */
-  rowBackground: colors.gray100,
+  rowBackground: backgroundSecondary,
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
