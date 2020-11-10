@@ -235,20 +235,3 @@ class JiraApiClient(ApiClient):
     def get_email(self, account_id):
         user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
         return user.get("email")
-
-    def format_user(self, user_response):
-        user_id_field = self.user_id_field()
-        if user_id_field not in user_response:
-            return None
-
-        # The name field can be blank in jira-cloud, and the id_field varies by
-        # jira-cloud and jira-server
-        name = user_response.get("name", "")
-        email = user_response.get("emailAddress")
-
-        display = "%s %s%s" % (
-            user_response.get("displayName", name),
-            "- %s " % email if email else "",
-            "(%s)" % name if name else "",
-        )
-        return user_response[user_id_field], display.strip()
