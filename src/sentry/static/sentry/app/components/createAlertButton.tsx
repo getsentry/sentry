@@ -214,8 +214,15 @@ function incompatibleYAxis(eventView: EventView): boolean {
   const isNumericParameter = aggregation.parameters.some(
     param => param.kind === 'value' && param.dataType === 'number'
   );
+  // There are other measurements possible, but for the time being, only allow alerting
+  // on the predefined set of measurements for alerts.
+  const allowedParameters = [
+    '',
+    ...yAxisConfig.fields,
+    ...(yAxisConfig.measurementKeys ?? []),
+  ];
   const invalidParameter =
-    !isNumericParameter && !['', ...yAxisConfig.fields].includes(column.function[1]);
+    !isNumericParameter && !allowedParameters.includes(column.function[1]);
 
   return invalidFunction || invalidParameter;
 }
