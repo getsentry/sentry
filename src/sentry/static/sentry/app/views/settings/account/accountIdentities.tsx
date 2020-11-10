@@ -43,7 +43,7 @@ class AccountIdentities extends AsyncView<Props, State> {
         const newIdentities = state.identities?.filter(({id}) => id !== identity.id);
 
         return {
-          identities: newIdentities ? newIdentities : null,
+          identities: newIdentities ?? null,
         };
       },
       () =>
@@ -56,22 +56,18 @@ class AccountIdentities extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const isEmpty = this.state.identities?.length === 0;
-
     return (
       <div>
         <SettingsPageHeader title="Identities" />
         <Panel>
           <PanelHeader>{t('Identities')}</PanelHeader>
           <PanelBody>
-            {isEmpty && (
+            {!this.state.identities?.length ? (
               <EmptyMessage>
                 {t('There are no identities associated with this account')}
               </EmptyMessage>
-            )}
-
-            {!isEmpty &&
-              this.state.identities?.map(identity => (
+            ) : (
+              this.state.identities.map(identity => (
                 <IdentityPanelItem key={identity.id}>
                   <div>{identity.providerLabel}</div>
 
@@ -82,7 +78,8 @@ class AccountIdentities extends AsyncView<Props, State> {
                     {t('Disconnect')}
                   </Button>
                 </IdentityPanelItem>
-              ))}
+              ))
+            )}
           </PanelBody>
         </Panel>
       </div>
