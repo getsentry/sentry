@@ -20,7 +20,7 @@ const bulletStyle = (theme: Theme) => css`
     height: 6px;
     left: 5px;
     top: 10px;
-    border: 1px solid ${theme.gray700};
+    border: 1px solid ${theme.gray500};
   }
 `;
 
@@ -48,7 +48,7 @@ const numericStyle = (theme: Theme, isSolid = false) => css`
           height: 18px;
           font-weight: 600;
           font-size: 10px;
-          border: 1px solid ${theme.gray700};
+          border: 1px solid ${theme.gray500};
         `}
   }
   counter-reset: numberedList;

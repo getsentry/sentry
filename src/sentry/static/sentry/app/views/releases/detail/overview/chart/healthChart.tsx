@@ -107,7 +107,7 @@ class HealthChart extends React.Component<Props> {
           scale: true,
           axisLabel: {
             formatter: '{value}%',
-            color: theme.gray400,
+            color: theme.gray200,
           },
         };
       case YAxis.SESSION_DURATION:
@@ -115,7 +115,7 @@ class HealthChart extends React.Component<Props> {
           scale: true,
           axisLabel: {
             formatter: value => axisDuration(value * 1000),
-            color: theme.gray400,
+            color: theme.gray200,
           },
         };
       case YAxis.SESSIONS:
