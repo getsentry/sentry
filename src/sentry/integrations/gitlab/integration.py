@@ -92,7 +92,8 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         resp = self.get_client().search_group_projects(group, query)
         return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
 
-    def get_stacktrace_link(self, repo, filepath, version):
+    def get_stacktrace_link(self, repo, filepath, default, version):
+        # (TODO):meredith retry with default
         project_id = repo.config["project_id"]
         repo_name = repo.config["path"]
         try:

@@ -9,12 +9,16 @@ class RepositoryMixin(object):
     # dynamically given a search query
     repo_search = False
 
-    def get_stacktrace_link(self, repo, path, version):
+    def get_stacktrace_link(self, repo, path, default, version):
         """
         Handle formatting and returning back the stack trace link if the client
         request was successful.
 
+        Uses the version first, and re-tries with the default branch if we 404
+        trying to use the version (commit sha)
+
         If no file was found return `None`, and re-raise for non "Not Found" errors
+
         """
         raise NotImplementedError
 

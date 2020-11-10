@@ -98,17 +98,29 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
-    def get_stacktrace_link(self, repo, filepath, version):
+    def get_stacktrace_link(self, repo, filepath, default, version):
+        branch = version or default
         try:
-            self.get_client().check_file(repo.name, filepath, version)
+            self.get_client().check_file(repo.name, filepath, branch)
         except ApiError as e:
             if e.code != 404:
                 raise
-            return None
+            if branch == version:
+                # try to get the file one more time using the default instead
+                # of the version (commit sha)
+                try:
+                    self.get_client().check_file(repo.name, filepath, default)
+                except ApiError as e:
+                    if e.code != 404:
+                        raise
+                    return None
 
+                branch = default
+            else:
+                return None
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
-        web_url = u"https://github.com/{}/blob/{}/{}".format(repo.name, version, filepath)
+        web_url = u"https://github.com/{}/blob/{}/{}".format(repo.name, branch, filepath)
 
         return web_url
 

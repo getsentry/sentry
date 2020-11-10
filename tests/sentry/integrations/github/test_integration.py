@@ -252,12 +252,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         path = "README.md"
         version = "master"
+        default = "master"
         responses.add(
             responses.HEAD,
             self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
         )
         installation = integration.get_installation(self.organization)
-        result = installation.get_stacktrace_link(repo, path, version)
+        result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
 
@@ -277,15 +278,47 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         path = "README.md"
         version = "master"
+        default = "master"
         responses.add(
             responses.HEAD,
             self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
             status=404,
         )
         installation = integration.get_installation(self.organization)
-        result = installation.get_stacktrace_link(repo, path, version)
+        result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
+
+    @responses.activate
+    def test_get_stacktrace_link_use_default_if_version_404(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
+        )
+        path = "README.md"
+        version = "12345678"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+            status=404,
+        )
+        responses.add(
+            responses.HEAD,
+            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, default),
+        )
+        installation = integration.get_installation(self.organization)
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
 
     @responses.activate
     def test_get_message_from_error(self):
