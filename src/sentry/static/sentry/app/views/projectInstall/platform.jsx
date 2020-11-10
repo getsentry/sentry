@@ -159,42 +159,38 @@ class ProjectInstallPlatform extends React.Component {
                             return null;
                           }
                           return (
-                            <Alert type="info" icon={<IconInfo />}>
+                            <StyledAlert type="info" icon={<IconInfo />}>
                               {t(
                                 `Your selected platform supports performance, but your organization does not have performance enabled.`
                               )}
-                            </Alert>
+                            </StyledAlert>
                           );
                         }}
                       </Feature>
                     )}
 
-                    <ButtonContainer>
-                      <ButtonBar gap={1}>
-                        <Button
-                          key="issues"
-                          priority="primary"
-                          busy={projectsLoading}
-                          to={{
-                            pathname: issueStreamLink,
-                            query: projectFilter,
-                            hash: '#welcome',
-                          }}
-                        >
-                          {t('Take me to Issues')}
-                        </Button>
-                        <Button
-                          key="performance"
-                          busy={projectsLoading}
-                          to={{
-                            pathname: performanceOverviewLink,
-                            query: projectFilter,
-                          }}
-                        >
-                          {t('Take me to Performance')}
-                        </Button>
-                      </ButtonBar>
-                    </ButtonContainer>
+                    <StyledButtonBar gap={1}>
+                      <Button
+                        priority="primary"
+                        busy={projectsLoading}
+                        to={{
+                          pathname: issueStreamLink,
+                          query: projectFilter,
+                          hash: '#welcome',
+                        }}
+                      >
+                        {t('Take me to Issues')}
+                      </Button>
+                      <Button
+                        busy={projectsLoading}
+                        to={{
+                          pathname: performanceOverviewLink,
+                          query: projectFilter,
+                        }}
+                      >
+                        {t('Take me to Performance')}
+                      </Button>
+                    </StyledButtonBar>
                   </React.Fragment>
                 );
               }}
@@ -235,9 +231,13 @@ const Actions = styled('div')`
   grid-gap: ${space(1)};
 `;
 
-const ButtonContainer = styled('div')`
-  display: flex;
+const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(3)};
+  width: max-content;
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-top: ${space(2)};
 `;
 
 export {ProjectInstallPlatform};
