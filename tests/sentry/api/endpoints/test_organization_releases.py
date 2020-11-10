@@ -763,7 +763,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             },
         )
         assert response.status_code == 409, (response.status_code, response.content)
-        assert "Release commits" in response.content
+        assert b"Release commits" in response.data
 
     def test_bad_project_slug(self):
         user = self.create_user(is_staff=False, is_superuser=False)
