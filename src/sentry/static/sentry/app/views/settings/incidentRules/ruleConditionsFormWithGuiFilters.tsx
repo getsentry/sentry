@@ -337,7 +337,6 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-
 const StyledListItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin: ${space(2)} ${space(2)} 0 ${space(2)};
