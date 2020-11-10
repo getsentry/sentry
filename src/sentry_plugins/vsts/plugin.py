@@ -71,7 +71,7 @@ class VstsPlugin(VisualStudioMixin, IssueTrackingPlugin2):
         return True
 
     def get_issue_label(self, group, issue, **kwargs):
-        return "Bug {}".format(issue["id"])
+        return u"Bug {}".format(issue["id"])
 
     def get_issue_url(self, group, issue, **kwargs):
         return issue["url"]
@@ -103,7 +103,7 @@ class VstsPlugin(VisualStudioMixin, IssueTrackingPlugin2):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": "I've identified this issue in Sentry: {}".format(
+                "default": u"I've identified this issue in Sentry: {}".format(
                     absolute_uri(group.get_absolute_url(params={"referrer": "vsts_plugin"}))
                 ),
                 "type": "textarea",

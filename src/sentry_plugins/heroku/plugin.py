@@ -74,7 +74,7 @@ class HerokuReleaseHook(ReleaseHook):
                     fetch=True,
                 )
         # create deploy associated with release via ReleaseDeploysEndpoint
-        endpoint = "/organizations/{}/releases/{}/deploys/".format(
+        endpoint = u"/organizations/{}/releases/{}/deploys/".format(
             self.project.organization.slug, release.version
         )
         auth = ApiKey(organization=self.project.organization, scope_list=["project:write"])
@@ -139,7 +139,7 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         ]
 
     def get_release_doc_html(self, hook_url):
-        return """
+        return u"""
         <p>Add Sentry as a deploy hook to automatically track new releases.</p>
         <pre class="clippy">heroku addons:create deployhooks:http --url={hook_url}</pre>
         """.format(
