@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        instance: [0, 1, 2]
+        instance: [0, 1]
 
     env:
       MIGRATIONS_TEST_MIGRATE: 1
