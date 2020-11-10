@@ -101,3 +101,17 @@ def test_bootstrap_format():
 
         cluster_options = get_kafka_consumer_cluster_options("default")
         assert cluster_options["bootstrap.servers"] == "I,am,a,list"
+
+
+def test_legacy_custom_mix_customer():
+    with override_settings(
+        KAFKA_CLUSTERS={
+            "default": {
+                "common": {"bootstrap.servers": "new.server:9092", "security.protocol": "plain"},
+                "bootstrap.servers": ["old.server:9092"],
+            },
+        }
+    ):
+        cluster_options = get_kafka_consumer_cluster_options("default")
+        assert cluster_options["bootstrap.servers"] == "old.server:9092"
+        assert "security.protocol" not in cluster_options

@@ -38,14 +38,14 @@ def _get_kafka_cluster_options(
     common_options = settings.KAFKA_CLUSTERS[cluster_name].get(COMMON_SECTION, {})
     legacy_options = _get_legacy_kafka_cluster_options(cluster_name)
     if with_legacy and legacy_options:
-        # we prefer these ones
+        # producer uses all legacy_options
         options.update(legacy_options)
+    elif "bootstrap.servers" in legacy_options:
+        # legacy override of bootstrap.servers should be preserved
+        options["bootstrap.servers"] = legacy_options["bootstrap.servers"]
     else:
         options.update(common_options)
         options.update(custom_options)
-        # legacy override of bootstrap.servers should be preserved
-        if "bootstrap.servers" in legacy_options:
-            options["bootstrap.servers"] = legacy_options["bootstrap.servers"]
     # check key validity
     for configuration_key in options:
         if configuration_key not in SUPPORTED_KAFKA_CONFIGURATION:
