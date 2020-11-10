@@ -123,7 +123,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
 
 const StyledForm = styled(Form)`
   label {
-    color: ${p => p.theme.gray600};
+    color: ${p => p.theme.gray400};
     font-family: Rubik;
     font-size: 12px;
     font-weight: 500;

@@ -144,7 +144,7 @@ const Title = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
     font-weight: 300;
-    color: ${p => p.theme.gray600};
+    color: ${p => p.theme.gray400};
   }
 `;
 
@@ -154,7 +154,7 @@ const LocationWrapper = styled('div')`
   direction: rtl;
   text-align: left;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   span {
     direction: ltr;
   }
@@ -207,7 +207,7 @@ const GroupLevel = styled('div')<{level: Level}>`
       case 'fatal':
         return p.theme.red300;
       default:
-        return p.theme.gray500;
+        return p.theme.gray300;
     }
   }};
 

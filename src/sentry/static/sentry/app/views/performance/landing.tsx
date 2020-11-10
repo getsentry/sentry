@@ -261,12 +261,7 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   renderHeaderButtons() {
-    const {organization} = this.props;
-    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS];
-    if (!organization.features.includes('key-transactions')) {
-      views.push(FilterViews.KEY_TRANSACTIONS);
-    }
-    views.push(FilterViews.TRENDS);
+    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS, FilterViews.TRENDS];
     return (
       <ButtonBar merged active={this.getCurrentView()}>
         {views.map(viewKey => (
@@ -398,7 +393,7 @@ export const StyledPageHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   height: 40px;
   margin-bottom: ${space(1)};
 `;

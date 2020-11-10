@@ -42,7 +42,7 @@ class SparkLine extends React.Component<Props> {
         <div data-test-id="incident-sparkline" className={className}>
           <Sparklines data={data} width={100} height={32}>
             <SparklinesLine
-              style={{stroke: theme.gray500, fill: 'none', strokeWidth: 2}}
+              style={{stroke: theme.gray300, fill: 'none', strokeWidth: 2}}
             />
           </Sparklines>
         </div>
