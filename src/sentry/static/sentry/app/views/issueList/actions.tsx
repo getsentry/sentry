@@ -431,7 +431,7 @@ class IssueListActions extends React.Component<Props, State> {
           </ActionsCheckbox>
           <ActionSet>
             <Feature organization={organization} features={['organizations:inbox']}>
-              <div className="btn-group hidden-md hidden-sm hidden-xs">
+              <div className="btn-group hidden-sm hidden-xs">
                 <StyledActionLink
                   className="btn btn-default btn-sm action-merge"
                   data-test-id="button-backlog"
@@ -519,6 +519,22 @@ class IssueListActions extends React.Component<Props, State> {
                     {t('Merge')}
                   </ActionLink>
                 </MenuItem>
+                <Feature organization={organization} features={['organizations:inbox']}>
+                  <MenuItem divider className="hidden-md hidden-lg hidden-xl" />
+                  <MenuItem noAnchor>
+                    <ActionLink
+                      className="action-backlog hidden-md hidden-lg hidden-xl"
+                      disabled={!anySelected}
+                      onAction={() => this.handleUpdate({isInbox: false})}
+                      shouldConfirm={this.shouldConfirm('backlog')}
+                      message={confirm('move', false, ' to the backlog')}
+                      confirmLabel={label('backlog')}
+                      title={t('Move to backlog')}
+                    >
+                      {t('Move to backlog')}
+                    </ActionLink>
+                  </MenuItem>
+                </Feature>
                 <MenuItem divider className="hidden-lg hidden-xl" />
                 <MenuItem noAnchor>
                   <ActionLink
