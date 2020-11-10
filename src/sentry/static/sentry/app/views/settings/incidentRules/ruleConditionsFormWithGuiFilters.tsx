@@ -108,7 +108,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
     const selectLabel = (label: string) => ({
       ':before': {
         content: `"${label}"`,
-        color: theme.gray500,
+        color: theme.gray300,
         fontWeight: 600,
       },
     });
@@ -141,7 +141,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                     ...base,
                     '.all-environment-note': {
                       ...(!state.isSelected && !state.isFocused
-                        ? {color: theme.gray600}
+                        ? {color: theme.gray400}
                         : {}),
                       fontSize: theme.fontSizeSmall,
                     },
@@ -336,6 +336,7 @@ const SearchContainer = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
+
 
 const StyledListItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeExtraLarge};

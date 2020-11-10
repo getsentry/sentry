@@ -130,7 +130,7 @@ const TimeWrapper = styled('div')`
   grid-gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
 `;
 
 export default SourceMapsArtifactRow;

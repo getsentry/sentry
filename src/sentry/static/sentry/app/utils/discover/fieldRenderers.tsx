@@ -69,7 +69,7 @@ type FieldFormatters = {
 export type FieldTypes = keyof FieldFormatters;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
 

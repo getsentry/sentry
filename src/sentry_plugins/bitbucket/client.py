@@ -31,7 +31,7 @@ class BitbucketClient(AuthApiClient):
         return kwargs
 
     def get_issue(self, repo, issue_id):
-        return self.get("/1.0/repositories/%s/issues/%s" % (repo, issue_id))
+        return self.get(u"/1.0/repositories/%s/issues/%s" % (repo, issue_id))
 
     def create_issue(self, repo, data):
         data = {
@@ -40,24 +40,24 @@ class BitbucketClient(AuthApiClient):
             "kind": data["issue_type"],
             "priority": data["priority"],
         }
-        return self.post("/1.0/repositories/{}/issues".format(repo), data=data, json=False)
+        return self.post(u"/1.0/repositories/{}/issues".format(repo), data=data, json=False)
 
     def search_issues(self, repo, query):
-        return self.get("/1.0/repositories/{}/issues".format(repo), params={"search": query})
+        return self.get(u"/1.0/repositories/{}/issues".format(repo), params={"search": query})
 
     def create_comment(self, repo, issue_id, data):
         return self.post(
-            "/1.0/repositories/%s/issues/%s/comments" % (repo, issue_id), data=data, json=False
+            u"/1.0/repositories/%s/issues/%s/comments" % (repo, issue_id), data=data, json=False
         )
 
     def get_repo(self, repo):
-        return self.get("/2.0/repositories/{}".format(repo))
+        return self.get(u"/2.0/repositories/{}".format(repo))
 
     def create_hook(self, repo, data):
-        return self.post("/2.0/repositories/{}/hooks".format(repo), data=data)
+        return self.post(u"/2.0/repositories/{}/hooks".format(repo), data=data)
 
     def delete_hook(self, repo, id):
-        return self.delete("/2.0/repositories/{}/hooks/{}".format(repo, id))
+        return self.delete(u"/2.0/repositories/{}/hooks/{}".format(repo, id))
 
     def transform_patchset(self, patch_set):
         file_changes = []
@@ -75,7 +75,7 @@ class BitbucketClient(AuthApiClient):
     def get_commit_filechanges(self, repo, sha):
         # returns unidiff file
 
-        resp = self.get("/2.0/repositories/{}/diff/{}".format(repo, sha), allow_text=True)
+        resp = self.get(u"/2.0/repositories/{}/diff/{}".format(repo, sha), allow_text=True)
 
         diff_file = resp.text
         ps = PatchSet.from_string(diff_file)
@@ -90,7 +90,7 @@ class BitbucketClient(AuthApiClient):
         # return api request that fetches last ~30 commits
         # see https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D
         # using end_sha as parameter
-        data = self.get("/2.0/repositories/{}/commits/{}".format(repo, end_sha))
+        data = self.get(u"/2.0/repositories/{}/commits/{}".format(repo, end_sha))
 
         return self.zip_commit_data(repo, data["values"])
 
@@ -101,7 +101,7 @@ class BitbucketClient(AuthApiClient):
         commits = []
         done = False
 
-        url = "/2.0/repositories/{}/commits/{}".format(repo, end_sha)
+        url = u"/2.0/repositories/{}/commits/{}".format(repo, end_sha)
 
         while not done and len(commits) < 90:
             data = self.get(url)

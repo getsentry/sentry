@@ -189,7 +189,7 @@ const Chart = (props: Props) => {
             type: 'line',
             markLine: MarkLine({
               silent: true,
-              lineStyle: {color: theme.gray400},
+              lineStyle: {color: theme.gray200},
               data: [
                 {
                   yAxis: alertResolveThreshold,
@@ -200,7 +200,7 @@ const Chart = (props: Props) => {
                 show: true,
                 position: 'insideEndBottom',
                 formatter: 'CRITICAL RESOLUTION',
-                color: theme.gray400,
+                color: theme.gray200,
                 fontSize: 10,
               } as any, // TODO(ts): Color is not an option for label,
             }),

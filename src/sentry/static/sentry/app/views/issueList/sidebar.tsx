@@ -168,15 +168,15 @@ const StyledIconClose = styled(IconClose)`
   position: absolute;
   top: 13px;
   right: 10px;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 
 const StyledHeader = styled('h6')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   margin-bottom: ${space(1)};
 `;
 

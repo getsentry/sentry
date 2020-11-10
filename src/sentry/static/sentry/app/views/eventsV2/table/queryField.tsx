@@ -510,7 +510,7 @@ const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
   height: 37px;
   min-width: 50px;
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
   align-items: center;
@@ -518,7 +518,7 @@ const BlankSpace = styled('div')`
 
   &:after {
     content: '${t('No parameter')}';
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 
