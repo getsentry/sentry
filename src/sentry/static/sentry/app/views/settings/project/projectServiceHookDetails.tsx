@@ -54,6 +54,9 @@ class HookStats extends AsyncComponent<StatsProps, StatsState> {
 
   renderBody() {
     const {stats} = this.state;
+    if (stats === null) {
+      return null;
+    }
     let emptyStats = true;
 
     const series = {
