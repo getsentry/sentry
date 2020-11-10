@@ -598,7 +598,7 @@ const ItemTransactionDurationChange = styled('div')`
 `;
 
 const DurationChange = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin: 0 ${space(1)};
 `;
 

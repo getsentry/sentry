@@ -103,7 +103,7 @@ class RuleListRow extends React.Component<Props, State> {
 const RuleType = styled('div')`
   font-size: 12px;
   font-weight: 400;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   text-transform: uppercase;
 `;
 

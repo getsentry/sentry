@@ -209,11 +209,11 @@ const Input = styled('div')<{
   &:focus,
   &:active {
     border: 1px solid ${p => (p.isDisabled ? 'transparent' : p.theme.border)};
-    background-color: ${p => (p.isDisabled ? 'transparent' : p.theme.gray300)};
+    background-color: ${p => (p.isDisabled ? 'transparent' : p.theme.gray200)};
   }
 `;
 const StyledIconEdit = styled(IconEdit)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-left: ${space(0.5)};
 
   &:hover {

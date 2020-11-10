@@ -134,7 +134,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                   >
                     {t('Created')}{' '}
                     <IconArrow
-                      color="gray500"
+                      color="gray300"
                       size="xs"
                       direction={sort.asc ? 'up' : 'down'}
                     />

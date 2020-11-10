@@ -70,7 +70,7 @@ const LogoLink = styled(props => (
 
 const Build = styled('span')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   font-weight: bold;
   margin-left: ${space(1)};
 `;

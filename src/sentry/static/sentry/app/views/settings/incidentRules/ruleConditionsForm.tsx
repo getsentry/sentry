@@ -224,7 +224,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     ...base,
                     '.all-environment-note': {
                       ...(!state.isSelected && !state.isFocused
-                        ? {color: theme.gray600}
+                        ? {color: theme.gray400}
                         : {}),
                       fontSize: theme.fontSizeSmall,
                     },
@@ -262,8 +262,8 @@ const StyledSearchBar = styled(SearchBar)`
 
 const SearchEventTypeNote = styled('div')`
   font: ${p => p.theme.fontSizeExtraSmall} ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.gray600};
-  background: ${p => p.theme.gray200};
+  color: ${p => p.theme.gray400};
+  background: ${p => p.theme.backgroundSecondary};
   border-radius: 2px;
   padding: ${space(0.5)} ${space(0.75)};
   margin: 0 ${space(0.5)} 0 ${space(1)};

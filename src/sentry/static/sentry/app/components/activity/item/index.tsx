@@ -189,15 +189,15 @@ const StyledActivityAvatar = styled(ActivityAvatar)`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledDateTimeWindow = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledActivityBubble = styled(ActivityBubble)`

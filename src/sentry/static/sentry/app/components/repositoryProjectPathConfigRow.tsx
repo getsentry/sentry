@@ -93,7 +93,7 @@ const StyledButton = styled(Button)`
 const ProjectAndBranch = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 //match the line eight of the badge

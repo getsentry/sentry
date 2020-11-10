@@ -78,12 +78,12 @@ const StyledTable = styled('table')`
 
 const StyledTr = styled('tr')`
   &:nth-child(2n + 1) td {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 
 const TagKey = styled('td')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
@@ -93,7 +93,7 @@ const TagKey = styled('td')`
 
 const TagValue = styled(TagKey)`
   text-align: right;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     width: 160px;
   }

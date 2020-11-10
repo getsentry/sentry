@@ -170,7 +170,7 @@ const Description = styled('p')`
   padding-top: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.75rem;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   margin: 0;
 `;
 
@@ -218,12 +218,12 @@ const CTA = styled('div')`
 `;
 
 const SkipButton = styled(Button)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const ItemComplete = styled(Card)`
   cursor: pointer;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   padding: ${space(1)} ${space(1.5)};
   display: grid;
   grid-template-columns: max-content 1fr max-content 20px;
@@ -262,7 +262,7 @@ const completedItemAnimation = {
 };
 
 const CompletedDate = styled(motion.div)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 CompletedDate.defaultProps = {

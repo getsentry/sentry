@@ -116,7 +116,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
     // Don't call super as we don't really need issues for this.
     return (
       <ErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning color="gray300" size="lg" />
       </ErrorPanel>
     );
   }
@@ -141,7 +141,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
     const yAxis = {
       type: 'value' as const,
       axisLabel: {
-        color: theme.gray400,
+        color: theme.gray200,
         // Use p50() to force time formatting.
         formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
       },

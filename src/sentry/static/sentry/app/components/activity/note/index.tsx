@@ -190,7 +190,7 @@ const StyledActivityItem = styled(ActivityItem)`
 
   blockquote {
     font-size: 15px;
-    background: ${p => p.theme.gray300};
+    background: ${p => p.theme.gray200};
 
     p:last-child {
       margin-bottom: 0;

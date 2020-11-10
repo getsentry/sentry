@@ -440,10 +440,10 @@ const TraceViewContainer = styled('div')`
 `;
 
 const SecondaryHeader = styled('div')`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   display: flex;
 
-  border-bottom: 1px solid ${p => p.theme.gray400};
+  border-bottom: 1px solid ${p => p.theme.gray200};
 `;
 
 const DividerSpacer = styled('div')`

@@ -56,14 +56,14 @@ const BarContainer = styled('div')`
 
 const Label = styled('span')`
   position: relative;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   z-index: 2;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Bar = styled('div')`
   border-radius: 2px;
-  background-color: ${p => p.theme.gray300};
+  background-color: ${p => p.theme.gray200};
   position: absolute;
   top: 0;
   left: 0;

@@ -12,7 +12,7 @@ const styles = (theme: Theme) => css`
   }
 
   abbr {
-    border-bottom: 1px dotted ${theme.gray500};
+    border-bottom: 1px dotted ${theme.gray300};
   }
 
   /**

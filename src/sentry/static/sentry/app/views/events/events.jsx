@@ -247,7 +247,7 @@ const PaginationWrapper = styled('div')`
 `;
 
 const RowDisplay = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
 `;
 
 export default withOrganization(Events);

@@ -124,7 +124,7 @@ const AggregateHeader = styled('div')`
   grid-gap: ${space(1)};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: bold;
   margin-bottom: ${space(1)};
 `;
@@ -133,10 +133,10 @@ const PresetButton = styled(Button)<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.gray700};
+      color: ${p.theme.gray500};
       &:hover,
       &:focus {
-        color: ${p.theme.gray800};
+        color: ${p.theme.gray500};
       }
     `}
 `;

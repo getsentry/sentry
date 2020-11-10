@@ -289,13 +289,13 @@ const HomePanelBody = styled(PanelBody)`
     li {
       line-height: 1.6;
       /* Bullet color */
-      color: ${p => p.theme.gray400};
+      color: ${p => p.theme.gray200};
     }
   }
 `;
 
 const HomeIcon = styled('div')<{color?: string}>`
-  background: ${p => p.theme[p.color || 'gray500']};
+  background: ${p => p.theme[p.color || 'gray300']};
   color: ${p => p.theme.white};
   width: ${HOME_ICON_SIZE}px;
   height: ${HOME_ICON_SIZE}px;

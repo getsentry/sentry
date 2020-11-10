@@ -81,7 +81,7 @@ const PanelContainer = styled('div')`
   display: flex;
   flex-direction: column;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.sidebar.background};
   border-right: 1px solid ${p => p.theme.border};
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
@@ -110,13 +110,13 @@ const SidebarPanelBody = styled('div')<{hasHeader: boolean}>`
 `;
 
 const PanelClose = styled(IconClose)`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   cursor: pointer;
   position: relative;
   padding: ${space(0.75)};
 
   &:hover {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
   }
 `;
 

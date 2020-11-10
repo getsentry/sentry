@@ -96,7 +96,7 @@ class SeenInfo extends React.Component<Props> {
         {date ? (
           <TooltipWrapper>
             <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
-              <IconInfo size="xs" color="gray500" />
+              <IconInfo size="xs" color="gray300" />
               <TimeSince date={date} disabledAbsoluteTooltip />
             </Tooltip>
           </TooltipWrapper>
@@ -144,7 +144,7 @@ const NotConfigured = styled('span')`
 const StyledDateTime = styled(DateTime)`
   display: block;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const DateWrapper = styled('div')`

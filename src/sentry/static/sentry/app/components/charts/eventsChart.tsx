@@ -178,7 +178,7 @@ class Chart extends React.Component<ChartProps, State> {
       },
       yAxis: {
         axisLabel: {
-          color: theme.gray400,
+          color: theme.gray200,
           formatter: (value: number) => axisLabelFormatter(value, yAxis),
         },
       },
@@ -354,7 +354,7 @@ class EventsChart extends React.Component<Props> {
       if (errored) {
         return (
           <ErrorPanel>
-            <IconWarning color="gray500" size="lg" />
+            <IconWarning color="gray300" size="lg" />
           </ErrorPanel>
         );
       }

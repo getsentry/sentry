@@ -197,7 +197,7 @@ const NewIssuesColumn = styled(RightAlignedColumn)`
 
 const ColumnTitle = styled('div')`
   text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   margin-bottom: ${space(0.75)};

@@ -153,8 +153,8 @@ const FilterHeader = styled('h2')`
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
   border-bottom: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray600};
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.gray400};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(1)};

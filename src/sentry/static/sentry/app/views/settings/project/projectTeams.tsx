@@ -177,7 +177,7 @@ const StyledCreateTeamLink = styled(Link)`
     p.disabled &&
     css`
       cursor: not-allowed;
-      color: ${p.theme.gray500};
+      color: ${p.theme.gray300};
       opacity: 0.6;
     `};
 `;

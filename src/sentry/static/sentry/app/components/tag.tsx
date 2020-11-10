@@ -128,7 +128,7 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   max-width: 150px;
   overflow: hidden;
@@ -136,7 +136,7 @@ const Text = styled('span')`
   text-overflow: ellipsis;
   line-height: ${TAG_HEIGHT};
   a:hover & {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
   }
 `;
 

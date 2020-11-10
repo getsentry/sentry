@@ -52,7 +52,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
           if (error) {
             return (
               <ErrorPanel height="125px">
-                <IconWarning color="gray500" size="lg" />
+                <IconWarning color="gray300" size="lg" />
               </ErrorPanel>
             );
           }

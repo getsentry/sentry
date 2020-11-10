@@ -214,6 +214,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     const integrationIssues = this.renderIntegrationIssues(this.state.integrations);
     const pluginIssues = this.renderPluginIssues();
     const pluginActions = this.renderPluginActions();
+
     if (!sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions) {
       return (
         <React.Fragment>

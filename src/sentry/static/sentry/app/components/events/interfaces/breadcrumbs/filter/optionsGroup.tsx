@@ -47,8 +47,8 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   margin: 0;
-  background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.gray300};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1)} ${space(2)};
@@ -69,7 +69,7 @@ const ListItem = styled('li')<{isChecked?: boolean}>`
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   :hover {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
   ${CheckboxFancy} {
     opacity: ${p => (p.isChecked ? 1 : 0.3)};

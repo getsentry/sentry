@@ -17,7 +17,7 @@ const Terminal = ({command}: Props) => (
 export default Terminal;
 
 const Wrapper = styled('div')`
-  background: ${p => p.theme.gray800};
+  background: ${p => p.theme.gray500};
   padding: ${space(1.5)} ${space(3)};
   font-family: ${p => p.theme.text.familyMono};
   color: ${p => p.theme.white};
@@ -28,5 +28,5 @@ const Wrapper = styled('div')`
 `;
 
 const Prompt = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;

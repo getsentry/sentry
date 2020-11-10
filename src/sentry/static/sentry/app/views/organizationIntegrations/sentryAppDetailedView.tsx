@@ -316,10 +316,10 @@ const InstallButton = styled(Button)`
 `;
 
 const StyledUninstallButton = styled(Button)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   background: #ffffff;
 
-  border: ${p => `1px solid ${p.theme.gray500}`};
+  border: ${p => `1px solid ${p.theme.gray300}`};
   box-sizing: border-box;
   box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
   border-radius: 4px;

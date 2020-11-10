@@ -11,7 +11,7 @@ const SearchResultWrapper = styled(props => (
 ))`
   cursor: pointer;
   display: block;
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.gray500};
   padding: 10px;
   scroll-margin: 120px;
 
@@ -19,7 +19,7 @@ const SearchResultWrapper = styled(props => (
     p.highlighted &&
     css`
       color: ${p.theme.purple300};
-      background: ${p.theme.gray100};
+      background: ${p.theme.backgroundSecondary};
     `};
 
   &:not(:first-child) {

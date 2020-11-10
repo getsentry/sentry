@@ -414,7 +414,7 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 

@@ -462,14 +462,14 @@ const ActionItem = styled('button')`
 
   outline: none;
   border: 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: left;
   line-height: 1.2;
 
   &:hover {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 
   &:last-child {

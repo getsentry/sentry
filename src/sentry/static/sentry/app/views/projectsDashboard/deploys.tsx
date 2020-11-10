@@ -114,7 +114,7 @@ const Environment = styled('div')`
 `;
 
 const DeployTime = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   overflow: hidden;
   text-align: right;
   text-overflow: ellipsis;

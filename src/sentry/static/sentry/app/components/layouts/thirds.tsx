@@ -69,7 +69,7 @@ export const Title = styled('h2')`
   font-size: ${p => p.theme.headerFontSize};
   font-weight: normal;
   line-height: 1.2;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   margin-top: ${space(3)};
   /* TODO(bootstrap) Remove important when bootstrap headings are removed */
   margin-bottom: 0 !important;

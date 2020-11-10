@@ -49,7 +49,7 @@ function GroupChart({
   } else {
     // Colors are custom to preserve historical appearance where the single series is
     // considerably darker than the two series results.
-    colors = [theme.gray500];
+    colors = [theme.gray300];
     emphasisColors = [theme.purple300];
     series.push({
       seriesName: t('Events'),

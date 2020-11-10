@@ -221,15 +221,15 @@ export default ProjectSelector;
 
 const Label = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const AddButton = styled(Button)`
   display: block;
   margin: 0 ${space(1)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   :hover {
-    color: ${p => p.theme.gray600};
+    color: ${p => p.theme.gray400};
   }
 `;
 

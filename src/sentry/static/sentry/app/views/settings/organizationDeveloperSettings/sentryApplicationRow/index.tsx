@@ -122,7 +122,7 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   </CenterFlex>
 ))`
   color: ${(props: PublishStatusProps) =>
-    props.status === 'published' ? props.theme.success : props.theme.gray500};
+    props.status === 'published' ? props.theme.success : props.theme.gray300};
   font-weight: light;
   margin-right: ${space(0.75)};
 `;

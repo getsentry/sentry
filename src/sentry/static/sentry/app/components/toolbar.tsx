@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 const Toolbar = styled('div')`
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
   border-bottom: none;
   border-radius: 3px 3px 0 0;

@@ -113,7 +113,7 @@ const StyledClippedBox = styled(ClippedBox)`
 `;
 
 const PanelHeaderLink = styled(Link)`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
 `;
 
 const Title = styled('div')<{disabled: boolean}>`

@@ -50,13 +50,13 @@ export default function XAxis({
     boundaryGap: false,
     axisLine: {
       lineStyle: {
-        color: theme.gray400,
+        color: theme.gray200,
       },
       ...(axisLine || {}),
     },
     axisTick: {
       lineStyle: {
-        color: theme.gray400,
+        color: theme.gray200,
       },
       ...(axisTick || {}),
     },

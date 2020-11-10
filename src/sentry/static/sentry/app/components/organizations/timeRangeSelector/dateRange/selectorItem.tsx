@@ -42,12 +42,12 @@ const StyledSelectorItem = styled(SelectorItem)`
   padding: ${space(1)};
   align-items: center;
   flex: 1;
-  background-color: ${p => (p.selected ? p.theme.gray100 : 'transparent')};
+  background-color: ${p => (p.selected ? p.theme.backgroundSecondary : 'transparent')};
   font-weight: ${p => (p.selected ? 'bold' : 'normal')};
   border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.innerBorder)};
 
   &:hover {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 

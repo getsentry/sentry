@@ -5,7 +5,7 @@ import theme from 'app/utils/theme';
 
 const COLORS = {
   default: {
-    background: theme.gray100,
+    background: theme.backgroundSecondary,
     border: theme.border,
   },
   danger: {
@@ -77,7 +77,7 @@ export const CauseHeader = styled('div')`
 
   & button,
   & h3 {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;

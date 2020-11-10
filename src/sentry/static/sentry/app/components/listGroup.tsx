@@ -41,7 +41,7 @@ const ListGroup = styled('ul')<ListGroupProps>`
     p.striped
       ? `
     & > li:nth-child(odd) {
-      background: ${p.theme.gray100};
+      background: ${p.theme.backgroundSecondary};
     }
   `
       : ''}

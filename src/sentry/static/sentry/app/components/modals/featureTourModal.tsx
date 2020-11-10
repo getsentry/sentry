@@ -221,7 +221,7 @@ const StepCounter = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 // Styled components that can be used to build tour content.

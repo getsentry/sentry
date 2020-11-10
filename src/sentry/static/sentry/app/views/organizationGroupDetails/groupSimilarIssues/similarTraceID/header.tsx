@@ -35,10 +35,10 @@ const Wrapper = styled('div')`
   grid-gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   h4 {
     font-size: ${p => p.theme.headerFontSize};
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.gray500};
     font-weight: normal;
     margin-bottom: 0;
   }

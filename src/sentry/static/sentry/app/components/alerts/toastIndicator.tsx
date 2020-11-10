@@ -17,7 +17,7 @@ const Toast = styled(motion.div)`
   height: 40px;
   padding: 0 15px 0 10px;
   margin-top: 15px;
-  background: ${p => p.theme.gray800};
+  background: ${p => p.theme.gray500};
   color: #fff;
   border-radius: 44px 7px 7px 44px;
   box-shadow: 0 4px 12px 0 rgba(47, 40, 55, 0.16);
@@ -59,20 +59,20 @@ const Message = styled('div')`
 
 const Undo = styled('div')`
   display: inline-block;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding-left: ${space(2)};
   margin-left: ${space(2)};
-  border-left: 1px solid ${p => p.theme.gray300};
+  border-left: 1px solid ${p => p.theme.gray200};
   cursor: pointer;
 
   &:hover {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
   }
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   .loading-indicator {
-    border-color: ${p => p.theme.gray700};
+    border-color: ${p => p.theme.gray500};
     border-left-color: ${p => p.theme.purple300};
   }
 `;

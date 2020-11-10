@@ -321,7 +321,7 @@ const StyledHeaderActions = styled(Layout.HeaderActions)`
 `;
 
 const EventSubheading = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-left: ${space(1)};
 `;
 

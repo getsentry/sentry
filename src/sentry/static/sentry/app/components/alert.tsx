@@ -56,7 +56,7 @@ const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: any})
   font-size: 15px;
   box-shadow: ${theme.dropShadowLight};
   border-radius: ${theme.borderRadius};
-  background: ${theme.gray100};
+  background: ${theme.backgroundSecondary};
   border: 1px solid ${theme.border};
 
   a:not([role='button']) {

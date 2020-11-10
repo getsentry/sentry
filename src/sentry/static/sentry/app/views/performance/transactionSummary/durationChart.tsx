@@ -132,7 +132,7 @@ class DurationChart extends React.Component<Props> {
       },
       yAxis: {
         axisLabel: {
-          color: theme.gray400,
+          color: theme.gray200,
           // p50() coerces the axis to be time based
           formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
         },
@@ -176,7 +176,7 @@ class DurationChart extends React.Component<Props> {
                 if (errored) {
                   return (
                     <ErrorPanel>
-                      <IconWarning color="gray500" size="lg" />
+                      <IconWarning color="gray300" size="lg" />
                     </ErrorPanel>
                   );
                 }

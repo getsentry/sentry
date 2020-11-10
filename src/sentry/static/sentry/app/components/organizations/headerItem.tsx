@@ -101,14 +101,14 @@ class HeaderItem extends React.Component<Props> {
           <StyledChevron isOpen={isOpen}>
             <IconChevron
               direction="down"
-              color={isOpen ? 'gray700' : 'gray500'}
+              color={isOpen ? 'gray500' : 'gray300'}
               size="sm"
             />
           </StyledChevron>
         )}
         {locked && (
           <Tooltip title={lockedMessage || 'This selection is locked'} position="bottom">
-            <StyledLock color="gray500" />
+            <StyledLock color="gray300" />
           </Tooltip>
         )}
       </StyledHeaderItem>
@@ -119,9 +119,9 @@ class HeaderItem extends React.Component<Props> {
 // Infer props here because of styled/theme
 const getColor = p => {
   if (p.locked) {
-    return p.theme.gray500;
+    return p.theme.gray300;
   }
-  return p.isOpen || p.hasSelected ? p.theme.gray700 : p.theme.gray500;
+  return p.isOpen || p.hasSelected ? p.theme.gray500 : p.theme.gray300;
 };
 
 type ColorProps = {
@@ -187,7 +187,7 @@ const StyledChevron = styled('div')<StyledChevronProps>`
 `;
 
 const SettingsIconLink = styled(Link)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -195,7 +195,7 @@ const SettingsIconLink = styled(Link)`
   transition: 0.5s opacity ease-out;
 
   &:hover {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.gray500};
   }
 `;
 
