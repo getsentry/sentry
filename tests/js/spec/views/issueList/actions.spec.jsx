@@ -339,4 +339,31 @@ describe('IssueListActions', function () {
       expect(merge.props().disabled).toBe(true);
     });
   });
+
+  describe('with inbox feature', function () {
+    it('renders backlog action', function () {
+      const {organization} = TestStubs.routerContext().context;
+      organization.features = ['inbox'];
+      wrapper = mountWithTheme(
+        <IssueListActions
+          api={new MockApiClient()}
+          query=""
+          orgId="1337"
+          organization={organization}
+          groupIds={[1, 2, 3]}
+          selection={{
+            projects: [],
+            environments: [],
+            datetime: {start: null, end: null, period: null, utc: true},
+          }}
+          onRealtimeChange={function () {}}
+          onSelectStatsPeriod={function () {}}
+          realtimeActive={false}
+          statsPeriod="24h"
+        />,
+        TestStubs.routerContext()
+      );
+      expect(wrapper.find('[data-test-id="button-backlog"]').exists()).toBeTruthy();
+    });
+  });
 });
