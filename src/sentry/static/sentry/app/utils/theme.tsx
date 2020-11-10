@@ -149,7 +149,7 @@ const aliases = {
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
    */
-  chartLineColor: colors.gray200,
+  chartLineColor: colors.gray100,
 
   /**
    * Color for chart label text
