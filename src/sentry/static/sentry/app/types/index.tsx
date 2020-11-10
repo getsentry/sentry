@@ -195,6 +195,7 @@ export type Project = {
   isMember: boolean;
   teams: Team[];
   features: string[];
+  organization: Organization;
 
   isBookmarked: boolean;
   hasUserReports?: boolean;
@@ -710,6 +711,7 @@ export type EventOrGroupType =
 // TODO(ts): incomplete
 export type Group = {
   id: string;
+  latestEvent: Event;
   activity: any[]; // TODO(ts)
   annotations: string[];
   assignedTo: User;
@@ -740,8 +742,6 @@ export type Group = {
   shareId: string;
   shortId: string;
   stats: Record<string, TimeseriesValue[]>;
-  filtered?: any; // TODO(ts)
-  lifetime?: any; // TODO(ts)
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
@@ -750,6 +750,8 @@ export type Group = {
   userCount: number;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  filtered?: any; // TODO(ts)
+  lifetime?: any; // TODO(ts)
 };
 
 export type GroupTombstone = {
