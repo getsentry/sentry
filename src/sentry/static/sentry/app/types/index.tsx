@@ -1632,3 +1632,12 @@ export type ExceptionType = {
   hasSystemFrames: boolean;
   values?: Array<ExceptionValue>;
 };
+
+/**
+ * Identity is used in Account Identities for SocialAuths
+ */
+export type Identity = {
+  id: string;
+  provider: IntegrationProvider;
+  providerLabel: string;
+};
