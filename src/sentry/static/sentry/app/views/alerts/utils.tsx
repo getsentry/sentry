@@ -4,7 +4,12 @@ import {Project, NewQuery} from 'app/types';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
-import {Dataset, SavedIncidentRule} from 'app/views/settings/incidentRules/types';
+import {
+  Dataset,
+  Datasource,
+  EventTypes,
+  SavedIncidentRule,
+} from 'app/views/settings/incidentRules/types';
 import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
 import {IssueAlertRule} from 'app/types/alerts';
 
@@ -156,4 +161,51 @@ export function isIssueAlert(
 export const DATA_SOURCE_LABELS = {
   [Dataset.ERRORS]: t('Errors'),
   [Dataset.TRANSACTIONS]: t('Transactions'),
+  [Datasource.ERROR_DEFAULT]: t('event.type:error OR event.type:default'),
+  [Datasource.ERROR]: t('event.type:error'),
+  [Datasource.DEFAULT]: t('event.type:default'),
+  [Datasource.TRANSACTION]: t('event.type:transaction'),
 };
+
+// Maps a datasource to the relevant dataset and event_types for the backend to use
+export const DATA_SOURCE_TO_SET_AND_EVENT_TYPES = {
+  [Datasource.ERROR_DEFAULT]: {
+    dataset: Dataset.ERRORS,
+    eventTypes: [EventTypes.ERROR, EventTypes.DEFAULT],
+  },
+  [Datasource.ERROR]: {
+    dataset: Dataset.ERRORS,
+    eventTypes: [EventTypes.ERROR],
+  },
+  [Datasource.DEFAULT]: {
+    dataset: Dataset.ERRORS,
+    eventTypes: [EventTypes.DEFAULT],
+  },
+  [Datasource.TRANSACTION]: {
+    dataset: Dataset.TRANSACTIONS,
+    eventTypes: [EventTypes.TRANSACTION],
+  },
+};
+
+// Converts the given dataset and event types array to a datasource for the datasource dropdown
+export function convertDatasetEventTypesToSource(
+  dataset: Dataset,
+  eventTypes: EventTypes[]
+) {
+  // transactions only has one datasource option regardless of event type
+  if (dataset === Dataset.TRANSACTIONS) {
+    return Datasource.TRANSACTION;
+  }
+  // if no event type was provided use the default datasource
+  if (!eventTypes) {
+    return Datasource.ERROR;
+  }
+
+  if (eventTypes.includes(EventTypes.DEFAULT) && eventTypes.includes(EventTypes.ERROR)) {
+    return Datasource.ERROR_DEFAULT;
+  } else if (eventTypes.includes(EventTypes.DEFAULT)) {
+    return Datasource.DEFAULT;
+  } else {
+    return Datasource.ERROR;
+  }
+}
