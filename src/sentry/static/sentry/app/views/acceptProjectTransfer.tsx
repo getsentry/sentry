@@ -72,6 +72,7 @@ class AcceptProjectTransfer extends AsyncView<Props, State> {
   renderBody() {
     const {transferDetails} = this.state;
     const choices = transferDetails?.organizations.map(org => [org.slug, org.slug]);
+    const organization = choices?.[0]?.[0];
 
     return (
       <NarrowLayout>
@@ -103,7 +104,7 @@ class AcceptProjectTransfer extends AsyncView<Props, State> {
           onSubmit={this.handleSubmit}
           submitLabel={t('Transfer Project')}
           submitPriority="danger"
-          initialData={{organization: choices && choices[0] && choices[0][0]}}
+          initialData={organization ? {organization} : undefined}
         >
           <SelectField
             deprecatedSelectControl
