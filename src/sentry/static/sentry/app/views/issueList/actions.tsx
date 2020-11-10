@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
-import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
+import {IconEllipsis, IconPause, IconPlay, IconIssues} from 'app/icons';
 import {Client} from 'app/api';
-import {GlobalSelection, Group, Project, ResolutionStatus} from 'app/types';
+import {GlobalSelection, Group, Project, ResolutionStatus, Organization} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
@@ -22,6 +22,7 @@ import ResolveActions from 'app/components/actions/resolve';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
+import Feature from 'app/components/acl/feature';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
 
@@ -91,7 +92,7 @@ const getConfirm = (
   };
 
 const getLabel = (numIssues: number, allInQuerySelected: boolean) =>
-  function (action, append = '') {
+  function (action: string, append = '') {
     const capitalized = capitalize(action);
     const text = allInQuerySelected
       ? t(`Bulk ${action} issues`)
@@ -145,6 +146,7 @@ type Props = {
   api: Client;
   allResultsVisible: boolean;
   orgId: string;
+  organization: Organization;
   selection: GlobalSelection;
   groupIds: string[];
   onRealtimeChange: (realtime: boolean) => void;
@@ -332,6 +334,7 @@ class IssueListActions extends React.Component<Props, State> {
     action:
       | 'resolve'
       | 'unresolve'
+      | 'backlog'
       | 'ignore'
       | 'unbookmark'
       | 'bookmark'
@@ -345,6 +348,7 @@ class IssueListActions extends React.Component<Props, State> {
       case 'ignore':
       case 'unbookmark':
         return this.state.pageSelected && selectedItems.size > 1;
+      case 'backlog':
       case 'bookmark':
         return selectedItems.size > 1;
       case 'merge':
@@ -396,6 +400,7 @@ class IssueListActions extends React.Component<Props, State> {
     const {
       allResultsVisible,
       orgId,
+      organization,
       queryCount,
       query,
       realtimeActive,
@@ -425,6 +430,23 @@ class IssueListActions extends React.Component<Props, State> {
             <Checkbox onChange={this.handleSelectAll} checked={pageSelected} />
           </ActionsCheckbox>
           <ActionSet>
+            <Feature organization={organization} features={['organizations:inbox']}>
+              <div className="btn-group hidden-md hidden-sm hidden-xs">
+                <StyledActionLink
+                  className="btn btn-default btn-sm action-merge"
+                  data-test-id="button-backlog"
+                  disabled={!anySelected}
+                  onAction={() => this.handleUpdate({isInbox: false})}
+                  shouldConfirm={this.shouldConfirm('backlog')}
+                  message={confirm('move', false, ' to the backlog')}
+                  confirmLabel={label('backlog')}
+                  title={t('Move to backlog')}
+                >
+                  <StyledIconIssues size="xs" />
+                  {t('Backlog')}
+                </StyledActionLink>
+              </div>
+            </Feature>
             {selectedProjectSlug ? (
               <Projects orgId={orgId} slugs={[selectedProjectSlug]}>
                 {({projects, initiallyLoaded, fetchError}) => {
@@ -701,6 +723,16 @@ const GraphHeader = styled('div')`
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
   flex: 1;
+`;
+
+const StyledActionLink = styled(ActionLink)`
+  display: flex;
+  align-items: center;
+  transition: none;
+`;
+
+const StyledIconIssues = styled(IconIssues)`
+  margin-right: ${space(0.5)};
 `;
 
 const GraphToggle = styled('a')<{active: boolean}>`
