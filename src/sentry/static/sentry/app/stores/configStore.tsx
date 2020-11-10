@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {setLocale} from 'app/locale';
 import {Config} from 'app/types';
+import {prefersDark} from 'app/utils/matchMedia';
 
 type ConfigStoreInterface = {
   config: Config;
@@ -28,7 +29,10 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   },
 
   set(key, value) {
-    this.config[key] = value;
+    this.config = {
+      ...this.config,
+      [key]: value,
+    };
     this.trigger({[key]: value});
   },
 
@@ -37,8 +41,11 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   },
 
   loadInitialData(config): void {
-    config.features = new Set(config.features || []);
-    this.config = config;
+    this.config = {
+      ...config,
+      features: new Set(config.features || []),
+      theme: config.user.isStaff && prefersDark() ? 'dark' : 'light',
+    };
 
     // Language code is passed from django
     let languageCode = config.languageCode;
