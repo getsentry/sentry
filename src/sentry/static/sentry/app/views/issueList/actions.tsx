@@ -7,7 +7,7 @@ import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
 import {IconEllipsis, IconPause, IconPlay, IconIssues} from 'app/icons';
 import {Client} from 'app/api';
-import {GlobalSelection, Group, Organization, Project, ResolutionStatus, Organization} from 'app/types';
+import {GlobalSelection, Group, Organization, Project, ResolutionStatus} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
@@ -157,7 +157,6 @@ type Props = {
   statsPeriod: string;
   query: string;
   queryCount: number;
-  organization: Organization;
 };
 
 type State = {
@@ -403,7 +402,6 @@ class IssueListActions extends React.Component<Props, State> {
     const {
       allResultsVisible,
       orgId,
-      organization,
       queryCount,
       query,
       realtimeActive,
@@ -427,8 +425,6 @@ class IssueListActions extends React.Component<Props, State> {
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
     const mergeDisabled = !(multiSelected && selectedProjectSlug);
-    const orgFeatures = new Set(organization.features);
-    const hasInbox = orgFeatures.has('inbox');
     const inboxTabActive = queryObj.hasOwnProperty('is') && queryObj.is === 'inbox';
 
     return (
@@ -646,10 +642,12 @@ class IssueListActions extends React.Component<Props, State> {
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
-          {hasInbox && inboxTabActive && (
-            <ReasonSpacerLabel className="align-right hidden-xs hidden-sm" />
-          )}
-          {hasInbox && <TimesSpacerLabel className="align-right hidden-xs hidden-sm" />}
+          <Feature organization={organization} features={['organizations:inbox']}>
+            {inboxTabActive && (
+              <ReasonSpacerLabel className="align-right hidden-xs hidden-sm" />
+            )}
+            <TimesSpacerLabel className="align-right hidden-xs hidden-sm" />
+          </Feature>
         </StyledFlex>
 
         {!allResultsVisible && pageSelected && (
