@@ -67,7 +67,7 @@ class IssueActions extends DefaultIssueActions {
   };
 
   renderForm() {
-    let form: JSX.Element | null = null;
+    let form: React.ReactNode = null;
 
     // For create form, split into required and optional fields
     if (this.props.actionType === 'create') {
