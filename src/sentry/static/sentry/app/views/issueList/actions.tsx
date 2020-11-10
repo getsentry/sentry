@@ -436,7 +436,7 @@ class IssueListActions extends React.Component<Props, State> {
                   className="btn btn-default btn-sm action-merge"
                   data-test-id="button-backlog"
                   disabled={!anySelected}
-                  onAction={() => this.handleUpdate({isInbox: false})}
+                  onAction={() => this.handleUpdate({inbox: false})}
                   shouldConfirm={this.shouldConfirm('backlog')}
                   message={confirm('move', false, ' to the backlog')}
                   confirmLabel={label('backlog')}
@@ -525,7 +525,7 @@ class IssueListActions extends React.Component<Props, State> {
                     <ActionLink
                       className="action-backlog hidden-md hidden-lg hidden-xl"
                       disabled={!anySelected}
-                      onAction={() => this.handleUpdate({isInbox: false})}
+                      onAction={() => this.handleUpdate({inbox: false})}
                       shouldConfirm={this.shouldConfirm('backlog')}
                       message={confirm('move', false, ' to the backlog')}
                       confirmLabel={label('backlog')}

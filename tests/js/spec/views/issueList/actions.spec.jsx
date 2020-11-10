@@ -381,7 +381,7 @@ describe('IssueListActions', function () {
       expect(apiMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {isInbox: false},
+          data: {inbox: false},
         })
       );
 
