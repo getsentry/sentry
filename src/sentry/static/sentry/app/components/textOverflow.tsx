@@ -16,6 +16,7 @@ const TextOverflow = styled(({isParagraph, className, children}: Props) => {
   return <Component className={className}>{children}</Component>;
 })`
   ${p => (p.ellipsisDirection === 'right' ? overflowEllipsis : overflowEllipsisLeft)};
+  width: auto;
 `;
 
 TextOverflow.defaultProps = {
