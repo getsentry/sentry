@@ -339,4 +339,54 @@ describe('IssueListActions', function () {
       expect(merge.props().disabled).toBe(true);
     });
   });
+
+  describe('with inbox feature', function () {
+    beforeEach(() => {
+      const {organization} = TestStubs.routerContext().context;
+      organization.features = ['inbox'];
+      wrapper = mountWithTheme(
+        <IssueListActions
+          api={new MockApiClient()}
+          query=""
+          orgId="1337"
+          organization={organization}
+          groupIds={[1, 2, 3]}
+          selection={{
+            projects: [],
+            environments: [],
+            datetime: {start: null, end: null, period: null, utc: true},
+          }}
+          onRealtimeChange={function () {}}
+          onSelectStatsPeriod={function () {}}
+          realtimeActive={false}
+          statsPeriod="24h"
+        />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('renders backlog action', function () {
+      expect(wrapper.find('[data-test-id="button-backlog"]').exists()).toBeTruthy();
+    });
+
+    it('moves group to backlog', async function () {
+      const apiMock = MockApiClient.addMockResponse({
+        url: '/organizations/1337/issues/',
+        method: 'PUT',
+      });
+      wrapper.find('[data-test-id="button-backlog"]').first().simulate('click');
+
+      expect(wrapper.find('ModalDialog')).toSnapshot();
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(apiMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {inbox: false},
+        })
+      );
+
+      await tick();
+      wrapper.update();
+    });
+  });
 });
