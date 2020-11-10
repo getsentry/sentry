@@ -300,7 +300,9 @@ class StreamGroup extends React.Component<Props, State> {
                         )}
                       </div>
                     </span>
-                    <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
+                    <StyledDropdownList
+                      {...getMenuProps({className: 'dropdown-menu inverted'})}
+                    >
                       {data.filtered && (
                         <React.Fragment>
                           <StyledMenuItem to={this.getDiscoverUrl(true)}>
@@ -325,7 +327,7 @@ class StreamGroup extends React.Component<Props, State> {
                           </StyledMenuItem>
                         </React.Fragment>
                       )}
-                    </ul>
+                    </StyledDropdownList>
                   </span>
                 </GuideAnchor>
               );
@@ -354,7 +356,9 @@ class StreamGroup extends React.Component<Props, State> {
                       )}
                     </div>
                   </span>
-                  <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
+                  <StyledDropdownList
+                    {...getMenuProps({className: 'dropdown-menu inverted'})}
+                  >
                     {data.filtered && (
                       <React.Fragment>
                         <StyledMenuItem to={this.getDiscoverUrl(true)}>
@@ -379,7 +383,7 @@ class StreamGroup extends React.Component<Props, State> {
                         </StyledMenuItem>
                       </React.Fragment>
                     )}
-                  </ul>
+                  </StyledDropdownList>
                 </span>
               );
             }}
@@ -439,6 +443,10 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
     padding-right: 2px;
     color: ${p => p.theme.gray300};
   }
+`;
+
+const StyledDropdownList = styled('ul')`
+  z-index: ${p => p.theme.zIndex.hovercard};
 `;
 
 const StyledMenuItem = styled(({to, children, ...p}) => (
