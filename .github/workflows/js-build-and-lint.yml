@@ -69,15 +69,20 @@ jobs:
           yarn lint -c .eslintrc.relax.js
           yarn lint:css
 
+      - name: eslint (forks)
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          yarn eslint ${{ steps.changes.outputs.frontend_modified_lintable_files }}
+
       # Otherwise if it's not main branch, only lint modified files
       - name: eslint (changed files only)
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
       # Otherwise if it's not main branch, only lint modified files
       - name: Commit any eslint fixed files
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
         continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
