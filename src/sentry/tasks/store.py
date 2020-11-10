@@ -214,13 +214,23 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
             span.set_data("symbolicaton_function", symbolication_function.__name__)
 
-            with metrics.timer("tasks.store.symbolicate_event.symbolication"):
+            with metrics.timer(
+                "tasks.store.symbolicate_event.symbolication",
+                tags={"symbolication_function": symbolication_function.__name__},
+            ):
                 symbolicated_data = symbolication_function(data)
 
             span.set_data("symbolicated_data", bool(symbolicated_data))
             if symbolicated_data:
                 data = symbolicated_data
                 has_changed = True
+
+            if start_time:
+                metrics.timing(
+                    "tasks.store.symbolicate_event.symbolication.full_duration",
+                    time() - start_time,
+                    tags={"symbolication_function": symbolication_function.__name__},
+                )
 
     except RetrySymbolication as e:
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
@@ -231,6 +241,13 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             # Do not drop event but actually continue with rest of pipeline
             # (persisting unsymbolicated event)
+            metrics.incr(
+                "tasks.store.symbolicate_event.fatal",
+                tags={
+                    "reason": "timeout",
+                    "symbolication_function": symbolication_function.__name__,
+                },
+            )
             error_logger.exception(
                 "symbolicate.failed.infinite_retry",
                 extra={"project_id": project_id, "event_id": event_id},
@@ -240,6 +257,10 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             has_changed = True
         else:
             # Requeue the task in the "sleep" queue
+            metrics.incr(
+                "tasks.store.symbolicate_event.retry",
+                tags={"symbolication_function": symbolication_function.__name__},
+            )
             retry_symbolicate_event.apply_async(
                 args=(),
                 kwargs={
@@ -254,6 +275,10 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             )
             return
     except Exception:
+        metrics.incr(
+            "tasks.store.symbolicate_event.fatal",
+            tags={"reason": "error", "symbolication_function": symbolication_function.__name__},
+        )
         error_logger.exception("tasks.store.symbolicate_event.symbolication")
         data.setdefault("_metrics", {})["flag.processing.error"] = True
         data.setdefault("_metrics", {})["flag.processing.fatal"] = True
