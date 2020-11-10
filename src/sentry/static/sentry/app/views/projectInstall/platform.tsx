@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import 'prismjs/themes/prism-tomorrow.css';
 
 import {Client} from 'app/api';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   performance as performancePlatforms,
   PlatformKey,
@@ -19,6 +18,7 @@ import {IconInfo} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
+import {PageHeader} from 'app/styles/organization';
 import Projects from 'app/utils/projects';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import platforms from 'app/data/platforms';
@@ -101,33 +101,33 @@ class ProjectInstallPlatform extends React.Component<Props, State> {
     const platformLink = platform.link ?? undefined;
 
     return (
-      <Panel>
-        <PanelHeader hasButtons>
-          {t('Configure %(platform)s', {platform: platform.name})}
-          <Actions>
+      <React.Fragment>
+        <StyledPageHeader>
+          <h2>{t('Configure %(platform)s', {platform: platform.name})}</h2>
+          <ButtonBar gap={1}>
             <Button size="small" to={gettingStartedLink}>
               {t('< Back')}
             </Button>
             <Button size="small" href={platformLink} external>
               {t('Full Documentation')}
             </Button>
-          </Actions>
-        </PanelHeader>
+          </ButtonBar>
+        </StyledPageHeader>
 
-        <PanelAlert type="info">
-          {tct(
-            `
+        <div>
+          <Alert type="info" icon={<IconInfo />}>
+            {tct(
+              `
              This is a quick getting started guide. For in-depth instructions
              on integrating Sentry with [platform], view
              [docLink:our complete documentation].`,
-            {
-              platform: platform.name,
-              docLink: <a href={platformLink} />,
-            }
-          )}
-        </PanelAlert>
+              {
+                platform: platform.name,
+                docLink: <a href={platformLink} />,
+              }
+            )}
+          </Alert>
 
-        <PanelBody withPadding>
           {this.state.loading ? (
             <LoadingIndicator />
           ) : this.state.error ? (
@@ -210,8 +210,8 @@ class ProjectInstallPlatform extends React.Component<Props, State> {
               }}
             </Projects>
           )}
-        </PanelBody>
-      </Panel>
+        </div>
+      </React.Fragment>
     );
   }
 }
@@ -239,12 +239,6 @@ const DocumentationWrapper = styled('div')`
   }
 `;
 
-const Actions = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
-`;
-
 const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(3)};
   width: max-content;
@@ -253,6 +247,23 @@ const StyledButtonBar = styled(ButtonBar)`
     width: auto;
     grid-row-gap: ${space(1)};
     grid-auto-flow: row;
+  }
+`;
+
+const StyledPageHeader = styled(PageHeader)`
+  margin-bottom: ${space(3)};
+
+  h2 {
+    margin: 0;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column;
+    align-items: flex-start;
+
+    h2 {
+      margin-bottom: ${space(2)};
+    }
   }
 `;
 
