@@ -37,6 +37,8 @@ def reprocess_group(
     )
 
     if not events:
+        # Need to delay this until we have queried all events.
+        eventstream.exclude_groups(project_id, [group_id])
         wait_group_reprocessed.delay(project_id=project_id, group_id=group_id)
         return
 
@@ -102,8 +104,9 @@ def wait_group_reprocessed(project_id, group_id):
 )
 def delete_old_group(project_id, group_id):
     from sentry.models.group import Group
-    from sentry.group_deletion import delete_group
 
     group = Group.objects.get_from_cache(id=group_id)
-    eventstream.exclude_groups(project_id, [group_id])
-    delete_group(group, delete_in_snuba=False)
+
+    # All the associated models (groupassignee and eventattachments) should
+    # have moved to a successor group that may be deleted independently.
+    group.delete()

@@ -23,6 +23,7 @@ from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 # `~/.sentry/config.yml` and run `sentry devservices up`
 
 
+@pytest.mark.snuba
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
@@ -157,14 +158,9 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
             burst()
 
-            (new_event,) = eventstore.get_events(
-                eventstore.Filter(
-                    project_ids=[self.project.id],
-                    conditions=[["tags[original_event_id]", "=", event.event_id]],
-                )
-            )
+            new_event = eventstore.get_event_by_id(self.project.id, event.event_id)
             assert new_event is not None
-            assert new_event.event_id != event.event_id
+            assert new_event.event_id == event.event_id
 
         insta_snapshot_stacktrace_data(self, new_event.data, subname="reprocessed")
 
