@@ -204,7 +204,7 @@ describe('EventOrGroupHeader', function () {
         />
       );
 
-      const title = component.dive().instance().getTitle();
+      const title = component.dive().dive().instance().getTitle();
 
       expect(title.props.to.query.sort).toEqual('freq');
     });
@@ -223,7 +223,7 @@ describe('EventOrGroupHeader', function () {
         />
       );
 
-      const title = component.dive().instance().getTitle();
+      const title = component.dive().dive().instance().getTitle();
 
       expect(title.props.to.query._allp).toEqual(1);
     });

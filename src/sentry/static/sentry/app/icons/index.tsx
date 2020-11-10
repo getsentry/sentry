@@ -76,6 +76,7 @@ export {IconSettings} from './iconSettings';
 export {IconShow} from './iconShow';
 export {IconSiren} from './iconSiren';
 export {IconSliders} from './iconSliders';
+export {IconSound} from './iconSound';
 export {IconSpan} from './iconSpan';
 export {IconStack} from './iconStack';
 export {IconStar} from './iconStar';

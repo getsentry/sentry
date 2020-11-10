@@ -7,6 +7,7 @@ import moment from 'moment-timezone';
 import ConfigStore from 'app/stores/configStore';
 import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
+import {getDuration} from 'app/utils/formatters';
 
 import Tooltip from './tooltip';
 
@@ -35,6 +36,11 @@ type Props = DefaultProps & {
    */
   disabledAbsoluteTooltip?: boolean;
 
+  /**
+   * For relative time shortens minutes to min, day to d etc.
+   */
+  shorten?: boolean;
+
   className?: string;
 } & TimeProps;
 
@@ -60,7 +66,7 @@ class TimeSince extends React.PureComponent<Props, State> {
   // See: https://github.com/emotion-js/emotion/pull/1514
   static getDerivedStateFromProps(props) {
     return {
-      relative: getRelativeDate(props.date, props.suffix),
+      relative: getRelativeDate(props.date, props.suffix, props.shorten),
     };
   }
 
@@ -80,7 +86,7 @@ class TimeSince extends React.PureComponent<Props, State> {
   setRelativeDateTicker = () => {
     this.ticker = window.setTimeout(() => {
       this.setState({
-        relative: getRelativeDate(this.props.date, this.props.suffix),
+        relative: getRelativeDate(this.props.date, this.props.suffix, this.props.shorten),
       });
       this.setRelativeDateTicker();
     }, ONE_MINUTE_IN_MS);
@@ -92,6 +98,7 @@ class TimeSince extends React.PureComponent<Props, State> {
       suffix: _suffix,
       disabledAbsoluteTooltip,
       className,
+      shorten: _shorten,
       ...props
     } = this.props;
     const dateObj = getDateObj(date);
@@ -124,10 +131,19 @@ function getDateObj(date: RelaxedDateType): Date {
   return date;
 }
 
-function getRelativeDate(currentDateTime: RelaxedDateType, suffix?: string): string {
+function getRelativeDate(
+  currentDateTime: RelaxedDateType,
+  suffix?: string,
+  shorten?: boolean
+): string {
   const date = getDateObj(currentDateTime);
 
-  if (!suffix) {
+  if (shorten) {
+    return t('%(time)s %(suffix)s', {
+      time: getDuration(moment().diff(moment(date), 'seconds'), 0, true),
+      suffix,
+    });
+  } else if (!suffix) {
     return moment(date).fromNow(true);
   } else if (suffix === 'ago') {
     return moment(date).fromNow();
