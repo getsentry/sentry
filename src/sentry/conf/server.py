@@ -83,6 +83,8 @@ SENTRY_DISALLOWED_IPS = ()
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+TEST="test"
+
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
 INTERNAL_SYSTEM_IPS = (
