@@ -16,7 +16,7 @@ class GitLabClient(ApiClient):
         self.token = token
 
     def build_url(self, path):
-        return "{}/api/v4/{}".format(self.base_url, path.lstrip("/"))
+        return u"{}/api/v4/{}".format(self.base_url, path.lstrip("/"))
 
     def request(self, method, path, data=None, params=None):
         headers = {"Private-Token": self.token}
@@ -26,27 +26,27 @@ class GitLabClient(ApiClient):
         return self.request("GET", "/user")
 
     def get_project(self, repo):
-        return self.request("GET", "/projects/{}".format(quote(repo, safe="")))
+        return self.request("GET", u"/projects/{}".format(quote(repo, safe="")))
 
     def get_issue(self, repo, issue_id):
         try:
             return self.request(
-                "GET", "/projects/{}/issues/{}".format(quote(repo, safe=""), issue_id)
+                "GET", u"/projects/{}/issues/{}".format(quote(repo, safe=""), issue_id)
             )
         except IndexError:
             raise ApiError("Issue not found with ID", 404)
 
     def create_issue(self, repo, data):
-        return self.request("POST", "/projects/{}/issues".format(quote(repo, safe="")), data=data)
+        return self.request("POST", u"/projects/{}/issues".format(quote(repo, safe="")), data=data)
 
     def create_note(self, repo, issue_iid, data):
         return self.request(
             "POST",
-            "/projects/{}/issues/{}/notes".format(quote(repo, safe=""), issue_iid),
+            u"/projects/{}/issues/{}/notes".format(quote(repo, safe=""), issue_iid),
             data=data,
         )
 
     def list_project_members(self, repo):
         return self.request(
-            "GET", "/projects/{}/members/all/?per_page=100".format(quote(repo, safe=""))
+            "GET", u"/projects/{}/members/all/?per_page=100".format(quote(repo, safe=""))
         )

@@ -241,7 +241,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
                 "placeholder": "e.g. getsentry/sentry",
                 "help": (
                     "If you want to add a repository to integrate commit data with releases, please install the "
-                    'new <a href="/settings/{}/integrations/github/">'
+                    u'new <a href="/settings/{}/integrations/github/">'
                     "Github global integration</a>.  "
                     "You cannot add repositories to the legacy Github integration."
                 ).format(project.organization.slug),
@@ -301,7 +301,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
         return config
 
     def get_webhook_secret(self, organization):
-        lock = locks.get("github:webhook-secret:{}".format(organization.id), duration=60)
+        lock = locks.get(u"github:webhook-secret:{}".format(organization.id), duration=60)
         with lock.acquire():
             # TODO(dcramer): get_or_create would be a useful native solution
             secret = OrganizationOption.objects.get_value(
@@ -321,7 +321,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
             "events": WEBHOOK_EVENTS,
             "config": {
                 "url": absolute_uri(
-                    "/plugins/github/organizations/{}/webhook/".format(organization.id)
+                    u"/plugins/github/organizations/{}/webhook/".format(organization.id)
                 ),
                 "content_type": "json",
                 "secret": self.get_webhook_secret(organization),
@@ -357,7 +357,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
             return {
                 "name": data["name"],
                 "external_id": data["external_id"],
-                "url": "https://github.com/{}".format(data["name"]),
+                "url": u"https://github.com/{}".format(data["name"]),
                 "config": {
                     "name": data["name"],
                     "webhook_id": resp["id"],

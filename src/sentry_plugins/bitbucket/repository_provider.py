@@ -50,7 +50,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
         return config
 
     def get_webhook_secret(self, organization):
-        lock = locks.get("bitbucket:webhook-secret:{}".format(organization.id), duration=60)
+        lock = locks.get(u"bitbucket:webhook-secret:{}".format(organization.id), duration=60)
         with lock.acquire():
             secret = OrganizationOption.objects.get_value(
                 organization=organization, key="bitbucket:webhook_secret"
@@ -73,7 +73,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
                 {
                     "description": "sentry-bitbucket-repo-hook",
                     "url": absolute_uri(
-                        "/plugins/bitbucket/organizations/{}/webhook/".format(organization.id)
+                        u"/plugins/bitbucket/organizations/{}/webhook/".format(organization.id)
                     ),
                     "active": True,
                     "events": ["repo:push"],
@@ -85,7 +85,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
             return {
                 "name": data["name"],
                 "external_id": data["external_id"],
-                "url": "https://bitbucket.org/{}".format(data["name"]),
+                "url": u"https://bitbucket.org/{}".format(data["name"]),
                 "config": {"name": data["name"], "webhook_id": resp["uuid"]},
             }
 

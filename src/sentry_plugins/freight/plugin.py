@@ -6,7 +6,7 @@ from sentry.plugins.bases import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 
 
-DOC_HTML = """
+DOC_HTML = u"""
 <p>Configure a Freight notification with the given webhook url.</p>
 <pre class="clippy">{{
     "type": "sentry",
