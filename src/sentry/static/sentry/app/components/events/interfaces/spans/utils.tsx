@@ -619,7 +619,13 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
 // PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
 export const durationlessBrowserOps = ['mark', 'paint'];
 
-export function getMeasurements(event: SentryTransactionEvent): Map<number, string[]> {
+type MeasurementMarks = {
+  [name: string]: number | undefined;
+};
+
+export function getMeasurements(
+  event: SentryTransactionEvent
+): Map<number, MeasurementMarks> {
   if (!event.measurements) {
     return new Map();
   }
@@ -627,25 +633,33 @@ export function getMeasurements(event: SentryTransactionEvent): Map<number, stri
   const measurements = Object.keys(event.measurements)
     .filter(name => name.startsWith('mark.'))
     .map(name => {
+      const slug = name.slice('mark.'.length);
+      const associatedMeasurement = event.measurements![slug];
       return {
         name,
         timestamp: event.measurements![name].value,
+        value: associatedMeasurement ? associatedMeasurement.value : undefined,
       };
     });
 
-  const mergedMeasurements = new Map<number, string[]>();
+  const mergedMeasurements = new Map<number, MeasurementMarks>();
 
   measurements.forEach(measurement => {
     const name = measurement.name.slice('mark.'.length);
+    const value = measurement.value;
 
     if (mergedMeasurements.has(measurement.timestamp)) {
-      const names = mergedMeasurements.get(measurement.timestamp) as string[];
-      names.push(name);
-      mergedMeasurements.set(measurement.timestamp, names);
+      const marks = mergedMeasurements.get(measurement.timestamp) as MeasurementMarks;
+      mergedMeasurements.set(measurement.timestamp, {
+        ...marks,
+        [name]: value,
+      });
       return;
     }
 
-    mergedMeasurements.set(measurement.timestamp, [name]);
+    mergedMeasurements.set(measurement.timestamp, {
+      [name]: value,
+    });
   });
 
   return mergedMeasurements;

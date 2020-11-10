@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {SentryTransactionEvent} from 'app/types';
 import {defined} from 'app/utils';
 import {
+  WEB_VITAL_DETAILS,
   WEB_VITAL_ACRONYMS,
   LONG_WEB_VITAL_NAMES,
 } from 'app/views/performance/transactionVitals/constants';
@@ -36,7 +37,7 @@ class MeasurementsPanel extends React.PureComponent<Props> {
           width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
         }}
       >
-        {Array.from(measurements).map(([timestamp, names]) => {
+        {Array.from(measurements).map(([timestamp, marks]) => {
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -44,6 +45,20 @@ class MeasurementsPanel extends React.PureComponent<Props> {
           if (!shouldDisplay || !bounds.isSpanVisibleInView) {
             return null;
           }
+
+          const names = Object.keys(marks);
+          const records = Object.values(WEB_VITAL_DETAILS).filter(vital =>
+            names.includes(vital.slug)
+          );
+
+          const failedThreshold =
+            records.find(record => {
+              const value = marks[record.slug];
+              if (typeof value === 'number') {
+                return value >= record.failureThreshold;
+              }
+              return false;
+            }) !== undefined;
 
           const hoverMeasurementName = names.join('');
 
@@ -67,6 +82,7 @@ class MeasurementsPanel extends React.PureComponent<Props> {
                 return (
                   <LabelContainer
                     key={label}
+                    failedThreshold={failedThreshold}
                     label={label}
                     tooltipLabel={tooltipLabel}
                     left={toPercent(bounds.left || 0)}
@@ -102,10 +118,11 @@ const StyledLabelContainer = styled('div')`
   white-space: nowrap;
 `;
 
-const Label = styled('div')`
+const Label = styled('div')<{failedThreshold: boolean}>`
   transform: translateX(-50%);
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: 600;
+  ${p => (p.failedThreshold ? `color: ${p.theme.red300};` : null)}
 `;
 
 export default MeasurementsPanel;
@@ -116,6 +133,7 @@ type LabelContainerProps = {
   tooltipLabel: string;
   onMouseLeave: () => void;
   onMouseOver: () => void;
+  failedThreshold: boolean;
 };
 
 type LabelContainerState = {
@@ -140,7 +158,14 @@ class LabelContainer extends React.Component<LabelContainerProps> {
   elementDOMRef = React.createRef<HTMLDivElement>();
 
   render() {
-    const {left, onMouseLeave, onMouseOver, label, tooltipLabel} = this.props;
+    const {
+      left,
+      onMouseLeave,
+      onMouseOver,
+      label,
+      tooltipLabel,
+      failedThreshold,
+    } = this.props;
 
     return (
       <StyledLabelContainer
@@ -155,7 +180,7 @@ class LabelContainer extends React.Component<LabelContainerProps> {
           onMouseOver();
         }}
       >
-        <Label>
+        <Label failedThreshold={failedThreshold}>
           <Tooltip
             title={tooltipLabel}
             position="top"

@@ -11,6 +11,7 @@ import Tooltip from 'app/components/tooltip';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {IconChevron, IconWarning} from 'app/icons';
 import globalTheme from 'app/utils/theme';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
 import {
   toPercent,
@@ -361,7 +362,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <React.Fragment>
-        {Array.from(measurements).map(([timestamp, names]) => {
+        {Array.from(measurements).map(([timestamp, marks]) => {
+          const names = Object.keys(marks);
+
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -369,6 +372,19 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           if (!shouldDisplay || !bounds.isSpanVisibleInView) {
             return null;
           }
+
+          const records = Object.values(WEB_VITAL_DETAILS).filter(vital =>
+            names.includes(vital.slug)
+          );
+
+          const failedThreshold =
+            records.find(record => {
+              const value = marks[record.slug];
+              if (typeof value === 'number') {
+                return value >= record.failureThreshold;
+              }
+              return false;
+            }) !== undefined;
 
           const measurementName = names.join('');
 
@@ -380,6 +396,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                     style={{
                       left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
                     }}
+                    failedThreshold={failedThreshold}
                     onMouseEnter={() => {
                       hoveringMeasurement(measurementName);
                     }}
@@ -1164,14 +1181,18 @@ export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   ${p => getHatchPattern(p, '#dedae3', '#f4f2f7')}
 `;
 
-const MeasurementMarker = styled('div')`
+const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
   position: absolute;
   top: 0;
   height: ${SPAN_ROW_HEIGHT}px;
   user-select: none;
   width: 1px;
-  background: repeating-linear-gradient(to bottom, transparent 0 4px, black 4px 8px) 80%/2px
-    100% no-repeat;
+  background: repeating-linear-gradient(
+      to bottom,
+      transparent 0 4px,
+      ${p => (p.failedThreshold ? p.theme.red300 : 'black')} 4px 8px
+    )
+    80%/2px 100% no-repeat;
   z-index: ${zIndex.dividerLine};
   color: ${p => p.theme.gray500};
 `;
