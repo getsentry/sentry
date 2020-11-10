@@ -82,6 +82,9 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
   acceptance:
     # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
     name: python2.7 acceptance

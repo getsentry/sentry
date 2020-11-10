@@ -132,9 +132,6 @@ export function getPrebuiltQueries(organization: LightWeightOrganization) {
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
     views.splice(2, 0, ...TRANSACTION_VIEWS);
-  }
-
-  if (organization.features.includes('measurements')) {
     views.push(...WEB_VITALS_VIEWS);
   }
 

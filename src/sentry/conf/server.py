@@ -880,8 +880,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable measurements-based product features.
-    "organizations:measurements": False,
     # Enable key transactions as a column in performance
     "organizations:key-transactions": False,
     # Enable org-wide saved searches and user pinned search
@@ -907,8 +905,6 @@ SENTRY_FEATURES = {
     "organizations:sso-migration": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
-    # Enable trends view for performance.
-    "organizations:trends": False,
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
@@ -1532,6 +1528,7 @@ SENTRY_DEVSERVICES = {
     },
     "clickhouse": {
         "image": "yandex/clickhouse-server:20.3.9.70",
+        "pull": True,
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
         "volumes": {

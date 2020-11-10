@@ -625,7 +625,7 @@ class ReleaseSerializerTest(TestCase):
 
         assert serializer.is_valid()
         assert sorted(serializer.fields.keys()) == sorted(
-            ["version", "owner", "ref", "url", "dateReleased", "commits"]
+            ["version", "owner", "ref", "url", "dateReleased", "commits", "status"]
         )
 
         result = serializer.validated_data

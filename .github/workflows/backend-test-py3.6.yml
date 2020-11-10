@@ -76,3 +76,6 @@ jobs:
           # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
           unset USE_SNUBA
           make travis-test-postgres
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
